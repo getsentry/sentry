@@ -19,6 +19,7 @@
     "**/*.spec.*",
     "**/*.snapshots.*",
     "**/*.stories.tsx",
-    "tests"
+    "tests",
+    "static/app/serviceWorker/worker"
   ]
 }

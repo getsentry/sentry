@@ -8,15 +8,23 @@ describe('indexMembersByProject', () => {
     const user = UserFixture();
     const otherUser = UserFixture();
 
-    expect(
-      indexMembersByProject([
-        MemberFixture({projects: ['foo', 'bar'], user}),
-        MemberFixture({projects: ['foo'], user: otherUser}),
-        MemberFixture({projects: ['foo'], user: null}),
-      ])
-    ).toEqual({
-      bar: [user],
-      foo: [user, otherUser],
-    });
+    const result = indexMembersByProject([
+      MemberFixture({projects: ['foo', 'bar'], user}),
+      MemberFixture({projects: ['foo'], user: otherUser}),
+      MemberFixture({projects: ['foo'], user: null}),
+    ]);
+
+    expect(result.get('bar')).toEqual([user]);
+    expect(result.get('foo')).toEqual([user, otherUser]);
+  });
+
+  it('handles project slugs that overlap with Object prototype keys', () => {
+    const user = UserFixture();
+
+    const result = indexMembersByProject([
+      MemberFixture({projects: ['constructor'], user}),
+    ]);
+
+    expect(result.get('constructor')).toEqual([user]);
   });
 });

@@ -6,12 +6,11 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   eventView: EventView;
@@ -30,8 +29,7 @@ export function DiscoverBreadcrumb({
   isHomepage,
   savedQuery,
 }: Props) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  const shouldRenderEditableName = hasPageFrameFeature && !event;
+  const shouldRenderEditableName = !event;
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {

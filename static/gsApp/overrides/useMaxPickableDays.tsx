@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   getBestMaxPickableDays,
   getMaxPickableDays,

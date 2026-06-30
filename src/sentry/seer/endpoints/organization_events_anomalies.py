@@ -31,7 +31,7 @@ from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse, TimeSer
 class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.ALERTS_MONITORS
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
 

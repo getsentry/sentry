@@ -23,7 +23,6 @@ export const ORGANIZATION: OrganizationSummary = {
     avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
     avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
   },
-  codecovAccess: false,
   dateCreated: '2021-01-01',
   hideAiFeatures: false,
   isEarlyAdopter: false,

@@ -9,12 +9,23 @@ from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.calculations import (
+    apply_project_sample_rate_overrides,
+    compare_organization_sliding_window_sample_rates,
     compare_rebalanced_projects_with_cache,
+    compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
+    get_cached_rebalanced_transaction_sample_rates,
     run_project_balancing,
+    run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.configuration import get_configuration
-from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
+from sentry.dynamic_sampling.per_org.configuration import (
+    AutomaticDynamicSamplingConfiguration,
+    get_configuration,
+)
+from sentry.dynamic_sampling.per_org.gate import (
+    is_org_in_rollout,
+    sliding_window_comparison_org_ids,
+)
 from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
@@ -117,15 +128,40 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
-    if config.should_balance_projects:
-        project_volumes = get_eap_project_volumes(config)
-        if not project_volumes:
-            return DynamicSamplingStatus.NO_PROJECT_VOLUMES
-        rebalanced_projects = run_project_balancing(config, project_volumes)
-        cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
-        compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
+    project_volumes = get_eap_project_volumes(config)
+    if not project_volumes:
+        return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
-    if not get_eap_transaction_volumes(config):
+    if config.should_balance_projects:
+        rebalanced_projects = run_project_balancing(config, project_volumes)
+        rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
+        config.set_rebalanced_project_sample_rates(rebalanced_projects)
+        cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
+        compare_rebalanced_projects_with_cache(
+            config, rebalanced_projects, cached_sample_rates, project_volumes
+        )
+
+    if (
+        isinstance(config, AutomaticDynamicSamplingConfiguration)
+        and config.organization.id in sliding_window_comparison_org_ids()
+    ):
+        try:
+            compare_organization_sliding_window_sample_rates(config)
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
+
+    transaction_volumes = get_eap_transaction_volumes(config)
+    if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
+
+    rebalanced_transactions = run_transaction_balancing(
+        config, project_volumes, transaction_volumes
+    )
+    cached_transaction_sample_rates = get_cached_rebalanced_transaction_sample_rates(
+        org_id=config.organization.id, project_ids=rebalanced_transactions.keys()
+    )
+    compare_rebalanced_transactions_with_cache(
+        config, rebalanced_transactions, cached_transaction_sample_rates
+    )
 
     return None

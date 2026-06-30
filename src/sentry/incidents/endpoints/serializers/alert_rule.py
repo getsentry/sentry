@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
+
+if TYPE_CHECKING:
+    from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 
 
 class AlertRuleSerializerResponseOptional(TypedDict, total=False):
@@ -20,7 +23,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     weeklyAvg: float | None
     totalThisWeek: int | None
     snooze: bool | None
-    latestIncident: datetime | None
+    latestIncident: IncidentSerializerResponse | None
     errors: list[str] | None
     sensitivity: str | None
     seasonality: str | None

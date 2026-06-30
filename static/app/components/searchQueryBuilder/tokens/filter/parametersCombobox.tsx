@@ -16,13 +16,14 @@ import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/f
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {resolveFilterKey} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
@@ -185,7 +186,7 @@ function useParameterSuggestions({
             : field => columnTypes.includes(field.valueType);
 
         return potentialColumns
-          .map(col => [col, getFieldDefinition(col.key, col.kind)] as const)
+          .map(col => [col, getFieldDefinition(col.key, {kind: col.kind})] as const)
           .filter(([col, definition]) =>
             filterFn({
               key: col.key,
@@ -243,7 +244,8 @@ export function SearchQueryBuilderParametersCombobox({
   onDelete,
   onKeyDown: passedOnKeyDown,
 }: ParametersComboboxProps) {
-  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilderConfig();
+  const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
+    useSearchQueryBuilderConfig();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilderState();
@@ -292,7 +294,7 @@ export function SearchQueryBuilderParametersCombobox({
         const definition = getFieldDefinition(token.key.name.text);
         const parameters = splitParameters(value).map((parameter, i) => {
           return definition?.parameters?.[i]?.kind === 'column'
-            ? getSuggestedFilterKey(parameter)
+            ? resolveFilterKey({key: parameter, filterKeys, getSuggestedFilterKey})
             : parameter;
         });
 
@@ -312,6 +314,7 @@ export function SearchQueryBuilderParametersCombobox({
       token,
       onCommit,
       state,
+      filterKeys,
       getFieldDefinition,
       getSuggestedFilterKey,
     ]

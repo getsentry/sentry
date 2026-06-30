@@ -1,12 +1,13 @@
 import {queryOptions} from '@tanstack/react-query';
 
-import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import type {RequestCallbacks} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 
 type ParamsType = {
@@ -78,38 +79,12 @@ function getUpdateUrl({projectId, orgId}: UpdateParams) {
     : `/organizations/${orgId}/issues/`;
 }
 
-function chainUtil<Args extends any[]>(
-  ...funcs: Array<((...args: Args) => any) | undefined>
-) {
-  const filteredFuncs = funcs.filter(
-    (f): f is (...args: Args) => any => typeof f === 'function'
-  );
-  return (...args: Args): void => {
-    filteredFuncs.forEach(func => {
-      func.apply(funcs, args);
-    });
-  };
-}
-
-function wrapRequest(
-  api: Client,
-  path: string,
-  options: RequestOptions,
-  extraParams: RequestCallbacks = {}
-) {
-  options.success = chainUtil(options.success, extraParams.success);
-  options.error = chainUtil(options.error, extraParams.error);
-  options.complete = chainUtil(options.complete, extraParams.complete);
-
-  return api.request(path, options);
-}
-
 type BulkDeleteParams = UpdateParams;
 
-export function bulkDelete(
+export async function bulkDelete(
   api: Client,
   params: BulkDeleteParams,
-  options: RequestCallbacks
+  options: RequestCallbacks = {}
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
@@ -119,21 +94,25 @@ export function bulkDelete(
 
   GroupStore.onDelete(id, itemIds);
 
-  return wrapRequest(
-    api,
-    path,
-    {
+  let responseMeta: any;
+  let statusText: string | undefined;
+
+  try {
+    const [data, status, meta] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
-      success: response => {
-        GroupStore.onDeleteSuccess(id, itemIds, response);
-      },
-      error: error => {
-        GroupStore.onDeleteError(id, itemIds, error);
-      },
-    },
-    options
-  );
+      includeAllArgs: true,
+    });
+    statusText = status;
+    responseMeta = meta;
+    GroupStore.onDeleteSuccess(id, itemIds, data);
+    options?.success?.(data, statusText, responseMeta);
+  } catch (error) {
+    GroupStore.onDeleteError(id, itemIds, error as RequestError);
+    options?.error?.(error);
+  } finally {
+    options?.complete?.(responseMeta, statusText ?? '');
+  }
 }
 
 type BulkUpdateParams = UpdateParams & {
@@ -141,10 +120,10 @@ type BulkUpdateParams = UpdateParams & {
   failSilently?: boolean;
 };
 
-export function bulkUpdate(
+export async function bulkUpdate(
   api: Client,
   params: BulkUpdateParams,
-  options: RequestCallbacks
+  options: RequestCallbacks = {}
 ) {
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
@@ -154,30 +133,34 @@ export function bulkUpdate(
 
   GroupStore.onUpdate(id, itemIds, data);
 
-  return wrapRequest(
-    api,
-    path,
-    {
+  let responseMeta: any;
+  let statusText: string | undefined;
+
+  try {
+    const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data,
-      success: response => {
-        GroupStore.onUpdateSuccess(id, itemIds, response);
-      },
-      error: () => {
-        GroupStore.onUpdateError(id, itemIds, !!failSilently);
-      },
-    },
-    options
-  );
+      includeAllArgs: true,
+    });
+    statusText = status;
+    responseMeta = meta;
+    GroupStore.onUpdateSuccess(id, itemIds, response);
+    options?.success?.(response, statusText, responseMeta);
+  } catch (error) {
+    GroupStore.onUpdateError(id, itemIds, !!failSilently);
+    options?.error?.(error);
+  } finally {
+    options?.complete?.(responseMeta, statusText ?? '');
+  }
 }
 
 type MergeGroupsParams = UpdateParams;
 
-export function mergeGroups(
+export async function mergeGroups(
   api: Client,
   params: MergeGroupsParams,
-  options: RequestCallbacks
+  options: RequestCallbacks = {}
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
@@ -187,22 +170,26 @@ export function mergeGroups(
 
   GroupStore.onMerge(id, itemIds);
 
-  return wrapRequest(
-    api,
-    path,
-    {
+  let responseMeta: any;
+  let statusText: string | undefined;
+
+  try {
+    const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data: {merge: 1},
-      success: response => {
-        GroupStore.onMergeSuccess(id, itemIds, response);
-      },
-      error: error => {
-        GroupStore.onMergeError(id, itemIds, error);
-      },
-    },
-    options
-  );
+      includeAllArgs: true,
+    });
+    statusText = status;
+    responseMeta = meta;
+    GroupStore.onMergeSuccess(id, itemIds, response);
+    options?.success?.(response, statusText, responseMeta);
+  } catch (error) {
+    GroupStore.onMergeError(id, itemIds, error);
+    options?.error?.(error);
+  } finally {
+    options?.complete?.(responseMeta, statusText ?? '');
+  }
 }
 
 type FetchIssueTagValuesParameters = {

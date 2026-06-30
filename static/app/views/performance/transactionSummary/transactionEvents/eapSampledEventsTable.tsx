@@ -335,7 +335,7 @@ function renderBodyCell(
           icon={<IconProfiling size="xs" />}
           to={to}
           aria-label={t('View Profile')}
-          disabled={isEmptyObject(to)}
+          disabled={typeof to === 'object' && to !== null && isEmptyObject(to)}
         />
       </div>
     );

@@ -1,16 +1,15 @@
 import {Fragment, useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
@@ -110,30 +109,31 @@ function LoaderItem({
   projectKey: ProjectKey;
 }) {
   return (
-    <Panel>
-      <PanelHeader hasButtons>
-        {tct('Client Key: [name]', {name: projectKey.name})}
+    <FieldGroup
+      hasButtons
+      title={
+        <Flex align="center" justify="between" flexGrow={1}>
+          {tct('Client Key: [name]', {name: projectKey.name})}
+          <LinkButton
+            size="xs"
+            to={`/settings/${organization.slug}/projects/${project.slug}/keys/${projectKey.id}/`}
+          >
+            {t('View Key Details')}
+          </LinkButton>
+        </Flex>
+      }
+    >
+      <Alert variant="info" system>
+        {t('Note that it can take a few minutes until changed options are live.')}
+      </Alert>
 
-        <LinkButton
-          size="xs"
-          to={`/settings/${organization.slug}/projects/${project.slug}/keys/${projectKey.id}/`}
-        >
-          {t('View Key Details')}
-        </LinkButton>
-      </PanelHeader>
-      <PanelBody>
-        <PanelAlert variant="info">
-          {t('Note that it can take a few minutes until changed options are live.')}
-        </PanelAlert>
-
-        <LoaderSettings
-          orgSlug={organization.slug}
-          keyId={projectKey.id}
-          project={project}
-          data={projectKey}
-          updateData={onUpdateProjectKey}
-        />
-      </PanelBody>
-    </Panel>
+      <LoaderSettings
+        orgSlug={organization.slug}
+        keyId={projectKey.id}
+        project={project}
+        data={projectKey}
+        updateData={onUpdateProjectKey}
+      />
+    </FieldGroup>
   );
 }

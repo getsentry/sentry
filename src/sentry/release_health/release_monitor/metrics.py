@@ -2,7 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from snuba_sdk import (
     BooleanCondition,
@@ -28,6 +28,7 @@ from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import metrics
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -52,9 +53,11 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         groupby=[Column("org_id"), Column("project_id")],
                         where=[
                             Condition(
-                                Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
+                                Column("timestamp"),
+                                Op.GTE,
+                                deprecated_utcnow() - timedelta(hours=6),
                             ),
-                            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                            Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                             Condition(
                                 Column("metric_id"),
                                 Op.EQ,
@@ -116,9 +119,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     groupby=[Column("org_id"), Column("project_id")],
                     where=[
                         Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
+                            Column("timestamp"), Op.GTE, deprecated_utcnow() - timedelta(hours=6)
                         ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                         Condition(
                             Column("metric_id"),
                             Op.EQ,
@@ -211,9 +214,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             Condition(
                                 Column("timestamp"),
                                 Op.GTE,
-                                datetime.utcnow() - timedelta(hours=6),
+                                deprecated_utcnow() - timedelta(hours=6),
                             ),
-                            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                            Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                             Condition(Column("org_id"), Op.EQ, org_id),
                             Condition(Column("project_id"), Op.IN, project_ids),
                             Condition(

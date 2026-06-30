@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
@@ -8,17 +8,18 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {
   DEPRECATED_FIELDS,
   generateFieldAsString,
@@ -54,6 +55,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import type {TraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
@@ -64,6 +66,7 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 export const NONE = 'none';
 
@@ -279,17 +282,11 @@ export function parseAggregateFromValueKey(value: string) {
 
 interface VisualizeProps {
   error?: Record<string, any>;
-  isEquationMode?: boolean;
-  onSetEquationMode?: (isEquationMode: boolean) => void;
   setError?: (error: Record<string, any>) => void;
+  traceMetricsVisualizeMode?: TraceMetricsVisualizeModeState;
 }
 
-export function Visualize({
-  error,
-  setError,
-  isEquationMode,
-  onSetEquationMode,
-}: VisualizeProps) {
+export function Visualize({error, setError, traceMetricsVisualizeMode}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const theme = useTheme();
@@ -304,10 +301,23 @@ export function Visualize({
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
   const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+  // Heat maps store their single "Visualize" aggregate in state.fields and use
+  // radio selection, mirroring Big Number.
+  const isHeatmapWidget = state.displayType === DisplayType.HEATMAP;
 
+  // Heat maps don't support equations, so the equation mode toggle and the
+  // "Add Equation" affordances are hidden for them.
   const canShowTraceMetricEquations =
     state.dataset === WidgetType.TRACEMETRICS &&
+    !isHeatmapWidget &&
     canUseMetricsEquationsInDashboards(organization);
+
+  const {isEquationMode, handleModeToggle, equationSnapshot} =
+    traceMetricsVisualizeMode ?? {
+      isEquationMode: false,
+      handleModeToggle: () => {},
+      equationSnapshot: {current: null},
+    };
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -425,7 +435,7 @@ export function Visualize({
   const canAddFields =
     isTimeSeriesWidget ||
     isTableWidget ||
-    ((isBigNumberWidget || isCategoricalBarWidget) &&
+    ((isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget) &&
       (datasetConfig.enableEquations || canShowTraceMetricEquations));
   // Determines which action to use for updating visualization fields:
   // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
@@ -502,7 +512,8 @@ export function Visualize({
     fields?.length &&
     fields.length > 1 &&
     state.displayType !== DisplayType.BIG_NUMBER &&
-    state.displayType !== DisplayType.CATEGORICAL_BAR;
+    state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.HEATMAP;
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
@@ -574,8 +585,13 @@ export function Visualize({
   }, [isTimeSeriesWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
   const computedAggregateOptions = useMemo(() => {
-    // Categorical bars only allow aggregates, no field columns
-    if (isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget) {
+    // Categorical bars and heat maps only allow aggregates, no field columns
+    if (
+      isTimeSeriesWidget ||
+      isBigNumberWidget ||
+      isCategoricalBarWidget ||
+      isHeatmapWidget
+    ) {
       return {type: 'chart' as const, options: baseAggregateOptions};
     }
 
@@ -609,6 +625,7 @@ export function Visualize({
     isTimeSeriesWidget,
     isBigNumberWidget,
     isCategoricalBarWidget,
+    isHeatmapWidget,
     state.dataset,
     baseAggregateOptions,
     traceItemColumnOptions,
@@ -616,9 +633,13 @@ export function Visualize({
     tableFieldOptions,
   ]);
 
-  const handleEquationRemoved = useCallback(() => {
-    onSetEquationMode?.(false);
-  }, [onSetEquationMode]);
+  const hasMaxMetrics =
+    state.dataset === WidgetType.TRACEMETRICS &&
+    ((fields ?? state.yAxis)?.filter((field: QueryFieldValue) =>
+      [FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(
+        field.kind as FieldValueKind
+      )
+    )?.length ?? 0) >= MAX_METRICS_ALLOWED;
 
   return (
     <Fragment>
@@ -626,8 +647,20 @@ export function Visualize({
         title={isTableWidget ? t('Columns') : t('Visualize')}
         tooltipText={tooltipText}
       />
+      {canShowTraceMetricEquations && (
+        <Container paddingBottom="md">
+          <SegmentedControl
+            value={isEquationMode ? 'equation' : 'series'}
+            onChange={value => handleModeToggle(value === 'equation')}
+            size="sm"
+          >
+            <SegmentedControl.Item key="series">{t('Series')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="equation">{t('Equation')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Container>
+      )}
       {isEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={handleEquationRemoved} />
+        <MetricsEquationVisualize equationSnapshot={equationSnapshot} />
       ) : (
         <Fragment>
           <StyledFieldGroup
@@ -764,7 +797,8 @@ export function Visualize({
                           <FieldRow>
                             {fields.length > 1 &&
                               (state.displayType === DisplayType.BIG_NUMBER ||
-                                state.displayType === DisplayType.CATEGORICAL_BAR) && (
+                                state.displayType === DisplayType.CATEGORICAL_BAR ||
+                                state.displayType === DisplayType.HEATMAP) && (
                                 <RadioLineItem
                                   index={index}
                                   role="radio"
@@ -860,7 +894,12 @@ export function Visualize({
                                 <Fragment>
                                   {state.dataset === WidgetType.TRACEMETRICS ? (
                                     <MetricSelectRow
-                                      disabled={disableTransactionWidget}
+                                      // Heat maps always count() the metric, so
+                                      // the aggregate function is locked (only the
+                                      // metric is selectable), mirroring Explore.
+                                      disabled={
+                                        disableTransactionWidget || isHeatmapWidget
+                                      }
                                       field={field}
                                       index={index}
                                     />
@@ -954,7 +993,8 @@ export function Visualize({
                               compact={
                                 isTimeSeriesWidget ||
                                 isBigNumberWidget ||
-                                isCategoricalBarWidget
+                                isCategoricalBarWidget ||
+                                isHeatmapWidget
                               }
                             >
                               {canHaveAlias && (
@@ -1066,11 +1106,11 @@ export function Visualize({
             <AddButtons>
               <AddButton
                 variant="link"
-                disabled={disableTransactionWidget}
+                disabled={disableTransactionWidget || hasMaxMetrics}
                 aria-label={
                   isTimeSeriesWidget
                     ? t('Add Series')
-                    : isBigNumberWidget || isCategoricalBarWidget
+                    : isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget
                       ? t('Add Field')
                       : t('Add Column')
                 }
@@ -1098,19 +1138,17 @@ export function Visualize({
               >
                 {isTimeSeriesWidget
                   ? t('+ Add Series')
-                  : isBigNumberWidget || isCategoricalBarWidget
+                  : isBigNumberWidget || isCategoricalBarWidget || isHeatmapWidget
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {(datasetConfig.enableEquations || canShowTraceMetricEquations) && (
-                <AddButton
-                  variant="link"
-                  disabled={disableTransactionWidget}
-                  aria-label={t('Add Equation')}
-                  onClick={() => {
-                    if (canShowTraceMetricEquations) {
-                      onSetEquationMode?.(true);
-                    } else {
+              {datasetConfig.enableEquations &&
+                state.dataset !== WidgetType.TRACEMETRICS && (
+                  <AddButton
+                    variant="link"
+                    disabled={disableTransactionWidget}
+                    aria-label={t('Add Equation')}
+                    onClick={() => {
                       dispatch({
                         type: updateAction,
                         payload: [
@@ -1118,22 +1156,21 @@ export function Visualize({
                           {kind: FieldValueKind.EQUATION, field: ''},
                         ],
                       });
-                    }
 
-                    trackAnalytics('dashboards_views.widget_builder.change', {
-                      builder_version: WidgetBuilderVersion.SLIDEOUT,
-                      field: 'visualize.addEquation',
-                      from: source,
-                      new_widget: !isEditing,
-                      value: '',
-                      widget_type: state.dataset ?? '',
-                      organization,
-                    });
-                  }}
-                >
-                  {t('+ Add Equation')}
-                </AddButton>
-              )}
+                      trackAnalytics('dashboards_views.widget_builder.change', {
+                        builder_version: WidgetBuilderVersion.SLIDEOUT,
+                        field: 'visualize.addEquation',
+                        from: source,
+                        new_widget: !isEditing,
+                        value: '',
+                        widget_type: state.dataset ?? '',
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('+ Add Equation')}
+                  </AddButton>
+                )}
             </AddButtons>
           )}
         </Fragment>

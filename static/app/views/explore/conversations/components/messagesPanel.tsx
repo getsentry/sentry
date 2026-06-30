@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -14,6 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
@@ -126,21 +128,34 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   onSelectNode={onSelectNode}
                 />
               )}
-              <StyledClippedBox
-                clipHeight={200}
-                buttonProps={{variant: 'secondary', size: 'xs'}}
-                collapsible
-              >
+              {isAssistant && message.reasoning && (
+                <ReasoningSection reasoning={message.reasoning} />
+              )}
+              {message.content === EMPTY_TEXT_CONTENT ? (
                 <Container padding="md">
-                  <MessageText size="sm" align="left">
-                    <AIContentRenderer
-                      text={message.content}
-                      inline
-                      autoCollapseLimit={10}
-                    />
+                  <MessageText size="sm" align="left" variant="muted">
+                    {message.content}
                   </MessageText>
                 </Container>
-              </StyledClippedBox>
+              ) : (
+                message.content !== '' && (
+                  <StyledClippedBox
+                    clipHeight={200}
+                    buttonProps={{variant: 'secondary', size: 'xs'}}
+                    collapsible
+                  >
+                    <Container padding="md">
+                      <MessageText size="sm" align="left">
+                        <AIContentRenderer
+                          text={message.content}
+                          inline
+                          autoCollapseLimit={10}
+                        />
+                      </MessageText>
+                    </Container>
+                  </StyledClippedBox>
+                )
+              )}
             </MessageBubble>
           );
         })}
@@ -225,6 +240,56 @@ const MessageBubble = styled('div')<{
         border-color: ${p.theme.tokens.focus.default};
       }
     `}
+`;
+
+function ReasoningSection({reasoning}: {reasoning: string}) {
+  const organization = useOrganization();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleToggle = (open: boolean) => {
+    setIsOpen(open);
+    trackAnalytics('conversations.detail.expand-thinking', {
+      organization,
+      expanded: open,
+    });
+  };
+
+  // A collapsed <details> keeps its text in the DOM so find-in-page can reveal it.
+  return (
+    <ReasoningDetails onToggle={e => handleToggle(e.currentTarget.open)}>
+      <Flex
+        as="summary"
+        align="center"
+        gap="xs"
+        padding="sm md 0"
+        width="100%"
+        justify="start"
+        cursor="pointer"
+        onClick={e => e.stopPropagation()}
+      >
+        <Text size="xs" variant="muted" monospace italic>
+          {t('Thinking...')}
+        </Text>
+        <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" variant="muted" />
+      </Flex>
+      <Container padding="md">
+        <MessageText size="sm" align="left" variant="muted" monospace italic>
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+        </MessageText>
+      </Container>
+    </ReasoningDetails>
+  );
+}
+
+const ReasoningDetails = styled('details')`
+  width: 100%;
+
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

@@ -13,6 +13,7 @@ import {
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
@@ -202,11 +203,14 @@ export function AutoSaveForm<
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        const hasBackendErrors =
-          error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+        const isRequestError = error instanceof RequestError;
+        const hasBackendErrors = isRequestError ? setFieldErrors(formApi, error) : false;
         if (!hasBackendErrors) {
+          const message = isRequestError
+            ? getRequestErrorUserMessage(error, t('Failed to save'))
+            : t('Failed to save');
           setFieldErrors(formApi, {
-            [name]: {message: t('Failed to save')},
+            [name]: {message},
           } as never);
         }
       };

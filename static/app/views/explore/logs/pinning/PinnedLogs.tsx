@@ -1,52 +1,99 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {GridRow} from 'sentry/components/tables/gridEditable/styles';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconChevron, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
+import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
+import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 
 interface Props {
-  allRows: LogTableRowItem[];
-  renderRow: (dataRow: LogTableRowItem) => React.ReactNode;
+  allRows: OurLogsResponseItem[];
+  logsPinning: LogsPinning;
+  pinnedLogsQuery: ReturnType<typeof usePinnedLogsQuery>;
+  renderRow: (dataRow: OurLogsResponseItem) => React.ReactNode;
 }
 
-export function PinnedLogs({allRows, renderRow}: Props) {
-  const logsPinning = useLogsPinning();
+export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: Props) {
+  const {
+    fetchedRows: fetchedPinnedRows,
+    isPending: isFetchingPinnedRows,
+    isError: isErrorPinnedRows,
+    refetch: refetchPinnedRows,
+  } = pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
-  const pinsCount = logsPinning?.pinnedRows.size;
+  const pinnedRows = logsPinning.getPinnedRowIds();
 
-  useEffect(() => {
-    if (!pinsCount) {
-      setExpanded(true);
+  const onInitialize = useCallback(() => {
+    setExpanded(true);
+  }, []);
+
+  const rowById = useMemo(() => {
+    const map = new Map<string, OurLogsResponseItem>();
+    for (const row of fetchedPinnedRows) {
+      map.set(row[OurLogKnownFieldKey.ID], row);
     }
-  }, [pinsCount]);
+    for (const row of allRows) {
+      map.set(row[OurLogKnownFieldKey.ID], row);
+    }
+    return map;
+  }, [allRows, fetchedPinnedRows]);
 
-  if (!logsPinning || !pinsCount) {
+  if (!pinnedRows.length) {
     return null;
   }
 
   return (
-    <PinnedTableBody data-test-id="pinned-logs-table-body">
+    <PinnedTableBody data-test-id="pinned-logs-table-body" ref={onInitialize}>
       {expanded &&
-        Array.from(logsPinning.pinnedRows).map(rowId => {
-          const dataRow = allRows.find(datum => datum[OurLogKnownFieldKey.ID] === rowId);
+        pinnedRows.map(rowId => {
+          const dataRow = rowById.get(rowId);
 
-          // TODO(LOGS-781): this is not correct yet because the virtualizer might not have found it yet.
-          // Will have to manually re-fetch data.
           if (!dataRow) {
-            return null;
+            if (isFetchingPinnedRows) {
+              return (
+                <GridRow key={rowId}>
+                  <LoadingGridBodyCell>
+                    <Placeholder height="100%" />
+                  </LoadingGridBodyCell>
+                </GridRow>
+              );
+            }
+            return (
+              <GridRow key={rowId}>
+                <UnavailableGridBodyCell>
+                  <Flex align="center" gap="sm">
+                    <IconWarning size="xs" />
+                    <Text size="sm" variant="muted">
+                      {isErrorPinnedRows
+                        ? t('Could not load pinned log')
+                        : t('Pinned log unavailable in the selected time range')}
+                    </Text>
+                    {isErrorPinnedRows && (
+                      <Button size="xs" onClick={() => refetchPinnedRows()}>
+                        {t('Retry')}
+                      </Button>
+                    )}
+                  </Flex>
+                </UnavailableGridBodyCell>
+              </GridRow>
+            );
           }
 
           return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
         })}
-      <GridRow role="toolbar">
+      <PinnedToolbarRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">
             <Button
@@ -55,8 +102,8 @@ export function PinnedLogs({allRows, renderRow}: Props) {
               onClick={() => setExpanded(previous => !previous)}
             >
               {expanded
-                ? t('Collapse %s pinned', pinsCount)
-                : t('Expand %s pinned', pinsCount)}
+                ? t('Collapse %s pinned', pinnedRows.length)
+                : t('Expand %s pinned', pinnedRows.length)}
             </Button>
             <Button
               aria-label={t('Clear all pins')}
@@ -69,7 +116,7 @@ export function PinnedLogs({allRows, renderRow}: Props) {
             </Button>
           </Flex>
         </PinnedGridBodyCell>
-      </GridRow>
+      </PinnedToolbarRow>
     </PinnedTableBody>
   );
 }
@@ -84,7 +131,21 @@ const PinnedTableBody = styled(TableBody)`
   scrollbar-width: thin;
 `;
 
+const PinnedToolbarRow = styled(GridRow)`
+  z-index: 1;
+`;
+
 const PinnedGridBodyCell = styled('td')`
   grid-column: 1 / -1;
   padding: ${p => p.theme.space.sm};
+`;
+
+const LoadingGridBodyCell = styled(PinnedGridBodyCell)`
+  height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
+`;
+
+const UnavailableGridBodyCell = styled(PinnedGridBodyCell)`
+  display: flex;
+  align-items: center;
+  height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 `;

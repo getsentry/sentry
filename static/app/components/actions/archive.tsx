@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -12,7 +13,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import {getDuration} from 'sentry/utils/duration/getDuration';

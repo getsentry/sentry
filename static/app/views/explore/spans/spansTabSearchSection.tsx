@@ -18,17 +18,13 @@ import {
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
@@ -44,7 +40,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -76,22 +74,15 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
 
-  const organization = useOrganization();
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
-  );
-
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
   const hasAbsoluteDateSelection = Boolean(
     selection.datetime.start && selection.datetime.end && !selection.datetime.period
   );
 
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useSpanItemAttributes({}, 'number');
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useSpanItemAttributes({}, 'string');
-  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
-    useSpanItemAttributes({}, 'boolean');
+  const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
+  const {data: validatedSearchQueryData} = useValidateSpansTab();
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -127,19 +118,19 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: ['span.description'],
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
+      validatedSearchQueryData,
     }),
     [
       booleanAttributes,
       caseInsensitive,
       fields,
-      hasRawSearchReplacement,
       mode,
       numberAttributes,
       oldSearch,
@@ -147,6 +138,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
+      validatedSearchQueryData,
     ]
   );
 
@@ -176,14 +168,21 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 <Grid
                   gap="md"
                   columns={{
-                    sm: '1fr',
-                    md: 'minmax(300px, auto) 1fr min-content',
+                    'screen:sm': '1fr',
+                    'screen:md': 'minmax(300px, auto) 1fr min-content',
                   }}
                 >
                   <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <ProjectPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <EnvironmentPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
                   </StyledPageFilterBar>
                   <SpansSearchBar
                     spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
@@ -197,25 +196,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   <SpansTabCrossEventSearchBars hasIndependentDateColumn />
                 ) : null}
               </Grid>
-              {hasCrossEvents ? null : (
-                <ExploreSchemaHintsSection>
-                  <SchemaHintsList
-                    supportedAggregates={
-                      mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                    }
-                    booleanTags={booleanAttributes}
-                    numberTags={numberAttributes}
-                    stringTags={stringAttributes}
-                    isLoading={
-                      numberAttributesLoading ||
-                      stringAttributesLoading ||
-                      booleanAttributesLoading
-                    }
-                    exploreQuery={query}
-                    source={SchemaHintsSources.EXPLORE}
-                  />
-                </ExploreSchemaHintsSection>
-              )}
             </div>
           )}
         </TourElement>

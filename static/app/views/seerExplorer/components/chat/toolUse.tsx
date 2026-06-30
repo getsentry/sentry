@@ -8,13 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconCheckmark,
-  IconClose,
-  IconLink,
-  IconLinkBroken,
-  IconWarning,
-} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -171,7 +165,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
         return (
           <ToolCallRow
-            key={`${toolCall.function}-${idx}`}
+            key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
             isLoading={isLoading}
@@ -189,7 +183,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 function ToolCallRow({
   toolString,
   blockStatus,
-  isLoading,
   toolUrl,
   failureTooltip,
   onLinkClick,
@@ -235,12 +228,7 @@ function ToolCallRow({
             </ToolCallLinkIconWrapper>
           </ToolCallLink>
         ) : (
-          <ToolCallPlainRow>
-            {toolCallText}
-            <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
-              <ToolCallBrokenLinkIcon size="xs" />
-            </ToolCallBrokenLinkIconWrapper>
-          </ToolCallPlainRow>
+          <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
       {todos && <TodoList todos={todos} />}
@@ -360,20 +348,4 @@ const ToolCallPlainRow = styled('span')`
   align-items: center;
   gap: ${p => p.theme.space.md};
   max-width: 100%;
-`;
-
-const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
-  color: ${p => p.theme.tokens.content.secondary};
-  flex-shrink: 0;
-  transform: translateY(2px);
-`;
-
-const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
-  display: inline-flex;
-  flex-shrink: 0;
-  visibility: hidden;
-
-  ${ToolCallPlainRow}:hover & {
-    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
-  }
 `;

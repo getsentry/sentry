@@ -635,8 +635,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    setup_dialog_config = {"width": 1030, "height": 1000}
-
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupApiClient(
             base_url=installation_data["url"],
@@ -665,9 +663,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
             raise IntegrationProviderError(
                 f"The requested GitLab group {requested_group} could not be found."
             )
-
-    def get_pipeline_views(self) -> list:
-        return []
 
     def _make_oauth_api_step(self) -> OAuth2ApiStep:
         oauth_info = self.pipeline._fetch_state("oauth_config_information")

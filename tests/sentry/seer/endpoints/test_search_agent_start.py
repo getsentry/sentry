@@ -17,15 +17,14 @@ class SendSearchAgentStartRequestTest(TestCase):
             organization_id=self.organization.id, user_id=self.user.id
         )
 
-        with self.feature("organizations:seer-run-mirror"):
-            result = send_search_agent_start_request(
-                organization=self.organization,
-                user_id=self.user.id,
-                project_ids=[self.project.id],
-                natural_language_query="errors today",
-                strategy="Issues",
-                viewer_context=viewer_context,
-            )
+        result = send_search_agent_start_request(
+            organization=self.organization,
+            user_id=self.user.id,
+            project_ids=[self.project.id],
+            natural_language_query="errors today",
+            strategy="Issues",
+            viewer_context=viewer_context,
+        )
 
         assert isinstance(result, SeerRun)
         assert result.type == SeerRunType.ASSISTED_QUERY
@@ -41,15 +40,14 @@ class SendSearchAgentStartRequestTest(TestCase):
             organization_id=self.organization.id, user_id=self.user.id
         )
 
-        with self.feature("organizations:seer-run-mirror"):
-            with pytest.raises(SeerApiError):
-                send_search_agent_start_request(
-                    organization=self.organization,
-                    user_id=self.user.id,
-                    project_ids=[self.project.id],
-                    natural_language_query="errors today",
-                    viewer_context=viewer_context,
-                )
+        with pytest.raises(SeerApiError):
+            send_search_agent_start_request(
+                organization=self.organization,
+                user_id=self.user.id,
+                project_ids=[self.project.id],
+                natural_language_query="errors today",
+                viewer_context=viewer_context,
+            )
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_terminal_seer_failure_raises(self, mock_request: Mock) -> None:
@@ -58,12 +56,11 @@ class SendSearchAgentStartRequestTest(TestCase):
             organization_id=self.organization.id, user_id=self.user.id
         )
 
-        with self.feature("organizations:seer-run-mirror"):
-            with pytest.raises(SeerApiError):
-                send_search_agent_start_request(
-                    organization=self.organization,
-                    user_id=self.user.id,
-                    project_ids=[self.project.id],
-                    natural_language_query="errors today",
-                    viewer_context=viewer_context,
-                )
+        with pytest.raises(SeerApiError):
+            send_search_agent_start_request(
+                organization=self.organization,
+                user_id=self.user.id,
+                project_ids=[self.project.id],
+                natural_language_query="errors today",
+                viewer_context=viewer_context,
+            )

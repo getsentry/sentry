@@ -3,8 +3,8 @@ import pickBy from 'lodash/pickBy';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {defined} from 'sentry/utils/defined';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
+  useTraceMetricsHeatmapQuery,
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
 } from 'sentry/views/dashboards/widgetCard/hooks/useTraceMetricsWidgetQuery';
@@ -286,10 +287,12 @@ export const TraceMetricsConfig: DatasetConfig<
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
     DisplayType.CATEGORICAL_BAR,
+    DisplayType.HEATMAP,
     DisplayType.LINE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,
+  useHeatmapQuery: useTraceMetricsHeatmapQuery,
   transformTable: (data, widgetQuery) => {
     const transformedData = transformEventsResponseToTable(data, widgetQuery);
 

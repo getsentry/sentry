@@ -4,22 +4,23 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 
 type Props = {
-  searchTerm: string;
   replayId?: string;
 };
 
-export function OpenInLogsButton({searchTerm, replayId}: Props) {
+export function OpenInLogsButton({replayId}: Props) {
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {selection} = usePageFilters();
+  const logsSearch = useQueryParamsSearch();
 
   if (!hasExploreEnabled) {
     return null;
   }
 
-  let query = searchTerm || '';
+  let query = logsSearch.formatString();
   if (replayId) {
     const existingQuery = query ? `${query} ` : '';
     query = `${existingQuery}replay_id:${replayId}`;
@@ -32,7 +33,7 @@ export function OpenInLogsButton({searchTerm, replayId}: Props) {
   });
 
   return (
-    <LinkButton size="sm" to={url} openInNewTab>
+    <LinkButton size="md" to={url} openInNewTab>
       {t('Open in Logs')}
     </LinkButton>
   );

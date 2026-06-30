@@ -9,8 +9,8 @@ import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   CurrencyUnit,
@@ -59,7 +59,7 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {generateTargetQuery} from 'sentry/views/explore/utils';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -284,7 +284,7 @@ export function getLogTimestampBucketIndex(
 
 // Null indicates the data is not available yet.
 export function calculateAverageLogsPerSecond(
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+  timeseriesResult: SortedTimeSeries
 ): number | null {
   if (timeseriesResult.isLoading) {
     return null;

@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import cached_property
 from snuba_sdk import (
     AliasedExpression,
@@ -77,10 +78,12 @@ from sentry.snuba.metrics.query import (
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
+from sentry.utils.tracing import start_span
 
 
 class MetricsQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
+    organization_id: int
 
     duration_fields = {"transaction.duration"}
     organization_column: str = "organization_id"
@@ -141,7 +144,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
+        sentry_sdk.set_attribute("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
+        sentry_sdk.set_attribute("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
 
     def load_config(self) -> DatasetConfig:
         if hasattr(self, "config_class") and self.config_class is not None:
@@ -202,7 +207,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         try:
             environment = None
             if self.params.environments:
-                environment = self.params.environments[0].name
+                first_env = self.params.environments[0]
+                if first_env is not None:
+                    environment = first_env.name
 
             if not self.builder_config.on_demand_metrics_type:
                 raise InvalidSearchQuery(
@@ -212,7 +219,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             metric_spec = fetch_on_demand_metric_spec(
                 self.organization_id,
                 field=field,
-                query=self.query,
+                query=self.query or "",
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
@@ -361,9 +368,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if self._is_spans_metrics_query_cache is not None:
             return self._is_spans_metrics_query_cache
         if self.query is not None:
-            tags = parse_query(
-                self.params.projects, self.query, self.params.user, self.params.environments
-            )["tags"]
+            environments = [e for e in self.params.environments if e is not None]
+            user = self.params.user or AnonymousUser()
+            tags = parse_query(self.params.projects, self.query, user, environments)["tags"]
             for tag in tags:
                 if tag in constants.SPANS_METRICS_TAGS:
                     self._is_spans_metrics_query_cache = True
@@ -405,13 +412,13 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         selected_columns: list[str] | None = None,
         groupby_columns: list[str] | None = None,
         equations: list[str] | None = None,
-        orderby: list[str] | None = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         # Resolutions that we always must perform, irrespectively of on demand.
-        with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
+        with start_span(op="QueryBuilder", name="resolve_time_conditions"):
             # Has to be done early, since other conditions depend on start and end
             self.resolve_time_conditions()
-        with sentry_sdk.start_span(op="QueryBuilder", name="resolve_granularity"):
+        with start_span(op="QueryBuilder", name="resolve_granularity"):
             # Needs to happen before params and after time conditions since granularity can change start&end
             self.granularity = self.resolve_granularity()
             if self.start is not None:
@@ -423,23 +430,23 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         # for building an on demand query we only require a time interval and granularity. All the other fields are
         # automatically computed given the OnDemandMetricSpec.
         if not self.use_on_demand:
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_conditions"):
+            with start_span(op="QueryBuilder", name="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(query)
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_params"):
+            with start_span(op="QueryBuilder", name="resolve_params"):
                 # params depends on parse_query, and conditions being resolved first since there may be projects
                 # in conditions
                 self.where += self.resolve_params()
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_columns"):
+            with start_span(op="QueryBuilder", name="resolve_columns"):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_orderby"):
+            with start_span(op="QueryBuilder", name="resolve_orderby"):
                 self.orderby = self.resolve_orderby(orderby)
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_groupby"):
+            with start_span(op="QueryBuilder", name="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
         else:
             # On demand still needs to call resolve since resolving columns has a side_effect
             # of adding their alias to the function_alias_map, which is required to convert snuba
             # aliases back to their original functions.
-            for column in selected_columns:
+            for column in selected_columns or []:
                 try:
                     self.resolve_select([column], [])
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
@@ -625,12 +632,17 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_snql_function(
         self,
-        snql_function: fields.MetricsFunction,
+        snql_function: fields.SnQLFunction,
         arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        if not isinstance(snql_function, fields.MetricsFunction):
+            return super().resolve_snql_function(snql_function, arguments, alias, resolve_only)
+        column_arg = arguments.get("column")
+        prefix = self._get_metric_prefix(
+            snql_function, column_arg if isinstance(column_arg, str) else None
+        )
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
         if nullable:
@@ -804,7 +816,18 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             if value:
                 values.append(self._resolve_environment_filter_value(value))
             else:
-                values.append("")
+                # The "no environment" environment. Its sentinel must match the
+                # environment column's values: performance metrics store raw
+                # string tag values (`tags_raw`), while every other metrics
+                # use case is integer-indexed (`tags` is UInt64). For the integer
+                # case the sentinel must be the int 0 (an absent tag resolves to
+                # 0) -- comparing the UInt64 column to "" makes ClickHouse fail
+                # converting '' to UInt64. This mirrors resolve_tag_value, which
+                # returns a str for performance and an int otherwise, so `values`
+                # stays homogeneous and `values.sort()` below never compares an
+                # int with a str. (This branch lost the integer case when the
+                # tag_values_are_strings option was removed.)
+                values.append("" if self.is_performance else 0)
         values.sort()
         environment = self.column("environment")
         if len(values) == 1:
@@ -999,7 +1022,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         one"""
         seen_metrics_metas = {}
         seen_total_keys = set()
-        with sentry_sdk.start_span(op="metric_layer", name="transform_results"):
+        with start_span(op="metric_layer", name="transform_results"):
             metric_layer_result: Any = {
                 "data": [],
                 "meta": [],
@@ -1149,7 +1172,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             for query_details in [query_framework.pop(primary), *query_framework.values()]:
                 try:
                     metrics_queries = []
-                    with sentry_sdk.start_span(op="metric_layer", name="transform_query"):
+                    with start_span(op="metric_layer", name="transform_query"):
                         aggregates = self._get_aggregates()
                         group_bys = self._get_group_bys()
                         for agg in aggregates:
@@ -1164,7 +1187,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                             )
                     metrics_data = []
                     for metrics_query in metrics_queries:
-                        with sentry_sdk.start_span(op="metric_layer", name="run_query"):
+                        with start_span(op="metric_layer", name="run_query"):
                             metrics_data.append(
                                 get_series(
                                     projects=self.params.projects,
@@ -1176,7 +1199,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                             )
                 except Exception as err:
                     raise IncompatibleMetricsQuery(err)
-                with sentry_sdk.start_span(op="metric_layer", name="transform_results"):
+                with start_span(op="metric_layer", name="transform_results"):
                     metric_layer_result = self.convert_metric_layer_result(metrics_data)
                     for row in metric_layer_result["data"]:
                         # Arrays in clickhouse cannot contain multiple types, and since groupby values
@@ -1522,7 +1545,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.interval = constants.METRICS_GRANULARITIES[-1]
             max_granularity = self.interval
 
-        optimal_granularity = optimal_granularity_for_date_range(self.start, self.end)
+        start = self.start or self.params.start_date
+        end = self.end or self.params.end_date
+        optimal_granularity = optimal_granularity_for_date_range(start, end)
 
         # get the minimum granularity between the optimal granularity and the max granularity
         granularity = min(optimal_granularity, max_granularity)
@@ -1609,7 +1634,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
             try:
                 metrics_queries = []
-                with sentry_sdk.start_span(op="metric_layer", name="transform_query"):
+                with start_span(op="metric_layer", name="transform_query"):
                     for agg in self.selected_columns:
                         spec = self._on_demand_metric_spec_map[agg]
                         metrics_query = self._get_metrics_query_from_on_demand_spec(
@@ -1618,7 +1643,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                         )
                         metrics_queries.append(metrics_query)
                 metrics_data = []
-                with sentry_sdk.start_span(op="metric_layer", name="run_query"):
+                with start_span(op="metric_layer", name="run_query"):
                     for metrics_query in metrics_queries:
                         metrics_data.append(
                             get_series(
@@ -1632,7 +1657,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
 
-            with sentry_sdk.start_span(op="metric_layer", name="transform_results"):
+            with start_span(op="metric_layer", name="transform_results"):
                 return self._metric_layer_result(metrics_data, use_first_group_only=False)
 
         queries = self.get_snql_query()
@@ -1780,9 +1805,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             return {}
 
         return {
-            col: self._get_on_demand_metric_spec(col)
+            col: spec
             for col in self.timeseries_columns
-            if self._get_on_demand_metric_spec(col)
+            if (spec := self._get_on_demand_metric_spec(col)) is not None
         }
 
     def resolve_top_event_conditions(
@@ -1804,7 +1829,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                 value = event.get(field)
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
-                if field in {"project_id", "project.id"}:
+                if field in {"project_id", "project.id"} and value is not None:
                     value = int(value)
                 if field == constants.PROJECT_ALIAS:
                     # These will be strings so lets turn them back to ints
@@ -1850,7 +1875,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
             try:
                 metrics_queries = []
-                with sentry_sdk.start_span(op="metric_layer", name="transform_query"):
+                with start_span(op="metric_layer", name="transform_query"):
                     group_bys = self._get_group_bys()
 
                     for agg in self.timeseries_columns:
@@ -1870,7 +1895,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                         metrics_queries.append(metrics_query)
                 metrics_data = []
                 for metrics_query in metrics_queries:
-                    with sentry_sdk.start_span(op="metric_layer", name="run_query"):
+                    with start_span(op="metric_layer", name="run_query"):
                         metrics_data.append(
                             get_series(
                                 projects=self.params.projects,
@@ -1886,7 +1911,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                         )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
-            with sentry_sdk.start_span(op="metric_layer", name="transform_results"):
+            with start_span(op="metric_layer", name="transform_results"):
                 result = self._metric_layer_result(metrics_data, use_first_group_only=False)
                 return result
 

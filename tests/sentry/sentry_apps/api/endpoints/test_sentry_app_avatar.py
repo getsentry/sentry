@@ -1,8 +1,9 @@
 from base64 import b64encode
 
+from django.conf import settings
+from django.test import override_settings
 from rest_framework.response import Response
 
-from sentry import options as options_store
 from sentry.models.files.control_file import ControlFile
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
@@ -120,11 +121,9 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         assert color_avatar["photoType"] == "logo"
 
     def test_upload_control_with_storage_options(self) -> None:
-        with self.options(
-            {
-                "filestore.control.backend": options_store.get("filestore.backend"),
-                "filestore.control.options": options_store.get("filestore.options"),
-            }
+        with override_settings(
+            SENTRY_CONTROL_FILE_STORAGE_BACKEND=settings.SENTRY_FILE_STORAGE_BACKEND,
+            SENTRY_CONTROL_FILE_STORAGE_CONFIG=settings.SENTRY_FILE_STORAGE_CONFIG,
         ):
             resp = self.create_avatar(is_color=True)
 

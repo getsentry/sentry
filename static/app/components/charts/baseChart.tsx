@@ -47,7 +47,7 @@ import type {
   EChartRestoreHandler,
   Series,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
 import {Legend} from './components/legend';

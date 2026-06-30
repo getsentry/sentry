@@ -29,6 +29,7 @@ from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -84,6 +85,7 @@ def process_commit_context(
             project = Project.objects.get_from_cache(id=project_id)
             group = Group.objects.get_from_cache(id=group_id)
             set_tag("organization.slug", project.organization.slug)
+            sentry_sdk.set_attribute("organization.slug", project.organization.slug)
             basic_logging_details = {
                 "event": event_id,
                 "group": group_id,
@@ -113,6 +115,18 @@ def process_commit_context(
                 )
                 return
 
+            # Use the release date as the upper bound when available, since commits
+            # after the release was built can't have caused the issue.
+            commit_date_max = group.first_seen
+            if group.first_release_id:
+                try:
+                    release = Release.objects.get(id=group.first_release_id)
+                    release_date = release.date_released or release.date_added
+                    if release_date:
+                        commit_date_max = min(release_date, group.first_seen)
+                except Release.DoesNotExist:
+                    pass
+
             metrics.incr("tasks.process_commit_context_all_frames.start")
             blame = None
             installation = None
@@ -126,7 +140,7 @@ def process_commit_context(
                     project_id=project_id,
                     platform=event_platform,
                     sdk_name=sdk_name,
-                    group_first_seen=group.first_seen,
+                    commit_date_max=commit_date_max,
                     extra=basic_logging_details,
                 )
             except ApiError:

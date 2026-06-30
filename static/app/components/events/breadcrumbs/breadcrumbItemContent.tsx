@@ -13,7 +13,7 @@ import {
   type BreadcrumbTypeNavigation,
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 

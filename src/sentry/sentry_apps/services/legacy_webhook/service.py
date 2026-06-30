@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -114,13 +113,6 @@ def send_sentry_app_webhook(
         )
         return
 
-    if features.has("organizations:legacy-webhook-dry-run", organization):
-        logger.info(
-            "webhook_action_handler.sentry_app_dry_run",
-            extra=logging_context,
-        )
-        return
-
     send_alert_webhook_v2.delay(
         rule_label=rule_label,
         sentry_app_id=sentry_app.id,
@@ -135,6 +127,10 @@ def send_legacy_webhooks_for_invocation(invocation: ActionInvocation) -> None:
     from sentry.sentry_apps.services.legacy_webhook.tasks import send_legacy_webhook_task
 
     project = invocation.detector.project
+    enabled = ProjectOption.objects.get_value(project, "webhooks:enabled", default=False)
+    if not enabled:
+        return
+
     urls_raw = ProjectOption.objects.get_value(project, "webhooks:urls", default="")
     urls = split_urls(urls_raw)
     if not urls:

@@ -38,7 +38,9 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  disabled?: boolean;
   environments?: string[];
+  portalTarget?: HTMLElement;
   projectIds?: number[];
   skipTraceMetricFilter?: boolean;
 }
@@ -66,6 +68,8 @@ export function Filter({
   skipTraceMetricFilter,
   projectIds,
   environments,
+  portalTarget,
+  disabled,
 }: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
@@ -82,7 +86,7 @@ export function Filter({
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
-  const {data: data} = useQuery({
+  const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
@@ -94,6 +98,8 @@ export function Filter({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
   });
+  const isSearchBarDisabled =
+    isLoading || (!skipTraceMetricFilter && !traceMetricFilter) || disabled;
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -176,6 +182,8 @@ export function Filter({
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
         projects: projectIds,
         environments,
+        disabled: isSearchBarDisabled,
+        portalTarget,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -192,6 +200,8 @@ export function Filter({
       skipTraceMetricFilter,
       projectIds,
       environments,
+      isSearchBarDisabled,
+      portalTarget,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

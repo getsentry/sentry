@@ -1,6 +1,10 @@
 import jsonschema
 
-from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+from sentry.preprod.snapshots.manifest import (
+    ImageMetadata,
+    SnapshotManifest,
+    image_metadata_extras,
+)
 
 
 def _meta(**kwargs: object) -> dict:
@@ -92,3 +96,78 @@ class TestImageMetadataJsonSchema:
     def test_schema_accepts_numeric_tag_values(self) -> None:
         schema = ImageMetadata.schema()
         jsonschema.validate(_meta(tags={"count": 42}), schema)
+
+
+def test_comparison_plan_round_trip():
+    from sentry.preprod.snapshots.manifest import (
+        ChunkAssignment,
+        ChunkCandidate,
+        ComparisonImageResult,
+        ComparisonPlan,
+    )
+
+    plan = ComparisonPlan(
+        head_artifact_id=1,
+        base_artifact_id=2,
+        chunks=[
+            ChunkAssignment(
+                chunk_index=0,
+                candidates=[
+                    ChunkCandidate(
+                        name="a.png",
+                        head_hash="h",
+                        base_hash="b",
+                        pixel_count=10,
+                        diff_threshold=0.0,
+                    )
+                ],
+            )
+        ],
+        non_diff_images={"x.png": ComparisonImageResult(status="added")},
+    )
+    restored = ComparisonPlan(**plan.dict())
+    assert restored.chunks[0].candidates[0].name == "a.png"
+    assert restored.chunks[0].candidates[0].diff_threshold == 0.0
+    assert restored.non_diff_images["x.png"].status == "added"
+
+
+def test_chunk_result_round_trip():
+    from sentry.preprod.snapshots.manifest import ChunkResult, ComparisonImageResult
+
+    result = ChunkResult(chunk_index=3, images={"a.png": ComparisonImageResult(status="changed")})
+    restored = ChunkResult(**result.dict())
+    assert restored.chunk_index == 3
+    assert restored.images["a.png"].status == "changed"
+
+
+def _reference_extras(metadata: ImageMetadata, exclude: set[str] | None = None) -> dict:
+    schema_fields = frozenset(ImageMetadata.__fields__)
+    skip = schema_fields | exclude if exclude else schema_fields
+    return {k: v for k, v in metadata.dict().items() if k not in skip}
+
+
+class TestImageMetadataExtras:
+    def test_no_extras(self) -> None:
+        meta = ImageMetadata(**_meta())
+        assert image_metadata_extras(meta) == _reference_extras(meta)
+        assert image_metadata_extras(meta) == {}
+
+    def test_scalar_extras(self) -> None:
+        meta = ImageMetadata(**_meta(platform="ios", build=42, flagged=True))
+        assert image_metadata_extras(meta) == _reference_extras(meta)
+        assert image_metadata_extras(meta) == {"platform": "ios", "build": 42, "flagged": True}
+
+    def test_nested_extras(self) -> None:
+        meta = ImageMetadata(**_meta(meta_obj={"nested": {"x": 1}}, meta_list=[1, 2, 3]))
+        assert image_metadata_extras(meta) == _reference_extras(meta)
+
+    def test_with_exclude_schema_field(self) -> None:
+        meta = ImageMetadata(**_meta(platform="android"))
+        result = image_metadata_extras(meta, exclude={"key", "image_file_name"})
+        assert result == _reference_extras(meta, exclude={"key", "image_file_name"})
+        assert result == {"platform": "android"}
+
+    def test_exclude_removes_declared_field(self) -> None:
+        meta = ImageMetadata(**_meta(platform="ios"))
+        result = image_metadata_extras(meta, exclude={"width"})
+        assert result == _reference_extras(meta, exclude={"width"})

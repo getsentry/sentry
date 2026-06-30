@@ -1036,14 +1036,18 @@ class SearchResolverColumnTest(TestCase):
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
 
 
-def _make_deprecated_metadata(attr_type: AttributeType, replacement: str) -> AttributeMetadata:
+def _make_deprecated_metadata(
+    attr_type: AttributeType,
+    replacement: str,
+    status: DeprecationStatus = DeprecationStatus.BACKFILL,
+) -> AttributeMetadata:
     return AttributeMetadata(
         brief="",
         type=attr_type,
         pii=PiiInfo(isPii=IsPii.FALSE),
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
-        deprecation=DeprecationInfo(replacement=replacement, status=DeprecationStatus.BACKFILL),
+        deprecation=DeprecationInfo(replacement=replacement, status=status),
     )
 
 
@@ -1249,3 +1253,50 @@ def test_deprecated_attribute_normalizes_supported_convention_attribute_types() 
 
     assert attribute_definitions["old_double"].search_type == "number"
     assert attribute_definitions["new_double"].search_type == "number"
+
+
+def test_normalize_deprecated_attributes_resolve_to_replacement() -> None:
+    attribute_definitions: dict[str, ResolvedAttribute] = {}
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "old_attr": _make_deprecated_metadata(
+                AttributeType.STRING, "new_attr", status=DeprecationStatus.NORMALIZE
+            ),
+        },
+    )
+
+    assert "old_attr" in attribute_definitions
+    assert attribute_definitions["old_attr"].replacement == "new_attr"
+    assert attribute_definitions["old_attr"].deprecation_status == "normalize"
+    assert "new_attr" in attribute_definitions
+    assert attribute_definitions["new_attr"].search_type == "string"
+
+
+def test_normalize_deprecated_attribute_preserves_existing_definition() -> None:
+    attribute_definitions = {
+        "gen_ai.request.messages": ResolvedAttribute(
+            public_alias="gen_ai.request.messages",
+            internal_name="gen_ai.request.messages",
+            search_type="string",
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "gen_ai.request.messages": _make_deprecated_metadata(
+                AttributeType.STRING, "gen_ai.input.messages", status=DeprecationStatus.NORMALIZE
+            ),
+        },
+    )
+
+    deprecated_attr = attribute_definitions["gen_ai.request.messages"]
+    replacement_attr = attribute_definitions["gen_ai.input.messages"]
+
+    assert deprecated_attr.replacement == "gen_ai.input.messages"
+    assert deprecated_attr.deprecation_status == "normalize"
+    assert replacement_attr.public_alias == "gen_ai.input.messages"
+    assert replacement_attr.internal_name == "gen_ai.input.messages"
+    assert replacement_attr.search_type == "string"

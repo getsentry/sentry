@@ -565,9 +565,9 @@ describe('Dashboards > WidgetCard', () => {
       queries: [
         {
           conditions: '',
-          fields: [],
+          fields: ['count()'],
           columns: [],
-          aggregates: [],
+          aggregates: ['count()'],
           name: '',
           orderby: '',
         },
@@ -601,9 +601,9 @@ describe('Dashboards > WidgetCard', () => {
       queries: [
         {
           conditions: '',
-          fields: [],
+          fields: ['count()'],
           columns: [],
-          aggregates: [],
+          aggregates: ['count()'],
           name: '',
           orderby: '',
         },
@@ -672,8 +672,7 @@ describe('Dashboards > WidgetCard', () => {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />,
-      ['transaction-widget-deprecation-explore-view']
+      />
     );
 
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();

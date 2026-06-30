@@ -10,6 +10,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
@@ -95,7 +96,6 @@ describe('GroupDetailsLayout', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
       }),
     });
     MockApiClient.addMockResponse({
@@ -106,9 +106,11 @@ describe('GroupDetailsLayout', () => {
 
   it('renders children, can collapse sidebar', async () => {
     render(
-      <GroupDetailsLayout group={group} event={event} project={project}>
-        <div data-test-id="children" />
-      </GroupDetailsLayout>
+      <GroupDataContextProvider group={group} project={group.project}>
+        <GroupDetailsLayout group={group} event={event} project={project}>
+          <div data-test-id="children" />
+        </GroupDetailsLayout>
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByTestId('children')).toBeInTheDocument();

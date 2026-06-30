@@ -113,6 +113,7 @@ def make_rpc_request(
         sampling="NORMAL",
     )
     sentry_sdk.set_extra("eap_call", api_call)
+    sentry_sdk.set_attribute("eap_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
 
@@ -155,6 +156,7 @@ def make_snql_request(
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
     )
     sentry_sdk.set_extra("metrics_call", api_call)
+    sentry_sdk.set_attribute("metrics_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))
 
@@ -382,8 +384,11 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     sentry_sdk.set_tag("organization", organization.slug)
+    sentry_sdk.set_attribute("organization", organization.slug)
     sentry_sdk.set_tag("alert_id", alert_rule.id)
+    sentry_sdk.set_attribute("alert_id", alert_rule.id)
     sentry_sdk.set_tag("detection_type", alert_rule.detection_type)
+    sentry_sdk.set_attribute("detection_type", alert_rule.detection_type)
 
     on_demand_metrics_enabled = features.has(
         "organizations:on-demand-metrics-extraction",
@@ -453,6 +458,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     is_close, mismatches, all_zeros = assert_timeseries_close(aligned_timeseries, alert_rule)
 
     sentry_sdk.set_tag("aggregate", snuba_query.aggregate)
+    sentry_sdk.set_attribute("aggregate", snuba_query.aggregate)
 
     if all_zeros:
         with sentry_sdk.isolation_scope() as scope:

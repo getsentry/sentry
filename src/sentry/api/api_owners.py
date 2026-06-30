@@ -9,8 +9,8 @@ class ApiOwner(Enum):
 
     ALERTS_MONITORS = "alerts-monitors"
     BILLING = "revenue"
-    CODECOV = "codecov"
     CODING_WORKFLOWS = "coding-workflows-sentry-backend"
+    COMMUNITY = "app-backend"
     CRONS = "crons"
     DASHBOARDS = "dashboards"
     DATA_BROWSING = "data-browsing"

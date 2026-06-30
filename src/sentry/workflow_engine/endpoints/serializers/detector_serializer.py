@@ -49,7 +49,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
 
 
 @register(Detector)
-class DetectorSerializer(Serializer):
+class DetectorSerializer(Serializer[DetectorSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Detector, dict[str, Any]]:

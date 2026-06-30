@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import NoReturn
 from unittest.mock import Mock
 from urllib.parse import urlencode
 
@@ -7,8 +8,11 @@ import pytest
 import responses
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import JsonResponse
 from django.test.client import RequestFactory
 from requests import PreparedRequest
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ConnectTimeout
 
 from sentry.hybridcloud.apigateway import proxy as sync_proxy
 from sentry.hybridcloud.apigateway_async.proxy import proxy_request as _proxy_request
@@ -26,6 +30,7 @@ from sentry.testutils.helpers.apigateway import (
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
+from sentry.types.cell import Cell
 from sentry.utils import json
 
 proxy_request = async_to_sync(_proxy_request)
@@ -335,3 +340,208 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         resp = proxy_request(request, self.organization.slug, url_name)
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])
+
+    @responses.activate
+    def test_sync_connect_timeout_returns_500(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/unreachable",
+            body=ConnectTimeout("connection timed out"),
+        )
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Proxied request timed out"
+
+    @responses.activate
+    def test_sync_connection_error_returns_500(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/unreachable",
+            body=RequestsConnectionError("connection refused"),
+        )
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
+
+    def test_async_timeout_returns_500(self) -> None:
+        def raise_timeout(request: httpx.Request) -> NoReturn:
+            raise httpx.ConnectTimeout("connection timed out", request=request)
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/unreachable", raise_timeout
+        )
+
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Proxied request timed out"
+
+    def test_async_connection_error_returns_500(self) -> None:
+        def raise_connect_error(request: httpx.Request) -> NoReturn:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/unreachable", raise_connect_error
+        )
+
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
+
+    @responses.activate
+    def test_sync_preserves_content_encoding_for_snapshot_create(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("Content-Encoding")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.POST, "http://us.internal.sentry.io/post", callback=request_callback
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = sync_proxy.proxy_request(
+            request, self.organization.slug, "sentry-api-0-project-preprod-snapshots-create"
+        )
+        close_streaming_response(resp)
+        assert captured["content_encoding"] == "zstd"
+
+    @responses.activate
+    def test_sync_strips_content_encoding_for_other_routes(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("Content-Encoding")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.POST, "http://us.internal.sentry.io/post", callback=request_callback
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert captured["content_encoding"] is None
+
+    def test_async_preserves_content_encoding_for_snapshot_create(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def callback(request: httpx.Request) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("content-encoding")
+            return 200, {}, json.dumps({"proxy": True})
+
+        self.httpx_router.add_callback("POST", "http://us.internal.sentry.io/post", callback)
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = proxy_request(
+            request, self.organization.slug, "sentry-api-0-project-preprod-snapshots-create"
+        )
+        close_streaming_response(resp)
+        assert captured["content_encoding"] == "zstd"
+
+    def test_async_strips_content_encoding_for_other_routes(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def callback(request: httpx.Request) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("content-encoding")
+            return 200, {}, json.dumps({"proxy": True})
+
+        self.httpx_router.add_callback("POST", "http://us.internal.sentry.io/post", callback)
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert captured["content_encoding"] is None
+
+
+api_gateway_address_cell = Cell(
+    name="us",
+    snowflake_id=1,
+    address="http://sentry-rpc:8999",
+    api_gateway_address="http://sentry-api-gateway-rpc:8999",
+)
+
+
+@control_silo_test(cells=[api_gateway_address_cell], include_monolith_run=True)
+class ApiGatewayAddressProxyTestCase(ApiGatewayTestCase):
+    @responses.activate
+    @override_options({"apigateway.proxy.cell-rollout": {"us": 1.0}})
+    def test_sync_post(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-api-gateway-rpc:8999/post",
+            body=json.dumps({"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+
+    @responses.activate
+    @override_options({"apigateway.proxy.cell-rollout": "lol"})
+    def test_sync_post_corrupt_rollout_option(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-rpc:8999/post",
+            body=json.dumps({"test": "value"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
+
+    @responses.activate
+    @override_options({"apigateway.proxy.cell-rollout": {"nope": 1.0}})
+    def test_sync_post_undefined_cell_in_option(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-rpc:8999/post",
+            body=json.dumps({"test": "value"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)

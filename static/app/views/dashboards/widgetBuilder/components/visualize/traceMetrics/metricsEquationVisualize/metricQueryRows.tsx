@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {type RefObject, useCallback, useEffect, useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -6,14 +6,16 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
 import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {
   extractReferenceLabels,
   syncEquationMetricQueries,
@@ -49,18 +51,26 @@ function computeEquationReferencedLabels(
 }
 
 interface MetricQueryRowsProps {
-  onEquationRemoved: () => void;
   selectedLabel: string | undefined;
   setSelectedLabel: (label: string | undefined) => void;
+  equationSnapshot?: RefObject<EquationModeSnapshot | null>;
 }
 
 export function MetricQueryRows({
   selectedLabel,
   setSelectedLabel,
-  onEquationRemoved,
+  equationSnapshot,
 }: MetricQueryRowsProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const metricQueries = useMultiMetricsQueryParams();
+
+  // Keep the snapshot ref in sync so useTraceMetricsVisualizeModeState can
+  // restore this state after a mode or dataset toggle.
+  useEffect(() => {
+    if (equationSnapshot) {
+      equationSnapshot.current = {queries: metricQueries, selectedLabel};
+    }
+  }, [equationSnapshot, metricQueries, selectedLabel]);
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
 
@@ -181,11 +191,10 @@ export function MetricQueryRows({
     ]
   );
 
-  function handleRowRemoved(removedLabel: string, isEquation: boolean) {
-    if (!isEquation && removedLabel !== selectedLabel) {
+  function handleRowRemoved(removedLabel: string) {
+    if (removedLabel !== selectedLabel) {
       return;
     }
-
     const fallback = functionQueries.find(q => q.label !== removedLabel);
     if (fallback) {
       setSelectedLabel(fallback.label);
@@ -199,18 +208,22 @@ export function MetricQueryRows({
           dispatch
         );
       }
-    }
-
-    if (isEquation) {
-      dispatch({type: BuilderStateAction.SET_QUERY, payload: ['']});
-      onEquationRemoved();
-    } else if (fallback) {
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: [fallback.queryParams.query],
       });
     }
   }
+
+  // We currently only support labels up to Z and do not have defined behaviour beyond
+  // that, so restrict the UI if they exceed the max number of charts or the Z label is used.
+  const hasMaxMetrics =
+    metricQueries.length >= MAX_METRICS_ALLOWED ||
+    metricQueries.some(q => q.label === MAX_METRIC_ALLOWED_LABEL_VALUE);
+
+  // If any of the metric names are undefined, then we're still loading in a selection.
+  // Equations should be disabled if there are any unresolved metric selections.
+  const hasUnresolvedMetrics = functionQueries.some(q => !q.metric?.name);
 
   return (
     <Stack gap="lg" flex="1">
@@ -227,7 +240,7 @@ export function MetricQueryRows({
             key={metricQuery.label ?? ''}
             metricQuery={metricQuery}
             isSelected={isSelected}
-            onRemove={() => handleRowRemoved(metricQuery.label ?? '', false)}
+            onRemove={() => handleRowRemoved(metricQuery.label ?? '')}
             onSubcomponentChanged={handleSubcomponentChanged}
           >
             <MetricToolbar
@@ -244,7 +257,6 @@ export function MetricQueryRows({
         <BuilderStateMetricsQueryParamsProvider
           metricQuery={equationQuery}
           isSelected={isEquationSelected}
-          onRemove={() => handleRowRemoved(equationQuery.label ?? '', true)}
         >
           <MetricToolbar
             label={equationQuery.label ?? ''}
@@ -252,6 +264,8 @@ export function MetricQueryRows({
             isSelected={isEquationSelected}
             onRowSelection={onRowSelection}
             onReferenceLabelsChange={setEquationReferencedLabels}
+            deleteDisabledReason={t('An equation is required')}
+            disabled={hasUnresolvedMetrics}
           />
         </BuilderStateMetricsQueryParamsProvider>
       )}
@@ -259,11 +273,22 @@ export function MetricQueryRows({
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
-          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+          disabled={hasMaxMetrics}
           aria-label={t('Add Metric')}
           variant="link"
         >
           {t('Add Metric')}
+        </Button>
+        <Button
+          disabled
+          variant="link"
+          icon={<IconAdd />}
+          tooltipProps={{
+            title: t('Only a single equation is allowed at this time'),
+          }}
+          aria-label={t('Add Equation')}
+        >
+          {t('Add Equation')}
         </Button>
       </Flex>
     </Stack>

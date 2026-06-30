@@ -648,12 +648,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=True
         )
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-            ("/auth/login/foo/", 302),
-        ]
-        # there should be no prompt as we auto merge the identity
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302), ("/auth/reactivate/", 302)]
+        # identity still auto-merges; the inactive user is now routed to
+        # reactivate instead of being forwarded into the app and bounced back.
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 

@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
+from urllib3.connectionpool import HTTPConnectionPool
 
 from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
@@ -18,10 +19,11 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import _get_trace_tree_for_event
+from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
+    get_autofix_agent_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -32,7 +34,6 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
@@ -54,6 +55,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +162,7 @@ def _trigger_autofix_task(
             sentry_sdk.capture_exception(e)
             return
 
-    with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+    with start_span(op="ai_summary.trigger_autofix", name="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
@@ -252,8 +254,8 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-fixability_connection_pool_gpu = connection_from_url(
-    settings.SEER_SCORING_URL,
+fixability_connection_pool = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
 
@@ -268,11 +270,12 @@ class FixabilityScoreRequest(TypedDict):
 
 def make_fixability_score_request(
     body: FixabilityScoreRequest,
+    connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        fixability_connection_pool_gpu,
+        connection_pool or fixability_connection_pool,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
@@ -294,7 +297,10 @@ def _generate_fixability_score(
         body["summary"] = summary
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_fixability_score_request(
-        body, timeout=settings.SEER_FIXABILITY_TIMEOUT, viewer_context=viewer_context
+        body,
+        connection_pool=fixability_connection_pool,
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+        viewer_context=viewer_context,
     )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
@@ -331,7 +337,9 @@ def get_and_update_group_fixability_score(
             extra={"group_id": group.id},
         )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+    with start_span(
+        op="ai_summary.generate_fixability_score", name="ai_summary.generate_fixability_score"
+    ):
         issue_summary = _generate_fixability_score(group, summary=summary)
 
     if not issue_summary.scores:
@@ -386,7 +394,7 @@ def run_automation(
         }
     )
 
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    autofix_state = get_autofix_agent_state(group.organization, group.id)
     if autofix_state:
         return  # already have an autofix on this issue
 
@@ -468,7 +476,7 @@ def _generate_summary(
     trace_tree = None
     if event:
         try:
-            trace_tree = _get_trace_tree_for_event(event, group.project, timeout=3)
+            trace_tree = get_trace_tree_for_event(event, group.project, timeout=3)
         except Exception:
             logger.warning(
                 "Failed to get trace for event in issue summary",

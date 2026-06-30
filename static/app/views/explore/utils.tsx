@@ -10,10 +10,11 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -54,7 +55,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -458,7 +459,7 @@ export function getDefaultExploreRoute(organization: Organization) {
 
 export function computeVisualizeSampleTotals(
   yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {
@@ -640,22 +641,21 @@ export const removeHiddenKeys = (
   tagCollection: TagCollection,
   hiddenKeys: string[]
 ): TagCollection => {
+  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
-    if (key && !hiddenKeys.includes(key) && tagCollection[key]) {
-      result[key] = tagCollection[key];
+    const tag = tagCollection[key];
+    if (!key || !tag) {
+      continue;
     }
+    // Hide by both the raw key and the display name, matching the column
+    // editor. Explicitly-typed keys such as `tags[project_id,number]` carry a
+    // display name (`project_id`) that is what appears in the hidden lists.
+    if (hiddenKeySet.has(key) || (tag.name && hiddenKeySet.has(tag.name))) {
+      continue;
+    }
+    result[key] = tag;
   }
-  return result;
-};
-
-export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
-  const result: Tag[] = [];
-  tagCollection.forEach(tag => {
-    if (keys.includes(tag.key) && tag.name) {
-      result.push(tag);
-    }
-  });
   return result;
 };
 

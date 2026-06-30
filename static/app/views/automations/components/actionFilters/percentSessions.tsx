@@ -1,8 +1,9 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -94,10 +95,10 @@ function ComparisonTypeField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   if (condition.type === DataConditionType.PERCENT_SESSIONS_COUNT) {
-    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
+    return <CountBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
   }
   if (condition.type === DataConditionType.PERCENT_SESSIONS_PERCENT) {
-    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} />;
+    return <PercentBranch intervalChoices={PERCENT_INTERVAL_CHOICES} minValue={1} />;
   }
 
   return (

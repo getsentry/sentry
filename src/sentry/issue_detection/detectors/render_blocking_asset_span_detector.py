@@ -6,8 +6,6 @@ from typing import Any
 
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -30,10 +28,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None
@@ -52,10 +49,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.fcp = fcp
                 self.fcp_value = fcp_value
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:

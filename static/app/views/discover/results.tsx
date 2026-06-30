@@ -50,12 +50,13 @@ import {t, tct, tctCode} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
-import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import {defined} from 'sentry/utils/defined';
 import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
@@ -68,8 +69,8 @@ import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {generateQueryWithTag} from 'sentry/utils/queryString';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -85,7 +86,7 @@ import {
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
-import {ResultsHeaderWrapper as ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
+import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
@@ -109,7 +110,6 @@ import {
 } from 'sentry/views/discover/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -121,7 +121,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
-  getAiQueryRunId?: () => number | null;
+  getAiQueryRunId?: () => number | string | null;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -841,6 +841,7 @@ export class Results extends Component<Props, State> {
           onSearch={this.handleSearch}
           customMeasurements={customMeasurements}
           dataset={eventView.dataset}
+          enableAISearch
           includeTransactions
           recentSearches={savedSearchType}
         />
@@ -1346,7 +1347,6 @@ function DiscoverPageFilters({
   yAxis: string[];
   isHomepage?: boolean;
 }) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {projects} = useProjects();
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
@@ -1385,53 +1385,51 @@ function DiscoverPageFilters({
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      {hasPageFrameFeature && (
-        <Flex gap="md" align="center">
-          {!shouldHideCreateAlert && (
-            <Feature organization={organization} features="incidents">
-              {({hasFeature}) =>
-                hasFeature && (
-                  <GuideAnchor target="create_alert_from_discover">
-                    <CreateAlertFromViewButton
-                      eventView={buttonEventView}
-                      organization={organization}
-                      projects={projects}
-                      onClick={() => {
-                        trackAnalytics('discover_v2.create_alert_clicked', {
-                          organization,
-                          status: 'success',
-                        });
-                      }}
-                      referrer="discover"
-                      size="sm"
-                      data-test-id="discover2-create-from-discover"
-                      alertType={alertType}
-                    />
-                  </GuideAnchor>
-                )
-              }
-            </Feature>
-          )}
-          <DiscoverContextMenu
-            organization={organization}
-            eventView={eventView}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            isHomepage={isHomepage}
-            setSavedQuery={setSavedQuery}
-          />
-          <SaveQueryButton
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            savedQuery={savedQuery}
-            yAxis={yAxis}
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-          />
-        </Flex>
-      )}
+      <Flex gap="md" align="center">
+        {!shouldHideCreateAlert && (
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) =>
+              hasFeature && (
+                <GuideAnchor target="create_alert_from_discover">
+                  <CreateAlertFromViewButton
+                    eventView={buttonEventView}
+                    organization={organization}
+                    projects={projects}
+                    onClick={() => {
+                      trackAnalytics('discover_v2.create_alert_clicked', {
+                        organization,
+                        status: 'success',
+                      });
+                    }}
+                    referrer="discover"
+                    size="sm"
+                    data-test-id="discover2-create-from-discover"
+                    alertType={alertType}
+                  />
+                </GuideAnchor>
+              )
+            }
+          </Feature>
+        )}
+        <DiscoverContextMenu
+          organization={organization}
+          eventView={eventView}
+          location={location}
+          savedQuery={savedQuery}
+          yAxis={yAxis}
+          isHomepage={isHomepage}
+          setSavedQuery={setSavedQuery}
+        />
+        <SaveQueryButton
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          savedQuery={savedQuery}
+          yAxis={yAxis}
+          setSavedQuery={setSavedQuery}
+          errorCode={errorCode}
+        />
+      </Flex>
     </Wrapper>
   );
 }

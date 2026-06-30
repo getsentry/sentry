@@ -17,10 +17,10 @@ class _BaseNativeDartFlutterEnhancerTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Load the default enhancement rules that include Dart/Flutter logic.
-        self.enhancements = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
+        # Load the default enhancement base, which includes the Dart/Flutter logic.
+        self.enhancements = ENHANCEMENT_BASES["all-platforms:2026-01-20"]
 
-    def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
+    def apply_rules(self, frame: dict[str, Any]) -> dict[str, Any]:
         """Apply enhancement rules to a single frame and return the processed frame."""
         frames = [frame]
         self.enhancements.apply_category_and_updated_in_app_to_frames(frames, self.PLATFORM, {})
@@ -173,3 +173,122 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
         }
         result = self.apply_rules(frame)
         assert result.get("in_app") is None
+
+    # ------------------------------------------------------------------
+    # Flutter/Dart runtime frames in native (Cocoa) crashes & app-hangs
+    #
+    # These frames must be out-of-app so they neither pollute in-app frame
+    # highlighting nor affect native grouping.
+    # ------------------------------------------------------------------
+
+    def test_flutter_engine_framework_frames_not_in_app(self) -> None:
+        """Flutter engine frames live in the Flutter.framework binary (iOS)."""
+        flutter_framework = (
+            "/private/var/containers/Bundle/Application/"
+            "00000000-0000-0000-0000-000000000000/Runner.app/"
+            "Frameworks/Flutter.framework/Flutter"
+        )
+        frames = [
+            {
+                "function": "flutter::Engine::DispatchPointerDataPacket",
+                "abs_path": "flutter/shell/common/engine.cc",
+                "package": flutter_framework,
+            },
+            {
+                "function": "dart::DartEntry::InvokeFunction",
+                "abs_path": "flutter/third_party/dart/runtime/vm/dart_entry.cc",
+                "package": flutter_framework,
+            },
+            {
+                "function": "dart::OS::GetCurrentMonotonicTicks",
+                "abs_path": "flutter/third_party/dart/runtime/vm/os_macos.cc",
+                "package": flutter_framework,
+            },
+        ]
+        for frame in frames:
+            result = self.apply_rules(frame)
+            assert result["in_app"] is False, f"{frame['function']} should be out-of-app"
+
+    def test_flutter_macos_engine_framework_frames_not_in_app(self) -> None:
+        """Flutter engine frames live in the FlutterMacOS.framework binary (macOS)."""
+        frame = {
+            "function": "flutter::Shell::OnPlatformViewDispatchPointerDataPacket",
+            "abs_path": "flutter/shell/common/shell.cc",
+            "package": (
+                "/Applications/MyApp.app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"
+            ),
+        }
+        result = self.apply_rules(frame)
+        assert result["in_app"] is False
+
+    def test_flutter_framework_dart_frames_not_in_app(self) -> None:
+        """`package:flutter/**` framework Dart frames are out-of-app."""
+        flutter_dart_paths = [
+            "package:flutter/src/gestures/binding.dart",
+            "package:flutter/src/gestures/pointer_router.dart",
+            "package:flutter/src/gestures/recognizer.dart",
+            "package:flutter/src/rendering/binding.dart",
+            "package:flutter/src/material/ink_well.dart",
+        ]
+        for path in flutter_dart_paths:
+            frame = {"abs_path": path}
+            result = self.apply_rules(frame)
+            assert result["in_app"] is False, f"{path} should be out-of-app"
+
+    def test_dart_sdk_frames_not_in_app(self) -> None:
+        """Dart SDK frames (`dart:...` and `third_party/dart/sdk/...`) are out-of-app."""
+        dart_sdk_paths = [
+            "dart:ui/hooks.dart",
+            "dart:ui/platform_dispatcher.dart",
+            "dart:core/stopwatch.dart",
+            "dart:core-patch/stopwatch_patch.dart",
+            "dart:_compact_hash",
+            "third_party/dart/sdk/lib/core/object.dart",
+        ]
+        for path in dart_sdk_paths:
+            frame = {"abs_path": path}
+            result = self.apply_rules(frame)
+            assert result["in_app"] is False, f"{path} should be out-of-app"
+
+    def test_dart_bootstrap_stub_frames_not_in_app(self) -> None:
+        """Dart VM bootstrap/invoke stub frames (no abs_path) are out-of-app.
+
+        On real symbolicated native frames the `stub ` prefix is kept in
+        `raw_function`/`symbol` while `function` already holds the trimmed name
+        (e.g. `InvokeDartCode`). Because `raw_function` is set, the grouping
+        matcher uses `function` unchanged, so the rule must match the trimmed
+        name rather than the `stub ...` form.
+        """
+        for function, raw_function in (
+            ("InvokeDartCode", "stub InvokeDartCode"),
+            ("CallBootstrapNative", "stub CallBootstrapNative"),
+        ):
+            frame = {
+                "function": function,
+                "raw_function": raw_function,
+                "symbol": raw_function,
+                "package": (
+                    "/data/app/~~HnUUEj6l01Oer6sOVEGsCQ==/"
+                    "io.sentry.flutter.sample-iQnuDrBoh7jPXpeiiy-THw==/lib/arm64/libapp.so"
+                ),
+            }
+            result = self.apply_rules(frame)
+            assert result["in_app"] is False, f"{function} should be out-of-app"
+
+    def test_user_dart_frames_stay_in_app(self) -> None:
+        """User application Dart frames must remain in-app (regression guard).
+
+        The `package:flutter/**` rule must only match the exact `flutter` SDK
+        package, not user packages whose name merely starts with or contains
+        "flutter" (e.g. `flutter_app`, `my_flutter_app`, `flutterfire`).
+        """
+        frames = [
+            {"abs_path": "package:app_hang_test_app/main.dart", "in_app": True},
+            {"abs_path": "package:myapp/src/widgets/home_screen.dart", "in_app": True},
+            {"abs_path": "package:flutter_app/main.dart", "in_app": True},
+            {"abs_path": "package:my_flutter_app/main.dart", "in_app": True},
+            {"abs_path": "package:flutterfire/main.dart", "in_app": True},
+        ]
+        for frame in frames:
+            result = self.apply_rules(frame)
+            assert result["in_app"] is True, f"{frame['abs_path']} should stay in-app"

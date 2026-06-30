@@ -436,7 +436,7 @@ function emit(map: Record<string, string[]>): string {
 // \`scripts/genPlatformProductInfo.ts\`.
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 `;
 

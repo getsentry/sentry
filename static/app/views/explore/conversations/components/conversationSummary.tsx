@@ -17,14 +17,17 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {normalizeUserField} from 'sentry/views/explore/conversations/components/conversationsTable';
+import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   getNumberAttr,
   getStringAttr,
@@ -48,7 +51,7 @@ interface ConversationSummaryProps {
 const VISIBLE_TRACE_COUNT = 5;
 const VISIBLE_TOOL_COUNT = 4;
 
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
+export function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
   return normalizeUrl(
     `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
   );
@@ -56,6 +59,7 @@ function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
 
 interface ConversationAggregates {
   errorCount: number;
+  erroredToolNames: Set<string>;
   llmCalls: number;
   toolCalls: number;
   toolNames: string[];
@@ -67,16 +71,18 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
+export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
   let totalTokens = 0;
   let totalCost = 0;
   const toolNameSet = new Set<string>();
+  const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
+    const nodeHasError = hasError(node);
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -87,10 +93,13 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       if (toolName) {
         toolNameSet.add(toolName);
+        if (nodeHasError) {
+          erroredToolNameSet.add(toolName);
+        }
       }
     }
 
-    if (hasError(node)) {
+    if (nodeHasError) {
       errorCount++;
     }
   }
@@ -99,10 +108,33 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     llmCalls,
     toolCalls,
     errorCount,
+    erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
     toolNames: Array.from(toolNameSet).sort(),
   };
+}
+
+/**
+ * Derives the conversation's user from the first span node that carries any
+ * user identity attribute. Returns null when the spans aren't user-instrumented.
+ */
+export function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
+  for (const node of nodes) {
+    const email = normalizeUserField(getStringAttr(node, SpanFields.USER_EMAIL));
+    const username = normalizeUserField(getStringAttr(node, SpanFields.USER_USERNAME));
+    const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
+    const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
+    if (email || username || ipAddress || id) {
+      return {
+        email,
+        username,
+        ip_address: ipAddress,
+        id,
+      };
+    }
+  }
+  return null;
 }
 
 /**
@@ -129,7 +161,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:[internal_error,error]`,
   });
 
   return (
@@ -153,7 +185,13 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Cost')}
-        value={formatLLMCosts(aggregates.totalCost)}
+        value={
+          aggregates.totalCost < 0 ? (
+            <NegativeCostInfo cost={aggregates.totalCost} />
+          ) : (
+            formatLLMCosts(aggregates.totalCost)
+          )
+        }
         isLoading={isLoading}
       />
       {lastMessageDate !== undefined && (
@@ -259,8 +297,8 @@ export function ConversationSummary({
         >
           <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
             {isUUID(conversationId)
-              ? t('Conversation #%s', conversationId.slice(0, 8))
-              : t('Conversation #%s', conversationId)}
+              ? t('Conversation %s', conversationId.slice(0, 8))
+              : t('Conversation %s', conversationId)}
           </Heading>
         </Tooltip>
         <Tooltip title={t('Copy conversation ID')}>
@@ -275,7 +313,7 @@ export function ConversationSummary({
         {traces.length > 0 && (
           <Flex align="baseline" gap="xs">
             <Text size="sm" variant="muted">
-              {traces.length === 1 ? t('Trace') : t('Traces')}
+              {tn('Trace', 'Traces', traces.length)}
             </Text>
             {traces.slice(0, VISIBLE_TRACE_COUNT).map((trace, i) => (
               <Flex key={trace.traceId} align="baseline" gap="xs">

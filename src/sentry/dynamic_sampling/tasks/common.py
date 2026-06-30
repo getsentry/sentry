@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TypedDict
 
 import sentry_sdk
@@ -28,6 +28,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import raw_snql_query
 
 ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
@@ -106,9 +107,9 @@ class GetActiveOrgs:
                 Condition(
                     Column("timestamp"),
                     Op.GTE,
-                    datetime.utcnow() - self.time_interval,
+                    deprecated_utcnow() - self.time_interval,
                 ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
             ]
             for tag_name, tag_value in self.tag_filters.items():
@@ -285,8 +286,8 @@ class GetActiveOrgsVolumes:
         ]
 
         where = [
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("timestamp"), Op.GTE, deprecated_utcnow() - self.time_interval),
+            Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
             Condition(Column("metric_id"), Op.EQ, self.metric_id),
         ]
 

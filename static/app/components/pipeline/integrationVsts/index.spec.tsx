@@ -110,4 +110,45 @@ describe('VstsAccountSelectionStep', () => {
 
     expect(advance).toHaveBeenCalledWith({account: 'acct-1'});
   });
+
+  it('auto-advances with the pre-selected account for Marketplace installs', () => {
+    const advance = jest.fn();
+    render(
+      <VstsAccountSelectionStep
+        {...makeStepProps({
+          stepData: {
+            account: 'acct-1',
+            accounts: [{accountId: 'acct-1', accountName: 'MyVSTSAccount'}],
+          },
+          advance,
+        })}
+      />
+    );
+
+    expect(advance).toHaveBeenCalledWith({account: 'acct-1'});
+    expect(advance).toHaveBeenCalledTimes(1);
+    // The picker is not shown while auto-advancing.
+    expect(
+      screen.queryByRole('button', {name: 'Select Azure DevOps organization'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not auto-advance without a pre-selected account', () => {
+    const advance = jest.fn();
+    render(
+      <VstsAccountSelectionStep
+        {...makeStepProps({
+          stepData: {
+            accounts: [{accountId: 'acct-1', accountName: 'MyVSTSAccount'}],
+          },
+          advance,
+        })}
+      />
+    );
+
+    expect(advance).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', {name: 'Select Azure DevOps organization'})
+    ).toBeInTheDocument();
+  });
 });

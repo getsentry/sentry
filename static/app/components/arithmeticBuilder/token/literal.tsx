@@ -24,7 +24,7 @@ import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridList
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 interface ArithmeticTokenLiteralProps {
   item: Node<Token>;
@@ -70,6 +70,12 @@ function InternalInput({item, state, token}: InternalInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(token.text);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
+
+  const [prevValue, setPrevValue] = useState(inputValue);
+  if (token.text !== prevValue) {
+    setPrevValue(token.text);
+    setInputValue(token.text);
+  }
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);

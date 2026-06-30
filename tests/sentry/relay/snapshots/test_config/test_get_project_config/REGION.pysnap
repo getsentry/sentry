@@ -173,6 +173,8 @@ config:
       - '*/readyz{/,}'
       - '*/ping{/,}'
       - '*/up{/,}'
+      - '*/actuator/health{/*,}'
+      - '*/manage/health{/*,}'
   groupingConfig:
     enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA
     id: newstyle:2026-01-20

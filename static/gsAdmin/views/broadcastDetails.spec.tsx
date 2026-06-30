@@ -26,6 +26,7 @@ describe('Broadcast Details', () => {
       platform: ['bun', 'capacitor'],
       product: ['errors', 'spans'],
       createdBy: 'admin@sentry.io',
+      organizations: [123, 456],
       earlyAdopter: true,
     };
 
@@ -59,6 +60,9 @@ describe('Broadcast Details', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher('Created By:admin@sentry.io'))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('Organization IDs:123, 456'))
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher('Early Adopter:Yes'))

@@ -224,7 +224,7 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
         return False
     parsed_url = urlparse(url)
     url_host = parsed_url.netloc
-    base_hostname = options.get("system.base-hostname")
+    base_hostname = settings.SENTRY_BASE_HOSTNAME
     if url_host.endswith(f".{base_hostname}"):
         if allowed_hosts is None:
             allowed_hosts = {url_host}
@@ -405,7 +405,7 @@ def log_auth_failure(request: HttpRequest, username: str | None = None) -> None:
 
 
 def has_user_registration() -> bool:
-    from sentry import features, options
+    from sentry import features
 
     return features.has("auth:register") and options.get("auth.allow-registration")
 

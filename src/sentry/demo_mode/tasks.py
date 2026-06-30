@@ -18,9 +18,11 @@ from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.objectstore import get_debug_files_session
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +79,7 @@ def _sync_project_debug_files(
     if not source_org or not target_org:
         return
 
-    with sentry_sdk.start_span(name="sync-project-debug-files-get-project-ids") as span:
+    with start_span(name="sync-project-debug-files-get-project-ids") as span:
         source_project_ids = list(
             Project.objects.filter(
                 organization_id=source_org.id,
@@ -89,8 +91,8 @@ def _sync_project_debug_files(
                 organization_id=target_org.id,
             ).values_list("id", flat=True)
         )
-        span.set_data("source_project_ids", source_project_ids)
-        span.set_data("target_project_ids", target_project_ids)
+        set_span_data(span, "source_project_ids", source_project_ids)
+        set_span_data(span, "target_project_ids", target_project_ids)
 
     project_debug_files = ProjectDebugFile.objects.filter(
         Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
@@ -110,8 +112,8 @@ def _sync_project_debug_files(
     )
 
     for source_project_debug_file in different_project_debug_files:
-        with sentry_sdk.start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
-            span.set_data("source_project_debug_file_id", source_project_debug_file.id)
+        with start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
+            set_span_data(span, "source_project_debug_file_id", source_project_debug_file.id)
             _sync_project_debug_file(source_project_debug_file, target_org)
 
 
@@ -224,6 +226,8 @@ def _sync_release_artifact_bundle(
 def _sync_project_debug_file(
     source_project_debug_file: ProjectDebugFile, target_org: Organization
 ) -> ProjectDebugFile | None:
+    target_project = None
+    target_storage_path = None
     try:
         with atomic_transaction(using=(router.db_for_write(ProjectDebugFile))):
             target_project = _find_matching_project(
@@ -234,9 +238,30 @@ def _sync_project_debug_file(
             if not target_project:
                 return None
 
+            if source_project_debug_file.storage_path is not None:
+                source_fileobj = source_project_debug_file.get_file()
+                try:
+                    target_storage_path = get_debug_files_session(
+                        target_org.id, target_project.id
+                    ).put(
+                        source_fileobj,
+                        compression="none",
+                        content_type=source_project_debug_file.get_content_type(),
+                    )
+                finally:
+                    source_fileobj.close()
+
             return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
-                file=source_project_debug_file.file,
+                file=(
+                    None
+                    if source_project_debug_file.storage_path is not None
+                    else source_project_debug_file.file
+                ),
+                storage_path=target_storage_path,
+                content_type=source_project_debug_file.content_type,
+                file_size=source_project_debug_file.file_size,
+                date_created=source_project_debug_file.date_created,
                 checksum=source_project_debug_file.checksum,
                 object_name=source_project_debug_file.object_name,
                 cpu_name=source_project_debug_file.cpu_name,
@@ -245,7 +270,7 @@ def _sync_project_debug_file(
                 data=source_project_debug_file.data,
                 date_accessed=source_project_debug_file.date_accessed,
             )
-    except IntegrityError as e:
+    except Exception as e:
         sentry_sdk.capture_exception(e)
         return None
 
@@ -306,4 +331,6 @@ def _find_matching_project(project_id: int, organization_id: int) -> Project | N
                 "organization_id": organization_id,
             },
         )
+        sentry_sdk.set_attribute("args.project_id", project_id)
+        sentry_sdk.set_attribute("args.organization_id", organization_id)
         return None

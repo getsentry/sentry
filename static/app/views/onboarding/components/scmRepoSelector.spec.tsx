@@ -5,6 +5,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Integration, Repository} from 'sentry/types/integrations';
+import * as analytics from 'sentry/utils/analytics';
 
 import {ScmRepoSelector} from './scmRepoSelector';
 
@@ -25,6 +26,7 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 interface DefaultPropsOverrides {
   integration: Integration;
+  analyticsFlow?: 'onboarding' | 'project-creation';
   onClearDerivedState?: jest.Mock;
   onRepositoryChange?: jest.Mock;
   selectedRepository?: Repository;
@@ -32,11 +34,13 @@ interface DefaultPropsOverrides {
 
 function defaultProps({
   integration,
+  analyticsFlow = 'onboarding',
   onClearDerivedState = jest.fn(),
   onRepositoryChange = jest.fn(),
   selectedRepository,
 }: DefaultPropsOverrides) {
   return {
+    analyticsFlow,
     integration,
     selectedRepository,
     onRepositoryChange,
@@ -201,6 +205,55 @@ describe('ScmRepoSelector', () => {
 
     await waitFor(() => expect(reposLookup).toHaveBeenCalled());
     expect(onRepositoryChange).toHaveBeenCalled();
+  });
+
+  it('fires project_creation.scm_connect_repo_selected when analyticsFlow=project-creation', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
+      body: {
+        repos: [
+          {
+            externalId: '1',
+            identifier: 'getsentry/sentry',
+            name: 'sentry',
+            isInstalled: false,
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [
+        RepositoryFixture({name: 'getsentry/sentry', externalSlug: 'getsentry/sentry'}),
+      ],
+    });
+
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+    render(
+      <ScmRepoSelector
+        {...defaultProps({
+          integration: mockIntegration,
+          analyticsFlow: 'project-creation',
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.scm_connect_repo_selected',
+      expect.objectContaining({
+        provider: mockIntegration.provider.key,
+        repo: 'sentry',
+      })
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'onboarding.scm_connect_repo_selected',
+      expect.anything()
+    );
   });
 
   it('clears the selected repo', async () => {

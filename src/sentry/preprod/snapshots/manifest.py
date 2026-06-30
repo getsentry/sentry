@@ -49,7 +49,7 @@ def image_metadata_extras(
     metadata: ImageMetadata, exclude: Set[str] | None = None
 ) -> dict[str, Any]:
     skip = _SCHEMA_FIELDS | exclude if exclude else _SCHEMA_FIELDS
-    return {k: v for k, v in metadata.dict().items() if k not in skip}
+    return {k: v for k, v in metadata if k not in skip}
 
 
 class SnapshotManifest(BaseModel):
@@ -91,4 +91,30 @@ class ComparisonManifest(BaseModel):
     head_artifact_id: int
     base_artifact_id: int
     summary: ComparisonSummary
+    images: dict[str, ComparisonImageResult]
+
+
+class ChunkCandidate(BaseModel):
+    name: str
+    head_hash: str
+    base_hash: str
+    pixel_count: int
+    diff_threshold: float
+
+
+class ChunkAssignment(BaseModel):
+    chunk_index: int
+    candidates: list[ChunkCandidate]
+
+
+class ComparisonPlan(BaseModel):
+    head_artifact_id: int
+    base_artifact_id: int
+    chunks: list[ChunkAssignment]
+    # Results that need no odiff (added/removed/skipped/renamed/unchanged/exceeds-pixel-limit).
+    non_diff_images: dict[str, ComparisonImageResult]
+
+
+class ChunkResult(BaseModel):
+    chunk_index: int
     images: dict[str, ComparisonImageResult]

@@ -8,6 +8,7 @@ type Props = Omit<React.HTMLProps<HTMLHeadingElement>, 'title'> & {
 const Breadcrumbs = styled('div')`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.lg};
 
@@ -44,5 +45,7 @@ export const PageHeader = styled(({children, title, breadcrumbs, ...props}: Prop
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: ${p => p.theme.space.md};
   min-height: 40px;
 `;

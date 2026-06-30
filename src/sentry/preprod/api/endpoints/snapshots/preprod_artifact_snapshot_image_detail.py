@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 import orjson
-from django.conf import settings
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,10 +19,13 @@ from sentry.api.bases.organization import (
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.api.models.public.snapshots import SnapshotImageDetailResponseDict
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotImageDetailImageInfo,
@@ -110,6 +113,13 @@ def _resolve_base_image_info(
     )
 
 
+def _to_response_dict(resp: SnapshotImageDetailResponse) -> SnapshotImageDetailResponseDict:
+    # cast() sanctioned here: pydantic .dict() returns dict[str, Any] with no
+    # static link back to SnapshotImageDetailResponseDict. The TypedDict and
+    # the Pydantic model are kept in sync by hand at the source of truth.
+    return cast(SnapshotImageDetailResponseDict, resp.dict())
+
+
 # Intentionally uses a flat response format (nullable fields, no conditional shapes)
 # rather than matching the details endpoint's SnapshotDiffPair/SnapshotImageResponse split.
 # This endpoint is designed for LLM/MCP consumers that benefit from a single uniform shape.
@@ -123,7 +133,8 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve Snapshot image detail",
+        operation_id="getOrganizationPreprodArtifactSnapshotImage",
+        summary="Retrieve Snapshot image detail",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -157,7 +168,7 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
         organization: Organization,
         snapshot_id: str,
         image_identifier: str,
-    ) -> Response:
+    ) -> Response[SnapshotImageDetailResponseDict] | Response[DetailResponse]:
         """
         Retrieve detailed information for a single image within a snapshot.
 
@@ -171,11 +182,6 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -185,6 +191,19 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
+
+        analytics.record(
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+                image_identifier=image_identifier,
+                client=resolve_action_source(request),
+            )
+        )
 
         try:
             snapshot_metrics = artifact.preprodsnapshotmetrics
@@ -266,7 +285,7 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
                                 comp_file_name, base_manifest, org_slug, project_slug
                             ),
                         )
-                        return Response(resp.dict())
+                        return Response(_to_response_dict(resp))
 
                     if comp_result.status == "skipped":
                         base_image = _resolve_base_image_info(
@@ -278,7 +297,7 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
                             head_image=base_image,
                             base_image=base_image,
                         )
-                        return Response(resp.dict())
+                        return Response(_to_response_dict(resp))
 
             return Response({"detail": "Image not found in snapshot"}, status=404)
 
@@ -294,7 +313,7 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
                 image_file_name=image_file_name,
                 head_image=head_image,
             )
-            return Response(resp.dict())
+            return Response(_to_response_dict(resp))
 
         status = comp_result.status
 
@@ -328,4 +347,4 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             diff_percentage=diff_percentage,
             previous_image_file_name=previous_image_file_name,
         )
-        return Response(resp.dict())
+        return Response(_to_response_dict(resp))

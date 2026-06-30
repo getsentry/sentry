@@ -10,7 +10,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.parameters import CursorQueryParam
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
@@ -18,6 +20,7 @@ from sentry.integrations.models.integration_feature import IntegrationFeature, I
 from sentry.models.organization import Organization
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationsBaseEndpoint
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationResult,
     SentryAppInstallationSerializer,
 )
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
@@ -31,19 +34,33 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(required=True, max_length=SENTRY_APP_SLUG_MAX_LENGTH)
 
 
+@extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(
         operation_id="List an Organization's Sentry App Installations",
-        parameters=[CursorQueryParam],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListSentryAppInstallations", list[SentryAppInstallationResult]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[SentryAppInstallationResult]]:
+        """
+        Return a list of an organization's installations of custom integrations (Sentry Apps).
+        """
         queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 
         return self.paginate(

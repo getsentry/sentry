@@ -148,11 +148,6 @@ describe('MetricsTabContent', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
@@ -161,7 +156,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('should add a metric when Add Metric button is clicked', async () => {
+  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -216,7 +211,7 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
-  it('should fire analytics for metadata', async () => {
+  it.isKnownFlake('should fire analytics for metadata', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />

@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -41,35 +41,17 @@ export function DataExport({
   overrideFeatureFlags,
   onClick,
 }: DataExportProps): React.ReactElement {
-  const unmountedRef = useRef(false);
-  const [inProgress, setInProgress] = useState(false);
-  const handleDataExport = useDataExport({
-    unmountedRef,
-    inProgressCallback: setInProgress,
-  });
+  const {mutate, reset, isPending, isSuccess} = useDataExport();
+  const inProgress = isPending || isSuccess;
 
   // We clear the indicator if export props change so that the user
   // can fire another export without having to wait for the previous one to finish.
   useEffect(() => {
-    if (inProgress) {
-      setInProgress(false);
-    }
-    // We are skipping the inProgress dependency because it would have fired on each handleDataExport
-    // call and would have immediately turned off the value giving users no feedback on their click action.
-    // An alternative way to handle this would have probably been to key the component by payload/queryType,
-    // but that seems like it can be a complex object so tracking changes could result in very brittle behavior.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payload.queryType, payload.queryInfo]);
-
-  // Tracking unmounting of the component to prevent setState call on unmounted component
-  useEffect(() => {
-    return () => {
-      unmountedRef.current = true;
-    };
-  }, []);
+    reset();
+  }, [payload.queryType, payload.queryInfo, reset]);
 
   const handleClick = () => {
-    handleDataExport(payload);
+    mutate(payload);
     onClick?.();
   };
 

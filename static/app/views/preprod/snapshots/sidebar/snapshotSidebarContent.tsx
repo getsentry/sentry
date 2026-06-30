@@ -7,7 +7,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose, IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
 import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
@@ -26,11 +26,12 @@ export interface SidebarSection {
 
 export const DIFF_TYPE_ORDER: Record<string, number> = {
   [DiffStatus.CHANGED]: 0,
-  [DiffStatus.REMOVED]: 1,
-  [DiffStatus.ADDED]: 2,
-  [DiffStatus.RENAMED]: 3,
-  [DiffStatus.UNCHANGED]: 4,
-  [DiffStatus.SKIPPED]: 5,
+  [DiffStatus.ERRORED]: 1,
+  [DiffStatus.REMOVED]: 2,
+  [DiffStatus.ADDED]: 3,
+  [DiffStatus.RENAMED]: 4,
+  [DiffStatus.UNCHANGED]: 5,
+  [DiffStatus.SKIPPED]: 6,
 };
 
 type StatusCounts = Record<DiffStatus, number>;
@@ -41,8 +42,15 @@ const STATUS_PILLS: ReadonlyArray<{
   color: PillColor;
   label: string;
   status: DiffStatus;
+  icon?: React.ReactNode;
 }> = [
   {status: DiffStatus.CHANGED, color: 'accent', label: t('changed')},
+  {
+    status: DiffStatus.ERRORED,
+    color: 'danger',
+    label: t('errored'),
+    icon: <IconWarning size="xs" variant="danger" />,
+  },
   {status: DiffStatus.REMOVED, color: 'danger', label: t('removed')},
   {status: DiffStatus.ADDED, color: 'success', label: t('added')},
   {status: DiffStatus.RENAMED, color: 'warning', label: t('renamed')},
@@ -56,6 +64,7 @@ const STATUS_META: Record<DiffStatus, {color: PillColor; label: string}> = {
   [DiffStatus.REMOVED]: {color: 'danger', label: t('Removed')},
   [DiffStatus.RENAMED]: {color: 'warning', label: t('Renamed')},
   [DiffStatus.UNCHANGED]: {color: 'muted', label: t('Unchanged')},
+  [DiffStatus.ERRORED]: {color: 'danger', label: t('Errored')},
   [DiffStatus.SKIPPED]: {color: 'muted', label: t('Skipped')},
 };
 
@@ -185,7 +194,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
         </InputGroup>
         {statusCounts && (
           <Flex gap="lg" wrap="wrap">
-            {STATUS_PILLS.map(({status, color, label}) => {
+            {STATUS_PILLS.map(({status, color, label, icon}) => {
               const count = statusCounts[status];
               if (count <= 0) {
                 return null;
@@ -196,6 +205,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
                   color={color}
                   count={count}
                   label={label}
+                  icon={icon}
                   active={isStatusActive(status)}
                   onClick={() => onToggleStatus(status)}
                 />
@@ -326,6 +336,7 @@ function StatusPill({
   count,
   label,
   active,
+  icon,
   onClick,
 }: {
   active: boolean;
@@ -333,10 +344,11 @@ function StatusPill({
   count: number;
   label: string;
   onClick: () => void;
+  icon?: React.ReactNode;
 }) {
   return (
     <PillButton type="button" active={active} onClick={onClick}>
-      <Dot pillColor={color} active={active} />
+      {icon ?? <Dot pillColor={color} active={active} />}
       <Text size="xs" variant="muted">
         {count} {label}
       </Text>

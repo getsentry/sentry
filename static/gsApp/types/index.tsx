@@ -23,10 +23,6 @@ declare global {
      */
     uetq: any;
     /**
-     * Zendesk widget
-     */
-    zE: any;
-    /**
      * Stripe SDK
      */
     Stripe?: StripeConstructor;
@@ -94,18 +90,6 @@ export type ReservedBudgetCategory = {
    */
   apiName: ReservedBudgetCategoryType;
   /**
-   * The feature flag determining if the product is available for billing
-   */
-  billingFlag: string | null;
-  /**
-   * Backend name of the category (all caps, snake case)
-   */
-  budgetCategoryType: string;
-  /**
-   * whether a customer can use product trials for this budget
-   */
-  canProductTrial: boolean;
-  /**
    * the categories that are included in the budget
    */
   dataCategories: DataCategory[];
@@ -114,10 +98,6 @@ export type ReservedBudgetCategory = {
    */
   defaultBudget: number | null;
   /**
-   * Link to the quotas documentation for the budget
-   */
-  docLink: string;
-  /**
    * Whether the budget is fixed or variable
    */
   isFixed: boolean;
@@ -125,10 +105,6 @@ export type ReservedBudgetCategory = {
    * Display name of the budget
    */
   name: string;
-  /**
-   * The name of the product to display in the checkout flow
-   */
-  productCheckoutName: string;
   /**
    * The name of the product associated with the budget
    */
@@ -142,7 +118,6 @@ export enum AddOnCategory {
 
 export type AddOnCategoryInfo = {
   apiName: AddOnCategory;
-  billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
@@ -172,13 +147,7 @@ type RetentionSettings = {
 
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
-  allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
-  /**
-   * All available data categories on the current plan tier.
-   * Can be used for category upsells.
-   */
-  availableCategories: DataCategory[];
   availableReservedBudgetTypes: Partial<
     Record<ReservedBudgetCategoryType, ReservedBudgetCategory>
   >;
@@ -190,23 +159,23 @@ export type Plan = {
    */
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
-  contractInterval: 'monthly' | 'annual';
   dashboardLimit: number;
-  description: string;
   features: string[];
 
   hasOnDemandModes: boolean;
   id: string;
+  /**
+   * Whether the plan is treated as enterprise in the UI (display name,
+   * upsell suppression, provisioning).
+   */
+  isEnterprise: boolean;
   isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
-  onDemandEventPrice: number;
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
-  price: number;
 
-  reservedMinimum: number;
   retentionDays: number;
   totalPrice: number;
   trialPlan: string | null;
@@ -214,8 +183,6 @@ export type Plan = {
   categoryDisplayNames?: Partial<
     Record<DataCategory, {plural: string; singular: string}>
   >;
-  checkoutType?: CheckoutType;
-  retentions?: Partial<Record<DataCategory, RetentionSettings>>;
 };
 
 type PendingChanges = {
@@ -233,14 +200,6 @@ type PendingChanges = {
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
 };
-
-enum VatStatus {
-  UNKNOWN = 'unknown',
-  PERSONAL = 'personal',
-  BUSINESS = 'business',
-  BUSINESS_NOVAT = 'business_novat',
-  OTHER = 'other',
-}
 
 type GDPRDetails = {
   dpoAddress: string;
@@ -326,7 +285,6 @@ export type Subscription = {
 
   billingPeriodStart: string;
   canCancel: boolean;
-  canGracePeriod: boolean;
   canSelfServe: boolean;
   canTrial: boolean;
 
@@ -335,13 +293,8 @@ export type Subscription = {
    * Current history per data category
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
-  contractInterval: 'monthly' | 'annual';
-
-  contractPeriodEnd: string;
-  contractPeriodStart: string;
   customPrice: number | null;
   customPricePcss: number | null;
-  dataRetention: string | null;
   // Event details
   dateJoined: string;
   effectiveRetentions: Partial<
@@ -355,17 +308,12 @@ export type Subscription = {
   >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
-  gracePeriodEnd: string | null;
-  gracePeriodStart: string | null;
   hadCustomDynamicSampling: boolean;
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
-  hasSoftCap: boolean;
   id: string;
-  isBundleEligible: boolean;
 
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
@@ -375,8 +323,6 @@ export type Subscription = {
   isFree: boolean;
 
   // Subscription flags
-  isGracePeriod: boolean;
-  isHeroku: boolean;
   isManaged: boolean;
   isOverMemberLimit: boolean;
 
@@ -397,6 +343,7 @@ export type Subscription = {
   onDemandPeriodEnd: string;
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
+  onTrialPlan: boolean;
   orgRetention: RetentionSettings | null;
   partner: Partner | null;
   paymentSource: {
@@ -411,7 +358,6 @@ export type Subscription = {
   // Subscription details
   plan: string;
   planDetails: Plan;
-  planTier: string;
   /**
    * Total events allowed for the current usage period including gifted
    */
@@ -427,7 +373,6 @@ export type Subscription = {
   totalProjects: number | null;
   trialEnd: string | null;
   trialPlan: string | null;
-  trialTier: string | null;
   type: BillingType;
   /**
    * All quotas available on the plan are exceeded
@@ -444,7 +389,6 @@ export type Subscription = {
    * Optional without access, and possibly null with access
    */
   companyName?: string | null;
-  contactInfo?: string | null;
   countryCode?: string | null;
 
   // Refetch usage data if Subscription is updated
@@ -460,8 +404,6 @@ export type Subscription = {
   };
 
   owner?: {email: string; name: string};
-  previousPaidPlans?: string[];
-
   productTrials?: ProductTrial[];
   reservedBudgets?: ReservedBudget[];
   // Added by SubscriptionStore
@@ -473,13 +415,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  /**
-   * Optional without access, and possibly null with access
-   */
-  vatID?: string | null;
-
-  vatStatus?: VatStatus | null;
 };
 
 type DiscountInfo = {
@@ -870,6 +805,8 @@ export type PreviewData = {
   newBalance: number;
   previewToken: string;
   proratedAmount: number;
+  /** Only set by the next-bill preview: the plan/period the bill covers is annual. */
+  isAnnual?: boolean;
   paymentIntent?: string;
   paymentSecret?: string;
 };
@@ -949,41 +886,6 @@ export type RecurringCredit =
   | RecurringDiscount
   | RecurringPercentDiscount
   | RecurringEventCredit;
-
-export enum PlanTier {
-  /**
-   * Performance plans with continuous profiling
-   * and dynamic sampling for spans.
-   */
-  AM3 = 'am3',
-  /**
-   * Performance plans with continuous profiling
-   * and dynamic sampling for transactions.
-   */
-  AM2 = 'am2',
-  /**
-   * First generation of application monitoring plans.
-   * Includes performance features.
-   */
-  AM1 = 'am1',
-  /**
-   * Monthly metered plans with variable data options.
-   */
-  MM2 = 'mm2',
-  /**
-   * First generation of monthly metered plans.
-   * Features and data volumes are tightly coupled.
-   */
-  MM1 = 'mm1',
-  /**
-   * No specified tier
-   */
-  ALL = 'all',
-  /**
-   * Test plans
-   */
-  TEST = 'test',
-}
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/
 export type PaymentCreateResponse = {

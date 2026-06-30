@@ -6,7 +6,7 @@ import {type BreakpointEvidenceData} from 'sentry/components/events/eventStatist
 import {LineChart as Chart} from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {SectionKey} from 'sentry/views/issueDetails/context';

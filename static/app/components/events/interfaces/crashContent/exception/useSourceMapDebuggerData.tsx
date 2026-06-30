@@ -1,12 +1,12 @@
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export interface SourceMapDebugBlueThunderResponseFrame {
+export interface SourceMapDebugResponseFrame {
   debug_id_process: {
     debug_id: string | null;
     uploaded_source_file_with_correct_debug_id: boolean;
@@ -34,10 +34,10 @@ export interface SourceMapDebugBlueThunderResponseFrame {
   };
 }
 
-export interface SourceMapDebugBlueThunderResponse {
+export interface SourceMapDebugResponse {
   dist: string | null;
   exceptions: Array<{
-    frames: SourceMapDebugBlueThunderResponseFrame[];
+    frames: SourceMapDebugResponseFrame[];
   }>;
   has_debug_ids: boolean;
   has_uploaded_some_artifact_with_a_debug_id: boolean;
@@ -51,7 +51,7 @@ export interface SourceMapDebugBlueThunderResponse {
 }
 
 export type SourceMapDebugQueryResult = UseApiQueryResult<
-  SourceMapDebugBlueThunderResponse,
+  SourceMapDebugResponse,
   RequestError
 >;
 
@@ -63,10 +63,10 @@ export function useSourceMapDebugQuery(
   const organization = useOrganization({allowNull: true});
   const isSdkThatShouldShowSourceMapsDebugger =
     sdkName?.startsWith('sentry.javascript.') ?? false;
-  return useApiQuery<SourceMapDebugBlueThunderResponse>(
+  return useApiQuery<SourceMapDebugResponse>(
     [
       getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug-blue-thunder-edition/',
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
         {
           path: {
             organizationIdOrSlug: organization!.slug,
@@ -90,8 +90,8 @@ export function useSourceMapDebugQuery(
 }
 
 function getDebugIdProgress(
-  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
-  debuggerFrame: SourceMapDebugBlueThunderResponseFrame
+  sourceMapDebuggerData: SourceMapDebugResponse,
+  debuggerFrame: SourceMapDebugResponseFrame
 ) {
   let debugIdProgress = 0;
   if (sourceMapDebuggerData.sdk_debug_id_support === 'full') {
@@ -110,8 +110,8 @@ function getDebugIdProgress(
 }
 
 function getReleaseProgress(
-  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
-  debuggerFrame: SourceMapDebugBlueThunderResponseFrame
+  sourceMapDebuggerData: SourceMapDebugResponse,
+  debuggerFrame: SourceMapDebugResponseFrame
 ) {
   let releaseProgress = 0;
   if (sourceMapDebuggerData.release !== null) {
@@ -129,7 +129,7 @@ function getReleaseProgress(
   return {releaseProgress, releaseProgressPercent: releaseProgress / 4};
 }
 
-function getScrapingProgress(debuggerFrame: SourceMapDebugBlueThunderResponseFrame) {
+function getScrapingProgress(debuggerFrame: SourceMapDebugResponseFrame) {
   let scrapingProgress = 0;
 
   if (debuggerFrame.scraping_process?.source_file?.status === 'success') {
@@ -148,8 +148,8 @@ function getScrapingProgress(debuggerFrame: SourceMapDebugBlueThunderResponseFra
 }
 
 export function prepareSourceMapDebuggerFrameInformation(
-  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
-  debuggerFrame: SourceMapDebugBlueThunderResponseFrame,
+  sourceMapDebuggerData: SourceMapDebugResponse,
+  debuggerFrame: SourceMapDebugResponseFrame,
   event: Event,
   projectPlatform: PlatformKey | undefined
 ): FrameSourceMapDebuggerData {

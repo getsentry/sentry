@@ -7,14 +7,18 @@ import type {Location, LocationDescriptorObject} from 'history';
 import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
-import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
+export type TitleProps = {
+  onClick?: (e: React.MouseEvent) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  onMouseEnter?: (e: React.MouseEvent) => void;
+  onMouseLeave?: (e: React.MouseEvent) => void;
+};
 
 type Props = {
   eventView: EventView;

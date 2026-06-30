@@ -371,10 +371,10 @@ def create_code_mapping(
         },
     )
     with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-        project_repo, _ = ProjectRepository.objects.get_or_create(
-            project=project,
-            repository=repository,
-            defaults={"source": ProjectRepositorySource.MANUAL},
+        project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+            project_id=project.id,
+            repository_id=repository.id,
+            source=ProjectRepositorySource.MANUAL,
         )
         new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
             project_repository=project_repo,

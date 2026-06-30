@@ -6,37 +6,42 @@ from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
+    BoldTextBlock,
+    LinkTextBlock,
     NotificationProviderKey,
+    NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
+    ParagraphBlock,
+    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 def validate_text_block(
-    text_block: NotificationBodyTextBlock, text_content: str, html_content: str
+    text_block: NotificationTextBlock, text_content: str, html_content: str
 ) -> None:
-    if text_block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+    if text_block.type == NotificationTextBlockType.PLAIN_TEXT:
         assert text_block.text in text_content
         assert text_block.text in html_content
-    elif text_block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+    elif text_block.type == NotificationTextBlockType.BOLD_TEXT:
         assert f"<strong>{text_block.text}</strong>" in html_content
-    elif text_block.type == NotificationBodyTextBlockType.CODE:
+    elif text_block.type == NotificationTextBlockType.CODE:
         assert f"<code>{text_block.text}</code>" in html_content
 
 
 def validate_formatting_block(
-    formatting_block: NotificationBodyFormattingBlock, text_content: str, html_content: str
+    formatting_block: NotificationSection, text_content: str, html_content: str
 ) -> None:
-    if formatting_block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+    if formatting_block.type == NotificationSectionType.PARAGRAPH:
         assert "\n" in text_content
         assert "<p" in html_content
         assert "</p>" in html_content
-    elif formatting_block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+    elif formatting_block.type == NotificationSectionType.CODE_BLOCK:
         assert "\n" in text_content
         assert "<pre" in html_content
         assert "</pre>" in html_content
@@ -65,15 +70,18 @@ class EmailRendererTest(TestCase):
         text_content = email.body
 
         assert self.rendered_template.chart is not None
-        assert self.rendered_template.footer is not None
+        assert isinstance(self.rendered_template.subject_blocks, list)
+        assert isinstance(self.rendered_template.subject_text, str)
+        assert isinstance(self.rendered_template.footer_blocks, list)
+        assert isinstance(self.rendered_template.footer_text, str)
 
         for element in [
-            self.rendered_template.subject,
+            self.rendered_template.subject_text,
             self.rendered_template.actions[0].label,
             self.rendered_template.actions[0].link,
             self.rendered_template.chart.url,
             self.rendered_template.chart.alt_text,
-            self.rendered_template.footer,
+            self.rendered_template.footer_text,
         ]:
             assert element in str(text_content)
             assert element in str(html_content)
@@ -84,31 +92,42 @@ class EmailRendererTest(TestCase):
             for text_block in block.blocks:
                 validate_text_block(text_block, str(text_content), str(html_content))
 
-    def test_xss_protection(self) -> None:
-        from sentry.notifications.platform.types import (
-            BoldTextBlock,
-            NotificationBodyFormattingBlockType,
-            NotificationBodyTextBlockType,
-            NotificationRenderedTemplate,
-            ParagraphBlock,
-            PlainTextBlock,
+    def test_link_text_block_rendering(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Test Link",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="Check out"),
+                        LinkTextBlock(
+                            text="getsentry/sentry (#1234)",
+                            url="https://github.com/getsentry/sentry/pull/1234",
+                        ),
+                    ],
+                )
+            ],
         )
 
-        # Create template with XSS attempt in user content
+        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+        [html_content, _] = email.alternatives[0]
+        text_content = email.body
+
+        html_str = str(html_content)
+        assert 'href="https://github.com/getsentry/sentry/pull/1234"' in html_str
+        assert "getsentry/sentry (#1234)" in html_str
+        assert (
+            "getsentry/sentry (#1234) (https://github.com/getsentry/sentry/pull/1234)"
+            in text_content
+        )
+
+    def test_xss_protection(self) -> None:
         xss_template = NotificationRenderedTemplate(
             subject="Test XSS",
             body=[
                 ParagraphBlock(
-                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
-                        PlainTextBlock(
-                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text="<script>alert('xss')</script>",
-                        ),
-                        BoldTextBlock(
-                            type=NotificationBodyTextBlockType.BOLD_TEXT,
-                            text="<img src=x onerror=alert('xss')>",
-                        ),
+                        PlainTextBlock(text="<script>alert('xss')</script>"),
+                        BoldTextBlock(text="<img src=x onerror=alert('xss')>"),
                     ],
                 )
             ],
@@ -129,6 +148,27 @@ class EmailRendererTest(TestCase):
 
         # Malicious tags should NOT be present in unescaped form
         assert "<script>" not in str(html_content)
+
+    def test_xss_protection_link_block(self) -> None:
+        xss_template = NotificationRenderedTemplate(
+            subject="Test XSS Link",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        LinkTextBlock(
+                            text='<script>alert("xss")</script>',
+                            url="https://example.com/<script>",
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=xss_template)
+        [html_content, _] = email.alternatives[0]
+
+        assert "<script>" not in str(html_content)
+        assert "&lt;script&gt;" in str(html_content)
 
 
 class EmailNotificationProviderTest(TestCase):

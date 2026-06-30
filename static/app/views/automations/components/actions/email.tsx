@@ -1,4 +1,5 @@
 import {Container} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -8,7 +9,6 @@ import {
 } from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionTarget} from 'sentry/types/workflowEngine/actions';
 import {useOrganization} from 'sentry/utils/useOrganization';

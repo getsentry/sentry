@@ -3,7 +3,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
@@ -12,6 +18,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
+import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {MetricValues, RuleAction} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetails} from './scmProjectDetails';
@@ -82,13 +89,13 @@ describe('ScmProjectDetails', () => {
     expect(await screen.findByText('Project details')).toBeInTheDocument();
   });
 
-  it('renders section headers with icons', async () => {
+  it('renders section headers', async () => {
     render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
       organization,
     });
 
-    expect(await screen.findByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.getByText('Assign a team')).toBeInTheDocument();
+    expect(await screen.findByText('Project name')).toBeInTheDocument();
+    expect(screen.getByText('Team')).toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
   });
@@ -108,8 +115,40 @@ describe('ScmProjectDetails', () => {
     });
 
     expect(await screen.findByText('High priority issues')).toBeInTheDocument();
-    expect(screen.getByText('Custom')).toBeInTheDocument();
-    expect(screen.getByText("I'll create my own alerts later")).toBeInTheDocument();
+    expect(
+      screen.getByText('Alert on new, regressed, and escalating issues')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Custom threshold')).toBeInTheDocument();
+    expect(screen.getByText("I'll set up alerts later")).toBeInTheDocument();
+    expect(
+      screen.getByText('You can always change alerts after project creation')
+    ).toBeInTheDocument();
+  });
+
+  it('re-derives the fields when the host clears the form', () => {
+    const hookProps: Parameters<typeof useScmProjectDetails>[0] = {
+      analyticsFlow: 'onboarding',
+      selectedPlatform: mockPlatform,
+      selectedRepository: undefined,
+      createdProjectSlug: undefined,
+      projectDetailsForm: {
+        projectName: 'restored-name',
+        teamSlug: teamWithAccess.slug,
+      },
+      onProjectDetailsFormChange: jest.fn(),
+      onComplete: jest.fn(),
+    };
+    const {result, rerender} = renderHookWithProviders(useScmProjectDetails, {
+      organization,
+      initialProps: hookProps,
+    });
+
+    expect(result.current.projectName).toBe('restored-name');
+
+    // The host clears the form (platform or repo change in the single-view
+    // flow); the name falls back to the platform default.
+    rerender({...hookProps, projectDetailsForm: undefined});
+    expect(result.current.projectName).toBe('javascript-nextjs');
   });
 
   it('create project button is disabled without platform', async () => {
@@ -152,6 +191,73 @@ describe('ScmProjectDetails', () => {
     await waitFor(() => {
       expect(props.onComplete).toHaveBeenCalled();
     });
+  });
+
+  it('stays busy while linking the repo so a second click cannot duplicate', async () => {
+    const created = ProjectFixture({
+      slug: 'javascript-nextjs',
+      name: 'javascript-nextjs',
+    });
+    const createRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: created,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    // The repo link runs after the project POST resolves, i.e. while the create
+    // mutation is no longer pending. Delaying it holds the flow in exactly the
+    // window where the button used to re-enable and accept a duplicate create.
+    // The delay must comfortably exceed userEvent's inter-click time so a loaded
+    // CI runner can't let it elapse mid-second-click and re-enable the button.
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${created.slug}/repo/`,
+      method: 'POST',
+      body: {
+        id: '1',
+        projectId: created.id,
+        repositoryId: mockRepository.id,
+        source: 'scm_onboarding',
+        created: true,
+      },
+      asyncDelay: 1000,
+    });
+
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      selectedRepository: mockRepository,
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    await userEvent.click(createButton);
+
+    // Project POST resolved, repo link still in flight: the button must remain
+    // disabled, so this second click is a no-op.
+    expect(createButton).toBeDisabled();
+    await userEvent.click(createButton);
+
+    // Completion only fires once the delayed repo link resolves, so give the
+    // wait headroom over the asyncDelay above.
+    await waitFor(
+      () => {
+        expect(props.onComplete).toHaveBeenCalledTimes(1);
+      },
+      {timeout: 5000}
+    );
+    expect(createRequest).toHaveBeenCalledTimes(1);
+    expect(repoLinkRequest).toHaveBeenCalledTimes(1);
   });
 
   it('links selected repository to project after creation', async () => {

@@ -1,8 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {ClassNames} from '@emotion/react';
 
 import Feature from 'sentry/components/acl/feature';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -61,7 +59,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {
   isJavascriptPlatform,
@@ -70,13 +68,13 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
+import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
+import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,
   MetricKitHangProfileSection,
@@ -117,10 +115,7 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hangProfileData =
-    mechanism === 'mx_hang_diagnostic' &&
-    organization.features.includes('metrickit-flamegraph')
-      ? getHangProfileData(event)
-      : null;
+    mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
   const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
   const isSampleError = useIsSampleEvent();
@@ -131,10 +126,6 @@ export function EventDetailsContent({
 
   if (group.issueType === IssueType.SOURCEMAP_CONFIGURATION) {
     return <SourceMapIssueDetails group={group} event={event} project={project} />;
-  }
-
-  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
-    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
   }
 
   return (
@@ -153,13 +144,24 @@ export function EventDetailsContent({
           <EventUserFeedback report={event.userReport} />
         </FoldSection>
       )}
-      {(event.contexts?.metric_alert?.alert_rule_id ||
-        event?.occurrence?.evidenceData?.alertId) && (
-        <MetricIssuesSection
-          organization={organization}
-          group={group}
-          project={project}
-        />
+      {issueTypeConfig.configurationProblem.enabled && (
+        <FoldSection sectionKey={SectionKey.CONFIGURATION_PROBLEM} title={t('Problem')}>
+          {/* Low-value spans is the only consumer of configurationProblem today;
+              the implementation will be generalized once more configuration
+              issues opt into this flag. */}
+          <LowValueSpanProblemSection event={event} project={project} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationTroubleshooting.enabled && (
+        <FoldSection
+          sectionKey={SectionKey.CONFIGURATION_TROUBLESHOOTING}
+          title={t('Troubleshooting')}
+        >
+          {/* Low-value spans is the only consumer of configurationTroubleshooting
+              today; the implementation will be generalized once more
+              configuration issues opt into this flag. */}
+          <LowValueSpanTroubleshootingSection event={event} project={project} />
+        </FoldSection>
       )}
       <EventEvidence event={event} group={group} project={project} />
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
@@ -173,79 +175,67 @@ export function EventDetailsContent({
       {isMetricKitHang ? (
         <MetricKitHangProfileSection data={hangProfileData} />
       ) : (
-        /* Wrapping all stacktrace components since multiple could appear */
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="stacktrace"
-              position="top"
-              // Prevent the container span from shrinking the content
-              containerClassName={css`
-                display: block !important;
-              `}
-            >
-              {shouldShowTombstonesBanner(event) && !isSampleError && (
-                <ErrorBoundary mini>
-                  <AndroidNativeTombstonesBanner
-                    event={event}
-                    projectId={group?.project.id ?? event.projectID ?? ''}
-                  />
-                </ErrorBoundary>
+        <Fragment>
+          {shouldShowTombstonesBanner(event) && !isSampleError && (
+            <ErrorBoundary mini>
+              <AndroidNativeTombstonesBanner
+                event={event}
+                projectId={group?.project.id ?? event.projectID ?? ''}
+              />
+            </ErrorBoundary>
+          )}
+          {defined(eventEntries[EntryType.EXCEPTION]) && (
+            <EntryErrorBoundary type={EntryType.EXCEPTION}>
+              {shouldUseNewStackTrace ? (
+                <IssueStackTrace
+                  event={event}
+                  values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
+                  projectSlug={project.slug}
+                  group={group}
+                />
+              ) : (
+                <Exception
+                  event={event}
+                  data={eventEntries[EntryType.EXCEPTION].data}
+                  projectSlug={project.slug}
+                  group={group}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                />
               )}
-              {defined(eventEntries[EntryType.EXCEPTION]) && (
-                <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                  {shouldUseNewStackTrace ? (
-                    <IssueStackTrace
-                      event={event}
-                      values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
-                      projectSlug={project.slug}
-                      group={group}
-                    />
-                  ) : (
-                    <Exception
-                      event={event}
-                      data={eventEntries[EntryType.EXCEPTION].data}
-                      projectSlug={project.slug}
-                      group={group}
-                      groupingCurrentLevel={groupingCurrentLevel}
-                    />
-                  )}
-                </EntryErrorBoundary>
-              )}
-              {issueTypeConfig.stacktrace.enabled &&
-                defined(eventEntries[EntryType.STACKTRACE]) && (
-                  <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                    {shouldUseNewStackTrace ? (
-                      <IssueStackTrace
-                        event={event}
-                        stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                        projectSlug={projectSlug}
-                        group={group}
-                      />
-                    ) : (
-                      <StackTrace
-                        event={event}
-                        data={eventEntries[EntryType.STACKTRACE].data}
-                        projectSlug={projectSlug}
-                        groupingCurrentLevel={groupingCurrentLevel}
-                      />
-                    )}
-                  </EntryErrorBoundary>
-                )}
-              {defined(eventEntries[EntryType.THREADS]) && (
-                <EntryErrorBoundary type={EntryType.THREADS}>
-                  <Threads
+            </EntryErrorBoundary>
+          )}
+          {issueTypeConfig.stacktrace.enabled &&
+            defined(eventEntries[EntryType.STACKTRACE]) && (
+              <EntryErrorBoundary type={EntryType.STACKTRACE}>
+                {shouldUseNewStackTrace ? (
+                  <IssueStackTrace
                     event={event}
-                    data={eventEntries[EntryType.THREADS].data}
-                    projectSlug={project.slug}
-                    groupingCurrentLevel={groupingCurrentLevel}
+                    stacktrace={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
                     group={group}
                   />
-                </EntryErrorBoundary>
-              )}
-            </GuideAnchor>
+                ) : (
+                  <StackTrace
+                    event={event}
+                    data={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
+                    groupingCurrentLevel={groupingCurrentLevel}
+                  />
+                )}
+              </EntryErrorBoundary>
+            )}
+          {defined(eventEntries[EntryType.THREADS]) && (
+            <EntryErrorBoundary type={EntryType.THREADS}>
+              <Threads
+                event={event}
+                data={eventEntries[EntryType.THREADS].data}
+                projectSlug={project.slug}
+                groupingCurrentLevel={groupingCurrentLevel}
+                group={group}
+              />
+            </EntryErrorBoundary>
           )}
-        </ClassNames>
+        </Fragment>
       )}
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (
@@ -356,7 +346,8 @@ export function EventDetailsContent({
           <MetricsSection event={event} group={group} project={project} />
         </Feature>
       </ErrorBoundary>
-      {event.contexts.trace?.trace_id &&
+      {issueTypeConfig.trace.enabled &&
+        event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
           <EventTraceView group={group} event={event} organization={organization} />
         )}
@@ -370,7 +361,7 @@ export function EventDetailsContent({
           <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
         </Fragment>
       ) : null}
-      <EventContexts event={event} />
+      {issueTypeConfig.contexts.enabled && <EventContexts event={event} />}
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>

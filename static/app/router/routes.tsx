@@ -738,23 +738,11 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
     },
     {
-      path: 'plugins/',
-      name: t('Legacy Integrations'),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/settings/projectPlugins')),
-        },
-        {
-          path: ':pluginId/',
-          name: t('Integration Details'),
-          component: make(() => import('sentry/views/settings/projectPlugins/details')),
-        },
-      ],
-    },
-    {
-      path: 'issue-tracking/',
-      redirectTo: '/settings/:orgId/:projectId/plugins/',
+      path: 'legacy-webhooks/',
+      name: t('Webhooks'),
+      component: make(
+        () => import('sentry/views/settings/projectPlugins/legacyWebhookDetails')
+      ),
     },
   ];
   const projectSettingsRoutes: SentryRouteObject = {
@@ -960,20 +948,6 @@ function buildRoutes(): RouteObject[] {
       redirectTo: 'integrations/',
     },
     {
-      path: 'plugins/',
-      name: t('Integrations'),
-      children: [
-        {
-          path: ':integrationSlug/',
-          name: t('Integration Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
-          ),
-        },
-      ],
-    },
-    {
       path: 'sentry-apps/',
       redirectTo: 'integrations/',
     },
@@ -1018,6 +992,14 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () =>
               import('sentry/views/settings/organizationIntegrations/integrationListDirectory')
+          ),
+        },
+        {
+          path: 'legacy-webhooks/',
+          name: t('Webhooks'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
           ),
         },
         {
@@ -1759,7 +1741,9 @@ function buildRoutes(): RouteObject[] {
       moduleBaseURL
         ? {
             path: `${moduleBaseURL}/*`,
-            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`,
+            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(
+              moduleUrlToModule[moduleBaseURL]!
+            )}${moduleBaseURL}/:splat`,
           }
         : null
     )
@@ -2515,6 +2499,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
+      path: 'awaiting-input/',
+      component: make(() => import('sentry/views/issueList/pages/awaitingInput')),
+    },
+    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
@@ -2547,11 +2535,15 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
+        TabPaths[Tab.DISTRIBUTIONS]
+      }`,
     },
     {
       path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
+        TabPaths[Tab.DISTRIBUTIONS]
+      }:tagKey/`,
     },
     {
       path: ':groupId/',
@@ -2839,10 +2831,6 @@ function buildRoutes(): RouteObject[] {
             redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
           },
           {
-            path: 'issue-tracking/',
-            redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
-          },
-          {
             path: 'release-tracking/',
             redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
           },
@@ -2890,14 +2878,6 @@ function buildRoutes(): RouteObject[] {
           {
             path: 'security-headers/hpkp/',
             redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
-          },
-          {
-            path: 'plugins/',
-            redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
-          },
-          {
-            path: 'plugins/:pluginId/',
-            redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
           },
           {
             path: 'integrations/:providerKey/',

@@ -21,7 +21,7 @@ import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridList
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 interface ArithmeticBuilderTokenReferenceProps {
   item: Node<Token>;

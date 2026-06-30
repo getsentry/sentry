@@ -183,6 +183,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             ("metric_alert", "resolved"),
             ("metric_alert", "critical"),
             ("metric_alert", "warning"),
+            ("seer", "iteration_started"),
+            ("seer", "iteration_completed"),
         ]
 
         for resource_name, event_name in valid_combinations:

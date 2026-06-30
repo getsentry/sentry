@@ -18,9 +18,8 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
-import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -68,7 +67,7 @@ export function EventTagsTreeRow({
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
-  const hasStem = !isLast && isEmptyObject(content.subtree);
+  const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
     return (

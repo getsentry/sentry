@@ -181,7 +181,7 @@ const JobTick = styled('div')<{
     css`
       border-top-left-radius: 2px;
       border-bottom-left-radius: 2px;
-    `};
+    `}
   ${p =>
     p.roundedRight &&
     css`
@@ -192,10 +192,10 @@ const JobTick = styled('div')<{
     !p.roundedLeft &&
     css`
       border-left-width: 0;
-    `};
+    `}
   ${p =>
     !p.roundedRight &&
     css`
       border-right-width: 0;
-    `};
+    `}
 `;

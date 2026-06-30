@@ -6,7 +6,7 @@ import {
   getDeepestNodeAtPoint,
   getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/utils';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const LEAF_NODE = {

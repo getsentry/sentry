@@ -9,7 +9,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -17,7 +17,6 @@ import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {getNoPermissionToCreateMonitorsTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface TableHeaderProps {
   detectorType?: DetectorType;
@@ -36,7 +35,6 @@ export function DetectorListHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const canCreateDetector = useCanCreateDetector(null);
   const query = typeof location.query.query === 'string' ? location.query.query : '';
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
@@ -66,26 +64,24 @@ export function DetectorListHeader({
           onSearch={onSearch}
           excludeKeys={excludeKeys}
         />
-        {hasPageFrameFeature && (
-          <LinkButton
-            to={{
-              pathname: makeMonitorCreatePathname(organization.slug),
-              query: {project, detectorType},
-            }}
-            variant="primary"
-            icon={<IconAdd />}
-            size="md"
-            disabled={!canCreateDetector}
-            tooltipProps={{
-              title: canCreateDetector
-                ? undefined
-                : getNoPermissionToCreateMonitorsTooltip(),
-              isHoverable: true,
-            }}
-          >
-            {t('Create Monitor')}
-          </LinkButton>
-        )}
+        <LinkButton
+          to={{
+            pathname: makeMonitorCreatePathname(organization.slug),
+            query: {project, detectorType},
+          }}
+          variant="primary"
+          icon={<IconAdd />}
+          size="md"
+          disabled={!canCreateDetector}
+          tooltipProps={{
+            title: canCreateDetector
+              ? undefined
+              : getNoPermissionToCreateMonitorsTooltip(),
+            isHoverable: true,
+          }}
+        >
+          {t('Create Monitor')}
+        </LinkButton>
       </Flex>
     </Flex>
   );

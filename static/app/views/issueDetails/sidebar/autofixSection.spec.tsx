@@ -1,30 +1,24 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {EventFixture} from 'sentry-fixture/event';
-import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
-import {EntryType} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {
+  LLMContextProvider,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {AutofixSection} from './autofixSection';
 
-jest.mock('sentry/utils/regions');
+jest.mock('sentry/utils/cells');
 
 describe('AutofixSection', () => {
-  const mockEvent = EventFixture({
-    entries: [
-      {
-        type: EntryType.EXCEPTION,
-        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
-      },
-    ],
-  });
   const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
@@ -41,7 +35,6 @@ describe('AutofixSection', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: true,
       }),
     });
@@ -69,7 +62,7 @@ describe('AutofixSection', () => {
       body: {whatsWrong: 'Something broke', possibleCause: 'Bad code'},
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -94,14 +87,9 @@ describe('AutofixSection', () => {
       platform: 'javascript',
     };
 
-    render(
-      <AutofixSection
-        event={mockEvent}
-        group={performanceGroup}
-        project={javascriptProject}
-      />,
-      {organization: customOrganization}
-    );
+    render(<AutofixSection group={performanceGroup} project={javascriptProject} />, {
+      organization: customOrganization,
+    });
 
     expect(screen.getByText('Resources')).toBeInTheDocument();
   });
@@ -113,7 +101,7 @@ describe('AutofixSection', () => {
     });
 
     const {container} = render(
-      <AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      <AutofixSection group={mockGroup} project={mockProject} />,
       {organization: customOrganization}
     );
 
@@ -154,7 +142,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -196,7 +184,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -256,7 +244,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -315,7 +303,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -325,65 +313,6 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
-  it('shows loading placeholder while event is pending', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-          blocks: [
-            {
-              id: 'block-1',
-              message: {
-                content: 'Created PR',
-                role: 'assistant',
-                metadata: {step: 'code_changes'},
-              },
-              timestamp: new Date().toISOString(),
-              merged_file_patches: [
-                {
-                  repo_name: 'org/repo',
-                  patch: {
-                    path: 'src/app.py',
-                    added: 1,
-                    removed: 0,
-                    hunks: [],
-                    source_file: 'src/app.py',
-                    target_file: 'src/app.py',
-                    type: DiffFileType.MODIFIED,
-                  },
-                },
-              ],
-            },
-          ],
-          repo_pr_states: {
-            'org/repo': {
-              repo_name: 'org/repo',
-              pr_number: 42,
-              pr_url: 'https://github.com/org/repo/pull/42',
-              branch_name: 'fix/issue',
-              commit_sha: 'abc123',
-              pr_creation_error: null,
-              pr_creation_status: 'completed',
-              pr_id: 1,
-              title: 'Fix null pointer',
-            },
-          },
-        },
-      },
-    });
-
-    render(<AutofixSection event={undefined} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    // The Seer title should still render
-    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
-    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
-  });
-
   it('shows empty state when autofix returns null', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
@@ -391,7 +320,7 @@ describe('AutofixSection', () => {
       statusCode: 200,
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -477,7 +406,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -509,7 +438,7 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization: seatBasedOrg,
     });
 
@@ -531,7 +460,6 @@ describe('AutofixSection', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: false,
       }),
     });
@@ -541,7 +469,7 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization: seatBasedOrg,
     });
 
@@ -572,7 +500,7 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -588,7 +516,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
 
@@ -599,5 +527,92 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
+  it('pushes autofix data into LLM context when results are available', async () => {
+    const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+    function ContextCapture() {
+      const {getLLMContext} = useLLMContext();
+      snapshotRef.current = getLLMContext;
+      return null;
+    }
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+          blocks: [
+            {
+              id: 'block-1',
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
+                {
+                  key: 'root_cause',
+                  reason: 'Identified the issue',
+                  data: {
+                    one_line_description: 'Null pointer in user handler',
+                    five_whys: ['Missing guard clause'],
+                    reproduction_steps: ['Call /api/user with null id'],
+                  },
+                },
+              ],
+            },
+            {
+              id: 'block-2',
+              message: {
+                content: 'Made code changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
+              timestamp: new Date().toISOString(),
+              merged_file_patches: [
+                {
+                  diff: '--- a/src/handler.py\n+++ b/src/handler.py',
+                  repo_name: 'org/repo',
+                  patch: {
+                    path: 'src/handler.py',
+                    added: 2,
+                    removed: 1,
+                    hunks: [],
+                    source_file: 'src/handler.py',
+                    target_file: 'src/handler.py',
+                    type: DiffFileType.MODIFIED,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    render(
+      <LLMContextProvider>
+        <AutofixSection group={mockGroup} project={mockProject} />
+        <ContextCapture />
+      </LLMContextProvider>,
+      {organization}
+    );
+
+    await waitFor(() => {
+      const node = snapshotRef.current?.().nodes.find(n => n.nodeType === 'autofix');
+      expect((node?.data as Record<string, string> | undefined)?.autofixStatus).toBe(
+        'completed'
+      );
+    });
+
+    const data = snapshotRef.current!().nodes.find(n => n.nodeType === 'autofix')!
+      .data as Record<string, string>;
+    expect(data.rootCause).toContain('Null pointer in user handler');
+    expect(data.codeChanges).toBe('org/repo: src/handler.py');
   });
 });

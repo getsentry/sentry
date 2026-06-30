@@ -6,9 +6,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
@@ -16,7 +15,6 @@ from django.db.models import Min, prefetch_related_objects
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
@@ -59,6 +57,14 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
+from sentry.utils.tracing import start_span
+
+if TYPE_CHECKING:
+    from sentry.models.groupinbox import InboxDetails
+    from sentry.models.groupowner import OwnersSerialized
+    from sentry.sentry_apps.api.serializers.platform_external_issue import (
+        PlatformExternalIssueSerializerResponse,
+    )
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -149,20 +155,17 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
     tags: list[dict[str, Any]]
     stats: dict[str, list[list[float]]]
     # Opt-in via `?expand=...`
-    inbox: dict[str, Any] | None
-    owners: list[dict[str, Any]] | None
+    inbox: InboxDetails | None
+    owners: list[OwnersSerialized] | None
     forecast: dict[str, Any]
     integrationIssues: list[dict[str, Any]]
-    sentryAppIssues: list[dict[str, Any]]
+    sentryAppIssues: list[PlatformExternalIssueSerializerResponse]
     latestEventHasAttachments: bool
 
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
     activity: list[dict[str, Any]]
     seenBy: list[dict[str, Any]]
-    pluginActions: list[Any]
-    pluginIssues: list[dict[str, Any]]
-    pluginContexts: list[dict[str, Any]]
     userReportCount: int
     participants: list[dict[str, Any]]
 
@@ -300,7 +303,10 @@ class GroupSerializerBase(Serializer, ABC):
                 filter={"user_ids": user_ids, "is_active": True},
                 as_user=serialize_generic_user(user),
             )
-            actors = {id: u for id, u in zip(user_ids, serialized_users)}
+            # `serialize_many` may omit user_ids that are inactive or missing in
+            # the control silo; key by the returned id rather than zipping so
+            # drifted users don't silently misalign with the request ordering.
+            actors = {int(u["id"]): u for u in serialized_users}
         else:
             actors = {}
 
@@ -359,9 +365,7 @@ class GroupSerializerBase(Serializer, ABC):
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_and_extend_plugin_annotation(
-                    item, annotations_by_group_id[item.id]
-                ),
+                "annotations": annotations_by_group_id[item.id],
                 "ignore_until": ignore_item,
                 "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
                 "resolution": resolution,
@@ -745,29 +749,11 @@ class GroupSerializerBase(Serializer, ABC):
         return integration_annotations
 
     @staticmethod
-    def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: list[Any]
-    ) -> Sequence[Any]:
-        from sentry.plugins.base import plugins
-
-        annotations_for_group = []
-        annotations_for_group.extend(current_annotations)
-
-        # add the annotations for plugins
-        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
-        # `get_attrs`, so these for loops doesn't make a bunch of queries
-        for plugin in plugins.for_project(project=item.project, version=1):
-            if is_plugin_deprecated(plugin, item.project):
-                continue
-            safe_execute(plugin.tags, None, item, annotations_for_group)
-        for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
-
-        return annotations_for_group
-
-    @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+        with start_span(
+            op="GroupSerializerBase.serialize.permalink.build",
+            name="GroupSerializerBase.serialize.permalink.build",
+        ):
             return obj.get_absolute_url()
 
     @staticmethod
@@ -952,6 +938,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.type",
         "issue.seer_actionability",
         "issue.seer_last_run",
+        "issue.progress",
     )
 )
 
@@ -1202,7 +1189,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     lastSeen: datetime | None
 
 
-class SimpleGroupSerializer(Serializer):
+class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
     """
     A serializer that only returns the most basic information about a group.
     It should make minimal queries to the database.

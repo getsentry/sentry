@@ -1,10 +1,12 @@
-import {useMemo, useState} from 'react';
+import {type RefObject, useMemo, useState} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
+import {prepareQueriesForEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
@@ -14,7 +16,12 @@ import {LocalMultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 
 interface MetricsEquationVisualizeProps {
-  onEquationRemoved: () => void;
+  /**
+   * Ref kept in sync with the current equation-mode state (all metric
+   * query rows + selected label) so useVisualizeModeState can restore
+   * it after a mode or dataset switch.
+   */
+  equationSnapshot?: RefObject<EquationModeSnapshot | null>;
 }
 
 /**
@@ -24,7 +31,7 @@ interface MetricsEquationVisualizeProps {
  * rendering equations
  */
 export function MetricsEquationVisualize({
-  onEquationRemoved,
+  equationSnapshot,
 }: MetricsEquationVisualizeProps) {
   const organization = useOrganization();
   const hasEquations = canUseMetricsEquationsInDashboards(organization);
@@ -40,6 +47,11 @@ export function MetricsEquationVisualize({
     : '';
 
   const initialQueries = useMemo(() => {
+    // Restore from a previous equation-mode session if available
+    if (equationSnapshot?.current) {
+      return equationSnapshot.current.queries;
+    }
+
     // If there's an equation, we can parse it to get the metric queries and equation row
     const equationField = aggregateSource?.find(f => f.kind === FieldValueKind.EQUATION);
     if (equationField) {
@@ -59,13 +71,15 @@ export function MetricsEquationVisualize({
 
     // Otherwise, we parse each function to get the available metric queries and
     // add a default equation row
-    const metricQueries = (aggregateSource ?? [])
-      .filter(f => f.kind === FieldValueKind.FUNCTION)
-      .map(f => {
-        const parsed = parseAggregateExpression(generateFieldAsString(f));
-        return parsed.metricQueries[0];
-      })
-      .filter(defined);
+    const metricQueries = prepareQueriesForEquationMode(
+      (aggregateSource ?? [])
+        .filter(f => f.kind === FieldValueKind.FUNCTION)
+        .map(f => {
+          const parsed = parseAggregateExpression(generateFieldAsString(f));
+          return parsed.metricQueries[0];
+        })
+        .filter(defined)
+    );
     if (metricQueries.length === 0) {
       metricQueries.push(defaultMetricQuery());
     }
@@ -75,6 +89,9 @@ export function MetricsEquationVisualize({
   }, []);
 
   const [selectedLabel, setSelectedLabel] = useState<string | undefined>(() => {
+    if (equationSnapshot?.current) {
+      return equationSnapshot.current.selectedLabel;
+    }
     const labels = assignSequentialLabels(initialQueries);
     const matchIdx = initialQueries.findIndex(
       q => q.queryParams.visualizes[0]?.yAxis === currentAggregate
@@ -90,7 +107,7 @@ export function MetricsEquationVisualize({
       <MetricQueryRows
         selectedLabel={selectedLabel}
         setSelectedLabel={setSelectedLabel}
-        onEquationRemoved={onEquationRemoved}
+        equationSnapshot={equationSnapshot}
       />
     </LocalMultiMetricsQueryParamsProvider>
   );

@@ -10,19 +10,27 @@ type Props = {
   children: ReactNode;
   clearSearchTerm: () => void;
   unfilteredItems: unknown[];
+  hasUnfilteredItems?: boolean;
 };
 
-export function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
-  return unfilteredItems.length === 0 ? (
-    <EmptyState>
-      <p>{children}</p>
-    </EmptyState>
-  ) : (
+export function NoRowRenderer({
+  children,
+  unfilteredItems,
+  hasUnfilteredItems,
+  clearSearchTerm,
+}: Props) {
+  const itemsExist = hasUnfilteredItems ?? unfilteredItems.length > 0;
+
+  return itemsExist ? (
     <EmptyState>
       <p>{t('No results found')}</p>
       <Button icon={<IconClose variant="primary" />} onClick={clearSearchTerm}>
         {t('Clear filters')}
       </Button>
+    </EmptyState>
+  ) : (
+    <EmptyState>
+      <p>{children}</p>
     </EmptyState>
   );
 }

@@ -5,7 +5,6 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -31,10 +30,6 @@ export const SpansTabCrossEventSearchBar = memo(
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
-    const organization = useOrganization();
-    const hasRawSearchReplacement = organization.features.includes(
-      'search-query-builder-raw-search-replacement'
-    );
 
     const traceItemType =
       type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
@@ -87,17 +82,12 @@ export const SpansTabCrossEventSearchBar = memo(
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
-        replaceRawSearchKeys: hasRawSearchReplacement
-          ? type === 'logs'
-            ? ['message']
-            : ['span.description']
-          : undefined,
+        replaceRawSearchKeys: type === 'logs' ? ['message'] : ['span.description'],
       }),
       [
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
-        hasRawSearchReplacement,
         index,
         mode,
         numberSecondaryAliases,

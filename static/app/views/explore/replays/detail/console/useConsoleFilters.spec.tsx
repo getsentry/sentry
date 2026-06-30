@@ -1,21 +1,15 @@
-import type {Location} from 'history';
 import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderHookWithProviders as renderHook,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import type {FilterFields} from 'sentry/views/explore/replays/detail/console/useConsoleFilters';
 import {useConsoleFilters} from 'sentry/views/explore/replays/detail/console/useConsoleFilters';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
 
 const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
   ReplayConsoleFrameFixture({
@@ -95,58 +89,31 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
 ]);
 
 describe('useConsoleFilters', () => {
-  it('should update the url when setters are called', () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+  it('should update the url when setters are called', async () => {
     const LOG_FILTER = ['error'];
     const SEARCH_FILTER = 'component';
 
-    mockUseLocation
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {},
-      } as Location<FilterFields>)
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {f_c_logLevel: LOG_FILTER},
-      } as Location<FilterFields>);
-
-    const {result, rerender} = renderHook(useConsoleFilters, {
+    const {result, router} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
 
-    result.current.setLogLevel(LOG_FILTER);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_c_logLevel: LOG_FILTER,
-        },
-      },
-      {replace: true}
+    act(() => result.current.setLogLevel(LOG_FILTER));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_c_logLevel: 'error',
+      })
     );
 
-    rerender({frames});
-
-    result.current.setSearchTerm(SEARCH_FILTER);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_c_logLevel: LOG_FILTER,
-          f_c_search: SEARCH_FILTER,
-        },
-      },
-      {replace: true}
+    act(() => result.current.setSearchTerm(SEARCH_FILTER));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_c_logLevel: 'error',
+        f_c_search: SEARCH_FILTER,
+      })
     );
   });
 
   it('should not filter anything when no values are set', async () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {},
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
@@ -154,44 +121,47 @@ describe('useConsoleFilters', () => {
   });
 
   it('should filter by logLevel', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_c_logLevel: ['error', 'warning'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_c_logLevel: ['error', 'warning'],
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(2);
   });
 
   it('should filter by searchTerm', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_c_search: 'component',
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_c_search: 'component',
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(2);
   });
 
   it('should filter by searchTerm and logLevel', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_c_search: 'error occurred',
-        f_c_logLevel: ['error'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_c_search: 'error occurred',
+            f_c_logLevel: ['error'],
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(1);
   });
@@ -229,13 +199,6 @@ describe('useConsoleFilters', () => {
     // const CRUMB_ERROR = {level: BreadcrumbLevelType.ERROR, message: ''} as Crumb;
     // const CRUMB_ISSUE = {category: 'issue', level: 'error', message: ''} as Crumb;
 
-    beforeEach(() => {
-      mockUseLocation.mockReturnValue({
-        pathname: '/',
-        query: {},
-      } as Location<FilterFields>);
-    });
-
     it('should return a sorted list of BreadcrumbLevelType', () => {
       const simpleCrumbs = [CRUMB_LOG_1!, CRUMB_WARN!, CRUMB_ERROR!];
 
@@ -261,13 +224,14 @@ describe('useConsoleFilters', () => {
     it('should inject extra BreadcrumbLevelType values', () => {
       const simpleCrumbs = [CRUMB_WARN!, CRUMB_ERROR!];
 
-      mockUseLocation.mockReturnValue({
-        pathname: '/',
-        query: {f_c_logLevel: ['log']},
-      } as Location<FilterFields>);
-
       const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
+        initialRouterConfig: {
+          location: {
+            pathname: '/',
+            query: {f_c_logLevel: ['log']},
+          },
+        },
       });
 
       expect(result.current.getLogLevels()).toStrictEqual([

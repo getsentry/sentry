@@ -27,7 +27,7 @@ import type {
   SnubaQuery,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -99,6 +99,7 @@ function isMetricDetectorEvidenceData(
 interface RelatedIssuesProps {
   aggregate: string;
   end: string;
+  environment: string | undefined;
   eventDateCreated: string | undefined;
   projectId: string | number;
   query: string;
@@ -235,6 +236,7 @@ function ContributingIssues({
   eventDateCreated,
   aggregate,
   end,
+  environment,
   start,
 }: RelatedIssuesProps) {
   const organization = useOrganization();
@@ -262,6 +264,7 @@ function ContributingIssues({
     query: `issue.type:error ${query}`,
     start,
     end,
+    ...(environment ? {environment} : {}),
     limit: 5,
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
     groupStatsPeriod: 'auto',
@@ -277,6 +280,7 @@ function ContributingIssues({
       dataset: SavedQueryDatasets.ERRORS,
       start,
       end,
+      ...(environment ? {environment} : {}),
     },
   };
 
@@ -381,7 +385,9 @@ function TriggeredConditionDetails({
 
   const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(detectorDataset);
-  const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
+  const showContributingIssues =
+    detectorDataset === DetectorDataset.ERRORS ||
+    detectorDataset === DetectorDataset.RELEASES;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
   const formattedEvaluatedValue = getFormattedEvaluatedValue({
     value: defined(value) && typeof value === 'object' ? value.value : value,
@@ -443,6 +449,15 @@ function TriggeredConditionDetails({
               value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
               subject: t('Aggregate'),
             },
+            ...(snubaQuery.environment
+              ? [
+                  {
+                    key: 'environment',
+                    value: snubaQuery.environment,
+                    subject: t('Environment'),
+                  },
+                ]
+              : []),
             ...(snubaQuery.query
               ? [
                   {
@@ -496,7 +511,7 @@ function TriggeredConditionDetails({
           isOpenPeriodLoading={isOpenPeriodLoading}
         />
       )}
-      {isErrorsDataset &&
+      {showContributingIssues &&
         (isOpenPeriodLoading ? (
           <FoldSection title={t('Contributing Issues')} sectionKey="contributing_issues">
             <Placeholder height="200px" />
@@ -507,6 +522,7 @@ function TriggeredConditionDetails({
             query={issueSearchQuery}
             eventDateCreated={eventDateCreated}
             aggregate={snubaQuery.aggregate}
+            environment={snubaQuery.environment}
             start={startDate}
             end={endDate}
           />

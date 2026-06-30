@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Actor} from 'sentry/types/core';
-import type {ParsedOwnershipRule} from 'sentry/types/group';
+import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 
 import {OwnershipRulesTable} from './ownershipRulesTable';
 

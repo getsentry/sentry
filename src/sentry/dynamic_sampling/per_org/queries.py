@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, Literal, Protocol
@@ -10,18 +10,23 @@ from typing import Any, Literal, Protocol
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    MEASURE_CONFIGS,
     OrganizationDataVolume,
 )
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.sentry_metrics import indexer
+from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.snuba import raw_snql_query
 
 
 class OrganizationVolumeConfig(Protocol):
@@ -38,6 +43,8 @@ class DynamicSamplingQueryFields(StrEnum):
     DSC_TRANSACTION = "sentry.dsc.transaction"
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
+    COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
+    MAX_RECEIVED = "max(received)"
 
 
 @dataclass(order=True)
@@ -46,13 +53,15 @@ class ProjectVolume:
     total: int
     keep: int
     drop: int
+    num_distinct_transactions: int = 0
+    seconds_since_last_item: float | None = None
 
 
-@dataclass
-class ProjectTransactionVolumesAccumulator:
-    transaction_counts: list[tuple[str, float]] = field(default_factory=list)
-    total_num_transactions: float = 0
-    num_classes: int = 0
+@dataclass(order=True)
+class ProjectTransactionCounts:
+    project_id: int
+    org_id: int
+    transaction_counts: list[tuple[str, float]]
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -94,8 +103,9 @@ def run_eap_spans_table_query_in_chunks(
 def get_eap_organization_volume(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    end_time = datetime.now(UTC)
+    end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
     result = Spans.run_table_query(
         params=SnubaParams(
@@ -133,6 +143,92 @@ def get_eap_organization_volume(
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
 
 
+def get_outcomes_organization_volume(
+    config: OrganizationVolumeConfig,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
+) -> OrganizationDataVolume | None:
+    end_time = end or datetime.now(UTC)
+    start_time = end_time - time_interval
+
+    query = QueryDefinition(
+        fields=["sum(quantity)"],
+        start=start_time.isoformat(),
+        end=end_time.isoformat(),
+        organization_id=config.organization.id,
+        project_ids=[project.id for project in config.projects],
+        outcome=["accepted"],
+        category=["transaction"],
+    )
+    rows = run_outcomes_query_totals(query, tenant_ids={"organization_id": config.organization.id})
+    if not rows:
+        return None
+
+    total = _get_aggregate_int(rows[0], "quantity")
+    if total <= 0:
+        return None
+
+    return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=None)
+
+
+def get_generic_metrics_organization_volume(
+    org_id: int,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
+) -> OrganizationDataVolume | None:
+    from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
+
+    end_time = end or datetime.now(UTC)
+    start_time = end_time - time_interval
+
+    config = MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]
+    metric_id = indexer.resolve_shared_org(str(config["mri"]))
+
+    where: list[Condition] = [
+        Condition(Column("timestamp"), Op.GTE, start_time),
+        Condition(Column("timestamp"), Op.LT, end_time),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.IN, [org_id]),
+    ]
+    for tag_name, tag_value in config["tags"].items():
+        tag_string_id = indexer.resolve_shared_org(tag_name)
+        tag_column = f"tags_raw[{tag_string_id}]"
+        where.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
+    query = Query(
+        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+        select=[
+            Function("sum", [Column("value")], "total_count"),
+            Column("org_id"),
+        ],
+        groupby=[Column("org_id")],
+        where=where,
+        granularity=Granularity(60),
+    )
+    request = Request(
+        dataset=Dataset.PerformanceMetrics.value,
+        app_id="dynamic_sampling",
+        query=query,
+        tenant_ids={
+            "use_case_id": config["use_case_id"].value,
+            "cross_org_query": 1,
+        },
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
+    )["data"]
+
+    if not data:
+        return None
+
+    total = int(data[0]["total_count"])
+    if total <= 0:
+        return None
+
+    return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
+
+
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
@@ -154,6 +250,8 @@ def get_eap_project_volumes(
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.COUNT,
                 DynamicSamplingQueryFields.COUNT_SAMPLE,
+                DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
+                DynamicSamplingQueryFields.MAX_RECEIVED,
             ],
             "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
@@ -166,9 +264,15 @@ def get_eap_project_volumes(
     ):
         total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
         keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
+        num_distinct_transactions = _get_aggregate_int(
+            row, DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS
+        )
         dsc_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
         if dsc_project_id is None:
             continue
+
+        received = row.get(DynamicSamplingQueryFields.MAX_RECEIVED)
+        seconds_since_last_item = end_time.timestamp() - float(received) if received else None
 
         project_volumes.append(
             ProjectVolume(
@@ -176,6 +280,8 @@ def get_eap_project_volumes(
                 total=total,
                 keep=keep,
                 drop=max(total - keep, 0),
+                num_distinct_transactions=num_distinct_transactions,
+                seconds_since_last_item=seconds_since_last_item,
             )
         )
 
@@ -184,15 +290,13 @@ def get_eap_project_volumes(
 
 def get_eap_transaction_volumes(
     config: OrganizationVolumeConfig,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    time_interval: timedelta = timedelta(hours=1),
     order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
-) -> list[ProjectTransactions]:
+) -> list[ProjectTransactionCounts]:
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    volumes_by_project: defaultdict[int, ProjectTransactionVolumesAccumulator] = defaultdict(
-        ProjectTransactionVolumesAccumulator
-    )
+    transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
 
     count_order = (
         DynamicSamplingQueryFields.COUNT
@@ -237,19 +341,14 @@ def get_eap_transaction_volumes(
             continue
 
         project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        project_volumes = volumes_by_project[project_id]
-
-        project_volumes.transaction_counts.append((str(transaction), total))
-        project_volumes.total_num_transactions += total
-        project_volumes.num_classes += 1
+        transaction_counts = transaction_counts_by_project[project_id]
+        transaction_counts.append((str(transaction), total))
 
     return [
-        {
-            "org_id": config.organization.id,
-            "project_id": project_id,
-            "transaction_counts": project_volumes.transaction_counts,
-            "total_num_transactions": project_volumes.total_num_transactions,
-            "total_num_classes": project_volumes.num_classes,
-        }
-        for project_id, project_volumes in sorted(volumes_by_project.items())
+        ProjectTransactionCounts(
+            project_id=project_id,
+            org_id=config.organization.id,
+            transaction_counts=transaction_counts,
+        )
+        for project_id, transaction_counts in sorted(transaction_counts_by_project.items())
     ]

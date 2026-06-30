@@ -19,7 +19,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {
   TraceDrawerComponents,

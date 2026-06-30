@@ -5,7 +5,7 @@ import type {Key} from '@react-types/shared';
 import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type UndoItem = {
   /**

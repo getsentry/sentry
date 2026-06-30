@@ -24,6 +24,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
@@ -33,7 +34,6 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
@@ -592,10 +592,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the linked dashboard breadcrumb in the top bar when page frame is enabled', async () => {
+    it('renders the linked dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'page-frame'],
+        features: organization.features,
       });
 
       render(

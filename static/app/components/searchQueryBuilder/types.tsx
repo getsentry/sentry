@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 
 export type FilterKeySection = {
   children: string[];
@@ -19,7 +19,10 @@ export type FocusOverride = {
   part?: 'value' | 'key' | 'op';
 };
 
-export type FieldDefinitionGetter = (key: string) => FieldDefinition | null;
+export type FieldDefinitionGetter = (
+  key: string,
+  options?: {kind?: FieldKind}
+) => FieldDefinition | null;
 
 export type CallbackSearchState = {
   parsedQuery: ParseResult | null;

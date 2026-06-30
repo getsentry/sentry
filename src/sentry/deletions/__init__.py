@@ -84,6 +84,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     manager.register(models.ProjectKey, BulkModelDeletionTask)
     manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
+    manager.register(models.PullRequestActivity, BulkModelDeletionTask)
     manager.register(models.Release, defaults.ReleaseDeletionTask)
     manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
@@ -97,6 +98,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.SavedSearch, BulkModelDeletionTask)
     manager.register(models.Team, defaults.TeamDeletionTask)
     manager.register(models.UserReport, BulkModelDeletionTask)
+    manager.register(models.WeeklyReportProjectExclusion, BulkModelDeletionTask)
 
     manager.register(discover.DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     manager.register(discover.DiscoverSavedQueryProject, BulkModelDeletionTask)

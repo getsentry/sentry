@@ -33,7 +33,7 @@ from sentry.notifications.platform.provider import (
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -227,6 +227,7 @@ class DiscordOAuthApiStep:
 class DiscordIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
+    can_add_externally = True
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
@@ -244,8 +245,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
         | DiscordPermissions.SEND_MESSAGES_IN_THREADS.value
     )
 
-    setup_dialog_config = {"width": 600, "height": 900}
-
     def __init__(self) -> None:
         self.application_id = options.get("discord.application-id")
         self.public_key = options.get("discord.public-key")
@@ -255,9 +254,6 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.setup_url = absolute_uri("extensions/discord/setup/")
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [

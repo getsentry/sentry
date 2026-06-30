@@ -57,6 +57,34 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
                 "    def __init__(self, data: T, status: int | None = ...) -> None: ...\n"
             )
 
+        # stub for sentry.api.serializers.base.Serializer + free `serialize()` —
+        # mirrors the runtime shape used by the autoderive hook. The free
+        # function has overloads so we can verify end-to-end that an autoderived
+        # `Serializer[T]` flows through to a typed return.
+        api_dir = _fill_init_pyi(tmpdir, "sentry/api/serializers")
+        with open(os.path.join(api_dir, "base.pyi"), "w") as f:
+            f.write(
+                "from collections.abc import Mapping, Sequence\n"
+                "from typing import Any, Generic, TypeVar, overload\n"
+                "T = TypeVar('T', default=Any)\n"
+                "class Serializer(Generic[T]):\n"
+                "    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> T: ...\n"
+                "@overload\n"
+                "def serialize(objects: Any, user: Any = ..., serializer: None = ..., **kwargs: Any) -> Any: ...\n"
+                "@overload\n"
+                "def serialize(objects: Sequence[Any], user: Any = ..., *, serializer: Serializer[T], **kwargs: Any) -> list[T]: ...\n"
+                "@overload\n"
+                "def serialize(objects: Sequence[Any], user: Any, serializer: Serializer[T], **kwargs: Any) -> list[T]: ...\n"
+                "@overload\n"
+                "def serialize(objects: object, user: Any = ..., *, serializer: Serializer[T], **kwargs: Any) -> T: ...\n"
+                "@overload\n"
+                "def serialize(objects: object, user: Any, serializer: Serializer[T], **kwargs: Any) -> T: ...\n"
+            )
+        with open(os.path.join(api_dir, "__init__.pyi"), "w") as f:
+            f.write(
+                "from sentry.api.serializers.base import Serializer as Serializer, serialize as serialize\n"
+            )
+
         ret = subprocess.run(
             (
                 *(sys.executable, "-m", "mypy"),
@@ -517,3 +545,400 @@ async def view() -> Response[Shape]:
 """
     ret, out = call_mypy(src)
     assert ret == 0, out
+
+
+def test_response_union_dict_literal_narrows_to_typeddict_arm() -> None:
+    """When the return is `Response[A] | Response[B]` (a union of TypedDicts),
+    a dict-literal body that matches exactly one arm must narrow. mypy doesn't
+    do this natively in union contexts — the plugin restores it."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def typed() -> FooResponse:
+    return {"x": 1}
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": "Not found"}, status=404)
+
+def view_success() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_dict_literal_wrong_shape_errors() -> None:
+    """Plugin only narrows when exactly one arm accepts. A dict literal that
+    matches no arm must still surface as a mypy error."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"wrong": "shape"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "Incompatible return value type" in out
+
+
+def test_response_union_value_type_mismatch_errors() -> None:
+    """`{"detail": 42}` is dict[str, int], not a valid `DetailResponse`
+    (whose declared `detail: str`). Plugin must NOT narrow."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": 42}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+
+
+def test_response_union_extra_key_rejects() -> None:
+    """A dict literal with extra keys beyond the TypedDict's fields does NOT
+    satisfy the TypedDict — plugin must NOT narrow it."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": "x", "extra": "key"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+
+
+def test_response_union_single_arm_unaffected() -> None:
+    """Single-armed `Response[T]` is mypy's native bidirectional path. Plugin
+    narrowing must not interfere."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[DetailResponse]:
+    return Response({"detail": "x"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_no_typeddict_arms_unaffected() -> None:
+    """If no union arm has a TypedDict T, plugin must not interfere."""
+    src = """\
+from rest_framework.response import Response
+
+def view() -> Response[int] | Response[str]:
+    return Response(42)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_non_literal_body_unaffected() -> None:
+    """Narrowing only fires on literal bodies. Variable/function-call bodies
+    use mypy's standard flow — success arm matches via standard inference."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def typed() -> FooResponse:
+    return {"x": 1}
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_empty_list_narrows_to_list_arm() -> None:
+    """`Response([])` should match any `Response[list[T]]` arm — empty list
+    inhabits any element type. mypy infers `list[Never]` for `[]`, which
+    doesn't match invariant `list[T]` without plugin help."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[list[FooResponse]] | Response[DetailResponse]:
+    return Response([], status=200)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_empty_dict_narrows_to_dict_arm() -> None:
+    """`Response({})` should match `Response[dict[K, V]]` arms — empty dict
+    inhabits any dict. mypy infers `dict[Never, Never]` for `{}`."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[dict[int, int]] | Response[DetailResponse]:
+    return Response({}, status=200)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_name_agnostic_local_typeddict() -> None:
+    """The plugin must narrow against ANY TypedDict arm — including locally-
+    declared ones in the same file. It is NOT hardcoded to recognize specific
+    names like `DetailResponse`."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class StatsPeriodErrorResponse(TypedDict):
+    error: dict[str, str]
+
+def view() -> Response[FooResponse] | Response[StatsPeriodErrorResponse]:
+    return Response({"error": {"period": "invalid"}}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+# -- Serializer auto-derive ----------------------------------------------------
+
+
+def test_serializer_autoderive_typed_return() -> None:
+    """`class Foo(Serializer):` with `serialize(...) -> Concrete` is promoted
+    to `Serializer[Concrete]`, and the free `serialize(obj, user, FooSerializer())`
+    overload resolves to `Concrete` instead of `Any`.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert "FooResponse" in out
+
+
+def test_serializer_autoderive_skipped_when_already_parameterized() -> None:
+    """If the subclass already writes `Serializer[X]`, the hook is a no-op —
+    no double-substitution, no clobbering of an explicit parameterization.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+
+class FooSerializer(Serializer[FooResponse]):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert "FooResponse" in out
+
+
+def test_serializer_autoderive_skipped_when_serialize_unannotated() -> None:
+    """An unannotated `serialize` keeps `T = Any` — we don't fabricate a type
+    from a missing annotation.
+    """
+    src = """\
+from sentry.api.serializers import Serializer, serialize
+
+class FooSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert 'Revealed type is "Any"' in out
+
+
+def test_serializer_autoderive_denylist_entries_are_fully_qualified() -> None:
+    """Sanity check on `_AUTODERIVE_DENYLIST`: every entry is a dotted module
+    path (no bare class names, no typos like leading/trailing dots). End-to-end
+    denylist behavior is exercised by the full mypy run on `src/` — each
+    denylisted class corresponds to a known caller-drift case the plugin would
+    otherwise surface as a CI failure.
+    """
+    from tools.mypy_helpers.serializer_autoderive import _AUTODERIVE_DENYLIST
+
+    assert _AUTODERIVE_DENYLIST, "denylist should not be empty"
+    for fullname in _AUTODERIVE_DENYLIST:
+        assert "." in fullname, fullname
+        assert not fullname.startswith("."), fullname
+        assert not fullname.endswith("."), fullname
+        # All Sentry serializers live under the `sentry.` namespace; this
+        # catches typos that drop the package prefix.
+        assert fullname.startswith("sentry."), fullname
+
+
+def test_serializer_autoderive_skipped_when_serialize_returns_any() -> None:
+    """Explicit `-> Any` is a deliberate opt-out — the hook respects it."""
+    src = """\
+from typing import Any
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> Any:
+        return {"name": "x"}
+
+reveal_type(serialize(object(), None, FooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert 'Revealed type is "Any' in out
+
+
+def test_serializer_autoderive_typed_dict_remains_indexable() -> None:
+    """An autoderived `Serializer[FooResponse]` (where FooResponse is a
+    TypedDict) must produce a result that supports string-literal indexing —
+    `o["key"]` — and iteration over a list of them must yield TypedDict items.
+    Regression guard: an early implementation produced a TypedDict-via-typevar
+    type that mypy refused to index.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+    id: str
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x", "id": "1"}
+
+single = serialize(object(), None, FooSerializer())
+n = single["name"]
+reveal_type(n)
+
+many = serialize([object()], None, FooSerializer())
+keyed = {(o["id"], o["name"]): o for o in many}
+reveal_type(keyed)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_serializer_autoderive_resolves_forward_reference_in_serialize_return() -> None:
+    """The `serialize()` return annotation can name a type defined *later* in
+    the file (or in a `TYPE_CHECKING` block). At base-class-hook time, that
+    name is an `UnboundType`; the hook routes it through `ctx.api.anal_type`
+    so the resolved `Serializer[T]` ends up as a proper TypedDict, not a
+    `Serializer[UnboundType("FooResponse")]` that mypy renders with `?` and
+    refuses to index. Regression guard for the resolution path.
+    """
+    src = """\
+from __future__ import annotations
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x", "id": "1"}
+
+class FooResponse(TypedDict):
+    name: str
+    id: str
+
+result = serialize(object(), None, FooSerializer())
+# If the forward reference was not resolved, `result` would be the unbound
+# `FooResponse?` which mypy refuses to index — this line would error.
+n = result["name"]
+reveal_type(n)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    # `n` is `str` (the TypedDict's declared value type) — proves the
+    # forward reference resolved to a real `FooResponse` TypedDict.
+    assert 'Revealed type is "str"' in out
+
+
+def test_serializer_autoderive_propagates_through_subclass() -> None:
+    """A subclass of an autoderived `Serializer[T]` inherits the derived `T`
+    without needing its own `serialize` override.
+    """
+    src = """\
+from typing import Any, TypedDict
+from collections.abc import Mapping
+from sentry.api.serializers import Serializer, serialize
+
+class FooResponse(TypedDict):
+    name: str
+
+class FooSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any) -> FooResponse:
+        return {"name": "x"}
+
+class FancyFooSerializer(FooSerializer):
+    pass
+
+reveal_type(serialize(object(), None, FancyFooSerializer()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+    assert "FooResponse" in out

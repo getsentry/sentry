@@ -21,7 +21,7 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {

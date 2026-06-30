@@ -83,19 +83,22 @@ def test_subsegment_exposes_span_metadata() -> None:
 
 def test_evalsha_result_from_redis_result() -> None:
     segment_key = _segment_id(1, "a" * 32, "b" * 16)
-    latency_metrics = [(b"operation", 12.0)]
-    gauge_metrics = [(b"gauge", 3.0)]
+    # The Lua script returns flattened [key1, value1, key2, value2, ...] lists.
+    latency_metrics = [b"operation", 12.0, b"another", 5.0]
+    gauge_metrics = [b"gauge", 3.0]
+    merged_segment_span_ids = [b"c" * 16]
 
     result = EvalshaResult.from_redis_result(
-        [segment_key, True, 15, latency_metrics, gauge_metrics]
+        [segment_key, True, 15, latency_metrics, gauge_metrics, merged_segment_span_ids]
     )
 
     assert result == EvalshaResult(
         segment_key=segment_key,
         has_root_span=True,
         latency_ms=15,
-        latency_metrics=latency_metrics,
-        gauge_metrics=gauge_metrics,
+        latency_metrics=[(b"operation", 12.0), (b"another", 5.0)],
+        gauge_metrics=[(b"gauge", 3.0)],
+        merged_segment_span_ids=merged_segment_span_ids,
     )
 
 
@@ -118,6 +121,7 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
             latency_ms=15,
             latency_metrics=[],
             gauge_metrics=[],
+            merged_segment_span_ids=[],
         ),
     )
     detached = InsertedSubsegment(
@@ -128,6 +132,7 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
             latency_ms=15,
             latency_metrics=[],
             gauge_metrics=[],
+            merged_segment_span_ids=[],
         ),
     )
 
@@ -137,12 +142,46 @@ def test_inserted_subsegment_exposes_queue_and_cleanup_metadata() -> None:
     assert detached.is_detached_segment
 
 
-def test_segment_ingest_metadata_from_redis_results() -> None:
-    assert SegmentIngestMetadata.from_redis_results(b"3", b"42") == SegmentIngestMetadata(
+def test_inserted_subsegment_from_redis_result() -> None:
+    trace_id = "a" * 32
+    parent_span_id = "f" * 16
+    subsegment = Subsegment(
+        project_and_trace=f"1:{trace_id}",
+        parent_span_id=parent_span_id,
+        salt="salted",
+        spans=[_span("a" * 16, parent_span_id)],
+    )
+    segment_key = _segment_id(1, trace_id, "c" * 16)
+
+    inserted = InsertedSubsegment.from_redis_result(
+        subsegment,
+        [segment_key, False, 12, [], [], []],
+    )
+
+    assert inserted == InsertedSubsegment(
+        subsegment,
+        EvalshaResult(segment_key, False, 12, [], [], []),
+    )
+
+
+def test_flush_candidate_from_redis_result() -> None:
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+
+    flush_candidate = FlushCandidate.from_redis_result(
+        0,
+        b"span-buf:q:0",
+        (segment_key, 5.0),
+    )
+
+    assert flush_candidate == FlushCandidate(0, b"span-buf:q:0", segment_key, 5.0)
+
+
+def test_segment_ingest_metadata_from_redis_result() -> None:
+    assert SegmentIngestMetadata.from_redis_result(b"3", b"42") == SegmentIngestMetadata(
         ingested_count=3,
         ingested_byte_count=42,
     )
-    assert SegmentIngestMetadata.from_redis_results(None, None) == SegmentIngestMetadata()
+    assert SegmentIngestMetadata.from_redis_result(None, None) == SegmentIngestMetadata()
 
 
 def test_loaded_segment_exposes_candidate_payloads_and_metadata() -> None:

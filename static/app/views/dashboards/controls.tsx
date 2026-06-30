@@ -16,8 +16,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,7 +29,6 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
@@ -69,7 +68,6 @@ export function Controls({
   isSaving,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const queryClient = useQueryClient();
   function renderCancelButton(label = t('Cancel')) {
     return (
@@ -176,7 +174,7 @@ export function Controls({
                 title: limitMessage,
               }}
             >
-              {t('Add Dashboard')}
+              {t('Save and Finish')}
             </Button>
           )}
         </DashboardCreateLimitWrapper>
@@ -214,56 +212,6 @@ export function Controls({
         })
       : null
     : t('You do not have permission to edit this dashboard');
-
-  const renderEditButton = (hasFeature: boolean) => {
-    if (!hasFeature) {
-      return null;
-    }
-    if (isPrebuiltDashboard) {
-      return (
-        <Button
-          data-test-id="dashboard-edit"
-          aria-label={t('edit-dashboard')}
-          icon={<IconEdit />}
-          disabled
-          tooltipProps={{
-            title: tct(
-              'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
-              {label: PREBUILT_DASHBOARD_LABEL}
-            ),
-          }}
-          variant="secondary"
-          size="sm"
-        />
-      );
-    }
-    const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
-    const toolTipMessage = isSaving
-      ? DASHBOARD_SAVING_MESSAGE
-      : hasEditAccess
-        ? hasUnsavedFilters
-          ? UNSAVED_FILTERS_MESSAGE
-          : null
-        : t('You do not have permission to edit this dashboard');
-
-    return (
-      <Tooltip title={t('Edit Dashboard')} disabled={isDisabled}>
-        <Button
-          data-test-id="dashboard-edit"
-          aria-label={t('edit-dashboard')}
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
-          disabled={isDisabled}
-          tooltipProps={{title: toolTipMessage}}
-          variant="secondary"
-          size="sm"
-        />
-      </Tooltip>
-    );
-  };
 
   return (
     <StyledButtonBar key="controls">
@@ -319,8 +267,7 @@ export function Controls({
                 />
               </Tooltip>
             </Feature>
-            {hasPageFrameFeature &&
-              hasFeature &&
+            {hasFeature &&
               (isPrebuiltDashboard ? (
                 <Button
                   data-test-id="dashboard-edit"
@@ -367,12 +314,7 @@ export function Controls({
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            {!hasPageFrameFeature && renderEditButton(hasFeature)}
-            {hasFeature && (
-              <Feature features="dashboards-revisions">
-                <DashboardRevisionsButton dashboard={dashboard} />
-              </Feature>
-            )}
+            {hasFeature && <DashboardRevisionsButton dashboard={dashboard} />}
             {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}

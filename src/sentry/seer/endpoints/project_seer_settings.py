@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import (
     AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -36,9 +37,9 @@ from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
-    bulk_update_seer_project_settings,
     get_automation_handoff,
     get_valid_automated_run_stopping_points,
+    is_seer_seat_based_tier_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -80,6 +81,8 @@ class SeerProjectSettingsResponse(TypedDict):
     agent: str
     integrationId: str | None
     stoppingPoint: str
+    autoCreatePr: bool | None
+    automationTuning: str
     scannerAutomation: bool
     reposCount: int
 
@@ -154,9 +157,11 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         # No configured external handoff means use Seer agent.
         agent: str = "seer"
         integration_id: str | None = None
+        auto_create_pr: bool | None = None
     else:
         agent = handoff.target
         integration_id = str(handoff.integration_id)
+        auto_create_pr = handoff.auto_create_pr
 
     return SeerProjectSettingsResponse(
         projectId=str(project.id),
@@ -164,6 +169,8 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         agent=agent,
         integrationId=integration_id,
         stoppingPoint=stopping_point,
+        autoCreatePr=auto_create_pr,
+        automationTuning=settings["automation_tuning"],
         scannerAutomation=settings["scanner_automation"],
         reposCount=settings["repos_count"],
     )
@@ -307,22 +314,19 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-class ProjectSettingsUpdateSerializer(serializers.Serializer):
+class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
-    integrationId = serializers.IntegerField(required=False)
-    stoppingPoint = serializers.ChoiceField(choices=["off", *AutofixStoppingPoint], required=False)
-    scannerAutomation = serializers.BooleanField(required=False)
+    integration_id = serializers.IntegerField(required=False)
+    stopping_point = serializers.ChoiceField(choices=[*AutofixStoppingPoint], required=False)
+    scanner_automation = serializers.BooleanField(required=False)
+    automation_tuning = serializers.ChoiceField(
+        choices=[*AutofixAutomationTuningSettings], required=False
+    )
 
-    def validate_stoppingPoint(self, value: str) -> str:
-        if value == "off":
-            return value
+    def _update_fields(self) -> set[str]:
+        return {"agent", "stopping_point", "scanner_automation", "automation_tuning"}
 
-        organization = self.context["organization"]
-        if value not in get_valid_automated_run_stopping_points(organization):
-            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
-        return value
-
-    def validate_integrationId(self, value: int) -> int:
+    def validate_integration_id(self, value: int) -> int:
         organization = self.context["organization"]
         org_integrations = integration_service.get_organization_integrations(
             organization_id=organization.id, integration_id=value
@@ -331,27 +335,58 @@ class ProjectSettingsUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"{value} is not a valid integration.")
         return value
 
+    def validate_stopping_point(self, value: str) -> str:
+        if value not in get_valid_automated_run_stopping_points(self.context["organization"]):
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
+        return value
+
     def validate(self, data):
-        if "agent" in data and data["agent"] != "seer" and "integrationId" not in data:
+        if "agent" in data and data["agent"] != "seer" and "integration_id" not in data:
             raise serializers.ValidationError(
-                {"integrationId": "Required when agent is an external coding agent."}
+                {"integration_id": "Required when agent is an external coding agent."}
             )
 
-        if "integrationId" in data:
+        if "integration_id" in data:
             if "agent" not in data:
                 raise serializers.ValidationError(
-                    {"agent": "Required when integrationId is provided."}
+                    {"agent": "Required when integration_id is provided."}
                 )
             elif data["agent"] == "seer":
                 raise serializers.ValidationError(
-                    {"agent": "Must be an external coding agent when integrationId is provided."}
+                    {"agent": "Must be an external coding agent when integration_id is provided."}
                 )
 
-        has_update = any(k in data for k in ("agent", "stoppingPoint", "scannerAutomation"))
-        if not has_update:
+        if not any(k in data for k in self._update_fields()):
             raise serializers.ValidationError("At least one update field must be provided.")
 
         return data
+
+
+class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
+    """Seat-based (new) Seer: restricted tuning choices, stopping point sync."""
+
+    automation_tuning = serializers.ChoiceField(
+        choices=[AutofixAutomationTuningSettings.OFF, AutofixAutomationTuningSettings.MEDIUM],
+        required=False,
+    )
+
+    def validate(self, data):
+        data = super().validate(data)
+
+        # Keep stopping point in sync with handoff auto_create_pr.
+        if "stopping_point" in data and "auto_create_pr" not in data:
+            data["auto_create_pr"] = data["stopping_point"] == AutofixStoppingPoint.OPEN_PR
+
+        return data
+
+
+class LegacyProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
+    """Legacy Seer: accepts auto_create_pr and all tuning/stopping point values."""
+
+    auto_create_pr = serializers.BooleanField(required=False)
+
+    def _update_fields(self) -> set[str]:
+        return super()._update_fields() | {"auto_create_pr"}
 
 
 @cell_silo_endpoint
@@ -367,32 +402,36 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
         return Response(serialize_project(project))
 
     def put(self, request: Request, project: Project) -> Response:
-        serializer = ProjectSettingsUpdateSerializer(
+        serializer_cls = (
+            ProjectSettingsUpdateSerializer
+            if is_seer_seat_based_tier_enabled(project.organization)
+            else LegacyProjectSettingsUpdateSerializer
+        )
+        serializer = serializer_cls(
             data=request.data, context={"organization": project.organization}
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        update_seer_project_settings(project, serializer.validated_data)
+        data = serializer.validated_data
+        update_seer_project_settings([project.id], data)
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={
-                "project_id": project.id,
-                "agent": serializer.validated_data.get("agent"),
-                "integration_id": serializer.validated_data.get("integrationId"),
-                "stopping_point": serializer.validated_data.get("stoppingPoint"),
-                "scanner_automation": serializer.validated_data.get("scannerAutomation"),
-            },
+            data={"project_id": project.id, **data},
         )
 
         return Response(serialize_project(project))
 
 
 class BulkProjectSettingsUpdateSerializer(ProjectSettingsUpdateSerializer):
+    query = serializers.CharField(required=False, default="")
+
+
+class LegacyBulkProjectSettingsUpdateSerializer(LegacyProjectSettingsUpdateSerializer):
     query = serializers.CharField(required=False, default="")
 
 
@@ -433,16 +472,19 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
-        serializer = BulkProjectSettingsUpdateSerializer(
-            data=request.data, context={"organization": organization}
+        serializer_cls = (
+            BulkProjectSettingsUpdateSerializer
+            if is_seer_seat_based_tier_enabled(organization)
+            else LegacyBulkProjectSettingsUpdateSerializer
         )
+        serializer = serializer_cls(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
         search_query = data.pop("query")
 
-        accessible_projects = self.get_projects(request, organization)
+        accessible_projects = self.get_projects(request, organization, include_all_accessible=True)
         queryset = _annotate_queryset(
             Project.objects.filter(id__in={p.id for p in accessible_projects})
         )
@@ -455,21 +497,15 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
                 return Response({"detail": "Invalid search query"}, status=400)
 
         projects = list(queryset)
-        bulk_update_seer_project_settings(projects, data)
+        if projects:
+            update_seer_project_settings([p.id for p in projects], data)
 
         self.create_audit_entry(
             request=request,
             organization=organization,
             target_object=organization.id,
             event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
-            data={
-                "project_count": len(projects),
-                "project_ids": [p.id for p in projects],
-                "agent": data.get("agent"),
-                "integration_id": data.get("integrationId"),
-                "stopping_point": data.get("stoppingPoint"),
-                "scanner_automation": data.get("scannerAutomation"),
-            },
+            data={"project_count": len(projects), "project_ids": [p.id for p in projects], **data},
         )
 
         return Response(status=204)

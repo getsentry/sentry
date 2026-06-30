@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export function AssociatedReleases({
   associations,

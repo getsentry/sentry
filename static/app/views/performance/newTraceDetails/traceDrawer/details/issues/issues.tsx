@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -11,10 +12,9 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -55,21 +55,14 @@ function Issue(props: IssueProps) {
     data: fetchedIssue,
     isError,
     error,
-  } = useApiQuery<Group>(
-    [
-      getApiUrl('/issues/$issueId/', {path: {issueId: props.issue.issue_id}}),
-      {
-        query: {
-          collapse: 'release',
-          expand: 'inbox',
-        },
-      },
-    ],
-    {
-      enabled: !!props.issue.issue_id,
-      staleTime: 2 * 60 * 1000,
-    }
-  );
+  } = useQuery({
+    ...groupApiOptions({
+      groupId: String(props.issue.issue_id),
+      organizationSlug: props.organization.slug,
+      environments: [],
+    }),
+    staleTime: 10 * 60 * 1000,
+  });
 
   const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
@@ -92,7 +85,9 @@ function Issue(props: IssueProps) {
   ) : isError ? (
     <LoadingError
       message={
-        error.status === 404 ? t('This issue was deleted') : t('Failed to fetch issue')
+        error instanceof RequestError && error.status === 404
+          ? t('This issue was deleted')
+          : t('Failed to fetch issue')
       }
     />
   ) : null;
@@ -183,9 +178,9 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [
     ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
     ...node.uniqueOccurrenceIssues,
-  ];
+  ].filter(issue => issue.issue_id);
 
-  if (!issues.length) {
+  if (!issues.length || !uniqueIssues.length) {
     return null;
   }
 

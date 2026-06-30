@@ -288,7 +288,7 @@ class OrganizationExamples:
                 "scrapeJavaScript": True,
                 "allowJoinRequests": True,
                 "relayPiiConfig": None,
-                "codecovAccess": False,
+                "relayDsnEndpoint": None,
                 "hideAiFeatures": False,
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
@@ -772,7 +772,7 @@ class OrganizationExamples:
                 },
                 "authors": [
                     {
-                        "id": 2837091,
+                        "id": "2837091",
                         "name": "Raj's Raspberries",
                         "username": "rajraspberry",
                         "email": "raj@raspberries",

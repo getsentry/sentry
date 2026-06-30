@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {
   createTraceMetricEventsFilter,

@@ -1,6 +1,6 @@
 import {frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';

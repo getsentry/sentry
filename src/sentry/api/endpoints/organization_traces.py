@@ -115,6 +115,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
 
     def validate_dataset(self, value):
         sentry_sdk.set_tag("query.dataset", value)
+        sentry_sdk.set_attribute("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         raise ParseError(detail=f"Unsupported dataset: {value}")
@@ -961,6 +962,7 @@ def process_rpc_user_queries(
 
     set_span_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
+    sentry_sdk.set_attribute("user_queries.raw_queries", user_queries)
 
     return queries
 

@@ -15,7 +15,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.utils import get_autofix_state_from_pr_id
 from sentry.utils import metrics
 
 AnalyticAction = Literal["opened", "closed", "merged"]
@@ -66,23 +65,6 @@ def record_pr_action_analytic(
         analytic_action = "merged"
 
     sent_at = _get_pr_timestamp_ms(pull_request, analytic_action)
-
-    autofix_state = get_autofix_state_from_pr_id("integrations:github", pull_request["id"])
-    if autofix_state:
-        analytics.record(
-            ACTION_TO_EVENTS[analytic_action](
-                organization_id=org.id,
-                integration=IntegrationProviderSlug.GITHUB.value,
-                project_id=autofix_state.request.project_id,
-                group_id=autofix_state.request.issue["id"],
-                run_id=autofix_state.run_id,
-                github_app=github_app,
-                sent_at=sent_at,
-            )
-        )
-
-        metrics.incr(f"ai.autofix.pr.{analytic_action}")
-        return
 
     agent_state = get_agent_state_from_pr_id(org.id, "integrations:github", pull_request["id"])
     if agent_state:

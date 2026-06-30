@@ -8,7 +8,7 @@ from sentry.notifications.models.notificationsettingoption import NotificationSe
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 
 
-class NotificationSettingsBaseSerializer(Serializer):
+class NotificationSettingsBaseSerializer(Serializer[Mapping[str, str | None]]):
     def serialize(
         self,
         obj: Any,

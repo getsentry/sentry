@@ -930,14 +930,20 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["dateReleased"] == release.date_released
         assert result["deployCount"] == release.total_deploys
         assert result["ref"] == release.ref
-        assert result["lastCommit"]["id"] == commit.key
-        assert result["lastDeploy"]["id"] == str(deploy.id)
+        last_commit = result["lastCommit"]
+        assert last_commit is not None
+        assert last_commit["id"] == commit.key
+        last_deploy = result["lastDeploy"]
+        assert last_deploy is not None
+        assert last_deploy["id"] == str(deploy.id)
 
         assert result["version"] == release.version
-        assert result["versionInfo"]["package"] is None
-        assert result["versionInfo"]["version"]["raw"] == release_version
-        assert result["versionInfo"]["buildHash"] == release_version
-        assert result["versionInfo"]["description"] == release_version[:12]
+        version_info = result["versionInfo"]
+        assert version_info is not None
+        assert version_info["package"] is None
+        assert version_info["version"]["raw"] == release_version
+        assert version_info["buildHash"] == release_version
+        assert version_info["description"] == release_version[:12]
 
 
 class GetUsersForAuthorsUserMappingsTest(TestCase):

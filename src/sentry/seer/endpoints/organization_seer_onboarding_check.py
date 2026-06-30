@@ -66,7 +66,7 @@ def is_autofix_enabled(organization: Organization) -> bool:
 @cell_silo_endpoint
 class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.CODING_WORKFLOWS
     enforce_rate_limit = True

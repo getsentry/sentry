@@ -2,9 +2,12 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getReplayTraceSearchQuery} from 'sentry/views/performance/newTraceDetails/traceApi/replayTraceSearch';
+
 import {useReplayTraces} from './useReplayTraces';
 
 const replayRecord = ReplayRecordFixture();
+const replayTraceQuery = getReplayTraceSearchQuery(replayRecord.id);
 
 describe('useTraceMeta', () => {
   beforeEach(() => {
@@ -33,7 +36,7 @@ describe('useTraceMeta', () => {
           },
         ],
       },
-      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      match: [MockApiClient.matchQuery({dataset: 'spans', query: replayTraceQuery})],
     });
 
     const {result} = renderHookWithProviders(() => useReplayTraces({replayRecord}));
@@ -60,7 +63,7 @@ describe('useTraceMeta', () => {
       headers: {Link: pageLinks},
       url: '/organizations/org-slug/events/',
       statusCode: 400,
-      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      match: [MockApiClient.matchQuery({dataset: 'spans', query: replayTraceQuery})],
     });
 
     const {result} = renderHookWithProviders(() => useReplayTraces({replayRecord}));

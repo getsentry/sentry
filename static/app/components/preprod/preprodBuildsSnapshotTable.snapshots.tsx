@@ -23,10 +23,6 @@ jest.mock('./preprodBuildsTableCommon', () => ({
   ),
 }));
 
-jest.mock('@sentry/scraps/tooltip', () => ({
-  Tooltip: ({children}: {children: React.ReactNode}) => children,
-}));
-
 jest.mock('sentry/components/timeSince', () => ({
   TimeSince: ({date}: {date: string}) => <time dateTime={date}>1 hour ago</time>,
 }));

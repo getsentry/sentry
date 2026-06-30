@@ -7,17 +7,14 @@ import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
 
 interface AddIntegrationButtonProps
   extends
     Omit<ButtonProps, 'children' | 'analyticsParams'>,
     Pick<
       AddIntegrationParams,
-      | 'provider'
-      | 'organization'
-      | 'analyticsParams'
-      | 'modalParams'
-      | 'suppressSuccessMessage'
+      'provider' | 'organization' | 'analyticsParams' | 'suppressSuccessMessage'
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
@@ -32,7 +29,6 @@ export function AddIntegrationButton({
   organization,
   reinstall,
   analyticsParams,
-  modalParams,
   installStatus,
   suppressSuccessMessage,
   ...buttonProps
@@ -46,6 +42,15 @@ export function AddIntegrationButton({
         : t('Add %s', provider.metadata.noun));
 
   const {startFlow} = useAddIntegration();
+
+  // This is hooked to the button since the button is only rendered when all the flags/plan checks pass.
+  useAutoOpenInstallModal({
+    provider,
+    organization,
+    onInstall: onAddIntegration,
+    analyticsParams,
+    suppressSuccessMessage,
+  });
 
   return (
     <Tooltip
@@ -67,7 +72,6 @@ export function AddIntegrationButton({
             organization,
             onInstall: onAddIntegration,
             analyticsParams,
-            modalParams,
             suppressSuccessMessage,
           });
         }}

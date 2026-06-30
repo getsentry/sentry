@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
-import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
@@ -21,6 +20,7 @@ from sentry_sdk import capture_exception
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +126,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"
+            with start_span(
+                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker", transaction=True
             ):
                 task_execution(model_name, chunk, project_id)
         except Exception:
@@ -346,9 +346,7 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with sentry_sdk.start_transaction(
-        op="cleanup", name=f"{TRANSACTION_PREFIX}.main"
-    ) as transaction:
+    with start_span(op="cleanup", name=f"{TRANSACTION_PREFIX}.main", transaction=True) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -385,9 +383,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                transaction.set_tag("organization_id", organization_id)
+                set_span_tag(span, "organization_id", organization_id)
             if project_id is not None:
-                transaction.set_tag("project_id", project_id)
+                set_span_tag(span, "project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,
@@ -682,7 +680,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.commit import Commit
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
-    from sentry.models.pullrequest import PullRequest
+    from sentry.models.pullrequest import PullRequest, PullRequestActivity
     from sentry.models.release import Release
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
@@ -699,6 +697,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (GroupRuleStatus, "date_added", "date_added"),
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
+        (PullRequestActivity, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
@@ -708,12 +707,14 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
 
 def models_which_use_expiry_deletions() -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.eventattachment import EventAttachment
+    from sentry.models.profilechunkattachment import ProfileChunkAttachment
 
     # Models deleted based on their per-record expiry date, independent of --days.
     # Always run with days=0 so records are deleted exactly when they expire,
     # regardless of the --days value passed to the cleanup command.
     return [
         (EventAttachment, "date_expires", "date_expires"),
+        (ProfileChunkAttachment, "date_expires", "date_expires"),
     ]
 
 

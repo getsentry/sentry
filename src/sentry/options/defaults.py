@@ -1,6 +1,5 @@
 import os
 
-from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -46,8 +45,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -65,38 +62,8 @@ register(
     "system.internal-url-prefix",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Base hostname that account domains are subdomains of.
-register(
-    "system.base-hostname",
-    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# The template for organization subdomain hostnames.
-register(
-    "system.organization-base-hostname",
-    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for organization URL including protocol
-register(
-    "system.organization-url-template",
-    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for region based API URL
-register(
-    "system.region-api-url-template",
-    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-# Enable date-util parsing for timestamps
-register(
-    "system.use-date-util-timestamps",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Organization
 register(
@@ -127,7 +94,6 @@ register(
     default={"default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}}},
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
-register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
 # Processing worker caches
 register(
@@ -140,12 +106,6 @@ register(
     "releasefile.cache-path",
     type=String,
     default="/tmp/sentry-releasefile-cache",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "releasefile.cache-limit",
-    type=Int,
-    default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -190,7 +150,6 @@ register(
     default="root@localhost",
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
-register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register(
     "mail.enable-replies",
     default=False,
@@ -287,17 +246,18 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+register(
+    "auth.email-verification-at-signup.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
 
 # User Settings
 register(
     "user-settings.signed-url-confirmation-emails-salt",
     type=String,
     default="signed-url-confirmation-emails-salt",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "user-settings.signed-url-confirmation-emails",
-    default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -322,27 +282,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# API Tokens
-register(
-    "apitoken.auto-add-last-chars",
-    default=True,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "apitoken.save-hash-on-create",
-    default=True,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Controls the rate of using the hashed value of User API tokens for lookups when logging in
-# and also updates tokens which are not hashed
-register(
-    "apitoken.use-and-update-hash-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "api.rate-limit.org-create",
@@ -380,6 +319,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "unmerge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.merge-unmerge.max-group-times-seen",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -387,58 +347,6 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Filestore (default)
-register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
-register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
-register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.relocation-options",
-    default={"location": "/tmp/sentry-relocation-files"},
-    flags=FLAG_NOSTORE,
-)
-register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.profiles-options",
-    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
-    flags=FLAG_NOSTORE,
-)
-
-# Filestore for control silo
-register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
-register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
-
-# Whether to use a redis lock on fileblob uploads and deletes
-register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Whether to use redis to cache `FileBlob.id` lookups
-register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# New `objectstore` service configuration. Additional supported options and
-# their defaults:
-#  - propagate_traces: bool = False,
-#  - retries: int | None = None,
-#  - timeout_ms: float | None = None,
-#  - connection_kwargs: Mapping[str, Any] | None = None,
-#  - token_generator: Mapping[str, Any] | None = None,
-#
-# For an always up-to-date list, see:
-# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
-register(
-    "objectstore.config",
-    default={
-        "base_url": "http://127.0.0.1:8888",
-        # Test-only token generator with no permissions. Only active when no real
-        # objectstore config is deployed. Exists so mint_token() does not raise in
-        # test/dev environments that lack signing keys.
-        "token_generator": {
-            "kid": "test",
-            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-            "permissions": [],
-        },
-    },
-    flags=FLAG_NOSTORE,
-)
-
 
 # Symbol server
 register(
@@ -499,18 +407,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Configuration Options
-register(
-    "configurations.storage.backend",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "configurations.storage.options",
-    type=Dict,
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Flag Options
 register(
@@ -568,13 +464,6 @@ register(
     default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Enables profiling for replay recording ingestion.
-register(
-    "replay.consumer.recording.profiling.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Enable new msgspec-based recording parser.
 register(
     "replay.consumer.msgspec_recording_parser",
@@ -631,15 +520,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Ingest only a random fraction of logs sent to relay. Used to roll out ourlogs ingestion.
-#
-# NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
-register(
-    "relay.ourlogs-ingestion.sample-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Allow the Relay to skip normalization of spans for certain hosts.
 register(
@@ -659,22 +539,6 @@ register(
 # Rollout rate for the Spans V2 format in Kafka.
 register(
     "relay.kafka.span-v2.sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout rate for moving accepted outcome emission for spans from Relay to the Segment Consumer.
-register(
-    "relay.eap-span-outcomes.rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -702,11 +566,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Analytics
-register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
-register("analytics.options", default={}, flags=FLAG_NOSTORE)
-
 
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -752,11 +611,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Codecov Integration
-register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("codecov.base-url", default="https://api.codecov.io")
-register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -838,16 +692,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("github-login.organization", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "github-extension.enabled",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github-extension.enabled-orgs",
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -861,13 +705,6 @@ register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Azure DevOps Integration Social Login Flow
-register(
-    "vsts.social-auth-migration",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Add consent prompt for Azure DevOps Integration
 register(
@@ -898,6 +735,10 @@ register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# GCP MCP Integration
+register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -920,24 +761,11 @@ register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MOD
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Intercom Integration
-register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
-
 # Snuba
 register(
     "snuba.search.pre-snuba-candidates-optimizer",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "snuba.search.pre-snuba-candidates-percentage",
-    default=0.2,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "snuba.search.project-group-count-cache-time",
-    default=24 * 60 * 60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -989,7 +817,51 @@ register(
     default={7001: 0.15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "snuba.search.recommended.message-penalty-weight",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.assignment-weight",
+    default=0.30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.fixability-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.agent-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for regressed issues (GroupSubStatus.REGRESSED). A regression that just
+# came back is worth surfacing again; new/escalating issues are already lifted by recency
+# and the spike factor, so they aren't boosted here.
+register(
+    "snuba.search.recommended.regressed-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Additive boost for newly-seen issues, decayed on Group.first_seen. The base recency
+# factor decays on last_seen (recent activity), so it can't distinguish a brand-new issue
+# from an old chronic one that just fired; this rewards true first appearance. Boost is
+# newness-weight * 1/2^(hours_since_first_seen / newness-halflife-hours).
+register(
+    "snuba.search.recommended.newness-weight",
+    default=0.10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Halflife (hours) of the newness decay. Governs how far back "new" reaches: at 24h the
+# boost is ~spent within a day or two; raise it (e.g. 168 = 1 week) to keep distinguishing
+# week-old from month-old issues. Set to 0 to disable newness.
+register(
+    "snuba.search.recommended.newness-halflife-hours",
+    default=24.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1006,27 +878,7 @@ register(
     type=Int,
 )
 
-# Kafka Publisher
-register(
-    "kafka-publisher.raw-event-sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-# Enable multiple topics for eventstream. It allows specific event types to be sent
-# to specific topic.
-register(
-    "store.eventstream-per-type-topic",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Query and supply Bundle Indexes to Symbolicator SourceMap processing
-register(
-    "symbolicator.sourcemaps-bundle-index-sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Refresh Bundle Indexes reported as used by symbolicator
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
@@ -1042,18 +894,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables setting a sampling rate when producing the tag facet.
-register(
-    "discover2.tags_facet_enable_sampling",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing.
-# Set this value of the fraction of projects that you want to use it for.
-register(
-    "processing.sourcemapcache-processor", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
 
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
@@ -1068,23 +908,23 @@ register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MO
 # Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
 register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Mock out integrations and services for tests
-register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Record statistics about event payloads and their compressibility
-register(
-    "store.nodestore-stats-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Enable calling the severity modeling API on group creation
 register(
-    "processing.calculate-severity-on-group-creation",
+    "store.ingest-events-raw-task.inline-save-event",
+    type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "store.ingest-events-raw-task.inline-save-event-transaction",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
 # timeout, to see the effect on the overall error event processing backlog
@@ -1102,12 +942,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.severity.first-event-severity-calculation-projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "issues.severity.seer-project-rate-limit",
@@ -1137,20 +971,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.priority.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitch for issue priority
-register(
-    "issues.priority.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Killswitch for batched nodestore fetches in group events endpoint.
 # When disabled, falls back to lazy per-event nodestore fetches.
@@ -1190,12 +1010,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.similarity-embeddings-grouping-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1218,30 +1032,6 @@ register(
     type=Int,
     default=1,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.severity-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.breakpoint-detection-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.autofix-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.anomaly-detection-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Agent context engine indexing options
@@ -1339,37 +1129,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# seer nearest neighbour endpoint timeout
+# Fraction of grouping requests to route to the CPU (summarization) backend instead of GPU
 register(
-    "embeddings-grouping.seer.nearest-neighbour-timeout",
+    "seer.similarity.cpu-backend-sample-rate",
     type=Float,
-    default=0.1,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# seer embeddings record update endpoint timeout
-register(
-    "embeddings-grouping.seer.embeddings-record-update-timeout",
-    type=Float,
-    default=0.05,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# seer embeddings record delete endpoint timeout
-register(
-    "embeddings-grouping.seer.embeddings-record-delete-timeout",
-    type=Float,
-    default=0.1,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# seer embeddings ratelimit in percentage that is allowed
-register(
-    "embeddings-grouping.seer.ratelimit",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
@@ -1379,22 +1146,16 @@ register(
 )
 
 register(
-    "seer.explorer_index.enable",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.explorer_index.killswitch.enable",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "seer.explorer-index.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+    "seer.pull-request-linking.killswitch.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.explorer.context-engine-rollout",
@@ -1411,6 +1172,23 @@ register(
 register(
     "seer.night_shift.issues_per_org",
     default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.shard_size",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Per-org overrides for night shift run options. Keyed by stringified
+# organization id; each value is a partial set of run-option overrides (e.g.
+# {"max_candidates": 20}) that layer on top of the global defaults but below
+# any explicit caller-provided options. See
+# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+register(
+    "seer.night_shift.org_tweaks",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1487,12 +1265,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "store.save-event-highcpu-platforms",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "post_process.get-autoassign-owners",
     type=Sequence,
     default=[],
@@ -1533,12 +1305,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Minimum number of files in an archive. Archives with fewer files are extracted and have their
-# contents stored as separate release files.
-register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
+# Whether Relay requests sent from internal ip addresses should be allowed even if the
+# credentials can not be verified.
+register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
@@ -1582,15 +1353,6 @@ register(
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# The ratio of symbolication requests for which metrics will be submitted to redis.
-#
-# This is to allow gradual rollout of metrics collection for symbolication requests and can be
-# removed once it is fully rolled out.
-register(
-    "symbolicate-event.low-priority.metrics.submission-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # The ratio of events for which we emit verbose apple symbol stats.
 #
@@ -1733,13 +1495,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "organization-abuse-quota.custom-metric-bucket-limit",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 for mabq in build_metric_abuse_quotas():
     register(
@@ -1774,6 +1529,21 @@ register(
     "api.deprecation.brownout-duration",
     type=Int,
     default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Brownout schedule for the deprecated alerts API endpoints.
+# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
+register(
+    "api.deprecation.alerts-cron",
+    default="0 */2 * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.deprecation.alerts-duration",
+    type=Int,
+    default=120,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1992,11 +1762,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry-metrics.synchronize-kafka-rebalances",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry-metrics.synchronized-rebalance-delay",
@@ -2234,57 +1999,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.traces.trace-explorer-buffer-hours",
-    type=Float,
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.trace-explorer-max-trace-ids-per-chunk",
-    type=Int,
-    default=2500,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.trace-explorer-skip-floating-spans",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.trace-explorer-scan-max-block-size-hours",
-    type=Int,
-    default=8,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.trace-explorer-scan-max-batches",
-    type=Int,
-    default=7,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.trace-explorer-scan-max-execution-seconds",
-    type=Int,
-    default=30,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.trace-explorer-scan-max-parallel-queries",
-    type=Int,
-    default=3,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.traces.trace-explorer-skip-recent-seconds",
     type=Int,
     default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.traces.span_query_minimum_spans",
-    type=Int,
-    default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2313,21 +2030,9 @@ register(
 )
 
 register(
-    "performance.spans-tags-key.sample-rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.spans-tags-key.max",
     type=Int,
     default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.spans-tags-value.sample-rate",
-    type=Float,
-    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2349,14 +2054,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# In Single Tenant with 100% DS, we may need to reverse the UI change made by dynamic-sampling
-# if metrics extraction isn't ready.
-register(
-    "performance.hide-metrics-ui",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Used for the z-score when calculating the margin of error in performance
 register(
@@ -2379,6 +2076,12 @@ register(
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
     0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+register(
+    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2415,6 +2118,32 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
+# sample rate comparison. Empty disables the comparison entirely.
+register(
+    "dynamic-sampling.per_org.sliding-window-comparison-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
+# project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
+# dynamic sampling path would otherwise compute for that project. Example:
+# {"12345": 0.5}. An empty mapping disables the override.
+register(
+    "dynamic-sampling.sample-rate-override-per-project",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
@@ -2466,8 +2195,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Flagpole Configuration (used in getsentry)
-register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Feature flagging error capture rate.
 # When feature flagging has faults, it can become very high volume and we can overwhelm sentry.
@@ -2477,7 +2204,6 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybridcloud.endpoint_flag_logging", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},
@@ -2692,30 +2418,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When True, the circuit breaker tracks state and emits metrics but does not block requests.
-register(
-    "sentry-apps.webhook.circuit-breaker.dry-run",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
     default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "statistical_detectors.enable.projects.performance",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "statistical_detectors.enable.projects.profiling",
-    type=Sequence,
-    default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2804,11 +2510,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "metric_extraction.max_span_attribute_specs",
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "metric_alerts.extended_max_subscriptions",
@@ -2947,12 +2648,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The flag disables the file io on main thread detector
-register(
-    "performance_issues.file_io_main_thread.disabled",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Enables on-demand metric extraction for Dashboard Widgets.
 register(
@@ -3001,16 +2696,6 @@ register(
     "relocation.enabled",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
@@ -3134,33 +2819,6 @@ register(
 )
 
 
-# Switch to read assemble status from Redis instead of memcache
-register("assemble.read_from_redis", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Sampling rates for testing Rust-based grouping enhancers
-
-# Rate at which to run the Rust implementation of `assemble_stacktrace_component`
-# and compare the results
-register(
-    "grouping.rust_enhancers.compare_components",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Rate at which to prefer the Rust implementation of `assemble_stacktrace_component`.
-register(
-    "grouping.rust_enhancers.prefer_rust_components",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "metrics.sample-list.sample-rate",
-    type=Float,
-    default=100_000.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
 # transitioned to the optimized logic, and before the next config change, we probably either want to
@@ -3193,20 +2851,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# Sample rate for double writing to experimental dsn
-register(
-    "store.experimental-dsn-double-write.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# temporary option for logging canonical key fallback stacktraces
-register(
-    "canonical-fallback.send-error-to-sentry",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # SPAN BUFFER
 # Span buffer killswitch
@@ -3357,6 +3001,11 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.use-msgspec-decoder",
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
@@ -3402,30 +3051,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "indexed-spans.agg-span-waterfall.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "traces.sample-list.sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "discover.saved-query-dataset-split.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "discover.saved-query-dataset-split.organization-id-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "feedback.filter_garbage_messages",
@@ -3479,38 +3104,6 @@ register(
 )
 # Notification Options - End
 
-# List of organizations with increased rate limits for organization_events API
-register(
-    "api.organization_events.rate-limit-increased.orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Increased rate limits for organization_events API for the orgs above
-register(
-    "api.organization_events.rate-limit-increased.limits",
-    type=Dict,
-    default={"limit": 50, "window": 1, "concurrent_limit": 50},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Reduced rate limits for organization_events API for the orgs in LA/EA/GA rollout
-# Once GA'd, this will be the default rate limit for all orgs not on the increase list
-register(
-    "api.organization_events.rate-limit-reduced.limits",
-    type=Dict,
-    default={"limit": 1000, "window": 300, "concurrent_limit": 15},
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# TODO: remove once removed from options
-register(
-    "issue_platform.use_kafka_partition_key",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
@@ -3540,21 +3133,7 @@ register(
     default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Limits the total duration of profile chunks to aggregate in flamegraphs
-register(
-    "profiling.continuous-profiling.flamegraph.max-seconds",
-    type=Int,
-    default=10 * 60,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-# Enable orjson in the occurrence_consumer.process_[message|batch]
-register(
-    "issues.occurrence_consumer.use_orjson",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Controls the rate of using the sentry api shared secret for communicating to sentry.
 # DEPRECATED: will be removed after the shared secret is confirmed to always be set.
@@ -3564,11 +3143,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "similarity.backfill_project_cohort_size",
-    default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "similarity.new_project_seer_grouping.enabled",
     default=False,
@@ -3580,31 +3154,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "delayed_processing.emit_logs",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.scheduler.use_conditional_delete",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.associate_error_detectors",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "workflow_engine.ensure_detector_association",
     type=Bool,
@@ -3697,17 +3257,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Disables specific uptime checker regions. This is a list of region slugs
-# which must match regions available in the settings.UPTIME_REGIONS list.
-#
-# Useful to remove a region from check rotation if there is some kind of
-# problem with the region.
-register(
-    "uptime.disabled-checker-regions",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "uptime.checker-regions-mode-override",
     type=Dict,
@@ -3952,17 +3501,6 @@ register(
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
-# option used to enable/disable tracking
-# rate of potential functions metrics to
-# be written into EAP
-register(
-    "profiling.track_functions_metrics_write_rate.eap.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 register(
     "sentry.send_onboarding_task_metrics",
     type=Bool,
@@ -4145,12 +3683,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "seer.scanner_no_consent.rollout_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Enabled Prebuilt Dashboard IDs
 register(
@@ -4184,7 +3716,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 # SCM
 
 register(
@@ -4202,15 +3733,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# ViewerContext — unified caller identity for all entrypoints.
-# Set via deploy config (SENTRY_OPTIONS); requires restart to change.
-register(
-    "viewer-context.enabled",
-    default=True,
-    type=Bool,
-    flags=FLAG_NOSTORE,
-)
-
 # Allows the recording of Seer actions as issue activities
 # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
 register(
@@ -4218,4 +3740,92 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
+register(
+    "repository.auto-link-by-name-dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
+register(
+    "tasks.producer.occurrences.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
+register(
+    "tasks.producer.snapshots.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to profiling tasks
+register(
+    "tasks.producer.profiles.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to track_outcome in tasks
+register(
+    "tasks.producer.track_outcome.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to preprod tasks
+register(
+    "tasks.producer.preprod.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If False, TaskWorkers will wait for a task's producer futures to complete
+# before marking a task as complete
+register(
+    "taskworker.skip.awaiting.futures",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "error-embeds.control-silo-address",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

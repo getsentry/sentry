@@ -9,6 +9,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.seer.supergroups.endpoints import organization_supergroups_by_group
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import cell_silo_test
 
 
 def mock_seer_response(data: dict[str, Any]) -> MagicMock:
@@ -18,6 +19,7 @@ def mock_seer_response(data: dict[str, Any]) -> MagicMock:
     return response
 
 
+@cell_silo_test
 class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-supergroups-by-group"
 
@@ -188,6 +190,63 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         sg = response.data["data"][0]
         assert "assignees" not in sg
         assert self.resolved_group.id in sg["group_ids"]
+
+    def test_returns_404_when_all_groups_are_in_inaccessible_projects(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+
+        other_project = self.create_project(organization=self.organization)
+        inaccessible_group = self.create_group(project=other_project)
+
+        self.login_as(member_user)
+
+        with self.feature("organizations:top-issues-ui"):
+            self.get_error_response(
+                self.organization.slug,
+                group_id=[inaccessible_group.id],
+                status_code=404,
+            )
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_filters_out_groups_from_inaccessible_projects(self, mock_seer):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user()
+        member_team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization,
+            user=member_user,
+            role="member",
+            teams=[member_team],
+        )
+        self.project.add_team(member_team)
+
+        accessible_group = self.create_group(project=self.project)
+
+        other_project = self.create_project(organization=self.organization)
+        inaccessible_group = self.create_group(project=other_project)
+
+        mock_seer.return_value = mock_seer_response(
+            {"data": [{"id": 1, "group_ids": [accessible_group.id], "title": "sg"}]}
+        )
+
+        self.login_as(member_user)
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[accessible_group.id, inaccessible_group.id],
+            )
+
+        seer_call_body = mock_seer.call_args[0][0]
+        assert accessible_group.id in seer_call_body["group_ids"]
+        assert inaccessible_group.id not in seer_call_body["group_ids"]
+
+        assert len(response.data["data"]) == 1
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_assignee_summary_tolerates_missing_actor(self, mock_seer):

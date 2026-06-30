@@ -29,7 +29,7 @@ class TestLaunchCodingAgents(TestCase):
         self.run_id = 12345
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_successful_launch(self, mock_validate, mock_store):
         """Test successful coding agent launch."""
         mock_integration = MagicMock()
@@ -62,7 +62,7 @@ class TestLaunchCodingAgents(TestCase):
         )
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_launch_raises_value_error(self, mock_validate, mock_store):
         """Test that ValueError from integration launch is handled as failure."""
         mock_integration = MagicMock()
@@ -85,7 +85,7 @@ class TestLaunchCodingAgents(TestCase):
         mock_installation.launch.assert_called_once()
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_multiple_repos_partial_failure(self, mock_validate, mock_store):
         """Test handling of partial failures across multiple repos."""
         from requests import HTTPError
@@ -115,7 +115,7 @@ class TestLaunchCodingAgents(TestCase):
         assert mock_store.call_args.kwargs["organization_id"] == self.organization.id
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_branch_name_is_sanitized(self, mock_validate, mock_store):
         """Test that branch name is sanitized before launch."""
         mock_integration = MagicMock()
@@ -140,10 +140,8 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
     @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
-    @patch("sentry.seer.agent.coding_agent_handoff.features.has")
     def test_copilot_not_licensed_403_returns_github_copilot_not_licensed_failure_type(
         self,
-        mock_features,
         mock_identity_service,
         mock_copilot_client_class,
         mock_store,
@@ -154,7 +152,6 @@ class TestLaunchCodingAgents(TestCase):
         account lacks an active Copilot subscription. This is distinct from a GitHub App
         permissions issue, so we should NOT show the permissions modal.
         """
-        mock_features.return_value = True
         mock_identity_service.get_access_token_for_user.return_value = "test-token"
 
         mock_client_instance = MagicMock()
@@ -180,7 +177,7 @@ class TestLaunchCodingAgents(TestCase):
         assert "Copilot license" in failure["error_message"]
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_verify_branch_error_returns_cursor_github_access_failure_type(
         self, mock_validate, mock_store
     ):
@@ -222,7 +219,7 @@ class TestResolveClient(TestCase):
         super().setUp()
         self.organization = self.create_organization()
 
-    @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
+    @patch(f"{MOCK_HANDOFF_PATH}.validate_and_get_integration")
     def test_returns_installation_for_cursor(self, mock_validate):
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
@@ -237,7 +234,7 @@ class TestResolveClient(TestCase):
         assert installation is mock_installation
         mock_validate.assert_called_once_with(self.organization, 1)
 
-    @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
+    @patch(f"{MOCK_HANDOFF_PATH}.validate_and_get_integration")
     def test_returns_installation_for_claude_code(self, mock_validate):
         mock_integration = MagicMock()
         mock_integration.provider = "claude_code"
@@ -251,9 +248,8 @@ class TestResolveClient(TestCase):
         assert client is None
         assert installation is mock_installation
 
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
     @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
-    def test_returns_client_for_github_copilot(self, mock_identity_service, mock_features):
+    def test_returns_client_for_github_copilot(self, mock_identity_service):
         mock_identity_service.get_access_token_for_user.return_value = "test-token"
 
         client, installation = _resolve_client(
@@ -264,18 +260,8 @@ class TestResolveClient(TestCase):
         assert installation is None
         mock_identity_service.get_access_token_for_user.assert_called_once_with(user_id=1)
 
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=False)
-    def test_raises_permission_denied_when_copilot_not_enabled(self, mock_features):
-        with pytest.raises(PermissionDenied):
-            _resolve_client(
-                self.organization, integration_id=None, provider="github_copilot", user_id=1
-            )
-
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
     @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
-    def test_raises_permission_denied_when_no_copilot_token(
-        self, mock_identity_service, mock_features
-    ):
+    def test_raises_permission_denied_when_no_copilot_token(self, mock_identity_service):
         mock_identity_service.get_access_token_for_user.return_value = None
 
         with pytest.raises(PermissionDenied):
@@ -283,8 +269,7 @@ class TestResolveClient(TestCase):
                 self.organization, integration_id=None, provider="github_copilot", user_id=1
             )
 
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
-    def test_raises_permission_denied_when_copilot_no_user_id(self, mock_features):
+    def test_raises_permission_denied_when_copilot_no_user_id(self):
         with pytest.raises(PermissionDenied):
             _resolve_client(
                 self.organization, integration_id=None, provider="github_copilot", user_id=None

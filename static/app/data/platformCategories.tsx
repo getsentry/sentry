@@ -1,5 +1,5 @@
 import {platforms} from 'sentry/data/platforms';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export enum PlatformCategory {
   FRONTEND = 0,

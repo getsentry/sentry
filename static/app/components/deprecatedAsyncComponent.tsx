@@ -2,11 +2,11 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {PermissionDenied} from 'sentry/views/permissionDenied';
 import {RouteError} from 'sentry/views/routeError';
@@ -204,7 +204,7 @@ export class DeprecatedAsyncComponent<
       ...extraState,
     });
 
-    endpoints.forEach(([stateKey, endpoint, params, options]) => {
+    endpoints.forEach(async ([stateKey, endpoint, params, options]) => {
       options = options || {};
       // If you're using nested async components/views make sure to pass the
       // props through so that the child component has access to props.location
@@ -216,22 +216,26 @@ export class DeprecatedAsyncComponent<
         query = {...locationQuery, ...query};
       }
 
-      this.api.request(endpoint, {
-        method: 'GET',
-        ...params,
-        query,
-        success: (data, _, resp) => {
-          this.handleRequestSuccess({stateKey, data, resp}, true);
-        },
-        error: error => {
-          // Allow endpoints to fail
-          // allowError can have side effects to handle the error
-          if (options.allowError?.(error)) {
-            error = null;
-          }
-          this.handleError(error, [stateKey, endpoint, params, options]);
-        },
-      });
+      let data: any;
+      let resp: ResponseMeta | undefined;
+      try {
+        [data, , resp] = await this.api.requestPromise(endpoint, {
+          method: 'GET',
+          ...params,
+          query,
+          includeAllArgs: true,
+        });
+      } catch (error) {
+        // Allow endpoints to fail
+        // allowError can have side effects to handle the error
+        const handledError = options.allowError?.(error) ? null : error;
+        this.handleError(handledError, [stateKey, endpoint, params, options]);
+        return;
+      }
+
+      // Call the success handler outside the try/catch so exceptions it (or a
+      // subclass's onRequestSuccess) throws are not misrouted to handleError.
+      this.handleRequestSuccess({stateKey, data, resp}, true);
     });
   };
 

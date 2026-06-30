@@ -9,7 +9,7 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
-import {isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
+import {isDeveloperPlan} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -19,21 +19,15 @@ export function ReserveAdditionalVolume({
   organization,
   subscription,
   activePlan,
-  checkoutTier,
   formData,
   onUpdate,
 }: Pick<
   StepProps,
-  | 'organization'
-  | 'subscription'
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'formData'
-  | 'onUpdate'
+  'organization' | 'subscription' | 'activePlan' | 'formData' | 'onUpdate'
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
   const [showSliders, setShowSliders] = useState(
-    isDeveloperPlan(subscription.planDetails) || isTrialPlan(subscription.plan)
+    isDeveloperPlan(subscription.planDetails) || subscription.onTrialPlan
       ? false
       : Object.values(subscription.categories ?? {})
           .filter(
@@ -121,10 +115,10 @@ export function ReserveAdditionalVolume({
         </Stack>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size={{xs: 'lg', sm: 'xl'}} bold density="compressed">
+            <Text size={{'screen:xs': 'lg', 'screen:sm': 'xl'}} bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
-            <Text size={{xs: 'sm', sm: 'lg'}} variant="muted">
+            <Text size={{'screen:xs': 'sm', 'screen:sm': 'lg'}} variant="muted">
               /{getShortInterval(activePlan.billingInterval)}
             </Text>
           </Container>
@@ -134,11 +128,9 @@ export function ReserveAdditionalVolume({
         <Stack direction="column" borderTop="primary">
           <Flex borderTop="primary" width="100%" />
           <VolumeSliders
-            checkoutTier={checkoutTier}
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
-            subscription={subscription}
             onReservedChange={(newReserved, category) => {
               setReserved(prev => ({...prev, [category]: newReserved}));
               debouncedReservedChange(newReserved, category);

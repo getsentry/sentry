@@ -1,11 +1,11 @@
 import type {AlertProps} from '@sentry/scraps/alert';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
-import type {SelectValue} from 'sentry/types/core';
 import type {AvatarProject, Project} from 'sentry/types/project';
 
 type FieldType =

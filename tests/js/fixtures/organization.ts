@@ -50,7 +50,6 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
       avatarUuid: null,
       avatarUrl: null,
     },
-    codecovAccess: false,
     dataScrubber: false,
     dataScrubberDefaults: false,
     dateCreated: new Date().toISOString(),

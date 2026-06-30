@@ -85,6 +85,20 @@ describe('LogsPage', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
@@ -366,7 +380,8 @@ describe('LogsPage', () => {
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      expect(eventTableMock).toHaveBeenCalledTimes(3);
+      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(4);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

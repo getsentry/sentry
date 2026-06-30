@@ -92,7 +92,6 @@
 /src/sentry/tasks/assemble.py                            @getsentry/ingest
 /src/sentry/tasks/reprocessing2.py                       @getsentry/ingest
 /src/sentry/reprocessing2.py                             @getsentry/ingest
-/src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/attachments/                                 @getsentry/ingest
 /src/sentry/debug_files/                                 @getsentry/ingest
 /src/sentry/lang/                                        @getsentry/ingest
@@ -176,6 +175,7 @@ build-utils/                                             @getsentry/owners-js-bu
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
+/tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
@@ -214,6 +214,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/tasks/post_process.py                        @getsentry/issue-detection-backend
 ## Issue Detection Lower Priority
 
+## Event components fallback so more specific rules can take precedence
+/static/app/components/events/                           @getsentry/issue-workflow
+
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/                                 @getsentry/hybrid-cloud
@@ -225,6 +228,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
 /tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
+/src/apigw/                                              @getsentry/hybrid-cloud @gi0baro
+/tests/apigw/                                            @getsentry/hybrid-cloud @gi0baro
 ## End of Hybrid Cloud
 
 ## Alerts & Notifications
@@ -347,7 +352,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/performance/                                            @getsentry/data-browsing
 /static/app/components/performance/                                       @getsentry/data-browsing
 /static/app/utils/performance/                                            @getsentry/data-browsing
-/static/app/components/events/groupingInfo                                @getsentry/data-browsing
 /static/app/components/events/interfaces/spans/                           @getsentry/data-browsing
 /static/app/components/events/viewHierarchy/*                             @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/                                @getsentry/data-browsing
@@ -360,6 +364,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/                                               @getsentry/dashboards
 
 /static/app/views/dashboards/                                             @getsentry/dashboards
+/static/app/utils/dashboards/                                             @getsentry/dashboards
 /static/app/components/modals/widgetViewerModal*                          @getsentry/dashboards
 
 /static/app/views/discover/                                               @getsentry/explore
@@ -427,19 +432,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/toolbar/                       @getsentry/replay-frontend @getsentry/replay-backend
 ## End of DevToolbar
 
-## Codecov Merge UX
-/static/app/components/codecov/  @getsentry/codecov-merge
-/static/app/views/codecov/       @getsentry/codecov-merge
-## End of Codecov Merge UX
-
-/src/sentry/codecov/ @getsentry/codecov
-/tests/sentry/codecov/ @getsentry/codecov
-
 ## Frontend
 /static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
 /static/app/components/analyticsArea.tsx       @getsentry/app-frontend
 /static/app/components/loading/                @getsentry/app-frontend
-/static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
 /static/app/components/featureShowcase.mdx     @getsentry/app-frontend
 /static/app/components/featureShowcase.spec.tsx @getsentry/app-frontend
@@ -472,7 +468,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/coding-workflows-sentry-backend
 /src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
 /src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
-/src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
 /src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/coding-workflows-sentry-backend
 
 /src/sentry/mail/                                                    @getsentry/notifications
@@ -576,7 +571,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/build/                                                   @getsentry/team-web-sdk-backend
-/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-javascript-sdks
+/src/sentry/api/endpoints/source_map_debug.py                        @getsentry/team-javascript-sdks
 /src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
 /src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-javascript-sdks
 ## End of SDK
@@ -691,9 +686,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
 /src/sentry/tasks/llm_issue_detection/                      @getsentry/issue-detection-backend
-/static/app/components/events/contexts/                     @getsentry/issue-workflow
-/static/app/components/events/eventTags/                    @getsentry/issue-workflow
-/static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
 /static/app/components/stackTrace/                          @getsentry/issue-workflow
 /static/app/components/stream/supergroups/                  @getsentry/issue-detection-frontend
@@ -704,8 +696,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/issueDetails/                             @getsentry/issue-workflow
 /static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
 /static/app/views/sharedGroupDetails/                       @getsentry/issue-workflow
-/static/app/components/events/interfaces/performance/spanEvidenceKeyValueList.tsx @getsentry/issue-detection-frontend
-/static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issue-workflow
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
 /tests/sentry/event_manager/                                @getsentry/issue-detection-backend
 /tests/sentry/grouping/                                     @getsentry/issue-detection-backend
@@ -845,6 +835,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 /static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
 /static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering
@@ -919,6 +910,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of cell architecture
 
 # Foundational Storage
+/src/sentry/api/endpoints/event_attachments.py        @getsentry/foundational-storage
 /src/sentry/objectstore/                              @getsentry/foundational-storage
 /tests/sentry/objectstore/                            @getsentry/foundational-storage
 # End of Foundational Storage

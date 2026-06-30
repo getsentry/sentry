@@ -207,3 +207,12 @@ export const DefaultTableCell = styled('td')<{align?: Align}>`
   padding-block: ${p => p.theme.space.lg};
   text-align: ${p => p.align ?? 'left'};
 `;
+
+export function DefaultTag(_props: {
+  attrs: Record<string, string>;
+  data: unknown;
+  level: 'block' | 'inline';
+  name: string;
+}) {
+  return null;
+}

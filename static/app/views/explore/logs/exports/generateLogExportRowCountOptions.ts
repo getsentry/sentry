@@ -1,5 +1,6 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';

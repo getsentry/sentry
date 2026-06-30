@@ -22,9 +22,16 @@ export type BuildListPageSource =
   | 'releases_details_preprod_builds';
 
 export type PreprodBuildEventParameters = {
+  'preprod.builds.compare.copy_insight_diff': BasePreprodBuildEvent & {
+    insight_count: number;
+  };
+  'preprod.builds.compare.download_csv': BasePreprodBuildEvent & {
+    item_count: number;
+  };
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
   };
+  'preprod.builds.compare.open_existing_comparison': BasePreprodBuildEvent;
   'preprod.builds.compare.select_base_build': BasePreprodBuildEvent;
   'preprod.builds.compare.trigger_comparison': BasePreprodBuildEvent;
   'preprod.builds.details.compare_build_clicked': BasePreprodBuildEvent;
@@ -38,6 +45,7 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.details.open_insights_sidebar': BasePreprodBuildEvent & {
     source: 'metric_card' | 'insight_table';
   };
+  'preprod.builds.distribution.download_csv': BasePreprodBuildEvent;
   'preprod.builds.install_modal.opened': BasePreprodBuildEvent & {
     source: 'build_details_sidebar' | 'builds_table';
   };
@@ -130,11 +138,17 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.details.delete_build': 'Preprod Build Details: Delete Build',
   'preprod.builds.details.compare_build_clicked':
     'Preprod Build Details: Compare Clicked',
+  'preprod.builds.compare.copy_insight_diff':
+    'Preprod Build Comparison: Copy Insight Diff',
+  'preprod.builds.compare.download_csv': 'Preprod Build Comparison: Download CSV',
   'preprod.builds.compare.go_to_build_details':
     'Preprod Build Comparison: Go to Build Details',
+  'preprod.builds.compare.open_existing_comparison':
+    'Preprod Build Comparison: Existing Comparison Opened',
   'preprod.builds.compare.select_base_build': 'Preprod Build Comparison: Base Selected',
   'preprod.builds.compare.trigger_comparison':
     'Preprod Build Comparison: Compare Triggered',
+  'preprod.builds.distribution.download_csv': 'Preprod Builds: Distribution Download CSV',
   'preprod.builds.install_modal.opened': 'Preprod Builds: Install Modal Opened',
   'preprod.builds.onboarding.viewed': 'Preprod Builds: Onboarding Viewed',
   'preprod.builds.onboarding.docs_clicked': 'Preprod Builds: Onboarding Docs Clicked',

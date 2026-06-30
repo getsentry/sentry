@@ -119,7 +119,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -163,7 +163,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => route,
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -199,7 +199,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/monitors/mobile-builds/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -341,6 +341,43 @@ describe('useSeerExplorer', () => {
       await waitFor(() => {
         expect(result.current.runId).toBe(456);
         expect(result.current.hasSentInterrupt).toBe(false);
+      });
+    });
+
+    it('URL-encodes the runId when building explorer-update URLs', async () => {
+      // A runId carrying path separators must be encoded so the same-origin
+      // POST can't traverse to another endpoint.
+      const maliciousRunId = '../../foo';
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/..%2F..%2Ffoo/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'processing'}},
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/..%2F..%2Ffoo/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(maliciousRunId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(maliciousRunId);
+      });
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalled();
       });
     });
   });

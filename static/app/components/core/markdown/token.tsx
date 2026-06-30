@@ -2,11 +2,12 @@ import type {ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
-import type {MarkedToken, Token as TokenType} from 'sentry/utils/marked/marked';
+import type {ExtendedToken, Token as TokenType} from 'sentry/utils/marked/marked';
 import {isSafeHref, isInternalHref, sanitizeHtml} from 'sentry/utils/marked/marked';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {
+  DefaultTag,
   DefaultBlockquote,
   DefaultCodeBlock,
   DefaultEmphasis,
@@ -34,6 +35,19 @@ import {
 } from './defaultComponents';
 import type {MarkdownComponents} from './markdown';
 
+const TAG_START_RE = /\{%\s+[\w-]/;
+
+function stripPartialTag(text: string): string {
+  const idx = text.lastIndexOf('{%');
+  if (idx === -1) {
+    return text;
+  }
+  if (TAG_START_RE.test(text.slice(idx))) {
+    return text.slice(0, idx);
+  }
+  return text;
+}
+
 function hasInlineHtml(tokens: TokenType[]): boolean {
   return tokens.some(t => t.type === 'html');
 }
@@ -54,7 +68,7 @@ function renderInline(
     return <span dangerouslySetInnerHTML={{__html: sanitized}} />;
   }
   return tokens.map((token, i) => (
-    <Token token={token as MarkedToken} key={i} components={components} />
+    <Token token={token as ExtendedToken} key={i} components={components} />
   ));
 }
 
@@ -63,7 +77,7 @@ export function Token({
   token,
 }: {
   components: MarkdownComponents;
-  token: MarkedToken;
+  token: ExtendedToken;
 }): ReactNode {
   switch (token.type) {
     case 'space':
@@ -252,11 +266,12 @@ export function Token({
       if (token.tokens) {
         return renderInline(token.tokens, components);
       }
+      const text = stripPartialTag(token.text);
       const TextComponent = components.Text;
       if (TextComponent) {
-        return <TextComponent Default={DefaultText}>{token.text}</TextComponent>;
+        return <TextComponent Default={DefaultText}>{text}</TextComponent>;
       }
-      return token.text;
+      return text;
     }
 
     case 'escape':
@@ -269,6 +284,19 @@ export function Token({
 
     case 'def':
       return null;
+
+    case 'tag': {
+      const TagComp = components.Tag ?? DefaultTag;
+      return (
+        <TagComp
+          Default={DefaultTag}
+          name={token.name}
+          level={token.level}
+          attrs={token.attrs}
+          data={token.data}
+        />
+      );
+    }
 
     default:
       unreachable(token);

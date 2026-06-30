@@ -22,8 +22,8 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -47,11 +47,9 @@ import {
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
@@ -76,23 +74,8 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
-            <AutomationFeedbackButton />
-          </Fragment>
-        ) : (
-          <DetailLayout.Header>
-            <DetailLayout.HeaderContent>
-              {breadcrumbs}
-              <DetailLayout.Title title={automation.name} />
-            </DetailLayout.HeaderContent>
-            <DetailLayout.Actions>
-              <AutomationFeedbackButton />
-              <Actions automation={automation} size="sm" />
-            </DetailLayout.Actions>
-          </DetailLayout.Header>
-        )}
+        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
@@ -112,16 +95,12 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             )}
 
             <PageFiltersContainer>
-              {hasPageFrameFeature ? (
-                <Flex align="center" justify="between" gap="md">
-                  <DatePageFilter />
-                  <Flex flex={1} justify="end" gap="md">
-                    <Actions automation={automation} size="sm" />
-                  </Flex>
-                </Flex>
-              ) : (
+              <Flex align="center" justify="between" gap="md">
                 <DatePageFilter />
-              )}
+                <Flex flex={1} justify="end" gap="md">
+                  <Actions automation={automation} size="sm" />
+                </Flex>
+              </Flex>
 
               <ErrorBoundary>
                 <AutomationStatsChart

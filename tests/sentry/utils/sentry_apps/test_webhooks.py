@@ -8,8 +8,9 @@ from requests.exceptions import Timeout
 
 from sentry.notifications.platform.service import NotificationService
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiHostError, ClientError
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -17,6 +18,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils import redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
 
 
@@ -68,48 +70,9 @@ class WebhookCircuitBreakerTest(TestCase):
 
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_no_circuit_breaker_without_feature_flag(self, mock_safe_urlopen):
-        """Without feature flag, no circuit breaker is instantiated."""
-        mock_response = Mock(spec=Response)
-        mock_response.status_code = 200
-        mock_response.headers = {}
-        mock_safe_urlopen.return_value = mock_response
-
-        response = send_and_save_webhook_request(self.sentry_app, self._make_event())
-        assert response is not None
-        assert response.status_code == 200
-
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
-    @override_options(CIRCUIT_BREAKER_OPTIONS)
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_without_live_run_emits_metric_but_sends_webhook(self, MockBreaker, mock_safe_urlopen):
-        """Without live-run flag, a broken circuit emits would_block but still sends."""
-        mock_breaker_instance = MockBreaker.return_value
-        mock_breaker_instance.should_allow_request.return_value = False
-
-        mock_response = Mock(spec=Response)
-        mock_response.status_code = 200
-        mock_response.headers = {}
-        mock_safe_urlopen.return_value = mock_response
-
-        response = send_and_save_webhook_request(self.sentry_app, self._make_event())
-        # In dry-run, webhook is still sent
-        assert response is not None
-        assert response.status_code == 200
-        mock_safe_urlopen.assert_called_once()
-
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-        ]
-    )
-    @override_options(CIRCUIT_BREAKER_OPTIONS)
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
     def test_blocking_mode_returns_empty_response(self, MockBreaker, mock_safe_urlopen):
-        """With live-run flag enabled, a broken circuit blocks the webhook."""
+        """A broken circuit blocks the webhook."""
         mock_breaker_instance = MockBreaker.return_value
         mock_breaker_instance.should_allow_request.return_value = False
 
@@ -117,7 +80,6 @@ class WebhookCircuitBreakerTest(TestCase):
         # Webhook is blocked — no HTTP call made
         mock_safe_urlopen.assert_not_called()
 
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
@@ -134,7 +96,6 @@ class WebhookCircuitBreakerTest(TestCase):
         mock_breaker_instance.record_error.assert_called_once()
         mock_breaker_instance.record_success.assert_not_called()
 
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
@@ -152,7 +113,6 @@ class WebhookCircuitBreakerTest(TestCase):
         mock_breaker_instance.record_error.assert_not_called()
         mock_breaker_instance.record_success.assert_not_called()
 
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
@@ -169,7 +129,6 @@ class WebhookCircuitBreakerTest(TestCase):
         send_and_save_webhook_request(self.sentry_app, self._make_event())
         mock_breaker_instance.record_success.assert_called_once()
 
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(CircuitBreaker, "record_success")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -187,6 +146,85 @@ class WebhookCircuitBreakerTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         mock_record_success.assert_called_once()
+
+    @with_feature("organizations:sentry-apps-custom-webhook-headers")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_error_response_buffers_masked_custom_headers(self, mock_safe_urlopen):
+        """A failed delivery records masked custom headers in the request buffer, so the
+        debug UI shows which custom headers were sent without persisting their secrets."""
+        sentry_app = self.create_sentry_app(
+            name="HeaderApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+            webhook_headers=["Authorization: Bearer super-secret"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+        mock_safe_urlopen.return_value = _MockResponse(
+            {}, "{}", "", False, 401, _raise_status_false, None
+        )
+
+        with pytest.raises(ClientError):
+            send_and_save_webhook_request(sentry_app, event)
+
+        requests = SentryAppWebhookRequestsBuffer(sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        headers = requests[0].get("request_headers")
+        assert headers is not None
+        # The custom header name is recorded but its value is masked.
+        assert headers["Authorization"] == MASKED_VALUE
+        assert "Bearer super-secret" not in headers.values()
+        # Sentry's own headers are still recorded in the clear.
+        assert headers["Content-Type"] == "application/json"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_custom_headers_not_sent_or_logged_without_flag(self, mock_safe_urlopen):
+        """Without the feature flag, custom headers are stripped from both the request
+        and the buffer log."""
+        sentry_app = self.create_sentry_app(
+            name="HeaderApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+            webhook_headers=["Authorization: Bearer super-secret"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+        mock_safe_urlopen.return_value = _MockResponse(
+            {}, "{}", "", False, 401, _raise_status_false, None
+        )
+
+        with pytest.raises(ClientError):
+            send_and_save_webhook_request(sentry_app, event)
+
+        # Custom header must not appear in the outbound request.
+        call_headers = mock_safe_urlopen.call_args.kwargs["headers"]
+        assert "Authorization" not in call_headers
+
+        # Custom header must not appear in the buffer log either.
+        requests = SentryAppWebhookRequestsBuffer(sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        headers = requests[0].get("request_headers")
+        assert headers is not None
+        assert "Authorization" not in headers
+        assert headers["Content-Type"] == "application/json"
 
 
 @cell_silo_test
@@ -224,13 +262,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         mock_breaker_instance.recovery_duration = 600
         return mock_breaker_instance
 
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
+    @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -238,7 +270,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
     def test_timeout_with_trip_calls_notify_async(
         self, MockBreaker, mock_safe_urlopen, mock_notify_async
     ):
-        """When the breaker trips during a timeout with live-run, an email is dispatched."""
+        """When the breaker trips during a timeout, an email is dispatched."""
         self._configure_breaker(MockBreaker, is_open=True)
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
@@ -247,7 +279,6 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
 
         mock_notify_async.assert_called_once()
 
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -264,35 +295,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
 
         mock_notify_async.assert_not_called()
 
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
-    @override_options(CIRCUIT_BREAKER_OPTIONS)
-    @patch.object(NotificationService, "notify_async")
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_without_live_run_does_not_dispatch_notify_async(
-        self, MockBreaker, mock_safe_urlopen, mock_notify_async
-    ):
-        """Without live-run flag, email is skipped even when the breaker trips."""
-        self._configure_breaker(MockBreaker, is_open=True)
-        mock_safe_urlopen.side_effect = WebhookTimeoutError()
-
-        with pytest.raises(WebhookTimeoutError):
-            send_and_save_webhook_request(self.sentry_app, self._make_event())
-
-        mock_notify_async.assert_not_called()
-
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
+    @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -313,13 +316,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         dedup_key = f"sentry-app.webhook.circuit-breaker.notified.{self.sentry_app.slug}"
         assert client.ttl(dedup_key) >= 86400
 
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
+    @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -339,13 +336,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         assert len(targets) == 1
         assert targets[0].resource_id == "creator@example.com"
 
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
+    @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -377,7 +368,6 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         assert len(targets) == 1
         assert targets[0].resource_id == "creator@example.com"
 
-    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -405,13 +395,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
 
         mock_notify_async.assert_not_called()
 
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
+    @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch.object(NotificationService, "notify_async")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -435,13 +419,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
 
         assert mock_notify_async.call_count == 2
 
-    @with_feature(
-        [
-            "organizations:sentry-app-webhook-circuit-breaker",
-            "organizations:sentry-app-webhook-circuit-breaker-live-run",
-            "organizations:notification-platform.internal-testing",
-        ]
-    )
+    @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch.object(NotificationService, "notify_async", side_effect=RuntimeError("email boom"))

@@ -12,8 +12,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -120,20 +121,20 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <br />
           <small>{customer.billingInterval}</small>
         </DetailLabel>
-        {customer.contractPeriodStart && (
+        {customer.billingPeriodStart && (
           <DetailLabel title="Contract Period">
-            {`${moment(customer.contractPeriodStart).format('ll')} › `}
-            {(customer.contractInterval === 'annual' &&
+            {`${moment(customer.billingPeriodStart).format('ll')} › `}
+            {(customer.billingInterval === 'annual' &&
               customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
-                  contractPeriodEnd={customer.contractPeriodEnd}
+                  contractPeriodEnd={customer.billingPeriodEnd}
                   onAction={onAction}
                 />
               )) ||
-              moment(customer.contractPeriodEnd).format('ll')}
+              moment(customer.billingPeriodEnd).format('ll')}
 
             <br />
-            <small>{customer.contractInterval}</small>
+            <small>{customer.billingInterval}</small>
           </DetailLabel>
         )}
         {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
@@ -141,13 +142,6 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
-        {customer.hasSoftCap && (
-          <DetailLabel
-            title="Overage Notifications Disabled"
-            yesNo={customer.hasOverageNotificationsDisabled}
-          />
-        )}
         <DetailLabel title="Soft Cap By Category">
           <SoftCapTypeDetail
             categories={customer.categories}
@@ -474,14 +468,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
-  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
-    (acc, region) => {
-      acc[region.url] = region.name;
-      return acc;
-    },
-    {}
-  );
-  const region = regionMap[organization.links.regionUrl] ?? '??';
+  const localityMap = getLocalities().reduce<Record<string, string>>((acc, locality) => {
+    acc[locality.url] = locality.name;
+    return acc;
+  }, {});
+  // TODO(cells) We also should show the customer's cell.
+  const locality = localityMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
     categoryInfo => {
@@ -709,7 +701,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
           </DetailLabel>
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
-          <DetailLabel title="Data Storage Location">{region}</DetailLabel>
+          <DetailLabel title="Data Storage Location">{locality}</DetailLabel>
           <DetailLabel title="Data Retention">
             {customer.orgRetention?.standard ??
               customer.categories?.errors?.retention?.standard ??
@@ -780,7 +772,20 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                     </Button>
                   </Fragment>
                 ) : (
-                  <Fragment>(migrated)</Fragment>
+                  <Fragment>
+                    (migrated)
+                    {customer.isPartner && customer.isManaged && (
+                      <Fragment>
+                        <br />
+                        <Button
+                          variant="link"
+                          onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
+                        >
+                          Reset partner billing to self-serve
+                        </Button>
+                      </Fragment>
+                    )}
+                  </Fragment>
                 )}
                 <br />
                 <small>ID: {customer.partner.externalId}</small>
@@ -875,21 +880,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               <tr>
                 <th>Category</th>
                 <th>Standard</th>
-                <th>Default</th>
                 <th>
                   <InfoText
                     variant="inherit"
                     title="Null means use the Downsample default"
                   >
                     Downsampled
-                  </InfoText>
-                </th>
-                <th>
-                  <InfoText
-                    variant="inherit"
-                    title="Zero means use the standard retention."
-                  >
-                    Downsample Default
                   </InfoText>
                 </th>
               </tr>
@@ -910,14 +906,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                         ? 'null'
                         : bmh.retention?.standard}
                     </td>
-                    <td>{customer.planDetails.retentions?.[bmh.category]?.standard}</td>
                     <td>
                       {bmh.retention?.downsampled === null
                         ? 'null'
                         : bmh.retention?.downsampled}
-                    </td>
-                    <td>
-                      {customer.planDetails.retentions?.[bmh.category]?.downsampled}
                     </td>
                   </tr>
                 ))}

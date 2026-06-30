@@ -66,8 +66,7 @@ const startAnalyticsSession = () => {
 
 const getAnalyticsSessionId = () => sessionStorageWrapper.getItem(ANALYTICS_SESSION);
 
-const hasAnalyticsDebug = () =>
-  localStorageWrapper.getItem('DEBUG_ANALYTICS_GETSENTRY') === '1';
+const hasAnalyticsDebug = () => localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1';
 
 const getCustomReferrer = () => {
   try {

@@ -24,9 +24,9 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useUser} from 'sentry/utils/useUser';

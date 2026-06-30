@@ -1,7 +1,7 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {
@@ -10,11 +10,6 @@ import {
   type ConsoleFrame,
 } from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
-
-export type FilterFields = {
-  f_c_logLevel: string[];
-  f_c_search: string;
-};
 
 type Options = {
   frames: BreadcrumbFrame[];
@@ -68,7 +63,7 @@ function sortBySeverity(a: string, b: string) {
 }
 
 export function useConsoleFilters({frames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const {setFilter, query} = useFiltersInLocationQuery();
 
   // Keep a reference of object paths that are expanded (via <StructuredEventData>)
   // by log row, so they they can be restored as the Console pane is scrolling.

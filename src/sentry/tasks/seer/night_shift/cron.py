@@ -11,12 +11,16 @@ import sentry_sdk
 
 from sentry import features, options, quotas
 from sentry.constants import (
+    ENABLE_SEER_CODING_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -24,16 +28,23 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
+from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
+from sentry.tasks.seer.night_shift.simple_triage import (
+    ScoredCandidate,
+    fixability_score_strategy,
+    priority_label,
+)
 from sentry.tasks.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
     DEFAULT_INTELLIGENCE_LEVEL,
@@ -42,6 +53,7 @@ from sentry.tasks.seer.night_shift.tweaks import (
     NightShiftTweaks,
     ReasoningEffort,
     default_max_candidates,
+    get_night_shift_org_tweaks,
     get_night_shift_tweaks,
 )
 from sentry.taskworker.namespaces import seer_tasks
@@ -202,7 +214,14 @@ def run_night_shift_for_org(
     if organization is None:
         return None
 
-    resolved_options = build_run_options(options)
+    # Manual project runs scope to a single project, whose tweaks feed the run
+    # options; cron and org-wide manual runs have no single project.
+    single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
+    resolved_options = build_run_options(
+        organization_id=organization.id,
+        manual_overrides=options,
+        project_id=single_project_id,
+    )
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
@@ -299,74 +318,7 @@ def run_night_shift_execution(
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
         return None
 
-    eligible_projects = [ep.project for ep in eligible]
-    agent_run_id: int | None = None
-    try:
-        candidates, agent_run_id = agentic_triage_strategy(
-            eligible_projects,
-            organization,
-            resolved_options["max_candidates"],
-            intelligence_level=resolved_options["intelligence_level"],
-            reasoning_effort=resolved_options["reasoning_effort"],
-            extra_triage_instructions=resolved_options["extra_triage_instructions"],
-            run=run,
-        )
-        if agent_run_id is not None:
-            log_extra["agent_run_id"] = agent_run_id
-    except Exception:
-        sentry_sdk.metrics.count("night_shift.run_error", 1)
-        _fail_run(
-            run,
-            message="Night shift run failed",
-            event="night_shift.run_failed",
-            extra={**log_extra, "agent_run_id": agent_run_id},
-        )
-        return None
-
-    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
-    sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
-
-    seer_run_id_by_group: dict[int, str | None] = {}
-    if not resolved_options["dry_run"]:
-        # Populate each candidate group's FK cache so trigger_autofix_agent doesn't
-        # re-fetch group.project on every call. Group.organization is a property that
-        # delegates to self.project.organization, so caching the org on the project is
-        # enough to avoid both lookups.
-        projects_by_id = {}
-        for p in eligible_projects:
-            p.organization = organization
-            projects_by_id[p.id] = p
-        for c in candidates:
-            c.group.project = projects_by_id[c.group.project_id]
-
-        stopping_point_by_project_id = {ep.project.id: ep.stopping_point for ep in eligible}
-        results = _run_autofix_for_candidates(
-            run=run,
-            candidates=candidates,
-            options=resolved_options,
-            stopping_point_by_project_id=stopping_point_by_project_id,
-            log_extra=log_extra,
-        )
-        seer_run_id_by_group = {r.group_id: r.seer_run_id for r in results}
-
-    logger.info(
-        "night_shift.candidates_selected",
-        extra={
-            **log_extra,
-            "num_eligible_projects": len(eligible_projects),
-            "num_candidates": len(candidates),
-            "dry_run": resolved_options["dry_run"],
-            "candidates": [
-                {
-                    "group_id": c.group.id,
-                    "action": c.action,
-                    "seer_run_id": seer_run_id_by_group.get(c.group.id),
-                    "num_occurrences": c.group.times_seen,
-                }
-                for c in candidates
-            ],
-        },
-    )
+    _dispatch_to_seer_feature(run, organization, eligible, resolved_options, log_extra, start_time)
 
 
 def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
@@ -386,13 +338,57 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
     )
 
 
+# Run-option fields that a NightShiftTweaks layer can override. `enabled` is
+# intentionally excluded — it gates eligibility, it is not a run option.
+_TWEAK_RUN_OPTION_FIELDS = (
+    "max_candidates",
+    "intelligence_level",
+    "reasoning_effort",
+    "extra_triage_instructions",
+)
+
+
+def _tweaks_to_partial(tweaks: NightShiftTweaks) -> dict[str, Any]:
+    """Project a NightShiftTweaks (org- or project-scoped) onto a run-options
+    partial, contributing only the fields that were *explicitly* set on it.
+
+    NightShiftTweaks fills every unset field with a default, so reading
+    attributes directly would emit all fields and clobber lower-precedence
+    layers. `exclude_unset` keeps only the fields the payload actually
+    specified, so defaults (and lower layers) show through."""
+    set_fields = tweaks.dict(exclude_unset=True)
+    return {field: set_fields[field] for field in _TWEAK_RUN_OPTION_FIELDS if field in set_fields}
+
+
 def build_run_options(
-    partial: SeerNightShiftRunOptionsPartial | None = None,
+    *,
+    organization_id: int,
+    manual_overrides: Mapping[str, Any] | None = None,
+    project_id: int | None = None,
 ) -> SeerNightShiftRunOptions:
-    """Resolve a partial options dict into a fully-populated one. Cron callers
-    pass nothing (all defaults); manual callers pass at least `source="manual"`
-    plus whichever tweaks they want to override."""
-    return _run_option_defaults(partial or {})
+    """Resolve a fully-populated set of run options, layering by precedence
+    (highest wins):
+
+        manual overrides (`manual_overrides`)
+        > project tweaks (the project's `sentry:seer_nightshift_tweaks` option,
+          applied when `project_id` is given — used by manual project runs)
+        > per-org overrides (the `seer.night_shift.org_tweaks` option, keyed by
+          `organization_id`)
+        > global defaults
+
+    Cron runs pass only `organization_id` (no project, no manual overrides);
+    manual project runs additionally pass `project_id` + at least
+    `source="manual"`. Unknown keys are ignored."""
+    layered: dict[str, Any] = {}
+    org_tweaks = get_night_shift_org_tweaks(organization_id)
+    if org_tweaks is not None:
+        layered.update(_tweaks_to_partial(org_tweaks))
+    if project_id is not None:
+        project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
+        if project is not None:
+            layered.update(_tweaks_to_partial(get_night_shift_tweaks(project)))
+    layered.update(manual_overrides or {})
+    return _run_option_defaults(layered)
 
 
 def _get_eligible_orgs_from_batch(
@@ -402,7 +398,14 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
-    eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
+    # enable_seer_coding off => night shift can't open a PR for the org.
+    enable_coding = OrganizationOption.objects.get_value_bulk(
+        orgs, "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+    )
+    hide_ai = OrganizationOption.objects.get_value_bulk(
+        orgs, "sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT
+    )
+    eligible = [org for org in orgs if enable_coding[org] and not hide_ai[org]]
 
     for feature_name in BATCH_FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, eligible)
@@ -443,6 +446,7 @@ class EligibleProject:
     project: Project
     tweaks: NightShiftTweaks
     stopping_point: AutofixStoppingPoint
+    connected_repos: list[str]
 
 
 def _get_eligible_projects(
@@ -455,10 +459,15 @@ def _get_eligible_projects(
 
     When project_ids is provided, the org's projects are restricted to that set.
     Manual triggers bypass the tweaks.enabled gate — the user explicitly asked
-    for this run. Scheduler runs respect it."""
+    for this run. Scheduler runs respect it, and are additionally restricted to
+    the org's allowed_project_slugs when that override is set."""
     project_qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
     if project_ids is not None:
         project_qs = project_qs.filter(id__in=project_ids)
+    if source == "cron":
+        org_tweaks = get_night_shift_org_tweaks(organization.id)
+        if org_tweaks is not None and org_tweaks.allowed_project_slugs is not None:
+            project_qs = project_qs.filter(slug__in=org_tweaks.allowed_project_slugs)
     project_map = {p.id: p for p in project_qs}
     if not project_map:
         return []
@@ -482,18 +491,140 @@ def _get_eligible_projects(
                 preferences[p.id].automated_run_stopping_point
                 or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
             ),
+            connected_repos=[
+                f"{repo.owner}/{repo.name}" for repo in preferences[p.id].repositories
+            ],
         )
         for p in with_automation
     ]
     if source == "cron":
         eligible = [ep for ep in eligible if ep.tweaks.enabled]
-    return eligible
+
+    # Night shift's only output is a PR, so drop projects that don't stop at
+    # open_pr; log the stopping point to surface misconfigured UX.
+    pr_producing: list[EligibleProject] = []
+    for ep in eligible:
+        if ep.stopping_point == AutofixStoppingPoint.OPEN_PR:
+            pr_producing.append(ep)
+            continue
+        logger.info(
+            "night_shift.project_filtered.not_pr_producing",
+            extra={
+                "organization_id": organization.id,
+                "project_id": ep.project.id,
+                "stopping_point": ep.stopping_point.value,
+            },
+        )
+    return pr_producing
+
+
+def _build_triage_payload(
+    candidates: Sequence[ScoredCandidate],
+    resolved_options: SeerNightShiftRunOptions,
+    repos_by_project: dict[int, list[str]],
+) -> NightShiftPayload:
+    return NightShiftPayload(
+        candidates=[
+            TriageCandidate(
+                group_id=c.group.id,
+                title=c.group.title,
+                culprit=c.group.culprit,
+                fixability=c.fixability,
+                times_seen=c.group.times_seen,
+                first_seen=c.group.first_seen.isoformat(),
+                priority=priority_label(c.group.priority),
+                connected_repos=repos_by_project.get(c.group.project_id, []),
+            )
+            for c in candidates
+        ],
+        tweaks=TriageTweaks(
+            intelligence_level=resolved_options["intelligence_level"],
+            reasoning_effort=resolved_options["reasoning_effort"],
+            extra_triage_instructions=resolved_options["extra_triage_instructions"],
+        ),
+    )
+
+
+def _dispatch_to_seer_feature(
+    run: SeerNightShiftRun,
+    organization: Organization,
+    eligible: Sequence[EligibleProject],
+    resolved_options: SeerNightShiftRunOptions,
+    log_extra: dict[str, object],
+    start_time: float,
+) -> None:
+    """Shard the scored candidates into chunks of seer.night_shift.shard_size and
+    dispatch each chunk as its own Seer feature run, recorded as a
+    SeerNightShiftRunShard. Seer pushes verdicts back per shard via
+    deliver_feature_result."""
+    eligible_projects = [ep.project for ep in eligible]
+    repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
+    scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
+    if not scored:
+        logger.info("night_shift.no_candidates", extra=log_extra)
+        return
+
+    try:
+        client = SeerAgentClient(organization)
+    except SeerPermissionError:
+        logger.info("night_shift.no_seer_access", extra=log_extra)
+        _record_run_error(run, "Organization does not have Seer access")
+        return
+
+    def _link_shard(created: SeerRun) -> None:
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=created)
+
+    shard_size = max(1, options.get("seer.night_shift.shard_size"))
+    shards = list(chunked(scored, shard_size))
+    dispatched = 0
+    for shard_index, chunk in enumerate(shards):
+        payload = _build_triage_payload(chunk, resolved_options, repos_by_project)
+        try:
+            client.start_feature_run(
+                feature_id="night_shift",
+                payload=payload.dict(),
+                flush=False,
+                on_run_created=_link_shard,
+            )
+        except Exception:
+            logger.exception(
+                "night_shift.shard_dispatch_failed",
+                extra={**log_extra, "shard_index": shard_index, "num_shards": len(shards)},
+            )
+            continue
+        dispatched += 1
+
+    if dispatched == 0:
+        sentry_sdk.metrics.count("night_shift.run_error", 1)
+        _record_run_error(run, "Night shift dispatch failed")
+        logger.error("night_shift.dispatch_failed", extra={**log_extra, "num_shards": len(shards)})
+        return
+
+    failed_shards = len(shards) - dispatched
+    if failed_shards:
+        sentry_sdk.metrics.count("night_shift.shard_dispatch_failure", failed_shards)
+        _record_run_error(run, f"Failed to dispatch {failed_shards} of {len(shards)} triage shards")
+        logger.warning(
+            "night_shift.partial_dispatch_failure",
+            extra={**log_extra, "num_shards": len(shards), "num_shards_dispatched": dispatched},
+        )
+
+    sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
+    logger.info(
+        "night_shift.feature_dispatched",
+        extra={
+            **log_extra,
+            "num_eligible_projects": len(eligible_projects),
+            "num_candidates": len(scored),
+            "num_shards": len(shards),
+            "num_shards_dispatched": dispatched,
+        },
+    )
 
 
 def _run_autofix_for_candidates(
     run: SeerNightShiftRun,
     candidates: Sequence[TriageResult],
-    options: SeerNightShiftRunOptions,
     stopping_point_by_project_id: Mapping[int, AutofixStoppingPoint],
     log_extra: dict[str, object],
 ) -> list[SeerNightShiftRunResult]:
@@ -502,9 +633,7 @@ def _run_autofix_for_candidates(
     the resulting run id onto a newly created SeerNightShiftRunResult row.
     Returns the list of rows that were created.
     """
-    fixable_candidates = [
-        c for c in candidates if c.action in (TriageAction.AUTOFIX, TriageAction.ROOT_CAUSE_ONLY)
-    ]
+    fixable_candidates = [c for c in candidates if c.action == TriageAction.AUTOFIX]
     if not fixable_candidates:
         logger.info(
             "night_shift.no_fixable_candidates",
@@ -516,11 +645,7 @@ def _run_autofix_for_candidates(
 
     results: list[SeerNightShiftRunResult] = []
     for c in fixable_candidates:
-        stopping_point = (
-            AutofixStoppingPoint.ROOT_CAUSE
-            if c.action == TriageAction.ROOT_CAUSE_ONLY
-            else stopping_point_by_project_id[c.group.project_id]
-        )
+        stopping_point = stopping_point_by_project_id[c.group.project_id]
 
         user_context = (
             f"Night-shift triage already investigated this issue and concluded:\n{c.reason}"
@@ -534,8 +659,6 @@ def _run_autofix_for_candidates(
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 stopping_point=stopping_point,
-                intelligence_level=options["intelligence_level"],
-                reasoning_effort=options["reasoning_effort"],
                 user_context=user_context,
             )
         except Exception:

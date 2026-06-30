@@ -9,7 +9,7 @@ import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {LineSeries as lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {
   ChartDataTransform,
@@ -458,7 +458,7 @@ export function mapCostStatsToChart({
   return chartData;
 }
 
-export function mapReservedBudgetStatsToChart({
+function mapReservedBudgetStatsToChart({
   statsByDateAndCategory,
   transform,
   subscription,

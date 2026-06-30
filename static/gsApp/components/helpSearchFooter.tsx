@@ -1,34 +1,51 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {showIntercom} from 'sentry/utils/intercom';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ZendeskLink} from 'getsentry/components/zendeskLink';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   closeModal: () => void;
 };
 
 export function HelpSearchFooter({closeModal}: Props) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'help_modal',
+    });
+  }, [organization]);
+
+  async function handleIntercomClick() {
+    trackGetsentryAnalytics('intercom_link.clicked', {
+      organization,
+      source: 'help_modal',
+    });
+    try {
+      await showIntercom(organization.slug);
+    } catch {
+      const supportEmail = ConfigStore.get('supportEmail');
+      if (supportEmail) {
+        window.location.href = `mailto:${supportEmail}`;
+      }
+    }
+    closeModal();
+  }
+
   return (
     <Container>
       {t('Need personalized help? Contact our support team!')}
-      <ZendeskLink
-        source="help_modal"
-        Component={({href, onClick}) => (
-          <LinkButton
-            href={href ?? ''}
-            size="sm"
-            onClick={e => {
-              onClick?.(e);
-              closeModal();
-            }}
-          >
-            {t('Contact Us')}
-          </LinkButton>
-        )}
-      />
+      <Button size="sm" onClick={handleIntercomClick}>
+        {t('Contact Us')}
+      </Button>
     </Container>
   );
 }

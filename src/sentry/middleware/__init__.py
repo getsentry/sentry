@@ -4,6 +4,7 @@ import inspect
 from collections.abc import Callable
 from typing import Union
 
+from django.http import HttpRequest
 from django.views import View
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,7 +24,7 @@ def get_path(view_func: ViewFunc) -> str | None:
     return path
 
 
-def is_frontend_request(request: Request) -> bool:
+def is_frontend_request(request: HttpRequest | Request) -> bool:
     """
     Used to determine if a request came from the UI or not. UI requests will have cookies and no
     authentication tokens, while requests coming from user scripts will tend to be the opposite.
@@ -32,7 +33,7 @@ def is_frontend_request(request: Request) -> bool:
     belief is that that's a fraction of the total requests. Either way, this function should not be
     used expecting it to be 100% accurate. We are using it only for statistics.
     """
-    return bool(request.COOKIES) and request.auth is None
+    return bool(request.COOKIES) and getattr(request, "auth", None) is None
 
 
 __all__ = ("get_path", "is_frontend_request", "ViewFunc")

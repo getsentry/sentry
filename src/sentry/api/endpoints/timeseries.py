@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 # Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
 INGESTION_DELAY = 90
@@ -48,6 +48,6 @@ class StatsResponse(TypedDict):
     timeSeries: list[TimeSeries]
 
 
-EMPTY_STATS_RESPONSE: dict[str, Any] = {
+EMPTY_STATS_RESPONSE: StatsResponse = {
     "timeSeries": [],
 }

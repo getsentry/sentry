@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 /**
  * @deprecated Use nuqs to manage query params instead.

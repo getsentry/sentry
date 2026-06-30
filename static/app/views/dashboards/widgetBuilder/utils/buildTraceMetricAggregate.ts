@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {
   AggregationKeyWithAlias,
   Column,
@@ -59,7 +59,9 @@ export function getTraceMetricAggregateSource(
     return yAxis;
   }
   if (displayType === DisplayType.CATEGORICAL_BAR) {
-    return fields?.filter(f => f.kind === FieldValueKind.FUNCTION);
+    return fields?.filter(
+      f => f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+    );
   }
   return fields;
 }

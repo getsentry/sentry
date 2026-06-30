@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -9,8 +9,16 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
+class IntegrationFeatureResponse(TypedDict):
+    featureId: int
+    # feature gating work done in getsentry expects the format 'featureGate'
+    featureGate: str
+    # Only present when the feature is serialized with a target.
+    description: NotRequired[str | None]
+
+
 @register(IntegrationFeature)
-class IntegrationFeatureSerializer(Serializer):
+class IntegrationFeatureSerializer(Serializer[IntegrationFeatureResponse]):
     def get_attrs(
         self,
         item_list: Sequence[IntegrationFeature],
@@ -33,8 +41,8 @@ class IntegrationFeatureSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         has_target: bool = True,
         **kwargs,
-    ):
-        data = {
+    ) -> IntegrationFeatureResponse:
+        data: IntegrationFeatureResponse = {
             "featureId": obj.feature,
             # feature gating work done in getsentry expects the format 'featureGate'
             "featureGate": obj.feature_str(),

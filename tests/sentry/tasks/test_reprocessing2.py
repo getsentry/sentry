@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from django.conf import settings
 
 from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
@@ -18,11 +19,15 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
+from sentry.services.eventstore.reprocessing import reprocessing_store
+from sentry.services.eventstore.reprocessing.redis import (
+    RedisReprocessingStore,
+    _get_sync_counter_key,
+)
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers.datetime import before_now
@@ -77,18 +82,14 @@ def process_and_save(default_project, task_runner):
 
 
 @pytest.fixture
-def register_event_preprocessor(register_plugin):
-    def inner(f):
-        class ReprocessingTestPlugin(Plugin2):
-            def get_event_preprocessors(self, data):
-                return [f]
+def register_event_preprocessor():
+    with mock.patch("sentry.tasks.store.get_event_preprocessors") as m:
+        m.return_value = []
 
-            def is_enabled(self, project=None) -> bool:
-                return True
+        def inner(f):
+            m.return_value = [f]
 
-        register_plugin(globals(), ReprocessingTestPlugin)
-
-    return inner
+        yield inner
 
 
 @django_db_all
@@ -689,7 +690,8 @@ def test_finish_reprocessing(default_project) -> None:
         )
     )
     assert len(redirects) == 1
-    assert redirects[0].group_id == new_group.id
+    # Should be most recently created activity.
+    assert redirects[0].group_id == new_group2.id
 
 
 @django_db_all
@@ -707,3 +709,33 @@ def test_reprocessing_an_ongoing_reprocessing(default_project) -> None:
     assert Group.objects.get(id=new_group_id).data == {}
     # This should work now, i.e. not raise an exception like above
     start_group_reprocessing(default_project.id, new_group_id, "delete")
+
+
+@django_db_all
+def test_reprocessing_allowed_when_previous_run_is_stale(default_project) -> None:
+    old_group = Group.objects.create(project=default_project, data={})
+    new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
+    assert "_reprocessing_old_group_id" in Group.objects.get(id=new_group_id).data
+
+    reprocessing_store.test_only__downcast_to(RedisReprocessingStore).redis.expire(
+        _get_sync_counter_key(old_group.id), 100
+    )
+
+    # This works since the reprocessing is stale
+    start_group_reprocessing(default_project.id, new_group_id, "delete")
+
+
+@django_db_all
+def test_reprocessing_blocked_when_previous_run_is_recent(default_project) -> None:
+    old_group = Group.objects.create(project=default_project, data={})
+    new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
+    assert "_reprocessing_old_group_id" in Group.objects.get(id=new_group_id).data
+
+    reprocessing_store.test_only__downcast_to(RedisReprocessingStore).redis.expire(
+        _get_sync_counter_key(old_group.id), settings.SENTRY_REPROCESSING_SYNC_TTL
+    )
+
+    # This does not work since the reprocessing is 'active'.
+    with pytest.raises(RuntimeError) as e:
+        start_group_reprocessing(default_project.id, new_group_id, "delete")
+    assert "Cannot reprocess group that is being reprocessed to" in str(e)

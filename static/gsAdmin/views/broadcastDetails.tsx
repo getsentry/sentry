@@ -127,6 +127,9 @@ export function BroadcastDetails() {
       <DetailLabel title="Link">
         <ExternalLink href={data.link}>{data.link}</ExternalLink>
       </DetailLabel>
+      <DetailLabel title="Organization IDs">
+        {data.organizations?.length ? data.organizations.join(', ') : '-'}
+      </DetailLabel>
       <DetailLabel title="Media URL">{data.mediaUrl ?? '-'}</DetailLabel>
       <DetailLabel title="Category">
         {formatData(data.category, CATEGORYCHOICES)}
@@ -166,6 +169,12 @@ export function BroadcastDetails() {
           }
           payload[key] = value;
         }
+        if (typeof formData.organizations === 'string') {
+          payload.organizations = formData.organizations
+            .split(',')
+            .map((s: string) => Number(s.trim()))
+            .filter((n: number) => n > 0);
+        }
         return payload;
       }}
       onSubmitSuccess={() => {
@@ -194,8 +203,9 @@ export function BroadcastDetails() {
         roles: data.roles ?? [],
         plans: data.plans ?? [],
         trialStatus: data.trialStatus ?? undefined,
+        organizations: data.organizations?.length ? data.organizations.join(', ') : '',
         earlyAdopter: Boolean(data.earlyAdopter),
-        region: data.region ?? [],
+        region: data.region ?? undefined,
         platform: data.platform ?? [],
         product: data.product ?? [],
       }}
@@ -226,6 +236,13 @@ export function BroadcastDetails() {
         maxLength={256}
       />
       <TextField {...fieldProps} name="link" label="Link" required />
+      <TextField
+        {...fieldProps}
+        name="organizations"
+        label="Organization IDs"
+        help="Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users."
+        placeholder="e.g. 123, 456, 789 (leave empty to broadcast to all users)"
+      />
       <TextField
         {...fieldProps}
         name="mediaUrl"
@@ -266,7 +283,6 @@ export function BroadcastDetails() {
         {...fieldProps}
         name="region"
         label="Region"
-        multiple
         options={toOptions(REGIONCHOICES)}
       />
       <SelectField

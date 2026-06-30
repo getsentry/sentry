@@ -131,7 +131,10 @@ def get_target(
 
     elif notification_context.target_type == ActionTarget.TEAM:
         try:
-            return Team.objects.get(id=int(notification_context.target_identifier))
+            return Team.objects.get(
+                id=int(notification_context.target_identifier),
+                organization=organization,
+            )
         except Team.DoesNotExist:
             pass
 

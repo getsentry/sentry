@@ -71,15 +71,20 @@ export const Heading = styled(
   }
 )`
   ${p =>
-    rc(
-      'font-size',
-      p.size ?? (p.as ? getDefaultHeadingFontSize(p.as) : undefined),
-      p.theme,
-      v => {
-        return getFontSize(v, p.theme);
-      }
-    )};
-  ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
+    p.variant === 'inherit' && p.size === undefined
+      ? 'font-size: inherit'
+      : rc(
+          'font-size',
+          p.size ?? (p.as ? getDefaultHeadingFontSize(p.as) : undefined),
+          p.theme,
+          v => {
+            return getFontSize(v, p.theme);
+          }
+        )};
+  ${p =>
+    p.variant === 'inherit' && p.density === undefined
+      ? 'line-height: inherit'
+      : rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
   ${p => rc('text-align', p.align, p.theme)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
@@ -100,7 +105,10 @@ export const Heading = styled(
   word-break: ${p => p.wordBreak ?? undefined};
 
   font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
-  font-weight: ${p => p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium};
+  font-weight: ${p =>
+    p.variant === 'inherit'
+      ? 'inherit'
+      : p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium};
   font-variant-numeric: ${p =>
     [
       p.tabular ? 'tabular-nums' : undefined,

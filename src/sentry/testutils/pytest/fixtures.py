@@ -233,7 +233,8 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
         from sentry.testutils.silo import strip_silo_mode_test_suffix
 
         if reference_file is None:
-            name = request.node.name
+            test_func = getattr(request.node, "obj", None)
+            name = getattr(test_func, "_snapshot_name", None) or request.node.name
             for c in UNSAFE_PATH_CHARS:
                 name = name.replace(c, "@")
             for c in DIRECTORY_GROUPING_CHARS:

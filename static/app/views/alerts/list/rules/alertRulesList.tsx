@@ -23,9 +23,9 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
+import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {Projects} from 'sentry/utils/projects';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -128,7 +128,7 @@ export default function AlertRulesList() {
     });
   };
 
-  const handleOwnerChange = (
+  const handleOwnerChange = async (
     projectId: string,
     rule: CombinedAlerts,
     ownerValue: string
@@ -144,16 +144,15 @@ export default function AlertRulesList() {
         : `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data: updatedRule,
-      success: () => {
-        addMessage(t('Updated alert rule'), 'success');
-      },
-      error: () => {
-        addMessage(t('Unable to save change'), 'error');
-      },
-    });
+    try {
+      await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data: updatedRule,
+      });
+      addMessage(t('Updated alert rule'), 'success');
+    } catch {
+      addMessage(t('Unable to save change'), 'error');
+    }
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {

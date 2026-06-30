@@ -82,7 +82,7 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
           : undefined
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : props.node.hasHttpError ? 'warning' : ''}`}
       onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}

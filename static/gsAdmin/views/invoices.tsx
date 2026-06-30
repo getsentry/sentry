@@ -14,7 +14,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   <td key="org">
     <strong>
       <Link
-        to={`/_admin/customers/${row.customer.slug}/invoices/${state.region?.name}/${row.id}/`}
+        to={`/_admin/customers/${row.customer.slug}/invoices/${state.cell?.name}/${row.id}/`}
       >
         {row.id}
       </Link>
@@ -58,7 +58,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
     <LinkButton
       aria-label="Download Invoice"
       icon={<IconDownload />}
-      href={`${state.region?.url}/api/0/_admin/cells/${state.region?.name}/payments/${row.id}/pdf/`}
+      href={`${state.cell?.locality_url}/api/0/_admin/cells/${state.cell?.name}/payments/${row.id}/pdf/`}
       size="md"
       tooltipProps={{title: 'Download Invoice'}}
     />

@@ -19,7 +19,7 @@ type Props = {
 };
 
 function renderParams(params: Props['data']['params'], meta: any) {
-  if (!params || isEmptyObject(params)) {
+  if (!params || (Array.isArray(params) ? params.length === 0 : isEmptyObject(params))) {
     return null;
   }
 

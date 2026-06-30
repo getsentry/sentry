@@ -9,6 +9,7 @@ import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {
   GroupedOptionsType,
@@ -26,9 +27,9 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Choices, SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import type {Choices} from 'sentry/types/core';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
+import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 

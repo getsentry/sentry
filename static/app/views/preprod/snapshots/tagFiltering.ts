@@ -1,4 +1,5 @@
 import type {SidebarItem, SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
+import {isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 export function imageMatchesTagFilters(
   img: SnapshotImage,
@@ -14,7 +15,7 @@ export function narrowItemByTags(
   item: SidebarItem,
   filters: Record<string, string>
 ): SidebarItem | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     const kept = item.pairs.filter(p => imageMatchesTagFilters(p.head_image, filters));
     if (kept.length === 0) {
       return null;

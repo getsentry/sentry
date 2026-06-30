@@ -297,7 +297,7 @@ describe('CompositeSelect', () => {
       const [region2, setRegion2] = useState<string[]>([]);
       return (
         <CompositeSelect
-          grid
+          mode="grid"
           trigger={props => (
             <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
           )}

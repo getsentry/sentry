@@ -123,21 +123,23 @@ class SDKCrashDetector:
 
         # Loop 3: Check if the only SDK frame is a "conditional" one (e.g., SentrySwizzleWrapper).
         # These are SDK instrumentation frames that intercept calls but are unlikely to cause
-        # crashes themselves. A single conditional frame is not reported, but multiple SDK frames
-        # (even if all conditional) are reported to prefer over-reporting over under-reporting.
-        conditional_sdk_frame_count = 0
+        # crashes themselves. When every SDK frame in the stack is conditional (e.g. swizzle
+        # wrappers), the crash is suppressed — regardless of how many conditional frames appear.
+        # The same instrumentation frame can appear multiple times (e.g. UIKit calling
+        # sendAction: twice in the responder chain), and that still isn't an SDK bug.
+        has_conditional_sdk_frame = False
         has_non_conditional_sdk_frame = False
         for frame in iter_frames:
             if self.is_sdk_frame(frame):
                 if self._matches_sdk_crash_ignore(frame):
                     continue
                 if self._matches_ignore_when_only_sdk_frame(frame):
-                    conditional_sdk_frame_count += 1
+                    has_conditional_sdk_frame = True
                 else:
                     has_non_conditional_sdk_frame = True
                     break
 
-        if conditional_sdk_frame_count == 1 and not has_non_conditional_sdk_frame:
+        if has_conditional_sdk_frame and not has_non_conditional_sdk_frame:
             return False
 
         # Passed all ignore checks: this is an SDK crash.

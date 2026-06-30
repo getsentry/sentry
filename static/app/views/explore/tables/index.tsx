@@ -32,7 +32,7 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
-  setTab: (tab: Mode | Tab) => void;
+  setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;
   tab: Mode | Tab;
 }
 
@@ -93,14 +93,19 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   useEffect(() => {
     if ((tab === Tab.TRACE || tab === Tab.ATTRIBUTE_BREAKDOWNS) && hasCrossEvents) {
-      setTab(Tab.SPAN);
+      setTab(Tab.SPAN, 'effect');
     }
   }, [hasCrossEvents, setTab, tab]);
 
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs value={tab} onChange={setTab} size="sm" disableOverflow>
+        <Tabs
+          value={tab}
+          onChange={newTab => setTab(newTab, 'click')}
+          size="sm"
+          disableOverflow
+        >
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item

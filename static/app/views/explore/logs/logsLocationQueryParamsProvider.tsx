@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -34,7 +34,7 @@ export function LogsLocationQueryParamsProvider({
   const [_, setPersistentParams] = usePersistedLogsPageParams();
 
   const _readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(false, location),
+    () => getReadableQueryParamsFromLocation(location),
     [location]
   );
 

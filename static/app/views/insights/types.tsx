@@ -1,6 +1,6 @@
 import type {Simplify} from 'type-fest';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -100,6 +100,7 @@ export enum SpanFields {
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
   GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
+  GEN_AI_REQUEST_REASONING_EFFORT = 'gen_ai.request.reasoning_effort',
   GEN_AI_REQUEST_MESSAGES = 'gen_ai.request.messages',
   GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
   GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
@@ -518,6 +519,7 @@ type CustomResponseFields = {
     | 'out_of_range'
     | 'unimplemented'
     | 'internal_error'
+    | 'error'
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';
