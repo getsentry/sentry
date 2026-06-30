@@ -173,8 +173,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     {
       ...location,
       query: {
-        ...location.query,
         groupId: event.groupID,
+        referrer: location.query.referrer,
       },
     },
     TraceViewSources.ISSUE_DETAILS
