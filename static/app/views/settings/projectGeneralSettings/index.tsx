@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
@@ -48,7 +49,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
@@ -145,7 +146,9 @@ const securityTokenHeaderSchema = z.object({
 });
 
 const projectSettingsSchema = z.object({
-  platform: z.string(),
+  // The full platform list is large, so skip the enum and just carry the
+  // PlatformKey type rather than a plain string.
+  platform: z.custom<PlatformKey>().optional(),
   subjectPrefix: z.string(),
   allowedDomains: z.string(),
   scrapeJavaScript: z.boolean(),
@@ -154,15 +157,6 @@ const projectSettingsSchema = z.object({
   debugFilesRole: z.string().nullable(),
 });
 
-/**
- * Project slug. A "save on blur: false" field: it shows a warning and an
- * explicit Save/Cancel before committing, since changing a slug can break
- * build scripts.
- *
- * Kept as its own form (separate from the read-only Project ID below) so each
- * renders as its own FieldGroup row with proper padding and a divider between
- * them.
- */
 function ProjectSlugForm({
   project,
   disabled,
@@ -172,7 +166,7 @@ function ProjectSlugForm({
   onChangeSlug: (slug: string) => void;
   project: DetailedProject;
 }) {
-  const updateProject = useUpdateProject(project);
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -262,11 +256,6 @@ function ProjectIdField({project}: {project: DetailedProject}) {
   );
 }
 
-/**
- * Auto resolve age. Another "save on blur: false" field — enabling it
- * immediately resolves matching issues, so we warn before committing. The
- * slider operates over indices of the allowed (non-linear) values.
- */
 function AutoResolveForm({
   project,
   disabled,
@@ -274,7 +263,7 @@ function AutoResolveForm({
   disabled: boolean;
   project: DetailedProject;
 }) {
-  const updateProject = useUpdateProject(project);
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -354,11 +343,6 @@ const SECURITY_TOKEN_HELP = t(
   'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
 );
 
-/**
- * Security token. A "save on blur: false" field — make sure usages are updated
- * before committing. Kept as its own form (separate from the header below) so
- * each renders as its own FieldGroup row with a divider between them.
- */
 function SecurityTokenForm({
   project,
   disabled,
@@ -366,7 +350,7 @@ function SecurityTokenForm({
   disabled: boolean;
   project: DetailedProject;
 }) {
-  const updateProject = useUpdateProject(project);
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -400,18 +384,18 @@ function SecurityTokenForm({
         </form.AppField>
 
         {!disabled && (
-          <form.Subscribe selector={state => state.isDirty}>
+          <form.Subscribe selector={state => !state.isDefaultValue}>
             {isDirty =>
               isDirty ? (
-                <Fragment>
+                <Container paddingTop="lg">
                   <Alert variant="warning">
                     {t('Ensure you update usages of your security token.')}
                   </Alert>
-                  <Flex gap="sm" justify="end">
+                  <Flex gap="sm" justify="end" paddingTop="lg">
                     <form.ResetButton>{t('Cancel')}</form.ResetButton>
                     <form.SubmitButton>{t('Save')}</form.SubmitButton>
                   </Flex>
-                </Fragment>
+                </Container>
               ) : null
             }
           </form.Subscribe>
@@ -421,10 +405,6 @@ function SecurityTokenForm({
   );
 }
 
-/**
- * Security token header. A "save on blur: false" field — make sure usages are
- * updated before committing.
- */
 function SecurityTokenHeaderForm({
   project,
   disabled,
@@ -432,7 +412,7 @@ function SecurityTokenHeaderForm({
   disabled: boolean;
   project: DetailedProject;
 }) {
-  const updateProject = useUpdateProject(project);
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -465,18 +445,18 @@ function SecurityTokenHeaderForm({
         </form.AppField>
 
         {!disabled && (
-          <form.Subscribe selector={state => state.isDirty}>
+          <form.Subscribe selector={state => !state.isDefaultValue}>
             {isDirty =>
               isDirty ? (
-                <Fragment>
+                <Container paddingTop="lg">
                   <Alert variant="warning">
                     {t('Ensure you update usages of the security token header.')}
                   </Alert>
-                  <Flex gap="sm" justify="end">
+                  <Flex gap="sm" justify="end" paddingTop="lg">
                     <form.ResetButton>{t('Cancel')}</form.ResetButton>
                     <form.SubmitButton>{t('Save')}</form.SubmitButton>
                   </Flex>
-                </Fragment>
+                </Container>
               ) : null
             }
           </form.Subscribe>
@@ -496,10 +476,8 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
   const disabled = !hasEveryAccess(['project:write'], {organization, project});
 
-  const updateProject = useUpdateProject(project);
-  const projectMutationOptions = {
-    mutationFn: (data: Partial<DetailedProject>) => updateProject.mutateAsync(data),
-  };
+  const projectMutationOptions = useUpdateProjectMutationOptions(project);
+  const updateProject = useMutation(projectMutationOptions);
 
   const handleTransferFieldChange = (id: string, value: FieldValue) => {
     transferForm[id] = value;
@@ -685,7 +663,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             isPlatformAllowed({isSelfHosted, organization, platform: id})
         )
         .map(({id, name}) => ({
-          value: id as string,
+          value: id,
           label: (
             <Flex align="center">
               <StyledPlatformIcon platform={id} />
@@ -757,11 +735,8 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           <AutoSaveForm
             name="platform"
             schema={projectSettingsSchema}
-            initialValue={project.platform ?? ''}
-            mutationOptions={{
-              mutationFn: (data: {platform: string}) =>
-                updateProject.mutateAsync({platform: data.platform as PlatformKey}),
-            }}
+            initialValue={project.platform}
+            mutationOptions={projectMutationOptions}
           >
             {field => (
               <field.Layout.Row
@@ -769,7 +744,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 hintText={t('The primary platform for this project')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.state.value ?? null}
                   onChange={field.handleChange}
                   options={platformOptions}
                   filterOption={platformFilter}
