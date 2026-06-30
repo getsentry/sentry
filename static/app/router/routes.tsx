@@ -2366,7 +2366,7 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
     },
     {
-      path: 'snapshots/:projectId/:appId/',
+      path: 'snapshots/latest-base/:projectId/:appId/',
       component: make(
         () => import('sentry/views/preprod/snapshots/latestBaseSnapshotResolver')
       ),

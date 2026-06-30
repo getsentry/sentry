@@ -12,9 +12,9 @@ describe('LatestBaseSnapshotResolver', () => {
 
   const initialRouterConfig = {
     location: {
-      pathname: `/organizations/${organization.slug}/preprod/snapshots/my-project/com.acme.app/`,
+      pathname: `/organizations/${organization.slug}/preprod/snapshots/latest-base/my-project/com.acme.app/`,
     },
-    route: '/organizations/:orgId/preprod/snapshots/:projectId/:appId/',
+    route: '/organizations/:orgId/preprod/snapshots/latest-base/:projectId/:appId/',
   };
 
   beforeEach(() => {
@@ -57,7 +57,7 @@ describe('LatestBaseSnapshotResolver', () => {
 
     expect(await screen.findByText('No base snapshot found')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/preprod/snapshots/my-project/com.acme.app/'
+      '/organizations/org-slug/preprod/snapshots/latest-base/my-project/com.acme.app/'
     );
   });
 });
