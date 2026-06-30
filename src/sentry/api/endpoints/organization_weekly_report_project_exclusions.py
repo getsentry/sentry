@@ -31,13 +31,15 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUE_DETECTION_BACKEND
 
     def get(self, request: Request, organization: Organization) -> Response:
+        assert request.user
+
         if not features.has(
             "organizations:weekly-report-project-exclusions", organization, actor=request.user
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         queryset = WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,  # type: ignore[misc]
+            user_id=request.user.id,
             project__organization_id=organization.id,
         ).select_related("project")
 
@@ -50,6 +52,8 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
+        assert request.user
+
         if not features.has(
             "organizations:weekly-report-project-exclusions", organization, actor=request.user
         ):
@@ -64,19 +68,26 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if project_ids:
+        requested_project_ids = set(project_ids)
+
+        if requested_project_ids:
             projects = self.get_projects(
                 request=request,
                 organization=organization,
-                project_ids=set(project_ids),
+                project_ids=requested_project_ids,
             )
             validated_project_ids = {p.id for p in projects}
+            if validated_project_ids != requested_project_ids:
+                return Response(
+                    {"detail": "Some project IDs are not accessible"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         else:
             validated_project_ids = set()
 
         with transaction.atomic(using=router.db_for_write(WeeklyReportProjectExclusion)):
             WeeklyReportProjectExclusion.objects.filter(
-                user_id=request.user.id,  # type: ignore[misc]
+                user_id=request.user.id,
                 project__organization_id=organization.id,
             ).delete()
 
@@ -85,7 +96,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
                     [
                         WeeklyReportProjectExclusion(
                             project_id=pid,
-                            user_id=request.user.id,  # type: ignore[misc]
+                            user_id=request.user.id,
                         )
                         for pid in validated_project_ids
                     ],

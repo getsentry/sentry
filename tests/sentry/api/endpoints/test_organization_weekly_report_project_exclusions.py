@@ -124,6 +124,31 @@ class PutOrganizationWeeklyReportProjectExclusionsTest(APITestCase):
             )
         assert response.status_code == 400
 
+    def test_project_user_not_member_of(self) -> None:
+        user = self.create_user()
+        org = self.create_organization(flags=0)
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, role="member", teams=[team])
+        member_project = self.create_project(organization=org, teams=[team])
+        non_member_project = self.create_project(organization=org)
+        self.login_as(user=user)
+        with self.feature({"organizations:weekly-report-project-exclusions": True}):
+            response = self.get_response(
+                org.slug,
+                projectIds=[member_project.id, non_member_project.id],
+            )
+        assert response.status_code == 403
+
+    def test_project_in_other_org(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        with self.feature("organizations:weekly-report-project-exclusions"):
+            response = self.get_response(
+                self.organization.slug,
+                projectIds=[other_project.id],
+            )
+        assert response.status_code == 403
+
 
 class DeleteOrganizationWeeklyReportProjectExclusionDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-weekly-report-project-exclusion-details"

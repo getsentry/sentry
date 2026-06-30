@@ -7,8 +7,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.projects import parse_id_or_slug_params
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 
 
@@ -29,29 +29,26 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
     def delete(
         self, request: Request, organization: Organization, project_id_or_slug: str
     ) -> Response:
+        assert request.user
+
         if not features.has(
             "organizations:weekly-report-project-exclusions", organization, actor=request.user
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        try:
-            project_id = int(project_id_or_slug)
-            project = Project.objects.get(
-                organization_id=organization.id,
-                id=project_id,
-            )
-        except (ValueError, Project.DoesNotExist):
-            try:
-                project = Project.objects.get(
-                    organization_id=organization.id,
-                    slug=project_id_or_slug,
-                )
-            except Project.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+        parsed = parse_id_or_slug_params([project_id_or_slug])
+        projects = self.get_projects(
+            request=request,
+            organization=organization,
+            project_ids=parsed.ids or None,
+            project_slugs=parsed.slugs or None,
+        )
+        if not projects:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         deleted, _ = WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,  # type: ignore[misc]
-            project=project,
+            user_id=request.user.id,
+            project=projects[0],
         ).delete()
 
         if not deleted:
