@@ -137,6 +137,17 @@ class SDKCrashDetection:
                 },
             )
 
+            set_path(
+                sdk_crash_event_data,
+                "_meta",
+                "contexts",
+                "trace",
+                "trace_id",
+                "",
+                "err",
+                value=["trace_id.missing"],
+            )
+
             sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
             set_path(sdk_crash_event_data, "release", value=sdk_version)
 

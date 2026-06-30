@@ -18,6 +18,7 @@ from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 PROGUARD_SOURCE = b"""\
 # compiler: R8
@@ -35,6 +36,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 @pytest.mark.django_db
+@debug_files_test_both_backends
 class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

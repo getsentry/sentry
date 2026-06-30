@@ -54,13 +54,16 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             OpenUrlAction,
             TextSize,
             TextWeight,
-            create_text_block,
         )
 
         subject_text = cls.render_text_blocks(rendered_template.subject_blocks)
-        title_text = create_text_block(
-            text=subject_text, size=TextSize.LARGE, weight=TextWeight.BOLDER
-        )
+        title_text: Block = {
+            "type": "TextBlock",
+            "text": subject_text,
+            "size": TextSize.LARGE,
+            "weight": TextWeight.BOLDER,
+            "wrap": True,
+        }
         body_text = cls.render_body_blocks(rendered_template.body)
         body_blocks: list[Block] = [title_text, *body_text]
 
@@ -84,7 +87,9 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
         if rendered_template.footer is not None:
             footer_str = cls.render_text_blocks(rendered_template.footer_blocks)
-            body_blocks.append(create_text_block(text=footer_str, size=TextSize.SMALL))
+            body_blocks.append(
+                {"type": "TextBlock", "text": footer_str, "size": TextSize.SMALL, "wrap": True}
+            )
 
         card: AdaptiveCard = {
             "type": "AdaptiveCard",
@@ -101,7 +106,6 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         from sentry.integrations.msteams.card_builder.block import (
             TextSize,
             create_code_block,
-            create_text_block,
         )
 
         if size is None:
@@ -111,10 +115,24 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         for block in body:
             if block.type == NotificationSectionType.PARAGRAPH:
                 body_blocks.append(
-                    create_text_block(text=cls.render_text_blocks(block.blocks), size=size)
+                    {
+                        "type": "TextBlock",
+                        "text": cls.render_text_blocks(block.blocks),
+                        "size": size,
+                        "wrap": True,
+                    }
                 )
             elif block.type == NotificationSectionType.CODE_BLOCK:
                 body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))
+            elif block.type == NotificationSectionType.BLOCK_QUOTE:
+                body_blocks.append(
+                    {
+                        "type": "TextBlock",
+                        "text": f"> {cls.render_text_blocks(block.blocks)}",
+                        "size": size,
+                        "wrap": True,
+                    }
+                )
         return body_blocks
 
     @classmethod
@@ -125,6 +143,8 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 texts.append(block.text)
             elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"_{block.text}_")
             elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
             elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):

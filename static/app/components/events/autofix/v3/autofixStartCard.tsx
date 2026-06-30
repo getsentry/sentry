@@ -70,7 +70,7 @@ export function AutofixStartCard({
           justify="end"
           align="center"
           aspectRatio="9 / 16"
-          height={{'2xs': '78px', lg: '98px'}}
+          height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
         >
           <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
         </ImageContainer>

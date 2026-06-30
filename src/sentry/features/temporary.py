@@ -107,6 +107,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the explore > metrics tab
     manager.add("organizations:gen-ai-explore-metrics-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable defaulting to ask seer from free text search
+    manager.add("organizations:gen-ai-default-to-ask-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the issues page
     manager.add("organizations:gen-ai-issues-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
@@ -176,6 +178,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm-project-details-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM-first project creation wizard A/B test (project creation flow, not new-org onboarding)
     manager.add("organizations:onboarding-scm-project-creation-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Write newly created debug files to Objectstore.
+    manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -208,6 +212,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod size monitors frontend
     manager.add("organizations:preprod-size-monitors-frontend", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables configuring a Relay base URL for displayed Client Key DSNs
+    manager.add("organizations:relay-dsn-endpoint-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the new apiFetch implementation that uses cell fetch.
@@ -499,4 +505,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:relay-generate-billing-outcome", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    # seer feature flags for assisted query agent org scoped
+    manager.add("organizations:assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
     # fmt: on

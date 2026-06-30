@@ -49,7 +49,7 @@ useRouteAnalyticsParams({
 
 ## Button Click Tracking
 
-Use built-in button analytics props for simple click tracking. No event definition required for Reload-only tracking.
+Use built-in button analytics props for simple click tracking. These are the preferred approach when a `<Button>` already exists — no event definition or type registration required.
 
 ```tsx
 <Button
@@ -72,7 +72,7 @@ Use built-in button analytics props for simple click tracking. No event definiti
 **Rules:**
 
 - Prefer button props over a manual `trackAnalytics` call in an `onClick` handler.
-- If you need the event to be type-safe and appear in the typed event registry, also define it in the domain event file. Button props work without registration but lose type safety.
+- Button props do not require registration in the typed event registry. Each button instance is inherently a one-off — even two "Save" buttons are different buttons tied to different forms — so there are no shared call sites that would benefit from centralized types.
 - The tracking fires via `TrackingContext` — the GetSentry override wires it to Reload/Amplitude.
 
 ## Manual `trackAnalytics()` Calls

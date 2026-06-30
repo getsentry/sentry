@@ -11,8 +11,8 @@ from sentry.notifications.notification_action.activity_registry.base import (
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )

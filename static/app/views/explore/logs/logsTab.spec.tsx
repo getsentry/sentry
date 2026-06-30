@@ -171,11 +171,6 @@ describe('LogsTabContent', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       method: 'GET',
       body: {

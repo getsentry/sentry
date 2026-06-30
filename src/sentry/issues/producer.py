@@ -129,6 +129,17 @@ def _prepare_occurrence_message(
                 },
             )
 
+            set_path(
+                event_data,
+                "_meta",
+                "contexts",
+                "trace",
+                "trace_id",
+                "",
+                "err",
+                value=["trace_id.missing"],
+            )
+
         payload_data["event"] = event_data
 
     if is_buffered_spans:
