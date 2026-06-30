@@ -9,18 +9,15 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun
 
 class SeerRunResponse(TypedDict):
     id: str
-    seerRunId: str | None
     type: str
     userId: str | None
     lastTriggeredAt: str
     dateCreated: str
-    extras: dict[str, Any]
     # Agent fields, null when the run has no SeerAgentRun row.
     title: str | None
     source: str | None
     projectId: str | None
     groupId: str | None
-    agentExtras: dict[str, Any] | None
 
 
 @register(SeerRun)
@@ -41,12 +38,10 @@ class SeerRunSerializer(Serializer):
         agent: SeerAgentRun | None = attrs.get("agent")
         return {
             "id": str(obj.uuid),
-            "seerRunId": str(obj.seer_run_state_id) if obj.seer_run_state_id is not None else None,
             "type": obj.type,
             "userId": str(obj.user_id) if obj.user_id is not None else None,
             "lastTriggeredAt": obj.last_triggered_at.isoformat(),
             "dateCreated": obj.date_added.isoformat(),
-            "extras": obj.extras or {},
             "title": agent.title if agent is not None else None,
             "source": agent.source if agent is not None else None,
             "projectId": str(agent.project_id)
@@ -55,5 +50,4 @@ class SeerRunSerializer(Serializer):
             "groupId": str(agent.group_id)
             if agent is not None and agent.group_id is not None
             else None,
-            "agentExtras": (agent.extras or {}) if agent is not None else None,
         }

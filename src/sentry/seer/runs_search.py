@@ -110,15 +110,18 @@ def apply_filters(
             continue
 
         if name == "agent":
-            # ``is:agent`` arrives as operator "=", ``!is:agent`` as "!=".
-            want_agent = token.operator == "="
-            queryset = queryset.filter(agent__isnull=not want_agent)
+            # ``is:agent`` / ``has:agent`` select runs that have a SeerAgentRun
+            # row; the negated forms select runs without one. ``is_negation``
+            # normalizes the differing ``is:`` (``=``/``!=``) and ``has:``
+            # (``!=``/``=``) operator conventions into a single flag.
+            queryset = queryset.filter(agent__isnull=token.is_negation)
             continue
 
         if name == "mine":
-            # ``is:mine`` arrives as operator "=", ``!is:mine`` as "!=". An
-            # anonymous actor (no user_id) can never own a run.
-            want_mine = token.operator == "="
+            # ``is:mine`` selects runs owned by the requesting user; ``!is:mine``
+            # selects everyone else's. An anonymous actor (no user_id) can never
+            # own a run. ``has:``/``!has:`` map onto the same semantics.
+            want_mine = not token.is_negation
             if user_id is None:
                 queryset = queryset.none() if want_mine else queryset
             elif want_mine:
@@ -134,12 +137,18 @@ def apply_filters(
             continue
 
         if name == "project":
-            values = token.value.value if token.is_in_filter else [token.value.value]
-            q = Q(agent__project_id__in=[_validate_project_id(v) for v in values])
+            if token.is_in_filter or token.value.value != "":
+                values = token.value.value if token.is_in_filter else [token.value.value]
+                q = Q(agent__project_id__in=[_validate_project_id(v) for v in values])
+            else:
+                # ``has:project`` / ``!has:project`` — filter on whether a
+                # project is set rather than parsing the (empty) value as an ID.
+                q = Q(agent__project_id__isnull=False)
             queryset = queryset.exclude(q) if token.is_negation else queryset.filter(q)
             continue
 
         db_field = FIELD_MAPPINGS.get(name, name)
+        is_has_filter = token.operator in ("=", "!=") and token.value.value == ""
 
         if token.value.is_wildcard():
             # Check wildcard before the IN branch: a bracketed list containing a
@@ -151,7 +160,7 @@ def apply_filters(
             q = Q(**{f"{db_field}__in": token.value.value})
         elif token.operator == "~":
             q = Q(**{f"{db_field}__icontains": token.value.value})
-        elif token.operator in ("=", "!=") and token.value.value == "":
+        elif is_has_filter:
             # has: / !has: filter
             q = Q(**{f"{db_field}__isnull": False})
         elif token.operator in ("=", "!="):
@@ -161,6 +170,12 @@ def apply_filters(
 
         if token.is_negation or token.operator == "!~":
             q = ~q
+            if not is_has_filter:
+                # A negated match across the nullable ``agent`` join would
+                # otherwise also return rows where the field is NULL (e.g. runs
+                # with no SeerAgentRun row). Standard Sentry search excludes
+                # NULLs from negated filters; ``!has:`` selects them explicitly.
+                q &= Q(**{f"{db_field}__isnull": False})
         queryset = queryset.filter(q)
 
     return queryset.distinct()

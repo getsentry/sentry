@@ -35,8 +35,6 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert [r["id"] for r in response.data] == [str(newer.uuid), str(older.uuid)]
-        assert response.data[0]["seerRunId"] == "2"
-        assert response.data[1]["seerRunId"] == "1"
 
     def test_scopes_to_organization(self) -> None:
         run = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -80,7 +78,6 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             source="chat",
             project=project,
             group=group,
-            extras={"thread_ts": "123"},
         )
         without_agent = self.create_seer_run(
             organization=self.organization,
@@ -96,14 +93,12 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert agent_row["source"] == "chat"
         assert agent_row["projectId"] == str(project.id)
         assert agent_row["groupId"] == str(group.id)
-        assert agent_row["agentExtras"] == {"thread_ts": "123"}
 
         plain_row = by_id[str(without_agent.uuid)]
         assert plain_row["title"] is None
         assert plain_row["source"] is None
         assert plain_row["projectId"] is None
         assert plain_row["groupId"] is None
-        assert plain_row["agentExtras"] is None
 
     def test_is_agent_filter(self) -> None:
         with_agent = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -117,6 +112,23 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "!is:agent"}
+        )
+        assert [r["id"] for r in response.data] == [str(without_agent.uuid)]
+
+    def test_has_agent_filter(self) -> None:
+        # has:agent must match is:agent semantics (runs *with* an agent), not the
+        # inverse from the differing has: operator convention.
+        with_agent = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=with_agent)
+        without_agent = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has:agent"}
+        )
+        assert [r["id"] for r in response.data] == [str(with_agent.uuid)]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!has:agent"}
         )
         assert [r["id"] for r in response.data] == [str(without_agent.uuid)]
 
@@ -143,6 +155,21 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             self.organization.slug, qs_params={"query": "source:night_shift"}
         )
         assert [r["id"] for r in response.data] == [str(run.uuid)]
+
+    def test_negated_source_excludes_null(self) -> None:
+        # A negated match must not return rows where the field is NULL (runs with
+        # no agent row); !has: is the way to select those.
+        autofix = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=autofix, source="autofix")
+        chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=chat, source="chat")
+        # No agent row -> agent__source is NULL.
+        self.create_seer_run(organization=self.organization, user_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!source:autofix"}
+        )
+        assert [r["id"] for r in response.data] == [str(chat.uuid)]
 
     def test_source_in_filter(self) -> None:
         night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -183,6 +210,25 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             self.organization.slug, qs_params={"query": f"project:{project.id}"}
         )
         assert [r["id"] for r in response.data] == [str(run.uuid)]
+
+    def test_has_project_filter(self) -> None:
+        # has:project / !has:project filter on whether a project is set rather
+        # than 400ing on the empty (non-numeric) value.
+        project = self.create_project(organization=self.organization)
+        with_project = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=with_project, project=project)
+        without_project = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=without_project, project=None)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has:project"}
+        )
+        assert [r["id"] for r in response.data] == [str(with_project.uuid)]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!has:project"}
+        )
+        assert [r["id"] for r in response.data] == [str(without_project.uuid)]
 
     def test_free_text_query_matches_title(self) -> None:
         run = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -233,7 +279,6 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
         data = response.data[0]
         assert data["id"] == str(run.uuid)
-        assert data["seerRunId"] == "42"
         assert data["userId"] == str(self.user.id)
 
 
