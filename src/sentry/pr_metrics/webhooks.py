@@ -171,7 +171,7 @@ def handle_attribution(
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     if action == "opened" and pull_request is not None and has_seer_access(organization):
-        _detect_delegated_agent(pr, pull_request)
+        _detect_delegated_agent(pr, pull_request, repo)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -977,7 +977,9 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
     )
 
 
-def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, Any]) -> None:
+def _detect_delegated_agent(
+    pr: PullRequest, webhook_pull_request: Mapping[str, Any], repository: Repository
+) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
@@ -989,20 +991,22 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
     if provider_hint is None or not group_ids:
         return
 
-    try:
-        repository = Repository.objects.get(id=pr.repository_id, organization_id=pr.organization_id)
-    except Repository.DoesNotExist:
-        logger.warning(
-            "pr_metrics.delegated_agent.repository_not_found",
-            extra={"pull_request_id": pr.id, "repository_id": pr.repository_id},
-        )
-        return
-
     repo_name_sections = repository.name.split("/")
     if len(repo_name_sections) < 2:
         logger.warning(
             "pr_metrics.delegated_agent.invalid_repo_name",
             extra={"pull_request_id": pr.id, "repo_name": repository.name},
+        )
+        return
+
+    if not repository.provider or not repository.external_id:
+        logger.warning(
+            "pr_metrics.delegated_agent.missing_repo_metadata",
+            extra={
+                "pull_request_id": pr.id,
+                "has_provider": bool(repository.provider),
+                "has_external_id": bool(repository.external_id),
+            },
         )
         return
 
@@ -1014,10 +1018,10 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
         pull_request_id=pr.id,
         pr_url=pr_url,
         repo=SeerRepoDefinition(
-            provider=repository.provider or "",
+            provider=repository.provider,
             owner=repo_name_sections[0],
             name="/".join(repo_name_sections[1:]),
-            external_id=repository.external_id or "",
+            external_id=repository.external_id,
         ),
         head_branch=head_branch,
         provider=provider_hint,

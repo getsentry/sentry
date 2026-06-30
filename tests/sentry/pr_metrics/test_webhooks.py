@@ -2005,3 +2005,21 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
+
+    def test_repo_missing_provider_does_not_call_seer(self) -> None:
+        self.repo.provider = None
+        self.repo.save()
+
+        with self._mock_seer() as mock_rpc:
+            self._call(head_ref="claude/fix")
+
+        mock_rpc.assert_not_called()
+
+    def test_repo_missing_external_id_does_not_call_seer(self) -> None:
+        self.repo.external_id = None
+        self.repo.save()
+
+        with self._mock_seer() as mock_rpc:
+            self._call(head_ref="claude/fix")
+
+        mock_rpc.assert_not_called()
