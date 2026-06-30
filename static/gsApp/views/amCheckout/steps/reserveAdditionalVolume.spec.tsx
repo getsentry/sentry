@@ -268,8 +268,8 @@ describe('ReserveAdditionalVolume', () => {
           billingInterval: MONTHLY,
           category: 'replays',
           max: '10M',
-          min: '50',
-          selectedTier: '50',
+          min: '5,000',
+          selectedTier: '5,000',
         },
         {
           billingInterval: MONTHLY,

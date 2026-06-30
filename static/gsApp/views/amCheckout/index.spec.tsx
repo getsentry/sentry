@@ -273,8 +273,13 @@ describe('Default Tier Checkout', () => {
       )
     ).toBeInTheDocument();
 
-    // 500 replays from sponsored plan becomes 50 on am3
-    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+    // The old paid replay reservation (5,000 @ $15) is now included at $0, so the
+    // sponsored sub carries no paid reserved volume and the sliders start collapsed.
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Show reserved volume sliders'})
+    );
+    // 500 replays from the sponsored plan becomes the 5,000 am3 minimum
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('5,000');
   });
 
   it('renders for self-serve partners', async () => {
@@ -485,7 +490,7 @@ describe('Default Tier Checkout', () => {
     expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('20M');
 
     // other categories use defaults
-    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('5,000');
 
     expect(screen.getByTestId('product-option-seer')).toBeChecked();
   });
@@ -538,7 +543,7 @@ describe('Default Tier Checkout', () => {
     expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('20M');
 
     // other categories use defaults
-    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('5,000');
 
     expect(screen.getByTestId('product-option-seer')).not.toBeChecked();
   });
@@ -605,8 +610,8 @@ describe('Default Tier Checkout', () => {
     );
     // Check that missing 'Errors' category defaults to 50,000 errors
     expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('50K');
-    // For 'Replays', should be set to 50 as per the subscription
-    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+    // For 'Replays', should be set to 5,000 as per the subscription
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('5,000');
     // Check that missing 'Attachments' category defaults to 1 GB
     expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('1 GB');
   });
@@ -751,6 +756,6 @@ describe('Default Tier Checkout', () => {
     expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('50K');
     expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('1 GB');
     expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('10M');
-    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('5,000');
   });
 });

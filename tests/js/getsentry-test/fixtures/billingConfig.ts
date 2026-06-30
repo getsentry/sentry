@@ -47,7 +47,7 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
       defaultReserved: {
         errors: 50_000,
         attachments: 1,
-        replays: 50,
+        replays: 5000,
         monitorSeats: 1,
         spans: 10_000_000,
         uptime: 1,
@@ -66,7 +66,7 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
       defaultReserved: {
         errors: 50_000,
         attachments: 1,
-        replays: 50,
+        replays: 5000,
         monitorSeats: 1,
         spans: 10_000_000,
         uptime: 1,

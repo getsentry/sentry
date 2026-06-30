@@ -571,22 +571,16 @@ export const AM3_PLANS = {
       ],
       replays: [
         {
-          events: 50,
+          events: 5000,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
         },
         {
-          events: 5000,
-          unitPrice: 0.3,
-          price: 1500,
-          onDemandPrice: 0.375,
-        },
-        {
           events: 10000,
           unitPrice: 0.285,
           price: 2900,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
@@ -1080,22 +1074,16 @@ export const AM3_PLANS = {
       ],
       replays: [
         {
-          events: 50,
+          events: 5000,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
         },
         {
-          events: 5000,
-          unitPrice: 0.3,
-          price: 16200,
-          onDemandPrice: 0.375,
-        },
-        {
           events: 10000,
           unitPrice: 0.285,
           price: 31300,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
@@ -1719,7 +1707,7 @@ export const AM3_PLANS = {
       ],
       replays: [
         {
-          events: 50,
+          events: 5000,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -2029,22 +2017,16 @@ export const AM3_PLANS = {
       ],
       replays: [
         {
-          events: 50,
+          events: 5000,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
         },
         {
-          events: 5000,
-          unitPrice: 0.3,
-          price: 1500,
-          onDemandPrice: 0.375,
-        },
-        {
           events: 10000,
           unitPrice: 0.285,
           price: 2900,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
@@ -2540,22 +2522,16 @@ export const AM3_PLANS = {
       ],
       replays: [
         {
-          events: 50,
+          events: 5000,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
         },
         {
-          events: 5000,
-          unitPrice: 0.3,
-          price: 16200,
-          onDemandPrice: 0.375,
-        },
-        {
           events: 10000,
           unitPrice: 0.285,
           price: 31300,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
