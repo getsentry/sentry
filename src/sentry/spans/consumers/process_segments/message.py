@@ -308,33 +308,12 @@ def _detect_performance_problems(
         # If the legacy detectors error out, there's no point in running the experiment, so bail now
         return
 
-    if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
-        return
-
-    sampled_grouptypes = [
-        grouptype_slug
-        for grouptype_slug in SPAN_FIRST_DETECTORS_BY_GROUPTYPE
-        if SpanFirstDetectorsRolloutController.should_check_experiment(grouptype_slug)
-    ]
-    if not sampled_grouptypes:
-        return
-
     # Run the new span-first detectors and compare their results to those of the legacy detectors.
     # Note: Not all legacy detectors have span-first analogs yet. Results from those that don't are
     # just ignored in the comparison.
-    try:
-        span_first_problems_by_grouptype = run_span_first_detectors(
-            sampled_grouptypes, segment_span, spans, project
-        )
-        compare_span_first_problems_to_control_data(
-            span_first_problems_by_grouptype,
-            all_control_problems,
-            get_source_of_truth=lambda _: (
-                "control" if segment_span.get("_performance_issues_spans") else "neither"
-            ),
-        )
-    except Exception:
-        logger.exception("span_first_detector_test.error")
+    _maybe_run_span_first_detector_parity_check(
+        segment_span, spans, project, legacy_detected_problems
+    )
 
 
 def _run_legacy_detectors(
@@ -390,6 +369,39 @@ def _run_legacy_detectors(
             )
 
     return detected_problems
+
+
+def _maybe_run_span_first_detector_parity_check(
+    segment_span: CompatibleSpan,
+    segment: list[CompatibleSpan],
+    project: Project,
+    all_control_problems: list[PerformanceProblem],
+) -> None:
+    if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
+        return
+
+    sampled_grouptypes = [
+        grouptype_slug
+        for grouptype_slug in SPAN_FIRST_DETECTORS_BY_GROUPTYPE
+        if SpanFirstDetectorsRolloutController.should_check_experiment(grouptype_slug)
+    ]
+    if not sampled_grouptypes:
+        return
+
+    try:
+        span_first_problems_by_grouptype = run_span_first_detectors(
+            sampled_grouptypes, segment_span, segment, project
+        )
+
+        compare_span_first_problems_to_control_data(
+            span_first_problems_by_grouptype,
+            all_control_problems,
+            get_source_of_truth=lambda _: (
+                "control" if segment_span.get("_performance_issues_spans") else "neither"
+            ),
+        )
+    except Exception:
+        logger.exception("span_first_detector_test.error")
 
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
