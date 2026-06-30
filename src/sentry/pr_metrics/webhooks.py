@@ -52,7 +52,6 @@ from sentry.pr_metrics.activity_types import (
     CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
-    CommentEditedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
     EditedPayload,
@@ -439,7 +438,7 @@ def handle_comment(
 ) -> None:
     """Record PR comment activity from issue_comment webhook events."""
     action = event.get("action")
-    if action not in ("created", "edited"):
+    if action != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -470,25 +469,18 @@ def handle_comment(
     sender = event.get("sender") or {}
     comment = event.get("comment") or {}
 
-    if action == "created":
-        event_type = PullRequestActivityType.COMMENT_CREATED
-        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-        )
-    else:
-        event_type = PullRequestActivityType.COMMENT_EDITED
-        payload_obj = CommentEditedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-        )
+    payload_obj = CommentCreatedPayload(
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
+        author_association=comment.get("author_association", "NONE"),
+    )
 
     if not webhook_id:
         return
 
-    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+    )
 
 
 def handle_review(
@@ -563,7 +555,7 @@ def handle_review_comment(
 ) -> None:
     """Record inline PR review comments (pull_request_review_comment events)."""
     action = event.get("action")
-    if action not in ("created", "edited"):
+    if action != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -582,29 +574,20 @@ def handle_review_comment(
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
-    if action == "created":
-        event_type = PullRequestActivityType.COMMENT_CREATED
-        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-            is_review=True,
-            review_id=comment.get("pull_request_review_id"),
-        )
-    else:
-        event_type = PullRequestActivityType.COMMENT_EDITED
-        payload_obj = CommentEditedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-            is_review=True,
-            review_id=comment.get("pull_request_review_id"),
-        )
+    payload_obj = CommentCreatedPayload(
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
+        author_association=comment.get("author_association", "NONE"),
+        is_review=True,
+        review_id=comment.get("pull_request_review_id"),
+    )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+    )
 
 
 def handle_review_thread(
