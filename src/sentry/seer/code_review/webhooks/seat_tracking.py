@@ -3,8 +3,7 @@ GitLab merge_request webhook processor that seeds OrganizationContributors so
 seat-based Seer billing works once an org is moved onto
 ``organizations:seat-based-seer-enabled``. Same goal as GitHub's
 ``_track_contributor_action_processor`` call in ``PullRequestEventWebhook`` (see
-``sentry/integrations/github/webhook.py``), but uses different idempotency
-mechanics:
+``sentry/integrations/github/webhook.py``).
 
 ``track_gitlab_contributor_action_processor`` calls ``record_contributor_action``,
 which seeds the contributor on every delivery and, for an eligible MR *open*,
@@ -38,9 +37,9 @@ seconds later.
 Known gap: ``MergeEventWebhook.__call__`` short-circuits before ``_handle``
 when the payload is missing ``last_commit`` or the author's email
 (``test_merge_event_no_last_commit``). In that case these processors never
-run, so the MR author is not seeded. Subsequent ``update`` events for the
-same MR do not fire the processor either (the action filter is ``"open"``).
-Tracked on SCM-99 as a follow-up.
+run, so the MR author is not seeded on that delivery, though a later
+non-short-circuited event for the same MR will. Tracked on SCM-99 as a
+follow-up.
 """
 
 from __future__ import annotations
