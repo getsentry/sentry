@@ -169,7 +169,6 @@ export type Plan = {
    * upsell suppression, provisioning).
    */
   isEnterprise: boolean;
-  isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
   name: string;

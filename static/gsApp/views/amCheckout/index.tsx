@@ -157,32 +157,17 @@ function AMCheckout(props: Props) {
     return navigate(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
   }, [navigate, organization.slug]);
 
-  const getPlans = useCallback(
-    (config: BillingConfig) => {
-      const isTestOrg = subscription.planDetails.isTestPlan;
-      if (isTestOrg) {
-        const testPlans = config.planList.filter(
-          plan =>
-            plan.isTestPlan &&
-            (plan.id.includes(config.freePlan) || Boolean(plan.basePrice))
-        );
+  const getPlans = useCallback((config: BillingConfig) => {
+    const plans = config.planList.filter(
+      plan =>
+        plan.id === config.freePlan || Boolean(plan.basePrice && plan.userSelectable)
+    );
 
-        if (testPlans.length > 0) {
-          return testPlans;
-        }
-      }
-      const plans = config.planList.filter(
-        plan =>
-          plan.id === config.freePlan || Boolean(plan.basePrice && plan.userSelectable)
-      );
-
-      if (plans.length === 0) {
-        throw new Error('Cannot get plan options');
-      }
-      return plans;
-    },
-    [subscription.planDetails.isTestPlan]
-  );
+    if (plans.length === 0) {
+      throw new Error('Cannot get plan options');
+    }
+    return plans;
+  }, []);
 
   /**
    * Default to the business plan if:
