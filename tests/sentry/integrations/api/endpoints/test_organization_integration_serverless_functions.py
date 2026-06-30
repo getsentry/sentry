@@ -42,7 +42,7 @@ class AbstractServerlessTest(APITestCase):
 
     @property
     def sentry_dsn(self):
-        return ProjectKey.get_default(project=self.project).get_dsn(public=True)
+        return ProjectKey.get_default(project=self.project).get_endpoint_urls().get_dsn(public=True)
 
     def set_up_response_mocks(self, get_function_response, update_function_configuration_kwargs):
         responses.add(

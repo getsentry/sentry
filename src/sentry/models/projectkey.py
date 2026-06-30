@@ -336,9 +336,6 @@ class ProjectKey(ReplicatedCellModel):
             self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
-    def get_dsn(self, domain=None, secure=True, public=False):
-        return self.get_endpoint_urls().get_dsn(public=public)
-
     @property
     def organization_id(self):
         return self.project.organization_id
@@ -346,61 +343,6 @@ class ProjectKey(ReplicatedCellModel):
     @property
     def organization(self):
         return self.project.organization
-
-    @property
-    def dsn_private(self):
-        return self.get_endpoint_urls().dsn_private
-
-    @property
-    def dsn_public(self):
-        return self.get_endpoint_urls().dsn_public
-
-    @property
-    def csp_endpoint(self):
-        return self.get_endpoint_urls().csp_endpoint
-
-    @property
-    def security_endpoint(self):
-        return self.get_endpoint_urls().security_endpoint
-
-    @property
-    def nel_endpoint(self):
-        return self.get_endpoint_urls().nel_endpoint
-
-    @property
-    def minidump_endpoint(self):
-        return self.get_endpoint_urls().minidump_endpoint
-
-    @property
-    def playstation_endpoint(self):
-        return self.get_endpoint_urls().playstation_endpoint
-
-    @property
-    def integration_endpoint(self):
-        return self.get_endpoint_urls().integration_endpoint
-
-    def build_integration_endpoint(self, integration_name: str, postfix: str = "") -> str:
-        return self.get_endpoint_urls().build_integration_endpoint(integration_name, postfix)
-
-    @property
-    def otlp_traces_endpoint(self):
-        return self.get_endpoint_urls().otlp_traces_endpoint
-
-    @property
-    def otlp_logs_endpoint(self):
-        return self.get_endpoint_urls().otlp_logs_endpoint
-
-    @property
-    def unreal_endpoint(self) -> str:
-        return self.get_endpoint_urls().unreal_endpoint
-
-    @property
-    def crons_endpoint(self) -> str:
-        return self.get_endpoint_urls().crons_endpoint
-
-    @property
-    def js_sdk_loader_cdn_url(self) -> str:
-        return self.get_endpoint_urls().js_sdk_loader_cdn_url
 
     def get_endpoint_urls(self) -> ProjectKeyEndpointUrls:
         # Apply the org's relay-dsn-endpoint override when set; canonical otherwise.

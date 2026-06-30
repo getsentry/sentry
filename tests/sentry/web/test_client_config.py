@@ -414,10 +414,11 @@ def test_project_key_default() -> None:
     organization = Factories.create_organization(name="test-org")
     project = Factories.create_project(organization=organization)
     project_key = Factories.create_project_key(project)
-    assert project_key.dsn_public
+    dsn_public = project_key.get_endpoint_urls().dsn_public
+    assert dsn_public
 
     with override_settings(SENTRY_PROJECT=project.id):
-        assert get_client_config()["dsn"] == project_key.dsn_public
+        assert get_client_config()["dsn"] == dsn_public
 
 
 @no_silo_test

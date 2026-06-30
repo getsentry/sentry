@@ -12,7 +12,7 @@ class DsnLookupEndpointTest(APITestCase):
         self.project = self.create_project(organization=self.org)
         self.key = self.project.key_set.first()
         assert self.key is not None
-        self.dsn = self.key.dsn_public
+        self.dsn = self.key.get_endpoint_urls().dsn_public
         self.login_as(self.user)
 
     def test_valid_dsn_returns_project_info(self) -> None:
@@ -37,7 +37,9 @@ class DsnLookupEndpointTest(APITestCase):
         other_key = other_project.key_set.first()
         assert other_key is not None
 
-        response = self.get_response(self.org.slug, qs_params={"dsn": other_key.dsn_public})
+        response = self.get_response(
+            self.org.slug, qs_params={"dsn": other_key.get_endpoint_urls().dsn_public}
+        )
         assert response.status_code == 404
 
     def test_user_without_project_access_returns_404(self) -> None:
@@ -54,5 +56,7 @@ class DsnLookupEndpointTest(APITestCase):
         self.create_member(user=user_without_access, organization=org, role="member", teams=[])
         self.login_as(user_without_access)
 
-        response = self.get_response(org.slug, qs_params={"dsn": key.dsn_public})
+        response = self.get_response(
+            org.slug, qs_params={"dsn": key.get_endpoint_urls().dsn_public}
+        )
         assert response.status_code == 404

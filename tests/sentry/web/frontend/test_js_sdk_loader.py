@@ -242,7 +242,7 @@ class JavaScriptSdkLoaderTest(TestCase):
     def test_bundle_kind_modifiers(
         self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
     ) -> None:
-        dsn = self.projectkey.get_dsn(public=True)
+        dsn = self.projectkey.get_endpoint_urls().get_dsn(public=True)
 
         for data, expected_bundle, expected_options in [
             (
@@ -459,12 +459,12 @@ class JavaScriptSdkLoaderTest(TestCase):
     def test_absolute_url(self) -> None:
         assert (
             reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
-            in self.projectkey.js_sdk_loader_cdn_url
+            in self.projectkey.get_endpoint_urls().js_sdk_loader_cdn_url
         )
         with self.settings(JS_SDK_LOADER_CDN_URL="https://js.sentry-cdn.com/"):
             assert (
                 "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
-            ) == self.projectkey.js_sdk_loader_cdn_url
+            ) == self.projectkey.get_endpoint_urls().js_sdk_loader_cdn_url
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["10.0.0"])
     @mock.patch(
@@ -478,7 +478,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
     ) -> None:
         """Test logs and metrics bundles which require SDK >= 10.0.0"""
-        dsn = self.projectkey.get_dsn(public=True)
+        dsn = self.projectkey.get_endpoint_urls().get_dsn(public=True)
 
         for data, expected_bundle, expected_options in [
             # Logs and metrics alone (no tracing required, bundle.logs.metrics exists)

@@ -38,7 +38,9 @@ class ListProjectKeysTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data[0]["dsn"]["playstation"] == key.playstation_endpoint
+        assert (
+            response.data[0]["dsn"]["playstation"] == key.get_endpoint_urls().playstation_endpoint
+        )
 
     def test_relay_dsn_endpoint_override(self) -> None:
         project = self.create_project()
@@ -66,7 +68,7 @@ class ListProjectKeysTest(APITestCase):
             "nel": f"https://relay.example.com/ingest/api/{project.id}/nel/?sentry_key={key.public_key}",
             "unreal": f"https://relay.example.com/ingest/api/{project.id}/unreal/{key.public_key}/",
             "crons": f"https://relay.example.com/ingest/api/{project.id}/cron/___MONITOR_SLUG___/{key.public_key}/",
-            "cdn": key.js_sdk_loader_cdn_url,
+            "cdn": key.get_endpoint_urls().js_sdk_loader_cdn_url,
             "playstation": f"https://relay.example.com/ingest/api/{project.id}/playstation/?sentry_key={key.public_key}",
             "integration": f"https://relay.example.com/ingest/api/{project.id}/integration/",
             "otlp_traces": f"https://relay.example.com/ingest/api/{project.id}/integration/otlp/v1/traces",
@@ -86,7 +88,9 @@ class ListProjectKeysTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data[0]["dsn"]["integration"] == key.integration_endpoint
+        assert (
+            response.data[0]["dsn"]["integration"] == key.get_endpoint_urls().integration_endpoint
+        )
 
     def test_otlp_traces_endpoint(self) -> None:
         project = self.create_project()
@@ -101,7 +105,9 @@ class ListProjectKeysTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data[0]["dsn"]["otlp_traces"] == key.otlp_traces_endpoint
+        assert (
+            response.data[0]["dsn"]["otlp_traces"] == key.get_endpoint_urls().otlp_traces_endpoint
+        )
 
     def test_otlp_logs_endpoint(self) -> None:
         project = self.create_project()
@@ -116,7 +122,7 @@ class ListProjectKeysTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data[0]["dsn"]["otlp_logs"] == key.otlp_logs_endpoint
+        assert response.data[0]["dsn"]["otlp_logs"] == key.get_endpoint_urls().otlp_logs_endpoint
         assert "integration/otlp/v1/logs" in response.data[0]["dsn"]["otlp_logs"]
 
     def test_use_case(self) -> None:

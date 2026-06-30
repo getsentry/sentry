@@ -20,7 +20,7 @@ class CreateProjectTest(CliTestCase):
 
         key = ProjectKey.get_default(project)
         assert key is not None
-        assert f"DSN: {key.dsn_public}" in rv.output
+        assert f"DSN: {key.get_endpoint_urls().dsn_public}" in rv.output
 
     def test_basic_creation_with_org_id(self) -> None:
         org = self.create_organization(name="test-org")

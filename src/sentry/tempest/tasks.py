@@ -299,7 +299,7 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
             project_key, created = ProjectKey.objects.get_or_create(
                 use_case=UseCase.TEMPEST, project=credentials.project
             )
-            dsn = project_key.get_dsn()
+            dsn = project_key.get_endpoint_urls().get_dsn()
             if created:
                 schedule_invalidate_project_config(
                     project_id=project_id, trigger="tempest:poll_tempest_crashes"

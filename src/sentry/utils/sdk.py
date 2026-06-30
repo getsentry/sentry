@@ -359,8 +359,10 @@ def configure_sdk():
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
         sentry_saas_transport = None
-    elif internal_project_key and internal_project_key.dsn_private:
-        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+    elif internal_project_key and (
+        dsn_private := internal_project_key.get_endpoint_urls().dsn_private
+    ):
+        transport = make_transport(get_options(dsn=dsn_private, **sdk_options))
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         sentry_saas_transport = None

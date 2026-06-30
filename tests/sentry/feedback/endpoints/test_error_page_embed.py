@@ -37,10 +37,11 @@ class ErrorPageEmbedTest(TestCase):
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)
+        self.dsn_public = self.key.get_endpoint_urls().dsn_public
         self.event_id = uuid4().hex
         self.path = reverse("sentry-error-page-embed")
         self.path_with_qs = (
-            f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.key.dsn_public)}"
+            f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.dsn_public)}"
         )
 
     def test_invalid_referer(self) -> None:
@@ -63,7 +64,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Content-Type"] == "text/javascript"
 
     def test_missing_eventId(self) -> None:
-        path = f"{self.path}?dsn={quote(self.key.dsn_public)}"
+        path = f"{self.path}?dsn={quote(self.dsn_public)}"
         resp = self.client.get(
             path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"
         )
@@ -158,7 +159,7 @@ class ErrorPageEmbedTest(TestCase):
             user_feedback_options[key] = f"<img src=x onerror=alert({key})>XSS_{key}".encode()
 
         user_feedback_options_qs = urlencode(user_feedback_options)
-        path_with_qs = f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.key.dsn_public)}&{user_feedback_options_qs}"
+        path_with_qs = f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.dsn_public)}&{user_feedback_options_qs}"
         resp = self.client.get(
             path_with_qs,
             HTTP_REFERER="http://example.com",
@@ -205,7 +206,7 @@ class ErrorPageEmbedTest(TestCase):
 
     def test_submission_invalid_event_id(self) -> None:
         self.event_id = "x" * 100
-        path = f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.key.dsn_public)}"
+        path = f"{self.path}?eventId={quote(self.event_id)}&dsn={quote(self.dsn_public)}"
 
         resp = self.client.post(
             path,
@@ -235,7 +236,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.path = "{}?eventId={}&dsn={}".format(
             reverse("sentry-error-page-embed"),
             quote(self.event_id),
-            quote(self.key.dsn_public),
+            quote(self.key.get_endpoint_urls().dsn_public),
         )
         self.environment = Environment.objects.create(
             organization_id=self.project.organization_id,

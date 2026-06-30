@@ -90,8 +90,9 @@ class VercelIntegrationTest(IntegrationTestCase):
         project_id = self.project.id
         with assume_test_silo_mode(SiloMode.CELL):
             project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
-            enabled_dsn = project_key.get_dsn(public=True)
-            integration_endpoint = project_key.integration_endpoint
+            endpoint_urls = project_key.get_endpoint_urls()
+            enabled_dsn = endpoint_urls.get_dsn(public=True)
+            integration_endpoint = endpoint_urls.integration_endpoint
             public_key = project_key.public_key
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
@@ -235,8 +236,9 @@ class VercelIntegrationTest(IntegrationTestCase):
         project_id = self.project.id
         with assume_test_silo_mode(SiloMode.CELL):
             project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
-            enabled_dsn = project_key.get_dsn(public=True)
-            integration_endpoint = project_key.integration_endpoint
+            endpoint_urls = project_key.get_endpoint_urls()
+            enabled_dsn = endpoint_urls.get_dsn(public=True)
+            integration_endpoint = endpoint_urls.integration_endpoint
             public_key = project_key.public_key
 
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
@@ -397,8 +399,9 @@ class VercelIntegrationTest(IntegrationTestCase):
         project_id = self.project.id
         with assume_test_silo_mode(SiloMode.CELL):
             project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
-            enabled_dsn = project_key.get_dsn(public=True)
-            integration_endpoint = project_key.integration_endpoint
+            endpoint_urls = project_key.get_endpoint_urls()
+            enabled_dsn = endpoint_urls.get_dsn(public=True)
+            integration_endpoint = endpoint_urls.integration_endpoint
             public_key = project_key.public_key
 
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")

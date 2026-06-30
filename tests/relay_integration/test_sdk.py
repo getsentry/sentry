@@ -41,7 +41,7 @@ def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_co
     assert internal_project_key is not None
 
     client = sentry_sdk.Client(
-        dsn=internal_project_key.dsn_private,
+        dsn=internal_project_key.get_endpoint_urls().dsn_private,
     )
 
     wait_for_ingest_consumer = wait_for_ingest_consumer(settings)

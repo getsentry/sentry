@@ -14,10 +14,11 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
         self.project = self.create_project()
         self.key = self.create_project_key(project=self.project)
         self.event_id = uuid4().hex
+        dsn_public = self.key.get_endpoint_urls().dsn_public
         self.path = "{}?eventId={}&dsn={}".format(
             reverse("sentry-error-page-embed"),
             quote(self.event_id),
-            quote(self.key.dsn_public),
+            quote(dsn_public),
         )
 
     def wait_for_error_page_embed(self) -> None:
