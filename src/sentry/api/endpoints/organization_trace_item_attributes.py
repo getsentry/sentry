@@ -310,6 +310,28 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
+# Sentry-defined attributes the `/attributes` endpoint force-includes in its
+# response even when the attribute-names RPC pages them out past its key limit.
+# Kept deliberately narrow (it widens every no-substring response, including the
+# frontend's), so it only covers attributes with a demonstrated paging problem
+# rather than every described attribute. Each must be a public alias of a
+# definition carrying an `AttributeContext`.
+SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
+    SupportedTraceItemType.SPANS: frozenset({"span.description"}),
+    SupportedTraceItemType.LOGS: frozenset(),
+    SupportedTraceItemType.TRACEMETRICS: frozenset(),
+}
+
+
+def _search_type_to_context_type(search_type: str) -> Literal["string", "number", "boolean"]:
+    """Collapse an EAP search type to the coarse type used for context matching."""
+    if search_type == "string":
+        return "string"
+    if search_type == "boolean":
+        return "boolean"
+    return "number"
+
+
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
@@ -374,6 +396,47 @@ def build_sentry_convention_context(
     return context
 
 
+def build_sentry_attribute_context(
+    public_name: str,
+    attribute_type: Literal["string", "number", "boolean"] | None,
+    item_type: SupportedTraceItemType,
+) -> TraceItemAttributeContext | None:
+    """
+    Build context for a Sentry-defined attribute that isn't a sentry convention
+    (e.g. ``span.description``), sourced from the attribute definition's
+    ``context`` (see ``ResolvedAttribute.context``). These resolve with
+    ``isConvention=False``; clients distinguish them from conventions via
+    ``source_type == sentry``.
+
+    The expected type is taken from the definition's ``search_type`` -- the same
+    object the context lives on -- so it can't drift. When ``attribute_type`` is
+    provided the context only attaches if it matches, so a user attribute that
+    merely shares a public alias (e.g. a string tag named ``span.duration``) isn't
+    mislabeled with the definition's context.
+    """
+    column = get_column_definitions(item_type).columns.get(public_name)
+    context = getattr(column, "context", None)
+    if column is None or context is None:
+        return None
+
+    if (
+        attribute_type is not None
+        and _search_type_to_context_type(column.search_type) != attribute_type
+    ):
+        return None
+
+    result: TraceItemAttributeContext = {
+        "isConvention": False,
+        "brief": context.brief,
+        "isDeprecated": bool(column.deprecation_status or column.replacement),
+    }
+    if context.examples:
+        result["examples"] = list(context.examples)
+    if column.replacement:
+        result["replacementAttribute"] = column.replacement
+    return result
+
+
 def as_attribute_key(
     name: str,
     attr_type: Literal["string", "number", "boolean"],
@@ -432,10 +495,13 @@ def as_attribute_key(
         # need an alias (a public name distinct from their internal name), so a
         # convention whose name is already the same internally -- e.g.
         # `http.route` -- is missing from it and resolves as a `user` source
-        # attribute. Anything without a matching convention gets an empty context
-        # for now; serving custom attribute context is planned.
-        context = build_sentry_convention_context(public_name, name, attr_type) or {}
-        attribute_key["context"] = context
+        # attribute. A Sentry-defined attribute that isn't a convention (e.g.
+        # `span.description`) instead carries its context on the definition. User
+        # attributes with no match get an empty context.
+        context = build_sentry_convention_context(
+            public_name, name, attr_type
+        ) or build_sentry_attribute_context(public_name, attr_type, item_type)
+        attribute_key["context"] = context or {}
 
     return attribute_key
 
@@ -650,6 +716,21 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
                 else:
+                    # Always include curated Sentry-defined attributes (e.g.
+                    # span.description) so they aren't paged out past the RPC's
+                    # attribute-name limit. They carry context and
+                    # source_type=sentry.
+                    for public_alias in SENTRY_ALWAYS_INCLUDED_ATTRIBUTES.get(
+                        trace_item_type, frozenset()
+                    ):
+                        always_include_column = column_definitions.columns.get(public_alias)
+                        if (
+                            always_include_column is not None
+                            and always_include_column.proto_type == attr_type
+                            and not always_include_column.secondary_alias
+                            and not always_include_column.private
+                        ):
+                            all_aliased_attributes.append(always_include_column)
                     for (
                         public_label,
                         virtual_context,

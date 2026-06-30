@@ -580,6 +580,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "examples": ["/users/:id"],
             "isDeprecated": False,
         }
+        # `span.description` is a Sentry-defined attribute that isn't a sentry
+        # convention. It's always included (this segment sets no description) and
+        # carries context from its definition (`ResolvedAttribute.context`), marked
+        # isConvention=False with a `sentry` source.
+        assert attributes["span.description"]["attributeSource"]["source_type"] == "sentry"
+        assert attributes["span.description"]["context"]["isConvention"] is False
+        assert attributes["span.description"]["context"]["brief"]
 
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
@@ -804,13 +811,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
 
+        # `span.description` is now always included (a curated Sentry-defined
+        # attribute), so it occupies a slot on the first page and pushes `bar`
+        # to a later page.
         expected: list[TraceItemAttributeKey] = [
-            {
-                "key": "bar",
-                "name": "bar",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "user"},
-            },
             {
                 "key": "device.class",
                 "name": "device.class",
@@ -818,14 +822,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "sentry"},
             },
             {
-                "key": "span.module",
-                "name": "span.module",
+                "key": "project",
+                "name": "project",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
             },
             {
-                "key": "project",
-                "name": "project",
+                "key": "span.description",
+                "name": "span.description",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+                "secondaryAliases": ["description", "message"],
+            },
+            {
+                "key": "span.module",
+                "name": "span.module",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
             },
@@ -872,11 +883,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "user"},
             },
             {
-                "key": "span.description",
-                "name": "span.description",
+                "key": "project",
+                "name": "project",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
-                "secondaryAliases": ["description", "message"],
             },
         ]
         assert sorted(
@@ -902,11 +912,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         expected_3: list[TraceItemAttributeKey] = [
             {
-                "key": "span.description",
-                "name": "span.description",
+                "key": "foo",
+                "name": "foo",
                 "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
-                "secondaryAliases": ["description", "message"],
+                "attributeSource": {"source_type": "user"},
             },
             {
                 "key": "transaction",
