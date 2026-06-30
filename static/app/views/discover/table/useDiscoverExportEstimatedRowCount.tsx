@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {ROW_COUNT_VALUE_MAX} from 'sentry/components/exports/generateExportRowCountOptions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
@@ -34,7 +35,7 @@ export function useDiscoverExportEstimatedRowCount({
 
   const payload = eventView.getEventsAPIPayload(location);
 
-  const {data, isLoading} = useQuery({
+  const {data, isLoading, isError} = useQuery({
     ...apiOptions.as<EventsMetaResponse>()(
       '/organizations/$organizationIdOrSlug/events-meta/',
       {
@@ -46,8 +47,12 @@ export function useDiscoverExportEstimatedRowCount({
     enabled,
   });
 
+  const estimatedRowCount = isError
+    ? Math.max(loadedRowCount, ROW_COUNT_VALUE_MAX)
+    : Math.max(loadedRowCount, data?.count ?? 0);
+
   return {
-    estimatedRowCount: Math.max(loadedRowCount, data?.count ?? 0),
+    estimatedRowCount,
     isPending: isLoading,
   };
 }

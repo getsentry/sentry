@@ -114,6 +114,87 @@ describe('TracesExportModalButton', () => {
     expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
   });
 
+  it('does not surface the aggregates table state in the tooltip on a non-exportable tab', async () => {
+    const erroringAggregates: AggregatesTableResult = {
+      ...aggregatesTableResult,
+      result: {
+        data: [],
+        isPending: false,
+        error: new Error('boom'),
+      } as unknown as AggregatesTableResult['result'],
+    };
+
+    render(
+      <TracesExportModalButton
+        aggregatesTableResult={erroringAggregates}
+        spansTableResult={{eventView, result: makeQueryResult([])}}
+        rawSpanCounts={{
+          normal: {count: 0, isLoading: false},
+          total: {count: 0, isLoading: false},
+        }}
+      />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {location: {pathname: '/', query: {table: 'trace'}}},
+      }
+    );
+
+    const button = screen.getByRole('button', {name: 'Export Data'});
+    expect(button).toBeDisabled();
+
+    await userEvent.hover(button);
+    expect(
+      screen.queryByText('Unable to export due to an error')
+    ).not.toBeInTheDocument();
+  });
+
+  it('routes oversized aggregate exports to the server when the page is full', async () => {
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 9},
+    });
+
+    const fullAggregatePage: AggregatesTableResult = {
+      ...aggregatesTableResult,
+      result: makeQueryResult(
+        Array.from({length: 50}, (_, i) => ({id: String(i), 'span.description': 'GET /'}))
+      ),
+    };
+
+    render(
+      <TracesExportModalButton
+        aggregatesTableResult={fullAggregatePage}
+        spansTableResult={{eventView, result: makeQueryResult([])}}
+        rawSpanCounts={{
+          normal: {count: 0, isLoading: false},
+          total: {count: 0, isLoading: false},
+        }}
+      />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {location: {pathname: '/', query: {mode: 'aggregate'}}},
+      }
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({query_type: 'Explore', limit: 500}),
+        })
+      );
+    });
+    expect(downloadAsCsv).not.toHaveBeenCalled();
+  });
+
   it('downloads CSV in the browser when the requested rows are already loaded', async () => {
     renderButton({
       spanRows: [

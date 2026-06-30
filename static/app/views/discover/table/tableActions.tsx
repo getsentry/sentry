@@ -59,6 +59,7 @@ function DiscoverExportSwitch({canEdit, ...props}: Props & {canEdit: boolean}) {
   if (showModalExport) {
     return (
       <DiscoverExportModalButton
+        disabled={!canEdit}
         error={props.error}
         eventView={props.eventView}
         isLoading={props.isLoading}

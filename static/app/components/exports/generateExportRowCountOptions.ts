@@ -12,11 +12,14 @@ const ROW_COUNT_VALUE_DEFAULT = 500;
  */
 const ROW_COUNT_VALUE_SYNC_LIMIT = 1000;
 
+/** The largest row count the export modal offers as a selectable option. */
+export const ROW_COUNT_VALUE_MAX = 10_000;
+
 const ROW_COUNT_VALUES = [
   100,
   ROW_COUNT_VALUE_DEFAULT,
   ROW_COUNT_VALUE_SYNC_LIMIT,
-  10_000,
+  ROW_COUNT_VALUE_MAX,
 ];
 
 export function generateExportRowCountOptions(estimatedRowCount: number) {

@@ -19,9 +19,11 @@ type DiscoverExportModalButtonProps = {
   organization: OrganizationSummary;
   tableData: TableData | null | undefined;
   title: string;
+  disabled?: boolean;
 };
 
 export function DiscoverExportModalButton({
+  disabled,
   error,
   eventView,
   isLoading,
@@ -68,6 +70,7 @@ export function DiscoverExportModalButton({
     <ExploreExportModalButton
       config={config}
       size="sm"
+      disabled={disabled}
       isDataEmpty={rows.length === 0}
       isDataError={error !== null}
       isDataLoading={isLoading || isEstimatePending}
