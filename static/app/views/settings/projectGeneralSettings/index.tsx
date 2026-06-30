@@ -13,7 +13,7 @@ import {
   FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -212,20 +212,20 @@ function ProjectSlugForm({
         </form.AppField>
 
         {!disabled && (
-          <form.Subscribe selector={state => state.isDirty}>
+          <form.Subscribe selector={state => !state.isDefaultValue}>
             {isDirty =>
               isDirty ? (
-                <Fragment>
+                <Container paddingTop="lg">
                   <Alert variant="warning">
                     {t(
                       "Changing a project's slug can break your build scripts! Please proceed carefully."
                     )}
                   </Alert>
-                  <Flex gap="sm" justify="end">
+                  <Flex gap="sm" justify="end" paddingTop="lg">
                     <form.ResetButton>{t('Cancel')}</form.ResetButton>
                     <form.SubmitButton>{t('Save')}</form.SubmitButton>
                   </Flex>
-                </Fragment>
+                </Container>
               ) : null
             }
           </form.Subscribe>
@@ -326,21 +326,21 @@ function AutoResolveForm({
         </form.AppField>
 
         {!disabled && (
-          <form.Subscribe selector={state => state.isDirty}>
+          <form.Subscribe selector={state => !state.isDefaultValue}>
             {isDirty =>
               isDirty ? (
-                <Fragment>
+                <Container paddingTop="lg">
                   <Alert variant="warning">
                     {tct(
                       '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
                       {strong: <strong />}
                     )}
                   </Alert>
-                  <Flex gap="sm" justify="end">
+                  <Flex gap="sm" justify="end" paddingTop="lg">
                     <form.ResetButton>{t('Cancel')}</form.ResetButton>
                     <form.SubmitButton>{t('Save')}</form.SubmitButton>
                   </Flex>
-                </Fragment>
+                </Container>
               ) : null
             }
           </form.Subscribe>
