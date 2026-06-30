@@ -50,6 +50,9 @@ from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
 )
 from sentry.api.endpoints.organization_trace_item_stats import OrganizationTraceItemsStatsEndpoint
+from sentry.api.endpoints.organization_trace_items_by_id import (
+    OrganizationTraceItemsByIdEndpoint,
+)
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
@@ -1736,6 +1739,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/stats/$",
         OrganizationTraceItemsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/by-id/$",
+        OrganizationTraceItemsByIdEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-items-by-id",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/spans/fields/$",
