@@ -386,11 +386,11 @@ class VercelIntegration(IntegrationInstallation):
             )
             raise
 
-    def create_env_var(self, client, vercel_project_id, key, value, type, target):
+    def create_env_var(self, client, vercel_project_id, key, value, type, targets):
         data = {
             "key": key,
             "value": value,
-            "target": target,
+            "target": targets,
             "type": type,
         }
 
@@ -400,15 +400,28 @@ class VercelIntegration(IntegrationInstallation):
         )
 
         if use_upsert:
-            try:
-                return client.create_env_variable(vercel_project_id, data, upsert=True)
-            except ApiError as e:
-                error_message = (
-                    (e.json or {})
-                    .get("error", {})
-                    .get("message", f"Could not create or update environment variable {key}.")
-                )
-                raise ValidationError({"project_mappings": [error_message]})
+            # Upsert one target at a time to avoid ENV_CONFLICT errors when the
+            # existing variable's target list doesn't match ours exactly.
+            for target in targets:
+                target_data = {
+                    "key": key,
+                    "value": value,
+                    "target": [target],
+                    "type": type,
+                }
+                try:
+                    client.create_env_variable(vercel_project_id, target_data, upsert=True)
+                except ApiError as e:
+                    error_message = (
+                        (e.json or {})
+                        .get("error", {})
+                        .get(
+                            "message",
+                            f"Could not create or update environment variable {key}.",
+                        )
+                    )
+                    raise ValidationError({"project_mappings": [error_message]})
+            return
 
         try:
             return client.create_env_variable(vercel_project_id, data)

@@ -1,8 +1,18 @@
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {TagVariant} from 'sentry/utils/theme';
+import {
+  IssueAlertNotificationOptions,
+  type IssueAlertNotificationProps,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  type AlertRuleOptions,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
@@ -11,6 +21,7 @@ import {ScmCollapsibleSection} from './scmCollapsibleSection';
 interface ScmAlertFrequencySectionProps {
   alertRuleConfig: AlertRuleOptions;
   analyticsFlow: ScmAnalyticsFlow;
+  notificationProps: IssueAlertNotificationProps;
   onAlertChange: <K extends keyof AlertRuleOptions>(
     key: K,
     value: AlertRuleOptions[K]
@@ -27,25 +38,65 @@ interface ScmAlertFrequencySectionProps {
 export function ScmAlertFrequencySection({
   alertRuleConfig,
   analyticsFlow,
+  notificationProps,
   onAlertChange,
 }: ScmAlertFrequencySectionProps) {
   const collapsible = analyticsFlow === 'project-creation';
 
+  // Notification options are irrelevant when the user opts out of alerts, so
+  // hide them for "create alerts later" (mirrors issueAlertOptions).
+  const notificationOptions =
+    alertRuleConfig.alertSetting === RuleAction.CREATE_ALERT_LATER ? null : (
+      <IssueAlertNotificationOptions {...notificationProps} />
+    );
+
+  const footer = (
+    <Flex gap="sm" align="center">
+      <IconInfo size="md" variant="secondary" />
+      <Text variant="secondary" size="md" density="comfortable">
+        {t('You can always change alerts after project creation')}
+      </Text>
+    </Flex>
+  );
+
   if (collapsible) {
+    // Summarize the current selection in the collapsed header.
+    const alertSettingLabel: Record<RuleAction, [string, TagVariant]> = {
+      [RuleAction.DEFAULT_ALERT]: [t('High priority issues'), 'info'],
+      [RuleAction.CUSTOMIZED_ALERTS]: [t('Custom'), 'info'],
+      [RuleAction.CREATE_ALERT_LATER]: [t('Off'), 'muted'],
+    };
+
+    // alertRuleConfig can come from restored session storage, so fall back to
+    // the default if alertSetting holds an unknown value (avoids destructuring
+    // undefined).
+    const [label, variant] =
+      alertSettingLabel[alertRuleConfig.alertSetting] ??
+      alertSettingLabel[RuleAction.DEFAULT_ALERT];
+
     return (
-      <ScmCollapsibleSection title={t('Alert frequency')}>
-        <Stack gap="md" width="100%">
-          <Text variant="muted" density="comfortable">
-            {t('Get notified when things go wrong')}
-          </Text>
+      <ScmCollapsibleSection
+        title={t('Alert frequency')}
+        defaultExpanded={false}
+        trailing={
+          <Tag style={{minWidth: '0px'}} variant={variant}>
+            <Text ellipsis variant="inherit">
+              {label}
+            </Text>
+          </Tag>
+        }
+      >
+        <Stack gap="lg">
           <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
+          {notificationOptions}
+          {footer}
         </Stack>
       </ScmCollapsibleSection>
     );
   }
 
   return (
-    <Stack gap="md">
+    <Stack gap="lg">
       <Stack gap="xs">
         <Container>
           <Text bold size="md" density="comfortable">
@@ -59,6 +110,8 @@ export function ScmAlertFrequencySection({
         </Container>
       </Stack>
       <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
+      {notificationOptions}
+      {footer}
     </Stack>
   );
 }

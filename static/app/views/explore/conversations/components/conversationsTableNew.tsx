@@ -1,7 +1,10 @@
-import {Fragment, memo, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,9 +18,8 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconUser} from 'sentry/icons';
+import {IconEdit, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,45 +30,67 @@ import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversatio
 import {
   getConversationDetailUrl,
   getUserDisplayName,
+  InputOutputTooltipCell,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
+import {ConversationToolCallsBreakdown} from 'sentry/views/explore/conversations/components/conversationToolCallsBreakdown';
 import {
   useConversations,
   type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
+import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
+import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
+import {
+  type ConversationColumnKey,
+  CONVERSATION_COLUMNS,
+  RIGHT_ALIGNED_CONVERSATION_COLUMNS,
+} from 'sentry/views/explore/conversations/utils/tableColumns';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
-
-type ColumnKey =
-  | 'conversationId'
-  | 'llmCalls'
-  | 'user'
-  | 'toolCalls'
-  | 'errors'
-  | 'cost'
-  | 'timestamp';
-
-const DEFAULT_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
-  {key: 'conversationId', name: t('Conv. ID'), width: 150},
-  {key: 'user', name: t('User'), width: COL_WIDTH_UNDEFINED},
-  {key: 'llmCalls', name: t('LLM Calls'), width: 100},
-  {key: 'toolCalls', name: t('Tool Calls'), width: 120},
-  {key: 'errors', name: t('Errors'), width: 100},
-  {key: 'cost', name: t('Cost'), width: 110},
-  {key: 'timestamp', name: t('Last Message'), width: 140},
-];
-
-const RIGHT_ALIGN_COLUMNS = new Set<ColumnKey>(['timestamp']);
 
 export function ConversationsTableNew() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {columns, handleResizeColumn} = useStateBasedColumnResize({
-    columns: DEFAULT_COLUMNS,
-  });
+  const {openModal} = useModal();
+  const {columns, setColumns} = useConversationsTableColumns();
   const {data, isLoading, error, pageLinks, setCursor} = useConversations();
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+
+  const columnOrder = useMemo<Array<GridColumnOrder<ConversationColumnKey>>>(
+    () =>
+      columns.map(({key, width}) => ({
+        key,
+        name: CONVERSATION_COLUMNS[key].name,
+        width: width ?? CONVERSATION_COLUMNS[key].width,
+      })),
+    [columns]
+  );
+
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnOrder<ConversationColumnKey>) => {
+      const {width} = nextColumn;
+      // A double-click reset sends COL_WIDTH_UNDEFINED (-1); drop the persisted
+      // width so the column falls back to its default instead of keeping the old
+      // value. Any other non-positive width is ignored.
+      setColumns(
+        columns.map((c, i) => {
+          if (i !== columnIndex) {
+            return c;
+          }
+          if (typeof width === 'number' && width > 0) {
+            return {...c, width: Math.round(width)};
+          }
+          if (width === COL_WIDTH_UNDEFINED) {
+            return {key: c.key};
+          }
+          return c;
+        })
+      );
+    },
+    [columns, setColumns]
+  );
 
   const showMissingMessagesAlert =
     !isLoading &&
@@ -82,40 +106,59 @@ export function ConversationsTableNew() {
     setCursor(cursor, path, query, pageDelta);
   };
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<ColumnKey>) => {
-    return (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={RIGHT_ALIGN_COLUMNS.has(column.key) ? 'end' : 'start'}
-      >
-        {column.name}
-        {/* Force the flexible column to claim the leftover width so the others
-            stay at their defined widths instead of the last column growing. */}
-        {column.key === 'user' && <Container width="100vw" />}
-      </Flex>
+  const openColumnEditor = () => {
+    openModal(
+      modalProps => (
+        <ConversationsTableEditModal
+          {...modalProps}
+          columns={columns}
+          onColumnsChange={setColumns}
+        />
+      ),
+      {closeEvents: 'escape-key'}
     );
-  }, []);
+  };
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<ConversationColumnKey>) => {
+      return (
+        <Flex
+          flex="1"
+          align="center"
+          gap="xs"
+          justify={RIGHT_ALIGNED_CONVERSATION_COLUMNS.has(column.key) ? 'end' : 'start'}
+        >
+          {column.name}
+          {/* Raise the user column's growth-limit so it absorbs the leftover
+              width instead of the last column stretching. The panel's
+              horizontal scroll (and the `minWidth: 0` wrapper) keeps this from
+              overflowing when there are too many columns to fit. */}
+          {column.key === 'user' && <Container width="100vw" />}
+        </Flex>
+      );
+    },
+    []
+  );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
+    (
+      column: GridColumnOrder<ConversationColumnKey>,
+      dataRow: Conversation,
+      rowIndex: number
+    ) => (
       <BodyCell
         column={column}
         dataRow={dataRow}
         organization={organization}
         projects={selection.projects}
+        isRowHovered={rowIndex === highlightedRowKey}
       />
     ),
-    [organization, selection.projects]
+    [organization, selection.projects, highlightedRowKey]
   );
 
   const handleRowClick = useCallback(
     (dataRow: Conversation) => {
-      trackAnalytics('conversations.table.open', {
-        organization,
-        source: 'table_row',
-      });
       navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
     },
     [navigate, organization, selection.projects]
@@ -124,11 +167,16 @@ export function ConversationsTableNew() {
   return (
     <Fragment>
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+      <Flex justify="end">
+        <Button size="sm" icon={<IconEdit />} onClick={openColumnEditor}>
+          {t('Edit Table')}
+        </Button>
+      </Flex>
       <GridEditable
         isLoading={isLoading}
         error={error}
         data={data}
-        columnOrder={columns}
+        columnOrder={columnOrder}
         columnSortBy={[]}
         stickyHeader
         grid={{
@@ -152,9 +200,11 @@ const BodyCell = memo(function BodyCell({
   dataRow,
   organization,
   projects,
+  isRowHovered,
 }: {
-  column: GridColumnOrder<ColumnKey>;
+  column: GridColumnOrder<ConversationColumnKey>;
   dataRow: Conversation;
+  isRowHovered: boolean;
   organization: Organization;
   projects: number[];
 }) {
@@ -167,10 +217,6 @@ const BodyCell = memo(function BodyCell({
           onClick={event => {
             // Let the link handle navigation; don't also trigger the row click.
             event.stopPropagation();
-            trackAnalytics('conversations.table.open', {
-              organization,
-              source: 'table_conversation_id',
-            });
           }}
         >
           {isUUID(dataRow.conversationId) ? (
@@ -232,11 +278,7 @@ const BodyCell = memo(function BodyCell({
       );
     }
     case 'toolCalls':
-      return (
-        <Text as="div">
-          <Count value={dataRow.toolCalls} />
-        </Text>
-      );
+      return <ToolCallsCell dataRow={dataRow} isRowHovered={isRowHovered} />;
     case 'errors':
       return (
         <Text as="div" variant={dataRow.errors > 0 ? 'danger' : undefined}>
@@ -259,7 +301,67 @@ const BodyCell = memo(function BodyCell({
           <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
         </Text>
       );
+    case 'input':
+      return dataRow.firstInput ? (
+        <InputOutputTooltipCell text={dataRow.firstInput} />
+      ) : (
+        <Text>&mdash;</Text>
+      );
+    case 'output':
+      return dataRow.lastOutput ? (
+        <InputOutputTooltipCell text={dataRow.lastOutput} />
+      ) : (
+        <Text>&mdash;</Text>
+      );
+    case 'inputTokens':
+      return (
+        <Text as="div">
+          <Count value={dataRow.inputTokens} />
+        </Text>
+      );
+    case 'outputTokens':
+      return (
+        <Text as="div">
+          <Count value={dataRow.outputTokens} />
+        </Text>
+      );
     default:
       return null;
   }
 });
+
+function ToolCallsCell({
+  dataRow,
+  isRowHovered,
+}: {
+  dataRow: Conversation;
+  isRowHovered: boolean;
+}) {
+  // Prefetch the breakdown on row hover so the card is already populated by the
+  // time it opens. Shares the card's query key, so this only warms the cache —
+  // it never fires a second request. The card fetches on its own when opened
+  // (covers keyboard focus and hovering into the interactive card).
+  useConversationToolBreakdown({
+    conversationId: dataRow.conversationId,
+    enabled: isRowHovered && dataRow.toolCalls > 0,
+  });
+
+  if (dataRow.toolCalls === 0) {
+    return (
+      <Text as="div">
+        <Count value={dataRow.toolCalls} />
+      </Text>
+    );
+  }
+
+  return (
+    <Text as="div">
+      <InfoText
+        maxWidth={400}
+        title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
+      >
+        <Count value={dataRow.toolCalls} />
+      </InfoText>
+    </Text>
+  );
+}

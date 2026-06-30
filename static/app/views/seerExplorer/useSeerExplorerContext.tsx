@@ -32,7 +32,10 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 import {
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
@@ -361,7 +364,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // Deep link effect while Seer isn't already showing (the drawer content
   // handles deep links itself when open or popped out).
   const deepLinkCallback = useCallback(
-    (_runId: number) => openSeerExplorer({runId: _runId}),
+    (_runId: SeerExplorerRunId) => openSeerExplorer({runId: _runId}),
     [openSeerExplorer]
   );
 

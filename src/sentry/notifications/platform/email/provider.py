@@ -15,15 +15,15 @@ from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTarget,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.utils.email.address import get_from_email_domain
@@ -47,16 +47,22 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         html_body_blocks = cls.render_body_blocks_to_html_string(rendered_template.body)
         txt_body_blocks = cls.render_body_blocks_to_txt_string(rendered_template.body)
 
+        # Email doesn't support rich text in subjects (obviously, lol)
+        subject = rendered_template.subject_text
+        footer_html = mark_safe(
+            cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
+        )
+        footer_txt = cls.render_text_blocks_to_txt_string(rendered_template.footer_blocks)
+
         email_context = {
-            "subject": rendered_template.subject,
+            "subject": subject,
             "actions": [(action.label, action.link) for action in rendered_template.actions],
             "chart_url": rendered_template.chart.url if rendered_template.chart else None,
             "chart_alt_text": rendered_template.chart.alt_text if rendered_template.chart else None,
-            "footer": rendered_template.footer,
         }
 
-        html_email_context = {**email_context, "body": html_body_blocks}
-        txt_email_context = {**email_context, "body": txt_body_blocks}
+        html_email_context = {**email_context, "body": html_body_blocks, "footer": footer_html}
+        txt_email_context = {**email_context, "body": txt_body_blocks, "footer": footer_txt}
 
         html_body = inline_css(
             render_to_string(
@@ -71,7 +77,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         # Required by RFC 2822 (https://www.rfc-editor.org/rfc/rfc2822.html)
         headers = {"Message-Id": make_msgid(domain=get_from_email_domain())}
         email = EmailMultiAlternatives(
-            subject=rendered_template.subject,
+            subject=subject,
             body=txt_body,
             # TODO(ecosystem): Potentially allow templates to configure more attributes of emails
             from_email=options.get("mail.from"),
@@ -86,62 +92,58 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         return email
 
     @classmethod
-    def render_body_blocks_to_html_string(cls, body: list[NotificationBodyFormattingBlock]) -> str:
+    def render_body_blocks_to_html_string(cls, body: list[NotificationSection]) -> str:
         body_blocks = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+            if block.type == NotificationSectionType.PARAGRAPH:
                 safe_content = cls.render_text_blocks_to_html_string(block.blocks)
                 body_blocks.append(f"<p>{safe_content}</p>")
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+            elif block.type == NotificationSectionType.CODE_BLOCK:
                 safe_content = cls.render_text_blocks_to_html_string(block.blocks)
                 body_blocks.append(f"<pre><code>{safe_content}</code></pre>")
 
         return mark_safe("".join(body_blocks))
 
     @classmethod
-    def render_text_blocks_to_html_string(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def render_text_blocks_to_html_string(cls, blocks: list[NotificationTextBlock]) -> str:
         texts: list[str] = []
         for block in blocks:
             # Escape user content to prevent XSS
             escaped_text = escape(block.text)
 
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(escaped_text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"<strong>{escaped_text}</strong>")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"<code>{escaped_text}</code>")
-            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
-                block, LinkTextBlock
-            ):
+            elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
                 escaped_url = escape(block.url)
                 texts.append(f'<a href="{escaped_url}">{escaped_text}</a>')
 
         return " ".join(texts)
 
     @classmethod
-    def render_body_blocks_to_txt_string(cls, blocks: list[NotificationBodyFormattingBlock]) -> str:
+    def render_body_blocks_to_txt_string(cls, blocks: list[NotificationSection]) -> str:
         body_blocks = []
         for block in blocks:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+            if block.type == NotificationSectionType.PARAGRAPH:
                 body_blocks.append(f"\n{cls.render_text_blocks_to_txt_string(block.blocks)}")
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+            elif block.type == NotificationSectionType.CODE_BLOCK:
                 body_blocks.append(f"\n```{cls.render_text_blocks_to_txt_string(block.blocks)}```")
         return " ".join(body_blocks)
 
     @classmethod
-    def render_text_blocks_to_txt_string(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def render_text_blocks_to_txt_string(cls, blocks: list[NotificationTextBlock]) -> str:
         texts = []
         for block in blocks:
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(block.text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
-            elif block.type == NotificationBodyTextBlockType.LINK and isinstance(
-                block, LinkTextBlock
-            ):
+            elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
                 texts.append(f"{block.text} ({block.url})")
         return " ".join(texts)
 

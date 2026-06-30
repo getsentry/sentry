@@ -1510,3 +1510,107 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_degrades_when_identity_service_errors(self, mock_get: MagicMock) -> None:
         # A control-silo RPC failure must not propagate (it would stall the outbox shard).
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
+
+    def test_returns_gcp_connections(self) -> None:
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={
+                "access_token": "gcp-access-token",
+                "refresh_token": "gcp-refresh-token",
+            },
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 3
+        urls = {c["url"] for c in result}
+        assert urls == {
+            "https://logging.googleapis.com/mcp",
+            "https://monitoring.googleapis.com/mcp",
+            "https://cloudtrace.googleapis.com/mcp",
+        }
+        for connection in result:
+            assert connection["provider_key"] == "gcp"
+            assert connection["identity_id"] == identity.id
+            assert connection["auth_method"] == "oauth"
+            fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+            decrypted = fernet.decrypt(connection["encrypted_access_token"].encode("utf-8")).decode(
+                "utf-8"
+            )
+            assert decrypted == "gcp-access-token"
+
+    def test_gcp_and_datadog_connections_together(self) -> None:
+        gcp_idp = self.create_identity_provider(type="gcp", external_id="")
+        gcp_identity = self.create_identity(
+            user=self.user,
+            identity_provider=gcp_idp,
+            external_id="gcp-user-1",
+            data={"access_token": "gcp-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=gcp_identity,
+        )
+
+        dd_idp = self.create_identity_provider(type="datadog", external_id="dd-org-1")
+        dd_identity = self.create_identity(
+            user=self.user,
+            identity_provider=dd_idp,
+            external_id="dd-user-1",
+            data={"access_token": "dd-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=dd_identity,
+        )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 4
+        gcp_connections = [c for c in result if c["provider_key"] == "gcp"]
+        dd_connections = [c for c in result if c["provider_key"] == "datadog"]
+        assert len(gcp_connections) == 3
+        assert len(dd_connections) == 1
+
+    def test_gcp_skips_identity_missing_access_token(self) -> None:
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={"refresh_token": "refresh-only"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
+
+    @patch("sentry.seer.agent.client.encrypt_access_token_for_seer")
+    def test_gcp_token_encrypted_once(self, mock_encrypt: MagicMock) -> None:
+        mock_encrypt.return_value = "encrypted-token"
+
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={"access_token": "gcp-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 3
+        mock_encrypt.assert_called_once_with("gcp-token")

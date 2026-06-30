@@ -290,6 +290,31 @@ describe('LogsToolbar', () => {
       );
     });
 
+    it('disables an attribute already selected in another group by', async () => {
+      render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      const firstColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(firstColumn).getByRole('button', {name: '—'}));
+      await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
+
+      const secondColumn = screen.getAllByTestId('editor-column')[1]!;
+      await userEvent.click(within(secondColumn).getByRole('button', {name: '—'}));
+
+      expect(await screen.findByRole('option', {name: 'message'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: 'severity'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
     it('can clear the last selected group by', async () => {
       let mode: Mode | undefined;
 

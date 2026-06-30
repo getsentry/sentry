@@ -16,7 +16,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_cells
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    cell_silo_test,
+    control_silo_test,
+    create_test_cells,
+)
 from sentry.utils import json
 
 
@@ -51,6 +56,7 @@ Disallow: /
         assert (
             response.content
             == b"""User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Disallow: /api/
 Allow: /
 
@@ -58,6 +64,7 @@ Sitemap: https://sentry.io/sitemap-index.xml
 """
         )
         assert response["Content-Type"] == "text/plain"
+        assert b"Content-Signal:" in response.content
 
     def test_region_domain(self) -> None:
         HTTP_HOST = "us.testserver"
@@ -670,6 +677,7 @@ class ClientConfigViewTest(TestCase):
         assert data["customerDomain"] is None
 
 
+@control_silo_test
 class McpJsonTest(TestCase):
     @cached_property
     def path(self) -> str:
@@ -700,3 +708,211 @@ class McpJsonTest(TestCase):
         assert response.status_code == 200
         assert "max-age=3600" in response["Cache-Control"]
         assert "public" in response["Cache-Control"]
+
+
+@control_silo_test
+class ApiCatalogTest(TestCase):
+    def test_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/api-catalog")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/linkset+json"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+        data = json.loads(response.content)
+        assert "linkset" in data
+        entry = data["linkset"][0]
+        assert entry["anchor"] == "https://sentry.io"
+        hrefs = [item["href"] for item in entry["item"]]
+        assert "https://sentry.io/api/0/" in hrefs
+        assert "https://mcp.sentry.dev/mcp" in hrefs
+
+    def test_non_saas_mode_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/api-catalog")
+        assert response.status_code == 404
+        assert "no-store" in response.get("Cache-Control", "")
+
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/.well-known/api-catalog")
+        assert response.status_code == 404
+        assert "no-store" in response.get("Cache-Control", "")
+
+    def test_subdomain_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(
+                "/.well-known/api-catalog", HTTP_HOST="albertos-apples.testserver"
+            )
+        assert response.status_code == 404
+
+
+@control_silo_test
+class OauthAuthorizationServerTest(TestCase):
+    def test_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/oauth-authorization-server")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+        data = json.loads(response.content)
+        assert data["issuer"] == "https://sentry.io"
+        assert data["authorization_endpoint"] == "https://sentry.io/oauth/authorize/"
+        assert data["token_endpoint"] == "https://sentry.io/oauth/token/"
+        assert isinstance(data["scopes_supported"], list)
+        assert "org:read" in data["scopes_supported"]
+
+    def test_non_saas_mode_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/oauth-authorization-server")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/.well-known/oauth-authorization-server")
+        assert response.status_code == 404
+
+    def test_subdomain_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(
+                "/.well-known/oauth-authorization-server", HTTP_HOST="albertos-apples.testserver"
+            )
+        assert response.status_code == 404
+
+
+@control_silo_test
+class OauthProtectedResourceTest(TestCase):
+    def test_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/oauth-protected-resource")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+        data = json.loads(response.content)
+        assert data["resource"] == "https://sentry.io"
+        assert isinstance(data["scopes_supported"], list)
+        assert "org:read" in data["scopes_supported"]
+
+    def test_non_saas_mode_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/oauth-protected-resource")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/.well-known/oauth-protected-resource")
+        assert response.status_code == 404
+
+    def test_subdomain_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(
+                "/.well-known/oauth-protected-resource", HTTP_HOST="albertos-apples.testserver"
+            )
+        assert response.status_code == 404
+
+
+@control_silo_test
+class McpServerCardTest(TestCase):
+    def test_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/mcp/server-card.json")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+        data = json.loads(response.content)
+        assert data["name"] == "Sentry"
+        assert data["url"] == "https://mcp.sentry.dev/mcp"
+
+    def test_non_saas_mode_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/mcp/server-card.json")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/.well-known/mcp/server-card.json")
+        assert response.status_code == 404
+
+    def test_subdomain_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(
+                "/.well-known/mcp/server-card.json", HTTP_HOST="albertos-apples.testserver"
+            )
+        assert response.status_code == 404
+
+
+@control_silo_test
+class AgentSkillsIndexTest(TestCase):
+    def test_saas_mode(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/.well-known/agent-skills/index.json")
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        assert response["Access-Control-Allow-Origin"] == "*"
+        assert "max-age=3600" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+        data = json.loads(response.content)
+        assert data == {"skills": []}
+
+    def test_non_saas_mode_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/agent-skills/index.json")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/.well-known/agent-skills/index.json")
+        assert response.status_code == 404
+
+    def test_subdomain_returns_404(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get(
+                "/.well-known/agent-skills/index.json", HTTP_HOST="albertos-apples.testserver"
+            )
+        assert response.status_code == 404
+
+
+class AgentDiscoveryMiddlewareTest(TestCase):
+    def test_html_response_gets_link_header(self) -> None:
+        with override_settings(SENTRY_MODE="saas"):
+            response = self.client.get("/")
+
+        assert "Link" in response
+        assert "api-catalog" in response["Link"]
+
+    def test_api_response_no_link_header(self) -> None:
+        from django.http import HttpRequest, HttpResponse
+
+        from sentry.middleware.agent_discovery import AgentDiscoveryMiddleware
+
+        inner_response = HttpResponse("ok", content_type="text/html")
+
+        def get_response(request):
+            return inner_response
+
+        middleware = AgentDiscoveryMiddleware(get_response)
+        request = HttpRequest()
+        request.method = "GET"
+        request.path = "/api/0/organizations/"
+        request.subdomain = None
+
+        with override_settings(SENTRY_MODE="saas"):
+            response = middleware(request)
+
+        assert "api-catalog" not in response.get("Link", "")
+
+    def test_non_saas_no_link_header(self) -> None:
+        with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/")
+        assert "api-catalog" not in response.get("Link", "")
+
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/")
+        assert "api-catalog" not in response.get("Link", "")

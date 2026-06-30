@@ -15,6 +15,7 @@ from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -348,10 +349,11 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with sentry_sdk.start_span(
+    with start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+        name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
-        span.set_tag("transaction_db", transaction_db)
+        set_span_tag(span, "transaction_db", transaction_db)
         if (
             options.get("relay.invalidation-direct-outside-atomic")
             and not connections[transaction_db].in_atomic_block
