@@ -28,8 +28,7 @@ interface Props {
 export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: Props) {
   const {
     fetchedRows: fetchedPinnedRows,
-    isPending: isFetchingPinnedRows,
-    isError: isErrorPinnedRows,
+    statusById: pinnedRowStatusById,
     refetch: refetchPinnedRows,
   } = pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
@@ -61,7 +60,9 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
           const dataRow = rowById.get(rowId);
 
           if (!dataRow) {
-            if (isFetchingPinnedRows) {
+            const status = pinnedRowStatusById.get(rowId) ?? 'pending';
+
+            if (status === 'pending') {
               return (
                 <GridRow key={rowId}>
                   <LoadingGridBodyCell>
@@ -70,17 +71,19 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
                 </GridRow>
               );
             }
+
+            const isErrorRow = status === 'error';
             return (
               <GridRow key={rowId}>
                 <UnavailableGridBodyCell>
                   <Flex align="center" gap="sm">
                     <IconWarning size="xs" />
                     <Text size="sm" variant="muted">
-                      {isErrorPinnedRows
+                      {isErrorRow
                         ? t('Could not load pinned log')
                         : t('Pinned log unavailable in the selected time range')}
                     </Text>
-                    {isErrorPinnedRows && (
+                    {isErrorRow && (
                       <Button size="xs" onClick={() => refetchPinnedRows()}>
                         {t('Retry')}
                       </Button>

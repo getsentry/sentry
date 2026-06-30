@@ -2,6 +2,7 @@ import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -165,6 +166,41 @@ describe('PinnedLogs', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Collapse 1 pinned'})).toBeInTheDocument();
     expect(router.location.query.logsPinned).toBe('missing-log');
+  });
+
+  it('keeps a resolved-unavailable pin shown while a newly pinned log is still loading', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({query: 'id:[log-a]'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      asyncDelay: Infinity,
+      body: {data: [], meta: {fields: {}, units: {}}},
+      match: [MockApiClient.matchQuery({query: 'id:[log-b]'})],
+    });
+
+    const {router} = renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'log-a'}},
+      },
+    });
+
+    expect(
+      await screen.findByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
+
+    act(() => {
+      router.navigate('/?logsPinned=log-a,log-b');
+    });
+
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(
+      screen.getByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
   });
 
   it('renders a count matching the rendered rows when some pins are unavailable', async () => {

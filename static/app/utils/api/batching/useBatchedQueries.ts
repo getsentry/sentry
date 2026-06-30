@@ -5,6 +5,8 @@ import {useQueries, useQueryClient} from '@tanstack/react-query';
 
 import type {BatchingRequest} from 'sentry/utils/api/batching/createBatcher';
 
+export type BatchedQueryStatus = 'error' | 'pending' | 'success';
+
 interface BatchedQueriesOptions<Data, QueryContext> {
   batcher: AsyncBatcher<BatchingRequest<Data, QueryContext>>;
   context: QueryContext;
@@ -22,21 +24,21 @@ export function useBatchedQueries<Data, QueryContext>({
 }: BatchedQueriesOptions<Data, QueryContext>) {
   const queryClient = useQueryClient();
 
-  const {fetchedData, isError, isPending} = useQueries({
+  const {fetchedData, isError, isPending, statusById} = useQueries({
     queries: ids.map(id => ({
       enabled,
       queryFn: batchedQueryFn(batcher, context, id),
       queryKey: [keyPrefix, context, id],
       staleTime: Infinity,
     })),
-    combine,
+    combine: results => combine(results, ids),
   });
 
   const refetch = useCallback(() => {
     queryClient.refetchQueries({queryKey: [keyPrefix], type: 'active'});
   }, [keyPrefix, queryClient]);
 
-  return {fetchedData, isError, isPending, refetch};
+  return {fetchedData, isError, isPending, statusById, refetch};
 }
 
 function batchedQueryFn<Data, QueryContext>(
@@ -51,20 +53,33 @@ function batchedQueryFn<Data, QueryContext>(
   };
 }
 
-function combine<Data>(results: Array<UseQueryResult<Data | null>>) {
+function combine<Data>(results: Array<UseQueryResult<Data | null>>, ids: string[]) {
   const fetchedData: Data[] = [];
+  const statusById = new Map<string, BatchedQueryStatus>();
   let isPending = false;
   let isError = false;
 
-  for (const result of results) {
+  results.forEach((result, index) => {
+    const id = ids[index];
     if (result.isLoading) {
       isPending = true;
+      if (id !== undefined) {
+        statusById.set(id, 'pending');
+      }
     } else if (result.isError) {
       isError = true;
-    } else if (result.data) {
-      fetchedData.push(result.data);
+      if (id !== undefined) {
+        statusById.set(id, 'error');
+      }
+    } else {
+      if (id !== undefined) {
+        statusById.set(id, 'success');
+      }
+      if (result.data) {
+        fetchedData.push(result.data);
+      }
     }
-  }
+  });
 
-  return {fetchedData, isPending, isError};
+  return {fetchedData, isPending, isError, statusById};
 }
