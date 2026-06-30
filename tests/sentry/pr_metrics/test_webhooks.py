@@ -389,13 +389,17 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
-    def test_skips_emit_when_no_seer_access(self, mock_record: MagicMock) -> None:
-        # Without Seer access, activity rows are not written, so the commits-after-open
-        # signal is absent and select_verdict must defer — same invariant as flag-off.
+    def test_emits_without_seer_access(self, mock_record: MagicMock) -> None:
+        # Seer access is no longer required for activity tracking, so the
+        # commits-after-open signal is present regardless — a clean merge can
+        # still resolve to merged_unchanged without Seer access.
         with self.feature({"organizations:gen-ai-features": False}):
             self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
-        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert (
+            PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict
+            == "merged_unchanged"
+        )
 
     @patch("sentry.analytics.record")
     def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
@@ -551,7 +555,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert PullRequestMetrics.objects.count() == 0
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
@@ -933,11 +937,11 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_activity(self) -> None:
+    def test_activity_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call(action="opened")
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_verdict_claimed_skips_activity(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
@@ -954,7 +958,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1087,11 +1091,11 @@ class HandleCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["is_review"] is False
 
-    def test_no_seer_access_skips_comment(self) -> None:
+    def test_comment_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_recent_missing_pr_creates_stub_and_writes_activity(self) -> None:
         # A comment can be delivered before the PR's `opened` webhook writes the
@@ -1159,7 +1163,7 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1267,11 +1271,11 @@ class HandleReviewForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_review(self) -> None:
+    def test_review_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_verdict_claimed_skips_review(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
@@ -1281,7 +1285,7 @@ class HandleReviewForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1379,11 +1383,11 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_review_comment(self) -> None:
+    def test_review_comment_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_verdict_claimed_skips_review_comment(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
@@ -1393,7 +1397,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1486,11 +1490,11 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_thread_event(self) -> None:
+    def test_thread_event_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_verdict_claimed_skips_thread_event(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
@@ -1500,7 +1504,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleCheckEventsForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1678,11 +1682,11 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_check_suite_no_seer_access_skips(self) -> None:
+    def test_check_suite_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call_suite()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     # --- check_run ---
 
