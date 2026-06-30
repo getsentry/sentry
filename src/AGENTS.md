@@ -255,14 +255,14 @@ Use the wrappers in `sentry.utils.tracing` instead of calling the SDK directly. 
 # WRONG: Direct SDK usage
 import sentry_sdk
 
-with sentry_sdk.start_span(op="task") as span:
+with sentry_sdk.start_span(name="my task", op="task") as span:
     span.set_tag("key", "value")
     span.set_data("payload", data)
 
 # RIGHT: Use the sentry.utils.tracing wrappers
 from sentry.utils.tracing import start_span, set_span_tag, set_span_data
 
-with start_span(op="task") as span:
+with start_span(name="my task", op="task") as span:
     set_span_tag(span, "key", "value")
     set_span_data(span, "payload", data)
 ```
