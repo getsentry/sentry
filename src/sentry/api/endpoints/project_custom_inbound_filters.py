@@ -45,15 +45,6 @@ class CustomInboundFilterCondition(TypedDict):
     value: list[str]
 
 
-class CustomInboundFilterResponse(TypedDict):
-    id: str
-    name: str | None
-    active: bool
-    conditions: list[CustomInboundFilterCondition]
-    dateCreated: str
-    dateUpdated: str
-
-
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in CustomInboundFilterConditionType]
@@ -64,7 +55,7 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     )
 
 
-class CustomInboundFilterSerializer(serializers.Serializer[CustomInboundFilter]):
+class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(
         max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
@@ -83,6 +74,13 @@ class CustomInboundFilterSerializer(serializers.Serializer[CustomInboundFilter])
     )
     dateCreated = serializers.DateTimeField(source="date_added", read_only=True)
     dateUpdated = serializers.DateTimeField(source="date_updated", read_only=True)
+
+    class Meta:
+        model = CustomInboundFilter
+        fields = ["id", "name", "active", "conditions", "dateCreated", "dateUpdated"]
+
+    def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
+        return CustomInboundFilter.objects.create(**validated_data)
 
     def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         organization = self.context["project"].organization
@@ -160,7 +158,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         responses={
-            200: list[CustomInboundFilterResponse],
+            200: CustomInboundFilterSerializer(many=True),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -190,7 +188,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         ],
         request=CustomInboundFilterSerializer,
         responses={
-            201: CustomInboundFilterResponse,
+            201: CustomInboundFilterSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -223,12 +221,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        custom_filter = CustomInboundFilter.objects.create(
-            project=project,
-            name=serializer.validated_data.get("name"),
-            active=serializer.validated_data.get("active", True),
-            conditions=serializer.validated_data["conditions"],
-        )
+        custom_filter = serializer.save(project=project)
 
         self.create_audit_entry(
             request=request,
@@ -238,4 +231,4 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             data=self.get_audit_log_data(project, custom_filter, "add"),
         )
 
-        return Response(CustomInboundFilterSerializer(custom_filter).data, status=201)
+        return Response(serializer.data, status=201)
