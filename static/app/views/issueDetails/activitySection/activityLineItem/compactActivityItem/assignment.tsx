@@ -129,7 +129,8 @@ function RuleText({children}: {children: React.ReactNode}) {
 function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams) {
   const {teams} = useTeamsById();
   const {data} = activity;
-  const assignedToSelf = data.assignee === activity.user?.id;
+  const assignedToSelf =
+    data.assigneeType === 'user' && data.assignee === activity.user?.id;
   const assignee = assignedToSelf ? (
     <AssignmentDetailText>{t('themselves')}</AssignmentDetailText>
   ) : (
