@@ -14,7 +14,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import {isChartHovered} from 'sentry/components/charts/utils';
+import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -178,11 +178,16 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
-    const yAxisLabel = ['number', 'integer'].includes(yAxisValueType)
-      ? t('value')
-      : yAxisValueType;
+    // Truncate the labels so a long aggregate (e.g. a deeply-namespaced metric)
+    // can't blow out the tooltip width, matching the time series widget. Pass
+    // `escaped: false` — these render through React (`<Text>`), which escapes.
+    const yAxisLabel = truncationFormatter(
+      ['number', 'integer'].includes(yAxisValueType) ? t('value') : yAxisValueType,
+      true,
+      false
+    );
 
-    const zAxisLabel = meta.zAxis.name || t('value');
+    const zAxisLabel = truncationFormatter(meta.zAxis.name || t('value'), true, false);
 
     return renderToString(
       <Container>
