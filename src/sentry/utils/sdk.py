@@ -319,6 +319,7 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
+    sdk_options["max_value_length"] = 100_000
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send"] = before_send
     sdk_options["before_send_transaction"] = before_send_transaction
