@@ -22,8 +22,6 @@ from sentry.types.activity import ActivityType
 
 
 class GroupPullRequestsEndpointTest(APITestCase):
-    feature_name = "organizations:issue-details-linked-pull-requests"
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -95,16 +93,8 @@ class GroupPullRequestsEndpointTest(APITestCase):
         mock_get_integration.return_value = integration
         return client
 
-    def test_feature_disabled(self) -> None:
-        self.create_linked_pull_request(key="1")
-
-        response = self.client.get(self.path)
-
-        assert response.status_code == 404
-
     def test_empty_response(self) -> None:
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data == {"pullRequests": []}
@@ -131,8 +121,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             data={"pull_request": newer_pr.id + 1000},
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == ["1", "2"]
@@ -153,8 +142,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
                 linked_delta=timedelta(days=index + 1),
             )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == [
@@ -205,8 +193,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
                 linked_delta=timedelta(days=index + 1),
             )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == [
@@ -241,8 +228,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             datetime=timezone.now() - timedelta(days=1),
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data == {"pullRequests": []}
@@ -271,8 +257,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             source=PullRequestAttributionSource.SEER_DATA,
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         attribution_by_id = {
@@ -316,8 +301,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             merged_at=timezone.now(),
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert [item["status"] for item in response.data["pullRequests"]] == [
@@ -348,8 +332,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             "2": {"state": "open", "draft": True},
         }[key]
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert [item["status"] for item in response.data["pullRequests"]] == ["draft", "merged"]
@@ -375,8 +358,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         client = self.set_provider_pull_request_response(mock_get_integration, {})
         client.get_pull_request.side_effect = RuntimeError("nope")
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data["pullRequests"][0]["status"] == "unknown"
