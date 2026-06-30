@@ -90,6 +90,7 @@ describe('useBootstrapOrganizationQuery', () => {
 
     const mockScope = {
       setTag: jest.fn(),
+      setAttributes: jest.fn(),
       setContext: jest.fn(),
     } as unknown as Scope;
     jest.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
