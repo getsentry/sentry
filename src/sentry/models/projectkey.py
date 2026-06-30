@@ -175,10 +175,12 @@ class ProjectKeyEndpointUrls:
 
     @property
     def js_sdk_loader_cdn_url(self) -> str:
+        # The loader is served by Sentry, not by a customer Relay, so this URL
+        # ignores `base_url` and always points at the canonical endpoint.
         if settings.JS_SDK_LOADER_CDN_URL:
             return f"{settings.JS_SDK_LOADER_CDN_URL}{self.project_key.public_key}.min.js"
         return "{}{}".format(
-            self.base_url,
+            self.project_key.get_endpoint(),
             reverse("sentry-js-sdk-loader", args=[self.project_key.public_key, ".min"]),
         )
 
@@ -335,19 +337,7 @@ class ProjectKey(ReplicatedCellModel):
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
-        urlparts = urlparse(self.get_endpoint())
-
-        if not public:
-            key = f"{self.public_key}:{self.secret_key}"
-        else:
-            assert self.public_key is not None
-            key = self.public_key
-
-        # If we do not have a scheme or domain/hostname, dsn is never valid
-        if not urlparts.netloc or not urlparts.scheme:
-            return ""
-
-        return f"{urlparts.scheme}://{key}@{urlparts.netloc + urlparts.path}/{self.project_id}"
+        return self.get_endpoint_urls().get_dsn(public=public)
 
     @property
     def organization_id(self):
@@ -359,79 +349,63 @@ class ProjectKey(ReplicatedCellModel):
 
     @property
     def dsn_private(self):
-        return self.get_dsn(public=False)
+        return self.get_endpoint_urls().dsn_private
 
     @property
     def dsn_public(self):
-        return self.get_dsn(public=True)
+        return self.get_endpoint_urls().dsn_public
 
     @property
     def csp_endpoint(self):
-        endpoint = self.get_endpoint()
-
-        return f"{endpoint}/api/{self.project_id}/csp-report/?sentry_key={self.public_key}"
+        return self.get_endpoint_urls().csp_endpoint
 
     @property
     def security_endpoint(self):
-        endpoint = self.get_endpoint()
-
-        return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
+        return self.get_endpoint_urls().security_endpoint
 
     @property
     def nel_endpoint(self):
-        endpoint = self.get_endpoint()
-
-        return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
+        return self.get_endpoint_urls().nel_endpoint
 
     @property
     def minidump_endpoint(self):
-        endpoint = self.get_endpoint()
-
-        return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
+        return self.get_endpoint_urls().minidump_endpoint
 
     @property
     def playstation_endpoint(self):
-        endpoint = self.get_endpoint()
-
-        return f"{endpoint}/api/{self.project_id}/playstation/?sentry_key={self.public_key}"
+        return self.get_endpoint_urls().playstation_endpoint
 
     @property
     def integration_endpoint(self):
-        endpoint = self.get_endpoint()
-        return f"{endpoint}/api/{self.project_id}/integration/"
+        return self.get_endpoint_urls().integration_endpoint
 
     def build_integration_endpoint(self, integration_name: str, postfix: str = "") -> str:
-        return f"{self.integration_endpoint}{integration_name}/{postfix}"
+        return self.get_endpoint_urls().build_integration_endpoint(integration_name, postfix)
 
     @property
     def otlp_traces_endpoint(self):
-        return self.build_integration_endpoint("otlp", "v1/traces")
+        return self.get_endpoint_urls().otlp_traces_endpoint
 
     @property
     def otlp_logs_endpoint(self):
-        return self.build_integration_endpoint("otlp", "v1/logs")
+        return self.get_endpoint_urls().otlp_logs_endpoint
 
     @property
     def unreal_endpoint(self) -> str:
-        return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
+        return self.get_endpoint_urls().unreal_endpoint
 
     @property
     def crons_endpoint(self) -> str:
-        return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
+        return self.get_endpoint_urls().crons_endpoint
 
     @property
     def js_sdk_loader_cdn_url(self) -> str:
-        if settings.JS_SDK_LOADER_CDN_URL:
-            return f"{settings.JS_SDK_LOADER_CDN_URL}{self.public_key}.min.js"
-        else:
-            endpoint = self.get_endpoint()
-            return "{}{}".format(
-                endpoint,
-                reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
-            )
+        return self.get_endpoint_urls().js_sdk_loader_cdn_url
 
-    def get_endpoint_urls(self, base_url: str | None = None) -> ProjectKeyEndpointUrls:
-        return ProjectKeyEndpointUrls(self, base_url or self.get_endpoint())
+    def get_endpoint_urls(self) -> ProjectKeyEndpointUrls:
+        # Apply the org's relay-dsn-endpoint override when set; canonical otherwise.
+        base_url = self.organization.get_option("sentry:relay_dsn_endpoint") or self.get_endpoint()
+        return ProjectKeyEndpointUrls(self, base_url)
 
     def get_endpoint(self) -> str:
         from sentry.api.utils import generate_locality_url

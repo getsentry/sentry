@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
@@ -9,10 +9,7 @@ from sentry.loader.browsersdkversion import (
     get_selected_browser_sdk_version,
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
-
-RELAY_DSN_ENDPOINT_OPTION = "sentry:relay_dsn_endpoint"
 
 
 class RateLimit(TypedDict):
@@ -71,29 +68,6 @@ class ProjectKeySerializerResponse(TypedDict):
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
-    def get_attrs(
-        self, item_list: Sequence[ProjectKey], user: Any, **kwargs: Any
-    ) -> dict[ProjectKey, dict[str, Any]]:
-        project_key_org_ids: dict[int, int] = dict(
-            ProjectKey.objects.filter(id__in=[item.id for item in item_list]).values_list(
-                "id", "project__organization_id"
-            )
-        )
-        relay_dsn_endpoints = OrganizationOption.objects.get_value_bulk_id(
-            list(project_key_org_ids.values()), RELAY_DSN_ENDPOINT_OPTION
-        )
-
-        return {
-            item: {
-                "relay_dsn_endpoint": (
-                    relay_dsn_endpoints.get(org_id)
-                    if (org_id := project_key_org_ids.get(item.id)) is not None
-                    else None
-                )
-            }
-            for item in item_list
-        }
-
     def serialize(
         self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ProjectKeySerializerResponse:
@@ -102,10 +76,7 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
         # must be Optional[str] instead of str. By setting else to "" we getaround this
         name = obj.label or (obj.public_key[:14] if obj.public_key else "")
         public_key = obj.public_key or ""
-        relay_dsn_endpoint = attrs.get("relay_dsn_endpoint")
-        endpoint_urls = obj.get_endpoint_urls(base_url=relay_dsn_endpoint)
-        # The JS SDK loader is served by Sentry, not by a customer Relay — keep that URL canonical.
-        canonical_endpoint_urls = obj.get_endpoint_urls() if relay_dsn_endpoint else endpoint_urls
+        endpoint_urls = obj.get_endpoint_urls()
         data: ProjectKeySerializerResponse = {
             "id": public_key,
             "name": name,
@@ -129,7 +100,7 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
                 "nel": endpoint_urls.nel_endpoint,
                 "unreal": endpoint_urls.unreal_endpoint,
                 "crons": endpoint_urls.crons_endpoint,
-                "cdn": canonical_endpoint_urls.js_sdk_loader_cdn_url,
+                "cdn": endpoint_urls.js_sdk_loader_cdn_url,
                 "playstation": endpoint_urls.playstation_endpoint,
                 "integration": endpoint_urls.integration_endpoint,
                 "otlp_traces": endpoint_urls.otlp_traces_endpoint,
