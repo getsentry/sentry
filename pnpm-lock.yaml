@@ -6762,8 +6762,8 @@ packages:
   known-css-properties@0.34.0:
     resolution: {integrity: sha512-tBECoUqNFbyAY4RrbqsBQqDFpGXAEbdD5QKr8kACx3+rnArmuuR22nKQWKazvp07N9yjTyDZaw/20UIH8tL9DQ==}
 
-  launch-editor@2.13.2:
-    resolution: {integrity: sha512-4VVDnbOpLXy/s8rdRCSXb+zfMeFR0WlJWpET1iA9CQdlZDfwyLjUuGQzXU4VeOoey6AicSAluWan7Etga6Kcmg==}
+  launch-editor@2.14.1:
+    resolution: {integrity: sha512-QWBrQsMpH7gPr965dsKD/3cKWiNoTjpATQf++Xq63N6sKRGMwlVXz41O1IZTMfZQgBctD/K5Zt06+/I6pP6+HA==}
 
   less-loader@12.2.0:
     resolution: {integrity: sha512-MYUxjSQSBUQmowc0l5nPieOYwMzGPUaTzB6inNW/bdPEG9zOL3eAAD1Qw5ZxSPk7we5dMojHwNODYMV1hq4EVg==}
@@ -8149,8 +8149,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.8.3:
-    resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
+  shell-quote@1.9.0:
+    resolution: {integrity: sha512-Iov+JwFv/2HcTpcwNMKd8+IWNb8tboQJNQTkAY/LLVK7gGH9jy+LGkVqPxfekHl+yMmiqXszdGWXgkfml7hjqA==}
     engines: {node: '>= 0.4'}
 
   shiki@3.7.0:
@@ -11670,7 +11670,7 @@ snapshots:
       '@rsdoctor/graph': 1.5.13(@rspack/core@2.0.4)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.25.10)(postcss@8.5.3))
       '@rsdoctor/types': 1.5.13(@rspack/core@2.0.4)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.25.10)(postcss@8.5.3))
       '@rsdoctor/utils': 1.5.13(@rspack/core@2.0.4)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.25.10)(postcss@8.5.3))
-      launch-editor: 2.13.2
+      launch-editor: 2.14.1
       safer-buffer: 2.1.2
       socket.io: 4.8.1
       tapable: 2.3.3
@@ -16217,10 +16217,10 @@ snapshots:
 
   known-css-properties@0.34.0: {}
 
-  launch-editor@2.13.2:
+  launch-editor@2.14.1:
     dependencies:
       picocolors: 1.1.1
-      shell-quote: 1.8.3
+      shell-quote: 1.9.0
 
   less-loader@12.2.0(@rspack/core@2.0.4)(less@4.3.0)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.25.10)(postcss@8.5.3)):
     dependencies:
@@ -18062,7 +18062,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.3: {}
+  shell-quote@1.9.0: {}
 
   shiki@3.7.0:
     dependencies:

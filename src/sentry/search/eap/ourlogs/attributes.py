@@ -2,6 +2,7 @@ from typing import Literal
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AttributeContext,
     ResolvedAttribute,
     simple_sentry_field,
 )
@@ -24,16 +25,27 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             public_alias="severity_number",
             internal_name="sentry.severity_number",
             search_type="integer",
+            context=AttributeContext(
+                brief="Numeric severity level of a log entry (higher values indicate more severe events)."
+            ),
         ),
         ResolvedAttribute(
             public_alias="severity",
             internal_name="sentry.severity_text",
             search_type="string",
+            context=AttributeContext(
+                brief=(
+                    "The severity level assigned to the log, indicating its impact. "
+                    "Higher severity indicates more critical issues that need attention."
+                ),
+                examples=["error", "warn", "info"],
+            ),
         ),
         ResolvedAttribute(
             public_alias="message",
             internal_name="sentry.body",
             search_type="string",
+            context=AttributeContext(brief="The full log message body."),
         ),
         ResolvedAttribute(
             public_alias=constants.TRACE_ALIAS,
@@ -41,6 +53,13 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            context=AttributeContext(
+                brief=(
+                    "A trace represents the record of the entire operation you want to "
+                    "measure or track — like page load, searched using the UUID generated "
+                    "by Sentry's SDK."
+                )
+            ),
         ),
         ResolvedAttribute(
             public_alias=constants.TIMESTAMP_PRECISE_ALIAS,

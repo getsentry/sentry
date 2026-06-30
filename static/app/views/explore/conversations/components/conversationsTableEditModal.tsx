@@ -124,9 +124,9 @@ function ColumnEditorRow({
 
   return (
     <Flex align="center" gap="md">
-      {({className}) => (
+      {flexProps => (
         <div
-          className={className}
+          {...flexProps}
           ref={setNodeRef}
           style={{transform: CSS.Transform.toString(transform), transition}}
           {...attributes}

@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 import {useScmProjectDetails} from './useScmProjectDetails';
 
@@ -41,8 +42,44 @@ describe('useScmProjectDetails', () => {
     );
   }
 
+  beforeEach(() => {
+    // useCreateNotificationAction queries messaging integrations on mount.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+  });
+
   afterEach(() => {
     TeamStore.reset();
+    MockApiClient.clearMockResponses();
+  });
+
+  it('requires an integration channel when notifying via integration', () => {
+    TeamStore.loadInitialData([adminTeam]);
+    ProjectsStore.loadInitialData([]);
+
+    const {result} = renderDetails();
+
+    // Default actions are email-only, so no channel is required.
+    expect(result.current.missingFields.notificationChannel).toBe(false);
+
+    // Selecting the integration action with no channel blocks submission.
+    act(() => {
+      result.current.notificationProps.setActions([
+        MultipleCheckboxOptions.EMAIL,
+        MultipleCheckboxOptions.INTEGRATION,
+      ]);
+    });
+    expect(result.current.missingFields.notificationChannel).toBe(true);
+    expect(result.current.canSubmit).toBe(false);
+
+    // Picking a channel clears the requirement.
+    act(() => {
+      result.current.notificationProps.setChannel({label: '#general', value: '#general'});
+    });
+    expect(result.current.missingFields.notificationChannel).toBe(false);
   });
 
   it('does not report the team as missing while teams are still loading', () => {
