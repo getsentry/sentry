@@ -313,7 +313,7 @@ export function MetricPanel({
                     }
                   }}
                 >
-                  <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
+                  <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="sm">
                     <Container minWidth="0" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap

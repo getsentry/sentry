@@ -52,7 +52,7 @@ export function ScmAlertFrequency({
                 <Text size="md" density="comfortable">
                   {t('When there are more than')}
                 </Text>
-                <Grid gap="xl" columns={{sm: '1fr', md: '1fr 1fr'}}>
+                <Grid gap="xl" columns={{'screen:sm': '1fr', 'screen:md': '1fr 1fr'}}>
                   <Input
                     size="md"
                     type="number"

@@ -330,8 +330,20 @@ Text components support responsive sizes using breakpoint objects. Breakpoints a
 <Storybook.Demo>
   <Container width="200px" border="primary">
     <Text
-      size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
-      align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+      size={{
+        'screen:xs': 'xs',
+        'screen:sm': 'sm',
+        'screen:md': 'md',
+        'screen:lg': 'lg',
+        'screen:xl': 'xl',
+      }}
+      align={{
+        'screen:xs': 'left',
+        'screen:sm': 'center',
+        'screen:md': 'right',
+        'screen:lg': 'justify',
+        'screen:xl': 'left',
+      }}
     >
       Responsive text
     </Text>

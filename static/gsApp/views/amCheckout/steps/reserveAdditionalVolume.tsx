@@ -115,10 +115,10 @@ export function ReserveAdditionalVolume({
         </Stack>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size={{xs: 'lg', sm: 'xl'}} bold density="compressed">
+            <Text size={{'screen:xs': 'lg', 'screen:sm': 'xl'}} bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
-            <Text size={{xs: 'sm', sm: 'lg'}} variant="muted">
+            <Text size={{'screen:xs': 'sm', 'screen:sm': 'lg'}} variant="muted">
               /{getShortInterval(activePlan.billingInterval)}
             </Text>
           </Container>

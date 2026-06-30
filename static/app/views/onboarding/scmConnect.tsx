@@ -101,7 +101,7 @@ export function ScmConnect({
         </MotionFlex>
 
         <MotionGrid
-          columns={{xs: '1fr', md: '1fr 1fr'}}
+          columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}}
           gap="3xl"
           width="100%"
           maxWidth={SCM_STEP_CONTENT_WIDTH}
