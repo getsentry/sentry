@@ -179,7 +179,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
     const yAxisLabel = t('value');
-    const zAxisLabel = truncationFormatter(meta.zAxis.name || t('count'), true, false);
+    const zAxisLabel = truncationFormatter(meta.zAxis.name || 'count()', true, false);
 
     return renderToString(
       <Container>
