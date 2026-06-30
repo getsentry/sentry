@@ -145,13 +145,29 @@ def build_query_params_from_request(
             query, organization, projects, environments, request.user
         )
 
-    # Per-request weight override for the recommended_v2 sort (?recommendedWeights={...}).
-    # Gated to that sort: aggregate_kwargs is shared with trends, which needs its own keys.
+    # Per-request weight override for the recommended sorts (?recommendedWeights={...}).
+    # Gated to those sorts: aggregate_kwargs is shared with trends, which needs its own keys.
+    # Each recommended sort variant is further gated behind its own experiment flag, so the
+    # param is silently ignored for orgs not opted into that sort.
     raw_weights = request.GET.get("recommendedWeights")
-    if raw_weights and query_kwargs["sort_by"] == "recommended_v2":
+    sort_flag = _RECOMMENDED_SORT_FLAGS.get(query_kwargs["sort_by"])
+    if (
+        raw_weights
+        and sort_flag is not None
+        and features.has(sort_flag, organization, actor=request.user)
+    ):
         query_kwargs["aggregate_kwargs"] = {"recommended": _parse_recommended_weights(raw_weights)}
 
     return query_kwargs
+
+
+# Per-request weight overrides are gated behind the recommended-sort experiment flags so only
+# opted-in orgs can override weights. Each recommended sort variant has its own flag: v1
+# ("recommended") and v2 ("recommended_v2").
+_RECOMMENDED_SORT_FLAGS = {
+    "recommended": "organizations:issue-stream-recommended-sort",
+    "recommended_v2": "organizations:issue-stream-recommended-sort-experimental",
+}
 
 
 _RECOMMENDED_WEIGHT_KEYS = frozenset(
