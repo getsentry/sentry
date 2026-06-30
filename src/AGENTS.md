@@ -251,12 +251,12 @@ analytics.record(
 
 Use the wrappers in `sentry.utils.tracing` instead of calling the SDK directly. This is required while we dogfood the streaming trace lifecycle (Span First rollout).
 
-| Instead of | Use |
-|---|---|
-| `sentry_sdk.start_span()` | `start_span(name=..., op=...)` |
+| Instead of                       | Use                                              |
+| -------------------------------- | ------------------------------------------------ |
+| `sentry_sdk.start_span()`        | `start_span(name=..., op=...)`                   |
 | `sentry_sdk.start_transaction()` | `start_span(name=..., op=..., transaction=True)` |
-| `span.set_tag(key, value)` | `set_span_tag(span, key, value)` |
-| `span.set_data(key, value)` | `set_span_data(span, key, value)` |
+| `span.set_tag(key, value)`       | `set_span_tag(span, key, value)`                 |
+| `span.set_data(key, value)`      | `set_span_data(span, key, value)`                |
 
 ```python
 from sentry.utils.tracing import start_span, set_span_tag, set_span_data
