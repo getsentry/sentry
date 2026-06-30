@@ -35,7 +35,7 @@ export function ConversationDetailPageNew() {
 
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
-  const {nodes, isLoading} = useConversation(conversation);
+  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
 
   useEffect(() => {
     trackAnalytics('conversations.detail.page-view', {
@@ -60,6 +60,7 @@ export function ConversationDetailPageNew() {
       >
         <ConversationSummaryNew
           nodes={nodes}
+          nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
           isLoading={isLoading}
         />
