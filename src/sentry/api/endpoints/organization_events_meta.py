@@ -13,6 +13,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import build_query_params_from_request
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
@@ -116,9 +117,12 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
                 projects = self.get_projects(request, organization)
                 # Filter out None values from environments
                 environments = [e for e in snuba_params.environments if e is not None]
-                query_kwargs = build_query_params_from_request(
-                    request, organization, projects, environments
-                )
+                try:
+                    query_kwargs = build_query_params_from_request(
+                        request, organization, projects, environments
+                    )
+                except ValidationError:
+                    return Response({"detail": "Invalid query parameters."}, status=400)
                 query_kwargs["limit"] = 5
                 try:
                     # Need to escape quotes in case some "joker" has a transaction with quotes
