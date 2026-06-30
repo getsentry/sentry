@@ -11,9 +11,12 @@ CDN = "https://cdn.example.com/_static/dist/"
 SHA = "abc123def456abc123def456abc123def456abcd"
 
 
-def _cdn_response(content: bytes = b"// service worker bundle") -> mock.Mock:
+def _cdn_response(
+    content: bytes = b"// service worker bundle", status_code: int = 200
+) -> mock.Mock:
     response = mock.Mock()
     response.content = content
+    response.status_code = status_code
     response.raise_for_status = mock.Mock()
     return response
 
@@ -128,6 +131,20 @@ class ServiceWorkerProxyTest(TestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == 404, response
+
+    @mock.patch("sentry.web.frontend.generic.get_frontend_commit_sha", return_value=SHA)
+    @mock.patch("sentry.web.frontend.generic.safe_urlopen")
+    def test_cdn_redirect_returns_404_without_caching(
+        self, mock_urlopen: mock.Mock, _sha: mock.Mock
+    ) -> None:
+        # A redirect isn't followed (SSRF guard) and doesn't raise, so its empty
+        # body must not be cached and served as the worker bundle.
+        mock_urlopen.return_value = _cdn_response(b"", status_code=302)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 404, response
+        assert generic._worker_bundle_cache is None
 
     @mock.patch("sentry.web.frontend.generic.get_frontend_commit_sha", return_value=SHA)
     @mock.patch(

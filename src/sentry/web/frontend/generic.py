@@ -63,7 +63,8 @@ def frontend_app_static_media(request, **kwargs):
 # In-memory stash of the proxied service worker bundle, keyed by the frontend
 # commit SHA. Frontend assets are content-hashed, so the bundle is immutable for
 # a given SHA: once fetched we can serve it from memory until the next frontend
-# deploy bumps the SHA. Cleared on process restart, which a deploy triggers.
+# deploy bumps the SHA. New deploys, or fleet scale-up operations will bring up
+# new python processes without any cache set.
 _worker_bundle_cache: tuple[str, bytes] | None = None
 
 
@@ -87,6 +88,11 @@ def _fetch_worker_bundle(commit_sha: str) -> bytes | None:
         upstream = safe_urlopen(url, method="GET", timeout=5)
         upstream.raise_for_status()
     except (KeyError, RequestException):
+        return None
+
+    # Only a 200 carries the real asset; anything else is treated as a miss
+    # including 3xx redirects.
+    if upstream.status_code != 200:
         return None
 
     content = upstream.content
@@ -130,12 +136,15 @@ def service_worker(request):
         response["X-Content-Type-Options"] = "nosniff"
         response["Cache-Control"] = NO_CACHE
     else:
-        # No frontend-versions config here, so the lookup returns the key
-        # verbatim (no manifest indirection) and serves the bundle from disk.
-        path = get_frontend_app_asset_module_path("entrypoints/service-worker.js")
-        response = static_media(request, module="sentry", path=f"dist/{path}")
-        if not settings.DEBUG:
-            response["Cache-Control"] = NO_CACHE
+        try:
+            # No frontend-versions config here, so the lookup returns the key
+            # verbatim (no manifest indirection) and serves the bundle from disk.
+            path = get_frontend_app_asset_module_path("entrypoints/service-worker.js")
+            response = static_media(request, module="sentry", path=f"dist/{path}")
+            if not settings.DEBUG:
+                response["Cache-Control"] = NO_CACHE
+        except KeyError:
+            return HttpResponseNotFound("", content_type="text/plain")
 
     # Allow the worker to control the root scope regardless of the path it's
     # served from.
