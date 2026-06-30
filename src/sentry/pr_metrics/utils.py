@@ -19,7 +19,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
 )
 
-_PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=4)
+_PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
 
 def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | None = None) -> bool:
@@ -35,7 +35,7 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
        has already been emitted and activity rows are no longer needed.
 
     2. A time-based buffer gate applies after the verdict check:
-       - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (4 h) of ``pr.date_added``,
+       - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
          activity is always collected regardless of attribution state.
        - After that window, activity is only collected when the PR has at least
          one valid ``PullRequestAttribution`` row (``is_valid=True``); if no

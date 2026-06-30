@@ -54,7 +54,7 @@ class IsActivityTrackingEnabledTest(TestCase):
                 assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_no_attribution_returns_false(self) -> None:
-        past = timezone.now() - timedelta(hours=5)
+        past = timezone.now() - timedelta(hours=31)
         with freeze_time(past):
             pr = self._make_pr()
 
@@ -62,7 +62,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_with_valid_attribution_returns_true(self) -> None:
-        past = timezone.now() - timedelta(hours=5)
+        past = timezone.now() - timedelta(hours=31)
         with freeze_time(past):
             pr = self._make_pr()
 
@@ -76,7 +76,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             assert is_activity_tracking_enabled(self.organization, pr=pr)
 
     def test_after_buffer_only_invalid_attribution_returns_false(self) -> None:
-        past = timezone.now() - timedelta(hours=5)
+        past = timezone.now() - timedelta(hours=31)
         with freeze_time(past):
             pr = self._make_pr()
 
