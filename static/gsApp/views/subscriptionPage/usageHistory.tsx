@@ -222,8 +222,8 @@ function UsageHistoryRow({history}: RowProps) {
   return (
     <StyledPanelItem>
       <Flex
-        justify={{xs: 'start', md: 'between'}}
-        direction={{xs: 'column', md: 'row'}}
+        justify={{'screen:xs': 'start', 'screen:md': 'between'}}
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
         gap="xl"
       >
         <Flex gap="lg">

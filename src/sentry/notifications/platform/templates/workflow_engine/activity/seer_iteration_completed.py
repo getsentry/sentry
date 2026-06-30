@@ -6,16 +6,15 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_template,
     get_issue_description,
     get_subject,
-    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationBodyFormattingBlock,
-    NotificationBodyTextBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
+    NotificationSection,
     NotificationSource,
     NotificationTemplate,
+    NotificationTextBlock,
     ParagraphBlock,
     PlainTextBlock,
 )
@@ -60,10 +59,10 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
             activity_id=data.activity_id
         )
 
-        body: list[NotificationBodyFormattingBlock] = [*get_issue_description(group)]
+        body: list[NotificationSection] = [*get_issue_description(group)]
 
         if activity.data:
-            detail_blocks: list[NotificationBodyTextBlock] = []
+            detail_blocks: list[NotificationTextBlock] = []
 
             iteration_index = activity.data.get("iteration_index")
             if iteration_index is not None:
@@ -89,7 +88,6 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
 
         return build_template(
             data=data,
-            subject=get_subject("Seer PR Iteration Completed", group),
+            subject=get_subject("PR Iteration Completed", group),
             body=body,
-            extra_actions=[get_view_in_sentry_button(group)],
         )

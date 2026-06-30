@@ -115,8 +115,14 @@ describe('ScmProjectDetails', () => {
     });
 
     expect(await screen.findByText('High priority issues')).toBeInTheDocument();
-    expect(screen.getByText('Custom')).toBeInTheDocument();
-    expect(screen.getByText("I'll create my own alerts later")).toBeInTheDocument();
+    expect(
+      screen.getByText('Alert on new, regressed, and escalating issues')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Custom threshold')).toBeInTheDocument();
+    expect(screen.getByText("I'll set up alerts later")).toBeInTheDocument();
+    expect(
+      screen.getByText('You can always change alerts after project creation')
+    ).toBeInTheDocument();
   });
 
   it('re-derives the fields when the host clears the form', () => {

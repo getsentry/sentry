@@ -357,8 +357,8 @@ export function ScmPlatformFeaturesCore({
         ) : (
           <Grid
             columns={{
-              xs: '1fr',
-              md: `repeat(${resolvedPlatforms.length}, .5fr)`,
+              'screen:xs': '1fr',
+              'screen:md': `repeat(${resolvedPlatforms.length}, .5fr)`,
             }}
             width="100%"
             justify="start"

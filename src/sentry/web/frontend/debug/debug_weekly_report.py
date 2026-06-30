@@ -160,17 +160,6 @@ class DebugWeeklyReportView(MailPreviewView):
                 + project_context.ongoing_substatus_count
             )
 
-            # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-            project_context.key_transactions = [
-                (
-                    f"/test/transaction{random.randint(0, 3)}",
-                    random.randint(0, 1000),
-                    random.random() * 100,
-                    random.randint(0, 1000),
-                    random.random() * 100,
-                )
-                for _ in range(0, 3)
-            ]
             performance_issue_types = [
                 PerformanceSlowDBQueryGroupType,
                 PerformanceNPlusOneGroupType,

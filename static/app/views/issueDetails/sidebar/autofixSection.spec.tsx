@@ -35,7 +35,6 @@ describe('AutofixSection', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: true,
       }),
     });
@@ -461,7 +460,6 @@ describe('AutofixSection', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: false,
       }),
     });
