@@ -939,6 +939,20 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_verdict_claimed_skips_activity(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call(action="opened")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_judge_in_progress_verdict_skips_activity(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="judge_in_progress")
+
+        self._call(action="synchronize", before="abc", after="def")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
 
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
@@ -1137,6 +1151,13 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="9999").exists()
         assert mock_logger.info.call_args.kwargs["extra"]["reason"] == "predates_ingestion"
 
+    def test_verdict_claimed_skips_comment(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
 
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
@@ -1252,6 +1273,13 @@ class HandleReviewForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_verdict_claimed_skips_review(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
 
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
@@ -1357,6 +1385,13 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_verdict_claimed_skips_review_comment(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
 
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
@@ -1454,6 +1489,13 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
     def test_no_seer_access_skips_thread_event(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_verdict_claimed_skips_thread_event(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1673,6 +1715,20 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
     def test_check_run_flag_off_skips(self) -> None:
         with self.feature({"organizations:pr-metrics-activity": False}):
             self._call_run()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_verdict_claimed_skips(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
+
+        self._call_suite()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_verdict_claimed_skips(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
+
+        self._call_run()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 

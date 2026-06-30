@@ -10,19 +10,39 @@ from sentry import features
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest, PullRequestActivity, PullRequestActivityType
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityType,
+    PullRequestMetrics,
+)
 from sentry.seer.seer_setup import has_seer_access
 
 
-def is_activity_tracking_enabled(organization: Organization) -> bool:
-    """Whether PR activity rows should be written for this organization.
+def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | None = None) -> bool:
+    """Whether PR activity rows should be written for this organization (and PR).
 
     Both the feature flag rollout and Seer access are required: activity data
     feeds the judge path which is only meaningful for Seer-enabled orgs.
+
+    When ``pr`` is supplied, an additional per-PR check applies: if the PR
+    already has a terminal verdict (or the ``JUDGE_IN_PROGRESS`` sentinel) on
+    its ``PullRequestMetrics`` row, the ``scm.pr.closed`` event has already
+    been emitted and activity rows are no longer needed.
     """
-    return features.has("organizations:pr-metrics-activity", organization) and has_seer_access(
-        organization
-    )
+    if not (
+        features.has("organizations:pr-metrics-activity", organization)
+        and has_seer_access(organization)
+    ):
+        return False
+
+    if (
+        pr is not None
+        and PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=False).exists()
+    ):
+        return False
+
+    return True
 
 
 def iso_or_none(value: datetime | None) -> str | None:
