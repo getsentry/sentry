@@ -126,6 +126,9 @@ function isPlatformAllowed({
 
 const slugSchema = z.object({
   slug: z.string().min(1, t('Slug is required')),
+});
+
+const projectIdSchema = z.object({
   projectId: z.string(),
 });
 
@@ -135,6 +138,9 @@ const resolveAgeSchema = z.object({
 
 const securityTokenSchema = z.object({
   securityToken: z.string(),
+});
+
+const securityTokenHeaderSchema = z.object({
   securityTokenHeader: z.string(),
 });
 
@@ -149,11 +155,15 @@ const projectSettingsSchema = z.object({
 });
 
 /**
- * Slug and Project ID. The slug is a "save on blur: false" field: it shows a
- * warning and an explicit Save/Cancel before committing, since changing a slug
- * can break build scripts.
+ * Project slug. A "save on blur: false" field: it shows a warning and an
+ * explicit Save/Cancel before committing, since changing a slug can break
+ * build scripts.
+ *
+ * Kept as its own form (separate from the read-only Project ID below) so each
+ * renders as its own FieldGroup row with proper padding and a divider between
+ * them.
  */
-function ProjectDetailsForm({
+function ProjectSlugForm({
   project,
   disabled,
   onChangeSlug,
@@ -166,13 +176,13 @@ function ProjectDetailsForm({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {slug: project.slug, projectId: project.id},
+    defaultValues: {slug: project.slug},
     validators: {onDynamic: slugSchema},
     onSubmit: ({value, formApi}) =>
       updateProject
         .mutateAsync({slug: value.slug})
         .then(updatedProject => {
-          formApi.reset({slug: updatedProject.slug, projectId: project.id});
+          formApi.reset({slug: updatedProject.slug});
           if (project.slug !== updatedProject.slug) {
             changeProjectSlug(project.slug, updatedProject.slug);
             // Container will redirect after stores get updated with new slug
@@ -201,23 +211,6 @@ function ProjectDetailsForm({
           )}
         </form.AppField>
 
-        <form.AppField name="projectId">
-          {field => (
-            <field.Layout.Row
-              label={t('Project ID')}
-              hintText={t(
-                'The unique identifier for this project. It cannot be modified.'
-              )}
-            >
-              <field.Input
-                value={field.state.value}
-                onChange={field.handleChange}
-                disabled
-              />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
-
         {!disabled && (
           <form.Subscribe selector={state => state.isDirty}>
             {isDirty =>
@@ -238,6 +231,33 @@ function ProjectDetailsForm({
           </form.Subscribe>
         )}
       </FormSearch>
+    </form.AppForm>
+  );
+}
+
+function ProjectIdField({project}: {project: DetailedProject}) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {projectId: project.id},
+    validators: {onDynamic: projectIdSchema},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="projectId">
+        {field => (
+          <field.Layout.Row
+            label={t('Project ID')}
+            hintText={t('The unique identifier for this project. It cannot be modified.')}
+          >
+            <field.Input
+              value={field.state.value}
+              onChange={field.handleChange}
+              disabled
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
     </form.AppForm>
   );
 }
@@ -330,11 +350,16 @@ function AutoResolveForm({
   );
 }
 
+const SECURITY_TOKEN_HELP = t(
+  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
+);
+
 /**
- * Security token and header. Both are "save on blur: false" — make sure usages
- * are updated before committing.
+ * Security token. A "save on blur: false" field — make sure usages are updated
+ * before committing. Kept as its own form (separate from the header below) so
+ * each renders as its own FieldGroup row with a divider between them.
  */
-function SecurityTokensForm({
+function SecurityTokenForm({
   project,
   disabled,
 }: {
@@ -350,29 +375,21 @@ function SecurityTokensForm({
         value: project.securityToken ?? '',
         fixed: '__SECURITY_TOKEN__',
       }),
-      securityTokenHeader: project.securityTokenHeader ?? '',
     },
     validators: {onDynamic: securityTokenSchema},
     onSubmit: ({value, formApi}) =>
       updateProject
-        .mutateAsync({
-          securityToken: value.securityToken,
-          securityTokenHeader: value.securityTokenHeader,
-        })
+        .mutateAsync({securityToken: value.securityToken})
         .then(() => formApi.reset(value))
         .catch(() => {}),
   });
-
-  const tokenHelp = t(
-    'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
-  );
 
   return (
     <form.AppForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/">
         <form.AppField name="securityToken">
           {field => (
-            <field.Layout.Row label={t('Security Token')} hintText={tokenHelp}>
+            <field.Layout.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
@@ -382,9 +399,61 @@ function SecurityTokensForm({
           )}
         </form.AppField>
 
+        {!disabled && (
+          <form.Subscribe selector={state => state.isDirty}>
+            {isDirty =>
+              isDirty ? (
+                <Fragment>
+                  <Alert variant="warning">
+                    {t('Ensure you update usages of your security token.')}
+                  </Alert>
+                  <Flex gap="sm" justify="end">
+                    <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                    <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                  </Flex>
+                </Fragment>
+              ) : null
+            }
+          </form.Subscribe>
+        )}
+      </FormSearch>
+    </form.AppForm>
+  );
+}
+
+/**
+ * Security token header. A "save on blur: false" field — make sure usages are
+ * updated before committing.
+ */
+function SecurityTokenHeaderForm({
+  project,
+  disabled,
+}: {
+  disabled: boolean;
+  project: DetailedProject;
+}) {
+  const updateProject = useUpdateProject(project);
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {securityTokenHeader: project.securityTokenHeader ?? ''},
+    validators: {onDynamic: securityTokenHeaderSchema},
+    onSubmit: ({value, formApi}) =>
+      updateProject
+        .mutateAsync({securityTokenHeader: value.securityTokenHeader})
+        .then(() => formApi.reset(value))
+        .catch(() => {}),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <FormSearch route="/settings/:orgId/projects/:projectId/">
         <form.AppField name="securityTokenHeader">
           {field => (
-            <field.Layout.Row label={t('Security Token Header')} hintText={tokenHelp}>
+            <field.Layout.Row
+              label={t('Security Token Header')}
+              hintText={SECURITY_TOKEN_HELP}
+            >
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
@@ -401,7 +470,7 @@ function SecurityTokensForm({
               isDirty ? (
                 <Fragment>
                   <Alert variant="warning">
-                    {t('Ensure you update usages of your security token and header.')}
+                    {t('Ensure you update usages of the security token header.')}
                   </Alert>
                   <Flex gap="sm" justify="end">
                     <form.ResetButton>{t('Cancel')}</form.ResetButton>
@@ -677,11 +746,13 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
       <FormSearch route="/settings/:orgId/projects/:projectId/">
         <FieldGroup title={t('Project Details')}>
-          <ProjectDetailsForm
+          <ProjectSlugForm
             project={project}
             disabled={disabled}
             onChangeSlug={onChangeSlug}
           />
+
+          <ProjectIdField project={project} />
 
           <AutoSaveForm
             name="platform"
@@ -886,7 +957,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
           </AutoSaveForm>
 
-          <SecurityTokensForm project={project} disabled={disabled} />
+          <SecurityTokenForm project={project} disabled={disabled} />
+
+          <SecurityTokenHeaderForm project={project} disabled={disabled} />
 
           <AutoSaveForm
             name="verifySSL"

@@ -163,13 +163,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Slug'),
     hintText: t('A unique ID used to identify this project'),
   },
-  'project-general-settings.projectId': {
-    name: 'projectId',
-    formId: 'project-general-settings',
-    route: '/settings/:orgId/projects/:projectId/',
-    label: t('Project ID'),
-    hintText: t('The unique identifier for this project. It cannot be modified.'),
-  },
   'project-general-settings.resolveAge': {
     name: 'resolveAge',
     formId: 'project-general-settings',
