@@ -1,4 +1,4 @@
-import {memo, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -99,6 +99,14 @@ function ConversationView({
     }
   }, [isLoading, error, nodes.length]);
 
+  const handleSpanTabSelectNode = useCallback(
+    (node: AITraceSpanNode) => {
+      trackAnalytics('conversations.detail.select-span', {organization});
+      onSelectNode(node);
+    },
+    [onSelectNode, organization]
+  );
+
   const handleTabChange = (newTab: ConversationTab) => {
     if (activeTab !== newTab) {
       trackAnalytics('conversations.detail.tab-switch', {
@@ -180,7 +188,7 @@ function ConversationView({
                   <AISpanList
                     nodes={nodes}
                     selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                    onSelectNode={onSelectNode}
+                    onSelectNode={handleSpanTabSelectNode}
                     compressGaps
                   />
                 </Container>

@@ -15,6 +15,7 @@ from django.test import Client, RequestFactory
 import sentry.identity
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.gcp.provider import (
+    GCP_MCP_URLS,
     GCPIdentityProvider,
     GCPOAuth2LoginView,
 )
@@ -90,7 +91,7 @@ class GCPOAuth2LoginViewTest(TestCase):
 
 
 @control_silo_test
-class GCPIdentityProviderBuildIdentityTest(TestCase):
+class GCPIdentityProviderTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = GCPIdentityProvider()
@@ -148,13 +149,6 @@ class GCPIdentityProviderBuildIdentityTest(TestCase):
         with pytest.raises(IdentityNotValid, match="Unable to decode id_token payload"):
             self.provider.build_identity({"data": {"id_token": bad_token}})
 
-
-@control_silo_test
-class GCPIdentityProviderRefreshTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.provider = GCPIdentityProvider()
-
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL
 
@@ -174,6 +168,17 @@ class GCPIdentityProviderRefreshTest(TestCase):
             "client_id": "my-client-id",
             "client_secret": "my-client-secret",
         }
+
+    def test_build_mcp_urls(self) -> None:
+        urls = self.provider.build_mcp_urls({})
+        assert urls == list(GCP_MCP_URLS)
+        assert len(urls) == 3
+        assert "https://logging.googleapis.com/mcp" in urls
+        assert "https://monitoring.googleapis.com/mcp" in urls
+        assert "https://cloudtrace.googleapis.com/mcp" in urls
+
+    def test_build_mcp_urls_ignores_identity_data(self) -> None:
+        assert self.provider.build_mcp_urls({"some_key": "some_value"}) == list(GCP_MCP_URLS)
 
 
 class GCPTestProvider(DummyProvider):

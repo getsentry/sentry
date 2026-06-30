@@ -47,6 +47,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.tracing import start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -213,7 +214,9 @@ def prepare_organization_report(
             timestamp=timestamp, duration=duration, organization=organization
         ).create_context()
 
-        with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+        with start_span(
+            op="weekly_reports.check_if_ctx_is_empty", name="weekly_reports.check_if_ctx_is_empty"
+        ):
             report_is_available = not ctx.is_empty()
         set_tag("report.available", report_is_available)
         sentry_sdk.set_attribute("report.available", report_is_available)
@@ -224,7 +227,7 @@ def prepare_organization_report(
 
     # Deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+    with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
             extra={"batch_id": str(batch_id), "organization": organization_id},
@@ -238,11 +241,10 @@ def prepare_organization_report(
         try:
             project_metrics: dict[int, dict[str, int]] = {}
             for project_id, project_ctx in ctx.projects_context_map.items():
-                if not project_ctx.check_if_project_is_empty():
-                    project_metrics[project_id] = {
-                        "e": project_ctx.accepted_error_count,
-                        "t": project_ctx.accepted_transaction_count,
-                    }
+                project_metrics[project_id] = {
+                    "e": project_ctx.accepted_error_count,
+                    "t": project_ctx.accepted_transaction_count,
+                }
             if project_metrics:
                 cache_project_metrics(organization_id, project_metrics)
         except Exception:
@@ -737,26 +739,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
 
-    def key_transactions():
-        def all_key_transactions():
-            for project_ctx in user_projects:
-                for (
-                    transaction_name,
-                    count_this_week,
-                    p95_this_week,
-                    count_last_week,
-                    p95_last_week,
-                ) in project_ctx.key_transactions:
-                    yield {
-                        "name": transaction_name,
-                        "count": count_this_week,
-                        "p95": p95_this_week,
-                        "p95_prev_week": p95_last_week,
-                        "project": project_ctx.project,
-                    }
-
-        return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
-
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
@@ -832,7 +814,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
-        "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,

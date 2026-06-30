@@ -998,11 +998,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             RelatedIssuesEndpoint.as_view(),
             name=f"{name_prefix}-related-issues",
         ),
-        # Load plugin group urls
-        re_path(
-            r"^(?P<issue_id>[^/]+)/plugins?/",
-            include("sentry.plugins.base.group_api_urls"),
-        ),
     ]
 
 

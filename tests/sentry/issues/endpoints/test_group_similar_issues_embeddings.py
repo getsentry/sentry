@@ -254,6 +254,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "response_status": 200,
                 "outcome": "matching_group_found",
                 "referrer": "similar_issues",
+                "seer_backend": "gpu",
             },
         )
 
@@ -421,6 +422,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "outcome": "error",
                 "error": "IncompleteSeerDataError",
                 "referrer": "similar_issues",
+                "seer_backend": "gpu",
             },
         )
 
@@ -473,6 +475,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "outcome": "error",
                 "error": "SimilarHashNotFoundError",
                 "referrer": "similar_issues",
+                "seer_backend": "gpu",
             },
         )
         assert self.similar_event.group_id
@@ -531,6 +534,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "outcome": "error",
                 "error": "SimilarHashMissingGroupError",
                 "referrer": "similar_issues",
+                "seer_backend": "gpu",
             },
         )
         assert response.data == []

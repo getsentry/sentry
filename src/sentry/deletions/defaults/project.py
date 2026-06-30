@@ -44,6 +44,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
         from sentry.models.userreport import UserReport
+        from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.seer.models.project_repository import (
@@ -73,6 +74,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             GroupSubscription,
             ProjectBookmark,
             ProjectKey,
+            WeeklyReportProjectExclusion,
             ReleaseThreshold,
             ProjectTeam,
             PromptsActivity,

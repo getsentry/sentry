@@ -7,13 +7,13 @@ from typing import Any
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
-from django.conf import settings
 from django.db.models import Sum
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
+from taskbroker_client.state import current_task
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -142,9 +142,7 @@ def produce_preprod_size_metric_to_eap(
 
     topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
     payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-    if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-        "tasks.producer.preprod.rollout"
-    ):
+    if current_task() is not None and in_random_rollout("tasks.producer.preprod.rollout"):
         _eap_task_producer.produce(ArroyoTopic(topic), payload)
     else:
         _eap_producer.produce(ArroyoTopic(topic), payload)
@@ -262,9 +260,7 @@ def produce_preprod_build_distribution_to_eap(
 
     topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
     payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-    if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-        "tasks.producer.preprod.rollout"
-    ):
+    if current_task() is not None and in_random_rollout("tasks.producer.preprod.rollout"):
         _eap_task_producer.produce(ArroyoTopic(topic), payload)
     else:
         _eap_producer.produce(ArroyoTopic(topic), payload)

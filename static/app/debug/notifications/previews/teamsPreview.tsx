@@ -72,7 +72,7 @@ export function TeamsPreview({
             </Flex>
             <TeamsCard direction="column" align="start" padding="xl" gap="md">
               <TeamsBlackText size="xl" bold>
-                {subject}
+                {subject.map(block => block.text).join(' ')}
               </TeamsBlackText>
               <TeamsBlackText>
                 <NotificationBodyRenderer
@@ -99,7 +99,11 @@ export function TeamsPreview({
                   />
                 </Flex>
               )}
-              {footer && <TeamsBlackText size="sm">{footer}</TeamsBlackText>}
+              {footer && (
+                <TeamsBlackText size="sm">
+                  {footer.map(block => block.text).join(' ')}
+                </TeamsBlackText>
+              )}
             </TeamsCard>
           </TeamsMessage>
         </TeamsPreviewContainer>

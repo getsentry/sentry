@@ -1,5 +1,8 @@
 from rest_framework.views import APIView
 
+from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.project import ProjectPermission
+from sentry.api.exceptions import InsufficientScope
 from sentry.api.permissions import (
     DemoSafePermission,
     DisallowImpersonatedTokenCreation,
@@ -10,7 +13,7 @@ from sentry.api.permissions import (
 )
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
-from sentry.testutils.cases import DRFPermissionTestCase
+from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 
 
@@ -102,6 +105,65 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
             assert not self.user_permission.has_object_permission(
                 self.make_request(self.readonly_user), APIView(), None
             )
+
+
+class InsufficientScopeTest(DRFPermissionTestCase):
+    """``has_permission`` stays a plain bool; a denied under-scoped token is surfaced as an
+    RFC 6750 ``insufficient_scope`` challenge by ``permission_denied`` (proven end-to-end in
+    ``InsufficientScopeResponseTest``)."""
+
+    permission = OrganizationPermission()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _token_request(self, scopes, method):
+        token = self.create_user_auth_token(user=self.user, scope_list=list(scopes))
+        return self.make_request(user=self.user, auth=token, method=method)
+
+    def test_challenge_header_format(self) -> None:
+        # Required scopes are sorted and space-delimited per RFC 6750.
+        assert (
+            InsufficientScope(["org:write", "org:admin"]).auth_header
+            == 'Bearer error="insufficient_scope", scope="org:admin org:write"'
+        )
+        assert (
+            InsufficientScope(["org:admin"]).auth_header
+            == 'Bearer error="insufficient_scope", scope="org:admin"'
+        )
+
+    def test_under_scoped_token_is_denied(self) -> None:
+        # PUT requires org:write/org:admin; a read-only token holds neither.
+        request = self._token_request(["org:read"], "PUT")
+        assert self.permission.has_permission(request, APIView()) is False
+
+    def test_challenge_is_generic_across_permission_classes(self) -> None:
+        # The shared ScopedPermission gate denies under-scoped tokens for any permission
+        # class with its own scope_map -- here ProjectPermission's project scopes.
+        request = self._token_request(["project:read"], "PUT")
+        assert ProjectPermission().has_permission(request, APIView()) is False
+
+    def test_empty_scope_map_method_is_denied(self) -> None:
+        # A method with no scope_map entry (here PATCH) accepts no token scope; it is denied
+        # without recording any scopes to advertise (no empty challenge).
+        request = self._token_request(["org:read"], "PATCH")
+        assert self.permission.has_permission(request, APIView()) is False
+
+    def test_token_with_required_scope_is_allowed(self) -> None:
+        request = self._token_request(["org:write"], "PUT")
+        assert self.permission.has_permission(request, APIView())
+
+    def test_read_token_on_safe_method_is_allowed(self) -> None:
+        request = self._token_request(["org:read"], "GET")
+        assert self.permission.has_permission(request, APIView())
+
+    def test_session_request_is_allowed_at_view_level(self) -> None:
+        # No token: the view-level check defers to is_authenticated; scope enforcement
+        # happens at the object level.
+        request = self.make_request(user=self.user, method="PUT")
+        assert self.permission.has_permission(request, APIView())
 
 
 class DemoSafePermissionsTest(DRFPermissionTestCase):
@@ -223,3 +285,54 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             )
 
             assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+
+
+class InsufficientScopeResponseTest(APITestCase):
+    """End-to-end: a token-scope denial reaches the client as a 403 carrying the RFC 6750
+    insufficient_scope WWW-Authenticate header (via custom_exception_handler)."""
+
+    endpoint = "sentry-api-0-organization-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _token(self, scopes):
+        return self.create_user_auth_token(user=self.user, scope_list=list(scopes))
+
+    def test_under_scoped_token_put_returns_insufficient_scope_header(self) -> None:
+        token = self._token(["org:read"])
+        response = self.get_error_response(
+            self.organization.slug,
+            method="put",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="org:admin org:write"'
+        )
+        # The body contract is unchanged: still a {"detail": ...} message, no new keys.
+        assert set(response.data.keys()) == {"detail"}
+
+    def test_sufficiently_scoped_token_get_has_no_challenge(self) -> None:
+        token = self._token(["org:read"])
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+        assert "WWW-Authenticate" not in response
+
+    def test_session_denial_has_no_insufficient_scope_challenge(self) -> None:
+        # A session-authed member without org:write is denied at the object level, not the
+        # token-scope gate, so it must not carry an insufficient_scope challenge.
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        self.login_as(member)
+        response = self.get_error_response(self.organization.slug, method="put", status_code=403)
+        assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
+
+    def test_unauthenticated_request_has_no_insufficient_scope_challenge(self) -> None:
+        # No credentials -> 401 authentication failure, never an insufficient_scope challenge.
+        response = self.get_error_response(self.organization.slug, method="put", status_code=401)
+        assert "insufficient_scope" not in response.get("WWW-Authenticate", "")

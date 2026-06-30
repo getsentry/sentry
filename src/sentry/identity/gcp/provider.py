@@ -6,6 +6,7 @@ import orjson
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
     OAuth2ApiStep,
     OAuth2CallbackView,
@@ -32,7 +33,14 @@ class GCPOAuth2LoginView(OAuth2LoginView):
         return params
 
 
-class GCPIdentityProvider(OAuth2Provider):
+GCP_MCP_URLS: tuple[str, ...] = (
+    "https://logging.googleapis.com/mcp",
+    "https://monitoring.googleapis.com/mcp",
+    "https://cloudtrace.googleapis.com/mcp",
+)
+
+
+class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.GCP
     name = "Google Cloud Platform"
     create_organization_identity = True
@@ -104,6 +112,9 @@ class GCPIdentityProvider(OAuth2Provider):
             "scopes": sorted(self.get_oauth_scopes()),
             "data": self.get_oauth_data(data),
         }
+
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
+        return list(GCP_MCP_URLS)
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url

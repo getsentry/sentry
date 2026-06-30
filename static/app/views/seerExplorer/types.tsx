@@ -146,8 +146,14 @@ export function isExplorerCodingAgentState(
 export type PendingUserInput = {
   data: Record<string, any>;
   id: string;
-  input_type: 'file_change_approval' | 'ask_user_question';
+  input_type: 'file_change_approval' | 'ask_user_question' | 'reauth_monitoring_provider';
 };
+
+export interface ReauthMonitoringProviderData {
+  auth_method: 'oauth' | 'pat';
+  identity_id: number;
+  provider_key: string;
+}
 
 export type SeerExplorerRunId = number | string;
 

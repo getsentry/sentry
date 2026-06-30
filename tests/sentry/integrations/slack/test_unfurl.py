@@ -1224,7 +1224,8 @@ class UnfurlTest(TestCase):
             "( metric.name:dashboards.widget.onEdit metric.type:distribution"
             " metric.unit:millisecond )"
         )
-        assert api_params["interval"] == "3h"
+        assert api_params["interval"] == "21600s"
+        assert api_params["yBuckets"] == "50"
 
         chart_data = mock_generate_chart.call_args[0][1]
         y_axis_meta = chart_data["heatmap"]["meta"]["yAxis"]
@@ -1271,15 +1272,18 @@ class UnfurlTest(TestCase):
         )
 
     def test_build_heatmap_query_interval_and_buckets(self) -> None:
-        # Per-range ladder interval (injected URL intervals ignored), with
-        # yBuckets ≈ xBuckets / 3 so cells stay ~square on the 1200x400 canvas.
         base = "yAxis=sum(value,my.metric,counter,none)"
-        # 30d / 3h -> 240 columns -> round(240/3) = 80 rows.
-        out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=30d&interval=12h"))
-        assert (out["interval"], out["yBuckets"]) == ("3h", "80")
-        # 24h / 5m -> 288 columns -> round(288/3) = 96 rows.
-        out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod=24h"))
-        assert (out["interval"], out["yBuckets"]) == ("5m", "96")
+        cases = [
+            ("1h", "30s"),  # 120 columns (15s -> 240 would exceed 150)
+            ("24h", "600s"),  # 144 columns (300s -> 288 would exceed 150)
+            ("7d", "7200s"),  # 84 columns (3600s -> 168 would exceed 150)
+            ("30d", "21600s"),  # 120 columns (14400s -> 180 would exceed 150)
+        ]
+        for stats_period, expected_interval in cases:
+            out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod={stats_period}&interval=1m"))
+            assert (out["interval"], out["yBuckets"]) == (expected_interval, "50"), (
+                f"statsPeriod={stats_period}"
+            )
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
