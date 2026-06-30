@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -18,6 +19,7 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
@@ -51,6 +53,7 @@ describe('ActivitySection', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    TeamStore.reset();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -298,36 +301,10 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
-    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
-    expect(screen.getByTestId('sentry-activity-marker')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
   });
 
-  it('does not render activity actor markers when the feature is disabled', async () => {
-    const activityGroup = GroupFixture({
-      id: '1338',
-      activity: [
-        {
-          type: GroupActivityType.NOTE,
-          id: 'note-1',
-          data: {text: 'User note'},
-          dateCreated: '2020-01-01T00:00:00',
-          user,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(await screen.findByText('User note')).toBeInTheDocument();
-    expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
-  });
-
-  it('does not render user avatar as icon for notes in two-column layout', async () => {
+  it('renders user actor for notes in activity line items', async () => {
     const activityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -352,11 +329,10 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
-    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
-    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
   });
 
-  it('renders provider-specific icon for create issue in two-column layout', async () => {
+  it('renders provider-specific icon for create issue in activity line items', async () => {
     const createIssueGroup = GroupFixture({
       id: '1345',
       activity: [
@@ -436,6 +412,44 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Created external issue')).toBeInTheDocument();
     expect(screen.getByText('Linked Issue')).toBeInTheDocument();
     expect(screen.getByText('Linked external issue')).toBeInTheDocument();
+  });
+
+  it('renders team assignment in activity line items when team id matches the actor id', async () => {
+    const assigningUser = UserFixture({id: '1', name: 'Taylor'});
+    const team = TeamFixture({id: assigningUser.id, slug: 'frontend'});
+    TeamStore.loadInitialData([team]);
+
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'team-assignment-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: team.id,
+            assigneeType: 'team',
+          },
+          user: assigningUser,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Assigned');
+    expect(timeline).toHaveTextContent('#frontend');
+    expect(timeline).toHaveTextContent('Taylor');
+    expect(timeline).not.toHaveTextContent('themselves');
   });
 
   it('renders auto-resolved activity age as an inactivity duration', async () => {
@@ -1104,6 +1118,72 @@ describe('ActivitySection', () => {
     );
     expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
     expect(screen.getByText('Sentry')).toBeInTheDocument();
+    expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
+  });
+
+  it('renders closed PR author name in activity line items when activity user is null', async () => {
+    const prGroup = GroupFixture({
+      id: '1348',
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_CLOSED,
+          id: 'pr-author-4',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
+        <ActivitySection group={prGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(screen.getByText(/by Shashank N Jarmale on GitHub/)).toBeInTheDocument();
+    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Sentry for closed PR bot authors with @localhost email', async () => {
+    const prGroup = GroupFixture({
+      id: '1349',
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_CLOSED,
+          id: 'pr-author-5',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'sentry[bot]', email: 'sentry[bot]@localhost'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
+        <ActivitySection group={prGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(screen.getByText(/by Sentry on GitHub/)).toBeInTheDocument();
     expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });
 });
