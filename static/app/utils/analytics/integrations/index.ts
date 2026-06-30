@@ -34,6 +34,7 @@ type SingleIntegrationEventParams = {
   integration_status?: SentryAppStatus;
   integration_tab?: 'configurations' | 'overview' | 'features';
   plan?: string;
+  referrer?: string;
 } & IntegrationView;
 
 // Required on install events so the data team can filter SCM connections
