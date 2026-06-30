@@ -726,7 +726,6 @@ module = [
     "sentry.debug.*",
     "sentry.debug_files.*",
     "sentry.discover",
-    "sentry.discover.apps",
     "sentry.discover.arithmetic",
     "sentry.discover.compare_tables",
     "sentry.discover.compare_timeseries",
