@@ -29,6 +29,7 @@ KNOWN_MISLEADING = {
     "api/relay/.*",
     "_static/dist/(?P<module>[^/]+)/(?P<path>.*)",
     "_static/(?:(?P<version>\\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)",
+    "service-worker\\.js",
     "api/0/organizations/",
     "api/0/internal/health/",
     "api/0/internal/options/",
