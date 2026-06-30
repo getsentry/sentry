@@ -373,6 +373,48 @@ describe('usePinnedLogsQuery', () => {
     expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
   });
 
+  it('keeps the rows found in range when a straggler escalation fails', async () => {
+    const foundA = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-a',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+    const foundB = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-b',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [foundA, foundB], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-a', 'log-b', 'log-straggler']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(
+      result.current.fetchedRows.map(row => row[OurLogKnownFieldKey.ID]).sort()
+    ).toEqual(['log-a', 'log-b']);
+  });
+
   it('returns a pin found only in the wide window', async () => {
     const outOfRangeLog = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-out-of-range',

@@ -1,12 +1,11 @@
-import {useCallback, useMemo} from 'react';
-import {AsyncBatcher} from '@tanstack/react-pacer';
-import type {QueryClient, UseQueryResult} from '@tanstack/react-query';
-import {useQueries, useQueryClient} from '@tanstack/react-query';
+import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {createBatcher} from 'sentry/utils/api/batching/createBatcher';
+import {useBatchedQueries} from 'sentry/utils/api/batching/useBatchedQueries';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -43,17 +42,78 @@ const WIDE_STATS_PERIOD = '9999d';
  */
 const WINDOW_BUFFER_MS = 5 * 60 * 1000;
 
-interface QueryContext {
+interface PinnedLogsQueryContext {
   baseQuery: Record<string, unknown>;
   dateParams: Record<string, unknown>;
   organizationSlug: string;
 }
 
+const pinnedLogBatcher = createBatcher<OurLogsResponseItem, PinnedLogsQueryContext>(
+  async (client, {organizationSlug, baseQuery, dateParams}, ids: string[]) => {
+    const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organizationSlug},
+    });
+
+    const fetchByIds = (idsForFetch: string[], dp: Record<string, unknown>) =>
+      apiFetch<EventsLogsResult>({
+        client,
+        queryKey: [
+          url,
+          {
+            query: {
+              ...baseQuery,
+              ...dp,
+              query: `id:[${idsForFetch.join(',')}]`,
+              per_page: idsForFetch.length,
+            },
+          },
+          {infinite: false},
+        ],
+        signal: new AbortController().signal,
+        meta: undefined,
+      });
+
+    const rowsById = new Map<string, OurLogsResponseItem | Error>();
+    const collect = (result: EventsLogsResult) => {
+      for (const row of result.data) {
+        rowsById.set(row[OurLogKnownFieldKey.ID], row);
+      }
+    };
+
+    // Step 1: Search in the parent selected range for pins that are not loaded yet.
+    // Start with this smaller range so we don't have to scan the org's full retention period.
+    let foundInRange = new Set<string>();
+    try {
+      const inRange = (await fetchByIds(ids, dateParams)).json;
+      collect(inRange);
+      foundInRange = new Set(inRange.data.map(row => row[OurLogKnownFieldKey.ID]));
+    } catch {
+      // The selected range failed; let the wide window resolve everything instead.
+    }
+
+    // Step 2: Any IDs not found in the parent selected range escalate to a wider window.
+    // Anything still unfound stays pinned and surfaces as an unavailable row in the UI.
+    const stillMissing = ids.filter(id => !foundInRange.has(id));
+    if (stillMissing.length > 0) {
+      try {
+        const wide = await fetchByIds(stillMissing, wideDateParams(stillMissing));
+        collect(wide.json);
+      } catch (error) {
+        const failure = error instanceof Error ? error : new Error(String(error));
+        for (const id of stillMissing) {
+          rowsById.set(id, failure);
+        }
+      }
+    }
+
+    return rowsById;
+  }
+);
+
 export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   const organization = useOrganization();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const userFields = useQueryParamsFields();
-  const queryClient = useQueryClient();
 
   const fields = useMemo(
     () => Array.from(new Set([...AlwaysPresentLogFields, ...userFields])),
@@ -65,161 +125,37 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     id => !allRowIds.has(id)
   );
 
-  const baseQuery = useMemo(
-    () => ({
-      dataset: DiscoverDatasets.OURLOGS,
-      field: fields,
-      project: selection.projects,
-      environment: selection.environments,
-      sampling: SAMPLING_MODE.HIGH_ACCURACY,
-      referrer: 'api.explore.logs-pinned',
-    }),
-    [fields, selection.projects, selection.environments]
-  );
-
-  const queryContext = useMemo<QueryContext>(
+  const queryContext = useMemo<PinnedLogsQueryContext>(
     () => ({
       organizationSlug: organization.slug,
-      baseQuery,
+      baseQuery: {
+        dataset: DiscoverDatasets.OURLOGS,
+        field: fields,
+        project: selection.projects,
+        environment: selection.environments,
+        sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        referrer: 'api.explore.logs-pinned',
+      },
       dateParams: normalizeDateTimeParams(selection.datetime),
     }),
-    [organization.slug, baseQuery, selection.datetime]
+    [
+      fields,
+      organization.slug,
+      selection.datetime,
+      selection.environments,
+      selection.projects,
+    ]
   );
 
-  const enabled = pageFiltersReady && !!logsPinning;
-  const {fetchedRows, isPending, isError} = useQueries({
-    queries: missingIds.map(id => ({
-      queryKey: [PINNED_LOG_ROW_QUERY_KEY, id, queryContext],
-      queryFn: ({client}) => loadPinnedLog(client, queryContext, id),
-      enabled,
-      staleTime: Infinity,
-    })),
-    combine: combineResults,
+  const {fetchedData, ...rest} = useBatchedQueries({
+    batcher: pinnedLogBatcher,
+    context: queryContext,
+    enabled: pageFiltersReady && !!logsPinning,
+    ids: missingIds,
+    keyPrefix: PINNED_LOG_ROW_QUERY_KEY,
   });
 
-  const refetch = useCallback(() => {
-    queryClient.refetchQueries({queryKey: [PINNED_LOG_ROW_QUERY_KEY], type: 'active'});
-  }, [queryClient]);
-
-  return {fetchedRows, isPending, isError, refetch};
-}
-
-function combineResults(results: Array<UseQueryResult<OurLogsResponseItem | null>>) {
-  const fetchedRows: OurLogsResponseItem[] = [];
-  let isPending = false;
-  let isError = false;
-  for (const result of results) {
-    if (result.isLoading) {
-      isPending = true;
-    } else if (result.isError) {
-      isError = true;
-    } else if (result.data) {
-      fetchedRows.push(result.data);
-    }
-  }
-  return {fetchedRows, isPending, isError};
-}
-
-interface PinnedLogRequest {
-  client: QueryClient;
-  context: QueryContext;
-  deferred: PromiseWithResolvers<OurLogsResponseItem | null>;
-  id: string;
-}
-
-/**
- * Coalesces every pinned-log query that fires in the same tick into a single
- * `/events/` request, so N pins cost one fetch instead of N. Each pin still has
- * its own per-id query key, so unpinning one never refetches the rest. All
- * requests in a tick share the same context (org, filters, time range), so we
- * fetch with the first one's.
- */
-const pinnedLogBatcher = new AsyncBatcher<PinnedLogRequest>(
-  requests => {
-    const {client, context} = requests[0]!;
-    const ids = [...new Set(requests.map(request => request.id))];
-    return fetchPinnedLogBatch(client, context, ids);
-  },
-  {
-    wait: 0,
-    onSuccess: (rowsById: Map<string, OurLogsResponseItem>, requests) => {
-      for (const {deferred, id} of requests) {
-        deferred.resolve(rowsById.get(id) ?? null);
-      }
-    },
-    onError: (error, requests) => {
-      for (const {deferred} of requests) {
-        deferred.reject(error);
-      }
-    },
-  }
-);
-
-function loadPinnedLog(
-  client: QueryClient,
-  context: QueryContext,
-  id: string
-): Promise<OurLogsResponseItem | null> {
-  const deferred = Promise.withResolvers<OurLogsResponseItem | null>();
-  pinnedLogBatcher.addItem({client, context, deferred, id});
-  return deferred.promise;
-}
-
-async function fetchPinnedLogBatch(
-  client: QueryClient,
-  {organizationSlug, baseQuery, dateParams}: QueryContext,
-  ids: string[]
-): Promise<Map<string, OurLogsResponseItem>> {
-  const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-    path: {organizationIdOrSlug: organizationSlug},
-  });
-
-  const fetchByIds = (idsForFetch: string[], dp: Record<string, unknown>) =>
-    apiFetch<EventsLogsResult>({
-      client,
-      queryKey: [
-        url,
-        {
-          query: {
-            ...baseQuery,
-            ...dp,
-            query: `id:[${idsForFetch.join(',')}]`,
-            per_page: idsForFetch.length,
-          },
-        },
-        {infinite: false},
-      ],
-      signal: new AbortController().signal,
-      meta: undefined,
-    });
-
-  const rowsById = new Map<string, OurLogsResponseItem>();
-  const collect = (result: EventsLogsResult) => {
-    for (const row of result.data) {
-      rowsById.set(row[OurLogKnownFieldKey.ID], row);
-    }
-  };
-
-  // Step 1: Search in the parent selected range for pins that are not loaded yet.
-  // Start with this smaller range so we don't have to scan the org's full retention period.
-  let foundInRange = new Set<string>();
-  try {
-    const inRange = (await fetchByIds(ids, dateParams)).json;
-    collect(inRange);
-    foundInRange = new Set(inRange.data.map(row => row[OurLogKnownFieldKey.ID]));
-  } catch {
-    // The selected range failed; let the wide window resolve everything instead.
-  }
-
-  // Step 2: Any IDs not found in the parent selected range escalate to a wider window.
-  // Anything still unfound stays pinned and surfaces as an unavailable row in the UI.
-  const stillMissing = ids.filter(id => !foundInRange.has(id));
-  if (stillMissing.length > 0) {
-    const wide = await fetchByIds(stillMissing, wideDateParams(stillMissing));
-    collect(wide.json);
-  }
-
-  return rowsById;
+  return {fetchedRows: fetchedData, ...rest};
 }
 
 /**
