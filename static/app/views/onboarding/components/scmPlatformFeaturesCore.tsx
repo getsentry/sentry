@@ -283,13 +283,18 @@ export function ScmPlatformFeaturesCore({
 
   function handleBackToRecommended() {
     setShowManualPicker(false);
-    // If the active platform is already a detected one, just reopen the cards
-    // view with it still selected. The user may have picked a non-top detection
-    // (or the auto-adopted default), so forcing the top detection here would
-    // clear a valid selection and wipe the derived features/form for no reason.
-    // Only a manual (non-detected) pick needs the fallback, since the cards view
-    // can't display it otherwise.
-    if (currentPlatformIsDetected || !detectedPlatformKey) {
+    // If the host already has a detected platform committed, just reopen the
+    // cards view with it still selected. The user may have committed a non-top
+    // detection (or the auto-adopted default), so forcing the top detection here
+    // would clear a valid selection and wipe the derived features/form for no
+    // reason. Check selectedPlatform, not currentPlatformKey: the latter falls
+    // back to the top detection even when nothing is committed, so using it here
+    // would skip the commit below and strand Create behind an empty
+    // selectedPlatform while the cards still look selected.
+    const selectedIsDetected = resolvedPlatforms.some(
+      p => p.platform === selectedPlatform?.key
+    );
+    if (selectedIsDetected || !detectedPlatformKey) {
       return;
     }
     setPlatform(detectedPlatformKey);
