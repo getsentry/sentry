@@ -674,22 +674,20 @@ class DatadogIdentityProviderTest(TestCase):
         with pytest.raises(ValueError, match="Invalid Datadog site"):
             self.provider._build_mcp_base_url()
 
-    def test_build_mcp_url(self) -> None:
-        assert (
-            self.provider.build_mcp_url({"site": "datadoghq.com"})
-            == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
-        )
+    def test_build_mcp_urls(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "datadoghq.com"}) == [
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        ]
 
-        assert (
-            self.provider.build_mcp_url({"site": "datadoghq.eu"})
-            == "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
-        )
+        assert self.provider.build_mcp_urls({"site": "datadoghq.eu"}) == [
+            "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
+        ]
 
-    def test_build_mcp_url_missing_site(self) -> None:
-        assert self.provider.build_mcp_url({}) is None
+    def test_build_mcp_urls_missing_site(self) -> None:
+        assert self.provider.build_mcp_urls({}) == []
 
-    def test_build_mcp_url_invalid_site(self) -> None:
-        assert self.provider.build_mcp_url({"site": "evil.example.com"}) is None
+    def test_build_mcp_urls_invalid_site(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "evil.example.com"}) == []
 
 
 @control_silo_test
@@ -778,14 +776,13 @@ class DatadogPatIdentityProviderTest(TestCase):
         with pytest.raises(IdentityNotValid, match="missing required fields"):
             self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
 
-    def test_build_mcp_url(self) -> None:
-        assert (
-            self.provider.build_mcp_url({"site": "datadoghq.com"})
-            == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
-        )
+    def test_build_mcp_urls(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "datadoghq.com"}) == [
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        ]
 
-    def test_build_mcp_url_missing_site(self) -> None:
-        assert self.provider.build_mcp_url({}) is None
+    def test_build_mcp_urls_missing_site(self) -> None:
+        assert self.provider.build_mcp_urls({}) == []
 
-    def test_build_mcp_url_invalid_site(self) -> None:
-        assert self.provider.build_mcp_url({"site": "evil.example.com"}) is None
+    def test_build_mcp_urls_invalid_site(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "evil.example.com"}) == []

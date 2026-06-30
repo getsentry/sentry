@@ -328,6 +328,11 @@ class ProjectKey(ReplicatedCellModel):
     def get_endpoint(self) -> str:
         from sentry.api.utils import generate_locality_url
 
+        # Apply the org's relay-dsn-endpoint override when set.
+        override = self.organization.get_option("sentry:relay_dsn_endpoint")
+        if override:
+            return override
+
         endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
             if SiloMode.get_current_mode() == SiloMode.CELL:

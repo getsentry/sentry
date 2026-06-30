@@ -1129,6 +1129,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Common to Seer features
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_project_ids": seer_rpc(get_organization_project_ids),
+    "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
     "check_repository_integrations_status": seer_rpc(check_repository_integrations_status),
     "validate_repo": seer_rpc(validate_repo),

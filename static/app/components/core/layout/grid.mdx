@@ -224,13 +224,17 @@ Grid provides fine-grained control over alignment using `justify`, `align`, `jus
 
 ### Responsive Props
 
-All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+All props support responsive values using breakpoint objects. Breakpoint keys are prefixed with `screen:`: `screen:2xs`, `screen:xs`, `screen:sm`, `screen:md`, `screen:lg`, `screen:xl`, `screen:2xl`.
 
 Example of a responsive grid container that changes from single column on small screens to multiple columns on larger screens.
 
 <Storybook.Demo>
   <Grid
-    columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}
+    columns={{
+      'screen:xs': '1fr',
+      'screen:sm': 'repeat(2, 1fr)',
+      'screen:md': 'repeat(3, 1fr)',
+    }}
     gap="md"
     padding="md"
   >
@@ -257,7 +261,11 @@ Example of a responsive grid container that changes from single column on small 
 ```jsx
 <Grid
   // Single column on xs, 2 columns on sm, 3 columns on md+
-  columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}
+  columns={{
+    'screen:xs': '1fr',
+    'screen:sm': 'repeat(2, 1fr)',
+    'screen:md': 'repeat(3, 1fr)',
+  }}
   gap="md"
 >
   <Container>Responsive</Container>
