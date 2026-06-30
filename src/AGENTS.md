@@ -262,9 +262,9 @@ with sentry_sdk.start_span(op="task") as span:
 # RIGHT: Use the sentry.utils.tracing wrappers
 from sentry.utils.tracing import start_span, set_span_tag, set_span_data
 
-with start_span(op="task"):
-    set_span_tag("key", "value")
-    set_span_data("payload", data)
+with start_span(op="task") as span:
+    set_span_tag(span, "key", "value")
+    set_span_data(span, "payload", data)
 ```
 
 ### Metrics Tags
