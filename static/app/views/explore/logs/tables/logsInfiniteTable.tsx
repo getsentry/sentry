@@ -590,7 +590,7 @@ export function LogsInfiniteTable({
             the main table reloads. */}
         {logsPinning && (!isPending || isAwaitingSeekWindow) && (
           <PinnedLogs
-            allRows={data}
+            allRows={data as OurLogsResponseItem[]}
             logsPinning={logsPinning}
             pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
@@ -653,7 +653,7 @@ export function LogsInfiniteTable({
               return (
                 <Fragment key={virtualRow.key}>
                   <LogRowContent
-                    dataRow={dataRow}
+                    dataRow={dataRow as OurLogsResponseItem}
                     meta={meta}
                     highlightTerms={highlightTerms}
                     embedded={embedded}
