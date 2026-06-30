@@ -178,20 +178,11 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
-    // Truncate the labels so a long metric name / aggregate can't blow out the
-    // tooltip width, matching the time series widget. Pass `escaped: false` —
-    // these render through React (`<Text>`), which escapes.
-    //
-    // The Y axis plots the metric's value distribution, so it's labeled with the
-    // metric name supplied by the caller via `meta.yAxis.name`; fall back to the
-    // value type, or "value" for plain numeric metrics.
-    const yAxisLabel = truncationFormatter(
-      meta.yAxis.name ||
-        (['number', 'integer'].includes(yAxisValueType) ? t('value') : yAxisValueType),
-      true,
-      false
-    );
+    const yAxisLabel = t('value');
 
+    // Truncate the Z-axis label so a long aggregate can't blow out the tooltip
+    // width, matching the time series widget. Pass `escaped: false` — it renders
+    // through React (`<Text>`), which escapes.
     const zAxisLabel = truncationFormatter(meta.zAxis.name || t('value'), true, false);
 
     return renderToString(

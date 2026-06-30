@@ -49,31 +49,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
           ) : heatMapSeries.values.length === 0 ? (
             <Widget.WidgetError error={t('No data')} />
           ) : (
-            <HeatMapWidgetVisualization
-              plottables={[
-                new HeatMap({
-                  ...heatMapSeries,
-                  meta: {
-                    ...heatMapSeries.meta,
-                    yAxis: {
-                      ...heatMapSeries.meta.yAxis,
-                      // The Y axis plots the metric's value distribution, so
-                      // label it with the metric name, e.g. "sentry.storage.size".
-                      name: metricName || heatMapSeries.meta.yAxis.name,
-                    },
-                    zAxis: {
-                      ...heatMapSeries.meta.zAxis,
-                      // The heat map always counts data points (see
-                      // metricHeatmapApiOptions); label it with the metric being
-                      // counted, e.g. "count(sentry.storage.size)".
-                      name: metricName
-                        ? `count(${metricName})`
-                        : heatMapSeries.meta.zAxis.name,
-                    },
-                  },
-                }),
-              ]}
-            />
+            <HeatMapWidgetVisualization plottables={[new HeatMap(heatMapSeries)]} />
           )
         }
         height={STACKED_GRAPH_HEIGHT}
