@@ -49,6 +49,7 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
+from sentry.utils.env import in_test_environment
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -334,30 +335,40 @@ def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.GROUP_ACTION_LOG_EVENT)
-def process_group_action_log_event(payload: Any, **kwds: Any) -> None:
+def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) -> None:
     """Write a GroupActionLogEntry from the outbox payload, then trigger
     derived data processing."""
-    p: GroupActionLogPayload = payload
-    group_id = p["group_id"]
+    try:
+        group_id = payload["group_id"]
 
-    GroupActionLogEntry.objects.create(
-        group_id=group_id,
-        project_id=p["project_id"],
-        type=p["type"],
-        actor_type=p["actor_type"],
-        actor_id=p["actor_id"],
-        source=p["source"],
-        data=p["data"],
-    )
+        GroupActionLogEntry.objects.create(
+            group_id=group_id,
+            project_id=payload["project_id"],
+            type=payload["type"],
+            actor_type=payload["actor_type"],
+            actor_id=payload["actor_id"],
+            source=payload["source"],
+            data=payload["data"],
+        )
 
-    # This receiver runs inside the outbox drain transaction
-    # (process_shard → transaction.atomic), so the GALE is not yet committed.
-    # Defer to on_commit so the GALE is visible to readers on other connections.
-    using = router.db_for_write(GroupActionLogEntry)
-    if p["force_async_derived"]:
-        transaction.on_commit(lambda: process_group_log_task.delay(group_id), using=using)
-    else:
-        transaction.on_commit(lambda: _process_derived_data(group_id), using=using)
+        # This receiver runs inside the outbox drain transaction
+        # (process_shard → transaction.atomic), so the GALE is not yet committed.
+        # Defer to on_commit so the GALE is visible to readers on other connections.
+        using = router.db_for_write(GroupActionLogEntry)
+        if payload["force_async_derived"]:
+            transaction.on_commit(lambda: process_group_log_task.delay(group_id), using=using)
+        else:
+            transaction.on_commit(lambda: _process_derived_data(group_id), using=using)
+    except KeyError:
+        # Payload schema mismatches (e.g. deploy skew) must not raise —
+        # the outbox would retry forever.  Surface in tests so producer bugs
+        # are caught, but drop the message in production.
+        if in_test_environment():
+            raise
+        logger.exception(
+            "process_group_action_log_event.permanent_failure",
+            extra={"payload": payload},
+        )
 
 
 def _process_derived_data(group_id: int) -> None:
