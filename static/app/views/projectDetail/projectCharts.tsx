@@ -74,7 +74,7 @@ type Props = {
   query?: string;
 };
 
-export function ProjectCharts({
+function ProjectCharts({
   chartId,
   chartIndex,
   hasSessions,
@@ -524,3 +524,5 @@ export function ProjectCharts({
     </Panel>
   );
 }
+
+export default ProjectCharts;
