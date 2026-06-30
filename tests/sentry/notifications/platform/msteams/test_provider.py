@@ -48,7 +48,7 @@ class MSTeamsRendererTest(TestCase):
         # Verify title block
         title_block = body_blocks[0]
         assert title_block["type"] == "TextBlock"
-        assert title_block["text"] == "Alert: *Mock Notification*"
+        assert title_block["text"] == "Alert: _Mock Notification_"
         assert title_block["size"] == TextSize.LARGE
         assert title_block["weight"] == TextWeight.BOLDER
 
@@ -57,7 +57,7 @@ class MSTeamsRendererTest(TestCase):
         assert body_block_1["type"] == "TextBlock"
         assert (
             body_block_1["text"]
-            == "test **important** *urgent* [View Issue](https://sentry.io/issue/1)"
+            == "test **important** _urgent_ [View Issue](https://sentry.io/issue/1)"
         )
 
         # Verify body block 2 (CodeBlock)
