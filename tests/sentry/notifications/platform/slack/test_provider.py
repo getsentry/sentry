@@ -21,7 +21,6 @@ from sentry.notifications.platform.provider import (
 from sentry.notifications.platform.slack.provider import (
     SlackNotificationProvider,
     SlackRenderable,
-    SlackRenderer,
 )
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
@@ -29,90 +28,16 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.threading import ThreadContext, ThreadKey
 from sentry.notifications.platform.types import (
-    BlockQuoteSection,
-    ItalicTextBlock,
-    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
-    NotificationRenderedTemplate,
     NotificationSource,
     NotificationTargetResourceType,
-    ParagraphBlock,
-    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 class SlackRendererTest(TestCase):
-    def test_link_text_block_rendering(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Test Link",
-            body=[
-                ParagraphBlock(
-                    blocks=[
-                        PlainTextBlock(text="PR:"),
-                        LinkTextBlock(
-                            text="getsentry/sentry (#1234)",
-                            url="https://github.com/getsentry/sentry/pull/1234",
-                        ),
-                    ],
-                )
-            ],
-        )
-
-        renderable = SlackRenderer.render(
-            data=MockNotification(message="test"), rendered_template=rendered_template
-        )
-        body_block = renderable["blocks"][1]
-        assert isinstance(body_block, SectionBlock)
-        assert body_block.text is not None
-        assert (
-            "<https://github.com/getsentry/sentry/pull/1234|getsentry/sentry (#1234)>"
-            in body_block.text.text
-        )
-
-    def test_italic_text_block_rendering(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Test Italic",
-            body=[
-                ParagraphBlock(
-                    blocks=[
-                        PlainTextBlock(text="This is"),
-                        ItalicTextBlock(text="important"),
-                    ],
-                )
-            ],
-        )
-
-        renderable = SlackRenderer.render(
-            data=MockNotification(message="test"), rendered_template=rendered_template
-        )
-        body_block = renderable["blocks"][1]
-        assert isinstance(body_block, SectionBlock)
-        assert body_block.text is not None
-        assert "_important_" in body_block.text.text
-
-    def test_block_quote_section_rendering(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Test Quote",
-            body=[
-                BlockQuoteSection(
-                    blocks=[
-                        PlainTextBlock(text="This is a quoted message"),
-                    ],
-                )
-            ],
-        )
-
-        renderable = SlackRenderer.render(
-            data=MockNotification(message="test"), rendered_template=rendered_template
-        )
-        body_block = renderable["blocks"][1]
-        assert isinstance(body_block, SectionBlock)
-        assert body_block.text is not None
-        assert ">This is a quoted message" in body_block.text.text
-
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
@@ -125,8 +50,22 @@ class SlackRendererTest(TestCase):
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
-            {"text": {"text": "Mock Notification", "type": "plain_text"}, "type": "header"},
-            {"text": {"text": "test", "type": "mrkdwn"}, "type": "section"},
+            {"text": {"text": "Alert: Mock Notification", "type": "plain_text"}, "type": "header"},
+            {
+                "text": {
+                    "text": "test *important* _urgent_ <https://sentry.io/issue/1|View Issue>",
+                    "type": "mrkdwn",
+                },
+                "type": "section",
+            },
+            {
+                "text": {"text": "```raise Exception('test')```", "type": "mrkdwn"},
+                "type": "section",
+            },
+            {
+                "text": {"text": ">This is a quoted message", "type": "mrkdwn"},
+                "type": "section",
+            },
             {
                 "elements": [
                     {
@@ -144,7 +83,7 @@ class SlackRendererTest(TestCase):
                 "type": "image",
             },
             {
-                "elements": [{"text": "This is a mock footer", "type": "mrkdwn"}],
+                "elements": [{"text": "Sent via `sentry-alerts`", "type": "mrkdwn"}],
                 "type": "context",
             },
         ]
