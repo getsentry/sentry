@@ -995,10 +995,21 @@ def refresh_monitoring_provider_token(
 
     identity = identity_service.get_identity(filter={"id": identity_id})
     if identity is None:
+        logger.error(
+            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     idp = identity_service.get_provider(provider_id=identity.idp_id)
     if idp is None or idp.type not in MONITORING_PROVIDERS:
+        logger.error(
+            "monitoring_provider.refresh.identity_provider_not_found",
+            extra={
+                "identity_id": identity_id,
+                "idp_id": identity.idp_id,
+                "idp_type": idp.type if idp is not None else None,
+            },
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     provider = identity_manager.get(idp.type)
@@ -1027,10 +1038,17 @@ def refresh_monitoring_provider_token(
 
     access_token = identity.data.get("access_token")
     if not access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_not_found", extra={"identity_id": identity.id}
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
 
     encrypted_access_token = encrypt_access_token_for_seer(access_token)
     if not encrypted_access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_encryption_failed",
+            extra={"identity_id": identity.id},
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
     return RefreshMonitoringProviderTokenSuccessResponse(
