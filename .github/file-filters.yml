@@ -43,7 +43,7 @@ mdx_typecheckable: &mdx_typecheckable
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
   - *sentry_frontend_snapshots_workflow_file
-  - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
+  - added|modified: '**/!(*.generated).{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 
