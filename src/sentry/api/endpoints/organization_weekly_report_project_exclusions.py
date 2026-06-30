@@ -77,11 +77,6 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
                 project_ids=requested_project_ids,
             )
             validated_project_ids = {p.id for p in projects}
-            if validated_project_ids != requested_project_ids:
-                return Response(
-                    {"detail": "Some project IDs are not accessible"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
         else:
             validated_project_ids = set()
 

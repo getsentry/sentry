@@ -37,6 +37,8 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         parsed = parse_id_or_slug_params([project_id_or_slug])
+        if any(pid <= 0 for pid in parsed.ids):
+            return Response(status=status.HTTP_404_NOT_FOUND)
         projects = self.get_projects(
             request=request,
             organization=organization,
