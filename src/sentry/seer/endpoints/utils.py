@@ -12,7 +12,11 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models.organization import Organization
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 
 class ResolvedSeerRun(NamedTuple):
@@ -110,13 +114,17 @@ def accept_organization_id_param(func: Callable[..., _RpcReturn]) -> Callable[..
     return wrapper
 
 
-def get_extra_seer_feature_flags(organization: Organization, user: Any) -> dict[str, bool]:
-    feature_flag_options = {}
-    feature_flags = [
-        "assisted-query.cross-event-explorer-endpoint-enabled",
-        "assisted-query.project-expansion-enabled",
-    ]
-    for ff in feature_flags:
-        if features.has(ff, organization, actor=user):
-            feature_flag_options[ff] = True
-    return feature_flag_options
+_SEER_FORWARDED_FLAGS = {
+    "organizations:assisted-query-cross-event-explorer": "assisted-query.cross-event-explorer-endpoint-enabled",
+    "organizations:assisted-query-project-expansion": "assisted-query.project-expansion-enabled",
+}
+
+
+def get_extra_seer_feature_flags(
+    organization: Organization, user: User | RpcUser | AnonymousUser
+) -> dict[str, bool]:
+    return {
+        seer_key: True
+        for ff, seer_key in _SEER_FORWARDED_FLAGS.items()
+        if features.has(ff, organization, actor=user)
+    }
