@@ -13,7 +13,6 @@ import {
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -23,16 +22,11 @@ interface Props {
 }
 
 export function ExternalIssueSidebarList({event, group}: Props) {
-  const organization = useOrganization();
-  const hasLinkedPullRequestsFeature = organization.features.includes(
-    'issue-details-linked-pull-requests'
-  );
   const externalIssueData = useGroupExternalIssues({group, event});
   const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
     useLinkedPullRequests({group});
   const hasLinkedPullRequestActivity = getLinkedPullRequestActivityIds(group).size > 0;
   const showEmptyIssueTrackerAction =
-    hasLinkedPullRequestsFeature &&
     !externalIssueData.isLoading &&
     !(hasLinkedPullRequestActivity && isLinkedPullRequestsLoading) &&
     externalIssueData.integrations.length > 0 &&
@@ -44,16 +38,16 @@ export function ExternalIssueSidebarList({event, group}: Props) {
       dataTestId="linked-issues"
       title={
         <Heading as="h3" size="md">
-          {hasLinkedPullRequestsFeature ? t('External Links') : t('Issue Tracking')}
+          {t('External Links')}
         </Heading>
       }
       actions={
-        hasLinkedPullRequestsFeature && !showEmptyIssueTrackerAction ? (
+        showEmptyIssueTrackerAction ? undefined : (
           <IssueTrackerActionDropdown
             integrations={externalIssueData.integrations}
             isLoading={externalIssueData.isLoading}
           />
-        ) : undefined
+        )
       }
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
@@ -67,7 +61,6 @@ export function ExternalIssueSidebarList({event, group}: Props) {
           <LinkedPullRequests
             group={group}
             showEmptyState={
-              hasLinkedPullRequestsFeature &&
               !showEmptyIssueTrackerAction &&
               !externalIssueData.isLoading &&
               externalIssueData.integrations.length > 0 &&
