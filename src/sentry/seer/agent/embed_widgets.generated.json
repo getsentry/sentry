@@ -1,0 +1,22 @@
+[
+  {
+    "name": "timestamp",
+    "description": "Display a formatted timestamp inline.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["relative"]
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    }
+  }
+]
