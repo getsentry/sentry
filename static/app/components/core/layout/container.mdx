@@ -214,7 +214,7 @@ The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined
 
 ### Container Queries
 
-Responsive props come in two flavours, keyed by breakpoint:
+Responsive props come in two flavors, keyed by breakpoint:
 
 - **bare keys** (`{xs: …}`) resolve against the nearest **query container** —
   the available space a component sits in. Container queries are the default, so
@@ -226,6 +226,19 @@ This matters because a panel in a narrow sidebar and the same panel full-width
 have the same viewport but very different available widths. An element can never
 query its own size, so declare a parent as a container with
 `containerType="inline-size"`, then use bare breakpoint keys on its descendants:
+
+For background on the underlying CSS, see MDN's
+
+<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries">
+  container queries guide
+</a>
+,
+<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/container-type">
+  `container-type`
+</a>
+, and the
+<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@container">`@container`</a>
+at-rule.
 
 <Storybook.SizingWindow display="block">
   <Container

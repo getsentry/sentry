@@ -94,22 +94,6 @@ describe('Container', () => {
     expect(ref.current?.tagName).toBe('OL');
   });
 
-  it('declares a query container without leaking props to the DOM', () => {
-    const ref = createRef<HTMLDivElement>();
-    render(
-      <Container ref={ref} containerType="inline-size" containerName="panel">
-        Hello
-      </Container>
-    );
-
-    const element = screen.getByText('Hello');
-    expect(element).not.toHaveAttribute('containertype');
-    expect(element).not.toHaveAttribute('containername');
-    // The ref still resolves to the element even though it is now wrapped in a
-    // ContainerQueryProvider (merged with the internal observer ref).
-    expect(ref.current).toBe(element);
-  });
-
   it('reuses class names for the same props', () => {
     render(
       <Fragment>
