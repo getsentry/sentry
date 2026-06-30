@@ -15,7 +15,7 @@ from sentry.utils.assets import (
     get_frontend_commit_sha,
 )
 from sentry.web.constants import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
-from sentry.web.frontend.base import all_silo_view
+from sentry.web.frontend.base import all_silo_view, control_silo_view
 
 
 def dev_favicon(request, extension):
@@ -101,7 +101,7 @@ def _fetch_worker_bundle(commit_sha: str) -> bytes | None:
     return content
 
 
-@all_silo_view
+@control_silo_view
 def service_worker(request):
     """
     Serve the service worker script from our own origin.
