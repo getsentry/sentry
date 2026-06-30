@@ -37,6 +37,7 @@ from sentry.seer.agent.tools import (
     get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
+    get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -141,6 +142,7 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
+    "get_issue_ownership": seer_rpc(get_issue_ownership),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "get_replay_metadata": seer_rpc(get_replay_metadata),
@@ -196,6 +198,7 @@ public_project_seer_method_registry: dict[str, SeerRpcMethod] = {
 _issue_scoped_org_methods: frozenset[str] = frozenset(
     {
         "get_issue_committers",
+        "get_issue_ownership",
         "get_issue_details",
         "get_event_details",
         "get_issue_and_event_details_v2",

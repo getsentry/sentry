@@ -531,6 +531,37 @@ class IssueCommittersResponse(_DictProxyMixin):
     project_slug: str
 
 
+class IssueOwner(BaseModel):
+    """A resolved code owner of an issue's failing files. Exactly one of the identity
+    fields is set: `email` for a `user`, `slug` for a `team`. `name` is the display
+    name when known. Kept fully typed (not a dict passthrough) so the same model can be
+    reused for RPC request/response validation on both sides of the wire."""
+
+    type: Literal["user", "team"]
+    name: str | None = None
+    email: str | None = None
+    slug: str | None = None
+
+
+class IssueOwnershipResponse(_DictProxyMixin):
+    """`get_issue_ownership` returns the *configured* code owners (Ownership Rules /
+    CODEOWNERS) for the files in an issue's stacktrace — who is RESPONSIBLE for the
+    area, independent of who authored any commit. Useful when there's no suspect commit
+    (e.g. infra/transient errors) but the area still has a clear owner.
+
+    `owners` is the ordered list of resolved users/teams; `matched_rules` are the rule
+    patterns that matched the failing files. `auto_assignment` reports whether Sentry is
+    already auto-assigning issues from these rules — when False, the configured owners
+    exist but nothing acts on them, which is precisely where a suggested assignee adds
+    value. Empty `owners` means no rule covered the failing files."""
+
+    owners: list[IssueOwner]
+    matched_rules: list[str]
+    auto_assignment: bool
+    project_id: int
+    project_slug: str
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK

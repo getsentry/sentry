@@ -4,6 +4,7 @@ from typing import Any, Literal
 from unittest.mock import Mock, patch
 
 import pytest
+from django.core.cache import cache
 from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from pydantic import BaseModel
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -11,11 +12,13 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.api import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
@@ -36,6 +39,7 @@ from sentry.seer.agent.tools import (
     get_issue_and_event_response,
     get_issue_committers,
     get_issue_details,
+    get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -2177,6 +2181,24 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert commit["id"] == "a" * 40
         assert commit["score"] is not None
 
+    @patch("sentry.seer.agent.tools._get_recommended_event", return_value=None)
+    def test_stack_commits_fall_back_to_latest_event_without_span(self, mock_recommended):
+        """When no span-bearing recommended event exists (the common case for error
+        issues), frame blame falls back to the issue's latest event so stack_commits is
+        still populated instead of silently empty."""
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        stack_commits = result["stack_commits"]
+        assert len(stack_commits) >= 1
+        assert stack_commits[0]["author"]["email"] == self.user.email
+        mock_recommended.assert_called_once()
+
     def test_returns_release_commits_in_window(self):
         group = self._make_blame_event(self.user.email)
 
@@ -2236,6 +2258,155 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
 
     def test_returns_none_when_issue_does_not_exist(self):
         result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id="123456789",
+        )
+        assert result is None
+
+
+class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
+    """Tests for get_issue_ownership — the configured code owners (Ownership Rules /
+    CODEOWNERS) of the files in an issue's stacktrace.
+
+    Resolves ``ProjectOwnership.get_owners`` against the issue's latest event and
+    reports the owning users/teams, the matched rule patterns, and whether Sentry
+    already auto-assigns from those rules.
+    """
+
+    def _make_event_on_path(self, filename: str) -> Group:
+        """Store an error event whose stacktrace frame lives at ``filename``."""
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["stacktrace"] = {
+            "frames": [
+                {
+                    "function": "do_thing",
+                    "abs_path": f"/usr/src/app/{filename}",
+                    "module": "app.module",
+                    "in_app": True,
+                    "lineno": 10,
+                    "filename": filename,
+                }
+            ]
+        }
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        return group
+
+    def _set_ownership(
+        self, rules: list[Rule], *, auto_assignment: bool = False, fallthrough: bool = False
+    ) -> None:
+        ProjectOwnership.objects.update_or_create(
+            project=self.project,
+            defaults={
+                "schema": dump_schema(rules),
+                "raw": "\n".join(str(r) for r in rules),
+                "fallthrough": fallthrough,
+                "auto_assignment": auto_assignment,
+                "is_active": True,
+            },
+        )
+        cache.delete(ProjectOwnership.get_cache_key(self.project.id))
+
+    def test_returns_user_owner(self):
+        group = self._make_event_on_path("src/app/checkout.py")
+        self._set_ownership(
+            [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])]
+        )
+
+        result = get_issue_ownership(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
+        owners = result["owners"]
+        assert len(owners) == 1
+        assert owners[0]["type"] == "user"
+        assert owners[0]["email"] == self.user.email
+        assert owners[0]["slug"] is None
+        assert "*checkout.py" in result["matched_rules"]
+        assert result["auto_assignment"] is False
+
+    def test_returns_team_owner(self):
+        group = self._make_event_on_path("src/app/billing.py")
+        self._set_ownership([Rule(Matcher("path", "*billing.py"), [Owner("team", self.team.slug)])])
+
+        result = get_issue_ownership(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        owners = result["owners"]
+        assert len(owners) == 1
+        assert owners[0]["type"] == "team"
+        assert owners[0]["slug"] == self.team.slug
+        assert owners[0]["email"] is None
+
+    def test_resolves_by_qualified_short_id(self):
+        group = self._make_event_on_path("src/app/checkout.py")
+        self._set_ownership(
+            [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])]
+        )
+
+        result = get_issue_ownership(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+        )
+
+        assert result is not None
+        assert len(result["owners"]) == 1
+        assert result["owners"][0]["email"] == self.user.email
+
+    def test_auto_assignment_flag_reflects_project_setting(self):
+        group = self._make_event_on_path("src/app/checkout.py")
+        self._set_ownership(
+            [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])],
+            auto_assignment=True,
+        )
+
+        result = get_issue_ownership(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["auto_assignment"] is True
+
+    def test_no_matching_rule_returns_empty_owners(self):
+        group = self._make_event_on_path("src/app/checkout.py")
+        # Rule targets a different file, so nothing covers the failing frame.
+        self._set_ownership(
+            [Rule(Matcher("path", "*unrelated.py"), [Owner("user", self.user.email)])]
+        )
+
+        result = get_issue_ownership(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["owners"] == []
+        assert result["matched_rules"] == []
+
+    def test_no_ownership_config_returns_empty_owners(self):
+        group = self._make_event_on_path("src/app/checkout.py")
+
+        result = get_issue_ownership(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["owners"] == []
+        assert result["matched_rules"] == []
+        assert result["auto_assignment"] is False
+
+    def test_returns_none_when_issue_does_not_exist(self):
+        result = get_issue_ownership(
             organization_id=self.organization.id,
             issue_id="123456789",
         )
