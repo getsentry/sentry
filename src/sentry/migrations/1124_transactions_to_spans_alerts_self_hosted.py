@@ -10,7 +10,6 @@ from sentry.explore.translation.alerts_translation import (
 from sentry.new_migrations.migrations import CheckedMigration
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from sentry.snuba.models import SnubaQuery
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 import sentry_sdk
 
@@ -71,6 +70,8 @@ class Dataset(Enum):
 def migrate_transactions_to_spans_alerts_self_hosted(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    SnubaQuery = apps.get_model("sentry", "SnubaQuery")
+
     qs = SnubaQuery.objects.filter(
         dataset__in=[Dataset.PerformanceMetrics.value, Dataset.Transactions.value]
     )
@@ -85,6 +86,8 @@ def migrate_transactions_to_spans_alerts_self_hosted(
 def reverse_migrate_transactions_to_spans_alerts_self_hosted(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    SnubaQuery = apps.get_model("sentry", "SnubaQuery")
+
     qs = SnubaQuery.objects.filter(
         dataset=Dataset.EventsAnalyticsPlatform.value, query_snapshot__isnull=False
     )
