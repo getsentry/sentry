@@ -247,6 +247,26 @@ analytics.record(
 )
 ```
 
+### Tracing / Spans
+
+Use the wrappers in `sentry.utils.tracing` instead of calling the SDK directly. This is required while we dogfood the streaming trace lifecycle (Span First rollout).
+
+```python
+# WRONG: Direct SDK usage
+import sentry_sdk
+
+with sentry_sdk.start_span(op="task") as span:
+    span.set_tag("key", "value")
+    span.set_data("payload", data)
+
+# RIGHT: Use the sentry.utils.tracing wrappers
+from sentry.utils.tracing import start_span, set_span_tag, set_span_data
+
+with start_span(op="task"):
+    set_span_tag("key", "value")
+    set_span_data("payload", data)
+```
+
 ### Metrics Tags
 
 Every distinct tag-value combination is a separate time series, so keep tags **low-cardinality, meaningful, and minimal**:
