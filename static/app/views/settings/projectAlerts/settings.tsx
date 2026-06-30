@@ -8,7 +8,10 @@ import {Link} from '@sentry/scraps/link';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -32,6 +35,30 @@ export default function ProjectAlertSettings() {
   };
 
   const projectMutationOptions = useUpdateProjectMutationOptions(project);
+
+  // When the maximum delay is set below the minimum, the API rejects the save
+  // with the error keyed under `digestsMinDelay`. The max field's form only
+  // knows about `digestsMaxDelay`, so re-key the error onto it — that way
+  // AutoSaveForm surfaces the message on the field the user just changed
+  // instead of falling back to a generic "Failed to save".
+  const maxDelayMutationOptions = {
+    ...projectMutationOptions,
+    mutationFn: (data: Partial<DetailedProject>) =>
+      fetchMutation<DetailedProject>({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        data,
+      }).catch((error: unknown) => {
+        if (
+          error instanceof RequestError &&
+          error.responseJSON?.digestsMinDelay &&
+          !error.responseJSON.digestsMaxDelay
+        ) {
+          error.responseJSON.digestsMaxDelay = error.responseJSON.digestsMinDelay;
+        }
+        throw error;
+      }),
+  };
 
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/alerts/">
@@ -119,7 +146,7 @@ export default function ProjectAlertSettings() {
           name="digestsMaxDelay"
           schema={alertSettingsSchema}
           initialValue={project.digestsMaxDelay}
-          mutationOptions={projectMutationOptions}
+          mutationOptions={maxDelayMutationOptions}
         >
           {field => (
             <field.Layout.Row
