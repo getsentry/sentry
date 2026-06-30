@@ -519,6 +519,7 @@ type CustomResponseFields = {
     | 'out_of_range'
     | 'unimplemented'
     | 'internal_error'
+    | 'error'
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';

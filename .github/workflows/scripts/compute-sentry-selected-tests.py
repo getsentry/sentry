@@ -109,17 +109,17 @@ EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     "fixtures/backup/user-with-minimum-privileges.json": ["tests/sentry/backup/test_rpc.py"],
     "fixtures/backup/single-integration.json": ["tests/sentry/backup/test_validate.py"],
     "fixtures/backup/single-option.json": ["tests/sentry/backup/test_validate.py"],
-    # YAML test-data files co-located with tests — only .py files are auto-selected
-    "tests/sentry/runner/commands/valid_patch.yaml": [
+    # JSON test-data files co-located with tests — only .py files are auto-selected
+    "tests/sentry/runner/commands/valid_patch.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
-    "tests/sentry/runner/commands/badsync.yaml": [
+    "tests/sentry/runner/commands/badsync.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
-    "tests/sentry/runner/commands/badpatch.yaml": [
+    "tests/sentry/runner/commands/badpatch.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
-    "tests/sentry/runner/commands/unsetsync.yaml": [
+    "tests/sentry/runner/commands/unsetsync.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
 }

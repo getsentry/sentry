@@ -6,7 +6,6 @@ import secrets
 import string
 from typing import Any
 
-from django.conf import settings as django_settings
 from rest_framework.exceptions import NotFound, ValidationError
 
 
@@ -15,9 +14,7 @@ class IntegrationNotFound(NotFound):
 
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.claude_code.integration import (
-    ClaudeCodeIntegrationMetadata,
-)
+from sentry.integrations.claude_code.integration import ClaudeCodeAgentIntegrationProvider
 from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
@@ -38,7 +35,6 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.utils.imports import import_string
 
 logger = logging.getLogger(__name__)
 
@@ -334,10 +330,6 @@ def poll_claude_code_agents(
 
     clients: dict[int, Any] = {}
 
-    if not django_settings.CLAUDE_CODE_CLIENT_CLASS:
-        logger.warning("coding_agent.claude_code.no_client_class_configured")
-        return
-
     run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
 
     for agent_id, agent_state in agents.items():
@@ -421,7 +413,6 @@ def poll_claude_agent(
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:
-    # Get or create client for this agent's integration
     if integration_id is None:
         logger.warning(
             "coding_agent.claude_code.missing_integration_id",
@@ -429,38 +420,37 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
         )
         return None
     if integration_id in clients:
-        client = clients[integration_id]
-    else:
-        org_integration = integration_service.get_organization_integration(
-            organization_id=org_id,
-            integration_id=integration_id,
-        )
-        if not org_integration:
-            logger.warning(
-                "coding_agent.claude_code.integration_not_found",
-                extra={"organization_id": org_id, "integration_id": integration_id},
-            )
-            return None
-        integration = integration_service.get_integration(
-            organization_integration_id=org_integration.id,
-        )
-        if not integration:
-            logger.warning(
-                "coding_agent.claude_code.integration_not_found",
-                extra={"organization_id": org_id, "integration_id": integration_id},
-            )
-            return None
-        metadata = ClaudeCodeIntegrationMetadata.parse_obj(integration.metadata or {})
+        return clients[integration_id]
 
-        if not django_settings.CLAUDE_CODE_CLIENT_CLASS:
-            return None
-        client_class = import_string(django_settings.CLAUDE_CODE_CLIENT_CLASS)
-        client = client_class(
-            api_key=metadata.api_key,
-            environment_id=metadata.environment_id,
-            workspace_name=metadata.workspace_name,
+    org_integration = integration_service.get_organization_integration(
+        organization_id=org_id,
+        integration_id=integration_id,
+    )
+    if not org_integration:
+        logger.warning(
+            "coding_agent.claude_code.integration_not_found",
+            extra={"organization_id": org_id, "integration_id": integration_id},
         )
-        clients[integration_id] = client
+        return None
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if not integration:
+        logger.warning(
+            "coding_agent.claude_code.integration_not_found",
+            extra={"organization_id": org_id, "integration_id": integration_id},
+        )
+        return None
+
+    installation = ClaudeCodeAgentIntegrationProvider.get_installation(integration, org_id)
+    try:
+        client = installation.get_client()
+    except Exception:
+        logger.exception(
+            "coding_agent.claude_code.get_client_failed",
+            extra={"organization_id": org_id, "integration_id": integration_id},
+        )
+        return None
+    clients[integration_id] = client
     return client
 
 

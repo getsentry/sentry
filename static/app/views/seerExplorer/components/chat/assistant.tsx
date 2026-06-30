@@ -11,7 +11,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
 
 import type {AssistantBlockProps} from './shared';
@@ -29,10 +29,19 @@ export function AssistantBlock({
   interactionPending,
   readOnly,
 }: AssistantBlockProps) {
+  const organization = useOrganization();
   const content = block.message.content ?? '';
+  const isStreamingEnabled = organization.features.includes('seer-explorer-stream');
 
   if (block.loading) {
-    return <MessagePlaceholder content={content} />;
+    if (isStreamingEnabled && hasValidContent(content)) {
+      return (
+        <Container padding="xl" minWidth={0} overflow="hidden">
+          <SeerMarkdown raw={content} variant="streaming" />
+        </Container>
+      );
+    }
+    return <MessagePlaceholder content={isStreamingEnabled ? undefined : content} />;
   }
 
   return (
@@ -53,7 +62,11 @@ export function AssistantBlock({
   );
 }
 
-function useBlockFeedback(block: Block, blockIndex: number, runId: number | undefined) {
+function useBlockFeedback(
+  block: Block,
+  blockIndex: number,
+  runId: SeerExplorerRunId | undefined
+) {
   const organization = useOrganization();
   const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
     `seer-explorer-feedback:run-${runId ?? 'null'}:block-${block.id}`,

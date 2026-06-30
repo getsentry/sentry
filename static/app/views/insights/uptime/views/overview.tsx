@@ -72,36 +72,32 @@ export default function UptimeOverview() {
 
   const page = (
     <Fragment>
-      <Layout.Header unified>
-        <Layout.HeaderContent>
-          <Layout.Title>
-            {t('Uptime Monitors')}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <TopBar.Slot name="actions">
-          <LinkButton
-            variant="primary"
-            to={makeAlertsPathname({path: '/new/uptime/', organization})}
-            icon={<IconAdd />}
-            disabled={!canCreateAlert}
-            tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
-          >
-            {t('Add Uptime Monitor')}
-          </LinkButton>
-        </TopBar.Slot>
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-      </Layout.Header>
+      <Layout.Title>
+        {t('Uptime Monitors')}
+        <PageHeadingQuestionTooltip
+          docsUrl={MODULE_DOC_LINK}
+          title={MODULE_DESCRIPTION}
+        />
+      </Layout.Title>
+      <TopBar.Slot name="actions">
+        <LinkButton
+          variant="primary"
+          to={makeAlertsPathname({path: '/new/uptime/', organization})}
+          icon={<IconAdd />}
+          disabled={!canCreateAlert}
+          tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+        >
+          {t('Add Uptime Monitor')}
+        </LinkButton>
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Layout.Body>
         <Layout.Main width="full">
           <Filters>
