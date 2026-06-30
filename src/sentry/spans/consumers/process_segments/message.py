@@ -28,7 +28,6 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
 )
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -344,11 +343,6 @@ def _run_legacy_detectors(
         event_data["timestamp"] = event_data["datetime"]
 
         for problem in detected_problems:
-            problem.type = PerformanceStreamedSpansGroupTypeExperimental
-            problem.fingerprint = (
-                f"{problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
-            )
-
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
