@@ -146,7 +146,11 @@ def record_contributor_action(
         defaults={"alias": user_username},
     )
 
-    if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):
+    if (
+        not is_opened
+        or not features.has("organizations:seat-based-seer-record-action", organization)
+        or not should_increment_contributor_seat(organization, repo, contributor)
+    ):
         return
 
     _, created = OrganizationContributorAction.objects.get_or_create(
