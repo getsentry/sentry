@@ -5,7 +5,7 @@ import {useQueries, useQueryClient} from '@tanstack/react-query';
 
 import type {BatchingRequest} from 'sentry/utils/api/batching/createBatcher';
 
-export type BatchedQueryStatus = 'error' | 'pending' | 'success';
+type BatchedQueryStatus = 'error' | 'pending' | 'success';
 
 interface BatchedQueriesOptions<Data, QueryContext> {
   batcher: AsyncBatcher<BatchingRequest<Data, QueryContext>>;
