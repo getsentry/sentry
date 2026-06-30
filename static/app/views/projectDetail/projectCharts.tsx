@@ -74,7 +74,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectCharts({
+export function ProjectCharts({
   chartId,
   chartIndex,
   hasSessions,
@@ -124,8 +124,7 @@ function ProjectCharts({
     });
 
   const displayMode = (() => {
-    const mode =
-      decodeScalar(location.query[chartId]) || defaultDisplayModes[chartIndex];
+    const mode = decodeScalar(location.query[chartId]) || defaultDisplayModes[chartIndex];
 
     if (!Object.values(DisplayModes).includes(mode as DisplayModes)) {
       return defaultDisplayModes[chartIndex];
@@ -153,8 +152,7 @@ function ProjectCharts({
         value: DisplayModes.STABILITY_USERS,
         label: t('Crash Free Users'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.STABILITY_USERS) ||
-          !hasSessions,
+          otherActiveDisplayModes.includes(DisplayModes.STABILITY_USERS) || !hasSessions,
         tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
@@ -201,8 +199,7 @@ function ProjectCharts({
       {
         value: DisplayModes.SESSIONS,
         label: t('Number of Sessions'),
-        disabled:
-          otherActiveDisplayModes.includes(DisplayModes.SESSIONS) || !hasSessions,
+        disabled: otherActiveDisplayModes.includes(DisplayModes.SESSIONS) || !hasSessions,
         tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
@@ -464,10 +461,7 @@ function ProjectCharts({
               displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
                 <ProjectBaseSessionsChart
                   title={t('Foreground ANR Rate')}
-                  help={getSessionTermDescription(
-                    SessionTerm.FOREGROUND_ANR_RATE,
-                    null
-                  )}
+                  help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={handleTotalValuesChange}
@@ -530,5 +524,3 @@ function ProjectCharts({
     </Panel>
   );
 }
-
-export default ProjectCharts;
