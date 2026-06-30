@@ -52,25 +52,14 @@ export function ConversationDetailPageNew() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <Container
-        flexShrink={0}
-        background="primary"
-        borderBottom="primary"
-        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
-      >
+      <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummaryNew
           nodes={nodes}
           conversationId={conversationId}
           isLoading={isLoading}
         />
       </Container>
-      <Stack
-        flex={1}
-        minHeight="0"
-        overflow="hidden"
-        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
-        gap="md"
-      >
+      <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0}>
           <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
             <TabList variant="floating">
