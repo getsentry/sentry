@@ -84,7 +84,13 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
         )
 
         return {
-            item: {"relay_dsn_endpoint": relay_dsn_endpoints.get(project_key_org_ids.get(item.id))}
+            item: {
+                "relay_dsn_endpoint": (
+                    relay_dsn_endpoints.get(org_id)
+                    if (org_id := project_key_org_ids.get(item.id)) is not None
+                    else None
+                )
+            }
             for item in item_list
         }
 
