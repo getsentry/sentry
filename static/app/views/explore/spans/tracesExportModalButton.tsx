@@ -2,6 +2,7 @@ import {downloadAsJsonl} from 'sentry/components/exports/downloadAsJsonl';
 import {ROW_COUNT_VALUE_MAX} from 'sentry/components/exports/generateExportRowCountOptions';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
@@ -12,7 +13,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
-import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
@@ -39,10 +39,13 @@ export function TracesExportModalButton({
   const {eventView} = targetTableResult;
   const data = targetTableResult.result.data ?? [];
 
+  const hasMoreRows =
+    parseLinkHeader(targetTableResult.result.pageLinks ?? null)?.next?.results ?? false;
+
   const estimatedRowCount =
     tab === Tab.SPAN
       ? Math.max(data.length, rawSpanCounts.total.count ?? 0)
-      : data.length >= SPANS_TABLE_LIMIT
+      : hasMoreRows
         ? Math.max(data.length, ROW_COUNT_VALUE_MAX)
         : data.length;
 
