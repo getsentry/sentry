@@ -213,6 +213,59 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
+    def test_recommended_v2_weights_requires_experimental_flag(self) -> None:
+        # ?recommendedWeights on recommended_v2 is gated by the experiment flag: ignored
+        # without it, validated with it.
+        group = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["g"]},
+            project_id=self.project.id,
+        ).group
+        self.login_as(user=self.user)
+        bad = '{"severity": "not-a-number"}'
+
+        # No flag -> param ignored, so malformed JSON does not 400.
+        response = self.get_success_response(
+            sort="recommended_v2", query="is:unresolved", recommendedWeights=bad
+        )
+        assert [item["id"] for item in response.data] == [str(group.id)]
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            assert (
+                self.get_response(
+                    sort="recommended_v2", query="is:unresolved", recommendedWeights=bad
+                ).status_code
+                == 400
+            )
+            # Valid weights are accepted.
+            self.get_success_response(
+                sort="recommended_v2",
+                query="is:unresolved",
+                recommendedWeights='{"severity": 0.3, "assignment": 0.5}',
+            )
+
+    def test_recommended_weights_v1_uses_non_experimental_flag(self) -> None:
+        # v1 "recommended" is gated by its own flag; the experimental flag must not open it.
+        self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["g"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        bad = '{"severity": "not-a-number"}'
+
+        # Experimental flag does not gate v1 -> param ignored.
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            self.get_success_response(
+                sort="recommended", query="is:unresolved", recommendedWeights=bad
+            )
+        # v1 flag does gate it -> malformed weights 400.
+        with self.feature("organizations:issue-stream-recommended-sort"):
+            assert (
+                self.get_response(
+                    sort="recommended", query="is:unresolved", recommendedWeights=bad
+                ).status_code
+                == 400
+            )
+
     def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
             data={
