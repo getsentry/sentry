@@ -85,7 +85,7 @@ export default function ProjectFilters() {
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
         ) : hasInboundFiltersV2 && filterType === 'inbound-filters' ? (
-          <CustomFilters />
+          <CustomFilters project={project} />
         ) : (
           <ProjectFiltersSettings project={project} params={params} />
         )}

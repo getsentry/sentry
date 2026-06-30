@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -10,39 +11,60 @@ import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd, IconDelete, IconEdit, IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-type CustomFilterCondition = {
+// Condition types accepted by the custom inbound filters API. The values match
+// the `type` field on the backend serializer exactly.
+type ConditionType = 'error_message' | 'metric_name' | 'log_message' | 'release';
+
+type CustomInboundFilterCondition = {
+  type: ConditionType;
+  value: string[];
+};
+
+// Shape returned by the custom inbound filters API.
+type CustomInboundFilter = {
+  active: boolean;
+  conditions: CustomInboundFilterCondition[];
+  dateCreated: string;
+  dateUpdated: string;
   id: string;
-  property: string;
+  name: string | null;
+};
+
+// A single editable condition row in the modal. The API stores a list of
+// values per condition, but the UI edits one glob per row, so each row maps to
+// a single-element value list.
+type DraftCondition = {
+  id: string;
+  property: ConditionType;
   value: string;
 };
 
-type CustomFilter = {
-  conditions: CustomFilterCondition[];
-  dateCreated: string;
-  dateEdited: string;
-  id: string;
-  isActive: boolean;
-  name: string;
-};
-
 type FilterDraft = {
-  conditions: CustomFilterCondition[];
+  conditions: DraftCondition[];
   name: string;
 };
 
 // Mirrors the custom data filters available on the legacy inbound filters
 // page (error messages, metric names, log messages, releases). Conditions
 // are glob patterns matched against the selected property.
-const PROPERTY_OPTIONS = [
+const PROPERTY_OPTIONS: Array<{label: string; value: ConditionType}> = [
   {value: 'error_message', label: t('Error Message')},
   {value: 'metric_name', label: t('Metric Name')},
   {value: 'log_message', label: t('Log Message')},
@@ -54,57 +76,59 @@ const PROPERTY_OPTIONS = [
 // conditions. Multiple conditions of the same exclusive property (e.g. two
 // error message globs) are still allowed. `release` is not in this set, so it
 // can be combined with any other property.
-const EXCLUSIVE_PROPERTIES = new Set(['error_message', 'metric_name', 'log_message']);
+const EXCLUSIVE_PROPERTIES = new Set<ConditionType>([
+  'error_message',
+  'metric_name',
+  'log_message',
+]);
 
-function isExclusiveProperty(property: string) {
+function isExclusiveProperty(property: ConditionType) {
   return EXCLUSIVE_PROPERTIES.has(property);
 }
 
-function getActiveExclusiveProperty(conditions: CustomFilterCondition[]) {
+function getActiveExclusiveProperty(conditions: DraftCondition[]) {
   return conditions.find(condition => isExclusiveProperty(condition.property))?.property;
 }
 
-// Placeholder data so the table can be exercised locally. This will be
-// replaced by data from the API once the backend exists.
-const INITIAL_FILTERS: CustomFilter[] = [
-  {
-    id: uniqueId(),
-    name: 'Ignore flaky connection errors',
-    isActive: true,
-    conditions: [
-      {id: uniqueId(), property: 'error_message', value: '*ConnectionError*'},
-      {id: uniqueId(), property: 'release', value: '2.41.*'},
-    ],
-    dateCreated: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-    dateEdited: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: uniqueId(),
-    name: 'Drop debug log spam',
-    isActive: false,
-    conditions: [{id: uniqueId(), property: 'log_message', value: '*DEBUG*'}],
-    dateCreated: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    dateEdited: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: uniqueId(),
-    name: 'Filter internal test metrics',
-    isActive: true,
-    conditions: [{id: uniqueId(), property: 'metric_name', value: 'test.*'}],
-    dateCreated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    dateEdited: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-  },
-];
-
-function emptyCondition(property = 'error_message'): CustomFilterCondition {
+function emptyCondition(property: ConditionType = 'error_message'): DraftCondition {
   return {id: uniqueId(), property, value: ''};
+}
+
+// Expand the API's per-condition value lists into one editable row per value.
+function filterToDraft(filter: CustomInboundFilter): FilterDraft {
+  const conditions = filter.conditions.flatMap(condition =>
+    condition.value.map(value => ({id: uniqueId(), property: condition.type, value}))
+  );
+  return {
+    name: filter.name ?? '',
+    conditions: conditions.length > 0 ? conditions : [emptyCondition()],
+  };
+}
+
+// Collapse the editable rows back into the API shape, one single-value
+// condition per row.
+function draftToConditions(draft: FilterDraft): CustomInboundFilterCondition[] {
+  return draft.conditions.map(condition => ({
+    type: condition.property,
+    value: [condition.value.trim()],
+  }));
+}
+
+function getErrorDetail(error: unknown, fallback: string): string {
+  if (error instanceof RequestError) {
+    const detail = error.responseJSON?.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+  }
+  return fallback;
 }
 
 function getPropertyLabel(value: string) {
   return PROPERTY_OPTIONS.find(option => option.value === value)?.label ?? value;
 }
 
-function getValuePlaceholder(property: string) {
+function getValuePlaceholder(property: ConditionType) {
   switch (property) {
     case 'error_message':
       return t('Glob pattern, e.g. *ConnectionError*');
@@ -119,11 +143,11 @@ function getValuePlaceholder(property: string) {
   }
 }
 
-function ConditionTag({condition}: {condition: CustomFilterCondition}) {
+function ConditionTag({type, value}: {type: ConditionType; value: string}) {
   return (
     <Tag variant="muted">
       <Text monospace size="sm">
-        {`${getPropertyLabel(condition.property)}:${condition.value}`}
+        {`${getPropertyLabel(type)}:${value}`}
       </Text>
     </Tag>
   );
@@ -137,21 +161,20 @@ function CustomFilterModal({
   filter,
   onSave,
 }: ModalRenderProps & {
-  onSave: (draft: FilterDraft) => void;
-  filter?: CustomFilter;
+  onSave: (draft: FilterDraft) => Promise<unknown>;
+  filter?: CustomInboundFilter;
 }) {
-  const [draft, setDraft] = useState(
-    filter
-      ? {name: filter.name, conditions: filter.conditions}
-      : {name: '', conditions: [emptyCondition()]}
+  const [draft, setDraft] = useState<FilterDraft>(() =>
+    filter ? filterToDraft(filter) : {name: '', conditions: [emptyCondition()]}
   );
+  const [isSaving, setIsSaving] = useState(false);
 
   const isValid =
     draft.name.trim() !== '' &&
     draft.conditions.length > 0 &&
     draft.conditions.every(condition => condition.value.trim() !== '');
 
-  const updateCondition = (id: string, updates: Partial<CustomFilterCondition>) => {
+  const updateCondition = (id: string, updates: Partial<DraftCondition>) => {
     setDraft(current => ({
       ...current,
       conditions: current.conditions.map(condition =>
@@ -163,7 +186,7 @@ function CustomFilterModal({
   // For a given condition, disable any exclusive property already claimed by a
   // different condition. Two conditions sharing the same exclusive property is
   // fine, and `release` is never exclusive so it stays enabled.
-  const getPropertyOptions = (condition: CustomFilterCondition) =>
+  const getPropertyOptions = (condition: DraftCondition) =>
     PROPERTY_OPTIONS.map(option => {
       if (!isExclusiveProperty(option.value)) {
         return option;
@@ -190,6 +213,16 @@ function CustomFilterModal({
           }
         : option;
     });
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(draft);
+      closeModal();
+    } catch {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Fragment>
@@ -244,7 +277,7 @@ function CustomFilterModal({
                     clearable={false}
                     options={getPropertyOptions(condition)}
                     value={condition.property}
-                    onChange={(option: {value: string}) =>
+                    onChange={(option: {value: ConditionType}) =>
                       updateCondition(condition.id, {property: option.value})
                     }
                   />
@@ -281,11 +314,9 @@ function CustomFilterModal({
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             variant="primary"
-            disabled={!isValid}
-            onClick={() => {
-              onSave(draft);
-              closeModal();
-            }}
+            disabled={!isValid || isSaving}
+            busy={isSaving}
+            onClick={handleSave}
           >
             {filter ? t('Save Changes') : t('Create Filter')}
           </Button>
@@ -295,70 +326,108 @@ function CustomFilterModal({
   );
 }
 
-function matchesQuery(filter: CustomFilter, query: string) {
+function matchesQuery(filter: CustomInboundFilter, query: string) {
   const needle = query.trim().toLowerCase();
   if (needle === '') {
     return true;
   }
   const haystack = [
-    filter.name,
-    ...filter.conditions.flatMap(condition => [
-      condition.value,
-      getPropertyLabel(condition.property),
-      `${getPropertyLabel(condition.property)}:${condition.value}`,
-    ]),
+    filter.name ?? '',
+    ...filter.conditions.flatMap(condition =>
+      condition.value.flatMap(value => [
+        value,
+        getPropertyLabel(condition.type),
+        `${getPropertyLabel(condition.type)}:${value}`,
+      ])
+    ),
   ];
   return haystack.some(field => field.toLowerCase().includes(needle));
 }
 
-export function CustomFilters() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
+export function CustomFilters({project}: {project: Project}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
+  const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      staleTime: 0,
+    }
+  );
+  const {queryKey} = queryOptions;
+  const [listUrl] = queryKey;
+  const detailUrl = (id: string) => `${listUrl}${id}/`;
+
+  const {data: filters = [], isPending, isError, refetch} = useQuery(queryOptions);
+
+  const invalidate = () => queryClient.invalidateQueries({queryKey});
+
+  const createMutation = useMutation({
+    mutationFn: (draft: FilterDraft) =>
+      fetchMutation<CustomInboundFilter>({
+        method: 'POST',
+        url: listUrl,
+        data: {name: draft.name.trim(), conditions: draftToConditions(draft)},
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Filter created'));
+      invalidate();
+    },
+    onError: error => {
+      addErrorMessage(getErrorDetail(error, t('Unable to create filter')));
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      data: Partial<Pick<CustomInboundFilter, 'name' | 'active' | 'conditions'>>;
+      id: string;
+    }) =>
+      fetchMutation<CustomInboundFilter>({
+        method: 'PUT',
+        url: detailUrl(id),
+        data,
+      }),
+    onSuccess: () => invalidate(),
+    onError: error => {
+      addErrorMessage(getErrorDetail(error, t('Unable to update filter')));
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetchMutation({
+        method: 'DELETE',
+        url: detailUrl(id),
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Filter deleted'));
+      invalidate();
+    },
+    onError: error => {
+      addErrorMessage(getErrorDetail(error, t('Unable to delete filter')));
+    },
+  });
+
+  const handleCreate = (draft: FilterDraft) => createMutation.mutateAsync(draft);
+
+  const handleEdit = (id: string, draft: FilterDraft) =>
+    updateMutation.mutateAsync({
+      id,
+      data: {name: draft.name.trim(), conditions: draftToConditions(draft)},
+    });
+
+  const handleToggleActive = (filter: CustomInboundFilter) =>
+    updateMutation.mutate({id: filter.id, data: {active: !filter.active}});
+
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
+
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
-
-  const handleToggleActive = (id: string) => {
-    setFilters(current =>
-      current.map(filter =>
-        filter.id === id ? {...filter, isActive: !filter.isActive} : filter
-      )
-    );
-  };
-
-  const handleDelete = (id: string) => {
-    setFilters(current => current.filter(filter => filter.id !== id));
-  };
-
-  const handleCreate = (draft: FilterDraft) => {
-    const now = new Date().toISOString();
-    setFilters(current => [
-      ...current,
-      {
-        id: uniqueId(),
-        name: draft.name.trim(),
-        isActive: true,
-        conditions: draft.conditions,
-        dateCreated: now,
-        dateEdited: now,
-      },
-    ]);
-  };
-
-  const handleUpdate = (id: string, draft: FilterDraft) => {
-    const now = new Date().toISOString();
-    setFilters(current =>
-      current.map(filter =>
-        filter.id === id
-          ? {
-              ...filter,
-              name: draft.name.trim(),
-              conditions: draft.conditions,
-              dateEdited: now,
-            }
-          : filter
-      )
-    );
-  };
 
   return (
     <Flex direction="column" gap="lg">
@@ -389,88 +458,102 @@ export function CustomFilters() {
         </Button>
       </Flex>
 
-      <CustomFiltersTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell divider={false}>
-            {t('Conditions')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell divider={false}>{t('Created')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-        {visibleFilters.length === 0 && (
-          <SimpleTable.Empty>
-            {filters.length === 0
-              ? t('No inbound filters found')
-              : t('No rules match your search')}
-          </SimpleTable.Empty>
-        )}
-        {visibleFilters.map(filter => (
-          <SimpleTable.Row
-            key={filter.id}
-            variant={filter.isActive ? 'default' : 'faded'}
-          >
-            <SimpleTable.RowCell>
-              <Switch
-                aria-label={filter.isActive ? t('Disable filter') : t('Enable filter')}
-                checked={filter.isActive}
-                onChange={() => handleToggleActive(filter.id)}
-              />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Tooltip title={filter.name} showOnlyOnOverflow skipWrapper>
-                <Text ellipsis>{filter.name}</Text>
-              </Tooltip>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Flex direction="column" align="start" gap="xs">
-                {filter.conditions.map(condition => (
-                  <ConditionTag key={condition.id} condition={condition} />
-                ))}
-              </Flex>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <TimeSince date={filter.dateCreated} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <TimeSince date={filter.dateEdited} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Flex gap="sm">
-                <Button
-                  size="sm"
-                  variant="transparent"
-                  icon={<IconEdit />}
-                  aria-label={t('Edit filter')}
-                  onClick={() =>
-                    openModal(deps => (
-                      <CustomFilterModal
-                        {...deps}
-                        filter={filter}
-                        onSave={draft => handleUpdate(filter.id, draft)}
+      {isError ? (
+        <LoadingError onRetry={refetch} />
+      ) : isPending ? (
+        <LoadingIndicator />
+      ) : (
+        <CustomFiltersTable>
+          <SimpleTable.Header>
+            <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>
+              {t('Conditions')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>
+              {t('Created')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
+          </SimpleTable.Header>
+          {visibleFilters.length === 0 && (
+            <SimpleTable.Empty>
+              {filters.length === 0
+                ? t('No inbound filters found')
+                : t('No rules match your search')}
+            </SimpleTable.Empty>
+          )}
+          {visibleFilters.map(filter => (
+            <SimpleTable.Row
+              key={filter.id}
+              variant={filter.active ? 'default' : 'faded'}
+            >
+              <SimpleTable.RowCell>
+                <Switch
+                  aria-label={filter.active ? t('Disable filter') : t('Enable filter')}
+                  checked={filter.active}
+                  onChange={() => handleToggleActive(filter)}
+                />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Tooltip title={filter.name} showOnlyOnOverflow skipWrapper>
+                  <Text ellipsis>{filter.name}</Text>
+                </Tooltip>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Flex direction="column" align="start" gap="xs">
+                  {filter.conditions.flatMap((condition, conditionIndex) =>
+                    condition.value.map((value, valueIndex) => (
+                      <ConditionTag
+                        key={`${conditionIndex}-${valueIndex}`}
+                        type={condition.type}
+                        value={value}
                       />
                     ))
-                  }
-                />
-                <Confirm
-                  priority="danger"
-                  message={t('Are you sure you want to delete this filter?')}
-                  onConfirm={() => handleDelete(filter.id)}
-                >
+                  )}
+                </Flex>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <TimeSince date={filter.dateCreated} />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <TimeSince date={filter.dateUpdated} />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Flex gap="sm">
                   <Button
                     size="sm"
                     variant="transparent"
-                    icon={<IconDelete />}
-                    aria-label={t('Delete filter')}
+                    icon={<IconEdit />}
+                    aria-label={t('Edit filter')}
+                    onClick={() =>
+                      openModal(deps => (
+                        <CustomFilterModal
+                          {...deps}
+                          filter={filter}
+                          onSave={draft => handleEdit(filter.id, draft)}
+                        />
+                      ))
+                    }
                   />
-                </Confirm>
-              </Flex>
-            </SimpleTable.RowCell>
-          </SimpleTable.Row>
-        ))}
-      </CustomFiltersTable>
+                  <Confirm
+                    priority="danger"
+                    message={t('Are you sure you want to delete this filter?')}
+                    onConfirm={() => handleDelete(filter.id)}
+                  >
+                    <Button
+                      size="sm"
+                      variant="transparent"
+                      icon={<IconDelete />}
+                      aria-label={t('Delete filter')}
+                    />
+                  </Confirm>
+                </Flex>
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </CustomFiltersTable>
+      )}
     </Flex>
   );
 }
