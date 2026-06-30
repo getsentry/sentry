@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry import features
 from sentry.models.commit import Commit
@@ -14,8 +15,11 @@ from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityType,
+    PullRequestAttribution,
     PullRequestMetrics,
 )
+
+_PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=4)
 
 
 def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | None = None) -> bool:
@@ -24,10 +28,19 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
     Gated on the feature flag rollout only — Seer access is not required,
     since activity is collected for all attribution types including MCP.
 
-    When ``pr`` is supplied, an additional per-PR check applies: if the PR
-    already has a terminal verdict (or the ``JUDGE_IN_PROGRESS`` sentinel) on
-    its ``PullRequestMetrics`` row, the ``scm.pr.closed`` event has already
-    been emitted and activity rows are no longer needed.
+    When ``pr`` is supplied, two additional per-PR checks apply:
+
+    1. If the PR already has a terminal verdict (or the ``JUDGE_IN_PROGRESS``
+       sentinel) on its ``PullRequestMetrics`` row, the ``scm.pr.closed`` event
+       has already been emitted and activity rows are no longer needed.
+
+    2. A time-based buffer gate applies after the verdict check:
+       - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (4 h) of ``pr.date_added``,
+         activity is always collected regardless of attribution state.
+       - After that window, activity is only collected when the PR has at least
+         one valid ``PullRequestAttribution`` row (``is_valid=True``); if no
+         such row exists the PR is not attributed and further activity is
+         not useful.
     """
     if not features.has("organizations:pr-metrics-activity", organization):
         return False
@@ -37,6 +50,11 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
         and PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=False).exists()
     ):
         return False
+
+    if pr is not None:
+        if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
+            return True
+        return PullRequestAttribution.objects.filter(pull_request=pr, is_valid=True).exists()
 
     return True
 
