@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models.pullrequest import (
+    PullRequest,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
@@ -18,7 +19,7 @@ class IsActivityTrackingEnabledTest(TestCase):
             self.project, name="getsentry/sentry", provider="integrations:github"
         )
 
-    def _make_pr(self):
+    def _make_pr(self) -> "PullRequest":
         return self.create_pull_request(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
