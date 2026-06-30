@@ -1,8 +1,13 @@
+import hashlib
+import hmac
+
 import jwt as pyjwt
 from django.test import override_settings
 
+from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
+from sentry.utils import json
 
 
 @cell_silo_test
@@ -15,11 +20,6 @@ class InternalLlmProxyKeyTest(APITestCase):
         self.url = "/api/0/internal/llm-proxy/key/"
 
     def _post(self, data, secret="test-secret"):
-        import hashlib
-        import hmac
-
-        from sentry.utils import json
-
         body = json.dumps(data).encode()
         sig = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         return self.client.post(
@@ -62,8 +62,6 @@ class InternalLlmProxyKeyTest(APITestCase):
 
     @override_settings(SEER_RPC_SHARED_SECRET=["test-secret"])
     def test_rejects_inactive_org(self):
-        from sentry.models.organization import OrganizationStatus
-
         self.organization.update(status=OrganizationStatus.PENDING_DELETION)
 
         with self.feature("organizations:gen-ai-features"):
