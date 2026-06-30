@@ -1079,4 +1079,70 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Sentry')).toBeInTheDocument();
     expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });
+
+  it('renders closed PR author name in activity line items when activity user is null', async () => {
+    const prGroup = GroupFixture({
+      id: '1348',
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_CLOSED,
+          id: 'pr-author-4',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
+        <ActivitySection group={prGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(screen.getByText(/by Shashank N Jarmale on GitHub/)).toBeInTheDocument();
+    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Sentry for closed PR bot authors with @localhost email', async () => {
+    const prGroup = GroupFixture({
+      id: '1349',
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_CLOSED,
+          id: 'pr-author-5',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'sentry[bot]', email: 'sentry[bot]@localhost'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
+        <ActivitySection group={prGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(screen.getByText(/by Sentry on GitHub/)).toBeInTheDocument();
+    expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
+  });
 });
