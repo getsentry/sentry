@@ -299,28 +299,24 @@ def _create_models(
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
+    try:
+        # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
+        # segment span, produce occurrences from the results
+        legacy_detected_problems = _run_legacy_detectors(segment_span, spans, project)
+    except Exception:
+        logger.exception("segment_consumer_legacy_issue_detectors.error")
+        # If the legacy detectors error out, there's no point in running the experiment, so bail now
+        return
+
     if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
         return
 
-    # Sample once per segment, up front: if no grouptypes are selected, neither the existing nor the
-    # span-first detectors will run.pipeline runs. Since for now the existing detection is only
-    # being run for the sake of comparison testing, gating it together with the experimental side
-    # avoids paying its cost on segments we won't compare.
     sampled_grouptypes = [
         grouptype_slug
         for grouptype_slug in SPAN_FIRST_DETECTORS_BY_GROUPTYPE
         if SpanFirstDetectorsRolloutController.should_check_experiment(grouptype_slug)
     ]
     if not sampled_grouptypes:
-        return
-
-    try:
-        # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
-        # segment span, produce occurrences from the results
-        all_control_problems = _run_legacy_detectors(segment_span, spans, project)
-    except Exception:
-        logger.exception("segment_consumer_legacy_issue_detectors.error")
-        # If the legacy detectors error out, there's no point in running the experiment, so bail now
         return
 
     # Run the new span-first detectors and compare their results to those of the legacy detectors.
