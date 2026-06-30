@@ -178,6 +178,7 @@ export function Filter({
         onSearch: setQuery,
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
+        defaultToAskSeerOnFreeTextSearch: true,
         attributeQuery,
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
         projects: projectIds,
