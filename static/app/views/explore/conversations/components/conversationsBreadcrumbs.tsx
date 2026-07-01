@@ -1,4 +1,5 @@
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -69,14 +70,20 @@ function ConversationCrumb({
   return (
     <RevealOnHover minWidth={0}>
       {project && (
-        <ProjectBadge project={project} avatarSize={16} disableLink hideOverflow />
+        <ProjectBadge
+          project={project}
+          avatarSize={16}
+          disableLink
+          hideName
+          avatarProps={{hasTooltip: true, tooltip: project.slug}}
+        />
       )}
       <Tooltip
         title={conversationId}
         showOnlyOnOverflow={!isUUID(conversationId)}
         skipWrapper
       >
-        <span>{displayId}</span>
+        <Text>{displayId}</Text>
       </Tooltip>
       <RevealOnHover.Action>
         <CopyToClipboardButton
