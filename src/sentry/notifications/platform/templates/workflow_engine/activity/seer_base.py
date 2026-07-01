@@ -3,6 +3,7 @@ from django.conf import settings
 from sentry.models.group import Group
 from sentry.notifications.platform.types import (
     CodeTextBlock,
+    LinkTextBlock,
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -29,7 +30,6 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
 
 EXAMPLE_SEER_URL = "https://sentry.io/organizations/example/issues/1/?seerDrawer=true"
 EXAMPLE_ALERT_URL = "https://sentry.io/organizations/example/monitors/alerts/1/"
-EXAMPLE_FOOTER = "This notification was sent as part of an alert."
 
 
 class WorkflowEngineActivityAction(NotificationData):
@@ -47,7 +47,8 @@ def get_issue_description(group: Group) -> list[NotificationSection]:
     blocks: list[NotificationTextBlock] = []
     title = build_attachment_title(group)
     if title:
-        blocks.append(PlainTextBlock(text=title))
+        group_link = absolute_uri(group.get_absolute_url())
+        blocks.append(LinkTextBlock(text=title, url=group_link))
     culprit = group.culprit
     if culprit:
         if blocks:
@@ -56,21 +57,22 @@ def get_issue_description(group: Group) -> list[NotificationSection]:
     return [ParagraphBlock(blocks=blocks)]
 
 
-def get_subject(label: str, group: Group) -> str:
-    short_id = group.qualified_short_id or "unknown"
-    return f"{label} for {short_id}"
+def get_subject(label: str, group: Group) -> list[NotificationTextBlock]:
+    if group.qualified_short_id:
+        return [PlainTextBlock(text=f"{label} for"), CodeTextBlock(text=group.qualified_short_id)]
+    else:
+        return [PlainTextBlock(text=f"{label} for a Sentry Issue")]
 
 
-def get_view_in_sentry_button(group: Group) -> NotificationRenderedAction:
+def get_view_autofix_button(group: Group) -> NotificationRenderedAction:
     link = f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
-    return NotificationRenderedAction(label="View in Sentry", link=link)
+    return NotificationRenderedAction(label="View Autofix", link=link)
 
 
 def build_template(
     data: WorkflowEngineActivityAction,
-    subject: str,
+    subject: list[NotificationTextBlock],
     body: list[NotificationSection],
-    extra_actions: list[NotificationRenderedAction],
 ) -> NotificationRenderedTemplate:
     from sentry.notifications.notification_action.activity_registry.base import (
         extract_notification_models_by_activity,
@@ -82,18 +84,15 @@ def build_template(
     configuration_url = organization.absolute_url(
         f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
     )
-    footer = EXAMPLE_FOOTER
+    footer = [
+        PlainTextBlock(text="This notification was sent as part of"),
+        LinkTextBlock(text="an alert", url=configuration_url),
+    ]
     if settings.DEBUG and activity.data:
-        footer += f" Run ID: {activity.data.get('run_id')}"
+        footer.append(PlainTextBlock(text=f"· Run ID: {activity.data.get('run_id')}"))
 
     return NotificationRenderedTemplate(
-        subject=subject,
-        body=body,
-        actions=[
-            NotificationRenderedAction(label="View Alert", link=configuration_url),
-            *extra_actions,
-        ],
-        footer=footer,
+        subject=subject, body=body, actions=[get_view_autofix_button(group)], footer=footer
     )
 
 
@@ -110,10 +109,7 @@ def get_example_issue_description() -> list[NotificationSection]:
 
 
 def get_example_actions() -> list[NotificationRenderedAction]:
-    return [
-        NotificationRenderedAction(label="View Alert", link=EXAMPLE_ALERT_URL),
-        NotificationRenderedAction(label="View in Sentry", link=EXAMPLE_SEER_URL),
-    ]
+    return [NotificationRenderedAction(label="View Autofix", link=EXAMPLE_SEER_URL)]
 
 
 def get_example_template(
@@ -125,5 +121,8 @@ def get_example_template(
         subject=subject,
         body=body if body is not None else get_example_issue_description(),
         actions=actions if actions is not None else get_example_actions(),
-        footer=EXAMPLE_FOOTER,
+        footer=[
+            PlainTextBlock(text="This notification was sent as part of"),
+            LinkTextBlock(text="an alert", url=EXAMPLE_ALERT_URL),
+        ],
     )

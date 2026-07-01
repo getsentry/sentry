@@ -558,7 +558,7 @@ function SingleViewLayout({
           <Container
             flexShrink={0}
             onClick={e => e.stopPropagation()}
-            display={{'2xs': 'none', sm: 'block'}}
+            display={{'screen:2xs': 'none', 'screen:sm': 'block'}}
           >
             <NavGutter>
               <Tooltip title={t('Previous (↑)')} skipWrapper>

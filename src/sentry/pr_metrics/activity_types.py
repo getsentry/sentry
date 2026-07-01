@@ -110,14 +110,6 @@ class CommentCreatedPayload(BaseActivityPayload):
 
 
 @dataclass
-class CommentEditedPayload(BaseActivityPayload):
-    action: str = "comment_edited"
-    author_association: AuthorAssociation = "NONE"
-    is_review: bool = False
-    review_id: int | None = None
-
-
-@dataclass
 class ConvertedToDraftPayload(BaseActivityPayload):
     action: str = "converted_to_draft"
 

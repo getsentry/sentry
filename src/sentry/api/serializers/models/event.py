@@ -16,6 +16,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
+from sentry.grouping.api import GroupingConfig
 from sentry.interfaces.user import EventUserApiContext
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
@@ -173,7 +174,7 @@ class ErrorEventFields(TypedDict, total=False):
     culprit: str | None
     dateCreated: datetime
     fingerprints: list[str]
-    groupingConfig: Any
+    groupingConfig: GroupingConfig
 
 
 class TransactionEventFields(TypedDict, total=False):

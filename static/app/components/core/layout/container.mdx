@@ -145,9 +145,13 @@ Set positioning for absolute/relative layouts:
 
 <Storybook.Demo>
   <Flex
-    padding={{xs: 'sm', lg: 'xl'}}
-    background={{xs: 'primary', sm: 'secondary', lg: 'primary'}}
-    radius={{xs: '0', sm: 'md'}}
+    padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
+    background={{
+      'screen:xs': 'primary',
+      'screen:sm': 'secondary',
+      'screen:lg': 'primary',
+    }}
+    radius={{'screen:xs': '0', 'screen:sm': 'md'}}
     border="primary"
   >
     <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
@@ -161,11 +165,11 @@ Set positioning for absolute/relative layouts:
 ```jsx
 <Container
   // Padding increases at lg breakpoint
-  padding={{xs: 'sm', lg: 'xl'}}
+  padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
   // Background changes at sm and lg breakpoints
-  background={{xs: 'primary', sm: 'secondary', lg: 'primary'}}
+  background={{'screen:xs': 'primary', 'screen:sm': 'secondary', 'screen:lg': 'primary'}}
   // Adds border="primary" radius at sm breakpoint
-  radius={{xs: '0', sm: 'md'}}
+  radius={{'screen:xs': '0', 'screen:sm': 'md'}}
 >
   <div>Responsive layout content</div>
 </Container>
@@ -176,12 +180,12 @@ Set positioning for absolute/relative layouts:
 The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
 
 <Storybook.Demo>
-  <Container display={{'2xs': 'none', sm: 'block'}}>
+  <Container display={{'screen:2xs': 'none', 'screen:sm': 'block'}}>
     This content is hidden below the sm breakpoint
   </Container>
 </Storybook.Demo>
 ```jsx
-<Container display={{'2xs': 'none', sm: 'block'}}>
+<Container display={{'screen:2xs': 'none', 'screen:sm': 'block'}}>
   This content is hidden below the sm breakpoint
 </Container>
 ```

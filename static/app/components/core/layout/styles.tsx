@@ -36,7 +36,7 @@ export function rc<T>(
 
   let first = true;
   return BREAKPOINT_ORDER.map(breakpoint => {
-    const v = value[breakpoint];
+    const v = value[`screen:${breakpoint}`];
     const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
 
     // A resolver can return undefined to indicate that the value should be omitted.
@@ -88,9 +88,16 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     ? `${T} ${T}` | `${T}`
     : never;
 
-export type Responsive<T> = T | Partial<Record<BreakpointSize, T>>;
+/**
+ * Breakpoint keys for responsive props are prefixed with `screen:` to
+ * distinguish viewport-based breakpoints from (future) container query
+ * breakpoints, e.g. `maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}`.
+ */
+type ScreenBreakpoint = `screen:${BreakpointSize}`;
 
-function isResponsive(prop: unknown): prop is Partial<Record<BreakpointSize, any>> {
+export type Responsive<T> = T | Partial<Record<ScreenBreakpoint, T>>;
+
+function isResponsive(prop: unknown): prop is Partial<Record<ScreenBreakpoint, any>> {
   return typeof prop === 'object' && prop !== null;
 }
 
@@ -231,8 +238,8 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   }
 
   // If the active breakpoint exists in the prop, return it
-  if (prop[activeBreakpoint] !== undefined) {
-    return prop[activeBreakpoint] as T;
+  if (prop[`screen:${activeBreakpoint}`] !== undefined) {
+    return prop[`screen:${activeBreakpoint}`] as T;
   }
 
   let value: ResponsiveValue<T> | undefined;
@@ -242,8 +249,8 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   // If we don't have an exact match, find the next smallest breakpoint
   for (let i = activeIndex - 1; i >= 0; i--) {
     const smallerBreakpoint = BREAKPOINT_ORDER[i];
-    if (smallerBreakpoint && prop[smallerBreakpoint] !== undefined) {
-      value = prop[smallerBreakpoint];
+    if (smallerBreakpoint && prop[`screen:${smallerBreakpoint}`] !== undefined) {
+      value = prop[`screen:${smallerBreakpoint}`];
       break;
     }
   }
@@ -252,8 +259,8 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   if (value === undefined) {
     for (let i = activeIndex + 1; i < BREAKPOINT_ORDER.length; i++) {
       const largerBreakpoint = BREAKPOINT_ORDER[i];
-      if (largerBreakpoint && prop[largerBreakpoint] !== undefined) {
-        value = prop[largerBreakpoint];
+      if (largerBreakpoint && prop[`screen:${largerBreakpoint}`] !== undefined) {
+        value = prop[`screen:${largerBreakpoint}`];
         break;
       }
     }
