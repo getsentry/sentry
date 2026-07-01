@@ -233,6 +233,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues/$issueId/user-feedback/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/user-reports/'
   | '/organizations/$organizationIdOrSlug/join-request/'
+  | '/organizations/$organizationIdOrSlug/junior-test-dummy/'
   | '/organizations/$organizationIdOrSlug/key-transactions-list/'
   | '/organizations/$organizationIdOrSlug/key-transactions/'
   | '/organizations/$organizationIdOrSlug/legacy-webhooks/'
