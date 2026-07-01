@@ -751,7 +751,8 @@ def organization_top_spans(
         op="weekly_reports.top_spans_projects", name="weekly_reports.top_spans_projects"
     ):
         span_name_filter = " OR ".join(
-            f'span.name:"{name}"' for name in top_span_names[:TOP_SPANS_QUERY_LIMIT]
+            'span.name:"{}"'.format(name.replace('"', '\\"'))
+            for name in top_span_names[:TOP_SPANS_QUERY_LIMIT]
         )
         project_result = Spans.run_table_query(
             params=snuba_params,
