@@ -319,6 +319,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["transport_queue_size"] = 2_000
     sdk_options["before_send"] = before_send
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["enable_logs"] = True
