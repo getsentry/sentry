@@ -146,88 +146,108 @@ const TimelineRow = memo(function TimelineRow({
   const duration = getNodeTimeBounds(node).duration;
 
   return (
-    <RowContainer isSelected={isSelected} indent={indent} onClick={onClick}>
-      <Stack gap="xs" flex="1" minWidth="0" paddingBottom="xs">
-        <Flex align="center" gap="md" style={hasErrors ? {marginBottom: 6} : undefined}>
-          <Flex align="center" position="relative" style={{color}} flexShrink={0}>
-            {icon}
-            {hasErrors && (
-              <Tooltip
-                delay={300}
-                title={t('This span encountered an error')}
-                skipWrapper
-              >
-                <Container
-                  position="absolute"
-                  radius="full"
-                  style={{
-                    bottom: -6,
-                    right: -6,
-                    padding: 1,
-                    background: theme.tokens.background.primary,
-                  }}
-                >
-                  <IconFire display="block" size="xs" variant="danger" />
-                </Container>
-              </Tooltip>
-            )}
-          </Flex>
-          {isTool ? (
-            <Flex minWidth="0" maxWidth="50%">
-              <EllipsisTag variant={hasErrors ? 'danger' : isSelected ? 'info' : 'muted'}>
-                {title}
-              </EllipsisTag>
-            </Flex>
-          ) : (
-            <Container maxWidth="50%" minWidth="0">
-              <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-                <Text size="sm" monospace ellipsis>
-                  {title}
-                </Text>
-              </Tooltip>
-            </Container>
-          )}
-          <Flex flex="1" minWidth="0">
-            {secondary && (
-              <Tooltip title={secondary} showOnlyOnOverflow skipWrapper maxWidth={500}>
-                <Text size="sm" variant="muted" ellipsis>
-                  {secondary}
-                </Text>
-              </Tooltip>
-            )}
-          </Flex>
-          <Flex flexShrink={0} minWidth="90px" justify="end">
-            {metric ? (
-              <Text
-                size="sm"
-                variant={isSelected ? 'primary' : 'muted'}
-                align="right"
-                tabular
-              >
-                {metric}
-              </Text>
-            ) : isTool && traceId ? (
-              <ToolOutputSizeMetric
-                node={node}
-                traceId={traceId}
-                isSelected={isSelected}
-              />
-            ) : null}
-          </Flex>
-          <Flex flexShrink={0} minWidth="48px" justify="end">
-            <Text
-              size="sm"
-              variant={isSelected ? 'primary' : 'muted'}
-              align="right"
-              tabular
+    <Flex align="center">
+      {({className}) => (
+        <RowContainer
+          className={className}
+          isSelected={isSelected}
+          indent={indent}
+          onClick={onClick}
+        >
+          <Stack gap="xs" flex="1" minWidth="0" paddingBottom="xs">
+            <Flex
+              align="center"
+              gap="md"
+              style={hasErrors ? {marginBottom: 6} : undefined}
             >
-              {getDuration(duration, 2, true, true)}
-            </Text>
-          </Flex>
-        </Flex>
-        <TimelineBar color={color} relativeTiming={relativeTiming} />
-      </Stack>
-    </RowContainer>
+              <Flex align="center" position="relative" style={{color}} flexShrink={0}>
+                {icon}
+                {hasErrors && (
+                  <Tooltip
+                    delay={300}
+                    title={t('This span encountered an error')}
+                    skipWrapper
+                  >
+                    <Container
+                      position="absolute"
+                      radius="full"
+                      style={{
+                        bottom: -6,
+                        right: -6,
+                        padding: 1,
+                        background: theme.tokens.background.primary,
+                      }}
+                    >
+                      <IconFire display="block" size="xs" variant="danger" />
+                    </Container>
+                  </Tooltip>
+                )}
+              </Flex>
+              {isTool ? (
+                <Flex minWidth="0" maxWidth="50%">
+                  <EllipsisTag
+                    variant={hasErrors ? 'danger' : isSelected ? 'info' : 'muted'}
+                  >
+                    {title}
+                  </EllipsisTag>
+                </Flex>
+              ) : (
+                <Container maxWidth="50%" minWidth="0">
+                  <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+                    <Text size="sm" monospace ellipsis>
+                      {title}
+                    </Text>
+                  </Tooltip>
+                </Container>
+              )}
+              <Flex flex="1" minWidth="0">
+                {secondary && (
+                  <Tooltip
+                    title={secondary}
+                    showOnlyOnOverflow
+                    skipWrapper
+                    maxWidth={500}
+                  >
+                    <Text size="sm" variant="muted" ellipsis>
+                      {secondary}
+                    </Text>
+                  </Tooltip>
+                )}
+              </Flex>
+              <Flex flexShrink={0} width="100px" justify="end">
+                {metric ? (
+                  <Text
+                    size="sm"
+                    variant={isSelected ? 'primary' : 'muted'}
+                    align="right"
+                    tabular
+                  >
+                    {metric}
+                  </Text>
+                ) : isTool && traceId ? (
+                  <ToolOutputSizeMetric
+                    node={node}
+                    traceId={traceId}
+                    isSelected={isSelected}
+                  />
+                ) : null}
+              </Flex>
+              <Flex flexShrink={0} width="56px" justify="end">
+                <Text
+                  size="sm"
+                  variant={isSelected ? 'primary' : 'muted'}
+                  align="right"
+                  tabular
+                >
+                  {getDuration(duration, 2, true, true)}
+                </Text>
+              </Flex>
+            </Flex>
+            <TimelineBar color={color} relativeTiming={relativeTiming} />
+          </Stack>
+        </RowContainer>
+      )}
+    </Flex>
   );
 });
 
@@ -399,8 +419,6 @@ const RowContainer = styled('div')<{
   indent: number;
   isSelected: boolean;
 }>`
-  display: flex;
-  align-items: center;
   padding: ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => (p.isSelected ? p.theme.radius.xs : 0)};
