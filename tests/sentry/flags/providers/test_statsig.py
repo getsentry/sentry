@@ -296,15 +296,6 @@ def test_handle_unsupported_events() -> None:
 
 
 def test_handle_exposure_event_with_nested_user() -> None:
-    """Regression test for SENTRY-5J6Z.
-
-    Statsig sends every event type to the webhook, including high-volume
-    exposure events whose ``user`` object nests non-string values and whose
-    ``value``/``timeUUID`` fields don't match the shapes we used to require.
-    These events are discarded by ``handle``, so they must not fail validation
-    for the whole batch. A real ``config_change`` event sent alongside them must
-    still be recorded.
-    """
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
