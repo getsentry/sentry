@@ -95,6 +95,7 @@ export function ScmProjectDetails({
         <ScmAlertFrequencySection
           analyticsFlow="onboarding"
           alertRuleConfig={form.alertRuleConfig}
+          notificationProps={form.notificationProps}
           onAlertChange={form.onAlertChange}
         />
       </Stack>

@@ -1158,6 +1158,10 @@ class PullRequestEventWebhook(GitHubWebhook):
                     user_id=user["id"],
                     user_username=user["login"],
                     provider="github",
+                    logs_extra={
+                        "pr_number": str(number),
+                        "github_event_action": event.get("action"),
+                    },
                 )
 
         except IntegrityError:

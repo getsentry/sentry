@@ -91,7 +91,10 @@ function PlanSubstep({
 
   return (
     <Flex direction="column" gap="xl">
-      <Grid columns={{xs: '1fr', lg: `repeat(${planOptions.length}, 1fr)`}} gap="lg">
+      <Grid
+        columns={{'screen:xs': '1fr', 'screen:lg': `repeat(${planOptions.length}, 1fr)`}}
+        gap="lg"
+      >
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(

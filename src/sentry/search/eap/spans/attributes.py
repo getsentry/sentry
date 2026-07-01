@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 from sentry.insights.models import InsightsStarredSegment
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AttributeContext,
     ResolvedAttribute,
     VirtualColumnDefinition,
     simple_measurements_field,
@@ -70,6 +71,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span.description",
             internal_name="sentry.raw_description",
             search_type="string",
+            context=AttributeContext(brief="Description of the span's operation."),
         ),
         ResolvedAttribute(
             public_alias="description",
@@ -88,6 +90,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.raw_description",
             search_type="string",
             secondary_alias=True,
+            context=AttributeContext(brief="Description of the span's operation."),
         ),
         ResolvedAttribute(
             public_alias="span.domain",
@@ -113,16 +116,23 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span.self_time",
             internal_name="sentry.exclusive_time_ms",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="The duration of the span excluding the duration of its child spans."
+            ),
         ),
         ResolvedAttribute(
             public_alias="span.duration",
             internal_name="sentry.duration_ms",
             search_type="millisecond",
+            context=AttributeContext(brief="The total time taken by the span."),
         ),
         ResolvedAttribute(
             public_alias="span.status",
             internal_name="sentry.status",
             search_type="string",
+            context=AttributeContext(
+                brief="Span status. Indicates whether the operation was successful."
+            ),
         ),
         ResolvedAttribute(
             public_alias="span.status_code",
@@ -140,6 +150,13 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            context=AttributeContext(
+                brief=(
+                    "A trace represents the record of the entire operation you want to "
+                    "measure or track — like page load, searched using the UUID generated "
+                    "by Sentry's SDK."
+                )
+            ),
         ),
         ResolvedAttribute(
             public_alias="transaction",
@@ -150,6 +167,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="is_transaction",
             internal_name="sentry.is_segment",
             search_type="boolean",
+            context=AttributeContext(brief="The span is also a transaction."),
         ),
         ResolvedAttribute(
             public_alias="transaction.span_id",
@@ -368,26 +386,41 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="spans.browser",
             internal_name="span_ops.ops.browser",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative browser time for a transaction, based on the span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.db",
             internal_name="span_ops.ops.db",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative db time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.http",
             internal_name="span_ops.ops.http",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative http time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.resource",
             internal_name="span_ops.ops.resource",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative resource time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.ui",
             internal_name="span_ops.ops.ui",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative UI time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="span.system",
@@ -411,9 +444,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
-        simple_sentry_field("file_extension"),
+        simple_sentry_field(
+            "file_extension",
+            context=AttributeContext(brief="The file extension of a resource span."),
+        ),
         simple_sentry_field("device.family"),
-        simple_sentry_field("device.arch"),
+        simple_sentry_field("device.arch", context=AttributeContext(brief="CPU architecture.")),
         simple_sentry_field("device.battery_level"),
         simple_sentry_field("device.brand"),
         simple_sentry_field("device.charging"),
@@ -456,9 +492,18 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
         ),
-        simple_sentry_field("trace.status"),
-        simple_sentry_field("transaction.method"),
-        simple_sentry_field("transaction.op"),
+        simple_sentry_field(
+            "trace.status",
+            context=AttributeContext(brief="The span trace's success or failure status."),
+        ),
+        simple_sentry_field(
+            "transaction.method",
+            context=AttributeContext(brief="HTTP method of the containing transaction."),
+        ),
+        simple_sentry_field(
+            "transaction.op",
+            context=AttributeContext(brief="Operation of the containing transaction."),
+        ),
         simple_sentry_field("user"),
         simple_sentry_field("user.email"),
         simple_sentry_field("user.geo.city"),
@@ -474,25 +519,63 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("ttid"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
-        simple_measurements_field("frames_frozen"),
+        simple_measurements_field(
+            "frames_frozen",
+            context=AttributeContext(
+                brief="Slow and frozen frames measure the responsiveness of your app."
+            ),
+        ),
         simple_measurements_field("frames_frozen_rate", "percentage"),
-        simple_measurements_field("frames_slow"),
+        simple_measurements_field(
+            "frames_slow",
+            context=AttributeContext(
+                brief="Slow and frozen frames measure the responsiveness of your app."
+            ),
+        ),
         simple_measurements_field("frames_slow_rate", "percentage"),
-        simple_measurements_field("frames_total"),
+        simple_measurements_field(
+            "frames_total",
+            context=AttributeContext(
+                brief="Returns results with a matching total number of frames."
+            ),
+        ),
         simple_measurements_field("time_to_initial_display", "millisecond"),
         simple_measurements_field("time_to_full_display", "millisecond"),
-        simple_measurements_field("stall_count"),
+        simple_measurements_field(
+            "stall_count",
+            context=AttributeContext(
+                brief=(
+                    "A stall is when the JavaScript event loop takes longer than expected "
+                    "to complete. Only applies to React Native."
+                )
+            ),
+        ),
         simple_measurements_field("stall_percentage", "percentage"),
         simple_measurements_field("stall_stall_longest_time"),
         simple_measurements_field("stall_stall_total_time"),
         simple_measurements_field("cls"),
         simple_measurements_field("fcp", "millisecond"),
-        simple_measurements_field("fid", "millisecond"),
+        simple_measurements_field(
+            "fid",
+            "millisecond",
+            context=AttributeContext(
+                brief=(
+                    "First Input Delay (FID) measures the response time when the user "
+                    "tries to interact with the viewport."
+                )
+            ),
+        ),
         simple_measurements_field("fp", "millisecond"),
         simple_measurements_field("inp", "millisecond"),
         simple_measurements_field("lcp", "millisecond"),
         simple_measurements_field("ttfb", "millisecond"),
-        simple_measurements_field("ttfb.requesttime", "millisecond"),
+        simple_measurements_field(
+            "ttfb.requesttime",
+            "millisecond",
+            context=AttributeContext(
+                brief="The time between start of the request and start of the response (see diagram)."
+            ),
+        ),
         simple_measurements_field("score.cls"),
         simple_measurements_field("score.fcp"),
         simple_measurements_field("score.fid"),

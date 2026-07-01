@@ -42,7 +42,7 @@ from sentry.seer.sentry_data_models import (
     PrAttributionResponse,
     SendSeerWebhookSuccessResponse,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
@@ -511,7 +511,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.metrics import SentryAppEventType
+        from sentry.sentry_apps.event_types import SentryAppEventType
 
         # Get all seer event types
         seer_events = [

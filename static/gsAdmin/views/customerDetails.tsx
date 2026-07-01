@@ -236,8 +236,8 @@ export function CustomerDetails() {
     if (!subscription?.planDetails) {
       return {};
     }
-    // We display all categories that are in either checkoutCategories or onDemandCategories,
-    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // We display all plan categories that are giftable (have a freeEventsMultiple),
+    // then disable the button if the category cannot be gifted on this particular subscription (ie. unlimited quota).
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories

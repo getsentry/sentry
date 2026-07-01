@@ -17,6 +17,7 @@ class SdkConfig(TypedDict):
     keep_alive: NotRequired[bool]
     spotlight: NotRequired[str | bool | None]
     add_full_stack: NotRequired[bool]
+    max_value_length: NotRequired[int]
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     transport_queue_size: NotRequired[int]
@@ -39,3 +40,4 @@ class ServerSdkConfig(SdkConfig):
     # these get popped before sending along to the sdk
     dsn: NotRequired[str]
     relay_dsn: NotRequired[str]
+    sentry_mirror_dsn: NotRequired[str]

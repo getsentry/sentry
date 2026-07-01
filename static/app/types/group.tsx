@@ -878,8 +878,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
     assigneeType: string;
-    user: Team | User;
     assigneeEmail?: string;
+    assigneeName?: string;
     /**
      * If the user was assigned via an integration
      */
@@ -891,6 +891,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
+    user?: Team | User;
   };
   type: GroupActivityType.ASSIGNED;
 }
@@ -900,6 +901,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
     location: string;
     provider: string;
     title: string;
+    label?: string;
     new?: boolean;
   };
   type: GroupActivityType.CREATE_ISSUE;
