@@ -63,7 +63,10 @@ export function AiSpanTimeline({
     () => (compressGaps ? getCompressedTimeBounds(nodes) : null),
     [compressGaps, nodes]
   );
-  const timeBounds = compressedBounds ?? getNodeTimeBounds(nodes);
+  const timeBounds = useMemo(
+    () => compressedBounds ?? getNodeTimeBounds(nodes),
+    [compressedBounds, nodes]
+  );
 
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
@@ -91,7 +94,7 @@ export function AiSpanTimeline({
             indent={shouldIndent ? 1 : 0}
             traceBounds={timeBounds}
             traceId={nodeTraceMap?.get(node.id)}
-            onClick={() => onSelectNode(node)}
+            onSelectNode={onSelectNode}
             isSelected={node.id === selectedNodeKey}
             compressedStartByNodeId={compressedBounds?.compressedStartByNodeId}
           />
@@ -103,7 +106,7 @@ export function AiSpanTimeline({
 
 const TimelineRow = memo(function TimelineRow({
   node,
-  onClick,
+  onSelectNode,
   isSelected,
   indent,
   traceBounds,
@@ -113,7 +116,7 @@ const TimelineRow = memo(function TimelineRow({
   indent: number;
   isSelected: boolean;
   node: AITraceSpanNode;
-  onClick: () => void;
+  onSelectNode: (node: AITraceSpanNode) => void;
   traceBounds: TraceBounds;
   compressedStartByNodeId?: Map<string, number>;
   traceId?: string;
@@ -150,7 +153,7 @@ const TimelineRow = memo(function TimelineRow({
           className={className}
           isSelected={isSelected}
           indent={indent}
-          onClick={onClick}
+          onClick={() => onSelectNode(node)}
         >
           <Stack gap="xs" flex="1" minWidth="0" paddingBottom="xs">
             <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
@@ -331,7 +334,8 @@ function getSpanPresentation(
   const op = rawOp.startsWith('gen_ai.') ? rawOp.slice(7) : rawOp;
   const genAiOpType = getGenAiOpType(node);
 
-  const rawDesc = node.description || ('name' in node.value ? node.value.name : '');
+  const rawDesc =
+    node.description || (node.value && 'name' in node.value ? node.value.name : '');
   const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
 
   const color = getColor(node, colorByOpType);
