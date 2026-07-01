@@ -75,6 +75,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     CIRCUIT_BROKEN = "circuit_broken"
     EMAIL_FAILED = "email_failed"
     APP_DISABLED = "app_disabled"
+    EVENT_NOT_IN_SERVICEHOOK = "event_not_in_servicehook"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
