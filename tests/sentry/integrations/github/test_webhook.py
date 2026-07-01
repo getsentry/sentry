@@ -1993,6 +1993,7 @@ class TrackContributorActionProcessorTest(TestCase):
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
         assert kwargs["logs_extra"] == {"github_event_action": "opened"}
+        assert kwargs["tags"] == {"is_private": False}
 
     @patch("sentry.integrations.github.webhook.record_contributor_action")
     def test_is_opened_false_for_non_opened_action(self, mock_record: MagicMock) -> None:

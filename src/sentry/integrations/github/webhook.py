@@ -175,6 +175,11 @@ def _track_contributor_action_processor(
     if not pull_request or author_id is None:
         return
 
+    try:
+        is_private = pull_request["head"]["repo"]["private"]
+    except (KeyError, AttributeError, TypeError):
+        is_private = False
+
     record_contributor_action(
         organization=organization,
         repo=repo,
@@ -185,6 +190,7 @@ def _track_contributor_action_processor(
         is_opened=event.get("action") == "opened",
         provider="github",
         logs_extra={"github_event_action": event.get("action")},
+        tags={"is_private": is_private},
     )
 
 

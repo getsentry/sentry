@@ -193,6 +193,9 @@ def track_gitlab_contributor_action_processor(
     except Organization.DoesNotExist:
         return
 
+    # GitLab visibility_level: 0 = private, 10 = internal, 20 = public.
+    visibility_level = (event.get("project") or {}).get("visibility_level")
+
     record_contributor_action(
         organization=org,
         repo=repo,
@@ -202,4 +205,5 @@ def track_gitlab_contributor_action_processor(
         provider="gitlab",
         pr_number=iid,
         is_opened=object_attributes.get("action") == "open",
+        tags={"is_private": visibility_level == 0},
     )

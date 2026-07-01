@@ -191,6 +191,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         assert kwargs["provider"] == "gitlab"
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
+        assert kwargs["tags"] == {"is_private": True}
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")

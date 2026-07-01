@@ -138,6 +138,7 @@ def record_contributor_action(
     pr_number: str | int,
     is_opened: bool,
     logs_extra: Mapping[str, Any] | None = None,
+    tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
     contributor, _ = OrganizationContributors.objects.get_or_create(
@@ -177,12 +178,13 @@ def record_contributor_action(
             "pr_author_login": user_username,
             "pr_number": str(pr_number),
             **(logs_extra or {}),
+            **(tags or {}),
         },
     )
     metrics.incr(
         "scm.webhook.organization_contributor.action_recorded",
         sample_rate=1.0,
-        tags={"provider": provider},
+        tags={"provider": provider, **(tags or {})},
     )
 
     contributor.refresh_from_db(fields=["num_actions"])
