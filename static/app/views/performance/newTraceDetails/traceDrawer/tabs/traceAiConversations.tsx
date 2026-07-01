@@ -87,10 +87,12 @@ export function TraceAiConversations({
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
   const conversationUrl = linkConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/?${qs.stringify({
-          referrer: 'trace-view',
-          ...(selectedSpanId && activeConversationId ? {spanId: selectedSpanId} : {}),
-        })}`
+        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/?${qs.stringify(
+          {
+            referrer: 'trace-view',
+            ...(selectedSpanId && activeConversationId ? {spanId: selectedSpanId} : {}),
+          }
+        )}`
       )
     : null;
 
