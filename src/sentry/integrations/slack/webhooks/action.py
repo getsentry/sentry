@@ -58,6 +58,7 @@ from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
+from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -497,6 +498,7 @@ class SlackActionEndpoint(Endpoint):
                             slack_request=slack_request,
                             action=action,
                             group=group,
+                            user=identity_user,
                         )
                     defer_attachment_update = True
             except client.ApiError as error:
@@ -570,6 +572,38 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond()
 
+    def _has_seer_org_access(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        entrypoint: SlackAutofixEntrypoint,
+        group: Group,
+        user: RpcUser,
+    ) -> bool:
+        """
+        Ensure the acting Slack user is a member of the group's organization before triggering Seer
+        """
+        if group.organization.has_access(user):
+            return True
+
+        _logger.info(
+            "seer.slack.autofix.user_not_org_member",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.project.organization_id,
+                "user_id": user.id,
+            },
+        )
+        if entrypoint.slack_user_id:
+            send_not_org_member_message(
+                integration_id=slack_request.integration.id,
+                slack_user_id=entrypoint.slack_user_id,
+                channel_id=entrypoint.channel_id,
+                thread_ts=entrypoint.thread_ts,
+                org_name=group.organization.name,
+            )
+        return False
+
     def handle_seer_autofix_start(
         self,
         *,
@@ -584,6 +618,11 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
+        if not self._has_seer_org_access(
+            slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
+        ):
+            return
+
         stopping_point = entrypoint.autofix_stopping_point
         is_continuation = entrypoint.autofix_run_id is not None
         logging_ctx = {
@@ -625,6 +664,7 @@ class SlackActionEndpoint(Endpoint):
         slack_request: SlackActionRequest,
         action: BlockKitMessageAction,
         group: Group,
+        user: RpcUser,
     ) -> None:
         entrypoint = SlackAutofixEntrypoint(
             slack_request=slack_request,
@@ -632,6 +672,11 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
+        if not self._has_seer_org_access(
+            slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
+        ):
+            return
+
         run_id = entrypoint.autofix_run_id
         if run_id is None:
             _logger.info(
