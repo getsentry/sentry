@@ -27,6 +27,8 @@ import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/consta
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -622,6 +624,40 @@ describe('LogsInfiniteTable', () => {
       expect(pinnedRow).toHaveAttribute('data-row-hover-linked', 'true');
     });
     expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
+  });
+
+  it('interleaves injected error rows and links them to the issue when clicked', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      // Newest timestamp so the merge places it at the top (rendered) row.
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    const errorRow = (await screen.findByText('TypeError: Boom happened')).closest(
+      '[data-test-id="log-table-row"]'
+    );
+    expect(errorRow).not.toBeNull();
+
+    await userEvent.click(errorRow!);
+
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/issues/42/events/abc123def456/`
+    );
   });
 
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {

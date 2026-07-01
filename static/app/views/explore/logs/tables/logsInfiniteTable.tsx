@@ -74,9 +74,11 @@ import {
   getLogBodySearchTerms,
   getLogRowTimestampMillis,
   getTableHeaderLabel,
+  isErrorLogRow,
   isRegularLogResponseItem,
   logsFieldAlignment,
   quantizeTimestampToMinutes,
+  type ErrorLogRowItem,
   type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
@@ -106,6 +108,7 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
+  injectedErrorRows?: ErrorLogRowItem[];
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
@@ -131,6 +134,7 @@ export function LogsInfiniteTable({
   embeddedStyling,
   embeddedOptions,
   additionalData,
+  injectedErrorRows,
   showCellActions,
   showExploreSimilarSpansLink,
 }: LogsTableProps) {
@@ -179,6 +183,7 @@ export function LogsInfiniteTable({
   }, [additionalData, baseData, isPending, isError]);
 
   const data = useMemo(() => {
+    let withEvent: LogTableRowItem[];
     if (
       !additionalData?.event ||
       !baseData ||
@@ -187,22 +192,39 @@ export function LogsInfiniteTable({
       isError ||
       pseudoRowIndex === -1
     ) {
-      return baseData || [];
+      withEvent = baseData || [];
+    } else {
+      withEvent = [...baseData];
+      const newSelectedIndex =
+        pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+      withEvent.splice(
+        newSelectedIndex,
+        0,
+        createPseudoLogResponseItem(
+          additionalData.event,
+          additionalData.event.projectID || ''
+        )
+      );
     }
 
-    const newData: LogTableRowItem[] = [...baseData];
-    const newSelectedIndex =
-      pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
-    newData.splice(
-      newSelectedIndex,
-      0,
-      createPseudoLogResponseItem(
-        additionalData.event,
-        additionalData.event.projectID || ''
-      )
+    if (!injectedErrorRows?.length || isPending || isError) {
+      return withEvent;
+    }
+
+    // Safe to sort descending because the trace logs table is always fixed to
+    // timestamp-descending; errors outside the loaded window land at the edge.
+    return [...withEvent, ...injectedErrorRows].sort(
+      (a, b) => getLogRowTimestampMillis(b) - getLogRowTimestampMillis(a)
     );
-    return newData;
-  }, [baseData, additionalData, isPending, isError, pseudoRowIndex, baseDataLength]);
+  }, [
+    baseData,
+    additionalData,
+    isPending,
+    isError,
+    pseudoRowIndex,
+    baseDataLength,
+    injectedErrorRows,
+  ]);
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -520,7 +542,13 @@ export function LogsInfiniteTable({
     );
   }
 
-  if (originalData.length < 20 && originalData.length > 0 && !isPending && !isError) {
+  if (
+    !injectedErrorRows?.length &&
+    originalData.length < 20 &&
+    originalData.length > 0 &&
+    !isPending &&
+    !isError
+  ) {
     if (virtualItems.length !== originalData.length) {
       info(
         fmt`Mismatch in virtualItems.length and data.length: virtualItems.length: ${virtualItems.length}, data.length: ${originalData.length}`
@@ -609,6 +637,7 @@ export function LogsInfiniteTable({
               <Fragment key={virtualRow.key}>
                 <LogRowContent
                   dataRow={dataRow as OurLogsResponseItem}
+                  errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
                   meta={meta}
                   highlightTerms={highlightTerms}
                   embedded={embedded}

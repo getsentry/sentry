@@ -28,6 +28,7 @@ interface Tab {
 }
 
 export interface TraceLayoutTabsConfig {
+  combineLogsAndErrors: boolean;
   currentTab: TraceLayoutTabKeys;
   onTabChange: (slug: TraceLayoutTabKeys) => void;
   tabOptions: Tab[];
@@ -211,7 +212,8 @@ export function useTraceLayoutTabs({
       tabOptions,
       currentTab,
       onTabChange,
+      combineLogsAndErrors: sections.combineLogsAndErrors,
     }),
-    [tabOptions, currentTab, onTabChange]
+    [tabOptions, currentTab, onTabChange, sections.combineLogsAndErrors]
   );
 }

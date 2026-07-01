@@ -5,6 +5,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 const sections = {
+  combineLogsAndErrors: false,
   hasAiSpans: false,
   hasLogs: false,
   hasMetrics: false,

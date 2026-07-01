@@ -19,6 +19,8 @@ import {
   TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {ErrorNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/errorNode';
 import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
@@ -165,7 +167,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     traceId: traceSlug,
   });
 
-  const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
+  const {tabOptions, currentTab, onTabChange, combineLogsAndErrors} = useTraceLayoutTabs({
     isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
     logs: logsData,
@@ -174,6 +176,19 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     logsEnabled,
     metricsEnabled,
   });
+
+  const traceErrors = useMemo(
+    () =>
+      combineLogsAndErrors
+        ? tree.list.reduce<TraceTree.TraceErrorIssue[]>((acc, node) => {
+            if (node instanceof ErrorNode) {
+              acc.push(node.value);
+            }
+            return acc;
+          }, [])
+        : [],
+    [combineLogsAndErrors, tree.list]
+  );
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -232,6 +247,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
                 tabOptions,
                 currentTab,
                 onTabChange,
+                combineLogsAndErrors,
               }}
               rootEventResults={rootEventResults}
               tree={tree}
@@ -253,7 +269,9 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
+            {currentTab === TraceLayoutTabKeys.LOGS ? (
+              <TraceViewLogsSection errors={traceErrors} />
+            ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />

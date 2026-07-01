@@ -161,6 +161,14 @@ export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolea
   }
 `;
 
+export const LogErrorLabelCell = styled(LogTableBodyCell)`
+  grid-column: 2 / -1;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 function ContentsTable(props: React.ComponentProps<typeof Table>) {
   return <Table contentsBody {...props} />;
 }

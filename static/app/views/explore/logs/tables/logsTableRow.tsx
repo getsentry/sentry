@@ -33,6 +33,7 @@ import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -82,6 +83,7 @@ import {
   LogDetailTableActionsButtonBar,
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
+  LogErrorLabelCell,
   LogFirstCellContent,
   LogsTableBodyFirstCell,
   LogTableBodyCell,
@@ -117,6 +119,7 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -129,6 +132,7 @@ type LogsRowProps = {
     openWithExpandedIds?: string[];
     replay?: ReplayEmbeddedTableOptions;
   };
+  errorRow?: TraceTree.TraceErrorIssue;
   expansionKey?: string;
   isExpanded?: boolean;
   isHoverLinked?: boolean;
@@ -219,6 +223,7 @@ export const LogRowContent = memo(function LogRowContent({
   embeddedOptions,
   highlightTerms,
   meta,
+  errorRow,
   sharedHoverTimeoutRef,
   isExpanded,
   onExpand,
@@ -287,6 +292,18 @@ export const LogRowContent = memo(function LogRowContent({
   const [_expanded, setExpanded] = useState(false);
   const expanded = isExpanded ?? _expanded;
   const isPseudoRow = isPseudoLogResponseItem(dataRow);
+  const isErrorRow = !!errorRow;
+
+  function onErrorRowClick() {
+    if (!errorRow) {
+      return;
+    }
+    navigate(
+      normalizeUrl(
+        `/organizations/${organization.slug}/issues/${errorRow.issue_id}/events/${errorRow.event_id}/`
+      )
+    );
+  }
 
   function toggleExpanded() {
     if (onExpand) {
@@ -379,18 +396,20 @@ export const LogRowContent = memo(function LogRowContent({
     logEnd,
   };
 
-  const rowInteractProps: ComponentProps<typeof LogTableRow> = isPseudoRow
-    ? {isClickable: false}
-    : blockRowExpanding
-      ? onEmbeddedRowClick
-        ? {onClick, isClickable: true}
-        : {}
-      : {
-          ...hoverProps,
-          onPointerUp,
-          onTouchEnd: onPointerUp,
-          isClickable: true,
-        };
+  const rowInteractProps: ComponentProps<typeof LogTableRow> = isErrorRow
+    ? {onClick: onErrorRowClick, isClickable: true}
+    : isPseudoRow
+      ? {isClickable: false}
+      : blockRowExpanding
+        ? onEmbeddedRowClick
+          ? {onClick, isClickable: true}
+          : {}
+        : {
+            ...hoverProps,
+            onPointerUp,
+            onTouchEnd: onPointerUp,
+            isClickable: true,
+          };
 
   const buttonSize = 'xs';
   const chevronIcon = (
@@ -425,7 +444,7 @@ export const LogRowContent = memo(function LogRowContent({
       <LogTableRow
         data-test-id="log-table-row"
         data-row-hover-linked={isHoverLinked}
-        highlighted={isPseudoRow}
+        highlighted={isPseudoRow || isErrorRow}
         pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
@@ -445,7 +464,7 @@ export const LogRowContent = memo(function LogRowContent({
       >
         <LogsTableBodyFirstCell key="first">
           <LogFirstCellContent>
-            {isPseudoRow ? (
+            {isPseudoRow || isErrorRow ? (
               <span className="log-table-row-pseudo-row-chevron-replacement" />
             ) : blockRowExpanding ? null : shouldRenderHoverElements ? (
               <StyledChevronButton
@@ -459,7 +478,18 @@ export const LogRowContent = memo(function LogRowContent({
             ) : (
               <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
-            {isPseudoRow ? (
+            {isErrorRow ? (
+              <Flex align="center" justify="center" gap="sm">
+                <TraceIconStyleWrapper>
+                  <div className={`TraceIcon ${errorRow.level ?? 'error'}`}>
+                    <TraceIcons.Icon event={errorRow} />
+                  </div>
+                </TraceIconStyleWrapper>
+                {project ? (
+                  <ProjectBadge project={project} avatarSize={12} hideName />
+                ) : null}
+              </Flex>
+            ) : isPseudoRow ? (
               <Flex align="center" justify="center" gap="sm">
                 <TraceIconStyleWrapper>
                   <div className="TraceIcon error">
@@ -477,139 +507,148 @@ export const LogRowContent = memo(function LogRowContent({
             )}
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields?.map((field, index) => {
-          const pin =
-            togglePinnedRow && index === fields.length - 1 ? (
-              <LogPinButton
-                aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
-                icon={
-                  <IconPin isSolid={isPinned} variant={isPinned ? 'accent' : 'primary'} />
-                }
-                isPinned={isPinned}
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  togglePinnedRow(dataRow[OurLogKnownFieldKey.ID]);
+        {isErrorRow ? (
+          <LogErrorLabelCell data-test-id="log-table-cell-error">
+            {String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}
+          </LogErrorLabelCell>
+        ) : (
+          fields?.map((field, index) => {
+            const pin =
+              togglePinnedRow && index === fields.length - 1 ? (
+                <LogPinButton
+                  aria-label={isPinned ? t('Unpin log row') : t('Pin log row')}
+                  icon={
+                    <IconPin
+                      isSolid={isPinned}
+                      variant={isPinned ? 'accent' : 'primary'}
+                    />
+                  }
+                  isPinned={isPinned}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    togglePinnedRow(dataRow[OurLogKnownFieldKey.ID]);
+                  }}
+                  size="xs"
+                  variant="transparent"
+                />
+              ) : null;
+
+            const shouldRenderActions =
+              (showCellActions ?? !embedded) && shouldRenderHoverElements && !isErrorRow;
+
+            const value = dataRow[field];
+
+            const extraMenuItems =
+              field === OurLogKnownFieldKey.MESSAGE
+                ? getExploreSimilarSpansMenuItems({
+                    message: value,
+                    organization,
+                    selection,
+                    showExploreSimilarSpansLink,
+                  })
+                : undefined;
+
+            if (!defined(value)) {
+              return (
+                <LogTableBodyCell key={field} reservePinGutter={!!pin}>
+                  {shouldRenderActions ? (
+                    <Flex position="relative" height="100%" width="100%" justify="end">
+                      {pin}
+                    </Flex>
+                  ) : null}
+                </LogTableBodyCell>
+              );
+            }
+
+            const renderedField = (
+              <LogFieldRenderer
+                item={getLogRowItem(field, dataRow, meta)}
+                meta={meta}
+                extra={{
+                  ...rendererExtra,
+                  canAppendTemplateToBody: true,
+                  unit: meta?.units?.[field],
                 }}
-                size="xs"
-                variant="transparent"
               />
-            ) : null;
+            );
 
-          const shouldRenderActions =
-            (showCellActions ?? !embedded) && shouldRenderHoverElements;
+            const discoverColumn: TableColumn<keyof OurLogsResponseItem> = {
+              column: {
+                field,
+                kind: 'field',
+              },
+              name: field,
+              key: field,
+              isSortable: true,
+              type: FieldValueType.STRING,
+            };
 
-          const value = dataRow[field];
-
-          const extraMenuItems =
-            field === OurLogKnownFieldKey.MESSAGE
-              ? getExploreSimilarSpansMenuItems({
-                  message: value,
-                  organization,
-                  selection,
-                  showExploreSimilarSpansLink,
-                })
-              : undefined;
-
-          if (!defined(value)) {
             return (
-              <LogTableBodyCell key={field} reservePinGutter={!!pin}>
+              <LogTableBodyCell
+                key={field}
+                data-test-id={'log-table-cell-' + field}
+                reservePinGutter={!!pin}
+              >
                 {shouldRenderActions ? (
-                  <Flex position="relative" height="100%" width="100%" justify="end">
-                    {pin}
-                  </Flex>
-                ) : null}
+                  <CellAction
+                    column={discoverColumn}
+                    dataRow={dataRow}
+                    handleCellAction={(actions, cellValue) => {
+                      const filter = getMessageFilter(field, dataRow, cellValue);
+                      switch (actions) {
+                        case Actions.ADD:
+                          addSearchFilter({
+                            key: filter.key,
+                            value: filter.value,
+                          });
+                          break;
+                        case Actions.EXCLUDE:
+                          addSearchFilter({
+                            key: filter.key,
+                            value: filter.value,
+                            negated: true,
+                          });
+                          break;
+                        case Actions.COPY_TO_CLIPBOARD:
+                          copyToClipboard(cellValue);
+                          break;
+                        case Actions.COPY_LINK: {
+                          const logId = String(dataRow[OurLogKnownFieldKey.ID]);
+                          const url = new URL(window.location.origin + location.pathname);
+                          const params = new URLSearchParams(location.search);
+                          params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                          url.search = params.toString();
+                          copy(url.toString(), {
+                            successMessage: t('Copied!'),
+                            errorMessage: t('Failed to copy'),
+                          }).then(() => {
+                            trackAnalytics('logs.table.row_link_copied', {
+                              log_id: logId,
+                              organization,
+                            });
+                          });
+                          break;
+                        }
+                        default:
+                          break;
+                      }
+                    }}
+                    allowActions={ALLOWED_CELL_ACTIONS}
+                    extraMenuItems={extraMenuItems}
+                    pin={pin}
+                    triggerType={ActionTriggerType.ELLIPSIS}
+                  >
+                    {renderedField}
+                  </CellAction>
+                ) : (
+                  renderedField
+                )}
               </LogTableBodyCell>
             );
-          }
-
-          const renderedField = (
-            <LogFieldRenderer
-              item={getLogRowItem(field, dataRow, meta)}
-              meta={meta}
-              extra={{
-                ...rendererExtra,
-                canAppendTemplateToBody: true,
-                unit: meta?.units?.[field],
-              }}
-            />
-          );
-
-          const discoverColumn: TableColumn<keyof OurLogsResponseItem> = {
-            column: {
-              field,
-              kind: 'field',
-            },
-            name: field,
-            key: field,
-            isSortable: true,
-            type: FieldValueType.STRING,
-          };
-
-          return (
-            <LogTableBodyCell
-              key={field}
-              data-test-id={'log-table-cell-' + field}
-              reservePinGutter={!!pin}
-            >
-              {shouldRenderActions ? (
-                <CellAction
-                  column={discoverColumn}
-                  dataRow={dataRow}
-                  handleCellAction={(actions, cellValue) => {
-                    const filter = getMessageFilter(field, dataRow, cellValue);
-                    switch (actions) {
-                      case Actions.ADD:
-                        addSearchFilter({
-                          key: filter.key,
-                          value: filter.value,
-                        });
-                        break;
-                      case Actions.EXCLUDE:
-                        addSearchFilter({
-                          key: filter.key,
-                          value: filter.value,
-                          negated: true,
-                        });
-                        break;
-                      case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipboard(cellValue);
-                        break;
-                      case Actions.COPY_LINK: {
-                        const logId = String(dataRow[OurLogKnownFieldKey.ID]);
-                        const url = new URL(window.location.origin + location.pathname);
-                        const params = new URLSearchParams(location.search);
-                        params.set(LOGS_QUERY_KEY, `id:${logId}`);
-                        url.search = params.toString();
-                        copy(url.toString(), {
-                          successMessage: t('Copied!'),
-                          errorMessage: t('Failed to copy'),
-                        }).then(() => {
-                          trackAnalytics('logs.table.row_link_copied', {
-                            log_id: logId,
-                            organization,
-                          });
-                        });
-                        break;
-                      }
-                      default:
-                        break;
-                    }
-                  }}
-                  allowActions={ALLOWED_CELL_ACTIONS}
-                  extraMenuItems={extraMenuItems}
-                  pin={pin}
-                  triggerType={ActionTriggerType.ELLIPSIS}
-                >
-                  {renderedField}
-                </CellAction>
-              ) : (
-                renderedField
-              )}
-            </LogTableBodyCell>
-          );
-        })}
+          })
+        )}
       </LogTableRow>
-      {expanded && (
+      {expanded && !isErrorRow && (
         <LogRowDetails
           dataRow={dataRow}
           highlightTerms={highlightTerms}

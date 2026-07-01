@@ -60,6 +60,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {generateTargetQuery} from 'sentry/views/explore/utils';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -260,7 +261,7 @@ export function parseLinkHeaderFromLogsPage(
   return parseLinkHeader(linkHeader ?? null);
 }
 
-export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
+export function getLogRowTimestampMillis(row: LogTableRowItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
 }
 
@@ -576,7 +577,23 @@ interface PseudoLogResponseItem {
   __originalEvent: Event;
 }
 
-export type LogTableRowItem = OurLogsResponseItem | PseudoLogResponseItem;
+export interface ErrorLogRowItem {
+  [OurLogKnownFieldKey.ID]: string;
+  [OurLogKnownFieldKey.MESSAGE]: string;
+  [OurLogKnownFieldKey.SEVERITY]: string;
+  [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+  [OurLogKnownFieldKey.PROJECT_ID]: string;
+  [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: number;
+  __error: TraceTree.TraceErrorIssue;
+  __isErrorRow: true;
+}
+
+export type LogTableRowItem =
+  | OurLogsResponseItem
+  | PseudoLogResponseItem
+  | ErrorLogRowItem;
 
 export function isPseudoLogResponseItem(
   item: LogTableRowItem
@@ -584,10 +601,45 @@ export function isPseudoLogResponseItem(
   return '__isPseudoRow' in item && item.__isPseudoRow === true;
 }
 
+export function isErrorLogRow(item: LogTableRowItem): item is ErrorLogRowItem {
+  return '__isErrorRow' in item && item.__isErrorRow === true;
+}
+
 export function isRegularLogResponseItem(
   item: LogTableRowItem
 ): item is OurLogsResponseItem {
-  return !isPseudoLogResponseItem(item);
+  return !isPseudoLogResponseItem(item) && !isErrorLogRow(item);
+}
+
+const ERROR_LEVEL_SEVERITY_NUMBER: Record<string, number> = {
+  fatal: 21,
+  error: 17,
+  warning: 13,
+  info: 9,
+};
+
+export function createErrorLogRow(error: TraceTree.TraceErrorIssue): ErrorLogRowItem {
+  const timestampSeconds =
+    'start_timestamp' in error ? error.start_timestamp : (error.timestamp ?? 0);
+  const timestampPrecise = timestampSeconds * 1e9;
+  const description =
+    'start_timestamp' in error
+      ? (error.description ?? error.transaction)
+      : error.title || error.message;
+
+  return {
+    [OurLogKnownFieldKey.ID]: `error-${error.event_id}`,
+    [OurLogKnownFieldKey.MESSAGE]: description ?? '',
+    [OurLogKnownFieldKey.SEVERITY]: error.level ?? 'error',
+    [OurLogKnownFieldKey.SEVERITY_NUMBER]:
+      ERROR_LEVEL_SEVERITY_NUMBER[error.level ?? 'error'] ?? 17,
+    [OurLogKnownFieldKey.TRACE_ID]: '',
+    [OurLogKnownFieldKey.PROJECT_ID]: String(error.project_id),
+    [OurLogKnownFieldKey.TIMESTAMP]: new Date(timestampSeconds * 1000).toISOString(),
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+    __error: error,
+    __isErrorRow: true,
+  };
 }
 
 export function createPseudoLogResponseItem(
