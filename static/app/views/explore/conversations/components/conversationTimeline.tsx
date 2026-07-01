@@ -439,7 +439,7 @@ const TimelineBar = styled('div')<{
   position: relative;
   width: 100%;
   height: 4px;
-  border-radius: 2px;
+  border-radius: ${p => p.theme.radius.full};
   background-color: ${p => p.theme.tokens.dataviz.semantic.other};
 
   &::before {
@@ -450,6 +450,6 @@ const TimelineBar = styled('div')<{
     height: 100%;
     width: ${p => p.relativeTiming.widthPercent}%;
     background-color: ${p => p.color};
-    border-radius: 2px;
+    border-radius: ${p => p.theme.radius.full};
   }
 `;
