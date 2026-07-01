@@ -1676,8 +1676,6 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        # The event not being in the servicehook is an expected condition, so the
-        # task returns cleanly and records a halt (no exception raised).
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 

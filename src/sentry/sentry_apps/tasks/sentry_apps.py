@@ -805,10 +805,8 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         if event not in servicehook.events:
-            # This is an expected condition, not a failure: the app simply did not
-            # subscribe to this event type. Record a halt (metric + log, no Sentry
-            # issue) instead of raising, otherwise every mismatched fan-out creates
-            # a captured exception and floods Sentry with noise.
+            # `sentry_app.events` can diverge from `servicehook.events`. Its a non-critical failure.
+            # The service-hook register-er chose not to listen for this particular event.
             lifecycle.record_halt(
                 halt_reason=SentryAppWebhookHaltReason.EVENT_NOT_IN_SERVICEHOOK,
                 extra={
