@@ -1,11 +1,13 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import type {UseQueryResult} from '@tanstack/react-query';
+import {useQueries, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {batchedQueryOptions} from 'sentry/utils/api/batching/batchedQueryOptions';
 import {createBatcher} from 'sentry/utils/api/batching/createBatcher';
-import {useBatchedQueries} from 'sentry/utils/api/batching/useBatchedQueries';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -28,6 +30,8 @@ interface PinnedLogsOptions {
 }
 
 const PINNED_LOG_ROW_QUERY_KEY = 'pinned-log-row';
+
+type BatchedQueryStatus = 'error' | 'pending' | 'success';
 
 /**
  * Practically-infinite period so the wide step finds any log still in retention,
@@ -147,15 +151,58 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     ]
   );
 
-  const {fetchedData, ...rest} = useBatchedQueries({
-    batcher: pinnedLogBatcher,
-    context: queryContext,
-    enabled: pageFiltersReady && !!logsPinning,
-    ids: missingIds,
-    keyPrefix: PINNED_LOG_ROW_QUERY_KEY,
+  const enabled = pageFiltersReady && !!logsPinning;
+  const queryClient = useQueryClient();
+
+  const {fetchedRows, isError, isPending, statusById} = useQueries({
+    queries: batchedQueryOptions({
+      batcher: pinnedLogBatcher,
+      context: queryContext,
+      ids: missingIds,
+      keyPrefix: PINNED_LOG_ROW_QUERY_KEY,
+    }).map(options => ({...options, enabled, staleTime: Infinity})),
+    combine: results => combinePinnedRows(results, missingIds),
   });
 
-  return {fetchedRows: fetchedData, ...rest};
+  const refetch = useCallback(() => {
+    queryClient.refetchQueries({queryKey: [PINNED_LOG_ROW_QUERY_KEY], type: 'active'});
+  }, [queryClient]);
+
+  return {fetchedRows, isError, isPending, statusById, refetch};
+}
+
+function combinePinnedRows(
+  results: Array<UseQueryResult<OurLogsResponseItem | null>>,
+  ids: string[]
+) {
+  const fetchedRows: OurLogsResponseItem[] = [];
+  const statusById = new Map<string, BatchedQueryStatus>();
+  let isPending = false;
+  let isError = false;
+
+  results.forEach((result, index) => {
+    const id = ids[index];
+    if (result.isPending) {
+      isPending = true;
+      if (id !== undefined) {
+        statusById.set(id, 'pending');
+      }
+    } else if (result.isError) {
+      isError = true;
+      if (id !== undefined) {
+        statusById.set(id, 'error');
+      }
+    } else {
+      if (id !== undefined) {
+        statusById.set(id, 'success');
+      }
+      if (result.data) {
+        fetchedRows.push(result.data);
+      }
+    }
+  });
+
+  return {fetchedRows, isPending, isError, statusById};
 }
 
 /**

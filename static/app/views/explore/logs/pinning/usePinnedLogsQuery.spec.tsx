@@ -504,6 +504,27 @@ describe('usePinnedLogsQuery', () => {
     });
   });
 
+  it('reports missing pins as pending while page filters are not ready', () => {
+    PageFiltersStore.reset();
+
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}, units: {}}},
+    });
+
+    const logsPinning = makeLogsPinning(['log-not-ready']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    expect(result.current.statusById.get('log-not-ready')).toBe('pending');
+    expect(result.current.isPending).toBe(true);
+    expect(eventsRequest).not.toHaveBeenCalled();
+  });
+
   it('keeps already-fetched rows for the remaining pins when a pin is removed', async () => {
     const logA = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-a',
