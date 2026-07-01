@@ -113,6 +113,12 @@ describe('useBootstrapOrganizationQuery', () => {
     ]);
     expect(mockScope.setTag).toHaveBeenCalledWith('organization', org.id);
     expect(mockScope.setTag).toHaveBeenCalledWith('organization.slug', org.slug);
+    expect(mockScope.setAttributes).toHaveBeenCalledWith({
+      organization: {
+        id: org.id,
+        slug: org.slug,
+      },
+    });
     expect(mockScope.setContext).toHaveBeenCalledWith('organization', {
       id: org.id,
       slug: org.slug,
