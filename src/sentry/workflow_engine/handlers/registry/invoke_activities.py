@@ -46,7 +46,7 @@ def invoke_workflow_activity_handlers(
                 tags={
                     "handler": handler_key,
                     "activity_type": activity_type,
-                    "detector_type": group.type,
+                    "detector_type": group.issue_type.slug,
                 },
             ):
                 handler(group, activity, detector_id)
