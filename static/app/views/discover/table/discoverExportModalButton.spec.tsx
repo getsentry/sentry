@@ -92,7 +92,7 @@ describe('DiscoverExportModalButton', () => {
     );
   });
 
-  it('offers server export options when the row-count estimate fails', async () => {
+  it('downloads the loaded rows locally when the row-count estimate fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-meta/`,
       statusCode: 500,
@@ -112,20 +112,12 @@ describe('DiscoverExportModalButton', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));
-    await userEvent.click(await screen.findByRole('option', {name: '10,000'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
 
     await waitFor(() => {
-      expect(dataExportMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/data-export/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: expect.objectContaining({query_type: 'Discover', limit: 10000}),
-        })
-      );
+      expect(downloadAsCsv).toHaveBeenCalledTimes(1);
     });
-    expect(downloadAsCsv).not.toHaveBeenCalled();
+    expect(dataExportMock).not.toHaveBeenCalled();
   });
 
   it('disables the export button until the row-count estimate resolves', async () => {

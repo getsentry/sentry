@@ -90,7 +90,7 @@ describe('TracesExportModalButton', () => {
   function renderButton({
     spanRows = [{id: '1', 'span.description': 'GET /'}],
     totalCount = 5000,
-  }: {spanRows?: Array<Record<string, unknown>>; totalCount?: number} = {}) {
+  }: {spanRows?: Array<Record<string, unknown>>; totalCount?: number | null} = {}) {
     const spansTableResult: SpansTableResult = {
       eventView,
       result: makeQueryResult(spanRows),
@@ -309,6 +309,32 @@ describe('TracesExportModalButton', () => {
         }),
       })
     );
+    expect(downloadAsCsv).not.toHaveBeenCalled();
+  });
+
+  it('offers the server export when the Span count is unavailable', async () => {
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 11},
+    });
+
+    renderButton({totalCount: null});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));
+    await userEvent.click(await screen.findByRole('option', {name: '10,000'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({query_type: 'Explore', limit: 10000}),
+        })
+      );
+    });
     expect(downloadAsCsv).not.toHaveBeenCalled();
   });
 });

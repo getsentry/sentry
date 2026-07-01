@@ -30,14 +30,14 @@ interface IssuesByTagQueryInfo {
   project: number | string;
 }
 
-type DiscoverQueryInfo = EventQuery & LocationQuery;
+export type DiscoverQueryInfo = EventQuery & LocationQuery;
 
 type EventsQuerySamplingMode =
   | 'NORMAL'
   | 'HIGHEST_ACCURACY'
   | 'HIGHEST_ACCURACY_FLEX_TIME';
 
-interface ExploreQueryInfo {
+export interface ExploreQueryInfo {
   dataset: TraceItemDataset;
   field: string[];
   project: number[];

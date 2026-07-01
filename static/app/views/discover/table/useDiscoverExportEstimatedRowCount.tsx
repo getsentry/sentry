@@ -2,7 +2,6 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {ROW_COUNT_VALUE_MAX} from 'sentry/components/exports/generateExportRowCountOptions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
@@ -47,8 +46,11 @@ export function useDiscoverExportEstimatedRowCount({
     enabled,
   });
 
+  // When the count can't be fetched we only know about the rows already loaded,
+  // so estimate from those rather than fabricating a large total that would push
+  // even a tiny, fully-loaded result into the async (email) export.
   const estimatedRowCount = isError
-    ? Math.max(loadedRowCount, ROW_COUNT_VALUE_MAX)
+    ? loadedRowCount
     : Math.max(loadedRowCount, data?.count ?? 0);
 
   return {
