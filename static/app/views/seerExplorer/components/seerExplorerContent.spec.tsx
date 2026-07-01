@@ -818,10 +818,15 @@ describe('SeerExplorerContent', () => {
   describe('Context Engine Toggle', () => {
     const orgWithFlag = OrganizationFixture({
       openMembership: true,
-      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
+      hideAiFeatures: false,
+      features: [
+        'seer-explorer',
+        'gen-ai-features',
+        'seer-explorer-context-engine-fe-override-ui-flag',
+      ],
     });
 
-    it('does not show toggle without the feature flag', async () => {
+    it('does not show the debug menu without any debug feature flag', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -836,12 +841,10 @@ describe('SeerExplorerContent', () => {
         }
       );
       await screen.findByTestId('seer-explorer-input');
-      expect(
-        screen.queryByRole('checkbox', {name: 'Toggle context engine'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
 
-    it('shows toggle when feature flag is enabled', async () => {
+    it('shows the context engine toggle in the debug menu when the flag is enabled', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -855,8 +858,10 @@ describe('SeerExplorerContent', () => {
           organization: orgWithFlag,
         }
       );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
       expect(
-        await screen.findByRole('checkbox', {name: 'Toggle context engine'})
+        screen.getByRole('menuitemradio', {name: /Context Engine/})
       ).toBeInTheDocument();
     });
   });

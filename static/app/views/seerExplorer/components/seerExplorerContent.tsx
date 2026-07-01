@@ -492,16 +492,8 @@ export function SeerExplorerContent({
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
       overrideCtxEngEnable={overrideCtxEngEnable}
       onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
-      showContextEngineToggle={
-        !!organization?.features.includes(
-          'seer-explorer-context-engine-fe-override-ui-flag'
-        )
-      }
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
-      showThinkingToggle={
-        !!organization?.features.includes('seer-explorer-thinking-blocks')
-      }
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
