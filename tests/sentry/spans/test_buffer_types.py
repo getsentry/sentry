@@ -84,9 +84,6 @@ def test_subsegment_exposes_span_metadata() -> None:
 def test_evalsha_result_from_redis_result() -> None:
     segment_key = _segment_id(1, "a" * 32, "b" * 16)
     # The Lua script returns flattened [key1, value1, key2, value2, ...] lists.
-    # Latencies arrive as integer microseconds (RESP truncates Lua numbers to
-    # integers) and are converted to millisecond floats, with the `_us` step
-    # keys renamed to their historical `_ms` names.
     latency_metrics = [b"operation_latency_us", 12500, b"another_latency_us", 500]
     gauge_metrics = [b"gauge", 3.0]
     merged_segment_span_ids = [b"c" * 16]
