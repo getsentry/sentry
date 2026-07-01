@@ -387,12 +387,16 @@ class StatsigEventSerializer(serializers.Serializer):
     timestamp = serializers.CharField(required=True)
     metadata = serializers.DictField(required=True)
 
-    user = serializers.DictField(required=False, child=serializers.CharField())
-    userID = serializers.CharField(required=False)
-    value = serializers.CharField(required=False)
-    statsigMetadata = serializers.DictField(required=False)
-    timeUUID = serializers.UUIDField(required=False)
-    unitID = serializers.CharField(required=False)
+    # Statsig sends every event type to the webhook (exposures, config changes,
+    # custom events, etc.) but ``handle`` only keeps ``statsig::config_change``
+    # events. Validation runs over the whole batch before that filter, so this
+    # serializer must tolerate the shapes of the events we discard -- otherwise
+    # a single high-volume exposure event fails the entire batch. Only the
+    # fields ``handle`` actually reads are declared here (undeclared keys are
+    # ignored by DRF), and ``user`` is left unconstrained because exposure
+    # events nest non-string objects under it (customIDs, custom, etc.).
+    user = serializers.DictField(required=False, allow_null=True)
+    userID = serializers.CharField(required=False, allow_blank=True)
 
 
 class StatsigItemSerializer(serializers.Serializer):
