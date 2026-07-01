@@ -149,14 +149,13 @@ export function HoverScrollable({
 
     const mouseX = event.clientX - rect.left;
     const effectiveEdgeWidth = Math.min(edgeWidth, rect.width / 2);
-    const playbackDirectionMultiplier = leftTrim ? -1 : 1;
 
     // left
     if (animationRef.current) {
       if (mouseX <= effectiveEdgeWidth) {
-        setAnimationPlaybackRate(-1 * playbackDirectionMultiplier);
+        setAnimationPlaybackRate(-1);
       } else if (rect.width - mouseX <= effectiveEdgeWidth) {
-        setAnimationPlaybackRate(playbackDirectionMultiplier);
+        setAnimationPlaybackRate(1);
       } else {
         setAnimationPlaybackRate(0);
       }
