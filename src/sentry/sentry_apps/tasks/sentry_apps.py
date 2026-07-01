@@ -562,7 +562,9 @@ def workflow_notification(
         data = kwargs.get("data", {})
         data.update({"issue": serialize(issue)})
 
-    send_webhooks(installation=install, event=event, data=data, actor=user)
+    sent = send_webhooks(installation=install, event=event, data=data, actor=user)
+    if not sent:
+        return
 
     analytics_event: analytics.Event | None = None
     if event == SentryAppEventType.ISSUE_ASSIGNED:
@@ -638,7 +640,10 @@ def build_comment_webhook(
             "comment": data.get("comment"),
         }
 
-    send_webhooks(installation=install, event=event, data=payload, actor=user)
+    sent = send_webhooks(installation=install, event=event, data=payload, actor=user)
+    if not sent:
+        return
+
     # `event` is comment.created, comment.updated, or comment.deleted
     analytics_event: CommentEvent | None = None
     if event == SentryAppEventType.COMMENT_CREATED:
@@ -779,14 +784,17 @@ def _is_sentry_app_disabled_for_webhooks(sentry_app: RpcSentryApp) -> bool:
     return sentry_app.is_disabled
 
 
-def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
+def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> bool:
+    """Dispatch a webhook for the given event. Returns True if a webhook was
+    actually sent, False if delivery was halted (e.g. the app is disabled or the
+    servicehook is not subscribed to the event)."""
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
     ).capture() as lifecycle:
         if _is_sentry_app_disabled_for_webhooks(installation.sentry_app):
             lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.APP_DISABLED)
-            return
+            return False
 
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
@@ -817,7 +825,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                     "sentry_app_events": installation.sentry_app.events,
                 },
             )
-            return
+            return False
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
@@ -847,6 +855,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         request_data,
         installation.sentry_app.webhook_url,
     )
+    return True
 
 
 @instrumented_task(

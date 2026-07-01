@@ -1371,18 +1371,22 @@ class TestSendResourceChangeWebhook(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
-        assert_success_metric(mock_record)
+        # The servicehook is not subscribed to the event, so SEND_WEBHOOK halts
+        # (no exception), and the enclosing PREPARE_WEBHOOK completes successfully.
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppWebhookHaltReason.EVENT_NOT_IN_SERVICEHOOK,
+        )
         # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) ->
-        # PREPARE_WEBHOOK (failure, exception propagates from send_resource_change_webhook) ->
-        # SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 
@@ -1645,6 +1649,12 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
+        # Installation creates a servicehook; delete it so we exercise the
+        # genuinely-missing-servicehook path (which raises), not the
+        # event-not-subscribed halt path.
+        with assume_test_silo_mode_of(ServiceHookProject):
+            ServiceHookProject.objects.all().delete()
+            ServiceHook.objects.all().delete()
         with pytest.raises(SentryAppSentryError):
             workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
@@ -1664,9 +1674,10 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
+    @patch("sentry.sentry_apps.tasks.sentry_apps.analytics.record")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_send_if_event_not_in_app_events(
-        self, mock_record: MagicMock, safe_urlopen: MagicMock
+        self, mock_record: MagicMock, mock_analytics_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
         sentry_app = self.create_sentry_app(
             name="Another App",
@@ -1676,8 +1687,13 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
+        # Ignore analytics events recorded during factory setup above.
+        mock_analytics_record.reset_mock()
         workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
+
+        # No webhook was delivered, so no analytics event should be recorded.
+        assert not mock_analytics_record.called
 
         # SLO assertions
         assert_halt_metric(
