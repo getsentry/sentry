@@ -188,7 +188,12 @@ const TimelineRow = memo(function TimelineRow({
               ) : (
                 <Container maxWidth="50%" minWidth="0">
                   <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-                    <Text size="sm" monospace ellipsis>
+                    <Text
+                      size="sm"
+                      variant={isSelected ? 'primary' : 'muted'}
+                      monospace
+                      ellipsis
+                    >
                       {title}
                     </Text>
                   </Tooltip>
