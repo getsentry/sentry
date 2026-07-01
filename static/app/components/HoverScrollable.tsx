@@ -38,20 +38,17 @@ export function HoverScrollable({
     if (!showSlidingText || !container || !content) {
       return;
     }
+    animationRef.current?.cancel();
+    scrollWidthRef.current = content.scrollWidth;
 
     const maxTranslate = content.scrollWidth - container.clientWidth;
-    const truncated = maxTranslate > 0;
-
-    setIsTruncated(truncated);
-
-    animationRef.current?.cancel();
-    if (!truncated) {
+    if (maxTranslate <= 0) {
       return;
     }
 
     const duration = maxTranslate / speed;
-    animationRef.current = content.animate(
-      [{transform: 'translateX(0px)'}, {transform: `translateX(${-maxTranslate}px)`}],
+    const animation = content.animate(
+      [{transform: 'translateX(0)'}, {transform: `translateX(${-maxTranslate}px)`}],
       {
         duration,
         easing: 'linear',
@@ -59,14 +56,11 @@ export function HoverScrollable({
       }
     );
 
+    animation.currentTime = leftTrim ? duration : 0;
     if (leftTrim) {
-      animationRef.current.currentTime = duration;
-      animationRef.current.reverse();
-    } else {
-      animationRef.current.currentTime = 0;
+      animation.reverse();
     }
-
-    animationRef.current.updatePlaybackRate(1);
+    animationRef.current = animation;
   }, [leftTrim, showSlidingText, speed, value]);
 
   const handleMouseEnter = () => {
@@ -90,7 +84,7 @@ export function HoverScrollable({
 
     if (scrollWidthRef.current !== content.scrollWidth) {
       scrollWidthRef.current = content.scrollWidth;
-      animationRef.current?.pause();
+      animationRef.current?.updatePlaybackRate(0);
     }
 
     const mouseX = event.clientX - rect.left;
@@ -152,6 +146,7 @@ const SlidingContainer = styled('span')`
   overflow: hidden;
   vertical-align: bottom;
   cursor: text;
+  box-sizing: border-box;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.focus.onVibrant};
