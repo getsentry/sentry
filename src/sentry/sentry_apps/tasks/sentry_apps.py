@@ -87,6 +87,7 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
+from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
@@ -313,7 +314,7 @@ def _process_resource_change(
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
-    ).capture():
+    ).capture() as lifecycle:
         project_id: int | None = kwargs.get("project_id", None)
         group_id: int | None = kwargs.get("group_id", None)
 
@@ -358,8 +359,14 @@ def _process_resource_change(
                 assert instance.group_id, "group id is required to create webhook event data"
                 data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
             elif isinstance(instance, Group):
-                serialized_group = serialize(instance)
-                data[name] = _webhook_issue_data(group=instance, serialized_group=serialized_group)
+                try:
+                    serialized_group = serialize(instance)
+                    data[name] = _webhook_issue_data(
+                        group=instance, serialized_group=serialized_group
+                    )
+                except RateLimitExceeded as e:
+                    lifecycle.record_halt(e)
+                    return
 
             # Datetimes need to be string cast for task payloads.
             for date_key in ("datetime", "firstSeen", "lastSeen"):
