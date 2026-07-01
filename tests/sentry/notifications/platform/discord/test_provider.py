@@ -15,11 +15,9 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
     DiscordRenderable,
-    DiscordRenderer,
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
@@ -53,31 +51,6 @@ def assert_button_properties(
 
 
 class DiscordRendererTest(TestCase):
-    def test_link_text_block_rendering(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Test Link",
-            body=[
-                ParagraphBlock(
-                    blocks=[
-                        PlainTextBlock(text="PR:"),
-                        LinkTextBlock(
-                            text="getsentry/sentry (#1234)",
-                            url="https://github.com/getsentry/sentry/pull/1234",
-                        ),
-                    ],
-                )
-            ],
-        )
-
-        data = MockNotification(message="test")
-        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
-
-        embed = renderable["embeds"][0]
-        assert (
-            "[getsentry/sentry (#1234)](https://github.com/getsentry/sentry/pull/1234)"
-            in embed["description"]
-        )
-
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
@@ -97,10 +70,14 @@ class DiscordRendererTest(TestCase):
         embeds = renderable["embeds"]
         assert len(embeds) == 1
         embed = embeds[0]
-        description = embed["description"]
-        assert description == "\ntest"
-        assert embed["title"] == "Mock Notification"
-        assert embed["footer"]["text"] == "This is a mock footer"
+        assert embed["title"] == "Alert: *Mock Notification*"
+        assert (
+            embed["description"]
+            == "\ntest **important** *urgent* [View Issue](https://sentry.io/issue/1)"
+            "\n```raise Exception('test')```"
+            "\n>>> This is a quoted message"
+        )
+        assert embed["footer"]["text"] == "Sent via sentry-alerts"
         assert (
             embed["image"]["url"]
             == "https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png"

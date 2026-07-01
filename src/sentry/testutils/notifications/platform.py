@@ -1,5 +1,11 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
+    BoldTextBlock,
+    CodeBlock,
+    CodeTextBlock,
+    ItalicTextBlock,
+    LinkTextBlock,
     NotificationCategory,
     NotificationData,
     NotificationRenderedAction,
@@ -26,8 +32,22 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
 
     def render(self, data: MockNotification) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
-            subject="Mock Notification",
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.message)])],
+            subject=[
+                PlainTextBlock(text="Alert:"),
+                ItalicTextBlock(text="Mock Notification"),
+            ],
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text=data.message),
+                        BoldTextBlock(text="important"),
+                        ItalicTextBlock(text="urgent"),
+                        LinkTextBlock(text="View Issue", url="https://sentry.io/issue/1"),
+                    ]
+                ),
+                CodeBlock(blocks=[PlainTextBlock(text="raise Exception('test')")]),
+                BlockQuoteSection(blocks=[PlainTextBlock(text="This is a quoted message")]),
+            ],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -35,7 +55,10 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
                 url="https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
                 alt_text="Bufo Pog",
             ),
-            footer="This is a mock footer",
+            footer=[
+                PlainTextBlock(text="Sent via"),
+                CodeTextBlock(text="sentry-alerts"),
+            ],
         )
 
 

@@ -160,7 +160,11 @@ class TestBuildWorkflowData(BaseWorkflowTest):
         assert result["id"] == self.workflow.id
         assert result["title"] == self.workflow.name
         assert result["sentry_app_id"] == self.sentry_app.id
-        assert f"alerts/{self.workflow.id}/" in result["url"]
+
+        assert result["url"].endswith(
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/"
+        )
+        assert f"alerts/{self.workflow.id}/" in result["web_url"]
         assert "settings" not in result
 
     def test_includes_settings_when_present(self) -> None:

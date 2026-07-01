@@ -794,6 +794,90 @@ class IntegrationExamples:
         )
     ]
 
+    GROUP_INTEGRATION_ISSUE_CONFIG = [
+        OpenApiExample(
+            "Config for creating a new external issue",
+            value={
+                "id": "123456",
+                "name": "Example Jira",
+                "icon": "https://example.atlassian.net/icon.png",
+                "domainName": "example.atlassian.net",
+                "accountType": None,
+                "scopes": None,
+                "status": "active",
+                "provider": {
+                    "key": "jira",
+                    "slug": "jira",
+                    "name": "Jira",
+                    "canAdd": False,
+                    "canDisable": False,
+                    "features": ["issue-basic", "issue-sync", "ticket-rules"],
+                    "aspects": {},
+                },
+                "createIssueConfig": [
+                    {
+                        "name": "title",
+                        "label": "Title",
+                        "default": 'TypeError: Cannot read property "foo" of undefined',
+                        "type": "string",
+                        "required": True,
+                    },
+                    {
+                        "name": "description",
+                        "label": "Description",
+                        "default": "Sentry Issue: PROJECT-1\nhttps://example.sentry.io/issues/1/",
+                        "type": "textarea",
+                        "autosize": True,
+                        "maxRows": 10,
+                    },
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Config for linking an existing external issue",
+            value={
+                "id": "123456",
+                "name": "Example Jira",
+                "icon": "https://example.atlassian.net/icon.png",
+                "domainName": "example.atlassian.net",
+                "accountType": None,
+                "scopes": None,
+                "status": "active",
+                "provider": {
+                    "key": "jira",
+                    "slug": "jira",
+                    "name": "Jira",
+                    "canAdd": False,
+                    "canDisable": False,
+                    "features": ["issue-basic", "issue-sync", "ticket-rules"],
+                    "aspects": {},
+                },
+                "linkIssueConfig": [
+                    {"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    EXTERNAL_ISSUE_LINK = [
+        OpenApiExample(
+            "Create or link an external issue",
+            value={
+                "id": 5,
+                "key": "PROJECT-123",
+                "url": "https://example.atlassian.net/browse/PROJECT-123",
+                "integrationId": 123456,
+                "displayName": "PROJECT-123",
+            },
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
     SINGLE_DATA_FORWARDER = [
         OpenApiExample(
             "A data forwarder for an organization",

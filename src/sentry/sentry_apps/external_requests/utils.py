@@ -7,8 +7,8 @@ from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
 
 from sentry.http import safe_urlopen
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )

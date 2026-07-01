@@ -14,7 +14,6 @@ const commonFields = {
   addOnCategories: {},
   categories: MM1_CATEGORIES,
   categoryDisplayNames: MM1_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: MM1_CATEGORIES,
   onDemandCategories: MM1_CATEGORIES,
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'on-demand',
