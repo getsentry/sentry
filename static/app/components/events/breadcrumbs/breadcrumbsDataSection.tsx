@@ -190,7 +190,7 @@ export function BreadcrumbsDataSection({
               onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
               ref={viewAllButtonRef}
             >
-              {numHiddenCrumbs > 0 ? t('View %s more', numHiddenCrumbs) : t('View All')}
+              {numHiddenCrumbs > 0 ? t('View %s more', numHiddenCrumbs) : t('Expand')}
             </ViewAllButton>
           </div>
         </ViewAllContainer>
