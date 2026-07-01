@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestLifecycleState,
+    PullRequestMetrics,
 )
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
@@ -34,15 +35,15 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
        ``SUPERSEDED``), no further activity is needed — this short-circuits
        without any extra DB queries.
 
-    2. A time-based buffer gate applies next:
+    2. A verdict check runs next: if ``PullRequestMetrics`` exists with a
+       non-null verdict (terminal emit or ``JUDGE_IN_PROGRESS`` claim), no
+       further activity is needed.
+
+    3. A time-based buffer gate applies last:
        - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
-         activity is always collected regardless of attribution state.
-       - After that window, a single query checks both conditions together:
-         activity is collected only when the PR has at least one valid
-         ``PullRequestAttribution`` row (``is_valid=True``) *and* its
-         ``PullRequestMetrics`` row has no verdict yet (``verdict IS NULL``
-         or no metrics row). This prevents activity writes after the
-         ``scm.pr.closed`` event has already been emitted.
+         activity is always collected — no attribution row is required yet.
+       - After that window, activity is collected only when the PR has at
+         least one valid ``PullRequestAttribution`` row (``is_valid=True``).
     """
     if not features.has("organizations:pr-metrics-activity", organization):
         return False
@@ -54,12 +55,17 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
             PullRequestLifecycleState.SUPERSEDED,
         ):
             return False
+        verdict_claimed = PullRequestMetrics.objects.filter(
+            pull_request=pr,
+            verdict__isnull=False,
+        ).exists()
+        if verdict_claimed:
+            return False
         if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
             return True
         return PullRequestAttribution.objects.filter(
             pull_request=pr,
             is_valid=True,
-            pull_request__metrics__verdict__isnull=True,
         ).exists()
 
     return True
