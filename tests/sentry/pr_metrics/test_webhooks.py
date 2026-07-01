@@ -1934,10 +1934,13 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         mock_response.status = status
         return patch(MATCH_RPC, return_value=mock_response)
 
+    def _mock_org_check(self) -> Any:
+        return patch(f"{MODULE}.org_has_coding_agent_for_provider", return_value=True)
+
     # --- Candidate detection calls Seer ---
 
     def test_claude_branch_prefix_sends_to_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix-the-bug")
 
         mock_rpc.assert_called_once()
@@ -1951,28 +1954,32 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         assert body.repo.external_id == "99"
 
     def test_copilot_branch_prefix_sends_to_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="copilot/fix-the-bug")
 
         mock_rpc.assert_called_once()
         assert mock_rpc.call_args.args[0].provider == "github_copilot"
 
     def test_copilot_author_login_sends_to_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(login="copilot-swe-agent[bot]", head_ref="some-branch")
 
         mock_rpc.assert_called_once()
         assert mock_rpc.call_args.args[0].provider == "github_copilot"
 
     def test_branch_prefix_takes_precedence_over_author(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(login="copilot-swe-agent[bot]", head_ref="claude/fix")
 
         mock_rpc.assert_called_once()
         assert mock_rpc.call_args.args[0].provider == "claude_code"
 
     def test_sent_metric_incremented_on_success(self) -> None:
-        with self._mock_seer(status=202), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=202),
+            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+        ):
             self._call(head_ref="claude/fix")
 
         assert any(
@@ -1984,7 +1991,11 @@ class HandleDelegatedAgentDetectionTest(TestCase):
     # --- Error handling ---
 
     def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
-        with self._mock_seer(status=500), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=500),
+            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+        ):
             self._call(head_ref="claude/fix")
 
         assert any(
@@ -1994,6 +2005,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
     def test_seer_exception_logs_warning_and_error_metric(self) -> None:
         with (
+            self._mock_org_check(),
             patch(MATCH_RPC, side_effect=Exception("network error")),
             patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
         ):
@@ -2005,7 +2017,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         )
 
     def test_seer_exception_does_not_propagate(self) -> None:
-        with patch(MATCH_RPC, side_effect=Exception("network error")):
+        with self._mock_org_check(), patch(MATCH_RPC, side_effect=Exception("network error")):
             self._call(head_ref="claude/fix")  # must not raise
 
     # --- Non-candidates do not call Seer ---
@@ -2031,23 +2043,15 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_no_seer_access_via_flag_does_not_call_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
-            with self.feature({"organizations:gen-ai-features": False}):
+    def test_no_matching_integration_does_not_call_seer(self) -> None:
+        with patch(f"{MODULE}.org_has_coding_agent_for_provider", return_value=False):
+            with self._mock_seer() as mock_rpc:
                 self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
 
-    def test_no_seer_access_via_hidden_ai_features_does_not_call_seer(self) -> None:
-        self.organization.update_option("sentry:hide_ai_features", True)
-
-        with self._mock_seer() as mock_rpc:
-            self._call(head_ref="claude/fix")
-
-        mock_rpc.assert_not_called()
-
     def test_missing_pr_does_not_call_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix", number=9999)
 
         mock_rpc.assert_not_called()
@@ -2058,7 +2062,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             linked_id=self.pr.id,
         ).delete()
 
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
@@ -2067,7 +2071,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         self.repo.provider = None
         self.repo.save()
 
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
@@ -2076,7 +2080,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         self.repo.external_id = None
         self.repo.save()
 
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
