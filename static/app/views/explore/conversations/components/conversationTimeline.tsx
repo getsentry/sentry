@@ -46,13 +46,6 @@ interface SpanPresentation {
   title: string;
 }
 
-/**
- * Flat, single-card timeline for the redesigned conversation detail view.
- *
- * Unlike `AISpanList`, spans are rendered as a flat list (no transaction grouping
- * or indentation), tool names use a `<Tag>` badge, and tokens/cost + duration are
- * shown in dedicated right-aligned columns.
- */
 export function ConversationTimeline({
   nodes,
   selectedNodeKey,
