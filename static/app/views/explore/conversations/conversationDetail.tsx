@@ -80,13 +80,10 @@ function ConversationDetailPageLegacy() {
   );
 }
 
-export function ConversationViewContainer({
-  children,
-  bordered = true,
-}: {
-  children: React.ReactNode;
-  bordered?: boolean;
-}) {
+export function ConversationViewContainer({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const bordered = !hasGenAiConversationsRedesignFeature(organization);
+
   return (
     <Container
       flex={1}

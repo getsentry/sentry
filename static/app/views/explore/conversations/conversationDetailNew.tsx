@@ -69,7 +69,7 @@ export function ConversationDetailPageNew() {
             </TabList>
           </Tabs>
         </Flex>
-        <ConversationViewContainer bordered={false}>
+        <ConversationViewContainer>
           <ConversationViewContentNew
             conversation={conversation}
             activeTab={queryState.tab}
