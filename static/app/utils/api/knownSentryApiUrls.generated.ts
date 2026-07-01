@@ -353,6 +353,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
   | '/organizations/$organizationIdOrSlug/seer/projects/'
+  | '/organizations/$organizationIdOrSlug/seer/runs/'
   | '/organizations/$organizationIdOrSlug/seer/setup-check/'
   | '/organizations/$organizationIdOrSlug/seer/supergroups/$supergroupId/'
   | '/organizations/$organizationIdOrSlug/seer/supergroups/by-group/'

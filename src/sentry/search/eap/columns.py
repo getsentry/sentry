@@ -47,6 +47,20 @@ class ResolverSettings(TypedDict):
 
 
 @dataclass(frozen=True, kw_only=True)
+class AttributeContext:
+    """User-facing context for a Sentry-defined (non-convention) attribute.
+
+    Mirrors the subset of the ``/attributes`` endpoint's ``expand=context``
+    response that a definition can supply on its own (``brief`` and ``examples``);
+    the endpoint combines this with ``isConvention``/deprecation at serialization
+    time. Conventions get their context from ``sentry_conventions`` instead.
+    """
+
+    brief: str
+    examples: Sequence[str] | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResolvedColumn:
     # The alias for this column
     public_alias: (
@@ -139,6 +153,11 @@ class ResolvedAttribute(ResolvedColumn):
     private: bool = False
     replacement: str | None = field(default=None)
     deprecation_status: str | None = field(default=None)
+    # User-facing context for this Sentry-defined attribute. Only set for
+    # attributes that aren't sentry-conventions (those get their context from
+    # `sentry_conventions`); briefs/examples sourced from Seer's
+    # `attributes_reference.py`.
+    context: AttributeContext | None = field(default=None)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -717,6 +736,7 @@ class ConditionalTraceMetricFormulaDefinition(TraceMetricFormulaDefinition):
 def simple_sentry_field(
     field: str,
     search_type: constants.SearchType = "string",
+    context: AttributeContext | None = None,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     without the `sentry.` suffix. This helper functions makes defining them easier"""
@@ -724,6 +744,7 @@ def simple_sentry_field(
         public_alias=field,
         internal_name=f"sentry.{field}",
         search_type=search_type,
+        context=context,
     )
 
 
@@ -731,6 +752,7 @@ def simple_measurements_field(
     field: str,
     search_type: constants.SearchType = "number",
     secondary_alias: bool = False,
+    context: AttributeContext | None = None,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     with the `measurements.` prefix. This helper functions makes defining them easier"""
@@ -739,6 +761,7 @@ def simple_measurements_field(
         internal_name=field,
         search_type=search_type,
         secondary_alias=secondary_alias,
+        context=context,
     )
 
 

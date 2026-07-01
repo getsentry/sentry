@@ -156,6 +156,10 @@ def track_gitlab_contributor_seat_processor(
         user_id=user_id,
         user_username=user_username,
         provider="gitlab",
+        logs_extra={
+            "pr_number": str(iid),
+            "github_event_action": object_attributes.get("action"),
+        },
     )
     debug_log(logger, organization, "contributor_seat_tracked", base_extra)
 

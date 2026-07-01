@@ -184,6 +184,17 @@ for (const locale of supportedLocales) {
   };
 }
 
+const DEFINED_ENV_VARS = {
+  'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+  'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+  'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+  'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+  'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+  'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+  'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
+  'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
+};
+
 const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
@@ -246,6 +257,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
  */
 
 const appConfig: Configuration = {
+  name: 'app',
   mode: WEBPACK_MODE,
   target: 'browserslist',
   // Fail on first error instead of continuing to build
@@ -433,16 +445,7 @@ const appConfig: Configuration = {
     /**
      * Defines environment specific flags.
      */
-    new rspack.DefinePlugin({
-      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
-      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
-      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-      'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-      'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
-      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
-      'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
-      'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
-    }),
+    new rspack.DefinePlugin(DEFINED_ENV_VARS),
 
     ...(SHOULD_FORK_TS
       ? [
@@ -461,6 +464,7 @@ const appConfig: Configuration = {
                   '**/*.spec.*',
                   '**/*.snapshots.*',
                   'static/eslint/**/*',
+                  'static/app/serviceWorker/worker/**/*',
                   'scripts/**/*',
                 ],
               },
@@ -554,7 +558,11 @@ const appConfig: Configuration = {
   },
   output: {
     crossOriginLoading: 'anonymous',
-    clean: true, // Clean the output directory before emit.
+    // Clean the output dir before emit, but keep the service-worker assets
+    // emitted by the separate `workerConfig` compiler below. Both compilers
+    // write to this same `dist` path and run in parallel, so without `keep`
+    // app's clean would race and delete the worker's output.
+    clean: {keep: /(entrypoints|sourcemaps)\/service-worker/},
     path: distPath,
     publicPath: '',
     filename: 'entrypoints/[name].js',
@@ -584,6 +592,44 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
+/**
+ * Separate config for the service-worker entry point.
+ */
+const workerConfig: Configuration = {
+  name: 'service-worker',
+  mode: appConfig.mode,
+  target: 'webworker',
+  bail: appConfig.bail,
+  entry: {
+    'service-worker': 'sentry/serviceWorker/worker/worker',
+  },
+  context: staticPrefix,
+  experiments: appConfig.experiments,
+  lazyCompilation: appConfig.lazyCompilation,
+  module: appConfig.module,
+  plugins: [
+    /**
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
+     */
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Defines environment specific flags.
+     */
+    new rspack.DefinePlugin(DEFINED_ENV_VARS),
+  ],
+  resolveLoader: {},
+  resolve: appConfig.resolve,
+  // Don't clean: app's compiler owns cleaning `dist` (see its `clean.keep`).
+  output: {...appConfig.output, clean: false},
+  optimization: appConfig.optimization,
+  devtool: appConfig.devtool,
+};
+
 if (IS_TEST) {
   (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
     import.meta.dirname,
@@ -594,6 +640,7 @@ if (IS_TEST) {
 
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
+  workerConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
 // Dev only! Hot module reloading
@@ -882,6 +929,12 @@ if (IS_PRODUCTION) {
         test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
       })
     );
+    workerConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
   }
 
   // Enable sentry-webpack-plugin for production builds
@@ -922,4 +975,5 @@ if (env.WEBPACK_CACHE_PATH) {
   };
 }
 
-export default appConfig;
+const configs = [appConfig, workerConfig];
+export default configs;

@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 
 import requests
 from django.http import HttpRequest
-from jwt import ExpiredSignatureError, InvalidSignatureError
+from jwt import ExpiredSignatureError, InvalidAlgorithmError, InvalidSignatureError
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -97,7 +97,8 @@ def get_integration_from_jwt(
     try:
         # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
         # in its JWT headers. This should only appear for install/uninstall events.
-
+        # authenticate_asymmetric_jwt hardcodes algorithms=["RS256"], so the algorithm-confusion
+        # attack (forcing an asymmetric public key to be used as an HMAC secret) is not possible.
         decoded_claims = (
             authenticate_asymmetric_jwt(token, key_id)
             if key_id
@@ -107,6 +108,8 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
         raise AtlassianConnectValidationError("Signature is expired") from e
+    except InvalidAlgorithmError as e:
+        raise AtlassianConnectValidationError("Algorithm is invalid") from e
 
     verify_claims(decoded_claims, path, query_params, method)
 
@@ -133,12 +136,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     """
     if token is None:
         raise AtlassianConnectValidationError("No token parameter")
-    headers = jwt.peek_header(token)
     key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
     public_key = key_response.content.decode("utf-8").strip()
-    decoded_claims = jwt.decode(
-        token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
-    )
+    decoded_claims = jwt.decode(token, public_key, audience=absolute_uri(), algorithms=["RS256"])
     if not decoded_claims:
         raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
     return decoded_claims
