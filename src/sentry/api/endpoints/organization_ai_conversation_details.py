@@ -1,6 +1,4 @@
 import logging
-from dataclasses import replace
-from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
@@ -12,6 +10,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.helpers.ai_conversations import (
+    resolve_conversation_time_window,
+    retention_window_error,
+)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -21,13 +23,8 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
-from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
-
-MAX_RETENTION_DAYS = 30
-
-_WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
 
 AI_CONVERSATION_ATTRIBUTES = [
     "span_id",
@@ -83,26 +80,18 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         now = timezone.now()
-        max_retention_cutoff = now - timedelta(days=MAX_RETENTION_DAYS)
         has_explicit_range = request.GET.get("start") or request.GET.get("end")
 
         if has_explicit_range:
-            if snuba_params.start and snuba_params.start < max_retention_cutoff:
-                return Response(
-                    {"detail": f"start time cannot be older than {MAX_RETENTION_DAYS} days"},
-                    status=400,
-                )
-            if snuba_params.end and snuba_params.end < max_retention_cutoff:
-                return Response(
-                    {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
-                    status=400,
-                )
+            error = retention_window_error(snuba_params, now)
+            if error:
+                return Response({"detail": error}, status=400)
 
         with handle_query_errors():
             if has_explicit_range:
                 resolved_params = snuba_params
             else:
-                resolved_params = self._resolve_time_window(
+                resolved_params = resolve_conversation_time_window(
                     snuba_params, request.GET.get("statsPeriod"), now, conversation_id
                 )
 
@@ -117,37 +106,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 default_per_page=100,
                 max_per_page=1000,
             )
-
-    def _resolve_time_window(
-        self,
-        base_params: SnubaParams,
-        stats_period: str | None,
-        now: datetime,
-        conversation_id: str,
-    ) -> SnubaParams:
-        """Probe progressively wider windows to find which contains the conversation."""
-        candidates = self._build_widening_params(base_params, stats_period, now)
-        for params in candidates:
-            if self._fetch_spans(params, conversation_id, offset=0, limit=1):
-                return params
-        return candidates[-1]
-
-    def _build_widening_params(
-        self, base_params: SnubaParams, stats_period: str | None, now: datetime
-    ) -> list[SnubaParams]:
-        max_retention = timedelta(days=MAX_RETENTION_DAYS)
-        requested_delta: timedelta | None = (
-            parse_stats_period(stats_period) if stats_period else None
-        )
-
-        steps: list[timedelta] = []
-        if requested_delta and requested_delta < max_retention:
-            steps.append(requested_delta)
-        for step in _WIDENING_STEPS:
-            if not steps or step > steps[-1]:
-                steps.append(step)
-
-        return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
     @sentry_sdk.trace
     def _annotate_issues(

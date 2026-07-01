@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -12,6 +12,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.helpers.ai_conversations import (
+    AI_CONVERSATION_AGGREGATION_COLUMNS,
+    AI_CONVERSATION_ENRICHMENT_COLUMNS,
+    extract_conversation_enrichment,
+    parse_conversation_aggregates,
+)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
@@ -19,7 +25,6 @@ from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.constants import NON_FAILURE_STATUS
 from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
@@ -121,30 +126,6 @@ def _get_last_output(row: dict) -> str | None:
         return response_text
 
     return None
-
-
-class UserResponse(TypedDict):
-    id: str | None
-    email: str | None
-    username: str | None
-    ip_address: str | None
-
-
-def _build_user_response(
-    user_id: str | None,
-    user_email: str | None,
-    user_username: str | None,
-    user_ip: str | None,
-) -> UserResponse | None:
-    """Build user response object, returning None if no user data is available."""
-    if not any([user_id, user_email, user_username, user_ip]):
-        return None
-    return {
-        "id": user_id,
-        "email": user_email,
-        "username": user_username,
-        "ip_address": user_ip,
-    }
 
 
 def _build_conversation_response(
@@ -310,13 +291,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
-                "failure_count()",
-                "count_if(gen_ai.operation.type,equals,ai_client)",
-                "count_if(gen_ai.operation.type,equals,tool)",
-                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
-                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
-                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
-                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                *AI_CONVERSATION_AGGREGATION_COLUMNS,
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
@@ -336,16 +311,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} has:gen_ai.operation.type",
             selected_columns=[
                 "gen_ai.conversation.id",
-                "gen_ai.operation.type",
-                "gen_ai.agent.name",
-                "gen_ai.tool.name",
-                "span.status",
-                "trace",
-                "timestamp",
-                "user.id",
-                "user.email",
-                "user.username",
-                "user.ip",
+                *AI_CONVERSATION_ENRICHMENT_COLUMNS,
             ],
             orderby=["timestamp"],
             offset=0,
@@ -390,38 +356,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conv_id = row.get("gen_ai.conversation.id", "")
                 start_ts = row.get("min(precise.start_ts)", 0)
                 finish_ts = row.get("max(precise.finish_ts)", 0)
+                aggregates = parse_conversation_aggregates(row)
 
                 conversations_map[conv_id] = _build_conversation_response(
                     conv_id=conv_id,
                     start_timestamp=_compute_timestamp_ms(start_ts),
                     end_timestamp=_compute_timestamp_ms(finish_ts),
-                    errors=int(row.get("failure_count()") or 0),
-                    llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
-                    tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
-                    total_tokens=int(
-                        row.get(
-                            "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)"
-                        )
-                        or 0
-                    ),
-                    input_tokens=int(
-                        row.get(
-                            "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)"
-                        )
-                        or 0
-                    ),
-                    output_tokens=int(
-                        row.get(
-                            "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)"
-                        )
-                        or 0
-                    ),
-                    total_cost=float(
-                        row.get(
-                            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
-                        )
-                        or 0
-                    ),
+                    errors=aggregates["errors"],
+                    llm_calls=aggregates["llmCalls"],
+                    tool_calls=aggregates["toolCalls"],
+                    total_tokens=aggregates["totalTokens"],
+                    input_tokens=aggregates["inputTokens"],
+                    output_tokens=aggregates["outputTokens"],
+                    total_cost=aggregates["totalCost"],
                     trace_ids=[],
                     flow=[],
                     first_input=None,
@@ -440,54 +387,22 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             enrichment_rows = enrichment_data.get("data", [])
             set_span_data(span, "rows_count", len(enrichment_rows))
 
-            flows_by_conversation: dict[str, list[str]] = defaultdict(list)
-            traces_by_conversation: dict[str, set[str]] = defaultdict(set)
-            tool_names_by_conversation: dict[str, set[str]] = defaultdict(set)
-            tool_errors_by_conversation: dict[str, int] = defaultdict(int)
-            # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
-            user_by_conversation: dict[str, UserResponse] = {}
-
+            # Group spans by conversation (query is timestamp-ordered, so per-conversation
+            # order is preserved) and derive each conversation's enrichment.
+            rows_by_conversation: dict[str, list[dict[str, Any]]] = defaultdict(list)
             for row in enrichment_rows:
                 conv_id = row.get("gen_ai.conversation.id", "")
-                if not conv_id:
-                    continue
-
-                trace_id = row.get("trace", "")
-                if trace_id:
-                    traces_by_conversation[conv_id].add(trace_id)
-
-                if row.get("gen_ai.operation.type") == "invoke_agent":
-                    agent_name = row.get("gen_ai.agent.name", "")
-                    if agent_name:
-                        flows_by_conversation[conv_id].append(agent_name)
-
-                if row.get("gen_ai.operation.type") == "tool":
-                    tool_name = row.get("gen_ai.tool.name")
-                    if tool_name:
-                        tool_names_by_conversation[conv_id].add(tool_name)
-                    status = row.get("span.status", "ok")
-                    if status and status not in NON_FAILURE_STATUS:
-                        tool_errors_by_conversation[conv_id] += 1
-
-                # Capture user from the first span (earliest timestamp) for each conversation
-                if conv_id not in user_by_conversation:
-                    user_data = _build_user_response(
-                        user_id=row.get("user.id"),
-                        user_email=row.get("user.email"),
-                        user_username=row.get("user.username"),
-                        user_ip=row.get("user.ip"),
-                    )
-                    if user_data:
-                        user_by_conversation[conv_id] = user_data
+                if conv_id:
+                    rows_by_conversation[conv_id].append(row)
 
             for conv_id, conversation in conversations_map.items():
-                traces = traces_by_conversation.get(conv_id, set())
-                conversation["flow"] = flows_by_conversation.get(conv_id, [])
-                conversation["traceIds"] = list(traces)
-                conversation["traceCount"] = len(traces)
-                conversation["user"] = user_by_conversation.get(conv_id)
-                conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
-                conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
+                enrichment = extract_conversation_enrichment(rows_by_conversation.get(conv_id, []))
+                conversation["flow"] = enrichment["flow"]
+                conversation["traceIds"] = enrichment["traceIds"]
+                conversation["traceCount"] = len(enrichment["traceIds"])
+                conversation["user"] = enrichment["user"]
+                conversation["toolNames"] = enrichment["toolNames"]
+                conversation["toolErrors"] = enrichment["toolErrors"]
 
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
