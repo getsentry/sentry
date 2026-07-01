@@ -1,8 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   TraceViewLogsDataProvider,
@@ -97,6 +104,30 @@ describe('TraceViewLogsSection', () => {
     );
 
     expect(await screen.findByRole('option', {name: 'severity'})).toBeInTheDocument();
+  });
+
+  it('reflects an added filter in the URL', async () => {
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [],
+        meta: {},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+    const {router} = render(<Component traceSlug={TRACE_SLUG} />, {organization});
+
+    const search = await screen.findByRole('combobox', {name: 'Add a search term'});
+    await userEvent.type(search, 'hello{enter}');
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_QUERY_KEY]).toContain('hello');
+    });
   });
 
   it('shows the similar spans log row action', async () => {

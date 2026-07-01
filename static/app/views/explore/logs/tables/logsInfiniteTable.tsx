@@ -29,8 +29,10 @@ import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBodyCell,
   TableHead,
@@ -40,6 +42,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
@@ -134,6 +137,8 @@ export function LogsInfiniteTable({
   showCellActions,
   showExploreSimilarSpansLink,
 }: LogsTableProps) {
+  const location = useLocation();
+  const linkedRowId = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -235,7 +240,10 @@ export function LogsInfiniteTable({
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
-    new Set(embeddedOptions?.openWithExpandedIds)
+    new Set([
+      ...(embeddedOptions?.openWithExpandedIds ?? []),
+      ...(linkedRowId ? [linkedRowId] : []),
+    ])
   );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
@@ -625,6 +633,7 @@ export function LogsInfiniteTable({
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}
                   setHoveredRowId={setHoveredRowId}
                   togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}

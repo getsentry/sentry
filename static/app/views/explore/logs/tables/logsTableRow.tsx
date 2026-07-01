@@ -53,7 +53,10 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   TraceItemDetailsResponse,
@@ -129,6 +132,7 @@ type LogsRowProps = {
   };
   expansionKey?: string;
   isExpanded?: boolean;
+  isHighlighted?: boolean;
   isHoverLinked?: boolean;
   isPinned?: boolean;
   logEnd?: string;
@@ -229,6 +233,7 @@ export const LogRowContent = memo(function LogRowContent({
   logEnd,
   isPinned,
   isHoverLinked,
+  isHighlighted,
   setHoveredRowId,
   togglePinnedRow,
   showCellActions,
@@ -243,6 +248,7 @@ export const LogRowContent = memo(function LogRowContent({
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
+  const isFrozen = useLogsFrozenIsFrozen();
   const measureRef = useRef<HTMLTableRowElement>(null);
 
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
@@ -423,6 +429,7 @@ export const LogRowContent = memo(function LogRowContent({
       <LogTableRow
         data-test-id="log-table-row"
         data-row-hover-linked={isHoverLinked}
+        data-row-linked={isHighlighted}
         highlighted={isPseudoRow}
         pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
@@ -575,7 +582,15 @@ export const LogRowContent = memo(function LogRowContent({
                         const logId = String(dataRow[OurLogKnownFieldKey.ID]);
                         const url = new URL(window.location.origin + location.pathname);
                         const params = new URLSearchParams(location.search);
-                        params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                        // In frozen/embedded views (e.g. trace details) the row set is
+                        // bounded, so link to the row and let it highlight + expand in
+                        // context. On the standalone logs page the row may not be loaded,
+                        // so filter to it instead.
+                        if (isFrozen) {
+                          params.set(LOGS_ROW_ID_KEY, logId);
+                        } else {
+                          params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                        }
                         url.search = params.toString();
                         copy(url.toString(), {
                           successMessage: t('Copied!'),

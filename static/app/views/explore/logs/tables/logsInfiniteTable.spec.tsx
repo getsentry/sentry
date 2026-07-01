@@ -21,6 +21,7 @@ import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageD
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
@@ -554,6 +555,45 @@ describe('LogsInfiniteTable', () => {
     expect(screen.getByTestId('pinned-logs-table-body').contains(firstRow ?? null)).toBe(
       true
     );
+  });
+
+  it('highlights and expands the row referenced by the logsRowId param', async () => {
+    const traceItemRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/1/`,
+      method: 'GET',
+      body: {
+        itemId: '1',
+        links: null,
+        meta: {},
+        timestamp: mockLogsData[0]![OurLogKnownFieldKey.TIMESTAMP],
+        attributes: [],
+      },
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_ROW_ID_KEY]: '1',
+            },
+          },
+        },
+      }
+    );
+
+    const rows = await screen.findAllByTestId('log-table-row');
+    const linkedRow = rows.find(row => within(row).queryByText('test log body 1'))!;
+    const otherRow = rows.find(row => within(row).queryByText('test log body 2'))!;
+
+    expect(linkedRow).toHaveAttribute('data-row-linked', 'true');
+    expect(otherRow).not.toHaveAttribute('data-row-linked', 'true');
+    // The linked row is expanded on load, which fetches its full details.
+    await waitFor(() => expect(traceItemRequest).toHaveBeenCalled());
   });
 
   it('links the body instance hover state when the pinned instance is hovered', async () => {
