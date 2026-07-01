@@ -204,7 +204,6 @@ def record_contributor_action(
 
     if locked_contributor is None:
         return
-
     metrics.incr(
         "scm.webhook.organization_contributor.num_actions_incremented",
         sample_rate=1.0,
