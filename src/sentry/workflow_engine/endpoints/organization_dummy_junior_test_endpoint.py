@@ -15,14 +15,21 @@ See: https://github.com/getsentry/sentry/pull/118795
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.models.organization import Organization
 
 
-@region_silo_endpoint
-class OrganizationDummyJuniorTestEndpoint(Endpoint):
+@cell_silo_endpoint
+class OrganizationDummyJuniorTestEndpoint(OrganizationEndpoint):
     """Dummy endpoint — DO NOT MERGE."""
 
-    private = True
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ISSUES
 
-    def get(self, request: Request, organization_id_or_slug: str) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         return Response({"ok": True})

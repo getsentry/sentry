@@ -9,6 +9,7 @@ from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
+from .organization_dummy_junior_test_endpoint import OrganizationDummyJuniorTestEndpoint
 from .organization_incident_groupopenperiod_index import (
     OrganizationIncidentGroupOpenPeriodIndexEndpoint,
 )
@@ -18,7 +19,6 @@ from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
-from .organization_dummy_junior_test_endpoint import OrganizationDummyJuniorTestEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
 organization_urlpatterns = [
