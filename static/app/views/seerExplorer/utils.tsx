@@ -1121,11 +1121,17 @@ export function useSeerExplorerResumeDeepLink({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const hasResumedRef = useRef(false);
 
   useEffect(() => {
-    if (location.query?.[RESUME_RUN_QUERY_PARAM] !== '1' || !ready) {
+    if (location.query?.[RESUME_RUN_QUERY_PARAM] !== '1') {
+      hasResumedRef.current = false;
       return;
     }
+    if (!ready || hasResumedRef.current) {
+      return;
+    }
+    hasResumedRef.current = true;
     onResume();
     const {[RESUME_RUN_QUERY_PARAM]: _resume, ...restQuery} = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
