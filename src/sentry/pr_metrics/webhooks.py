@@ -84,6 +84,7 @@ from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
     is_activity_tracking_enabled,
+    org_has_coding_agent_for_provider,
     resolved_group_ids,
 )
 from sentry.seer.autofix.utils import (
@@ -174,8 +175,10 @@ def handle_attribution(
         _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if action == "opened" and pull_request is not None and has_seer_access(organization):
-        _detect_delegated_agent(pr, pull_request, repo)
+    if action == "opened" and pull_request is not None:
+        provider_hint = _is_delegated_agent_candidate(pull_request)
+        if provider_hint and org_has_coding_agent_for_provider(organization, provider_hint):
+            _detect_delegated_agent(pr, pull_request, repo, provider_hint=provider_hint)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -996,7 +999,10 @@ def _write_author_attribution(
 
 
 def _detect_delegated_agent(
-    pr: PullRequest, webhook_pull_request: Mapping[str, Any], repository: Repository
+    pr: PullRequest,
+    webhook_pull_request: Mapping[str, Any],
+    repository: Repository,
+    provider_hint: str,
 ) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
@@ -1004,9 +1010,8 @@ def _detect_delegated_agent(
 
     Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
     """
-    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
     group_ids = resolved_group_ids(pr)
-    if provider_hint is None or not group_ids:
+    if not group_ids:
         return
 
     repo_name_sections = repository.name.split("/")
