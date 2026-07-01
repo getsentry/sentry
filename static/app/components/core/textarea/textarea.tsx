@@ -62,7 +62,7 @@ function AutosizeTextArea({ref, rows, maxRows, ...p}: AutosizeTextAreaProps) {
         ref.current = node;
       }
 
-      if (!node || typeof ResizeObserver === 'undefined') {
+      if (!node) {
         return;
       }
 
