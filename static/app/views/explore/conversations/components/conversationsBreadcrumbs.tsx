@@ -1,5 +1,4 @@
-import styled from '@emotion/styled';
-
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -73,7 +72,7 @@ function ConversationCrumb({
   const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 
   return (
-    <CrumbWrapper>
+    <RevealOnHover minWidth={0}>
       {project && (
         <ProjectBadge project={project} avatarSize={16} disableLink hideOverflow />
       )}
@@ -84,33 +83,18 @@ function ConversationCrumb({
       >
         <span>{displayId}</span>
       </Tooltip>
-      <CopyToClipboardButton
-        className="copy-conversation-id"
-        size="zero"
-        variant="transparent"
-        aria-label={t('Copy conversation ID')}
-        tooltipProps={{title: t('Copy conversation ID')}}
-        text={conversationId}
-        onCopy={() =>
-          trackAnalytics('conversations.detail.copy-conversation-id', {organization})
-        }
-      />
-    </CrumbWrapper>
+      <RevealOnHover.Action>
+        <CopyToClipboardButton
+          size="zero"
+          variant="transparent"
+          aria-label={t('Copy conversation ID')}
+          tooltipProps={{title: t('Copy conversation ID')}}
+          text={conversationId}
+          onCopy={() =>
+            trackAnalytics('conversations.detail.copy-conversation-id', {organization})
+          }
+        />
+      </RevealOnHover.Action>
+    </RevealOnHover>
   );
 }
-
-const CrumbWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-
-  .copy-conversation-id {
-    visibility: hidden;
-  }
-
-  &:hover .copy-conversation-id,
-  &:focus-within .copy-conversation-id {
-    visibility: visible;
-  }
-`;
