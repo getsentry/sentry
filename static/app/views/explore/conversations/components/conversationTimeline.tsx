@@ -65,8 +65,6 @@ export function ConversationTimeline({
   );
   const timeBounds = compressedBounds ?? getNodeTimeBounds(nodes);
 
-  // Map each node to its closest AI-agent ancestor so children of an agent run
-  // can be indented one level, matching the production span list.
   const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
     const parents: Record<string, AITraceSpanNode> = {};
     for (const node of nodes) {
