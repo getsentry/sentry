@@ -286,6 +286,33 @@ def duration(value):
     return "".join(output)
 
 
+_SPAN_DURATION_UNITS = [
+    (31536000000, "yr"),
+    (2629800000, "mo"),
+    (604800000, "wk"),
+    (86400000, "d"),
+    (3600000, "hr"),
+    (60000, "min"),
+    (1000, "s"),
+]
+
+
+@register.filter
+def span_duration(value):
+    """Format a duration in ms to the single largest unit with 2 decimal places.
+
+    Python port of the frontend getDuration(seconds, 2, true) from
+    static/app/utils/duration/getDuration.tsx.
+    """
+    if not value:
+        return "0.00ms"
+    abs_ms = abs(value)
+    for threshold, label in _SPAN_DURATION_UNITS:
+        if abs_ms >= threshold:
+            return "%0.2f%s" % (value / threshold, label)
+    return "%0.2fms" % value
+
+
 @register.filter
 def date(dt, arg=None):
     from django.template.defaultfilters import date
