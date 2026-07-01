@@ -14,6 +14,7 @@ from sentry.seer.code_review.contributor_seats import (
     track_contributor_seat,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class IsAutofixEnabledForRepoTest(TestCase):
@@ -283,6 +284,7 @@ class TrackContributorSeatTest(TestCase):
         )
 
 
+@with_feature("organizations:seat-based-seer-record-action")
 class RecordContributorActionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
