@@ -147,17 +147,23 @@ export function SortDropdown({
   );
 }
 
+const OPACITY_PRESETS = [0, 50, 100];
+
 export function ColorPickerButton({
   color,
   onChange,
+  opacity,
+  onOpacityChange,
 }: {
   color: string;
   onChange: (color: string) => void;
+  onOpacityChange: (opacity: number) => void;
+  opacity: number | null;
 }) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const overlayColors = [TRANSPARENT_COLOR, ...theme.chart.getColorPalette(10)];
+  const palette = theme.chart.getColorPalette(10);
 
   useEffect(() => {
     if (!isOpen) {
@@ -176,23 +182,40 @@ export function ColorPickerButton({
     <ColorPickerWrapper ref={pickerRef}>
       <Tooltip title={t('Overlay color')} skipWrapper>
         <ColorTrigger
-          color={color}
+          $color={color}
+          $slash={opacity === 0}
           aria-label={t('Pick overlay color')}
           onClick={() => setIsOpen(v => !v)}
         />
       </Tooltip>
       {isOpen && (
         <ColorPickerDropdown>
-          <Flex gap="xs">
-            {overlayColors.map(c => (
+          <Flex gap="xs" align="center">
+            <Text size="xs" variant="muted">
+              {t('Opacity')}
+            </Text>
+            {OPACITY_PRESETS.map(preset => (
+              <Tooltip key={preset} title={t('%s opacity', `${preset}%`)} skipWrapper>
+                <OpacitySwatch
+                  $selected={opacity === preset}
+                  aria-pressed={opacity === preset}
+                  onClick={() => onOpacityChange(preset)}
+                  aria-label={t('Overlay opacity %s', `${preset}%`)}
+                >
+                  <OpacitySwatchFill $color={color} $opacity={preset} />
+                </OpacitySwatch>
+              </Tooltip>
+            ))}
+            <PickerDivider />
+            <Text size="xs" variant="muted">
+              {t('Color')}
+            </Text>
+            {palette.map(c => (
               <ColorSwatch
                 key={c}
-                color={c}
-                selected={color === c}
-                onClick={() => {
-                  onChange(c);
-                  setIsOpen(false);
-                }}
+                $color={c}
+                $selected={color === c}
+                onClick={() => onChange(c)}
                 aria-label={t('Overlay color %s', c)}
               />
             ))}
@@ -267,17 +290,17 @@ const ColorPickerDropdown = styled('div')`
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
-const ColorTrigger = styled('button')<{color: string}>`
+const ColorTrigger = styled('button')<{$color: string; $slash: boolean}>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
   cursor: pointer;
+  padding: 0;
   border: 1px solid
     ${p => p.theme.tokens.border.onVibrant[p.theme.type === 'dark' ? 'light' : 'dark']};
-  background-color: ${p => (p.color === TRANSPARENT_COLOR ? 'transparent' : p.color)};
-  padding: 0;
+  background-color: ${p => (p.$slash ? 'transparent' : p.$color)};
   ${p =>
-    p.color === TRANSPARENT_COLOR &&
+    p.$slash &&
     css`
       /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-image: linear-gradient(
@@ -313,19 +336,66 @@ export const ToolbarProgressBar = styled(ProgressBar)`
   }
 `;
 
-const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
+const OpacitySwatch = styled('button')<{$selected: boolean}>`
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  background: none;
+  border: 2px solid
+    ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
+  outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
+  outline-offset: 1px;
+
+  &:hover {
+    border-color: ${p => p.theme.tokens.border.accent};
+  }
+`;
+
+const OpacitySwatchFill = styled('div')<{$color: string; $opacity: number}>`
+  position: absolute;
+  inset: 0;
+  background-color: ${p => (p.$color === TRANSPARENT_COLOR ? 'transparent' : p.$color)};
+  opacity: ${p => p.$opacity / 100};
+  ${p =>
+    p.$opacity === 0 &&
+    css`
+      opacity: 1;
+      background-color: transparent;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-image: linear-gradient(
+        to top right,
+        transparent calc(50% - 1.5px),
+        ${p.theme.tokens.content.danger} calc(50% - 0.5px),
+        ${p.theme.tokens.content.danger} calc(50% + 0.5px),
+        transparent calc(50% + 1.5px)
+      );
+    `}
+`;
+
+const PickerDivider = styled('div')`
+  align-self: stretch;
+  min-height: 20px;
+  margin: 0 ${p => p.theme.space.xs};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid
-    ${p => (p.selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  background-color: ${p => (p.color === TRANSPARENT_COLOR ? 'transparent' : p.color)};
+    ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
+  background-color: ${p => (p.$color === TRANSPARENT_COLOR ? 'transparent' : p.$color)};
   padding: 0;
-  outline: ${p => (p.selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
+  outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
   outline-offset: 1px;
   ${p =>
-    p.color === TRANSPARENT_COLOR &&
+    p.$color === TRANSPARENT_COLOR &&
     css`
       /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-image: linear-gradient(

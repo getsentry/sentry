@@ -184,6 +184,10 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
+  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState<number | null>(
+    'snapshot-overlay-opacity',
+    null
+  );
   const breakpoints = useBreakpoints();
   const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
@@ -814,6 +818,8 @@ export default function SnapshotsPage() {
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             onOverlayColorChange={setOverlayColor}
+            overlayOpacity={overlayOpacity}
+            onOverlayOpacityChange={setOverlayOpacity}
             diffMode={effectiveDiffMode}
             onDiffModeChange={setDiffMode}
             viewMode={viewMode}
