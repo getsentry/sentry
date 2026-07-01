@@ -1676,15 +1676,17 @@ class TestWorkflowNotification(TestCase):
         install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=sentry_app.slug
         )
-        with pytest.raises(SentryAppSentryError):
-            workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
+        # The event not being in the servicehook is an expected condition, so the
+        # task returns cleanly and records a halt (no exception raised).
+        workflow_notification(install.id, self.issue.id, "assigned", self.user.id)
         assert not safe_urlopen.called
 
         # SLO assertions
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppWebhookHaltReason.EVENT_NOT_IN_SERVICEHOOK,
         )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
@@ -1692,7 +1694,7 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
 
