@@ -315,6 +315,7 @@ export function SeerExplorerHeaderActionsMenu({
       leadingItems: <IconLink />,
       onAction: onCopyLinkClick ?? undefined,
       disabled: !onCopyLinkClick,
+      tooltip: onCopyLinkClick ? undefined : t('Start a chat to copy its link'),
     },
     {
       key: 'copy-session',
@@ -322,6 +323,9 @@ export function SeerExplorerHeaderActionsMenu({
       leadingItems: <IconCopy />,
       onAction: onCopySessionClick ?? undefined,
       disabled: !onCopySessionClick,
+      tooltip: onCopySessionClick
+        ? undefined
+        : t('Start a chat to copy the conversation'),
     },
     ...(dockItem ? [dockItem] : []),
   ];
