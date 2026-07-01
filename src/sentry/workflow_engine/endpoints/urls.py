@@ -18,6 +18,7 @@ from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
+from .organization_dummy_junior_test_endpoint import OrganizationDummyJuniorTestEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
 organization_urlpatterns = [
@@ -105,5 +106,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/incident-groupopenperiod/$",
         OrganizationIncidentGroupOpenPeriodIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-groupopenperiod-index",
+    ),
+    # DO NOT MERGE — dummy endpoint to test CI filter behavior (see PR #118795)
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/junior-test-dummy/$",
+        OrganizationDummyJuniorTestEndpoint.as_view(),
+        name="sentry-api-0-organization-junior-test-dummy",
     ),
 ]
