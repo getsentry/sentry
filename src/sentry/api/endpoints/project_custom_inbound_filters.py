@@ -232,3 +232,131 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         )
 
         return Response(serializer.data, status=201)
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Projects"])
+class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+    }
+
+    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
+        try:
+            return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
+        except (CustomInboundFilter.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+
+    @extend_schema(
+        operation_id="Retrieve a Custom Inbound Filter",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        responses={
+            200: CustomInboundFilterSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, project: Project, filter_id: str) -> Response:
+        """
+        Retrieve a single custom inbound filter.
+        """
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
+
+        custom_filter = self.get_custom_inbound_filter(project, filter_id)
+        return Response(CustomInboundFilterSerializer(custom_filter).data)
+
+    @extend_schema(
+        operation_id="Update a Custom Inbound Filter",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        request=CustomInboundFilterSerializer,
+        responses={
+            200: CustomInboundFilterSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request: Request, project: Project, filter_id: str) -> Response:
+        """
+        Update a custom inbound filter's name, active state, or conditions.
+        """
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
+
+        custom_filter = self.get_custom_inbound_filter(project, filter_id)
+        serializer = CustomInboundFilterSerializer(
+            custom_filter,
+            data=request.data,
+            partial=True,
+            context={"project": project, "request": request},
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        changes: dict[str, Any] = {}
+        for field in ("name", "active", "conditions"):
+            if field not in serializer.validated_data:
+                continue
+
+            previous_value = getattr(custom_filter, field)
+            new_value = serializer.validated_data[field]
+            if previous_value != new_value:
+                changes[field] = {"old": previous_value, "new": new_value}
+                setattr(custom_filter, field, new_value)
+
+        if changes:
+            custom_filter.save(update_fields=[*changes.keys(), "date_updated"])
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=custom_filter.id,
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+                data=self.get_audit_log_data(project, custom_filter, "edit", changes),
+            )
+
+        return Response(CustomInboundFilterSerializer(custom_filter).data)
+
+    @extend_schema(
+        operation_id="Delete a Custom Inbound Filter",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        responses={
+            204: None,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(self, request: Request, project: Project, filter_id: str) -> Response:
+        """
+        Delete a custom inbound filter.
+        """
+        if not self.has_feature(request, project):
+            return Response({"detail": "You do not have that feature enabled"}, status=400)
+
+        custom_filter = self.get_custom_inbound_filter(project, filter_id)
+        audit_log_data = self.get_audit_log_data(project, custom_filter, "remove")
+        target_object = custom_filter.id
+        custom_filter.delete()
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=target_object,
+            event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            data=audit_log_data,
+        )
+
+        return Response(status=204)

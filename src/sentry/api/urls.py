@@ -526,6 +526,7 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
+from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
@@ -804,7 +805,10 @@ from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundl
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
-from .endpoints.project_custom_inbound_filters import CustomInboundFiltersEndpoint
+from .endpoints.project_custom_inbound_filters import (
+    CustomInboundFilterDetailsEndpoint,
+    CustomInboundFiltersEndpoint,
+)
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
@@ -2357,6 +2361,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-runs",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
+        OrganizationSeerRunsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-runs",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflows",
@@ -2836,6 +2845,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/$",
         CustomInboundFiltersEndpoint.as_view(),
         name="sentry-api-0-project-custom-inbound-filters",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/(?P<filter_id>[^/]+)/$",
+        CustomInboundFilterDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-custom-inbound-filter-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/$",

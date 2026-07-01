@@ -95,6 +95,7 @@ def track_contributor_seat(
     user_id: str | int,
     user_username: str,
     provider: str,
+    logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """
     Track a contributor for seat billing. Creates or retrieves the contributor
@@ -113,7 +114,13 @@ def track_contributor_seat(
 
     logger.info(
         "scm.webhook.organization_contributor.should_create",
-        extra={"provider": provider},
+        extra={
+            "provider": provider,
+            "organization_id": organization.id,
+            "pr_author_id": str(user_id),
+            "pr_author_login": user_username,
+            **(logs_extra or {}),
+        },
     )
 
     locked_contributor = None
@@ -178,6 +185,17 @@ def record_contributor_action(
             defaults={"organization_contributor": contributor},
         )
         if created:
+            logger.info(
+                "scm.webhook.organization_contributor.action_recorded",
+                extra={
+                    "provider": provider,
+                    "organization_id": organization.id,
+                    "pr_author_id": str(user_id),
+                    "pr_author_login": user_username,
+                    "pr_number": str(pr_number),
+                    **(tags or {}),
+                },
+            )
             metrics.incr(
                 "scm.webhook.organization_contributor.action_recorded",
                 sample_rate=1.0,

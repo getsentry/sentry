@@ -230,3 +230,195 @@ class CustomInboundFiltersTest(APITestCase):
                     conditions=[{"type": condition_type, "value": value}],
                 )
             assert expected in str(response.data["conditions"][0])
+
+
+class CustomInboundFilterDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-project-custom-inbound-filter-details"
+    method = "put"
+    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.custom_filter = self.create_project_custom_inbound_filter(
+            project=self.project,
+            name="Original filter",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+        )
+        self.login_as(user=self.user)
+
+    def test_get(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                method="get",
+            )
+
+        assert response.data["id"] == str(self.custom_filter.id)
+        assert response.data["name"] == "Original filter"
+        assert response.data["active"] is True
+        assert response.data["conditions"] == [{"type": "release", "value": ["1.*"]}]
+
+    def test_put(self) -> None:
+        new_conditions = [{"type": "error_message", "value": ["TypeError*"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                name="Renamed filter",
+                active=False,
+                conditions=new_conditions,
+            )
+
+        self.custom_filter.refresh_from_db()
+        assert response.data["name"] == "Renamed filter"
+        assert response.data["active"] is False
+        assert response.data["conditions"] == new_conditions
+        assert self.custom_filter.name == "Renamed filter"
+        assert self.custom_filter.active is False
+        assert self.custom_filter.conditions == new_conditions
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            )
+        assert audit_entry.target_object == self.custom_filter.id
+        assert audit_entry.data["operation"] == "edit"
+        assert audit_entry.data["filter_name"] == "Renamed filter"
+        assert audit_entry.data["changes"] == {
+            "name": {"old": "Original filter", "new": "Renamed filter"},
+            "active": {"old": True, "new": False},
+            "conditions": {
+                "old": [{"type": "release", "value": ["1.*"]}],
+                "new": new_conditions,
+            },
+        }
+
+    def test_put_partial_active_only(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                active=False,
+            )
+
+        self.custom_filter.refresh_from_db()
+        assert response.data["active"] is False
+        assert self.custom_filter.active is False
+        assert self.custom_filter.name == "Original filter"
+        assert self.custom_filter.conditions == [{"type": "release", "value": ["1.*"]}]
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            )
+        assert audit_entry.data["operation"] == "edit"
+        assert audit_entry.data["changes"] == {"active": {"old": True, "new": False}}
+
+    def test_put_no_changes_skips_audit_log(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                name="Original filter",
+            )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            ).exists()
+
+    def test_put_rejects_incompatible_primary_conditions(self) -> None:
+        conditions = [
+            {"type": "error_message", "value": ["TypeError*"]},
+            {"type": "log_message", "value": ["Rate limit*"]},
+        ]
+
+        with self.feature([*self.features, "organizations:ourlogs-ingestion"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=conditions,
+            )
+
+        assert (
+            str(response.data["conditions"][0])
+            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+        )
+
+    def test_delete(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                method="delete",
+                status_code=204,
+            )
+
+        assert not CustomInboundFilter.objects.filter(id=self.custom_filter.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            )
+        assert audit_entry.target_object == self.custom_filter.id
+        assert audit_entry.data["operation"] == "remove"
+        assert audit_entry.data["filter_name"] == "Original filter"
+
+    def test_returns_404_for_missing_filter(self) -> None:
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                "1234567890",
+                method="get",
+                status_code=404,
+            )
+
+    def test_scopes_lookup_to_project(self) -> None:
+        other_project = self.create_project(organization=self.organization, teams=[self.team])
+        other_filter = self.create_project_custom_inbound_filter(project=other_project)
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                other_filter.id,
+                method="get",
+                status_code=404,
+            )
+
+    def test_without_inbound_filters_v2_feature(self) -> None:
+        with self.feature(["projects:custom-inbound-filters"]):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                method="get",
+                status_code=404,
+            )
+
+    def test_without_custom_inbound_filters_plan_feature(self) -> None:
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                method="get",
+                status_code=400,
+            )
+
+        assert response.data["detail"] == "You do not have that feature enabled"

@@ -1237,6 +1237,9 @@ class Fixtures:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
 
+    def create_seer_agent_run(self, run, **kwargs):
+        return Factories.create_seer_agent_run(run=run, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot
