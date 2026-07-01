@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
+from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
 from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,11 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         session_id = request.data.get("sessionId")
         if not session_id or not isinstance(session_id, str):
             return Response({"detail": "sessionId is required."}, status=400)
+        if len(session_id) > AGENT_SESSION_ID_MAX_LENGTH:
+            return Response(
+                {"detail": f"sessionId must be {AGENT_SESSION_ID_MAX_LENGTH} characters or fewer."},
+                status=400,
+            )
 
         requested = request.data.get("scopes")
         if not isinstance(requested, list) or not all(isinstance(s, str) for s in requested):

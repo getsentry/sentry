@@ -56,6 +56,16 @@ class OrganizationAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             assert self._mint().status_code == 400
 
+    def test_session_id_too_long_rejected(self) -> None:
+        self.login_as(self.owner)
+        with self.feature(FLAG):
+            assert self._mint(sessionId="x" * 129).status_code == 400
+
+    def test_requested_scopes_non_string_rejected(self) -> None:
+        self.login_as(self.owner)
+        with self.feature(FLAG):
+            assert self._mint(sessionId="s1", requestedScopes=[{"a": 1}]).status_code == 400
+
     def test_identity_comes_from_request_not_body(self) -> None:
         # A foreign userId/org in the body must be ignored: the token is always minted
         # for the authenticated user.

@@ -16,6 +16,10 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 # that requested it by much. Prototype default; revisit with product.
 DEFAULT_EXPIRATION = timedelta(hours=4)
 
+# Upper bound for the client-supplied agent session id, matching the column width so an
+# over-long value is a 400 rather than a DB DataError.
+AGENT_SESSION_ID_MAX_LENGTH = 128
+
 
 def default_expiration() -> datetime:
     return timezone.now() + DEFAULT_EXPIRATION
@@ -24,18 +28,17 @@ def default_expiration() -> datetime:
 @cell_silo_model
 class SeerAgentWriteGrant(DefaultFieldsModel):
     """
-    A user's approval that lets the Seer agent hold a specific set of write scopes against
-    one organization, for one agent session, for a limited time.
+    A user's approval that lets the Seer agent hold write scopes against one organization,
+    for one agent session, for a limited time.
 
-    A grant is **only ever created when the user approves** a write challenge (see
-    ``sentry.seer.agent_token`` and the approval endpoint), so this table holds approved
-    consent only — there is no pending/declined state. The agent's mutating requests are
-    read-only by default; an unexpired grant is what folds a write scope into the next
-    minted capability token. Denied writes return a stateless signed challenge and write
-    nothing here.
+    Created only when the user approves via the approval endpoint, so this table holds
+    approved consent only — no pending/declined state. Exactly one row per
+    ``(organization, user, session)`` (unique-constrained); approving more scopes merges
+    into that row. An unexpired grant is what folds a write scope into the next minted
+    capability token.
 
-    This is a permission *record*, not a credential: it carries no token and is useless to
-    anyone who is not the bound user acting within the bound org and session.
+    A permission *record*, not a credential: it carries no token and is useless to anyone
+    who is not the bound user acting within the bound org and session.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -47,16 +50,20 @@ class SeerAgentWriteGrant(DefaultFieldsModel):
     # The agent (chat) session the approval belongs to. An approval in one session does not
     # silently empower another. Client-supplied, but only ever narrows a lookup already
     # filtered by the authenticated user_id, so it is IDOR-safe.
-    agent_session_id = models.CharField(max_length=128)
+    agent_session_id = models.CharField(max_length=AGENT_SESSION_ID_MAX_LENGTH)
     scope_list = ArrayField(models.TextField(), default=list)
     expires_at = models.DateTimeField(default=default_expiration)
 
     class Meta:
         app_label = "seer"
         db_table = "seer_agentwritegrant"
-        indexes = [
-            # Mint-time lookup: "active grants for this user + org + session?"
-            models.Index(fields=["organization", "user_id", "agent_session_id"]),
+        constraints = [
+            # One grant per session; also serves the mint-time lookup. Makes the approval
+            # get-or-merge atomic and idempotent instead of accreting duplicate rows.
+            models.UniqueConstraint(
+                fields=["organization", "user_id", "agent_session_id"],
+                name="seer_agentwritegrant_unique_session",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "user_id", "agent_session_id")

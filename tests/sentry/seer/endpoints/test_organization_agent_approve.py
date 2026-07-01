@@ -52,6 +52,22 @@ class OrganizationAgentApproveTest(APITestCase):
             == 1
         )
 
+    def test_approving_more_scopes_merges_into_one_row(self) -> None:
+        self.login_as(self.owner)
+        assert self._post(scopes=["org:write"]).status_code == 200
+        assert self._post(scopes=["org:admin"]).status_code == 200
+        grants = SeerAgentWriteGrant.objects.filter(
+            organization_id=self.org.id, user_id=self.owner.id, agent_session_id="s1"
+        )
+        assert grants.count() == 1
+        assert grants.get().get_scopes() == ["org:admin", "org:write"]
+
+    def test_session_id_too_long_rejected(self) -> None:
+        self.login_as(self.owner)
+        resp = self._post(scopes=["org:write"], session_id="x" * 129)
+        assert resp.status_code == 400
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
+
     # ----- validation -----
 
     def test_session_id_required(self) -> None:

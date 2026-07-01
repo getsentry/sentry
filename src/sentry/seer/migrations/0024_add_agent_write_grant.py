@@ -72,12 +72,13 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "seer_agentwritegrant",
-                "indexes": [
-                    models.Index(
-                        fields=["organization", "user_id", "agent_session_id"],
-                        name="seer_agentw_organiz_1cfbe6_idx",
-                    )
-                ],
             },
+        ),
+        migrations.AddConstraint(
+            model_name="seeragentwritegrant",
+            constraint=models.UniqueConstraint(
+                fields=["organization", "user_id", "agent_session_id"],
+                name="seer_agentwritegrant_unique_session",
+            ),
         ),
     ]

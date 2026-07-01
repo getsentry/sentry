@@ -11,6 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
+from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
 
 
 class AgentTokenPermission(OrganizationPermission):
@@ -43,10 +44,18 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         session_id = request.data.get("sessionId")
         if not session_id or not isinstance(session_id, str):
             return Response({"detail": "sessionId is required."}, status=400)
+        if len(session_id) > AGENT_SESSION_ID_MAX_LENGTH:
+            return Response(
+                {"detail": f"sessionId must be {AGENT_SESSION_ID_MAX_LENGTH} characters or fewer."},
+                status=400,
+            )
 
         requested_scopes = request.data.get("requestedScopes")
-        if requested_scopes is not None and not isinstance(requested_scopes, list):
-            return Response({"detail": "requestedScopes must be a list."}, status=400)
+        if requested_scopes is not None and (
+            not isinstance(requested_scopes, list)
+            or not all(isinstance(s, str) for s in requested_scopes)
+        ):
+            return Response({"detail": "requestedScopes must be a list of strings."}, status=400)
 
         user_id = request.user.id
         assert user_id is not None  # an authenticated caller is guaranteed by the permission

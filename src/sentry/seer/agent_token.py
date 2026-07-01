@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from django.conf import settings
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
@@ -134,13 +135,24 @@ def get_agent_claims(request: Request) -> dict[str, Any] | None:
 def create_write_grant(
     *, organization_id: int, user_id: int, session_id: str, scopes: Iterable[str]
 ) -> SeerAgentWriteGrant:
-    """Persist (or refresh) an approved grant. Idempotent on re-approval. The caller MUST
-    have already capped ``scopes`` to the approving user's own authority."""
-    grant, _ = SeerAgentWriteGrant.objects.update_or_create(
-        organization_id=organization_id,
-        user_id=user_id,
-        agent_session_id=session_id,
-        scope_list=sorted(scopes),
-        defaults={"expires_at": timezone.now() + DEFAULT_EXPIRATION},
-    )
+    """Merge ``scopes`` into the single grant for ``(org, user, session)`` and refresh its
+    expiry, creating it if absent. Idempotent; new scopes are unioned in. The caller MUST
+    have already capped ``scopes`` to the approving user's own authority.
+
+    The unique constraint plus row lock keep concurrent approvals from racing (duplicate
+    rows or lost scope merges)."""
+    with transaction.atomic(using=router.db_for_write(SeerAgentWriteGrant)):
+        grant, created = SeerAgentWriteGrant.objects.select_for_update().get_or_create(
+            organization_id=organization_id,
+            user_id=user_id,
+            agent_session_id=session_id,
+            defaults={
+                "scope_list": sorted(scopes),
+                "expires_at": timezone.now() + DEFAULT_EXPIRATION,
+            },
+        )
+        if not created:
+            grant.scope_list = sorted(set(grant.get_scopes()) | set(scopes))
+            grant.expires_at = timezone.now() + DEFAULT_EXPIRATION
+            grant.save(update_fields=["scope_list", "expires_at", "date_updated"])
     return grant
