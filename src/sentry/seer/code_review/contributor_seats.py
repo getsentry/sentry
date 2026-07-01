@@ -153,13 +153,36 @@ def record_contributor_action(
     ):
         return
 
-    _, created = OrganizationContributorAction.objects.get_or_create(
-        repository_id=repo.id,
-        pr_number=str(pr_number),
-        defaults={"organization_contributor": contributor},
-    )
-    if not created:
-        return
+    # Create the action row and increment num_actions in one transaction so a
+    # crash can't leave the ledger row committed without the counter advancing
+    # (which would permanently under-count, since the retry finds the row and
+    # short-circuits).
+    locked_contributor = None
+    with transaction.atomic(router.db_for_write(OrganizationContributors)):
+        _, created = OrganizationContributorAction.objects.get_or_create(
+            repository_id=repo.id,
+            pr_number=str(pr_number),
+            defaults={"organization_contributor": contributor},
+        )
+        if not created:
+            return
+
+        try:
+            locked_contributor = OrganizationContributors.objects.select_for_update().get(
+                id=contributor.id,
+            )
+            locked_contributor.num_actions += 1
+            locked_contributor.save(update_fields=["num_actions", "date_updated"])
+        except OrganizationContributors.DoesNotExist:
+            logger.warning(
+                "scm.webhook.organization_contributor.not_found",
+                extra={
+                    "provider": provider,
+                    "organization_id": organization.id,
+                    "integration_id": integration_id,
+                    "external_identifier": str(user_id),
+                },
+            )
 
     logger.info(
         "scm.webhook.organization_contributor.action_recorded",
@@ -179,33 +202,14 @@ def record_contributor_action(
         tags={"provider": provider},
     )
 
-    locked_contributor = None
-    with transaction.atomic(router.db_for_write(OrganizationContributors)):
-        try:
-            locked_contributor = OrganizationContributors.objects.select_for_update().get(
-                id=contributor.id,
-            )
-            locked_contributor.num_actions += 1
-            locked_contributor.save(update_fields=["num_actions", "date_updated"])
+    if locked_contributor is None:
+        return
 
-            metrics.incr(
-                "scm.webhook.organization_contributor.num_actions_incremented",
-                sample_rate=1.0,
-                tags={"provider": provider},
-            )
-        except OrganizationContributors.DoesNotExist:
-            logger.warning(
-                "scm.webhook.organization_contributor.not_found",
-                extra={
-                    "provider": provider,
-                    "organization_id": organization.id,
-                    "integration_id": integration_id,
-                    "external_identifier": str(user_id),
-                },
-            )
+    metrics.incr(
+        "scm.webhook.organization_contributor.num_actions_incremented",
+        sample_rate=1.0,
+        tags={"provider": provider},
+    )
 
-    if (
-        locked_contributor
-        and locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
-    ):
+    if locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD:
         assign_seat_to_organization_contributor.delay(locked_contributor.id)
