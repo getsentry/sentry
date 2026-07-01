@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.test.utils import override_settings
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.web.constants import NO_CACHE
 from sentry.web.frontend import generic
 
@@ -25,6 +26,7 @@ def _etag_with_quotes(sha: str) -> str:
     return f'"{sha}"'
 
 
+@control_silo_test
 @override_settings(STATIC_FRONTEND_APP_URL=CDN, DEBUG=False)
 class ServiceWorkerProxyTest(TestCase):
     url = "/service-worker.js"
@@ -168,6 +170,7 @@ class ServiceWorkerProxyTest(TestCase):
         assert mock_urlopen.call_count == 0
 
 
+@control_silo_test
 class ServiceWorkerDiskFallbackTest(TestCase):
     url = "/service-worker.js"
 
