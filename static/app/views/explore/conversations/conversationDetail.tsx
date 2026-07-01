@@ -5,6 +5,8 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
@@ -36,6 +38,8 @@ function ConversationDetailPage() {
 
 function ConversationDetailPageLegacy() {
   const organization = useOrganization();
+  const location = useLocation();
+  const previousReferrer = decodeScalar(location.query.referrer);
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
@@ -46,8 +50,9 @@ function ConversationDetailPageLegacy() {
   useEffect(() => {
     trackAnalytics('conversations.detail.page-view', {
       organization,
+      previous_referrer: previousReferrer,
     });
-  }, [organization, conversationId]);
+  }, [organization, conversationId, previousReferrer]);
 
   const handleSelectSpan = useCallback(
     (spanId: string) => {

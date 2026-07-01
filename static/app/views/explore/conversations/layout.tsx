@@ -89,7 +89,12 @@ function ConversationsHeader() {
                 label: CONVERSATIONS_SIDEBAR_LABEL,
                 to: {
                   pathname: conversationsBaseUrl,
-                  query: {statsPeriod: '24h', start: undefined, end: undefined},
+                  query: {
+                    statsPeriod: '24h',
+                    start: undefined,
+                    end: undefined,
+                    referrer: 'conversations-breadcrumb',
+                  },
                 },
                 preservePageFilters: true,
               },

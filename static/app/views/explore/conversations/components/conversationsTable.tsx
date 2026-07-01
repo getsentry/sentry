@@ -45,7 +45,8 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
-  projects: number[]
+  projects: number[],
+  referrer = 'conversations-table'
 ): string {
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
@@ -61,6 +62,7 @@ export function getConversationDetailUrl(
   for (const project of projects) {
     params.append('project', String(project));
   }
+  params.set('referrer', referrer);
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
