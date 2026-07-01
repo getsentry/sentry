@@ -101,6 +101,27 @@ class AgentTokenAuthAndGateTest(TestCase):
         with pytest.raises(AuthenticationFailed):
             self._agent_request(self.owner, ["org:read"], ttl=timedelta(seconds=-1))
 
+    def test_signed_but_malformed_claims_are_rejected(self) -> None:
+        # Right key and audience but broken claims -> clean auth failure, not a 500.
+        null_sub = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": None, "org": 1, "scopes": []},
+            SECRET,
+        )
+        with pytest.raises(AuthenticationFailed):
+            self._auth(null_sub)
+
+        missing_org = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "scopes": []}, SECRET
+        )
+        with pytest.raises(AuthenticationFailed):
+            self._auth(missing_org)
+
+        non_list_scopes = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": 5}, SECRET
+        )
+        with pytest.raises(AuthenticationFailed):
+            self._auth(non_list_scopes)
+
     # ----- enforcement via the ordinary scope path -----
     # (Read-allowed and write-allowed happy paths are proven end-to-end over HTTP in
     # tests/sentry/seer/endpoints/test_organization_agent_token.py.)
@@ -156,11 +177,16 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert scopes == ["org:read"]
 
     def test_active_grant_scopes_excludes_expired_and_other_session(self) -> None:
+        # One row per session, so expiry is tested with its own session: the queried
+        # session returns only its active scope, never the other session's or the expired one's.
+        self._grant(session_id="active", scopes=["org:write"])
         self._grant(session_id="other", scopes=["member:admin"])
         self._grant(
-            session_id="s",
+            session_id="expired",
             scopes=["org:admin"],
-            expires_at=timezone.now() - timedelta(hours=1),  # expired
+            expires_at=timezone.now() - timedelta(hours=1),
         )
-        self._grant(session_id="s", scopes=["org:write"])  # active
-        assert agent_token.active_grant_scopes(self.org.id, self.owner.id, "s") == {"org:write"}
+        assert agent_token.active_grant_scopes(self.org.id, self.owner.id, "active") == {
+            "org:write"
+        }
+        assert agent_token.active_grant_scopes(self.org.id, self.owner.id, "expired") == set()

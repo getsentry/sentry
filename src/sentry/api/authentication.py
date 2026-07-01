@@ -625,14 +625,17 @@ class AgentTokenAuthentication(StandardAuthentication):
 
         try:
             claims = agent_token.decode_agent_token(token_str)
-        except PyJWTError:
+            user_id = int(claims["sub"])
+            # Building the token casts org and scopes too, so any missing/mis-typed claim
+            # in a signed token is a clean 401 here, not a 500 downstream.
+            auth_token = agent_token.build_authenticated_token(claims)
+        except (PyJWTError, KeyError, ValueError, TypeError):
             raise AuthenticationFailed("Invalid agent token")
 
-        user = user_service.get_user(user_id=int(claims["sub"]))
+        user = user_service.get_user(user_id=user_id)
         if user is None or not user.is_active or getattr(user, "is_suspended", False):
             raise AuthenticationFailed("Invalid agent token")
 
-        auth_token = agent_token.build_authenticated_token(claims)
         agent_token.mark_agent_request(request, claims)
         return self.transform_auth(user, auth_token, "api_token", api_token_type=self.token_name)
 

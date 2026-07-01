@@ -1,9 +1,7 @@
-"""Short-lived, scope-bound capability tokens for the Seer agent (server side).
+"""Short-lived, scope-bound capability tokens for the Seer agent.
 
-Sentry mints the agent a signed JWT carrying the caller's read-only scopes plus any
-write scopes the user approved for this org + session; enforcement then rides the normal
-token-scope path. Tokens are not stored (verified by signature/claims, re-minted on
-demand); only :class:`SeerAgentWriteGrant` (the durable record of user consent) persists.
+Tokens are signed JWTs, not stored (verified by signature/claims, re-minted on demand);
+only :class:`SeerAgentWriteGrant`, the durable record of user consent, persists.
 """
 
 from __future__ import annotations
@@ -101,8 +99,8 @@ def encode_agent_token(
 
 
 def decode_agent_token(token_str: str) -> dict[str, Any]:
-    """Strip the prefix and verify signature, ``exp`` and ``aud``; return the claims. Raises
-    a pyjwt error on any invalid token."""
+    """Verify signature, ``exp`` and ``aud``; return the claims. Raises a pyjwt error on any
+    invalid token."""
     if not token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX):
         raise jwt.DecodeError("not an agent token")
     return jwt.decode(
@@ -136,11 +134,9 @@ def create_write_grant(
     *, organization_id: int, user_id: int, session_id: str, scopes: Iterable[str]
 ) -> SeerAgentWriteGrant:
     """Merge ``scopes`` into the single grant for ``(org, user, session)`` and refresh its
-    expiry, creating it if absent. Idempotent; new scopes are unioned in. The caller MUST
-    have already capped ``scopes`` to the approving user's own authority.
-
-    The unique constraint plus row lock keep concurrent approvals from racing (duplicate
-    rows or lost scope merges)."""
+    expiry, creating it if absent. The caller MUST have already capped ``scopes`` to the
+    approving user's own authority. The unique constraint plus row lock keep concurrent
+    approvals from racing."""
     with transaction.atomic(using=router.db_for_write(SeerAgentWriteGrant)):
         grant, created = SeerAgentWriteGrant.objects.select_for_update().get_or_create(
             organization_id=organization_id,
