@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -28,6 +28,7 @@ export function HoverScrollable({
   const animationRef = useRef<Animation | null>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const scrollWidthRef = useRef(0);
+  const containerWidthRef = useRef(0);
 
   const showSlidingText = isHovered && isTruncated;
 
@@ -48,18 +49,23 @@ export function HoverScrollable({
     }
   };
 
-  useLayoutEffect(() => {
+  const rebuildAnimation = useCallback(() => {
     const container = containerRef.current;
     const content = contentRef.current;
 
     if (!showSlidingText || !container || !content) {
+      animationRef.current?.cancel();
+      animationRef.current = null;
       return;
     }
+
     animationRef.current?.cancel();
     scrollWidthRef.current = content.scrollWidth;
+    containerWidthRef.current = container.clientWidth;
 
     const maxTranslate = content.scrollWidth - container.clientWidth;
     if (maxTranslate <= 0) {
+      animationRef.current = null;
       return;
     }
 
@@ -80,7 +86,40 @@ export function HoverScrollable({
     // Keep text stationary until mouse position drives the playback direction.
     animation.updatePlaybackRate(0);
     animationRef.current = animation;
-  }, [leftTrim, showSlidingText, speed, value]);
+  }, [leftTrim, showSlidingText, speed]);
+
+  useLayoutEffect(() => {
+    rebuildAnimation();
+  }, [rebuildAnimation, value]);
+
+  useLayoutEffect(() => {
+    if (!showSlidingText || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const container = containerRef.current;
+    const content = contentRef.current;
+
+    if (!container || !content) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (
+        scrollWidthRef.current !== content.scrollWidth ||
+        containerWidthRef.current !== container.clientWidth
+      ) {
+        rebuildAnimation();
+      }
+    });
+
+    resizeObserver.observe(container);
+    resizeObserver.observe(content);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [rebuildAnimation, showSlidingText]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -101,9 +140,11 @@ export function HoverScrollable({
       return;
     }
 
-    if (scrollWidthRef.current !== content.scrollWidth) {
-      scrollWidthRef.current = content.scrollWidth;
-      setAnimationPlaybackRate(0);
+    if (
+      scrollWidthRef.current !== content.scrollWidth ||
+      containerWidthRef.current !== container.clientWidth
+    ) {
+      rebuildAnimation();
     }
 
     const mouseX = event.clientX - rect.left;
