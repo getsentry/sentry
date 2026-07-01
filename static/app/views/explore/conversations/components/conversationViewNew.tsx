@@ -9,11 +9,10 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  ConversationDetailPanel,
   ConversationLeftPanel,
-  ConversationSplitLayout,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationTimeline} from 'sentry/views/explore/conversations/components/conversationTimeline';
 import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {
   useConversation,
@@ -24,7 +23,6 @@ import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -86,75 +84,73 @@ export function ConversationViewContentNew({
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationSplitLayout
-        left={
-          <ConversationLeftPanel>
+      <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
+        <ConversationLeftPanel>
+          <Flex direction="column" flex="1" minHeight="0" width="100%" overflow="hidden">
+            {activeTab === 'transcript' && messages.length > 0 && (
+              <Flex
+                flexShrink={0}
+                justify="end"
+                align="center"
+                padding="xs sm"
+                borderBottom="primary"
+                background="primary"
+              >
+                <CopyAsDropdown
+                  size="xs"
+                  items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                    markdown: () => {
+                      trackAnalytics('conversations.detail.copy-conversation', {
+                        organization,
+                      });
+                      return messagesToMarkdown(messages);
+                    },
+                    text: undefined,
+                    json: undefined,
+                  })}
+                />
+              </Flex>
+            )}
             <Flex
-              direction="column"
               flex="1"
               minHeight="0"
               width="100%"
-              overflow="hidden"
+              overflowX="hidden"
+              overflowY={activeTab === 'timeline' ? 'hidden' : 'auto'}
+              background="secondary"
             >
-              {activeTab === 'transcript' && messages.length > 0 && (
-                <Flex
-                  flexShrink={0}
-                  justify="end"
-                  align="center"
-                  padding="xs sm"
-                  borderBottom="primary"
+              {activeTab === 'transcript' ? (
+                <MessagesPanel
+                  nodes={nodes}
+                  selectedNodeId={selectedNode?.id ?? null}
+                  onSelectNode={handleSelectNode}
+                />
+              ) : (
+                <Container
+                  padding="md"
+                  width="100%"
+                  maxWidth="900px"
+                  minWidth="0"
+                  minHeight="0"
                   background="primary"
+                  border="primary"
+                  radius="md"
+                  overflowX="hidden"
+                  overflowY="auto"
                 >
-                  <CopyAsDropdown
-                    size="xs"
-                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                      markdown: () => {
-                        trackAnalytics('conversations.detail.copy-conversation', {
-                          organization,
-                        });
-                        return messagesToMarkdown(messages);
-                      },
-                      text: undefined,
-                      json: undefined,
-                    })}
-                  />
-                </Flex>
-              )}
-              <Flex
-                flex="1"
-                minHeight="0"
-                width="100%"
-                overflowX="hidden"
-                overflowY="auto"
-                background="secondary"
-              >
-                {activeTab === 'transcript' ? (
-                  <MessagesPanel
+                  <ConversationTimeline
                     nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
+                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
                     onSelectNode={handleSelectNode}
+                    nodeTraceMap={nodeTraceMap}
+                    compressGaps
                   />
-                ) : (
-                  <Container padding="md lg md lg" width="100%">
-                    <AISpanList
-                      nodes={nodes}
-                      selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                      onSelectNode={handleSelectNode}
-                      compressGaps
-                    />
-                  </Container>
-                )}
-              </Flex>
+                </Container>
+              )}
             </Flex>
-          </ConversationLeftPanel>
-        }
-        right={
-          <ConversationDetailPanel
-            selectedNode={selectedNode}
-            nodeTraceMap={nodeTraceMap}
-          />
-        }
-      />
+          </Flex>
+        </ConversationLeftPanel>
+      </Flex>
     </TraceStateProvider>
   );
 }

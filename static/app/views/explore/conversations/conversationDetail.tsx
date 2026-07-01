@@ -80,18 +80,24 @@ function ConversationDetailPageLegacy() {
   );
 }
 
-export function ConversationViewContainer({children}: {children: React.ReactNode}) {
+export function ConversationViewContainer({
+  children,
+  bordered = true,
+}: {
+  children: React.ReactNode;
+  bordered?: boolean;
+}) {
   return (
     <Container
       flex={1}
       minHeight="0"
       overflow="hidden"
-      border="primary"
-      radius="md"
+      border={bordered ? 'primary' : undefined}
+      radius={bordered ? 'md' : undefined}
       background="primary"
       display="flex"
     >
-      <Flex flex={1} minHeight="0" height="100%">
+      <Flex flex={1} minWidth="0" minHeight="0" height="100%">
         {children}
       </Flex>
     </Container>
