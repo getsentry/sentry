@@ -82,15 +82,15 @@ function ConversationDetailPageLegacy() {
 
 export function ConversationViewContainer({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
-  const bordered = !hasGenAiConversationsRedesignFeature(organization);
+  const hasConversationsRedesign = hasGenAiConversationsRedesignFeature(organization);
 
   return (
     <Container
       flex={1}
       minHeight="0"
       overflow="hidden"
-      border={bordered ? 'primary' : undefined}
-      radius={bordered ? 'md' : undefined}
+      border={hasConversationsRedesign ? undefined : 'primary'}
+      radius={hasConversationsRedesign ? undefined : 'md'}
       background="primary"
       display="flex"
     >
