@@ -417,11 +417,8 @@ const RowContainer = styled('div')<{
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => (p.isSelected ? p.theme.radius.xs : 0)};
   cursor: pointer;
-  --row-bg: ${p =>
-    p.isSelected
-      ? p.theme.tokens.background.transparent.accent.muted
-      : p.theme.tokens.background.primary};
-  background-color: ${p => (p.isSelected ? 'var(--row-bg)' : 'transparent')};
+  background-color: ${p =>
+    p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
 
   &:hover {
     border-radius: ${p => p.theme.radius.xs};
