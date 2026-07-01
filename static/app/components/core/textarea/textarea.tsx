@@ -1,3 +1,4 @@
+import {useCallback, useState} from 'react';
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
@@ -34,13 +35,51 @@ function TextAreaControl({
   ...p
 }: TextAreaProps) {
   return autosize ? (
-    <TextareaAutosize {...p} ref={ref} minRows={rows} maxRows={maxRows} />
+    <AutosizeTextArea {...p} ref={ref} rows={rows} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} rows={rows} />
   );
 }
 
 TextAreaControl.displayName = 'TextAreaControl';
+
+interface AutosizeTextAreaProps extends Omit<TextAreaProps, 'autosize' | 'size'> {
+  rows: number;
+}
+
+// react-textarea-autosize doesn't observe the element's own width, so
+// container-driven resizes leave the height stale. Force a recompute on
+// border-box width changes (border box ignores internal-scrollbar jitter).
+function AutosizeTextArea({ref, rows, maxRows, ...p}: AutosizeTextAreaProps) {
+  // Storing width in state re-renders on change so react-textarea-autosize recomputes
+  const [, setWidth] = useState<number>();
+
+  const observerRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+
+      if (!node || typeof ResizeObserver === 'undefined') {
+        return;
+      }
+
+      const observer = new ResizeObserver(entries => {
+        const entry = entries[0];
+        const width = entry?.borderBoxSize?.[0]?.inlineSize ?? entry?.contentRect.width;
+        setWidth(width);
+      });
+      observer.observe(node, {box: 'border-box'});
+
+      return () => observer.disconnect();
+    },
+    [ref]
+  );
+
+  return <TextareaAutosize {...p} ref={observerRef} minRows={rows} maxRows={maxRows} />;
+}
 
 const StyledTextArea = styled(TextAreaControl, {
   shouldForwardProp: (p: string) => ['autosize', 'maxRows'].includes(p) || isPropValid(p),
