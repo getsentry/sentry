@@ -80,7 +80,7 @@ export function HoverScrollable({
     );
 
     animation.currentTime = leftTrim ? duration : 0;
-    if (leftTrim) {
+    if (!leftTrim) {
       animation.reverse();
     }
     // Keep text stationary until mouse position drives the playback direction.
