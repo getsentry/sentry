@@ -173,9 +173,11 @@ const TimelineRow = memo(function TimelineRow({
             )}
           </Flex>
           {isTool ? (
-            <EllipsisTag variant={hasErrors ? 'danger' : isSelected ? 'info' : 'muted'}>
-              {title}
-            </EllipsisTag>
+            <Flex minWidth="0" maxWidth="50%">
+              <EllipsisTag variant={hasErrors ? 'danger' : isSelected ? 'info' : 'muted'}>
+                {title}
+              </EllipsisTag>
+            </Flex>
           ) : (
             <Container maxWidth="50%" minWidth="0">
               <Tooltip title={title} showOnlyOnOverflow skipWrapper>
@@ -383,18 +385,13 @@ function getSpanPresentation(
   }
 }
 
-// Tag doesn't support ellipsis natively, so force its inner text (a <span>) to
-// truncate when the row is too narrow to fit the tool name.
+// Tag's inner text already truncates, but text-overflow is ignored on its flex
+// container, so flip it to block. Width is bounded by the Flex wrapper.
 const EllipsisTag = styled(Tag)`
   min-width: 0;
-  max-width: 50%;
 
   & > * {
     display: block;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 `;
 
