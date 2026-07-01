@@ -35,11 +35,9 @@ def _unflatten_data(flat: Sequence[Any]) -> EvalshaData:
 
 def _unflatten_latency_data(flat: Sequence[Any]) -> EvalshaData:
     """
-    Latency tables arrive as integer microseconds (Redis truncates Lua numbers
-    to integers in replies, so millisecond floats would collapse to 0 for
-    virtually every call). Convert to fractional milliseconds and rename the
-    `_us` step keys back to `_ms` so metric names and stage tags keep their
-    historical millisecond-based names.
+    Latency tables arrive as integer microseconds. Convert to fractional milliseconds and rename the
+    `_us` step keys back to `_ms` so metric names and stage tags keep their historical millisecond-based
+    names.
     """
     return [(flat[i].replace(b"_us", b"_ms"), flat[i + 1] / 1000.0) for i in range(0, len(flat), 2)]
 
