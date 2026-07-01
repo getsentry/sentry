@@ -350,6 +350,7 @@ export const LogRowContent = memo(function LogRowContent({
       timestamp: logTimestampSeconds,
       sharedHoverTimeoutRef,
       timeout: prefetchTimeout,
+      prefetchOnMount: isHighlighted,
     });
   const [caseInsensitivity] = useCaseInsensitivity();
 

@@ -5,7 +5,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  useTraceItemDetails,
+  usePrefetchTraceItemDetailsOnHover,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('useTraceItemDetails', () => {
@@ -193,5 +196,60 @@ describe('useTraceItemDetails', () => {
     expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
       'statsPeriod'
     );
+  });
+
+  it('fetches details on mount without hover when prefetchOnMount is set', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderHookWithProviders(usePrefetchTraceItemDetailsOnHover, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+        sharedHoverTimeoutRef: {current: null},
+        timeout: 0,
+        prefetchOnMount: true,
+      },
+    });
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not fetch on mount when prefetchOnMount is not set', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    renderHookWithProviders(usePrefetchTraceItemDetailsOnHover, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+        sharedHoverTimeoutRef: {current: null},
+        timeout: 0,
+      },
+    });
+
+    // Give any effects a chance to run before asserting the request never fired.
+    await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(1));
+    expect(traceItemDetailsMock).not.toHaveBeenCalled();
   });
 });

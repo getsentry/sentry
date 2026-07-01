@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -204,6 +204,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   referrer,
   timestamp,
   hoverPrefetchDisabled,
+  prefetchOnMount,
   sharedHoverTimeoutRef,
   timeout,
 }: UseTraceItemDetailsProps & {
@@ -220,6 +221,13 @@ export function usePrefetchTraceItemDetailsOnHover({
    * Whether the hover prefetch should be disabled.
    */
   hoverPrefetchDisabled?: boolean;
+  /**
+   * Fetch the details once on mount (e.g. for a deep-linked, auto-expanded row)
+   * without requiring a hover. The reactive `useTraceItemDetails` query in the
+   * expanded details can be torn down by virtualizer re-layout during the
+   * initial load, so this guarantees the request fires and populates the cache.
+   */
+  prefetchOnMount?: boolean;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -232,36 +240,55 @@ export function usePrefetchTraceItemDetailsOnHover({
     TraceItemResponseAttribute[] | undefined
   >();
 
+  const prefetch = useCallback(() => {
+    const currentProject = projectRef.current;
+    if (!currentProject?.slug) {
+      return;
+    }
+    const timeQueryParams = defined(timestamp)
+      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+      : normalizeDateTimeParams(selection.datetime);
+    const options = traceItemDetailsApiOptions({
+      organizationSlug: organization.slug,
+      projectSlug: currentProject.slug,
+      traceItemId,
+      traceItemType,
+      referrer,
+      traceId,
+      ...timeQueryParams,
+    });
+    queryClient.fetchQuery(options).then(
+      response => {
+        setTraceItemMeta(response?.json?.meta);
+        setTraceItemAttributes(response?.json?.attributes);
+      },
+      () => {}
+    );
+  }, [
+    organization.slug,
+    queryClient,
+    referrer,
+    selection.datetime,
+    timestamp,
+    traceId,
+    traceItemId,
+    traceItemType,
+  ]);
+
+  const hasPrefetchedOnMount = useRef(false);
+  useEffect(() => {
+    if (prefetchOnMount && !hasPrefetchedOnMount.current && project?.slug) {
+      hasPrefetchedOnMount.current = true;
+      prefetch();
+    }
+  }, [prefetchOnMount, project?.slug, prefetch]);
+
   const {hoverProps} = useHover({
     onHoverStart: () => {
       if (sharedHoverTimeoutRef.current) {
         clearTimeout(sharedHoverTimeoutRef.current);
       }
-      sharedHoverTimeoutRef.current = setTimeout(() => {
-        const currentProject = projectRef.current;
-        if (!currentProject?.slug) {
-          return;
-        }
-        const timeQueryParams = defined(timestamp)
-          ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-          : normalizeDateTimeParams(selection.datetime);
-        const options = traceItemDetailsApiOptions({
-          organizationSlug: organization.slug,
-          projectSlug: currentProject.slug,
-          traceItemId,
-          traceItemType,
-          referrer,
-          traceId,
-          ...timeQueryParams,
-        });
-        queryClient.fetchQuery(options).then(
-          response => {
-            setTraceItemMeta(response?.json?.meta);
-            setTraceItemAttributes(response?.json?.attributes);
-          },
-          () => {}
-        );
-      }, timeout);
+      sharedHoverTimeoutRef.current = setTimeout(prefetch, timeout);
     },
     onHoverEnd: () => {
       if (sharedHoverTimeoutRef.current) {
