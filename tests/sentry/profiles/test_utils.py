@@ -1,11 +1,15 @@
 from typing import Any
 
-from sentry.profiles.utils import apply_stack_trace_rules_to_profile
+from sentry.profiles.utils import (
+    apply_stack_trace_rules_to_profile,
+    is_android_trace_format,
+    is_jvm_frame,
+)
 
 
 def test_apply_stack_trace_rules_to_profile_sample_format() -> None:
     profile: dict[str, Any] = {
-        "version": 1,
+        "version": "1",
         "platform": "python",
         "profile": {
             "frames": [
@@ -120,3 +124,36 @@ def test_apply_stack_trace_rules_to_profile_android() -> None:
     apply_stack_trace_rules_to_profile(profile, profiling_rules)
 
     assert profile["profile"]["methods"] == expected_methods
+
+
+def test_is_android_trace_format_explicit_marker() -> None:
+    # The explicit marker wins regardless of platform.
+    assert is_android_trace_format({"version": "2-android-trace", "platform": "android"})
+    assert is_android_trace_format({"version": "2-android-trace", "platform": "node"})
+
+
+def test_is_android_trace_format_fallback_no_version() -> None:
+    # Legacy payloads carry no version; an android platform identifies them.
+    assert is_android_trace_format({"platform": "android"})
+    assert not is_android_trace_format({"platform": "cocoa"})
+
+
+def test_is_android_trace_format_sample_versions_are_not_trace() -> None:
+    # Sample v1/v2 are never the legacy android trace format, even on android.
+    assert not is_android_trace_format({"version": "1", "platform": "android"})
+    assert not is_android_trace_format({"version": "2", "platform": "android"})
+
+
+def test_is_jvm_frame_by_frame_platform() -> None:
+    # A frame's own platform decides, regardless of the profile platform.
+    profile: dict[str, Any] = {"platform": "android"}
+    assert is_jvm_frame({"platform": "java"}, profile)
+    assert is_jvm_frame({"platform": "android"}, profile)
+    # a native frame in an android profile is not a JVM frame
+    assert not is_jvm_frame({"platform": "native"}, profile)
+
+
+def test_is_jvm_frame_inherits_profile_platform() -> None:
+    # A frame without its own platform inherits the profile platform.
+    assert is_jvm_frame({"function": "a"}, {"platform": "android"})
+    assert not is_jvm_frame({"function": "a"}, {"platform": "python"})

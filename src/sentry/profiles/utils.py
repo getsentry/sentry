@@ -20,6 +20,8 @@ from sentry.utils.sdk import set_span_attribute
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, list[Any]]
 
+PROFILE_FORMAT_V2_ANDROID_TRACE = "2-android-trace"
+
 
 class RetrySkipTimeout(urllib3.Retry):
     """
@@ -176,11 +178,9 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
     if profiling_rules == "":
         return
     enhancements = EnhancementsConfig.from_rules_text(profiling_rules, referrer="profiling")
-    if "version" in profile:
-        enhancements.apply_category_and_updated_in_app_to_frames(
-            profile["profile"]["frames"], profile["platform"], {}
-        )
-    elif profile["platform"] == "android":
+
+    version = profile.get("version")
+    if is_android_trace_format(profile):
         # Set the fields that Enhancements expect
         # with the right names.
         # Sample format already has the right fields,
@@ -192,3 +192,23 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
         enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["methods"], profile["platform"], {}
         )
+    elif version is not None:
+        enhancements.apply_category_and_updated_in_app_to_frames(
+            profile["profile"]["frames"], profile["platform"], {}
+        )
+
+
+def is_android_trace_format(profile: Profile) -> bool:
+    if profile.get("version") == PROFILE_FORMAT_V2_ANDROID_TRACE:
+        return True
+    # fallback: remove once upstream correctly provides PROFILE_FORMAT_V2_ANDROID_TRACE
+    return "version" not in profile and profile.get("platform") == "android"
+
+
+JVM_FRAME_PLATFORMS = frozenset(["java", "android"])
+
+
+def is_jvm_frame(frame: dict[str, Any], profile: Profile) -> bool:
+    # `platform` may be absent on a frame, in which case it inherits the
+    # profile's platform. Both "java" and "android" denote JVM frames.
+    return frame.get("platform", profile.get("platform")) in JVM_FRAME_PLATFORMS
