@@ -8,6 +8,8 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestLifecycleState,
+    PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.pr_metrics.utils import is_activity_tracking_enabled
 from sentry.testutils.cases import TestCase
@@ -101,6 +103,24 @@ class IsActivityTrackingEnabledTest(TestCase):
         pr = self._make_pr()
         pr.state = PullRequestLifecycleState.MERGED
         pr.save()
+        with self.feature("organizations:pr-metrics-activity"):
+            assert not is_activity_tracking_enabled(self.organization, pr=pr)
+
+    def test_after_buffer_valid_attribution_but_verdict_set_returns_false(self) -> None:
+        past = timezone.now() - timedelta(hours=31)
+        with freeze_time(past):
+            pr = self._make_pr()
+
+        PullRequestAttribution.objects.create(
+            pull_request=pr,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            is_valid=True,
+        )
+        PullRequestMetrics.objects.create(
+            pull_request=pr,
+            verdict=PullRequestVerdict.MERGED_UNCHANGED,
+        )
         with self.feature("organizations:pr-metrics-activity"):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
