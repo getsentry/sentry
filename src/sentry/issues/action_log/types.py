@@ -329,17 +329,14 @@ class PullRequestClosedAction(GroupAction):
         return GroupActionType.PULL_REQUEST_CLOSED
 
 
-class _FeatureChange(BaseModel):
+class _ReconcileFeatureAction(GroupAction):
+    """
+    Action to reset a single derived feature to a known-correct value
+    based on out-of-log information.
+    """
+
     feature_name: str
     new_value: object
-
-
-class _ReconcileFeaturesAction(GroupAction):
-    """
-    Action to reset a feature to a known-correct value based on out-of-log information.
-    """
-
-    changes: list[_FeatureChange]
 
     @classmethod
     def get_type(cls) -> GroupActionType:

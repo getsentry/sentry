@@ -265,7 +265,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
-        action = create_reconciliation_action([STATUS.value(IssueStatus.OPEN)])
+        action = create_reconciliation_action(STATUS.value(IssueStatus.OPEN))
         _publish(group=group, action=action, actor=actor)
         derived = process_group_log(group.id)
         assert derived.data["status"] == "open"

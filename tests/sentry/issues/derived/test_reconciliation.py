@@ -1,5 +1,5 @@
 """
-Tests for reconciliation: creating ReconcileFeatureActions and applying them
+Tests for reconciliation: creating reconciliation actions and applying them
 through the pipeline to override derived feature values.
 """
 
@@ -25,9 +25,7 @@ from sentry.issues.derived.framework import (
     Pipeline,
     resolve,
 )
-from sentry.issues.derived.reconciliation import (
-    create_reconciliation_action,
-)
+from sentry.issues.derived.reconciliation import create_reconciliation_action
 from sentry.issues.progress_state import IssueProgressState
 
 
@@ -54,8 +52,8 @@ def _run_for_feature[T](feature: Feature[T], entries: list[FakeEntry]) -> T:
     return p.run(entries)[feature]
 
 
-def _reconcile_entry(*updates: FeatureEntry) -> FakeEntry:
-    action = create_reconciliation_action(updates)
+def _reconcile_entry(update: FeatureEntry) -> FakeEntry:
+    action = create_reconciliation_action(update)
     return FakeEntry(
         type=GroupActionType.RECONCILE_FEATURES,
         data=action.dict(),
@@ -68,57 +66,28 @@ def _reconcile_entry(*updates: FeatureEntry) -> FakeEntry:
 
 
 def test_create_reconciliation_action_roundtrips_enum() -> None:
-    action = create_reconciliation_action(
-        [STATUS.value(IssueStatus.CLOSED)],
-    )
-    assert len(action.changes) == 1
-    ch = action.changes[0]
-    assert ch.feature_name == "status"
-    # Value should be the codec-dumped form (string, not the enum)
-    assert ch.new_value == "closed"
-    # Round-trip back through load
-    assert STATUS.load(ch.new_value) == IssueStatus.CLOSED
+    action = create_reconciliation_action(STATUS.value(IssueStatus.CLOSED))
+    assert action.feature_name == "status"
+    assert action.new_value == "closed"
+    assert STATUS.load(action.new_value) == IssueStatus.CLOSED
 
 
 def test_create_reconciliation_action_roundtrips_optional_enum() -> None:
-    action = create_reconciliation_action(
-        [PROGRESS.value(IssueProgressState.DIAGNOSED)],
-    )
-    ch = action.changes[0]
-    assert ch.new_value == "diagnosed"
-    assert PROGRESS.load(ch.new_value) == IssueProgressState.DIAGNOSED
+    action = create_reconciliation_action(PROGRESS.value(IssueProgressState.DIAGNOSED))
+    assert action.new_value == "diagnosed"
+    assert PROGRESS.load(action.new_value) == IssueProgressState.DIAGNOSED
 
 
 def test_create_reconciliation_action_roundtrips_none() -> None:
-    action = create_reconciliation_action(
-        [PROGRESS.value(None)],
-    )
-    ch = action.changes[0]
-    assert ch.new_value is None
-    assert PROGRESS.load(ch.new_value) is None
-
-
-def test_create_reconciliation_action_multiple_features() -> None:
-    action = create_reconciliation_action(
-        [
-            STATUS.value(IssueStatus.CLOSED),
-            PROGRESS.value(None),
-        ],
-    )
-    assert len(action.changes) == 2
-    names = {ch.feature_name for ch in action.changes}
-    assert names == {"status", "progress"}
-
-
-def test_create_reconciliation_action_rejects_empty() -> None:
-    with pytest.raises(ValueError, match="no updates"):
-        create_reconciliation_action([])
+    action = create_reconciliation_action(PROGRESS.value(None))
+    assert action.new_value is None
+    assert PROGRESS.load(action.new_value) is None
 
 
 def test_create_reconciliation_action_rejects_unsupported_feature() -> None:
     unsupported = Feature[int]("not_reconcilable", default=0)
     with pytest.raises(ValueError, match="not supported for reconciliation"):
-        create_reconciliation_action([unsupported.value(42)])
+        create_reconciliation_action(unsupported.value(42))
 
 
 # ---------------------------------------------------------------------------
@@ -251,18 +220,16 @@ def test_reconcile_unrelated_feature_is_noop() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Multi-feature reconciliation
+# Multi-feature reconciliation (separate actions)
 # ---------------------------------------------------------------------------
 
 
-def test_reconcile_status_and_progress_together() -> None:
+def test_reconcile_status_and_progress_separately() -> None:
     p = _pipeline()
     state = p.run(
         [
-            _reconcile_entry(
-                STATUS.value(IssueStatus.CLOSED),
-                PROGRESS.value(None),
-            ),
+            _reconcile_entry(STATUS.value(IssueStatus.CLOSED)),
+            _reconcile_entry(PROGRESS.value(None)),
         ]
     )
     assert state[STATUS] == IssueStatus.CLOSED

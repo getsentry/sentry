@@ -1,11 +1,6 @@
-from collections.abc import Sequence
 from typing import Any
 
-from sentry.issues.action_log.types import (
-    GroupActionType,
-    _FeatureChange,
-    _ReconcileFeaturesAction,
-)
+from sentry.issues.action_log.types import GroupActionType, _ReconcileFeatureAction
 from sentry.issues.derived.features import LAST_PROGRESSED_AT, PROGRESS, STATUS
 from sentry.issues.derived.framework import (
     AggregatorResult,
@@ -32,28 +27,19 @@ def reconcile_features(
             raise ValueError(f"Attempted to reconcile feature not found in state: {f.name}")
     # Trying to be efficient in no-op cases: check the raw dict before
     # constructing the Pydantic model.
-    features_by_name = {f.name: f for f in features}
-    raw_changes = entry.data.get("changes", ())
-    if not any(ch["feature_name"] in features_by_name for ch in raw_changes):
+    target_name = entry.data.get("feature_name")
+    match = next((f for f in features if f.name == target_name), None)
+    if match is None:
         return None
-    rec_action = _ReconcileFeaturesAction(**entry.data)
-    changes: list[FeatureEntry] = []
-    for ch in rec_action.changes:
-        f = features_by_name.get(ch.feature_name)
-        if f is not None:
-            changes.append((f, f.load(ch.new_value)))
-    return emit(*changes)
+    action = _ReconcileFeatureAction(**entry.data)
+    return emit((match, match.load(action.new_value)))
 
 
-def create_reconciliation_action(updates: Sequence[FeatureEntry]) -> _ReconcileFeaturesAction:
-    if len(updates) == 0:
-        raise ValueError("Reconciliation actions can't be created with no updates")
-    unsupported = {feat.name for feat, _ in updates if feat not in RECONCILABLE_FEATURES}
-    if unsupported:
-        raise ValueError(f"Features not supported for reconciliation: {unsupported}")
-    return _ReconcileFeaturesAction(
-        changes=[
-            _FeatureChange(feature_name=feat.name, new_value=feat.dump(val))
-            for feat, val in updates
-        ]
+def create_reconciliation_action(update: FeatureEntry) -> _ReconcileFeatureAction:
+    feat, val = update
+    if feat not in RECONCILABLE_FEATURES:
+        raise ValueError(f"Feature not supported for reconciliation: {feat.name}")
+    return _ReconcileFeatureAction(
+        feature_name=feat.name,
+        new_value=feat.dump(val),
     )
