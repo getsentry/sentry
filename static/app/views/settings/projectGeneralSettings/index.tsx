@@ -11,6 +11,7 @@ import {
   defaultFormOptions,
   FieldGroup,
   FormSearch,
+  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -50,6 +51,7 @@ import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -171,14 +173,17 @@ function ProjectSlugForm({
       updateProject
         .mutateAsync({slug: value.slug})
         .then(updatedProject => {
-          formApi.reset({slug: updatedProject.slug});
           if (project.slug !== updatedProject.slug) {
             changeProjectSlug(project.slug, updatedProject.slug);
             // Container will redirect after stores get updated with new slug
             onChangeSlug(updatedProject.slug);
           }
         })
-        .catch(() => {}),
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
   });
 
   return (
@@ -268,7 +273,11 @@ function AutoResolveForm({
       updateProject
         .mutateAsync({resolveAge: value.resolveAge})
         .then(() => formApi.reset(value))
-        .catch(() => {}),
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
   });
 
   return (
@@ -360,7 +369,11 @@ function SecurityTokenForm({
       updateProject
         .mutateAsync({securityToken: value.securityToken})
         .then(() => formApi.reset(value))
-        .catch(() => {}),
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
   });
 
   return (
@@ -417,7 +430,11 @@ function SecurityTokenHeaderForm({
       updateProject
         .mutateAsync({securityTokenHeader: value.securityTokenHeader})
         .then(() => formApi.reset(value))
-        .catch(() => {}),
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
   });
 
   return (
