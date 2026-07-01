@@ -150,6 +150,7 @@ const TimelineRow = memo(function TimelineRow({
     <Flex align="center">
       {({className}) => (
         <RowContainer
+          type="button"
           className={className}
           isSelected={isSelected}
           indent={indent}
@@ -409,10 +410,15 @@ const EllipsisTag = styled(Tag)`
   }
 `;
 
-const RowContainer = styled('div')<{
+const RowContainer = styled('button')<{
   indent: number;
   isSelected: boolean;
 }>`
+  width: 100%;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   padding: ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => (p.isSelected ? p.theme.radius.xs : 0)};
