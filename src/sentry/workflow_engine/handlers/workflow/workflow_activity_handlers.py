@@ -148,7 +148,10 @@ def activity_handler(
 
     metrics.incr(
         "workflow_engine.activity_handler.complete",
-        tags={"activity_name": activity_type.name},
+        tags={
+            "activity_name": activity_type.name,
+            "detector_type": detector.type,
+        },
     )
     logger.info(
         "workflow_engine.activity_handler.complete",

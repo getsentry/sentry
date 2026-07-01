@@ -63,7 +63,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_UNSET: Any = object()
 UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
@@ -343,27 +342,6 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
     return state
 
 
-def _default_intelligence_level(organization: Organization) -> Literal["low", "medium", "high"]:
-    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
-        return "high"
-    return "medium"
-
-
-def _default_reasoning_effort(
-    organization: Organization,
-    step_default: Literal["low", "medium", "high"] | None,
-) -> Literal["low", "medium", "high"] | None:
-    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
-        return "high"
-    return step_default
-
-
-def _code_review_enabled(organization: Organization) -> bool:
-    # Gated purely on the option: Seer decides where the review_code_changes tool
-    # is actually useful (e.g. only once code edits have accumulated).
-    return features.has("organizations:seer-autofix-code-review", organization)
-
-
 def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
     preference = read_preference_from_sentry_db(group.project)
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
@@ -411,8 +389,6 @@ def trigger_autofix_agent(
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = _UNSET,
-    reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
@@ -440,26 +416,12 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    resolved_intelligence_level = (
-        _default_intelligence_level(group.organization)
-        if intelligence_level is _UNSET
-        else intelligence_level
-    )
-    resolved_reasoning_effort = (
-        _default_reasoning_effort(group.organization, config.reasoning_effort)
-        if reasoning_effort is _UNSET
-        else reasoning_effort
-    )
-
     pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
         group,
-        intelligence_level=resolved_intelligence_level,
-        reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
-        code_review_enabled=_code_review_enabled(group.organization),
         enable_pr_context_tools=is_iteration_step,
     )
 

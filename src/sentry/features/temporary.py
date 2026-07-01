@@ -280,10 +280,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Run new autofix sessions with high intelligence and reasoning levels
-    manager.add("organizations:seer-autofix-high-intelligence-high-reasoning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Expose the code review tool to autofix coding runs
-    manager.add("organizations:seer-autofix-code-review", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing seer in a persistent sidebar
