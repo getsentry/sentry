@@ -104,6 +104,31 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             window_size=FALLBACK_SLIDING_WINDOW_SIZE,
         )
 
+    def test_blended_full_sample_rate_takes_precedence_over_sliding_window(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=sliding_window_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
+                return_value=0.25,
+            ),
+        ):
+            configuration = get_configuration(org.id)
+
+        # Mirrors legacy serving: a blended 100% rate wins over the lower usage-based rate.
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.get_sample_rate() == 1.0
+
     def test_subscription_backed_org_falls_back_to_blended_sample_rate_without_volume(
         self,
     ) -> None:

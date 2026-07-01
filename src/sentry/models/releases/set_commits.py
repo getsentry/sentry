@@ -35,7 +35,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
-from sentry.plugins.providers.repository import RepositoryProvider
+from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -47,9 +47,10 @@ class _CommitDataKwargs(TypedDict, total=False):
 def set_commits(release, commit_list):
     commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
-    # todo(meredith): implement for IntegrationRepositoryProvider
     commit_list = [
-        c for c in commit_list if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
+        c
+        for c in commit_list
+        if not IntegrationRepositoryProvider.should_ignore_commit(c.get("message", ""))
     ]
     lock_key = Release.get_lock_key(release.organization_id, release.id)
     # Acquire the lock for a maximum of 10 minutes

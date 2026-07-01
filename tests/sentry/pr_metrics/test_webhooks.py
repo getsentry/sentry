@@ -253,11 +253,13 @@ class HandleWebhookForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": None,
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
@@ -387,13 +389,17 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
-    def test_skips_emit_when_no_seer_access(self, mock_record: MagicMock) -> None:
-        # Without Seer access, activity rows are not written, so the commits-after-open
-        # signal is absent and select_verdict must defer — same invariant as flag-off.
+    def test_emits_without_seer_access(self, mock_record: MagicMock) -> None:
+        # Seer access is no longer required for activity tracking, so the
+        # commits-after-open signal is present regardless — a clean merge can
+        # still resolve to merged_unchanged without Seer access.
         with self.feature({"organizations:gen-ai-features": False}):
             self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
-        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert (
+            PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict
+            == "merged_unchanged"
+        )
 
     @patch("sentry.analytics.record")
     def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
@@ -453,11 +459,13 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": None,
+                "reason": "missing_opened_at",
             },
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
@@ -547,7 +555,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert PullRequestMetrics.objects.count() == 0
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
@@ -929,14 +937,28 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_activity(self) -> None:
+    def test_activity_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call(action="opened")
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_verdict_claimed_skips_activity(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call(action="opened")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_judge_in_progress_verdict_skips_activity(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="judge_in_progress")
+
+        self._call(action="synchronize", before="abc", after="def")
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -980,11 +1002,10 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert activity.event_type == PullRequestActivityType.COMMENT_CREATED
         assert activity.webhook_id == "delivery-1"
 
-    def test_comment_edited_writes_activity(self) -> None:
-        self._call(action="edited")
+    def test_comment_edited_skipped(self) -> None:
+        self._call(action="edited", webhook_id="delivery-edit")
 
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.COMMENT_EDITED
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_bot_sender_type_stored(self) -> None:
         self._call(sender_type="Bot")
@@ -1042,11 +1063,13 @@ class HandleCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.ISSUE_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-unknown",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1068,11 +1091,11 @@ class HandleCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["is_review"] is False
 
-    def test_no_seer_access_skips_comment(self) -> None:
+    def test_comment_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_recent_missing_pr_creates_stub_and_writes_activity(self) -> None:
         # A comment can be delivered before the PR's `opened` webhook writes the
@@ -1107,6 +1130,8 @@ class HandleCommentForPrMetricsTest(TestCase):
     def test_old_missing_pr_is_not_stubbed(self) -> None:
         # A comment on a PR opened before our ingestion window: no `opened` event
         # will arrive to enrich a stub, so we skip it rather than track a partial.
+        # Reported as `predates_ingestion` — a known-but-old timestamp, distinct from
+        # the `missing_opened_at` miss of a payload with no parseable timestamp.
         event: dict[str, Any] = {
             "action": "created",
             "issue": {
@@ -1118,18 +1143,27 @@ class HandleCommentForPrMetricsTest(TestCase):
             "sender": {"id": 123, "login": "testuser", "type": "User"},
             "comment": {"id": 1, "author_association": "NONE"},
         }
-        handle_comment(
-            github_event=GithubWebhookType.ISSUE_COMMENT,
-            event=event,
-            organization=self.organization,
-            repo=self.repo,
-            github_delivery_id="delivery-old",
-        )
+        with patch(f"{MODULE}.logger") as mock_logger:
+            handle_comment(
+                github_event=GithubWebhookType.ISSUE_COMMENT,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+                github_delivery_id="delivery-old",
+            )
 
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="9999").exists()
+        assert mock_logger.info.call_args.kwargs["extra"]["reason"] == "predates_ingestion"
+
+    def test_verdict_claimed_skips_comment(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1226,23 +1260,32 @@ class HandleReviewForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-x",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_review(self) -> None:
+    def test_review_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_verdict_claimed_skips_review(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1288,12 +1331,10 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         assert activity.payload["review_id"] == 42
         assert activity.payload["sender_login"] == "reviewer"
 
-    def test_edited_writes_comment_edited_activity(self) -> None:
-        self._call(action="edited")
+    def test_edited_skipped(self) -> None:
+        self._call(action="edited", webhook_id="delivery-edit")
 
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.COMMENT_EDITED
-        assert activity.payload["is_review"] is True
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_deleted_action_skipped(self) -> None:
         self._call(action="deleted")
@@ -1331,23 +1372,32 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-x",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_review_comment(self) -> None:
+    def test_review_comment_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_verdict_claimed_skips_review_comment(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1429,23 +1479,32 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         mock_logger.info.assert_called_once_with(
             "pr_metrics.pull_request.unresolved",
             extra={
+                "github_event": GithubWebhookType.PULL_REQUEST_REVIEW_THREAD,
                 "organization_id": self.organization.id,
                 "repository_id": self.repo.id,
                 "repo_name": self.repo.name,
                 "pr_number": 9999,
                 "github_delivery_id": "delivery-x",
+                "reason": "missing_opened_at",
             },
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_no_seer_access_skips_thread_event(self) -> None:
+    def test_thread_event_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_verdict_claimed_skips_thread_event(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleCheckEventsForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1578,10 +1637,16 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_check_suite_unknown_pr_skipped(self) -> None:
+    def test_check_suite_missing_pr_creates_stub_and_writes_activity(self) -> None:
+        # A check can be delivered before the PR's `opened` event writes the row.
+        # Check payloads carry no PR timestamp, so we stub on a `now` proxy (rather
+        # than drop the CI status) — the same out-of-order race the stub exists for.
         self._call_suite(pr_numbers=(9999,))
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        pr = PullRequest.objects.get(repository_id=self.repo.id, key="9999")
+        assert pr.opened_at is not None
+        activity = PullRequestActivity.objects.get(pull_request=pr)
+        assert activity.event_type == PullRequestActivityType.CHECK_SUITE_COMPLETED
 
     def test_check_suite_skips_pull_request_from_other_repo(self) -> None:
         # GitHub lists a PR on our check when their heads match (head_sha +
@@ -1617,11 +1682,11 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    def test_check_suite_no_seer_access_skips(self) -> None:
+    def test_check_suite_written_without_seer_access(self) -> None:
         with self.feature({"organizations:gen-ai-features": False}):
             self._call_suite()
 
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     # --- check_run ---
 
@@ -1654,6 +1719,20 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
     def test_check_run_flag_off_skips(self) -> None:
         with self.feature({"organizations:pr-metrics-activity": False}):
             self._call_run()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_verdict_claimed_skips(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
+
+        self._call_suite()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_verdict_claimed_skips(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
+
+        self._call_run()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -1801,12 +1880,17 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
 
+MATCH_RPC = "sentry.pr_metrics.webhooks.make_match_coding_agent_pr_request"
+
+
 @with_feature(["organizations:pr-metrics-attribution", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleDelegatedAgentDetectionTest(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)
-        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.repo = self.create_repo(
+            self.project, name="org/repo", provider="integrations:github", external_id="99"
+        )
         self.pr = self.create_pull_request(
             repository_id=self.repo.id,
             organization_id=self.organization.id,
@@ -1830,11 +1914,13 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         head_ref: str = "feature/x",
         head_sha: str = "headsha123",
         number: int = 42,
+        html_url: str = "https://github.com/org/repo/pull/42",
     ) -> None:
         payload: dict[str, Any] = {
             "number": number,
             "user": {"id": user_id, "login": login},
             "head": {"ref": head_ref, "sha": head_sha},
+            "html_url": html_url,
         }
         handle_attribution(
             github_event=GithubWebhookType.PULL_REQUEST,
@@ -1843,95 +1929,154 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             repo=self.repo,
         )
 
-    def _mock_count(self) -> Any:
-        return patch("sentry_sdk.metrics.count")
+    def _mock_seer(self, status: int = 202) -> Any:
+        mock_response = MagicMock()
+        mock_response.status = status
+        return patch(MATCH_RPC, return_value=mock_response)
 
-    # --- Candidate detection fires the signal ---
+    # --- Candidate detection calls Seer ---
 
-    def test_claude_branch_prefix_detects_candidate(self) -> None:
-        with self._mock_count() as mock_count:
+    def test_claude_branch_prefix_sends_to_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix-the-bug")
 
-        mock_count.assert_called_once_with(
-            "pr_metrics.delegated_agent.seer_match.not_implemented",
-            1,
-            attributes={"provider_hint": "claude_code"},
-        )
+        mock_rpc.assert_called_once()
+        body = mock_rpc.call_args.args[0]
+        assert body.provider == "claude_code"
+        assert body.head_branch == "claude/fix-the-bug"
+        assert body.organization_id == self.organization.id
+        assert body.pull_request_id == self.pr.id
+        assert body.group_ids == [self.group.id]
+        assert body.repo.provider == "integrations:github"
+        assert body.repo.external_id == "99"
 
-    def test_copilot_branch_prefix_detects_candidate(self) -> None:
-        with self._mock_count() as mock_count:
+    def test_copilot_branch_prefix_sends_to_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             self._call(head_ref="copilot/fix-the-bug")
 
-        assert mock_count.call_count == 1
-        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
+        mock_rpc.assert_called_once()
+        assert mock_rpc.call_args.args[0].provider == "github_copilot"
 
-    def test_copilot_author_login_detects_candidate(self) -> None:
-        # Copilot opens PRs from a non-prefixed branch but as a distinct bot user.
-        with self._mock_count() as mock_count:
+    def test_copilot_author_login_sends_to_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             self._call(login="copilot-swe-agent[bot]", head_ref="some-branch")
 
-        assert mock_count.call_count == 1
-        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
+        mock_rpc.assert_called_once()
+        assert mock_rpc.call_args.args[0].provider == "github_copilot"
 
     def test_branch_prefix_takes_precedence_over_author(self) -> None:
-        with self._mock_count() as mock_count:
+        with self._mock_seer() as mock_rpc:
             self._call(login="copilot-swe-agent[bot]", head_ref="claude/fix")
 
-        assert mock_count.call_count == 1
-        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "claude_code"
+        mock_rpc.assert_called_once()
+        assert mock_rpc.call_args.args[0].provider == "claude_code"
 
-    # --- Non-candidates do not fire ---
+    def test_sent_metric_incremented_on_success(self) -> None:
+        with self._mock_seer(status=202), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
+            self._call(head_ref="claude/fix")
 
-    def test_non_candidate_branch_and_author_does_not_detect(self) -> None:
-        with self._mock_count() as mock_count:
+        assert any(
+            call.args[0] == "pr_metrics.delegated_agent.seer_match.sent"
+            and call.kwargs.get("attributes", {}).get("provider") == "claude_code"
+            for call in mock_incr.call_args_list
+        )
+
+    # --- Error handling ---
+
+    def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
+        with self._mock_seer(status=500), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
+            self._call(head_ref="claude/fix")
+
+        assert any(
+            call.kwargs.get("attributes", {}).get("reason") == "bad_status"
+            for call in mock_incr.call_args_list
+        )
+
+    def test_seer_exception_logs_warning_and_error_metric(self) -> None:
+        with (
+            patch(MATCH_RPC, side_effect=Exception("network error")),
+            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert any(
+            call.kwargs.get("attributes", {}).get("reason") == "exception"
+            for call in mock_incr.call_args_list
+        )
+
+    def test_seer_exception_does_not_propagate(self) -> None:
+        with patch(MATCH_RPC, side_effect=Exception("network error")):
+            self._call(head_ref="claude/fix")  # must not raise
+
+    # --- Non-candidates do not call Seer ---
+
+    def test_non_candidate_branch_and_author_does_not_call_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             self._call(login="a-human", head_ref="feature/x")
 
-        mock_count.assert_not_called()
+        mock_rpc.assert_not_called()
 
-    def test_non_opened_action_does_not_detect(self) -> None:
+    def test_non_opened_action_does_not_call_seer(self) -> None:
         for action in ("synchronize", "closed", "reopened", "edited", "labeled"):
-            with self._mock_count() as mock_count:
+            with self._mock_seer() as mock_rpc:
                 self._call(action=action, head_ref="claude/fix")
-                mock_count.assert_not_called()
+                mock_rpc.assert_not_called()
 
     # --- Gating ---
 
-    def test_attribution_flag_off_does_not_detect(self) -> None:
-        with self._mock_count() as mock_count:
+    def test_attribution_flag_off_does_not_call_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             with self.feature({"organizations:pr-metrics-attribution": False}):
                 self._call(head_ref="claude/fix")
 
-        mock_count.assert_not_called()
+        mock_rpc.assert_not_called()
 
-    def test_no_seer_access_via_flag_does_not_detect(self) -> None:
-        with self._mock_count() as mock_count:
+    def test_no_seer_access_via_flag_does_not_call_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             with self.feature({"organizations:gen-ai-features": False}):
                 self._call(head_ref="claude/fix")
 
-        mock_count.assert_not_called()
+        mock_rpc.assert_not_called()
 
-    def test_no_seer_access_via_hidden_ai_features_does_not_detect(self) -> None:
+    def test_no_seer_access_via_hidden_ai_features_does_not_call_seer(self) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
 
-        with self._mock_count() as mock_count:
+        with self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
-        mock_count.assert_not_called()
+        mock_rpc.assert_not_called()
 
-    def test_missing_pr_does_not_detect(self) -> None:
-        # Candidate gate passes, but no PullRequest row exists for this number.
-        with self._mock_count() as mock_count:
+    def test_missing_pr_does_not_call_seer(self) -> None:
+        with self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix", number=9999)
 
-        mock_count.assert_not_called()
+        mock_rpc.assert_not_called()
 
-    def test_no_linked_groups_does_not_detect(self) -> None:
+    def test_no_linked_groups_does_not_call_seer(self) -> None:
         GroupLink.objects.filter(
             linked_type=GroupLink.LinkedType.pull_request,
             linked_id=self.pr.id,
         ).delete()
 
-        with self._mock_count() as mock_count:
+        with self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
-        mock_count.assert_not_called()
+        mock_rpc.assert_not_called()
+
+    def test_repo_missing_provider_does_not_call_seer(self) -> None:
+        self.repo.provider = None
+        self.repo.save()
+
+        with self._mock_seer() as mock_rpc:
+            self._call(head_ref="claude/fix")
+
+        mock_rpc.assert_not_called()
+
+    def test_repo_missing_external_id_does_not_call_seer(self) -> None:
+        self.repo.external_id = None
+        self.repo.save()
+
+        with self._mock_seer() as mock_rpc:
+            self._call(head_ref="claude/fix")
+
+        mock_rpc.assert_not_called()

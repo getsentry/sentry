@@ -44,7 +44,7 @@ from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
     SeerRun,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
@@ -141,8 +141,18 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         """
         current_step, current_referrer = cls._get_current_step(state)
 
+        sentry_run_id = (
+            SeerRun.objects.filter(
+                organization_id=organization.id,
+                seer_run_state_id=run_id,
+            )
+            .values_list("uuid", flat=True)
+            .first()
+        )
+
         webhook_payload = {
             "run_id": run_id,
+            "sentry_run_id": str(sentry_run_id) if sentry_run_id is not None else None,
             "group_id": group.id,
         }
 

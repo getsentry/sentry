@@ -90,6 +90,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_tag, start_span
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -1022,8 +1023,11 @@ class PullRequestEventWebhook(GitHubWebhook):
         pr_metrics_handle_attribution,
         # Persist counters before emission reads them off the PullRequestMetrics row.
         pr_metrics_handle_metrics,
-        pr_metrics_handle_emission,
+        # Activity must be written before emission so the verdict check in
+        # handle_activity sees no verdict yet on the open/sync events, and so the
+        # SYNCHRONIZED rows are present when select_verdict runs on the close event.
         pr_metrics_handle_activity,
+        pr_metrics_handle_emission,
     )
 
     def _handle(
@@ -1157,6 +1161,10 @@ class PullRequestEventWebhook(GitHubWebhook):
                     user_id=user["id"],
                     user_username=user["login"],
                     provider="github",
+                    logs_extra={
+                        "pr_number": str(number),
+                        "github_event_action": event.get("action"),
+                    },
                 )
 
         except IntegrityError:
@@ -1353,12 +1361,10 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github.webhook.{github_event.value}"
-        with sentry_sdk.start_transaction(
-            op="webhook",
-            name=transaction_name,
-            source="component",
-        ) as transaction:
-            transaction.set_tag("github_event", github_event.value)
+        with start_span(
+            op="webhook", name=transaction_name, source="component", transaction=True
+        ) as span:
+            set_span_tag(span, "github_event", github_event.value)
 
             github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
             if github_delivery_id is not None:

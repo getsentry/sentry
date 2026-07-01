@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
 import {isDeveloperPlan} from 'getsentry/utils/billing';
+import {isReservedBudgetCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -32,8 +33,8 @@ export function ReserveAdditionalVolume({
       : Object.values(subscription.categories ?? {})
           .filter(
             ({category}) =>
-              activePlan.checkoutCategories.includes(category) &&
-              category in activePlan.planCategories
+              (activePlan.planCategories[category]?.length ?? 0) > 1 &&
+              !isReservedBudgetCategory(category, activePlan)
           )
           .some(
             ({category, reserved}) =>
@@ -115,10 +116,10 @@ export function ReserveAdditionalVolume({
         </Stack>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size={{xs: 'lg', sm: 'xl'}} bold density="compressed">
+            <Text size={{'screen:xs': 'lg', 'screen:sm': 'xl'}} bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
-            <Text size={{xs: 'sm', sm: 'lg'}} variant="muted">
+            <Text size={{'screen:xs': 'sm', 'screen:sm': 'lg'}} variant="muted">
               /{getShortInterval(activePlan.billingInterval)}
             </Text>
           </Container>

@@ -1392,10 +1392,6 @@ urlpatterns += [
             ]
         ),
     ),
-    re_path(
-        r"^plugins/",
-        include("sentry.plugins.base.urls"),
-    ),
     # Generic API
     re_path(
         r"^share/(?:group|issue)/(?P<share_id>[^/]+)/$",

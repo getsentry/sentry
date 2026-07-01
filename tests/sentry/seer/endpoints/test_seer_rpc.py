@@ -42,7 +42,7 @@ from sentry.seer.sentry_data_models import (
     PrAttributionResponse,
     SendSeerWebhookSuccessResponse,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
@@ -91,6 +91,18 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
+
+    def test_get_organization_projects_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert "projects" in response.data
+        assert project.id in [p["id"] for p in response.data["projects"]]
 
     def test_validate_llm_proxy_key(self) -> None:
         path = self._get_path("validate_llm_proxy_key")
@@ -499,7 +511,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.metrics import SentryAppEventType
+        from sentry.sentry_apps.event_types import SentryAppEventType
 
         # Get all seer event types
         seer_events = [
