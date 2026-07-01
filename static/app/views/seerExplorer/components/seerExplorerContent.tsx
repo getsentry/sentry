@@ -466,7 +466,7 @@ export function SeerExplorerContent({
   // Resume the run after we return from an OAuth reconnect.
   useSeerExplorerResumeDeepLink({
     onResume: handleReauthComplete,
-    ready: isReauthPending && !!reauthData,
+    ready: !readOnly && isReauthPending && !!reauthData,
   });
 
   // Track when a session times out
