@@ -666,6 +666,7 @@ class Referrer(StrEnum):
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
+    GETSENTRY_QUOTAS_OVER_USAGE_SHADOW = "getsentry.quotas.over_usage_shadow"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"

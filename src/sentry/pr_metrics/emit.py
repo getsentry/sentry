@@ -274,4 +274,8 @@ def emit_pr_metrics_row(
             "close_action": close_action,
         },
     )
+    # Imported here to avoid a circular import: tasks → judge → emit.
+    from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+    cleanup_pr_activity_task.delay(pull_request_id=pull_request.id)
     return True

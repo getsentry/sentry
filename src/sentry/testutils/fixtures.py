@@ -23,6 +23,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -228,6 +229,13 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_project_key(project, *args, **kwargs)
+
+    def create_project_custom_inbound_filter(
+        self, project=None, *args, **kwargs
+    ) -> CustomInboundFilter:
+        if project is None:
+            project = self.project
+        return Factories.create_project_custom_inbound_filter(project, *args, **kwargs)
 
     def create_project_rule(self, project=None, *args, **kwargs) -> Rule:
         if project is None:
@@ -1228,6 +1236,9 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
+
+    def create_seer_agent_run(self, run, **kwargs):
+        return Factories.create_seer_agent_run(run=run, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

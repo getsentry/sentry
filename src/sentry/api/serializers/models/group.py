@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -48,7 +48,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
+from sentry.types.group import SUBSTATUS_TO_STR, GroupPriorityStr, GroupSubStatusStr, PriorityLevel
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -124,12 +124,12 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     permalink: str
     logger: str | None
     level: str
-    status: str
+    status: GroupStatusStr
     statusDetails: GroupStatusDetailsResponseOptional
-    substatus: str | None
+    substatus: GroupSubStatusStr | None
     isPublic: bool
     platform: str | None
-    priority: str | None
+    priority: GroupPriorityStr | None
     priorityLockedAt: datetime | None
     seerFixabilityScore: float | None
     seerAutofixLastTriggered: datetime | None
@@ -198,26 +198,34 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
     }
 
 
-def _get_status_label(group: Group):
+GroupStatusStr = Literal[
+    "resolved",
+    "ignored",
+    "pending_deletion",
+    "pending_merge",
+    "reprocessing",
+    "unresolved",
+]
+
+
+def _get_status_label(group: Group) -> GroupStatusStr:
     status = group.get_status()
 
     if status == GroupStatus.RESOLVED:
-        status_label = "resolved"
+        return "resolved"
     elif status == GroupStatus.IGNORED:
-        status_label = "ignored"
+        return "ignored"
     elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
-        status_label = "pending_deletion"
+        return "pending_deletion"
     elif status == GroupStatus.PENDING_MERGE:
-        status_label = "pending_merge"
+        return "pending_merge"
     elif status == GroupStatus.REPROCESSING:
-        status_label = "reprocessing"
+        return "reprocessing"
     else:
-        status_label = "unresolved"
-
-    return status_label
+        return "unresolved"
 
 
-def _get_substatus_label(group: Group):
+def _get_substatus_label(group: Group) -> GroupSubStatusStr | None:
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
@@ -495,6 +503,8 @@ class GroupSerializerBase(Serializer, ABC):
             if obj.issue_type.enable_auto_resolve:
                 status = GroupStatus.RESOLVED
                 status_details["autoResolved"] = True
+
+        status_label: GroupStatusStr
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
@@ -1176,8 +1186,8 @@ class SimpleGroupSerializerResponse(TypedDict):
     culprit: str | None
     shortId: str | None
     level: str
-    status: str
-    substatus: str | None
+    status: GroupStatusStr
+    substatus: GroupSubStatusStr | None
     platform: str | None
     project: GroupProjectResponse
     type: str

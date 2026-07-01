@@ -313,11 +313,13 @@ def patch_transport_for_instrumentation(transport, transport_name):
 class Dsns(NamedTuple):
     sentry4sentry: str | None
     sentry_saas: str | None
+    sentry_mirror: str | None
 
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
+    sdk_options["max_value_length"] = 100_000
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send"] = before_send
     sdk_options["before_send_transaction"] = before_send_transaction
@@ -334,6 +336,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
+        sentry_mirror=sdk_options.pop("sentry_mirror_dsn", None),
     )
 
     return sdk_options, dsns
@@ -552,6 +555,19 @@ def configure_sdk():
         integrations.append(ThreadingIntegration())
     else:
         disabled_integrations.append(ThreadingIntegration())
+
+    if dsns.sentry_mirror:
+        sdk_options.setdefault("_experiments", {}).update(
+            trace_lifecycle="stream",
+        )
+
+        sentry_sdk.init(
+            dsn=dsns.sentry_mirror,
+            integrations=integrations,
+            disabled_integrations=disabled_integrations,
+            **sdk_options,
+        )
+        return
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
