@@ -149,7 +149,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -2988,3 +2988,9 @@ class Factories:
     def create_seer_run(organization, type: str = SeerRunType.EXPLORER, **kwargs) -> SeerRun:
         kwargs.setdefault("last_triggered_at", timezone.now())
         return SeerRun.objects.create(organization=organization, type=type, **kwargs)
+
+    @staticmethod
+    def create_seer_agent_run(
+        run: SeerRun, title: str = "Test run", source: str = "chat", **kwargs
+    ) -> SeerAgentRun:
+        return SeerAgentRun.objects.create(run=run, title=title, source=source, **kwargs)

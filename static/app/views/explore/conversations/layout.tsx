@@ -23,6 +23,7 @@ import {
   CONVERSATIONS_SIDEBAR_LABEL,
   MAX_PICKABLE_DAYS,
 } from 'sentry/views/explore/conversations/settings';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 function ConversationsLayout() {
@@ -75,6 +76,10 @@ function ConversationsHeader() {
   const {conversationId} = useParams<{conversationId?: string}>();
 
   const isDetailPage = !!conversationId;
+  // The redesigned detail page renders its own breadcrumbs (with the project
+  // badge and copy affordance) into the title slot, so the layout only owns
+  // the breadcrumbs for the landing and legacy detail pages.
+  const isRedesign = hasGenAiConversationsRedesignFeature(organization);
   const conversationsBaseUrl = normalizeUrl(
     `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
   );
@@ -82,7 +87,7 @@ function ConversationsHeader() {
   return (
     <Fragment>
       <TopBar.Slot name="title">
-        {isDetailPage ? (
+        {isDetailPage && isRedesign ? null : isDetailPage ? (
           <Breadcrumbs
             crumbs={[
               {
