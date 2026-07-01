@@ -23,7 +23,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
-from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -182,14 +181,6 @@ class OpsgenieIntegration(IntegrationInstallation):
 
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["base_url", "domain_name"]
-
-    def schedule_migrate_opsgenie_plugin(self):
-        migrate_opsgenie_plugin.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
-        )
 
 
 BASE_URL_CHOICES = [

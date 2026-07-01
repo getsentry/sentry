@@ -13,16 +13,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
+import {IdentityIcon, type IdentityIconProps} from 'sentry/icons/identityIcon';
+import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
-import {
-  IdentityIcon,
-  type IdentityIconProps,
-} from 'sentry/views/settings/components/identityIcon';
 
 type TIcon = {
   id: string;
@@ -689,24 +686,40 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'inProgress',
+        id: 'pieQuarter',
         groups: ['status'],
-        keywords: ['circle', 'progress'],
-        name: 'InProgress',
+        keywords: ['circle', 'progress', 'pie', 'quarter'],
+        name: 'PieQuarter',
         defaultProps: {},
       },
       {
-        id: 'inReview',
+        id: 'pieHalf',
         groups: ['status'],
-        keywords: ['circle', 'progress'],
-        name: 'InReview',
+        keywords: ['circle', 'progress', 'pie', 'half'],
+        name: 'PieHalf',
         defaultProps: {},
       },
       {
-        id: 'resolved',
+        id: 'pieThreeQuarters',
         groups: ['status'],
-        keywords: ['check', 'done', 'complete', 'success', 'fixed', 'circle', 'progress'],
-        name: 'Resolved',
+        keywords: ['circle', 'progress', 'pie'],
+        name: 'PieThreeQuarters',
+        defaultProps: {},
+      },
+      {
+        id: 'circleCheckmark',
+        groups: ['status'],
+        keywords: [
+          'check',
+          'done',
+          'complete',
+          'success',
+          'fixed',
+          'circle',
+          'progress',
+          'resolved',
+        ],
+        name: 'CircleCheckmark',
         defaultProps: {},
       },
       {
@@ -1716,7 +1729,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
       renderIcon={(icon: TIcon) => (
         <IconCard
           icon={{id: icon.id, name: 'PluginIcon', defaultProps: {pluginId: icon.id}}}
-          importSource="sentry/plugins/components/pluginIcon"
+          importSource="sentry/icons/pluginIcon"
         >
           <PluginIcon pluginId={icon.id} /> {icon.name}
         </IconCard>
@@ -1768,7 +1781,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
             name: 'IdentityIcon',
             defaultProps: {providerId: identity.id},
           }}
-          importSource="sentry/views/settings/components/identityIcon"
+          importSource="sentry/icons/identityIcon"
         >
           <IdentityIcon providerId={identity.id} /> {identity.name}
         </IconCard>
@@ -1862,7 +1875,11 @@ function Section(props: CategorySectionProps) {
         </Heading>
       </Container>
       <Grid
-        columns={{xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)'}}
+        columns={{
+          'screen:xs': 'repeat(2, 1fr)',
+          'screen:sm': 'repeat(3, 1fr)',
+          'screen:lg': 'repeat(4, 1fr)',
+        }}
         align="center"
         gap="md"
       >

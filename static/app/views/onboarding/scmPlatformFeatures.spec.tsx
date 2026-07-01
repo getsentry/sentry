@@ -138,9 +138,7 @@ describe('ScmPlatformFeatures', () => {
     const props = defaultProps({selectedRepository: mockRepository});
     render(<ScmPlatformFeatures {...props} />, {organization});
 
-    expect(
-      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/^Available with/)).toBeInTheDocument();
     expect(props.onPlatformChange).toHaveBeenCalledWith(
       expect.objectContaining({key: 'javascript-nextjs'})
     );
@@ -158,9 +156,7 @@ describe('ScmPlatformFeatures', () => {
         {organization}
       );
 
-      expect(
-        await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/^Available with/)).toBeInTheDocument();
       expect(screen.getByText('Error monitoring')).toBeInTheDocument();
       expect(screen.getByText('Tracing')).toBeInTheDocument();
       expect(screen.getByText('Session replay')).toBeInTheDocument();
@@ -187,9 +183,7 @@ describe('ScmPlatformFeatures', () => {
         await screen.findByText('What do you want to instrument?')
       ).toBeInTheDocument();
       expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('heading', {level: 3, name: /^Available with /})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Available with/)).not.toBeInTheDocument();
     });
 
     it('skips the feature-cards block for platforms in neither map', async () => {
@@ -217,9 +211,7 @@ describe('ScmPlatformFeatures', () => {
 
       await screen.findByRole('button', {name: 'Continue'});
 
-      expect(
-        screen.queryByRole('heading', {level: 3, name: /^Available with /})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Available with/)).not.toBeInTheDocument();
       expect(
         screen.queryByText('What do you want to instrument?')
       ).not.toBeInTheDocument();
@@ -513,7 +505,7 @@ describe('ScmPlatformFeatures', () => {
         {organization}
       );
 
-      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'});
+      await screen.findByText(/^Available with/);
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>
@@ -549,7 +541,7 @@ describe('ScmPlatformFeatures', () => {
       );
 
       // First repo auto-detects Next.js and fires the detected event once.
-      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'});
+      await screen.findByText(/^Available with/);
       expect(
         trackAnalyticsSpy.mock.calls.filter(
           ([event, params]) =>

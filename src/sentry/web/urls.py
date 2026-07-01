@@ -33,7 +33,6 @@ from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_404 import Error404View
 from sentry.web.frontend.error_500 import Error500View
 from sentry.web.frontend.group_event_json import GroupEventJsonView
-from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
@@ -53,6 +52,7 @@ from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
+from sentry.web.frontend.signup_email_verification import SignupEmailVerificationView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
@@ -307,6 +307,11 @@ urlpatterns += [
                     r"^register/$",
                     AuthLoginView.as_view(),
                     name="sentry-register",
+                ),
+                re_path(
+                    r"^signup/verify-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
+                    SignupEmailVerificationView.as_view(),
+                    name="sentry-signup-verify-email",
                 ),
                 re_path(
                     r"^close/$",
@@ -1272,6 +1277,31 @@ urlpatterns += [
         api.mcp_json,
         name="sentry-mcp-json",
     ),
+    re_path(
+        r"^\.well-known/api-catalog$",
+        api.api_catalog,
+        name="sentry-api-catalog",
+    ),
+    re_path(
+        r"^\.well-known/oauth-authorization-server$",
+        api.oauth_authorization_server,
+        name="sentry-oauth-authorization-server",
+    ),
+    re_path(
+        r"^\.well-known/oauth-protected-resource$",
+        api.oauth_protected_resource,
+        name="sentry-oauth-protected-resource",
+    ),
+    re_path(
+        r"^\.well-known/mcp/server-card\.json$",
+        api.mcp_server_card,
+        name="sentry-mcp-server-card",
+    ),
+    re_path(
+        r"^\.well-known/agent-skills/index\.json$",
+        api.agent_skills_index,
+        name="sentry-agent-skills-index",
+    ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
     # blocking this, it was treated as a 200 OK for a react page view.
@@ -1355,10 +1385,6 @@ urlpatterns += [
             ]
         ),
     ),
-    re_path(
-        r"^plugins/",
-        include("sentry.plugins.base.urls"),
-    ),
     # Generic API
     re_path(
         r"^share/(?:group|issue)/(?P<share_id>[^/]+)/$",
@@ -1410,11 +1436,6 @@ urlpatterns += [
         r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[^/]+)/",
-        GroupPluginActionView.as_view(),
-        name="sentry-group-plugin-action",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",

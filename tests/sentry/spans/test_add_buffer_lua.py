@@ -74,7 +74,9 @@ def eval_add_buffer_script(
 
 
 def _metrics_table(result: list[Any]) -> dict[bytes, int]:
-    return dict(result[4])
+    # The script returns a flattened [key1, value1, key2, value2, ...] list.
+    flat = result[4]
+    return dict(zip(flat[::2], flat[1::2]))
 
 
 def test_creates_segment_metadata(redis_client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:

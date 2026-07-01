@@ -11,10 +11,13 @@ import sentry_sdk
 
 from sentry import features, options, quotas
 from sentry.constants import (
+    ENABLE_SEER_CODING_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
@@ -395,7 +398,14 @@ def _get_eligible_orgs_from_batch(
     Check feature flags for a batch of orgs.
     Returns orgs that have all required feature flags enabled.
     """
-    eligible = [org for org in orgs if not org.get_option("sentry:hide_ai_features")]
+    # enable_seer_coding off => night shift can't open a PR for the org.
+    enable_coding = OrganizationOption.objects.get_value_bulk(
+        orgs, "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+    )
+    hide_ai = OrganizationOption.objects.get_value_bulk(
+        orgs, "sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT
+    )
+    eligible = [org for org in orgs if enable_coding[org] and not hide_ai[org]]
 
     for feature_name in BATCH_FEATURE_NAMES:
         batch_result = features.batch_has_for_organizations(feature_name, eligible)
@@ -436,6 +446,7 @@ class EligibleProject:
     project: Project
     tweaks: NightShiftTweaks
     stopping_point: AutofixStoppingPoint
+    connected_repos: list[str]
 
 
 def _get_eligible_projects(
@@ -448,10 +459,15 @@ def _get_eligible_projects(
 
     When project_ids is provided, the org's projects are restricted to that set.
     Manual triggers bypass the tweaks.enabled gate — the user explicitly asked
-    for this run. Scheduler runs respect it."""
+    for this run. Scheduler runs respect it, and are additionally restricted to
+    the org's allowed_project_slugs when that override is set."""
     project_qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
     if project_ids is not None:
         project_qs = project_qs.filter(id__in=project_ids)
+    if source == "cron":
+        org_tweaks = get_night_shift_org_tweaks(organization.id)
+        if org_tweaks is not None and org_tweaks.allowed_project_slugs is not None:
+            project_qs = project_qs.filter(slug__in=org_tweaks.allowed_project_slugs)
     project_map = {p.id: p for p in project_qs}
     if not project_map:
         return []
@@ -475,17 +491,37 @@ def _get_eligible_projects(
                 preferences[p.id].automated_run_stopping_point
                 or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
             ),
+            connected_repos=[
+                f"{repo.owner}/{repo.name}" for repo in preferences[p.id].repositories
+            ],
         )
         for p in with_automation
     ]
     if source == "cron":
         eligible = [ep for ep in eligible if ep.tweaks.enabled]
-    return eligible
+
+    # Night shift's only output is a PR, so drop projects that don't stop at
+    # open_pr; log the stopping point to surface misconfigured UX.
+    pr_producing: list[EligibleProject] = []
+    for ep in eligible:
+        if ep.stopping_point == AutofixStoppingPoint.OPEN_PR:
+            pr_producing.append(ep)
+            continue
+        logger.info(
+            "night_shift.project_filtered.not_pr_producing",
+            extra={
+                "organization_id": organization.id,
+                "project_id": ep.project.id,
+                "stopping_point": ep.stopping_point.value,
+            },
+        )
+    return pr_producing
 
 
 def _build_triage_payload(
     candidates: Sequence[ScoredCandidate],
     resolved_options: SeerNightShiftRunOptions,
+    repos_by_project: dict[int, list[str]],
 ) -> NightShiftPayload:
     return NightShiftPayload(
         candidates=[
@@ -497,6 +533,7 @@ def _build_triage_payload(
                 times_seen=c.group.times_seen,
                 first_seen=c.group.first_seen.isoformat(),
                 priority=priority_label(c.group.priority),
+                connected_repos=repos_by_project.get(c.group.project_id, []),
             )
             for c in candidates
         ],
@@ -521,6 +558,7 @@ def _dispatch_to_seer_feature(
     SeerNightShiftRunShard. Seer pushes verdicts back per shard via
     deliver_feature_result."""
     eligible_projects = [ep.project for ep in eligible]
+    repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
     scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
     if not scored:
         logger.info("night_shift.no_candidates", extra=log_extra)
@@ -536,10 +574,11 @@ def _dispatch_to_seer_feature(
     def _link_shard(created: SeerRun) -> None:
         SeerNightShiftRunShard.objects.create(run=run, seer_run=created)
 
-    shards = list(chunked(scored, options.get("seer.night_shift.shard_size")))
+    shard_size = max(1, options.get("seer.night_shift.shard_size"))
+    shards = list(chunked(scored, shard_size))
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
-        payload = _build_triage_payload(chunk, resolved_options)
+        payload = _build_triage_payload(chunk, resolved_options, repos_by_project)
         try:
             client.start_feature_run(
                 feature_id="night_shift",

@@ -40,7 +40,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
 import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
@@ -80,6 +82,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
+  const {data: validatedSearchQueryData} = useValidateSpansTab();
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -122,6 +125,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       ],
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
+      validatedSearchQueryData,
     }),
     [
       booleanAttributes,
@@ -134,6 +138,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       setCaseInsensitive,
       setQueryParams,
       stringAttributes,
+      validatedSearchQueryData,
     ]
   );
 
@@ -163,14 +168,21 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 <Grid
                   gap="md"
                   columns={{
-                    sm: '1fr',
-                    md: 'minmax(300px, auto) 1fr min-content',
+                    'screen:sm': '1fr',
+                    'screen:md': 'minmax(300px, auto) 1fr min-content',
                   }}
                 >
                   <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <ProjectPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <EnvironmentPageFilter
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[SPANS_BREAKDOWN_CURSOR_KEY]}
+                    />
                   </StyledPageFilterBar>
                   <SpansSearchBar
                     spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}

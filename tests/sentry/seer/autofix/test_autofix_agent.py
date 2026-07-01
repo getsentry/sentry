@@ -16,6 +16,7 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
+    _build_base_shas_metadata,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
@@ -28,6 +29,23 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
+
+
+def _make_scm_mock(*, get_repository=None, get_branch=None):
+    """Build an SCM mock that satisfies the runtime_checkable Get*Protocol checks.
+
+    MagicMock attributes are invisible to ``inspect.getattr_static``, which Python 3.12's
+    ``runtime_checkable`` ``isinstance()`` uses, so the methods must be real class attributes.
+    """
+    return type(
+        "FakeSCM",
+        (),
+        {
+            "get_repository": MagicMock(return_value=get_repository),
+            "get_branch": MagicMock(return_value=get_branch),
+        },
+    )()
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -366,6 +384,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.continue_run.return_value = 67890
+        seer_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -375,11 +396,12 @@ class TestTriggerAutofixAgent(TestCase):
         )
 
         assert result == 67890
-        # Verify started webhook was sent with the existing run_id
+        # Verify started webhook was sent with the existing run_id and uuid
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         assert call_kwargs["payload"]["run_id"] == 67890
+        assert call_kwargs["payload"]["sentry_run_id"] == str(seer_run.uuid)
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -702,6 +724,256 @@ class TestTriggerAutofixAgent(TestCase):
             )
 
         assert mock_client_class.call_args.kwargs["code_review_enabled"] is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_context_tools_disabled_on_non_pr_iteration_step(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        assert mock_client_class.call_args.kwargs["enable_pr_context_tools"] is False
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_context_tools_enabled_on_pr_iteration_step(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+        )
+        mock_client.continue_run.return_value = 67890
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        assert mock_client_class.call_args.kwargs["enable_pr_context_tools"] is True
+
+    def _make_repo_and_projectrepo(
+        self,
+        *,
+        owner: str = "owner",
+        name: str = "repo",
+        external_id: str = "123",
+        branch_name: str | None = None,
+    ) -> None:
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id=external_id,
+            name=f"{owner}/{name}",
+        )
+        self.create_seer_project_repository(
+            project=self.project,
+            repository=repository,
+            branch_name=branch_name,
+        )
+
+    @patch("sentry.scm.factory.new")
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_code_changes_includes_base_shas_when_pr_iteration_enabled(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run, mock_scm_new
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
+        self._make_repo_and_projectrepo()
+
+        mock_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "abc123"}},
+        )
+        mock_scm_new.return_value = mock_scm
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
+        assert json.loads(prompt_metadata["base_shas"]) == {
+            "owner/repo": {"base_sha": "abc123", "base_branch": "main"}
+        }
+
+    @patch("sentry.scm.factory.new")
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_code_changes_omits_base_shas_when_pr_iteration_disabled(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run, mock_scm_new
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
+        self._make_repo_and_projectrepo()
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.CODE_CHANGES,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
+        assert "base_shas" not in prompt_metadata
+        mock_scm_new.assert_not_called()
+
+    @patch("sentry.scm.factory.new")
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_non_code_changes_step_omits_base_shas(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run, mock_scm_new
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
+        self._make_repo_and_projectrepo()
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
+        assert "base_shas" not in prompt_metadata
+        mock_scm_new.assert_not_called()
+
+
+class TestBuildBaseShasMetadata(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _make_repo_and_projectrepo(
+        self,
+        *,
+        owner: str = "owner",
+        name: str = "repo",
+        external_id: str = "123",
+        branch_name: str | None = None,
+    ) -> None:
+        repository = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id=external_id,
+            name=f"{owner}/{name}",
+        )
+        self.create_seer_project_repository(
+            project=self.project,
+            repository=repository,
+            branch_name=branch_name,
+        )
+
+    def test_returns_none_without_repos(self) -> None:
+        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+
+    @patch("sentry.scm.factory.new")
+    def test_builds_base_shas_using_default_branch(self, mock_scm_new):
+        self._make_repo_and_projectrepo()
+        mock_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "deadbeef"}},
+        )
+        mock_scm_new.return_value = mock_scm
+
+        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+
+        assert result is not None
+        assert json.loads(result) == {"owner/repo": {"base_sha": "deadbeef", "base_branch": "main"}}
+        mock_scm.get_branch.assert_called_once_with("main")
+
+    @patch("sentry.scm.factory.new")
+    def test_uses_branch_name_override(self, mock_scm_new):
+        self._make_repo_and_projectrepo(branch_name="release/v2")
+        mock_scm = _make_scm_mock(get_branch={"data": {"sha": "abc"}})
+        mock_scm_new.return_value = mock_scm
+
+        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+
+        assert result is not None
+        assert json.loads(result) == {
+            "owner/repo": {"base_sha": "abc", "base_branch": "release/v2"}
+        }
+        mock_scm.get_repository.assert_not_called()
+        mock_scm.get_branch.assert_called_once_with("release/v2")
+
+    @patch("sentry.seer.autofix.autofix_agent.logger")
+    @patch("sentry.scm.factory.new")
+    def test_skips_repo_when_scm_raises(self, mock_scm_new, mock_logger):
+        self._make_repo_and_projectrepo()
+        mock_scm_new.side_effect = Exception("boom")
+
+        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        mock_logger.exception.assert_called_once()
+
+    @patch("sentry.scm.factory.new")
+    def test_skips_repo_without_resolvable_branch(self, mock_scm_new):
+        self._make_repo_and_projectrepo()
+        mock_scm = _make_scm_mock(get_repository={"data": {"default_branch": None}})
+        mock_scm_new.return_value = mock_scm
+
+        assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
+        mock_scm.get_branch.assert_not_called()
+
+    @patch("sentry.scm.factory.new")
+    def test_includes_only_repos_with_resolved_sha(self, mock_scm_new):
+        self._make_repo_and_projectrepo(name="repo-ok", external_id="1")
+        self._make_repo_and_projectrepo(name="repo-bad", external_id="2")
+
+        ok_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "sha-ok"}},
+        )
+        bad_scm = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": ""}},
+        )
+        mock_scm_new.side_effect = [ok_scm, bad_scm]
+
+        result = _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN)
+
+        assert result is not None
+        assert json.loads(result) == {
+            "owner/repo-ok": {"base_sha": "sha-ok", "base_branch": "main"}
+        }
 
 
 class TestTriggerCodingAgentHandoff(TestCase):
@@ -1169,7 +1441,9 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        expected = f"Fixes [{self.group.qualified_short_id}]({issue_url})"
+        assert body["payload"]["pr_description_suffix"] == expected
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):
@@ -1198,7 +1472,11 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        expected = (
+            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
+            f"Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        )
         assert body["payload"]["pr_description_suffix"] == expected
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
@@ -1228,5 +1506,9 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
+        expected = (
+            f"Fixes [{self.group.qualified_short_id}]({issue_url})\n"
+            f"Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        )
         assert body["payload"]["pr_description_suffix"] == expected

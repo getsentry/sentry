@@ -77,13 +77,13 @@ export function NoProjectMessage({
       justify="center"
       gap="3xl"
       padding="lg"
-      direction={{xs: 'column', sm: 'row'}}
+      direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
     >
       <Flex
         align="center"
         justify="center"
         height="auto"
-        width={{xs: '300px', sm: 'auto'}}
+        width={{'screen:xs': '300px', 'screen:sm': 'auto'}}
       >
         <StyledNoProjectEmptyState />
       </Flex>

@@ -197,8 +197,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             // Legacy errors-only enterprise plans (e1, mm2) can no longer be
             // provisioned.
             hasPerformance(plan) &&
-            plan.contractInterval === MONTHLY &&
-            !plan.isTestPlan
+            plan.billingInterval === MONTHLY
           ) {
             acc[plan.id] = plan;
           }
@@ -612,7 +611,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 <BooleanField
                   label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
-                    this.props.subscription.contractPeriodEnd
+                    this.props.subscription.billingPeriodEnd
                   )})`}
                   name="atPeriodEnd"
                   disabled={this.state.data.coterm}

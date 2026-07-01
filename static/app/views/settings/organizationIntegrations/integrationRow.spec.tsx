@@ -109,64 +109,50 @@ describe('IntegrationRow', () => {
       );
     });
   });
-  describe('Plugin', () => {
-    it('has been installed (1 project)', () => {
+
+  describe('Update Now alert', () => {
+    it('auto-opens the install modal for a single outdated workspace', () => {
       render(
         <IntegrationRow
           organization={org}
-          type="plugin"
-          slug="twilio"
-          displayName="Twilio (SMS) "
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
           status="Installed"
           publishStatus="published"
           configurations={1}
           categories={[]}
+          alertText="Update to the latest version of our Slack app"
+          resolveText="Update Now"
         />
       );
-      expect(screen.getByText('Installed')).toBeInTheDocument();
-      expect(screen.getByText('1 Configuration')).toBeInTheDocument();
-      expect(screen.getByText('Twilio (SMS)')).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Update Now'})).toHaveAttribute(
         'href',
-        `/settings/${org.slug}/plugins/twilio/`
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
       );
     });
 
-    it('has been installed (3 projects)', () => {
+    it('sends users to the config page when multiple workspaces exist', () => {
       render(
         <IntegrationRow
           organization={org}
-          type="plugin"
-          slug="twilio"
-          displayName="Twilio (SMS) "
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
           status="Installed"
           publishStatus="published"
-          configurations={3}
+          configurations={2}
           categories={[]}
+          alertText="Update to the latest version of our Slack app"
+          resolveText="Update Now"
         />
       );
-      expect(screen.getByText('Installed')).toBeInTheDocument();
-      expect(screen.getByText('3 Configurations')).toBeInTheDocument();
-      expect(screen.getByText('Twilio (SMS)')).toHaveAttribute(
+      const button = screen.getByRole('button', {name: 'Update Now'});
+      expect(button).toHaveAttribute(
         'href',
-        `/settings/${org.slug}/plugins/twilio/`
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now`
       );
-    });
-
-    it('has not been installed', () => {
-      render(
-        <IntegrationRow
-          organization={org}
-          type="plugin"
-          slug="amazon-sqs"
-          displayName="Amazon SQS"
-          status="Not Installed"
-          publishStatus="published"
-          configurations={0}
-          categories={[]}
-        />
-      );
-      expect(screen.getByText('Not Installed')).toBeInTheDocument();
-      expect(screen.getByText('Amazon SQS')).toBeInTheDocument();
+      expect(button.getAttribute('href')).not.toContain('showInstallModal');
     });
   });
 });

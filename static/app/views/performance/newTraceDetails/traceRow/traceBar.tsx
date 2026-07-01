@@ -229,7 +229,10 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
     <Fragment>
       <div ref={registerInvisibleBarRef} className="TraceBar Invisible">
         {props.node_spaces.map((node_space, i) => {
-          const width = node_space[1] / props.entire_space![1];
+          const width = props.manager.computeRelativeWidth(
+            node_space,
+            props.entire_space!
+          );
           const left = props.manager.computeRelativeLeftPositionFromOrigin(
             node_space[0],
             props.entire_space!

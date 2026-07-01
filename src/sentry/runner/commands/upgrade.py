@@ -36,8 +36,8 @@ def _check_history() -> None:
 
     # Either of these migrations need to have been run for us to proceed.
     migration_heads = (
-        "0904_onboarding_task_project_id_idx",  # pre-squash
-        "0001_squashed_0904_onboarding_task_project_id_idx",  # post-squash
+        "1118_add_group_derived_data",  # pre-squash
+        "0001_squashed_1118_add_group_derived_data",  # post-squash
     )
 
     # If we haven't run all the migration up to the latest squash abort.

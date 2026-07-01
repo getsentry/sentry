@@ -4,7 +4,6 @@ import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {NotFound} from 'sentry/components/errors/notFound';
-import {Footer} from 'sentry/components/footer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -111,7 +110,6 @@ function SharedGroupDetails() {
                     project={group.project}
                   />
                 </Container>
-                <Footer />
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test

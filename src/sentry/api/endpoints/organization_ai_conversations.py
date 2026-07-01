@@ -30,6 +30,7 @@ from sentry.utils.ai_message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -154,6 +155,8 @@ def _build_conversation_response(
     llm_calls: int,
     tool_calls: int,
     total_tokens: int,
+    input_tokens: int,
+    output_tokens: int,
     total_cost: float,
     trace_ids: list[str],
     flow: list[str],
@@ -170,6 +173,8 @@ def _build_conversation_response(
         "llmCalls": llm_calls,
         "toolCalls": tool_calls,
         "totalTokens": total_tokens,
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
         "totalCost": total_cost,
         "startTimestamp": start_timestamp,
         "endTimestamp": end_timestamp,
@@ -232,11 +237,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        base_filter = (
-            "has:gen_ai.conversation.id"
-            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
-            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
-        )
+        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
@@ -286,13 +287,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ]
 
         # Execute all queries in a single bulk RPC call
-        with sentry_sdk.start_span(
-            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
-        ):
+        with start_span(op="ai_conversations.bulk_rpc", name="Execute bulk table queries"):
             results = Spans.run_bulk_table_queries(queries)
 
         # Process results
-        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+        with start_span(op="ai_conversations.process", name="Process query results"):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
             self._apply_enrichment(conversations_map, results["enrichment"])
             self._apply_first_last_io(conversations_map, results["first_last_io"])
@@ -315,6 +314,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
                 "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
@@ -379,7 +380,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
@@ -403,6 +404,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                         )
                         or 0
                     ),
+                    input_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    output_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
                     total_cost=float(
                         row.get(
                             "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
@@ -420,12 +433,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_enrichment",
             name="Apply enrichment data",
         ) as span:
             enrichment_rows = enrichment_data.get("data", [])
-            span.set_data("rows_count", len(enrichment_rows))
+            set_span_data(span, "rows_count", len(enrichment_rows))
 
             flows_by_conversation: dict[str, list[str]] = defaultdict(list)
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
@@ -479,12 +492,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_first_last_io",
             name="Apply first/last IO data",
         ) as span:
             io_rows = first_last_io_data.get("data", [])
-            span.set_data("rows_count", len(io_rows))
+            set_span_data(span, "rows_count", len(io_rows))
 
             first_input_by_conv: dict[str, str] = {}
             last_output_by_conv: dict[str, tuple[float, str]] = {}

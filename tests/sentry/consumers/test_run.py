@@ -47,7 +47,6 @@ def test_dlq(consumer_def) -> None:
         "metrics-last-seen-updater",
         "generic-metrics-last-seen-updater",
         "billing-metrics-consumer",
-        "ingest-profiles",
         "ingest-occurrences",
         "ingest-replay-recordings",
         "ingest-replay-recordings-two-step",
