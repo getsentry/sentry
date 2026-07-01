@@ -355,7 +355,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organizations on the new seat-based Seer plan
     manager.add("organizations:seat-based-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Kill switch for recording contributor actions and assigning Seer seats
-    manager.add("organizations:seat-based-seer-record-action", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:seat-based-seer-skip-record-action", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Render Sentry App schema-backed forms using the backend JSON form adapter.
     manager.add("organizations:sentry-app-schema-form-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable new SentryApp webhook request endpoint
