@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -40,11 +32,7 @@ import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/component
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {
-  Block,
-  SeerExplorerRunId,
-  SeerExplorerSidebarPosition,
-} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -52,6 +40,7 @@ import {
   getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
+  useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -471,21 +460,14 @@ export function SeerExplorerContent({
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  const [resumeRunId, setResumeRunId] = useState<SeerExplorerRunId | null>(null);
-
   // Deep link effect
-  useSeerExplorerDeepLink({
-    callback: switchToRun,
-    onResumeRun: setResumeRunId,
-  });
+  useSeerExplorerDeepLink({callback: switchToRun});
 
-  // If we're back from an OAuth provider-reconnect roundtrip, resume the paused run.
-  useEffect(() => {
-    if (resumeRunId !== null && runId === resumeRunId && isReauthPending && reauthData) {
-      handleReauthComplete();
-      setResumeRunId(null);
-    }
-  }, [resumeRunId, runId, isReauthPending, reauthData, handleReauthComplete]);
+  // Resume the run after we return from an OAuth reconnect.
+  useSeerExplorerResumeDeepLink({
+    onResume: handleReauthComplete,
+    ready: isReauthPending && !!reauthData,
+  });
 
   // Track when a session times out
   const prevIsTimedOutRef = useRef(false);

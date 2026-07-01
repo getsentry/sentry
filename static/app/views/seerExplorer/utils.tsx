@@ -1079,18 +1079,10 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
  */
 export function useSeerExplorerDeepLink({
   callback,
-  onResumeRun,
   enabled = true,
 }: {
   callback: (runId: SeerExplorerRunId) => void;
   enabled?: boolean;
-  /**
-   * Fired when the location carries the resume marker, i.e. the user has
-   * returned from an out-of-band round-trip (e.g. OAuth reauth) and the run
-   * should continue. The caller decides what "resume" means for the run's
-   * current pending state.
-   */
-  onResumeRun?: (runId: SeerExplorerRunId) => void;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -1110,19 +1102,34 @@ export function useSeerExplorerDeepLink({
       return;
     }
 
-    const shouldResumeRun = location.query?.[RESUME_RUN_QUERY_PARAM] === '1';
-
-    const {
-      [RUN_ID_QUERY_PARAM]: _runId,
-      [RESUME_RUN_QUERY_PARAM]: _resumeRun,
-      ...restQuery
-    } = location.query ?? {};
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
-    if (shouldResumeRun) {
-      onResumeRun?.(runId);
+  }, [location, navigate, callback, enabled]);
+}
+
+/**
+ * Consumes the resume query param in the current location after an out-of-band round-trip (e.g.
+ * an OAuth reauth redirect). Once `ready` is true, it runs `onResume` and strips the marker.
+ */
+export function useSeerExplorerResumeDeepLink({
+  onResume,
+  ready,
+}: {
+  onResume: () => void;
+  ready: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.query?.[RESUME_RUN_QUERY_PARAM] !== '1' || !ready) {
+      return;
     }
-  }, [location, navigate, callback, onResumeRun, enabled]);
+    onResume();
+    const {[RESUME_RUN_QUERY_PARAM]: _resume, ...restQuery} = location.query ?? {};
+    navigate({...location, query: restQuery}, {replace: true});
+  }, [location, navigate, ready, onResume]);
 }
 
 /**
