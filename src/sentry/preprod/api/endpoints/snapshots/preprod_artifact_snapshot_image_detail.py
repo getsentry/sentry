@@ -77,7 +77,7 @@ def _build_image_info(
         metadata, exclude=frozenset(SnapshotImageDetailImageInfo.__fields__)
     )
     return SnapshotImageDetailImageInfo(
-        content_hash=metadata.content_hash,
+        key=metadata.content_hash,
         display_name=metadata.display_name,
         group=metadata.group,
         image_file_name=image_file_name,

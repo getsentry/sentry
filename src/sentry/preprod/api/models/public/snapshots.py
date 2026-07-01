@@ -15,6 +15,7 @@ class VcsInfoResponseDict(TypedDict, total=False):
 
 
 class SnapshotImageInfoBaseResponseDict(TypedDict, total=False):
+    key: str
     display_name: str | None
     group: str | None
     image_file_name: str
@@ -24,7 +25,7 @@ class SnapshotImageInfoBaseResponseDict(TypedDict, total=False):
 
 
 class SnapshotImageResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
-    key: str
+    pass
 
 
 class SnapshotDiffPairResponseDict(TypedDict, total=False):
@@ -84,7 +85,6 @@ class SnapshotCreateResponseDict(TypedDict):
 
 
 class SnapshotImageDetailImageInfoResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
-    content_hash: str
     diff_threshold: float | None
     description: str | None
     tags: dict[str, str] | None
@@ -102,7 +102,6 @@ class SnapshotImageDetailResponseDict(TypedDict, total=False):
 
 
 class LatestBaseSnapshotImageResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
-    key: str
     image_url: str
 
 

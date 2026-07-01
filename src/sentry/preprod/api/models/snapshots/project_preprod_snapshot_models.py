@@ -46,21 +46,11 @@ class SnapshotDiffPair(BaseModel):
     diff: float | None = None
 
 
-class SnapshotImageDetailImageInfo(BaseModel):
-    content_hash: str
-    display_name: str | None = None
-    group: str | None = None
-    image_file_name: str
-    width: int
-    height: int
+class SnapshotImageDetailImageInfo(SnapshotImageResponse):
     diff_threshold: float | None = None
     description: str | None = None
     tags: dict[str, str] | None = None
     image_url: str
-    canvas_theme: Literal["light", "dark"] | None = None
-
-    class Config:
-        extra = "allow"
 
 
 class SnapshotImageDetailResponse(BaseModel):

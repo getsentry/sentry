@@ -468,7 +468,7 @@ class PreprodExamples:
         "image_file_name": "home_screen_iphone15.png",
         "comparison_status": "changed",
         "head_image": {
-            "content_hash": "a1b2c3d4e5f6",
+            "key": "a1b2c3d4e5f6",
             "display_name": "Home Screen",
             "group": "iPhone 15",
             "image_file_name": "home_screen_iphone15.png",
@@ -481,7 +481,7 @@ class PreprodExamples:
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/a1b2c3d4e5f6/",
         },
         "base_image": {
-            "content_hash": "old_hash_123",
+            "key": "old_hash_123",
             "display_name": "Home Screen",
             "group": "iPhone 15",
             "image_file_name": "home_screen_iphone15.png",
@@ -502,7 +502,7 @@ class PreprodExamples:
         "image_file_name": "new_screen.png",
         "comparison_status": "added",
         "head_image": {
-            "content_hash": "new_hash_789",
+            "key": "new_hash_789",
             "display_name": "New Screen",
             "group": "iPhone 15",
             "image_file_name": "new_screen.png",
