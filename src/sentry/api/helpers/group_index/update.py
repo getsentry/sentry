@@ -643,39 +643,43 @@ def process_group_resolution(
     if assigned_to is not None:
         result["assignedTo"] = assigned_to
 
-    activity = Activity.objects.create_group_activity(
-        group,
-        ActivityType(activity_type),
-        user_id=acting_user.id if acting_user else None,
-        data=dict(activity_data),
-        ident=resolution.id if resolution else None,
-        send_notification=False,  # deferred via on_commit below
-    )
-    record_group_history_from_activity_type(group, activity_type, actor=acting_user)
-    publish_action_from_context(
-        ResolveAction(),
-        group_id=group.id,
-        project=group.project,
-    )
-
-    # TODO(dcramer): we need a solution for activity rollups
-    # before sending notifications on bulk changes
-    if not len(group_list) > 1:
-        # TODO - This will trigger it every time a user clicks resolved
-        # should this only trigger through workflow engine or the activity handler?
-        transaction.on_commit(
-            lambda: activity.send_notification(),
-            router.db_for_write(Group),
+    if bool(affected):
+        # If the group is resolved, then create an activities, actions, etc.
+        activity = Activity.objects.create_group_activity(
+            group,
+            ActivityType(activity_type),
+            user_id=acting_user.id if acting_user else None,
+            data=dict(activity_data),
+            ident=resolution.id if resolution else None,
+            send_notification=False,  # deferred via on_commit below, will also trigger the handlers
         )
 
-    update_group_open_period(
-        group=group,
-        new_status=GroupStatus.RESOLVED,
-        resolution_time=now,
-        resolution_activity=activity,
-    )
-    if group.issue_type == MetricIssue:
-        update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
+        record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+
+        publish_action_from_context(
+            ResolveAction(),
+            group_id=group.id,
+            project=group.project,
+        )
+
+        # TODO(dcramer): we need a solution for activity rollups
+        # before sending notifications on bulk changes
+        if not len(group_list) > 1:
+            # TODO - This will trigger it every time a user clicks resolved
+            # should this only trigger through workflow engine or the activity handler?
+            transaction.on_commit(
+                lambda: activity.send_notification(),
+                router.db_for_write(Group),
+            )
+
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            resolution_time=now,
+            resolution_activity=activity,
+        )
+        if group.issue_type == MetricIssue:
+            update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
 
 
 def merge_groups(
