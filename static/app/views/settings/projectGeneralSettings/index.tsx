@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
@@ -72,10 +71,6 @@ const ORG_DISABLED_REASON = t(
 );
 
 const INHERIT_DEBUG_FILES_ROLE = '__inherit__';
-
-const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${p => p.theme.space.md};
-`;
 
 function getResolveAgeAllowedValues() {
   let i = 0;
@@ -665,8 +660,8 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         .map(({id, name}) => ({
           value: id,
           label: (
-            <Flex align="center">
-              <StyledPlatformIcon platform={id} />
+            <Flex align="center" gap="md">
+              <PlatformIcon platform={id} />
               {name}
             </Flex>
           ),
