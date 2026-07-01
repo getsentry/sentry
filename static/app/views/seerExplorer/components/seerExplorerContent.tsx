@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -32,7 +40,11 @@ import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/component
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -459,8 +471,21 @@ export function SeerExplorerContent({
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
+  const [resumeRunId, setResumeRunId] = useState<SeerExplorerRunId | null>(null);
+
   // Deep link effect
-  useSeerExplorerDeepLink({callback: switchToRun});
+  useSeerExplorerDeepLink({
+    callback: switchToRun,
+    onResumeRun: setResumeRunId,
+  });
+
+  // If we're back from an OAuth provider-reconnect roundtrip, resume the paused run.
+  useEffect(() => {
+    if (resumeRunId !== null && runId === resumeRunId && isReauthPending && reauthData) {
+      handleReauthComplete();
+      setResumeRunId(null);
+    }
+  }, [resumeRunId, runId, isReauthPending, reauthData, handleReauthComplete]);
 
   // Track when a session times out
   const prevIsTimedOutRef = useRef(false);
@@ -585,7 +610,11 @@ export function SeerExplorerContent({
               <ReauthMonitoringProviderBlock
                 data={reauthData}
                 onComplete={handleReauthComplete}
-                returnUrl={runId === null ? undefined : getRelativeExplorerUrl(runId)}
+                returnUrl={
+                  runId === null
+                    ? undefined
+                    : getRelativeExplorerUrl(runId, {resume: true})
+                }
               />
             )}
           </Fragment>

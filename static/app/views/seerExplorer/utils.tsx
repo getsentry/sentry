@@ -1065,6 +1065,7 @@ function locationToUrl(location: LocationDescriptor): string | null {
 }
 
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RESUME_RUN_QUERY_PARAM = 'explorerRunResume';
 
 export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   if (/^\d+$/.test(value)) {
@@ -1078,10 +1079,18 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
  */
 export function useSeerExplorerDeepLink({
   callback,
+  onResumeRun,
   enabled = true,
 }: {
   callback: (runId: SeerExplorerRunId) => void;
   enabled?: boolean;
+  /**
+   * Fired when the location carries the resume marker, i.e. the user has
+   * returned from an out-of-band round-trip (e.g. OAuth reauth) and the run
+   * should continue. The caller decides what "resume" means for the run's
+   * current pending state.
+   */
+  onResumeRun?: (runId: SeerExplorerRunId) => void;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -1101,10 +1110,19 @@ export function useSeerExplorerDeepLink({
       return;
     }
 
-    const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+    const shouldResumeRun = location.query?.[RESUME_RUN_QUERY_PARAM] === '1';
+
+    const {
+      [RUN_ID_QUERY_PARAM]: _runId,
+      [RESUME_RUN_QUERY_PARAM]: _resumeRun,
+      ...restQuery
+    } = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
-  }, [location, navigate, callback, enabled]);
+    if (shouldResumeRun) {
+      onResumeRun?.(runId);
+    }
+  }, [location, navigate, callback, onResumeRun, enabled]);
 }
 
 /**
@@ -1118,10 +1136,18 @@ export function getExplorerUrl(runId: number | string): string {
 
 /**
  * Returns the relative URL of the current window with the run ID query param set.
+ * Pass `resume` to also mark the URL so the explorer continues the run once the
+ * user returns from an out-of-band round-trip (e.g. OAuth reauth).
  */
-export function getRelativeExplorerUrl(runId: number | string): string {
+export function getRelativeExplorerUrl(
+  runId: number | string,
+  {resume = false}: {resume?: boolean} = {}
+): string {
   const url = new URL(window.location.href);
   url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  if (resume) {
+    url.searchParams.set(RESUME_RUN_QUERY_PARAM, '1');
+  }
   return url.pathname + url.search;
 }
 
