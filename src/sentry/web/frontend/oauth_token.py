@@ -68,7 +68,7 @@ class OAuthTokenView(View):
     def error(self, request: HttpRequest, name, reason=None, status=400):
         client_id = request.POST.get("client_id")
 
-        logger.error(
+        logger.info(
             "oauth.token-error",
             extra={
                 "error_name": name,
