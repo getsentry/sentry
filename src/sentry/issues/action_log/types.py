@@ -86,7 +86,7 @@ class GroupActionType(IntEnum):
     AUTOFIX_CODING_COMPLETE = 27
     SET_REGRESSED = 28
     PULL_REQUEST_CLOSED = 29
-    RECONCILE_FEATURE = 30
+    RECONCILE_FEATURES = 30
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -329,18 +329,18 @@ class PullRequestClosedAction(GroupAction):
         return GroupActionType.PULL_REQUEST_CLOSED
 
 
-class FeatureChange(BaseModel):
+class _FeatureChange(BaseModel):
     feature_name: str
     new_value: object
 
 
-class ReconcileFeatureAction(GroupAction):
+class _ReconcileFeaturesAction(GroupAction):
     """
     Action to reset a feature to a known-correct value based on out-of-log information.
     """
 
-    changes: list[FeatureChange]
+    changes: list[_FeatureChange]
 
     @classmethod
     def get_type(cls) -> GroupActionType:
-        return GroupActionType.RECONCILE_FEATURE
+        return GroupActionType.RECONCILE_FEATURES

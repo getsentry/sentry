@@ -36,6 +36,7 @@ from sentry.issues.derived.processing import (
     invalidate_group_derived_data,
     process_group_log,
 )
+from sentry.issues.derived.reconciliation import create_reconciliation_action
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -255,6 +256,19 @@ class ProcessGroupLogTest(TestCase):
         invalidate_group_derived_data(group.id)
         derived = process_group_log(group.id)
         assert derived.view_count == 2  # rebuilt from scratch
+
+    def test_reconcile_overrides_status(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=ResolveAction(), actor=actor)
+        derived = process_group_log(group.id)
+        assert derived.data["status"] == "closed"
+
+        action = create_reconciliation_action([STATUS.value(IssueStatus.OPEN)])
+        _publish(group=group, action=action, actor=actor)
+        derived = process_group_log(group.id)
+        assert derived.data["status"] == "open"
 
     def test_resolved_in_pull_request_closes(self) -> None:
         group = self.create_group()
