@@ -595,9 +595,7 @@ describe('LogsInfiniteTable', () => {
     expect(otherRow).not.toHaveAttribute('data-row-linked', 'true');
     // The linked row is expanded on load: its detail actions render and its
     // full details are fetched.
-    expect(
-      await screen.findByRole('button', {name: 'Copy as JSON'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
     await waitFor(() => expect(traceItemRequest).toHaveBeenCalled());
   });
 
@@ -631,9 +629,7 @@ describe('LogsInfiniteTable', () => {
 
     await screen.findAllByTestId('log-table-row');
     // Nothing is expanded before a logsRowId is present.
-    expect(
-      screen.queryByRole('button', {name: 'Copy as JSON'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy as JSON'})).not.toBeInTheDocument();
 
     router.navigate(
       `/organizations/${organization.slug}/explore/logs/?${qs.stringify({
@@ -644,13 +640,9 @@ describe('LogsInfiniteTable', () => {
     );
 
     // The newly linked row expands in place: its detail actions now render.
-    expect(
-      await screen.findByRole('button', {name: 'Copy as JSON'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
     const rows = screen.getAllByTestId('log-table-row');
-    const newlyLinkedRow = rows.find(row =>
-      within(row).queryByText('test log body 2')
-    )!;
+    const newlyLinkedRow = rows.find(row => within(row).queryByText('test log body 2'))!;
     expect(newlyLinkedRow).toHaveAttribute('data-row-linked', 'true');
   });
 
