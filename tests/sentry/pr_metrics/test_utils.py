@@ -7,6 +7,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
 )
 from sentry.pr_metrics.utils import is_activity_tracking_enabled
 from sentry.testutils.cases import TestCase
@@ -88,3 +89,26 @@ class IsActivityTrackingEnabledTest(TestCase):
         )
         with self.feature("organizations:pr-metrics-activity"):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
+
+    def test_closed_pr_returns_false_without_db_queries(self) -> None:
+        pr = self._make_pr()
+        pr.state = PullRequestLifecycleState.CLOSED
+        pr.save()
+        with self.feature("organizations:pr-metrics-activity"):
+            assert not is_activity_tracking_enabled(self.organization, pr=pr)
+
+    def test_merged_pr_returns_false_without_db_queries(self) -> None:
+        pr = self._make_pr()
+        pr.state = PullRequestLifecycleState.MERGED
+        pr.save()
+        with self.feature("organizations:pr-metrics-activity"):
+            assert not is_activity_tracking_enabled(self.organization, pr=pr)
+
+    def test_open_pr_within_buffer_not_blocked_by_state_check(self) -> None:
+        now = timezone.now()
+        with freeze_time(now):
+            pr = self._make_pr()
+            pr.state = PullRequestLifecycleState.OPEN
+            pr.save()
+            with self.feature("organizations:pr-metrics-activity"):
+                assert is_activity_tracking_enabled(self.organization, pr=pr)
