@@ -1016,6 +1016,7 @@ def refresh_monitoring_provider_token(
                 "provider": idp.type,
                 "has_refresh_token": "refresh_token" in identity.data,
             },
+            exc_info=True,
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
     except (ApiError, KeyError, RequestException):
