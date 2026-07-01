@@ -539,7 +539,8 @@ describe('VirtualizedViewManger', () => {
 
     it('keeps the line and label visible when the indicator is at the right edge', () => {
       const {manager, indicatorRef, labelRef} = setupIndicator(1000);
-      // Simulate a prior draw pass having culled the label to opacity 0.
+      // Simulate a prior draw pass having culled the line and label to opacity 0.
+      indicatorRef.style.opacity = '0';
       labelRef.style.opacity = '0';
 
       manager.draw();
@@ -550,6 +551,7 @@ describe('VirtualizedViewManger', () => {
 
     it('keeps the line and label visible when the indicator is at the left edge', () => {
       const {manager, indicatorRef, labelRef} = setupIndicator(0);
+      indicatorRef.style.opacity = '0';
       labelRef.style.opacity = '0';
 
       manager.draw();
