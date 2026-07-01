@@ -572,20 +572,17 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond()
 
-    def _has_seer_org_access(
+    def _notify_not_org_member(
         self,
         *,
         slack_request: SlackActionRequest,
         entrypoint: SlackAutofixEntrypoint,
         group: Group,
         user: RpcUser,
-    ) -> bool:
+    ) -> None:
         """
-        Ensure the acting Slack user is a member of the group's organization before triggering Seer
+        Let the acting Slack user know they must be a member of the group's organization to use Seer
         """
-        if group.organization.has_access(user):
-            return True
-
         _logger.info(
             "seer.slack.autofix.user_not_org_member",
             extra={
@@ -602,7 +599,6 @@ class SlackActionEndpoint(Endpoint):
                 thread_ts=entrypoint.thread_ts,
                 org_name=group.organization.name,
             )
-        return False
 
     def handle_seer_autofix_start(
         self,
@@ -618,9 +614,10 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
-        if not self._has_seer_org_access(
-            slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
-        ):
+        if not group.organization.has_access(user):
+            self._notify_not_org_member(
+                slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
+            )
             return
 
         stopping_point = entrypoint.autofix_stopping_point
@@ -672,9 +669,10 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
-        if not self._has_seer_org_access(
-            slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
-        ):
+        if not group.organization.has_access(user):
+            self._notify_not_org_member(
+                slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
+            )
             return
 
         run_id = entrypoint.autofix_run_id
