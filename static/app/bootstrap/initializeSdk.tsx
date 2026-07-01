@@ -137,9 +137,9 @@ export function initializeSdk(config: Config) {
     tracesSampler: context => {
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
       if (op.startsWith('ui.action')) {
-        return tracesSampleRate / 100;
+        return context.inheritOrSampleWith(tracesSampleRate / 100);
       }
-      return tracesSampleRate;
+      return context.inheritOrSampleWith(tracesSampleRate);
     },
     ignoreSpans: IGNORED_SPAN_NAMES,
 
