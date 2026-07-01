@@ -278,7 +278,7 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
         entries_list = extra["top_slow_operations"]
         assert len(entries_list) == 50
 
-        assert entries_list[0] == "high_project:trace:10:1500"
+        assert entries_list[0] == "high_project:trace:10:1500.000"
 
         assert extra["num_tracked_keys"] == 50
 
