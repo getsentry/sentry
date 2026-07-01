@@ -1,0 +1,116 @@
+import styled from '@emotion/styled';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isUUID} from 'sentry/utils/string/isUUID';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  CONVERSATIONS_LANDING_SUB_PATH,
+  CONVERSATIONS_SIDEBAR_LABEL,
+} from 'sentry/views/explore/conversations/settings';
+
+interface ConversationsBreadcrumbsProps {
+  conversationId: string;
+  project?: AvatarProject;
+}
+
+/**
+ * Breadcrumbs for a single conversation. The leaf crumb carries the project
+ * badge and a copy-to-clipboard affordance revealed on hover, keeping the
+ * conversation detail header aligned with the trace view.
+ */
+export function ConversationsBreadcrumbs({
+  conversationId,
+  project,
+}: ConversationsBreadcrumbsProps) {
+  const organization = useOrganization();
+  const conversationsBaseUrl = normalizeUrl(
+    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  );
+
+  return (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: CONVERSATIONS_SIDEBAR_LABEL,
+          to: {
+            pathname: conversationsBaseUrl,
+            query: {statsPeriod: '24h', start: undefined, end: undefined},
+          },
+          preservePageFilters: true,
+        },
+        {
+          label: (
+            <ConversationCrumb
+              conversationId={conversationId}
+              project={project}
+              organization={organization}
+            />
+          ),
+        },
+      ]}
+    />
+  );
+}
+
+function ConversationCrumb({
+  conversationId,
+  project,
+  organization,
+}: {
+  conversationId: string;
+  organization: Organization;
+  project?: AvatarProject;
+}) {
+  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+
+  return (
+    <CrumbWrapper>
+      {project && (
+        <ProjectBadge project={project} avatarSize={16} disableLink hideOverflow />
+      )}
+      <Tooltip
+        title={conversationId}
+        showOnlyOnOverflow={!isUUID(conversationId)}
+        skipWrapper
+      >
+        <span>{displayId}</span>
+      </Tooltip>
+      <CopyToClipboardButton
+        className="copy-conversation-id"
+        size="zero"
+        variant="transparent"
+        aria-label={t('Copy conversation ID')}
+        tooltipProps={{title: t('Copy conversation ID')}}
+        text={conversationId}
+        onCopy={() =>
+          trackAnalytics('conversations.detail.copy-conversation-id', {organization})
+        }
+      />
+    </CrumbWrapper>
+  );
+}
+
+const CrumbWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+
+  .copy-conversation-id {
+    visibility: hidden;
+  }
+
+  &:hover .copy-conversation-id,
+  &:focus-within .copy-conversation-id {
+    visibility: visible;
+  }
+`;

@@ -8,7 +8,9 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
+import {ConversationsBreadcrumbs} from 'sentry/views/explore/conversations/components/conversationsBreadcrumbs';
 import {ConversationSummaryNew} from 'sentry/views/explore/conversations/components/conversationSummaryNew';
 import {
   CONVERSATION_VIEW_TABS,
@@ -16,6 +18,7 @@ import {
 } from 'sentry/views/explore/conversations/components/conversationViewNew';
 import {ConversationViewContainer} from 'sentry/views/explore/conversations/conversationDetail';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -37,6 +40,15 @@ export function ConversationDetailPageNew() {
 
   const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
 
+  const projectSlug = useMemo(
+    () => nodes.find(node => node.projectSlug)?.projectSlug,
+    [nodes]
+  );
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
+  const project = projectSlug
+    ? (projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug})
+    : undefined;
+
   useEffect(() => {
     trackAnalytics('conversations.detail.page-view', {
       organization,
@@ -52,6 +64,9 @@ export function ConversationDetailPageNew() {
 
   return (
     <ViewportConstrainedPage background="secondary">
+      <TopBar.Slot name="title">
+        <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
+      </TopBar.Slot>
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummaryNew
           nodes={nodes}
