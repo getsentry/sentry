@@ -2412,7 +2412,7 @@ requires-dist = [
     { name = "sentry-kafka-schemas", specifier = ">=2.1.37" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.1.2" },
-    { name = "sentry-protos", specifier = ">=0.37.2" },
+    { name = "sentry-protos", specifier = ">=0.37.3" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = "==0.30.0" },
@@ -2596,7 +2596,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.37.2"
+version = "0.37.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2604,7 +2604,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.37.2-py3-none-any.whl", hash = "sha256:fc039efc8f2c797e5b82dffc11c642c63d1c6da8e3a10ea251901f95a0fafb38" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.37.3-py3-none-any.whl", hash = "sha256:7725c9218964d579b8627ef15c4b29bfd16b2af5cb9d815859ee1b611adb4eac" },
 ]
 
 [[package]]
