@@ -75,14 +75,7 @@ export function ConversationViewContentNew({
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
       <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
         <ConversationLeftPanel>
-          <Flex
-            flex="1"
-            minHeight="0"
-            width="100%"
-            overflowX="hidden"
-            overflowY={activeTab === 'timeline' ? 'hidden' : 'auto'}
-            background="secondary"
-          >
+          <Flex flex="1" minHeight="0" overflowY="hidden" background="secondary">
             {activeTab === 'transcript' ? (
               <EmptyMessage>{t('Transcript view is coming soon')}</EmptyMessage>
             ) : (
