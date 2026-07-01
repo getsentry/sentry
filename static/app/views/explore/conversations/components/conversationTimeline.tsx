@@ -15,6 +15,12 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  calculateRelativeTiming,
+  getCompressedTimeBounds,
+  getNodeTimeBounds,
+  type TraceBounds,
+} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   getFirstToolInputValue,
@@ -25,12 +31,6 @@ import {
   getTraceNodeAttribute,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {
-  calculateRelativeTiming,
-  getCompressedTimeBounds,
-  getNodeTimeBounds,
-  type TraceBounds,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceTiming';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
