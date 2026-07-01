@@ -2,27 +2,73 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry import features
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest, PullRequestActivity, PullRequestActivityType
-from sentry.seer.seer_setup import has_seer_access
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityType,
+    PullRequestAttribution,
+    PullRequestLifecycleState,
+    PullRequestMetrics,
+)
+
+_PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
 
-def is_activity_tracking_enabled(organization: Organization) -> bool:
-    """Whether PR activity rows should be written for this organization.
+def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | None = None) -> bool:
+    """Whether PR activity rows should be written for this organization (and PR).
 
-    Both the feature flag rollout and Seer access are required: activity data
-    feeds the judge path which is only meaningful for Seer-enabled orgs.
+    Gated on the feature flag rollout only — Seer access is not required,
+    since activity is collected for all attribution types including MCP.
+
+    When ``pr`` is supplied, two additional per-PR checks apply in order:
+
+    1. If the PR's ``state`` is already terminal (``CLOSED``, ``MERGED``, or
+       ``SUPERSEDED``), no further activity is needed — this short-circuits
+       without any extra DB queries.
+
+    2. A verdict check runs next: if ``PullRequestMetrics`` exists with a
+       non-null verdict (terminal emit or ``JUDGE_IN_PROGRESS`` claim), no
+       further activity is needed.
+
+    3. A time-based buffer gate applies last:
+       - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
+         activity is always collected — no attribution row is required yet.
+       - After that window, activity is collected only when the PR has at
+         least one valid ``PullRequestAttribution`` row (``is_valid=True``).
     """
-    return features.has("organizations:pr-metrics-activity", organization) and has_seer_access(
-        organization
-    )
+    if not features.has("organizations:pr-metrics-activity", organization):
+        return False
+
+    if pr is not None:
+        if pr.state in (
+            PullRequestLifecycleState.CLOSED,
+            PullRequestLifecycleState.MERGED,
+            PullRequestLifecycleState.SUPERSEDED,
+        ):
+            return False
+        verdict_claimed = PullRequestMetrics.objects.filter(
+            pull_request=pr,
+            verdict__isnull=False,
+        ).exists()
+        if verdict_claimed:
+            return False
+        if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
+            return True
+        return PullRequestAttribution.objects.filter(
+            pull_request=pr,
+            is_valid=True,
+        ).exists()
+
+    return True
 
 
 def iso_or_none(value: datetime | None) -> str | None:

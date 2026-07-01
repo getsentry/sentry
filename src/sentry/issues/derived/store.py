@@ -46,17 +46,22 @@ class GroupDerivedDataStore:
 
     @staticmethod
     def build_update(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
-        fields_by_name = {f.name: f for f in pipeline.features}
-        json_data: dict[str, Any] = {}
+        """Build a dict of model fields to persist.
+
+        Only includes columns and JSON-blob data that aggregators actually
+        updated.
+        """
+        updated = state.updated
+        json_features = [f for f in pipeline.features if f not in COLUMN_MAP]
+
         update: dict[str, Any] = {}
-        for name, val in state.items():
-            f = fields_by_name[name]
+        for f in pipeline.features:
             column = COLUMN_MAP.get(f)
-            if column:
-                update[column] = f.dump(val)
-            else:
-                json_data[name] = f.dump(val)
-        update["data"] = json_data
+            if column and f in updated:
+                update[column] = f.dump(state[f])
+        # If any JSON feature was updated, include all of them (the blob is replaced wholesale)
+        if updated.intersection(json_features):
+            update["data"] = {f.name: f.dump(state[f]) for f in json_features}
         return update
 
     @staticmethod

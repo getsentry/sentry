@@ -101,6 +101,9 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
             elif block.type == NotificationSectionType.CODE_BLOCK:
                 safe_content = cls.render_text_blocks_to_html_string(block.blocks)
                 body_blocks.append(f"<pre><code>{safe_content}</code></pre>")
+            elif block.type == NotificationSectionType.BLOCK_QUOTE:
+                safe_content = cls.render_text_blocks_to_html_string(block.blocks)
+                body_blocks.append(f"<blockquote>{safe_content}</blockquote>")
 
         return mark_safe("".join(body_blocks))
 
@@ -115,6 +118,8 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
                 texts.append(escaped_text)
             elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"<strong>{escaped_text}</strong>")
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"<em>{escaped_text}</em>")
             elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"<code>{escaped_text}</code>")
             elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
@@ -131,6 +136,8 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
                 body_blocks.append(f"\n{cls.render_text_blocks_to_txt_string(block.blocks)}")
             elif block.type == NotificationSectionType.CODE_BLOCK:
                 body_blocks.append(f"\n```{cls.render_text_blocks_to_txt_string(block.blocks)}```")
+            elif block.type == NotificationSectionType.BLOCK_QUOTE:
+                body_blocks.append(f"\n> {cls.render_text_blocks_to_txt_string(block.blocks)}")
         return " ".join(body_blocks)
 
     @classmethod
@@ -141,6 +148,8 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
                 texts.append(block.text)
             elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"_{block.text}_")
             elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
             elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):

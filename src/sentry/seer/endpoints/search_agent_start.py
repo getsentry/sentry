@@ -16,6 +16,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import get_extra_seer_feature_flags
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -66,6 +67,7 @@ def send_search_agent_start_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
+    extra_feature_flags: dict[str, bool] | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -85,8 +87,9 @@ def send_search_agent_start_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    if options:
-        body["options"] = options
+    extra_feature_flags = extra_feature_flags or {}
+    options["extra_feature_flags"] = extra_feature_flags
+    body["options"] = options
 
     return enqueue_seer_run(
         organization=organization,
@@ -175,6 +178,9 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_org_context = collect_user_org_context(request.user, organization)
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
+        extra_feature_flags = get_extra_seer_feature_flags(
+            organization=organization, user=request.user
+        )
 
         try:
             viewer_context = SeerViewerContext(
@@ -191,6 +197,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 model_name=model_name,
                 metric_context=metric_context,
                 viewer_context=viewer_context,
+                extra_feature_flags=extra_feature_flags,
             )
             return Response(
                 {

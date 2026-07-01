@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -34,8 +34,6 @@ import {
   getPullRequestStatusLabel,
   PullRequestStatusBadge,
 } from './pullRequestStatusBadge';
-
-const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 
 const PULL_REQUEST_ACTIVITY_TYPES = new Set([
   GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
@@ -225,15 +223,12 @@ function SeerAttributionAvatar() {
 
 export function useLinkedPullRequests({group}: {group: Group}) {
   const organization = useOrganization();
-  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
 
   return useQuery(
     apiOptions.as<LinkedPullRequestsResponse>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
-        path: hasFeature
-          ? {organizationIdOrSlug: organization.slug, issueId: group.id}
-          : skipToken,
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
         staleTime: 30_000,
       }
     )
@@ -241,12 +236,10 @@ export function useLinkedPullRequests({group}: {group: Group}) {
 }
 
 export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
-  const organization = useOrganization();
-  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
   const {data, isError, isPending} = useLinkedPullRequests({group});
   const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
-  if (!hasFeature || isError) {
+  if (isError) {
     return null;
   }
 

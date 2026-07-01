@@ -158,7 +158,6 @@ export type Plan = {
    * Data categories on the plan (errors, transactions, etc.)
    */
   categories: DataCategory[];
-  checkoutCategories: DataCategory[];
   dashboardLimit: number;
   features: string[];
 
@@ -169,7 +168,6 @@ export type Plan = {
    * upsell suppression, provisioning).
    */
   isEnterprise: boolean;
-  isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
   name: string;
