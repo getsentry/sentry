@@ -137,9 +137,9 @@ export function initializeSdk(config: Config) {
     tracesSampler: context => {
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
       if (op.startsWith('ui.action')) {
-        return context.inheritOrSampleWith(tracesSampleRate / 100);
+        return tracesSampleRate / 100;
       }
-      return context.inheritOrSampleWith(tracesSampleRate);
+      return tracesSampleRate;
     },
     ignoreSpans: IGNORED_SPAN_NAMES,
 
@@ -236,6 +236,7 @@ export function initializeSdk(config: Config) {
   }
   if (window.__SENTRY__VERSION) {
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+    Sentry.setAttribute('sentry_version', window.__SENTRY__VERSION);
   }
 
   const {customerDomain} = window.__initialData;
@@ -245,6 +246,12 @@ export function initializeSdk(config: Config) {
     Sentry.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
+    Sentry.setAttributes({
+      isCustomerDomain: 'yes',
+      'customerDomain.organizationUrl': customerDomain.organizationUrl,
+      'customerDomain.sentryUrl': customerDomain.sentryUrl,
+      'customerDomain.subdomain': customerDomain.subdomain,
+    });
   }
 
   if (sentryClient) {
