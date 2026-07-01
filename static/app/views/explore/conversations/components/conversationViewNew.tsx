@@ -83,7 +83,6 @@ export function ConversationViewContentNew({
                 padding="md"
                 width="100%"
                 maxWidth="900px"
-                minWidth="0"
                 minHeight="0"
                 background="primary"
                 border="primary"
@@ -93,7 +92,7 @@ export function ConversationViewContentNew({
               >
                 <ConversationTimeline
                   nodes={nodes}
-                  selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
+                  selectedNodeKey={selectedNode?.id ?? ''}
                   onSelectNode={handleSelectNode}
                   nodeTraceMap={nodeTraceMap}
                   compressGaps

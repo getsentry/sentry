@@ -153,19 +153,11 @@ const TimelineRow = memo(function TimelineRow({
           onClick={onClick}
         >
           <Stack gap="xs" flex="1" minWidth="0" paddingBottom="xs">
-            <Flex
-              align="center"
-              gap="md"
-              style={hasErrors ? {marginBottom: 6} : undefined}
-            >
+            <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
               <Flex align="center" position="relative" style={{color}} flexShrink={0}>
                 {icon}
                 {hasErrors && (
-                  <Tooltip
-                    delay={300}
-                    title={t('This span encountered an error')}
-                    skipWrapper
-                  >
+                  <Tooltip title={t('This span encountered an error')} skipWrapper>
                     <Container
                       position="absolute"
                       radius="full"
