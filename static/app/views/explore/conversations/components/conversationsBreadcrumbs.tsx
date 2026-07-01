@@ -21,11 +21,6 @@ interface ConversationsBreadcrumbsProps {
   project?: AvatarProject;
 }
 
-/**
- * Breadcrumbs for a single conversation. The leaf crumb carries the project
- * badge and a copy-to-clipboard affordance revealed on hover, keeping the
- * conversation detail header aligned with the trace view.
- */
 export function ConversationsBreadcrumbs({
   conversationId,
   project,
