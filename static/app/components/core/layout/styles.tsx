@@ -160,7 +160,7 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
-function borderValue(key: BorderVariant, theme: Theme): string {
+function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string {
   if (key === 'primary') {
     return theme.tokens.border[key];
   }
@@ -171,7 +171,7 @@ function borderValue(key: BorderVariant, theme: Theme): string {
 }
 
 export function getBorder(
-  border: BorderVariant | 'none' | undefined,
+  border: BorderVariant | undefined,
   _breakpoint: BreakpointSize | undefined,
   theme: Theme
 ): string | undefined {
@@ -179,16 +179,13 @@ export function getBorder(
     return undefined;
   }
 
-  // Allows a border to be turned off at a breakpoint via responsive props (e.g.
-  // `borderBottom={{'2xs': 'primary', lg: 'none'}}`), so it can move between
-  // sides across breakpoints without hand-written container/media queries.
   if (border === 'none') {
     return 'none';
   }
 
   return border
     .split(' ')
-    .map(b => `1px solid ${borderValue(b as BorderVariant, theme)}`)
+    .map(b => `1px solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`)
     .join(' ');
 }
 

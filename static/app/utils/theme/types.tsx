@@ -71,7 +71,8 @@ export type BorderVariant =
   | Exclude<SemanticVariant, 'neutral'>
   | 'primary'
   | 'secondary'
-  | 'muted';
+  | 'muted'
+  | 'none';
 
 // Component Variants (should be moved locally, aligned to SemanticVariant)
 
