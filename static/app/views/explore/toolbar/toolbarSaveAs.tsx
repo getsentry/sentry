@@ -296,7 +296,7 @@ export function ToolbarSaveAs() {
           trigger={triggerProps => (
             <SaveAsButton
               {...triggerProps}
-              variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
+              variant="primary"
               aria-label={t('Save as')}
               onClick={e => {
                 e.stopPropagation();
