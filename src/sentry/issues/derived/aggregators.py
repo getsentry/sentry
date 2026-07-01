@@ -1,4 +1,6 @@
-from sentry.issues.action_log.types import GroupActionType
+from typing import Any, Sequence
+
+from sentry.issues.action_log.types import FeatureChange, GroupActionType, ReconcileFeatureAction
 from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
     PROGRESS,
@@ -9,12 +11,45 @@ from sentry.issues.derived.features import (
 from sentry.issues.derived.framework import (
     Aggregator,
     AggregatorResult,
+    Feature,
+    FeatureEntry,
     StateView,
     aggregator,
     emit,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
+
+
+def reconcile_features(
+    state: StateView, entry: GroupActionLogEntry, *features: Feature[Any]
+) -> AggregatorResult:
+    assert entry.type == GroupActionType.RECONCILE_FEATURE
+    for f in features:
+        if f not in state:
+            raise ValueError(f"Attempted to reconcile feature not found in state: {f.name}")
+    rec_action = ReconcileFeatureAction(**entry.data)
+    features_by_name = {f.name: f for f in features}
+    updates_by_name = {ch.feature_name: ch.new_value for ch in rec_action.changes}
+    hits = updates_by_name.keys() & features_by_name.keys()
+    if not hits:
+        return None
+    changes: list[FeatureEntry] = []
+    for name in hits:
+        f = features_by_name[name]
+        val = f.load(updates_by_name[name])
+        changes.append((f, val))
+    return emit(*changes)
+
+
+def create_reconciliation_action(updates: Sequence[FeatureEntry]) -> ReconcileFeatureAction:
+    if len(updates) == 0:
+        raise ValueError("Reconciliation Actions can't be created with no updates")
+    return ReconcileFeatureAction(
+        changes=[
+            FeatureChange(feature_name=feat.name, new_value=feat.dump(val)) for feat, val in updates
+        ]
+    )
 
 
 @aggregator((VIEW_COUNT,), scope=(GroupActionType.VIEW,))
@@ -30,9 +65,12 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
         GroupActionType.RESOLVED_IN_PULL_REQUEST,
         GroupActionType.ARCHIVE,
         GroupActionType.SET_REGRESSED,
+        GroupActionType.RECONCILE_FEATURE,
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    if entry.type == GroupActionType.RECONCILE_FEATURE:
+        return reconcile_features(state, entry, STATUS)
     current = state[STATUS]
     resolves = (
         GroupActionType.RESOLVE.value,
@@ -104,6 +142,8 @@ _ACTION_TO_MIN_PROGRESS: dict[int, IssueProgressState] = {
     deps=(STATUS,),
 )
 def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    if entry.type == GroupActionType.RECONCILE_FEATURE:
+        return reconcile_features(state, entry, PROGRESS, LAST_PROGRESSED_AT)
     current = state[PROGRESS]
     ts = entry.date_added
 

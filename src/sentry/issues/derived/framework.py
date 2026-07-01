@@ -178,6 +178,7 @@ class StateView:
     def __init__(self, data: dict[Feature[Any], Any], allowed: frozenset[Feature[Any]]) -> None:
         self._data = data
         self._allowed = allowed
+        # TODO: Track valid scope?
 
     def __getitem__[T](self, key: Feature[T]) -> T:
         if key not in self._allowed:
@@ -218,6 +219,8 @@ def emit(*entries: FeatureEntry) -> AggregatorResult:
 
     >>> return emit(VIEW_COUNT.value(5), STATUS.value(IssueStatus.CLOSED))
     """
+    if not entries:
+        return None
     return StateUpdate(dict(entries))
 
 
