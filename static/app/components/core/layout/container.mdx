@@ -262,7 +262,8 @@ For background on the underlying CSS, see MDN's <a href="https://developer.mozil
 The two can be combined on one prop — e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}`
 is a column until its container reaches `xs`, then a row once the viewport reaches `lg`.
 
-> **Tip:** Prefer `containerType="inline-size"` — it only contains the inline
+> [!TIP]
+> Prefer `containerType="inline-size"` — it only contains the inline
 > (width) axis, so height still flows from content. `size` also contains the
 > block axis, so the element then needs an explicit height or its content
 > collapses; only use it when you need height-based container queries.
