@@ -24,7 +24,7 @@ interface ColumnDefinition {
 export const CONVERSATION_COLUMNS: Record<ConversationColumnKey, ColumnDefinition> = {
   conversationId: {name: t('Conv. ID'), width: 100, type: FieldValueType.STRING},
   llmCalls: {name: t('LLM Calls'), width: 100, type: FieldValueType.INTEGER},
-  user: {name: t('User'), width: 139, type: FieldValueType.STRING},
+  user: {name: t('User'), width: 200, type: FieldValueType.STRING},
   toolCalls: {name: t('Tool Calls'), width: 120, type: FieldValueType.INTEGER},
   errors: {name: t('Errors'), width: 100, type: FieldValueType.INTEGER},
   cost: {name: t('Cost'), width: 110, type: FieldValueType.CURRENCY},
