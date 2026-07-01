@@ -9,6 +9,7 @@ from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
+from .organization_dummy_junior_test_endpoint import OrganizationDummyJuniorTestEndpoint
 from .organization_incident_groupopenperiod_index import (
     OrganizationIncidentGroupOpenPeriodIndexEndpoint,
 )
@@ -105,5 +106,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/incident-groupopenperiod/$",
         OrganizationIncidentGroupOpenPeriodIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-groupopenperiod-index",
+    ),
+    # DO NOT MERGE — dummy endpoint to test CI filter behavior (see PR #118795)
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/junior-test-dummy/$",
+        OrganizationDummyJuniorTestEndpoint.as_view(),
+        name="sentry-api-0-organization-junior-test-dummy",
     ),
 ]
