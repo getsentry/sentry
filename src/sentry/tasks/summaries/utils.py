@@ -34,6 +34,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
@@ -57,6 +58,11 @@ class OrganizationReportContext:
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
             self.projects_context_map[project.id] = ProjectContext(project)
+
+        # Top spans data for the spans chart
+        self.top_spans: list[dict[str, Any]] = []  # [{name, p95, sum}, ...]
+        self.top_spans_by_day: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
+        self.top_spans_projects: dict[str, set[int]] = {}  # {span_name: set of project_ids}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -677,3 +683,144 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
+
+
+TOP_SPANS_LIMIT = 9
+TOP_SPANS_QUERY_LIMIT = 50
+
+
+def organization_top_spans(
+    ctx: OrganizationReportContext,
+    referrer: str,
+) -> None:
+    """Fetch top spans by total duration for the org and populate ctx fields.
+
+    Runs two EAP queries:
+    1. Table query for top spans with aggregate p95 and sum
+    2. Project mapping query to know which projects each span appears in
+
+    The timeseries (daily p95) is fetched separately via run_top_events_timeseries_query.
+    """
+    projects = [
+        p
+        for p in ctx.organization.project_set.all()
+        if p.id in ctx.projects_context_map and p.flags.has_transactions
+    ]
+    if not projects:
+        return
+
+    snuba_params = SnubaParams(
+        start=ctx.start,
+        end=ctx.end,
+        projects=projects,
+        organization=ctx.organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+
+    with start_span(op="weekly_reports.top_spans_table", name="weekly_reports.top_spans_table"):
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="is_transaction:1 has:span.name",
+            selected_columns=["span.name", "sum(span.duration)", "p95(span.duration)"],
+            orderby=["-sum(span.duration)"],
+            offset=0,
+            limit=TOP_SPANS_QUERY_LIMIT,
+            referrer=referrer,
+            config=config,
+            sampling_mode=None,
+        )
+
+    top_span_names = []
+    for row in result.get("data", []):
+        span_name = row.get("span.name", "")
+        if not span_name:
+            continue
+        ctx.top_spans.append(
+            {
+                "name": span_name,
+                "p95": row.get("p95(span.duration)", 0),
+                "sum": row.get("sum(span.duration)", 0),
+            }
+        )
+        top_span_names.append(span_name)
+
+    if not top_span_names:
+        return
+
+    with start_span(
+        op="weekly_reports.top_spans_projects", name="weekly_reports.top_spans_projects"
+    ):
+        span_name_filter = " OR ".join(
+            f'span.name:"{name}"' for name in top_span_names[:TOP_SPANS_QUERY_LIMIT]
+        )
+        project_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"is_transaction:1 ({span_name_filter})",
+            selected_columns=["span.name", "project.id", "count()"],
+            orderby=["-count()"],
+            offset=0,
+            limit=TOP_SPANS_QUERY_LIMIT * 10,
+            referrer=referrer,
+            config=config,
+            sampling_mode=None,
+        )
+
+    for row in project_result.get("data", []):
+        span_name = row.get("span.name", "")
+        project_id = row.get("project.id")
+        if span_name and project_id:
+            ctx.top_spans_projects.setdefault(span_name, set()).add(int(project_id))
+
+
+def organization_top_spans_timeseries(
+    ctx: OrganizationReportContext,
+    referrer: str,
+) -> None:
+    """Fetch daily p95(span.duration) timeseries for top spans."""
+    projects = [
+        p
+        for p in ctx.organization.project_set.all()
+        if p.id in ctx.projects_context_map and p.flags.has_transactions
+    ]
+    if not projects or not ctx.top_spans:
+        return
+
+    snuba_params = SnubaParams(
+        start=ctx.start,
+        end=ctx.end,
+        projects=projects,
+        organization=ctx.organization,
+        granularity_secs=ONE_DAY,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+
+    with start_span(
+        op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
+    ):
+        ts_result = Spans.run_top_events_timeseries_query(
+            params=snuba_params,
+            query_string="is_transaction:1 has:span.name",
+            y_axes=["p95(span.duration)"],
+            raw_groupby=["span.name"],
+            orderby=["-sum(span.duration)"],
+            limit=TOP_SPANS_LIMIT,
+            include_other=False,
+            referrer=referrer,
+            config=config,
+            sampling_mode=None,
+        )
+
+    for span_key, ts_data in ts_result.items():
+        span_name = span_key
+        daily_p95: dict[int, float] = {}
+        for point in ts_data.data.get("data", []):
+            timestamp = point.get("time")
+            p95_value = point.get("p95(span.duration)", 0)
+            if timestamp:
+                ts_int = (
+                    int(timestamp.timestamp())
+                    if hasattr(timestamp, "timestamp")
+                    else int(timestamp)
+                )
+                daily_p95[ts_int] = p95_value or 0
+        ctx.top_spans_by_day[span_name] = daily_p95

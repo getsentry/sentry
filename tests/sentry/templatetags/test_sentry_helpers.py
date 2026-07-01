@@ -166,6 +166,35 @@ def test_get_item(a_dict: dict[str, int], key: str, expected: str) -> None:
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        (0, "0.00ms"),
+        (None, "0.00ms"),
+        (500, "500.00ms"),
+        (1000, "1.00s"),
+        (1500, "1.50s"),
+        (60000, "1.00min"),
+        (90000, "1.50min"),
+        (3600000, "1.00hr"),
+        (5400000, "1.50hr"),
+        (86400000, "1.00d"),
+        (604800000, "1.00wk"),
+        (2629800000, "1.00mo"),
+        (31536000000, "1.00yr"),
+    ),
+)
+def test_span_duration_filter(value: float | None, expected: str) -> None:
+    prefix = "{% load sentry_helpers %}"
+    result = (
+        engines["django"]
+        .from_string(prefix + "{{ value|span_duration }}")
+        .render(context={"value": value})
+        .strip()
+    )
+    assert result == expected
+
+
 def test_sanitize_periods() -> None:
     input = '{% load sentry_helpers %} {{ "example.com"|sanitize_periods}}'
     result = engines["django"].from_string(input).render().strip()
