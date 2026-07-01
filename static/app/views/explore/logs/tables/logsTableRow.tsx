@@ -591,6 +591,7 @@ export const LogRowContent = memo(function LogRowContent({
                           params.set(LOGS_ROW_ID_KEY, logId);
                         } else {
                           params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                          params.delete(LOGS_ROW_ID_KEY);
                         }
                         url.search = params.toString();
                         copy(url.toString(), {

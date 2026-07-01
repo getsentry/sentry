@@ -248,6 +248,24 @@ export function LogsInfiniteTable({
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
+
+  // Keep the linked row expanded across client-side navigations that change
+  // `logsRowId`. This is additive: we never collapse a previously expanded row
+  // since we can't tell a prior link apart from a user-expanded row.
+  useEffect(() => {
+    if (!linkedRowId) {
+      return;
+    }
+    setExpandedLogRows(prev => {
+      if (prev.has(linkedRowId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(linkedRowId);
+      return next;
+    });
+  }, [linkedRowId]);
+
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();

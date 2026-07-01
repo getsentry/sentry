@@ -610,7 +610,59 @@ describe('logsTableRow', () => {
     expect(copiedUrl).toContain('logsQuery=id%3A1');
   });
 
-  it.isKnownFlake('copies a row link with logsRowId in a frozen view', async () => {
+  it('clears a stale logsRowId when copying a non-frozen link', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              logsRowId: '999',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+
+    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+    await userEvent.click(actionsButton);
+
+    const copyLinkItem = await screen.findByRole('menuitemradio', {name: 'Copy link'});
+    await userEvent.click(copyLinkItem);
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const copiedUrl = mockWriteText.mock.calls[0]![0];
+    expect(copiedUrl).toContain('logsQuery=id%3A1');
+    expect(copiedUrl).not.toContain('logsRowId');
+  });
+
+  it('copies a row link with logsRowId in a frozen view', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {

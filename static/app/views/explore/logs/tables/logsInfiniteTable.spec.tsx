@@ -1,4 +1,5 @@
 import React from 'react';
+import qs from 'query-string';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -592,8 +593,65 @@ describe('LogsInfiniteTable', () => {
 
     expect(linkedRow).toHaveAttribute('data-row-linked', 'true');
     expect(otherRow).not.toHaveAttribute('data-row-linked', 'true');
-    // The linked row is expanded on load, which fetches its full details.
+    // The linked row is expanded on load: its detail actions render and its
+    // full details are fetched.
+    expect(
+      await screen.findByRole('button', {name: 'Copy as JSON'})
+    ).toBeInTheDocument();
     await waitFor(() => expect(traceItemRequest).toHaveBeenCalled());
+  });
+
+  it('expands the linked row when navigation adds logsRowId', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/2/`,
+      method: 'GET',
+      body: {
+        itemId: '2',
+        links: null,
+        meta: {},
+        timestamp: mockLogsData[1]![OurLogKnownFieldKey.TIMESTAMP],
+        attributes: [],
+      },
+    });
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+            },
+          },
+        },
+      }
+    );
+
+    await screen.findAllByTestId('log-table-row');
+    // Nothing is expanded before a logsRowId is present.
+    expect(
+      screen.queryByRole('button', {name: 'Copy as JSON'})
+    ).not.toBeInTheDocument();
+
+    router.navigate(
+      `/organizations/${organization.slug}/explore/logs/?${qs.stringify({
+        [LOGS_FIELDS_KEY]: visibleColumnFields,
+        [LOGS_SORT_BYS_KEY]: '-timestamp',
+        [LOGS_ROW_ID_KEY]: '2',
+      })}`
+    );
+
+    // The newly linked row expands in place: its detail actions now render.
+    expect(
+      await screen.findByRole('button', {name: 'Copy as JSON'})
+    ).toBeInTheDocument();
+    const rows = screen.getAllByTestId('log-table-row');
+    const newlyLinkedRow = rows.find(row =>
+      within(row).queryByText('test log body 2')
+    )!;
+    expect(newlyLinkedRow).toHaveAttribute('data-row-linked', 'true');
   });
 
   it('links the body instance hover state when the pinned instance is hovered', async () => {
