@@ -347,7 +347,12 @@ export const CardHeader = memo(function CardHeader({
 
 function MetadataTooltip({json}: {json: string}) {
   return (
-    <Stack gap="xs" minWidth="260px">
+    <Stack
+      gap="xs"
+      minWidth="260px"
+      onDoubleClick={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       <MetadataHint>{t('Click info icon to copy metadata')}</MetadataHint>
       <CodeBlock language="json" hideCopyButton isRounded={false}>
         {json}
