@@ -151,7 +151,6 @@ def record_contributor_action(
 
     if (
         not is_opened
-        or features.has("organizations:seat-based-seer-skip-record-action", organization)
         or not should_increment_contributor_seat(organization, repo, contributor)
     ):
         return
