@@ -46,7 +46,7 @@ interface SpanPresentation {
   title: string;
 }
 
-export function ConversationTimeline({
+export function AiSpanTimeline({
   nodes,
   selectedNodeKey,
   onSelectNode,

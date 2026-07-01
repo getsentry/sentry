@@ -9,12 +9,12 @@ import {
   ConversationLeftPanel,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
-import {ConversationTimeline} from 'sentry/views/explore/conversations/components/conversationTimeline';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -90,7 +90,7 @@ export function ConversationViewContentNew({
                 overflowX="hidden"
                 overflowY="auto"
               >
-                <ConversationTimeline
+                <AiSpanTimeline
                   nodes={nodes}
                   selectedNodeKey={selectedNode?.id ?? ''}
                   onSelectNode={handleSelectNode}
