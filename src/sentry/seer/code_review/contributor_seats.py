@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.db import router, transaction
+from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
@@ -153,7 +154,6 @@ def record_contributor_action(
     ):
         return
 
-    locked_contributor = None
     with transaction.atomic(router.db_for_write(OrganizationContributors)):
         _, created = OrganizationContributorAction.objects.get_or_create(
             repository_id=repo.id,
@@ -163,22 +163,9 @@ def record_contributor_action(
         if not created:
             return
 
-        try:
-            locked_contributor = OrganizationContributors.objects.select_for_update().get(
-                id=contributor.id,
-            )
-            locked_contributor.num_actions += 1
-            locked_contributor.save(update_fields=["num_actions", "date_updated"])
-        except OrganizationContributors.DoesNotExist:
-            logger.warning(
-                "scm.webhook.organization_contributor.not_found",
-                extra={
-                    "provider": provider,
-                    "organization_id": organization.id,
-                    "integration_id": integration_id,
-                    "external_identifier": str(user_id),
-                },
-            )
+        OrganizationContributors.objects.filter(id=contributor.id).update(
+            num_actions=F("num_actions") + 1
+        )
 
     logger.info(
         "scm.webhook.organization_contributor.action_recorded",
@@ -198,13 +185,6 @@ def record_contributor_action(
         tags={"provider": provider},
     )
 
-    if locked_contributor is None:
-        return
-    metrics.incr(
-        "scm.webhook.organization_contributor.num_actions_incremented",
-        sample_rate=1.0,
-        tags={"provider": provider},
-    )
-
-    if locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD:
-        assign_seat_to_organization_contributor.delay(locked_contributor.id)
+    contributor.refresh_from_db(fields=["num_actions"])
+    if contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD:
+        assign_seat_to_organization_contributor.delay(contributor.id)
