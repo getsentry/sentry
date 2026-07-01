@@ -84,20 +84,8 @@ x-sentry-service-config:
         repo_name: chartcuterie
         branch: master
         repo_link: https://github.com/getsentry/chartcuterie.git
-    taskbroker: &taskbroker
+    taskbroker:
       description: Service used to process asynchronous tasks
-      remote:
-        repo_name: taskbroker
-        branch: main
-        repo_link: https://github.com/getsentry/taskbroker.git
-        mode: containerized
-    # ingest-profiles runs taskbroker in passthrough mode (STREAM-1041). Ideally
-    # this would be a remote dependency like taskbroker, but devservices doesn't
-    # support passing custom environment variables to remote services (DI-1956).
-    ingest-profiles:
-      description: Kafka consumer for processing profiling data via taskbroker passthrough mode
-    subscriptions:
-      description: Kafka consumer for processing subscription results via taskbroker passthrough mode
     memcached:
       description: Memcached used for caching
     spotlight:
@@ -137,12 +125,8 @@ x-sentry-service-config:
       description: Dedicated taskworker for eval issue-side tasks
     taskworker-evals-relay:
       description: Dedicated taskworker for eval Relay project config tasks
-    taskworker-ingest-profiles:
-      description: Taskworker for ingest-profiles passthrough broker
     taskworker-scheduler:
       description: Task scheduler that can spawn tasks based on their schedules
-    taskworker-subscriptions:
-      description: Taskworker for subscriptions passthrough broker
     # Kafka consumer services for event ingestion
     ingest-events:
       description: Kafka consumer for processing ingested events
@@ -215,8 +199,6 @@ x-sentry-service-config:
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
-        subscriptions,
-        taskworker-subscriptions,
         process-spans,
         ingest-occurrences,
         process-segments,
@@ -245,11 +227,9 @@ x-sentry-service-config:
         spotlight,
         ingest-events,
         ingest-transactions,
-        ingest-profiles,
         ingest-occurrences,
         taskbroker,
         taskworker,
-        taskworker-ingest-profiles,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
       ]
@@ -338,7 +318,6 @@ x-sentry-service-config:
         ingest-metrics,
         ingest-monitors,
         ingest-occurrences,
-        ingest-profiles,
         ingest-transactions,
         ingest-replay-recordings,
         monitors-clock-tasks,
@@ -357,7 +336,6 @@ x-sentry-service-config:
         spotlight,
         taskbroker,
         taskworker,
-        taskworker-ingest-profiles,
         vroom,
       ]
     full:
@@ -377,7 +355,6 @@ x-sentry-service-config:
         monitors-clock-tick,
         monitors-clock-tasks,
         monitors-incident-occurrences,
-        ingest-profiles,
         ingest-occurrences,
         objectstore,
         process-spans,
@@ -392,7 +369,6 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
         taskbroker,
         taskworker,
-        taskworker-ingest-profiles,
         taskworker-scheduler,
       ]
 
@@ -411,10 +387,6 @@ x-programs:
     command: sentry run taskworker --namespace relay --concurrency 1 --processing-pool-name eval-relay
   taskworker-scheduler:
     command: sentry run taskworker-scheduler
-  taskworker-ingest-profiles:
-    command: sentry run taskworker --rpc-host localhost:50052 --namespace ingest.profiling.passthrough
-  taskworker-subscriptions:
-    command: sentry run taskworker --rpc-host localhost:50053 --processing-pool-name subscriptions
   ingest-events:
     command: sentry run consumer ingest-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-attachments:
@@ -551,57 +523,13 @@ services:
     labels:
       - orchestrator=devservices
     restart: unless-stopped
-  # Taskbroker in passthrough mode for ingest-profiles topic (STREAM-1041).
-  # This is a local service rather than a remote dependency because devservices
-  # doesn't support passing custom environment variables to remote services (DI-1956).
-  ingest-profiles:
-    image: ghcr.io/getsentry/taskbroker:nightly
-    environment:
-      # Multi-topic/cluster config via env vars: nested keys use "__", and
-      # figment lowercases each segment, so topic/cluster names can only use
-      # underscores (not hyphens) when set this way.
-      TASKBROKER_KAFKA_CLUSTERS__DEFAULT__ADDRESS: 'kafka-kafka-1:9093'
-      # Consumed topic, in raw (passthrough) mode. Raw mode is configured per
-      # topic via the topic's `raw` block.
-      TASKBROKER_KAFKA_TOPICS__PROFILES__CLUSTER: 'default'
-      TASKBROKER_KAFKA_TOPICS__PROFILES__CONSUMER_GROUP: 'ingest-profiles'
-      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__NAMESPACE: 'ingest.profiling.passthrough'
-      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__APPLICATION: 'sentry'
-      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__TASKNAME: 'sentry.profiles.task.process_profile_from_kafka'
-      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__PROCESSING_DEADLINE_DURATION: '30'
-      # A raw topic's messages aren't activations, so retries (which are
-      # activation-encoded) cannot loop back into `profiles`; a separate retry
-      # topic is mandatory. Send them to the main `taskworker` topic so the
-      # default taskbroker picks them up instead of standing up another broker.
-      TASKBROKER_KAFKA_RETRY_TOPIC: 'taskworker'
-      TASKBROKER_KAFKA_TOPICS__TASKWORKER__CLUSTER: 'default'
-      TASKBROKER_KAFKA_TOPICS__TASKWORKER__CONSUMER_GROUP: 'ingest-profiles'
-      TASKBROKER_KAFKA_TOPICS__TASKWORKER__PRODUCE_ONLY: 'true'
-      TASKBROKER_KAFKA_DEADLETTER_TOPIC: 'taskworker_dlq'
-      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__CLUSTER: 'default'
-      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__CONSUMER_GROUP: 'ingest-profiles'
-      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__PRODUCE_ONLY: 'true'
-      TASKBROKER_CREATE_MISSING_TOPICS: 'true'
-      # TODO(STREAM-1041): Remove debug logging once passthrough mode is stable
-      TASKBROKER_LOG_FILTER: 'debug'
-    ports:
-      - '127.0.0.1:50052:50051'
-    networks:
-      - devservices
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    labels:
-      - orchestrator=devservices
-    restart: unless-stopped
-    platform: linux/amd64
-  # Taskbroker in passthrough mode for subscription result topics.
-  subscriptions:
+  taskbroker:
     image: ghcr.io/getsentry/taskbroker:nightly
     command: ['/opt/taskbroker', '--config', '/etc/taskbroker/config.yml']
     ports:
-      - '127.0.0.1:50053:50051'
+      - '127.0.0.1:50051:50051'
     volumes:
-      - ./config/taskbroker-subscriptions.yml:/etc/taskbroker/config.yml
+      - ./config/taskbroker.yml:/etc/taskbroker/config.yml
     networks:
       - devservices
     extra_hosts:
