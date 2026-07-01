@@ -153,10 +153,6 @@ def record_contributor_action(
     ):
         return
 
-    # Create the action row and increment num_actions in one transaction so a
-    # crash can't leave the ledger row committed without the counter advancing
-    # (which would permanently under-count, since the retry finds the row and
-    # short-circuits).
     locked_contributor = None
     with transaction.atomic(router.db_for_write(OrganizationContributors)):
         _, created = OrganizationContributorAction.objects.get_or_create(
