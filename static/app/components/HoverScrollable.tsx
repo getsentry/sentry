@@ -31,6 +31,23 @@ export function HoverScrollable({
 
   const showSlidingText = isHovered && isTruncated;
 
+  const setAnimationPlaybackRate = (playbackRate: number) => {
+    const animation = animationRef.current;
+    if (!animation) {
+      return;
+    }
+
+    if (animation.playbackRate !== playbackRate) {
+      animation.updatePlaybackRate(playbackRate);
+    }
+
+    // Once an animation reaches an endpoint, changing playbackRate alone can
+    // leave it in a finished state. Explicitly resume for directional movement.
+    if (playbackRate !== 0 && animation.playState === 'finished') {
+      animation.play();
+    }
+  };
+
   useLayoutEffect(() => {
     const container = containerRef.current;
     const content = contentRef.current;
@@ -60,6 +77,8 @@ export function HoverScrollable({
     if (leftTrim) {
       animation.reverse();
     }
+    // Keep text stationary until mouse position drives the playback direction.
+    animation.updatePlaybackRate(0);
     animationRef.current = animation;
   }, [leftTrim, showSlidingText, speed, value]);
 
@@ -84,26 +103,21 @@ export function HoverScrollable({
 
     if (scrollWidthRef.current !== content.scrollWidth) {
       scrollWidthRef.current = content.scrollWidth;
-      animationRef.current?.updatePlaybackRate(0);
+      setAnimationPlaybackRate(0);
     }
 
     const mouseX = event.clientX - rect.left;
     const effectiveEdgeWidth = Math.min(edgeWidth, rect.width / 2);
+    const playbackDirectionMultiplier = leftTrim ? -1 : 1;
 
     // left
     if (animationRef.current) {
       if (mouseX <= effectiveEdgeWidth) {
-        if (animationRef.current.playbackRate !== -1) {
-          animationRef.current.updatePlaybackRate(-1);
-        }
+        setAnimationPlaybackRate(-1 * playbackDirectionMultiplier);
       } else if (rect.width - mouseX <= effectiveEdgeWidth) {
-        if (animationRef.current.playbackRate !== 1) {
-          animationRef.current.updatePlaybackRate(1);
-        }
+        setAnimationPlaybackRate(playbackDirectionMultiplier);
       } else {
-        if (animationRef.current.playbackRate !== 0) {
-          animationRef.current.updatePlaybackRate(0);
-        }
+        setAnimationPlaybackRate(0);
       }
     }
   };
