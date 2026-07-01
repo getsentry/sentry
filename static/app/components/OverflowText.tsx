@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,7 +17,7 @@ export function OverflowText({
 }: OverflowTextProps) {
   const ref = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) {
       return;
