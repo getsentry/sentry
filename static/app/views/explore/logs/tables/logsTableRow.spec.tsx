@@ -610,47 +610,44 @@ describe('logsTableRow', () => {
     expect(copiedUrl).toContain('logsQuery=id%3A1');
   });
 
-  it.isKnownFlake(
-    'copies a row link with logsRowId in a frozen view',
-    async () => {
-      const mockWriteText = jest.fn().mockResolvedValue(undefined);
-      Object.defineProperty(window.navigator, 'clipboard', {
-        value: {
-          writeText: mockWriteText,
-        },
-        writable: true,
-      });
+  it.isKnownFlake('copies a row link with logsRowId in a frozen view', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
 
-      render(
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={{
-            current: null,
-          }}
-        />,
-        {organization, initialRouterConfig, additionalWrapper: FrozenProviderWrapper}
-      );
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: FrozenProviderWrapper}
+    );
 
-      const logTableRow = await screen.findByTestId('log-table-row');
-      await userEvent.hover(logTableRow);
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
 
-      const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
-      await userEvent.click(actionsButton);
+    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+    await userEvent.click(actionsButton);
 
-      const copyLinkItem = await screen.findByRole('menuitemradio', {name: 'Copy link'});
-      await userEvent.click(copyLinkItem);
+    const copyLinkItem = await screen.findByRole('menuitemradio', {name: 'Copy link'});
+    await userEvent.click(copyLinkItem);
 
-      await waitFor(() => {
-        expect(mockWriteText).toHaveBeenCalledTimes(1);
-      });
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
 
-      const copiedUrl = mockWriteText.mock.calls[0]![0];
-      expect(copiedUrl).toContain('logsRowId=1');
-      expect(copiedUrl).not.toContain('logsQuery=id');
-    }
-  );
+    const copiedUrl = mockWriteText.mock.calls[0]![0];
+    expect(copiedUrl).toContain('logsRowId=1');
+    expect(copiedUrl).not.toContain('logsQuery=id');
+  });
 
   it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {
     const setSidebarOpen = jest.fn();
