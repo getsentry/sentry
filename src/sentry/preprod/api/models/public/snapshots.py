@@ -14,7 +14,7 @@ class VcsInfoResponseDict(TypedDict, total=False):
     pr_number: int | None
 
 
-class SnapshotImageInfoBaseResponseDict(TypedDict, total=False):
+class SnapshotImageResponseDict(TypedDict, total=False):
     key: str
     display_name: str | None
     group: str | None
@@ -22,10 +22,6 @@ class SnapshotImageInfoBaseResponseDict(TypedDict, total=False):
     width: int
     height: int
     canvas_theme: Literal["light", "dark"] | None
-
-
-class SnapshotImageResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
-    pass
 
 
 class SnapshotDiffPairResponseDict(TypedDict, total=False):
@@ -84,7 +80,7 @@ class SnapshotCreateResponseDict(TypedDict):
     snapshotUrl: str
 
 
-class SnapshotImageDetailImageInfoResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
+class SnapshotImageDetailImageInfoResponseDict(SnapshotImageResponseDict, total=False):
     diff_threshold: float | None
     description: str | None
     tags: dict[str, str] | None
@@ -101,7 +97,7 @@ class SnapshotImageDetailResponseDict(TypedDict, total=False):
     previous_image_file_name: str | None
 
 
-class LatestBaseSnapshotImageResponseDict(SnapshotImageInfoBaseResponseDict, total=False):
+class LatestBaseSnapshotImageResponseDict(SnapshotImageResponseDict, total=False):
     image_url: str
 
 
