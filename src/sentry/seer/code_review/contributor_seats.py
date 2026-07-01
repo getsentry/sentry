@@ -117,6 +117,7 @@ def track_contributor_seat(
             "integration_id": integration_id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
+            "contributor_id": contributor.id,
             **(logs_extra or {}),
         },
     )
@@ -176,6 +177,7 @@ def record_contributor_action(
             "integration_id": integration_id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
+            "contributor_id": contributor.id,
             "pr_number": str(pr_number),
             **(logs_extra or {}),
             **(tags or {}),
