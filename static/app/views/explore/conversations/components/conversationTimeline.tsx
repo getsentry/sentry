@@ -196,7 +196,7 @@ const TimelineRow = memo(function TimelineRow({
               </Tooltip>
             )}
           </Flex>
-          <MetricColumn>
+          <Flex flexShrink={0} minWidth="90px" justify="end">
             {metric ? (
               <Text
                 size="sm"
@@ -213,8 +213,8 @@ const TimelineRow = memo(function TimelineRow({
                 isSelected={isSelected}
               />
             ) : null}
-          </MetricColumn>
-          <DurationColumn>
+          </Flex>
+          <Flex flexShrink={0} minWidth="48px" justify="end">
             <Text
               size="sm"
               variant={isSelected ? 'primary' : 'muted'}
@@ -223,7 +223,7 @@ const TimelineRow = memo(function TimelineRow({
             >
               {getDuration(duration, 2, true, true)}
             </Text>
-          </DurationColumn>
+          </Flex>
         </Flex>
         <TimelineBar color={color} relativeTiming={relativeTiming} />
       </Stack>
@@ -422,18 +422,6 @@ const RowContainer = styled('div')<{
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.active};
   }
-`;
-
-const MetricColumn = styled('div')`
-  flex-shrink: 0;
-  width: 90px;
-  text-align: right;
-`;
-
-const DurationColumn = styled('div')`
-  flex-shrink: 0;
-  width: 48px;
-  text-align: right;
 `;
 
 const TimelineBar = styled('div')<{
