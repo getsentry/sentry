@@ -1,10 +1,24 @@
 import {createContext} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+
+// Quote free-text search so the runs search grammar treats it as a title
+// filter rather than parsing filter-like input (`foo:bar`) and returning 400.
+export function buildRunsSearchQuery(searchQuery?: string) {
+  const trimmed = searchQuery?.trim();
+  return [
+    'is:mine',
+    'type:explorer',
+    trimmed ? `"${escapeDoubleQuotes(trimmed)}"` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
 
 export function useSeerExplorerSessionsQuery({
   limit = 20,
@@ -28,11 +42,7 @@ export function useSeerExplorerSessionsQuery({
             : skipToken,
         query: {
           per_page: limit,
-          // Scope the shared runs endpoint to the current user's Explorer
-          // sessions; free-text search is appended as a title filter.
-          query: ['is:mine', 'type:explorer', searchQuery?.trim()]
-            .filter(Boolean)
-            .join(' '),
+          query: buildRunsSearchQuery(searchQuery),
         },
         staleTime: 0,
       }
