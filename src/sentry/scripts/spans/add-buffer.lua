@@ -38,11 +38,14 @@ ARGS:
 RETURNS:
 - set_key -- str -- The key of the segment, used to look up member-keys index and identify the segment in the queue.
 - has_root_span -- bool -- Whether this segment contains a root span.
-- latency_ms -- number -- Milliseconds elapsed during script execution.
-- latency_table -- table -- Per-step latency measurements, flattened as [key1, value1, key2, value2, ...]. Empty
-when this call is not sampled.
+- latency_us -- int -- Microseconds elapsed during script execution. -1 when this call is not sampled.
+                       Integer microseconds because Redis truncates Lua numbers to integers in replies;
+                       fractional milliseconds would come back as 0 for virtually every call, degrading
+                       these values into 0/1 flags.
+- latency_table -- table -- Per-step latency measurements in integer microseconds, flattened as
+                            [key1, value1, key2, value2, ...]. Empty when this call is not sampled.
 - metrics_table -- table -- Per-step gauge metrics, flattened as [key1, value1, key2, value2, ...]. Empty when
-this call is not sampled.
+                            this call is not sampled.
 - merged_segment_span_ids -- str[] -- Span ids of child segments merged into this segment. These were previously
 queued as their own segments, so they are the only stale queue entries the
 caller needs to remove.
@@ -88,9 +91,9 @@ local check_flush_lock = ARGV[8] == "true"
 local metrics_sample_rate = tonumber(ARGV[9])
 local NUM_ARGS = 9
 
-local function get_time_ms()
+local function get_time_us()
     local time = redis.call("TIME")
-    return tonumber(time[1]) * 1000 + tonumber(time[2]) / 1000
+    return tonumber(time[1]) * 1000000 + tonumber(time[2])
 end
 
 local now = redis.call("TIME")
@@ -99,9 +102,9 @@ local now = redis.call("TIME")
 -- every call; a rate of 100 samples ~1% of calls.
 local sample_metrics = (tonumber(now[2]) % metrics_sample_rate) == 0
 
-local start_time_ms = 0
+local start_time_us = 0
 if sample_metrics then
-    start_time_ms = tonumber(now[1]) * 1000 + tonumber(now[2]) / 1000
+    start_time_us = tonumber(now[1]) * 1000000 + tonumber(now[2])
 end
 
 local set_span_id = parent_span_id
@@ -158,10 +161,10 @@ end
 redis.call("hset", main_redirect_key, unpack(hset_args))
 redis.call("expire", main_redirect_key, set_timeout)
 
-local redirect_end_time_ms = 0
+local redirect_end_time_us = 0
 if sample_metrics then
-    redirect_end_time_ms = get_time_ms()
-    insert_metric(latency_table, "redirect_step_latency_ms", redirect_end_time_ms - start_time_ms)
+    redirect_end_time_us = get_time_us()
+    insert_metric(latency_table, "redirect_step_latency_us", redirect_end_time_us - start_time_us)
 end
 
 local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
@@ -255,11 +258,11 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     end
 end
 
-local merge_payload_keys_end_time_ms = 0
+local merge_payload_keys_end_time_us = 0
 if sample_metrics then
-    merge_payload_keys_end_time_ms = get_time_ms()
-    insert_metric(latency_table, "merge_payload_keys_step_latency_ms",
-        merge_payload_keys_end_time_ms - redirect_end_time_ms)
+    merge_payload_keys_end_time_us = get_time_us()
+    insert_metric(latency_table, "merge_payload_keys_step_latency_us",
+        merge_payload_keys_end_time_us - redirect_end_time_us)
 end
 
 redis.call("sadd", members_key, salt)
@@ -273,13 +276,13 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 
 -- -1 is a sentinel meaning "not sampled"; the consumer ignores these so they
 -- don't pollute metrics. A real measurement is always >= 0.
-local latency_ms = -1
+local latency_us = -1
 if sample_metrics then
-    local counter_merge_end_time_ms = get_time_ms()
-    insert_metric(latency_table, "counter_merge_step_latency_ms",
-        counter_merge_end_time_ms - merge_payload_keys_end_time_ms)
-    latency_ms = counter_merge_end_time_ms - start_time_ms
-    insert_metric(latency_table, "total_step_latency_ms", latency_ms)
+    local counter_merge_end_time_us = get_time_us()
+    insert_metric(latency_table, "counter_merge_step_latency_us",
+        counter_merge_end_time_us - merge_payload_keys_end_time_us)
+    latency_us = counter_merge_end_time_us - start_time_us
+    insert_metric(latency_table, "total_step_latency_us", latency_us)
 end
 
-return { set_key, has_root_span, latency_ms, latency_table, metrics_table, merged_segment_span_ids }
+return { set_key, has_root_span, latency_us, latency_table, metrics_table, merged_segment_span_ids }
