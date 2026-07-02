@@ -13,7 +13,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 )
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
-from sentry.types.activity import ActivityType
+from sentry.types.activity import ActivityType, ActivityTypeStr, activity_type_to_str
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
@@ -32,7 +32,7 @@ class ActivitySerializerResponse(TypedDict):
     # system/integration activity. Left loose: the full user shape is out of scope.
     user: dict[str, Any] | None
     sentry_app: _ActivitySentryAppEmbed | None
-    type: str
+    type: ActivityTypeStr
     # Polymorphic by activity type (note text, commit, pull request, unmerge
     # fingerprints + source/destination, ...). Loose by design — describing every
     # variant is out of scope.
@@ -175,7 +175,7 @@ class ActivitySerializer(Serializer):
             "id": str(obj.id),
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
-            "type": obj.get_type_display(),
+            "type": activity_type_to_str(obj.type),
             "data": data,
             "dateCreated": obj.datetime,
         }

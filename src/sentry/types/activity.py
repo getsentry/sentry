@@ -1,4 +1,46 @@
 from enum import Enum
+from typing import Literal, cast
+
+ActivityTypeStr = Literal[
+    "set_resolved",
+    "set_unresolved",
+    "set_ignored",
+    "set_public",
+    "set_private",
+    "set_regression",
+    "create_issue",
+    "note",
+    "first_seen",
+    "release",
+    "assigned",
+    "unassigned",
+    "set_resolved_in_release",
+    "merge",
+    "set_resolved_by_age",
+    "set_resolved_in_commit",
+    "deploy",
+    "new_processing_issues",
+    "unmerge_source",
+    "unmerge_destination",
+    "set_resolved_in_pull_request",
+    "reprocess",
+    "mark_reviewed",
+    "auto_set_ongoing",
+    "set_escalating",
+    "set_priority",
+    "deleted_attachment",
+    "referenced_in_commit",
+    "seer_rca_started",
+    "seer_rca_completed",
+    "seer_solution_started",
+    "seer_solution_completed",
+    "seer_coding_started",
+    "seer_coding_completed",
+    "seer_pr_created",
+    "seer_iteration_started",
+    "seer_iteration_completed",
+    "pull_request_closed",
+]
 
 
 class ActivityType(Enum):
@@ -46,6 +88,11 @@ class ActivityType(Enum):
 
     # A pull request linked to the group was closed without merging
     PULL_REQUEST_CLOSED = 38
+
+
+def activity_type_to_str(value: int) -> ActivityTypeStr:
+    # Cast is safe: a test asserts ActivityTypeStr matches the enum names exactly.
+    return cast(ActivityTypeStr, ActivityType(value).name.lower())
 
 
 # Warning: This must remain in this EXACT order.
