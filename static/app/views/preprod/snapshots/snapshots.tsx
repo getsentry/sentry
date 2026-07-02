@@ -178,7 +178,7 @@ export default function SnapshotsPage() {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
-    palette.at(-5) ?? palette[0]
+    palette.at(-3) ?? palette[0]
   );
   const [diffMode, setDiffMode] = useLocalStorageState<DiffMode>(
     'snapshot-diff-mode',
