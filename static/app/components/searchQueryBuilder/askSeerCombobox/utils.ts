@@ -6,6 +6,8 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
@@ -89,6 +91,65 @@ export function getExpandedProjectIds(
   const selectedSet = new Set(selectedProjectIds);
   const hasExtraProjects = returnedProjectIds.some(id => !selectedSet.has(id));
   return hasExtraProjects ? returnedProjectIds : undefined;
+}
+
+export interface SeerProjectSelection {
+  /**
+   * Project IDs to apply to the page-level project selector, or `undefined` to
+   * leave the current selection untouched.
+   */
+  projectIds: number[] | undefined;
+  /** The query with any resolved `project`/`project.id` filter removed. */
+  query: string;
+}
+
+/**
+ * Seer scopes a query to specific projects by putting a `project:`/`project.id:`
+ * filter in the returned query string. Project is a page-level filter owned by
+ * the project selector, so pull those tokens out and resolve them to project IDs
+ * to apply to the selector instead of leaving them duplicated in the search bar.
+ *
+ * `project:` values are resolved by slug (falling back to a numeric id);
+ * `project.id:` values are taken as ids directly. Falls back to
+ * `expandedProjectIds` (the scope Seer broadened to) when the query has no
+ * project filter. Returns `projectIds: undefined` when neither is present, so the
+ * current selection is left untouched. Slugs that don't resolve to a known
+ * project are left in the query rather than silently dropped.
+ */
+export function resolveSeerProjectSelection(
+  query: string,
+  projects: Project[],
+  expandedProjectIds?: number[]
+): SeerProjectSelection {
+  const search = new MutableSearch(query);
+  const slugToId = new Map(projects.map(project => [project.slug, project.id]));
+
+  const resolvedIds: number[] = [];
+  for (const value of search.getFilterValues('project')) {
+    const id = slugToId.get(value) ?? (/^\d+$/.test(value) ? value : undefined);
+    if (id !== undefined) {
+      resolvedIds.push(Number(id));
+    }
+  }
+  for (const value of search.getFilterValues('project.id')) {
+    if (/^\d+$/.test(value)) {
+      resolvedIds.push(Number(value));
+    }
+  }
+
+  if (resolvedIds.length > 0) {
+    search.removeFilter('project');
+    search.removeFilter('project.id');
+    return {
+      projectIds: Array.from(new Set(resolvedIds)),
+      query: search.formatString(),
+    };
+  }
+
+  return {
+    projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined,
+    query,
+  };
 }
 
 function formatToken(token: string): string {

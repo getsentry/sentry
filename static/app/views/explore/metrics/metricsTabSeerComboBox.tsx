@@ -18,6 +18,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -26,6 +27,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
@@ -56,6 +58,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
   const analyticsArea = useAnalyticsArea();
@@ -109,12 +112,21 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
+      // Move any `project:` filter Seer put in the query onto the page-level
+      // project selector so it isn't duplicated in the search bar. Metric-filter
+      // cleanup below runs on the project-stripped query.
+      const {query: projectCleanedQuery, projectIds} = resolveSeerProjectSelection(
+        seerQuery.query,
+        projects,
+        result.expandedProjectIds
+      );
+
       // Keep the panel's TraceMetric in sync with what Seer queried. We parse
       // the metric name/type/unit out of the visualize aggregate (e.g.
       // p75(value, metric.name, distribution, millisecond)); if it's not there
       // we read metric.name/type/unit filters from the query (typically only
       // present in samples mode).
-      const search = new MutableSearch(seerQuery.query);
+      const search = new MutableSearch(projectCleanedQuery);
 
       const visualizationTraceMetric = (result.visualizations ?? [])
         .flatMap(viz => viz.yAxes)
@@ -164,7 +176,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // metric (it's then tracked on the panel, not the query). If we couldn't
       // resolve one, leave the query untouched so it stays consistent with the
       // unchanged panel metric.
-      let cleanedQuery = seerQuery.query;
+      let cleanedQuery = projectCleanedQuery;
       if (resolvedMetric) {
         search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
         search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
@@ -294,9 +306,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...location,
           query: {
             ...location.query,
-            ...(result.expandedProjectIds?.length
-              ? {project: result.expandedProjectIds.map(String)}
-              : {}),
+            ...(projectIds?.length ? {project: projectIds.map(String)} : {}),
             metric: newEncodedMetrics,
             start: seerQuery.datetime.start,
             end: seerQuery.datetime.end,
@@ -318,6 +328,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       navigate,
       organization,
       pageFilters.selection,
+      projects,
       queryParams,
       setRunId,
       traceMetric,
