@@ -168,9 +168,6 @@ def _process_segment_bytes(segment_bytes: bytes, skip_produce: bool = False) -> 
 def _process_message(
     message: Message[KafkaPayload], skip_produce: bool = False
 ) -> list[Value[KafkaPayload]]:
-    if not options.get("spans.process-segments.consumer.enable"):
-        return []
-
     assert isinstance(message.value, BrokerValue)
 
     try:

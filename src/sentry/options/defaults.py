@@ -2998,12 +2998,6 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Segments consumer
-register(
-    "spans.process-segments.consumer.enable",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "spans.process-segments.detect-performance-problems.enable",
     default=False,

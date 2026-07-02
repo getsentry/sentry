@@ -31,7 +31,6 @@ def build_mock_message(data, topic=None):
 
 @override_options(
     {
-        "spans.process-segments.consumer.enable": True,
         "spans.process-segments.dedupe-ttl": 0,
         "spans.process-segments.dedupe-filter-enable": False,
     }
@@ -117,7 +116,6 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
         assert headers["project_id"] == b"1"
 
 
-@override_options({"spans.process-segments.consumer.enable": True})
 @mock.patch(
     "sentry.spans.consumers.process_segments.factory._check_span_duplicates",
     side_effect=lambda spans: spans,
