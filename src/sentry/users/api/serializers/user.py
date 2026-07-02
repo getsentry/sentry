@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -70,14 +70,23 @@ class _SerializedStacktraceOrder(int, Enum):
     MOST_RECENT_FIRST = int(StacktraceOrder.MOST_RECENT_FIRST)
 
 
+UserThemeStr = Literal["light", "dark", "system"]
+
+DefaultIssueEventStr = Literal["recommended", "latest", "oldest"]
+
+
 class _UserOptions(TypedDict):
-    theme: str  # TODO: enum/literal for theme options
+    theme: UserThemeStr
     language: str
     stacktraceOrder: _SerializedStacktraceOrder
-    defaultIssueEvent: str
+    defaultIssueEvent: DefaultIssueEventStr
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
+
+
+class _UserFlags(TypedDict):
+    newsletter_consent_prompt: bool
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -113,7 +122,7 @@ class UserSerializerResponse(UserSerializerResponseOptional):
 
 class UserSerializerResponseSelf(UserSerializerResponse):
     options: _UserOptions
-    flags: Any  # TODO
+    flags: _UserFlags
 
 
 @register(User)
