@@ -266,38 +266,40 @@ export function FiltersBar({
   return (
     <Wrapper>
       <FiltersRow>
-        <StyledPageFilterBar condensed>
-          <ProjectPageFilter
-            disabled={isEditingDashboard}
-            storageNamespace={storageNamespace}
-            onChange={() => {
-              trackAnalytics('dashboards2.filter.change', {
-                organization,
-                filter_type: 'project',
-              });
-            }}
-          />
-          <EnvironmentPageFilter
-            disabled={isEditingDashboard}
-            storageNamespace={storageNamespace}
-            onChange={() => {
-              trackAnalytics('dashboards2.filter.change', {
-                organization,
-                filter_type: 'environment',
-              });
-            }}
-          />
-          <DatePageFilter
-            disabled={isEditingDashboard}
-            maxPickableDays={maxPickableDaysOptions.maxPickableDays}
-            onChange={() => {
-              trackAnalytics('dashboards2.filter.change', {
-                organization,
-                filter_type: 'date',
-              });
-            }}
-          />
-        </StyledPageFilterBar>
+        <PageFilterBarWrapper>
+          <StyledPageFilterBar condensed>
+            <ProjectPageFilter
+              disabled={isEditingDashboard}
+              storageNamespace={storageNamespace}
+              onChange={() => {
+                trackAnalytics('dashboards2.filter.change', {
+                  organization,
+                  filter_type: 'project',
+                });
+              }}
+            />
+            <EnvironmentPageFilter
+              disabled={isEditingDashboard}
+              storageNamespace={storageNamespace}
+              onChange={() => {
+                trackAnalytics('dashboards2.filter.change', {
+                  organization,
+                  filter_type: 'environment',
+                });
+              }}
+            />
+            <DatePageFilter
+              disabled={isEditingDashboard}
+              maxPickableDays={maxPickableDaysOptions.maxPickableDays}
+              onChange={() => {
+                trackAnalytics('dashboards2.filter.change', {
+                  organization,
+                  filter_type: 'date',
+                });
+              }}
+            />
+          </StyledPageFilterBar>
+        </PageFilterBarWrapper>
         <SortableReleasesSelect
           sortBy={releaseSort}
           selectedReleases={selectedReleases}
@@ -444,6 +446,17 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
+const PageFilterBarWrapper = styled('div')`
+  display: contents;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+`;
+
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: row;
@@ -484,15 +497,30 @@ const FiltersRow = styled('div')`
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    /* Override max-content width from condensed prop */
     max-width: 100%;
-    width: 100% !important;
+    width: 100%;
     flex-wrap: wrap;
 
     /* Ensure child filters can shrink and wrap properly on mobile */
     & > div {
-      flex-shrink: 1;
-      flex-basis: auto;
+      flex: 1 1 auto;
       min-width: 0;
+      max-width: 100%;
+      
+      /* Remove the min-width constraint on last child */
+      &:last-child {
+        min-width: 0;
+      }
+      
+      /* Allow first child to shrink on mobile */
+      &:first-child {
+        flex-shrink: 1;
+      }
+    }
+    
+    /* Ensure buttons inside also respect width */
+    & button[aria-haspopup] {
       max-width: 100%;
     }
   }
