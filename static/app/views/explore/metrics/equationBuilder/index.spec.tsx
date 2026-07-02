@@ -81,4 +81,29 @@ describe('EquationBuilder', () => {
       ''
     );
   });
+
+  it('submits an empty expression when the user types a bunch of spaces', async () => {
+    const handleExpressionChange = jest.fn();
+
+    render(
+      <EquationBuilder
+        expression=""
+        referenceMap={{A: 'count(value,metricA,distribution,none)'}}
+        handleExpressionChange={handleExpressionChange}
+      />
+    );
+
+    // Type a bunch of spaces and then enter to submit the expression
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Add a term'}),
+      '    {enter}'
+    );
+
+    expect(handleExpressionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: '',
+      }),
+      ''
+    );
+  });
 });
