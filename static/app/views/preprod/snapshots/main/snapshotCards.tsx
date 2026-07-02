@@ -103,7 +103,7 @@ export const PairCard = memo(function PairCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
   status?: DiffStatus;
 }) {
   const [isDark, setIsDark] = useState(false);

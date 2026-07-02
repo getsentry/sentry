@@ -227,7 +227,7 @@ describe('SnapshotMainContent', () => {
     expect(onOverlayOpacityChange).toHaveBeenCalledWith(50);
   });
 
-  it('leaves every opacity preset unselected until one is chosen', async () => {
+  it('marks only the active opacity preset as pressed', async () => {
     const changedItem = {
       key: 'changed-buttons',
       name: 'Buttons',
@@ -242,18 +242,17 @@ describe('SnapshotMainContent', () => {
       isSoloView: false,
       listItems: [changedItem],
       selectedItem: changedItem,
-      overlayOpacity: null,
+      overlayOpacity: 50,
       viewMode: 'single',
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Pick overlay color'}));
 
-    // Untouched state: overlay renders at full opacity and no preset is pressed.
-    for (const label of [
-      'Overlay opacity 0%',
-      'Overlay opacity 50%',
-      'Overlay opacity 100%',
-    ]) {
+    expect(screen.getByRole('button', {name: 'Overlay opacity 50%'})).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    for (const label of ['Overlay opacity 0%', 'Overlay opacity 100%']) {
       expect(screen.getByRole('button', {name: label})).toHaveAttribute(
         'aria-pressed',
         'false'

@@ -46,7 +46,7 @@ function SnapshotsToolbarWithControls({
     onOverlayColorChange: (color: string) => void;
     onOverlayOpacityChange: (opacity: number) => void;
     overlayColor: string;
-    overlayOpacity: number | null;
+    overlayOpacity: number;
     showSplit?: boolean;
   };
   progress?: {

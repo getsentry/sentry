@@ -4,7 +4,7 @@ export const DiffOverlay = styled('span')<{
   $maskSize: string;
   $maskUrl: string;
   $overlayColor: string;
-  $opacity?: number | null;
+  $opacity?: number;
 }>`
   position: absolute;
   top: 0;
@@ -13,7 +13,7 @@ export const DiffOverlay = styled('span')<{
   height: 100%;
   pointer-events: none;
   background-color: ${p => p.$overlayColor};
-  opacity: ${p => (p.$opacity ?? 100) / 100};
+  opacity: ${p => (p.$opacity ?? 50) / 100};
   mask-image: url('${p => p.$maskUrl}');
   mask-size: ${p => p.$maskSize};
   mask-position: top left;

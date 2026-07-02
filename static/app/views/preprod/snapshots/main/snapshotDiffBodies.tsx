@@ -54,7 +54,7 @@ export const SplitPairBody = memo(function SplitPairBody({
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
   overlayColor?: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
 }) {
   const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
@@ -137,7 +137,7 @@ export const ImageColumn = memo(function ImageColumn({
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
   overlayColor?: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =

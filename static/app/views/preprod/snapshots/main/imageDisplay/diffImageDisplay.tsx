@@ -34,7 +34,7 @@ interface DiffImageDisplayProps {
   overlayColor: string;
   pair: SnapshotDiffPair;
   headLabel?: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
 }
 
 export function DiffImageDisplay({
@@ -98,7 +98,7 @@ interface SplitViewProps {
   headLabel: string;
   maskSize: string;
   overlayColor: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
 }
 
 function SplitView({

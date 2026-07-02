@@ -172,7 +172,7 @@ export function ColorPickerButton({
   color: string;
   onChange: (color: string) => void;
   onOpacityChange: (opacity: number) => void;
-  opacity: number | null;
+  opacity: number;
 }) {
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);

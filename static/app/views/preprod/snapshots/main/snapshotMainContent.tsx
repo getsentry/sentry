@@ -67,7 +67,7 @@ interface SnapshotMainContentProps {
   onToggleSoloView: () => void;
   onViewModeChange: (mode: ViewMode) => void;
   overlayColor: string;
-  overlayOpacity: number | null;
+  overlayOpacity: number;
   selectedItem: SidebarItem | null;
   variantIndex: number;
   viewMode: ViewMode;

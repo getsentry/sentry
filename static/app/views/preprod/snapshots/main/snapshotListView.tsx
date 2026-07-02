@@ -41,7 +41,7 @@ interface SnapshotListViewProps {
   onSelectSnapshot?: (key: string | null) => void;
   onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
   ref?: React.Ref<SnapshotListViewHandle>;
   selectedSnapshotKey?: string | null;
 }
@@ -637,7 +637,7 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
-  overlayOpacity?: number | null;
+  overlayOpacity?: number;
 }) {
   const organization = useOrganization();
   const cards = group.cards.map(card => {

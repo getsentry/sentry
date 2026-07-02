@@ -184,9 +184,9 @@ export default function SnapshotsPage() {
     'snapshot-diff-mode',
     'split'
   );
-  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState<number | null>(
+  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState(
     'snapshot-overlay-opacity',
-    null
+    50
   );
   const breakpoints = useBreakpoints();
   const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
