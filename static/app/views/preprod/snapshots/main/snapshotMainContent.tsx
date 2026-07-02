@@ -22,7 +22,7 @@ import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {CardHeader, DarkAware, ErroredBanner} from './snapshotCards';
+import {CardHeader, DarkAware, ErroredBanner, useCanvasTheme} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
@@ -112,8 +112,18 @@ export function SnapshotMainContent({
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
-  const [isDark, setIsDark] = useState(false);
-  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const selectedImage = useMemo(() => {
+    if (!selectedItem) {
+      return null;
+    }
+    return isPairSidebarItem(selectedItem)
+      ? selectedItem.pairs[variantIndex]?.head_image
+      : selectedItem.images[variantIndex];
+  }, [selectedItem, variantIndex]);
+  const {isDark, toggleIsDark} = useCanvasTheme(
+    selectedImage?.canvas_theme,
+    selectedImage?.key // reused across images: resync the canvas on navigation
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
@@ -284,7 +294,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -341,7 +351,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -402,7 +412,7 @@ export function SnapshotMainContent({
   return (
     <SingleViewLayout
       isDark={isDark}
-      onToggleDark={toggleDark}
+      onToggleDark={toggleIsDark}
       groupName={groupName}
       toggle={toggle}
       soloDiffToggle={soloDiffToggle}
