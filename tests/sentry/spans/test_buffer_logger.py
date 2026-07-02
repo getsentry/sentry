@@ -228,7 +228,7 @@ def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
         for i in range(1100):
             # Create entries with different latencies
             # Lower i values get higher latencies to test trimming
-            latency = 1000 - i if i < 500 else 100
+            latency = 1000.0 - i if i < 500 else 100.0
             entries_to_add.append((f"project{i}:trace{i}", latency))
 
         buffer_logger.log(entries_to_add)
@@ -260,9 +260,9 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
 
         buffer_logger = BufferLogger()
 
-        buffer_logger.log([("high_project:trace", 150)] * 10)
+        buffer_logger.log([("high_project:trace", 150.0)] * 10)
 
-        entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
+        entries = [(f"project{i}:trace{i}", 100.0) for i in range(1000)]
         buffer_logger.log(entries)
 
         assert len(buffer_logger._metrics_per_trace) == 50
