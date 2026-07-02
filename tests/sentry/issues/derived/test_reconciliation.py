@@ -14,6 +14,7 @@ import pytest
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
+    LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
     IssueStatus,
@@ -222,6 +223,19 @@ def test_reconcile_status_to_closed_nulls_progress() -> None:
     )
     assert state[STATUS] == IssueStatus.CLOSED
     assert state[PROGRESS] is None
+
+
+def test_reconcile_status_updates_last_progressed_at() -> None:
+    p = _pipeline()
+    state = p.run(
+        [
+            FakeEntry(type=GroupActionType.ASSIGN),
+            # Status reconciliation triggers a real progress transition
+            # (closed → progress=None), so LAST_PROGRESSED_AT is updated.
+            _reconcile_entry(STATUS.value(IssueStatus.CLOSED)),
+        ]
+    )
+    assert state[LAST_PROGRESSED_AT] is not None
 
 
 def test_reconcile_status_to_open_resets_progress() -> None:
