@@ -592,9 +592,6 @@ export function getSoftCapType(metricHistory: BillingMetricHistory): string | nu
       allowInnerUpperCase: true,
     }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
   }
-  if (metricHistory.trueForward) {
-    return 'True Forward';
-  }
   return null;
 }
 
@@ -1027,7 +1024,6 @@ export function normalizeMetricHistory(
       paygCpe: null,
       sentUsageWarning: false,
       softCapType: null,
-      trueForward: false,
       usageExceeded: false,
     }
   );

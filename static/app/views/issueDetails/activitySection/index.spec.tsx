@@ -661,6 +661,43 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
+  it('shows an expand link when activity does not collapse', async () => {
+    const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
+      type: GroupActivityType.NOTE,
+      id: `note-${index + 1}`,
+      data: {text: `Test Note ${index + 1}`},
+      dateCreated: '2020-01-01T00:00:00',
+      user: UserFixture({id: '2'}),
+      project,
+    }));
+
+    const updatedActivityGroup = GroupFixture({
+      id: '1338',
+      activity: activities,
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={updatedActivityGroup}
+        project={updatedActivityGroup.project}
+      >
+        <ActivitySection group={updatedActivityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    for (const activity of activities) {
+      expect(
+        await screen.findByText((activity.data as {text: string}).text)
+      ).toBeInTheDocument();
+    }
+
+    expect(screen.getByRole('button', {name: 'View all activity'})).toHaveTextContent(
+      'Expand'
+    );
+    expect(screen.queryByText(/View \d+ more/)).not.toBeInTheDocument();
+  });
+
   it('does not collapse activity when rendered in the drawer', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,

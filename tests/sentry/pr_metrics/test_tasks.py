@@ -47,3 +47,63 @@ class ForwardPrToSeerTaskTest(TestCase):
         # resolves no PR and nothing is forwarded.
         self._run(repository_id=self.repo.id + 1000)
         assert mock_forward.call_count == 0
+
+
+@cell_silo_test
+class CleanupPrActivityTaskTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+
+    def _create_activity(self, webhook_id: str) -> None:
+        from sentry.models.pullrequest import PullRequestActivity, PullRequestActivityType
+
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.OPENED,
+            payload={},
+        )
+
+    def test_deletes_activity_rows_for_pr(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivity
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        self._create_activity("delivery-1")
+        self._create_activity("delivery-2")
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_no_op_when_no_rows_exist(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivity
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_does_not_delete_rows_for_other_prs(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivity, PullRequestActivityType
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        other_pr = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="99"
+        )
+        PullRequestActivity.objects.create(
+            pull_request=other_pr,
+            webhook_id="delivery-other",
+            event_type=PullRequestActivityType.OPENED,
+            payload={},
+        )
+        self._create_activity("delivery-1")
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+        assert PullRequestActivity.objects.filter(pull_request=other_pr).exists()
