@@ -13,6 +13,7 @@ from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.sentry_apps.services.app import (
     RpcAlertRuleActionResult,
+    RpcOrganizationIdResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
@@ -266,6 +267,22 @@ def get_installations_for_organization(organization_id: int) -> list[RpcSentryAp
 @back_with_silo_cache("app_service.get_by_application_id", SiloMode.CELL, RpcSentryApp)
 def get_by_application_id(application_id: int) -> RpcSentryApp | None:
     return app_service.find_service_hook_sentry_app(api_application_id=application_id)
+
+
+@back_with_silo_cache(
+    "app_service.get_installation_org_id_by_token_id",
+    SiloMode.CELL,
+    RpcOrganizationIdResult,
+    # Short TTL: this is only used to pick a rate-limit bucket, not for authentication,
+    # so a stale entry has no security impact -- it just bounds how long a revoked or
+    # reassigned token can be bucketed by its old organization.
+    timeout=60,
+)
+def get_installation_org_id_by_token(token_id: int) -> RpcOrganizationIdResult | None:
+    organization_id = app_service.get_installation_org_id_by_token_id(token_id=token_id)
+    if organization_id is None:
+        return None
+    return RpcOrganizationIdResult(organization_id=organization_id)
 
 
 app_service = AppService.create_delegation()

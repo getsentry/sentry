@@ -129,6 +129,10 @@ class RpcSentryAppInstallation(RpcModel):
     api_token: str | None = Field(repr=False, default=None)
 
 
+class RpcOrganizationIdResult(RpcModel):
+    organization_id: int = -1
+
+
 class RpcSentryAppComponent(RpcModel):
     uuid: str = ""
     sentry_app_id: int = -1

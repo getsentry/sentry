@@ -1,11 +1,15 @@
+from django.core.cache import cache
+
 from sentry.constants import SentryAppInstallationStatus
+from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app import app_service, get_installation_org_id_by_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.types.cell import get_local_cell
 from sentry.users.models.useremail import UserEmail
 
 
@@ -239,6 +243,38 @@ def test_get_installation_org_id_by_token_id() -> None:
     # Installation must be installed
     result = app_service.get_installation_org_id_by_token_id(token_id=token.id)
     assert result is None
+
+
+@django_db_all(transaction=True)
+def test_get_installation_org_id_by_token_cached() -> None:
+    cache.clear()
+
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+    sentry_app = Factories.create_internal_integration(organization_id=org.id, is_alertable=True)
+    token = Factories.create_internal_integration_token(user=user, internal_integration=sentry_app)
+
+    result = get_installation_org_id_by_token(token.id)
+    assert result is not None
+    assert result.organization_id == org.id
+    assert result == get_installation_org_id_by_token.cb(token.id)
+
+    with assume_test_silo_mode_of(SentryAppInstallation):
+        install = sentry_app.installations.get(organization_id=org.id)
+        install.status = SentryAppInstallationStatus.PENDING
+        install.save()
+
+    # Stale cache still returns the previously resolved organization id.
+    assert get_installation_org_id_by_token(token.id) == result
+
+    # The raw (uncached) lookup reflects the status change immediately.
+    assert get_installation_org_id_by_token.cb(token.id) is None
+
+    cell_caching_service.clear_key(
+        cell_name=get_local_cell().name,
+        key=get_installation_org_id_by_token.key_from(token.id),
+    )
+    assert get_installation_org_id_by_token(token.id) is None
 
 
 @django_db_all(transaction=True)
