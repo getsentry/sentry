@@ -168,7 +168,7 @@ export type SeerAnalyticsEventsParameters = {
     run_id: SeerExplorerRunId | null;
   };
   'seer.explorer.update_slack_clicked': {
-    configurations: number;
+    num_configurations: number;
   };
 };
 
