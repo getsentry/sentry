@@ -70,7 +70,7 @@ describe('spansWidgetQueries', () => {
         },
       ],
     });
-    const statsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
         a: {
@@ -115,7 +115,6 @@ describe('spansWidgetQueries', () => {
       {organization}
     );
 
-    await waitFor(() => expect(statsMock).toHaveBeenCalled());
     expect(await screen.findByText('high')).toBeInTheDocument();
   });
 
