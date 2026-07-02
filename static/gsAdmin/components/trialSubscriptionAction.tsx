@@ -3,15 +3,14 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {
   AdminConfirmParams,
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
@@ -19,9 +18,8 @@ type Props = AdminConfirmRenderProps & {
 };
 
 type State = {
+  startTrialOnLatestTier: boolean;
   trialDays: number;
-  trialPlanOverride?: string;
-  trialTier?: PlanTier;
 };
 
 /**
@@ -33,8 +31,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
       this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
         ? 28
         : 14,
-    trialTier: PlanTier.AM3,
-    trialPlanOverride: undefined,
+    startTrialOnLatestTier: false,
   };
 
   componentDidMount() {
@@ -42,19 +39,19 @@ export class TrialSubscriptionAction extends Component<Props, State> {
   }
 
   handleConfirm = (_params: AdminConfirmParams) => {
-    const {trialDays, trialTier, trialPlanOverride} = this.state;
+    const {trialDays, startTrialOnLatestTier} = this.state;
     const {startEnterpriseTrial, onConfirm} = this.props;
 
     // XXX(epurkhiser): In the original implementation none of the audit params
     // were passed, is that an oversight?
-
+    //
+    // The trial tier is resolved server-side (omitting `trialTier` falls back
+    // to the subscription's default enterprise-trial plan). Passing
+    // `startTrialOnLatestTier` instead opts into the latest available tier.
     const data = {
       trialDays,
-      ...(startEnterpriseTrial && {
-        startEnterpriseTrial,
-        trialTier,
-        trialPlanOverride,
-      }),
+      ...(startEnterpriseTrial && {startEnterpriseTrial}),
+      ...(startEnterpriseTrial && startTrialOnLatestTier && {startTrialOnLatestTier}),
     };
 
     onConfirm?.(data);
@@ -77,8 +74,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
 
   render() {
     const {subscription, startEnterpriseTrial} = this.props;
-    const {trialDays, trialTier, trialPlanOverride} = this.state;
-    const AM3_ENTERPRISE_TRIAL_PLAN = 'am3_t_ent_ds';
+    const {trialDays, startTrialOnLatestTier} = this.state;
 
     if (!subscription) {
       return null;
@@ -88,13 +84,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
       (!startEnterpriseTrial && subscription.trialEnd) || undefined
     );
     const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
-
-    const tierChoices: Array<[string | PlanTier, string | PlanTier]> = [
-      [AM3_ENTERPRISE_TRIAL_PLAN, 'am3 with Dynamic Sampling'],
-      [PlanTier.AM3, PlanTier.AM3],
-      [PlanTier.AM2, PlanTier.AM2],
-      [PlanTier.AM1, PlanTier.AM1],
-    ];
 
     return (
       <Fragment>
@@ -119,26 +108,18 @@ export class TrialSubscriptionAction extends Component<Props, State> {
           value={trialDays}
           onChange={this.onDaysChange}
         />
-        <div data-test-id="trial-plan-tier-choices">
-          {startEnterpriseTrial && (
-            <SelectField
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              label="Trial Plan Tier"
-              name="tier"
-              value={trialPlanOverride ?? trialTier}
-              onChange={(val: any) => {
-                if (val === AM3_ENTERPRISE_TRIAL_PLAN) {
-                  this.setState({trialPlanOverride: val});
-                } else {
-                  this.setState({trialTier: val, trialPlanOverride: undefined});
-                }
-              }}
-              choices={tierChoices}
-            />
-          )}
-        </div>
+        {startEnterpriseTrial && (
+          <BooleanField
+            inline={false}
+            stacked
+            flexibleControlStateSize
+            label="Trial the latest tier"
+            help="Start the trial on the latest available tier instead of the tier that matches their current plan."
+            name="startTrialOnLatestTier"
+            value={startTrialOnLatestTier}
+            onChange={(value: boolean) => this.setState({startTrialOnLatestTier: value})}
+          />
+        )}
       </Fragment>
     );
   }

@@ -22,14 +22,14 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 
 
 @control_silo_test
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self) -> None:
         super().setUp()
-        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_FALLBACK_CELL):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
@@ -144,10 +144,13 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             organization_id=self.organization.id
         ).cell_name
         regions = [
-            Cell("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
-            Cell(org_region_name, 2, "http://moo", RegionCategory.MULTI_TENANT),
+            Cell("some-region", 10, "http://blah"),
+            Cell(org_region_name, 2, "http://moo"),
         ]
-        with override_cells(regions), override_settings(SENTRY_MONOLITH_REGION=org_region_name):
+        with (
+            override_cells(regions),
+            override_settings(SENTRY_FALLBACK_CELL=org_region_name),
+        ):
             with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,
@@ -327,7 +330,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         self.login_as(user)
         Factories.create_member(user=user, organization=self.organization, role="member")
 
-        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_FALLBACK_CELL):
             other_organization = self.create_organization(
                 owner=self.create_user("otherowner@example.com")
             )

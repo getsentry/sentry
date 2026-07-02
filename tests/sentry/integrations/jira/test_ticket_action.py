@@ -8,6 +8,7 @@ from fixtures.integrations.jira.mock import MockJira
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.models.activity import Activity
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -18,6 +19,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 
@@ -109,8 +111,23 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert ticket created in DB
             key = self.get_key(event)
+            external_issue = ExternalIssue.objects.get(key=key)
             external_issue_count = len(ExternalIssue.objects.filter(key=key))
             assert external_issue_count == 1
+
+            activity = Activity.objects.get(
+                group_id=event.group_id, type=ActivityType.CREATE_ISSUE.value
+            )
+            assert activity.project_id == event.project_id
+            assert activity.user_id is None
+            assert activity.data == {
+                "title": external_issue.title,
+                "provider": self.installation.model.get_provider().name,
+                "location": self.installation.get_issue_url(external_issue.key),
+                "label": self.installation.get_issue_display_name(external_issue)
+                or external_issue.key,
+                "new": True,
+            }
 
             # assert ticket created on jira
             assert isinstance(self.installation, JiraIntegration)
@@ -122,6 +139,12 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
+            assert (
+                Activity.objects.filter(
+                    group_id=event.group_id, type=ActivityType.CREATE_ISSUE.value
+                ).count()
+                == 1
+            )
             mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

@@ -23,6 +23,7 @@ from sentry.replays.usecases.ingest.event_parser import (
 )
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
+from sentry.seer.sentry_data_models import ReplaySummaryLogsResponse
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -519,7 +520,7 @@ def rpc_get_replay_summary_logs(
     project_id: int,
     replay_id: str,
     num_segments: int,
-) -> dict[str, Any]:
+) -> ReplaySummaryLogsResponse:
     """
     RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
     """
@@ -546,7 +547,7 @@ def rpc_get_replay_summary_logs(
     # 404s should be handled in the originating Sentry endpoint.
     # If the replay is missing here just return an empty response.
     if not processed_response:
-        return {"logs": []}
+        return ReplaySummaryLogsResponse(logs=[])
 
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
@@ -611,4 +612,4 @@ def rpc_get_replay_summary_logs(
         is_mobile_replay=is_mobile_replay,
         replay_start=replay_start,
     )
-    return {"logs": logs}
+    return ReplaySummaryLogsResponse(logs=logs)

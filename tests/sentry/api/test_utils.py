@@ -7,6 +7,7 @@ from django.db import OperationalError
 from django.utils import timezone
 from rest_framework.exceptions import APIException, Throttled, ValidationError
 from sentry_sdk import Scope
+from snuba_sdk.column import InvalidColumnError
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
@@ -179,6 +180,7 @@ class HandleQueryErrorsTest(APITestCase):
         exceptions = [
             DatasetSelectionError,
             IncompatibleMetricsQuery,
+            InvalidColumnError,
             InvalidSearchQuery,
             QueryConnectionFailed,
             QueryExecutionError,

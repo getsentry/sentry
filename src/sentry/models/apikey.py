@@ -65,14 +65,14 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
         return f"api_key_id={self.id}, status={self.status}"
 
     @classmethod
-    def generate_api_key(cls):
+    def generate_api_key(cls) -> str:
         return secrets.token_hex(nbytes=16)
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ApiKeyStatus.ACTIVE
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.key:
             self.key = ApiKey.generate_api_key()
         super().save(*args, **kwargs)
@@ -82,7 +82,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
             return []
         return list(filter(bool, self.allowed_origins.split("\n")))
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "label": self.label,
             "key": self.key,

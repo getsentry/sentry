@@ -25,6 +25,11 @@ from sentry.utils import metrics, redis
 
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
+# add-buffer.lua collects observability metrics for only 1 in N calls to keep
+# the hot path cheap. The sampled metrics are distributions/gauges, so the
+# subset stays statistically representative.
+METRICS_SAMPLE_RATE = 100
+
 type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
 type DecompressPayload = Callable[[bytes], list[bytes]]
 type GetDebugTraceLogger = Callable[[], Any]
@@ -87,9 +92,8 @@ class SpansBufferStore:
         """
         Ensures the Lua script is loaded in Redis and returns its SHA.
         """
-        if not self.add_buffer_sha or not self.client.script_exists(self.add_buffer_sha)[0]:
+        if not self.add_buffer_sha:
             self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
-
         return self.add_buffer_sha
 
     def store_payloads(
@@ -179,6 +183,7 @@ class SpansBufferStore:
                         max_segment_bytes,
                         subsegment.salt,
                         check_flush_lock,
+                        METRICS_SAMPLE_RATE,
                         *subsegment.span_ids,
                     )
 
@@ -194,7 +199,6 @@ class SpansBufferStore:
 
     def update_queue(
         self,
-        trees: dict[tuple[str, str], list[Span]],
         inserted_subsegments: Sequence[InsertedSubsegment],
         *,
         now: int,
@@ -234,8 +238,8 @@ class SpansBufferStore:
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 if not inserted_subsegment.is_detached_segment:
                     delete_set.update(
-                        self.get_span_key(subsegment.project_and_trace, span.span_id)
-                        for span in trees[subsegment.key]
+                        self.get_span_key(subsegment.project_and_trace, span_id.decode("ascii"))
+                        for span_id in result.merged_segment_span_ids
                     )
                 delete_set.discard(result.segment_key)
 
@@ -463,12 +467,25 @@ class SpansBufferStore:
 
         return payloads, int(decompress_latency_ms)
 
-    def get_current_queue_deadline(self, loaded_segment: LoadedSegment) -> int | None:
+    def get_current_queue_deadlines(
+        self, loaded_segments: Sequence[LoadedSegment]
+    ) -> dict[SegmentKey, int | None]:
         """
-        Read the current queue deadline for a loaded segment, if it is still queued.
+        Read the current queue deadlines for loaded segments that are still queued.
         """
-        deadline_score = self.client.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
-        return int(deadline_score) if deadline_score is not None else None
+        if not loaded_segments:
+            return {}
+
+        with self.client.pipeline(transaction=False) as p:
+            for loaded_segment in loaded_segments:
+                p.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
+
+            deadline_scores = p.execute()
+
+        return {
+            loaded_segment.segment_key: int(score) if score is not None else None
+            for loaded_segment, score in zip(loaded_segments, deadline_scores)
+        }
 
     def cleanup_flushed_segments(
         self,

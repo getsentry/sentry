@@ -97,19 +97,11 @@ function UpgradeMessage({subscription}: {subscription: Subscription | null}) {
     );
   }
 
-  return (
-    <UpgradeMessageWithBilling organization={organization} subscription={subscription} />
-  );
+  return <UpgradeMessageWithBilling organization={organization} />;
 }
 
-function UpgradeMessageWithBilling({
-  organization,
-  subscription,
-}: {
-  organization: Organization;
-  subscription: Subscription;
-}) {
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+function UpgradeMessageWithBilling({organization}: {organization: Organization}) {
+  const {data: billingConfig} = useBillingConfig({organization});
   const planName = getRequiredPlanName(billingConfig);
 
   if (planName) {
@@ -139,7 +131,7 @@ function getRequiredPlanName(billingConfig: BillingConfig | undefined): string |
 
   const plan = billingConfig.planList
     .filter(p => p.userSelectable)
-    .sort((a, b) => a.price - b.price)
+    .sort((a, b) => a.totalPrice - b.totalPrice)
     .find(p => p.features.includes('integrations-scm-multi-org'));
 
   if (!plan) {

@@ -295,10 +295,11 @@ class BaseTeamSerializer(Serializer):
     ) -> BaseTeamSerializerResponse:
         if attrs.get("avatar"):
             avatar_obj = attrs["avatar"]
+            is_upload = avatar_obj.get_avatar_type_display() == "upload"
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_obj.get_avatar_type_display(),
-                "avatarUuid": avatar_obj.ident if avatar_obj.file_id else None,
-                "avatarUrl": avatar_obj.absolute_url() if avatar_obj.file_id else None,
+                "avatarUuid": avatar_obj.ident if is_upload else None,
+                "avatarUrl": avatar_obj.absolute_url() if is_upload else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}

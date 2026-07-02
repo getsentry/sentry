@@ -196,7 +196,7 @@ describe('unescapeAsteriskSearchValue', () => {
 });
 
 describe('formatFilterValue', () => {
-  it('unescapes asterisks for unquoted values', () => {
+  it('preserves escaped asterisks for unquoted values', () => {
     expect(
       formatFilterValue({
         token: {
@@ -206,19 +206,55 @@ describe('formatFilterValue', () => {
           quoted: false,
         } as any,
       })
-    ).toBe('****');
+    ).toBe('\\*\\*\\*\\*');
   });
 
-  it('unescapes asterisks for quoted values', () => {
+  it('preserves escaped asterisks for quoted values', () => {
     expect(
       formatFilterValue({
         token: {
           type: Token.VALUE_TEXT,
-          text: '"foo\\\\*bar"',
+          text: '"foo\\*bar"',
           value: 'foo\\*bar',
           quoted: true,
         } as any,
       })
-    ).toBe('foo*bar');
+    ).toBe('foo\\*bar');
+  });
+
+  it('renders an escaped asterisk differently from a wildcard asterisk', () => {
+    const escaped = formatFilterValue({
+      token: {
+        type: Token.VALUE_TEXT,
+        text: 'foo\\*bar',
+        value: 'foo\\*bar',
+        quoted: false,
+      } as any,
+    });
+    const wildcard = formatFilterValue({
+      token: {
+        type: Token.VALUE_TEXT,
+        text: 'foo*bar',
+        value: 'foo*bar',
+        quoted: false,
+      } as any,
+    });
+
+    expect(escaped).toBe('foo\\*bar');
+    expect(wildcard).toBe('foo*bar');
+    expect(escaped).not.toBe(wildcard);
+  });
+
+  it('preserves a literal backslash before a wildcard asterisk', () => {
+    expect(
+      formatFilterValue({
+        token: {
+          type: Token.VALUE_TEXT,
+          text: 'foo\\\\*bar',
+          value: 'foo\\\\*bar',
+          quoted: false,
+        } as any,
+      })
+    ).toBe('foo\\\\*bar');
   });
 });

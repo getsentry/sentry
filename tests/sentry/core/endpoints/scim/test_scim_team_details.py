@@ -25,6 +25,7 @@ class SCIMDetailGetTest(SCIMTestCase):
 
         assert response.data == {
             "detail": "Group not found.",
+            "status": "404",
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
         }
 
@@ -420,6 +421,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "404",
             "detail": "User not found.",
         }
 
@@ -432,6 +434,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Too many patch ops sent, limit is 100.",
         }
 
@@ -448,6 +451,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
 
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "scimType": "invalidFilter",
         }
 
@@ -464,6 +468,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid SCIM payload.",
         }
 
@@ -480,6 +485,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid SCIM payload.",
         }
 
@@ -496,6 +502,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid SCIM payload.",
         }
 
@@ -512,6 +519,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid SCIM payload.",
         }
 

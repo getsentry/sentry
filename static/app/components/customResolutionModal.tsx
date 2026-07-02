@@ -54,6 +54,19 @@ function makeReleaseOption(
   };
 }
 
+function getUniqueReleases(releases: Array<Release | null | undefined>): Release[] {
+  const seen = new Set<string>();
+
+  return releases.filter((release): release is Release => {
+    if (!release || seen.has(release.version)) {
+      return false;
+    }
+
+    seen.add(release.version);
+    return true;
+  });
+}
+
 interface CustomResolutionModalProps extends ModalRenderProps {
   onSelected: (change: {inRelease: string}) => void;
   projectSlug: string | undefined;
@@ -62,6 +75,7 @@ interface CustomResolutionModalProps extends ModalRenderProps {
 export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [version, setVersion] = useState('');
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery);
   const currentUser = ConfigStore.get('user');
@@ -109,20 +123,14 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   });
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    const baseOptions = releases.map(release =>
+    const prioritizedReleases = debouncedSearch.trim()
+      ? [exactRelease, ...releases]
+      : [selectedRelease, ...releases];
+
+    return getUniqueReleases(prioritizedReleases).map(release =>
       makeReleaseOption(release, currentUser?.email)
     );
-
-    if (exactRelease) {
-      const exactOption = makeReleaseOption(exactRelease, currentUser?.email);
-
-      const filtered = baseOptions.filter(opt => opt.value !== exactOption.value);
-      filtered.unshift(exactOption);
-      return filtered;
-    }
-
-    return baseOptions;
-  }, [currentUser?.email, exactRelease, releases]);
+  }, [currentUser?.email, debouncedSearch, exactRelease, releases, selectedRelease]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +165,13 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
           loading={isFetching}
           emptyMessage={isFetching ? t('Loading releases\u2026') : t('No releases found')}
           onChange={option => {
-            setVersion(option?.value ? String(option.value) : '');
+            const selectedVersion = option?.value ? String(option.value) : '';
+            const visibleReleases = getUniqueReleases([exactRelease, ...releases]);
+            const release =
+              visibleReleases.find(item => item.version === selectedVersion) ?? null;
+
+            setVersion(selectedVersion);
+            setSelectedRelease(release);
             setSelectionError(null);
             setSearchQuery('');
           }}

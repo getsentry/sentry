@@ -92,7 +92,6 @@ def _validate_project_config(config):
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
-
     assert normalize_project_config(config) == config
 
 
@@ -1477,31 +1476,30 @@ def test_project_config_with_transaction_name_clustering_disabled(
 
 @django_db_all
 @cell_silo_test
-@pytest.mark.parametrize("feature_enabled", [True, False])
-@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
-def test_project_config_trusted_relay_settings(
-    default_project, feature_enabled, project_option_value
-):
+def test_project_config_trusted_relay_settings_enabled(default_project):
     default_project.organization.update_option(
-        "sentry:ingest-through-trusted-relays-only", project_option_value
+        "sentry:ingest-through-trusted-relays-only", "enabled"
     )
 
-    features_dict = {}
-    if feature_enabled:
-        features_dict["organizations:ingest-through-trusted-relays-only"] = True
+    config = get_project_config(default_project).to_dict()
 
-    with Feature(features_dict):
-        config = get_project_config(default_project).to_dict()
+    trusted_relay_settings = config["config"].get("trustedRelaySettings")
+    assert trusted_relay_settings is not None
+    assert trusted_relay_settings["verifySignature"] == "enabled"
 
-        trusted_relay_settings = config["config"].get("trustedRelaySettings")
 
-        if feature_enabled:
-            # trustedRelaySettings should be present
-            assert trusted_relay_settings is not None
-            assert trusted_relay_settings["verifySignature"] == project_option_value
-        else:
-            # trustedRelaySettings should not be present
-            assert trusted_relay_settings is None
+@django_db_all
+@cell_silo_test
+def test_project_config_trusted_relay_settings_disabled(default_project):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", "disabled"
+    )
+
+    config = get_project_config(default_project).to_dict()
+
+    # "disabled" is the default — Relay treats absent and disabled as equivalent,
+    # so we don't write the key at all.
+    assert config["config"].get("trustedRelaySettings") is None
 
 
 @django_db_all

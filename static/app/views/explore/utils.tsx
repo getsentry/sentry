@@ -10,7 +10,7 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -33,6 +34,7 @@ import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggr
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -55,7 +57,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -459,7 +461,7 @@ export function getDefaultExploreRoute(organization: Organization) {
 
 export function computeVisualizeSampleTotals(
   yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {
@@ -641,22 +643,21 @@ export const removeHiddenKeys = (
   tagCollection: TagCollection,
   hiddenKeys: string[]
 ): TagCollection => {
+  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
-    if (key && !hiddenKeys.includes(key) && tagCollection[key]) {
-      result[key] = tagCollection[key];
+    const tag = tagCollection[key];
+    if (!key || !tag) {
+      continue;
     }
+    // Hide by both the raw key and the display name, matching the column
+    // editor. Explicitly-typed keys such as `tags[project_id,number]` carry a
+    // display name (`project_id`) that is what appears in the hidden lists.
+    if (hiddenKeySet.has(key) || (tag.name && hiddenKeySet.has(tag.name))) {
+      continue;
+    }
+    result[key] = tag;
   }
-  return result;
-};
-
-export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
-  const result: Tag[] = [];
-  tagCollection.forEach(tag => {
-    if (keys.includes(tag.key) && tag.name) {
-      result.push(tag);
-    }
-  });
   return result;
 };
 
@@ -667,6 +668,9 @@ export function getSavedQueryTraceItemUrl({
   organization: Organization;
   savedQuery: SavedQuery;
 }) {
+  if (savedQuery.dataset === 'ai_conversations') {
+    return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
+  }
   const traceItemDataset = getSavedQueryTraceItemDataset(savedQuery.dataset);
   const urlFunction = TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
   if (urlFunction) {
@@ -677,6 +681,32 @@ export function getSavedQueryTraceItemUrl({
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+function getConversationsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  const queryString = qs.stringify(queryParams, {skipNull: true});
+  const basePath = normalizeUrl(
+    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  );
+  return `${basePath}?${queryString}`;
 }
 
 function getReplayUrlFromSavedQueryUrl({

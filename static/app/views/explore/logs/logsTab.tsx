@@ -51,7 +51,7 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
-import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
+import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -75,6 +75,7 @@ import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsS
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
+import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -145,6 +146,8 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
 
+  const {data: validatedSearchQueryData} = useValidateLogsTab();
+
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
       booleanAttributes,
@@ -153,6 +156,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
+      validatedSearchQueryData,
     });
 
   const organization = useOrganization();
@@ -441,7 +445,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               >
                 {sidebarOpen ? null : t('Advanced')}
               </LogsSidebarCollapseButton>
-              <LogsExportSwitch
+              <LogsExportModalButton
                 isLoading={tableData.isPending}
                 tableData={tableData.data}
                 error={tableData.error}

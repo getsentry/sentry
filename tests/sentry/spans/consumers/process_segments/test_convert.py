@@ -207,6 +207,50 @@ def test_convert_span_to_item() -> None:
     }
 
 
+SESSION_UUID = "87654321-4321-8765-4321-876543218765"
+
+
+def test_convert_conversation_and_session_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        **(message["attributes"] or {}),
+        # conversation_id is a free-form string; session_id must be a UUID.
+        "gen_ai.conversation.id": {"value": "my-conversation", "type": "string"},
+        "session.id": {"value": SESSION_UUID, "type": "string"},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.conversation_id == "my-conversation"
+    assert item.session_id == SESSION_UUID
+
+    # The values are also retained as regular attributes.
+    assert item.attributes.get("gen_ai.conversation.id") == AnyValue(string_value="my-conversation")
+    assert item.attributes.get("session.id") == AnyValue(string_value=SESSION_UUID)
+
+
+def test_convert_conversation_and_session_id_missing() -> None:
+    item = convert_span_to_item(cast(CompatibleSpan, SPAN_KAFKA_MESSAGE))
+
+    assert item.conversation_id == ""
+    assert item.session_id == ""
+
+
+def test_convert_non_uuid_session_id() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        **(message["attributes"] or {}),
+        "session.id": {"value": "12345", "type": "string"},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    # A non-UUID session.id is not hoisted onto the dedicated field...
+    assert item.session_id == ""
+    # ...but is still retained as a regular attribute.
+    assert item.attributes.get("session.id") == AnyValue(string_value="12345")
+
+
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["is_segment"] = False
@@ -266,9 +310,8 @@ def test_convert_renamed_attribute_meta() -> None:
     [(123, 123), ("123", 123), (None, 0)],
     ids=["int_key_id", "str_key_id", "none_key_id"],
 )
-def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
+def test_convert_outcomes(key_id, expected_key_id) -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
     message["key_id"] = key_id
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
@@ -285,9 +328,8 @@ def test_convert_outcomes_when_not_emitted(key_id, expected_key_id) -> None:
     )
 
 
-def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
+def test_convert_outcomes_missing_key_id() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = False
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
@@ -303,14 +345,21 @@ def test_convert_outcomes_when_not_emitted_missing_key_id() -> None:
     )
 
 
-def test_convert_outcomes_when_already_emitted() -> None:
+def test_field_to_missing_attribute_writes_if_missing() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
-    message["accepted_outcome_emitted"] = True
+    message["status"] = "error"
+    del message["attributes"]["sentry.status"]  # type: ignore[union-attr]
+
     item = convert_span_to_item(cast(CompatibleSpan, message))
-    assert not item.HasField("outcomes")
+
+    assert item.attributes.get("sentry.status") == AnyValue(string_value="error")
 
 
-def test_convert_outcomes_when_field_missing() -> None:
+def test_field_to_missing_attribute_keeps_existing_value() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["status"] = "error"
+    message["attributes"]["sentry.status"] = {"value": "ok", "type": "string"}  # type: ignore[index]
+
     item = convert_span_to_item(cast(CompatibleSpan, message))
-    assert not item.HasField("outcomes")
+
+    assert item.attributes.get("sentry.status") == AnyValue(string_value="ok")

@@ -413,6 +413,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
+    "sentry.middleware.agent_discovery.AgentDiscoveryMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -482,13 +483,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
-    "sentry.lang.java.apps.Config",
-    "sentry.lang.javascript.apps.Config",
-    "sentry.lang.dart.apps.Config",
-    "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_urls.apps.Config",
-    "sentry.plugins.sentry_useragents.apps.Config",
-    "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -727,6 +721,11 @@ INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 # Protect login/registration endpoints during development phase
 AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
 
+# Used when signing signup email-verification links
+SIGNUP_VERIFICATION_EMAIL_SALT = os.environ.get(
+    "SIGNUP_VERIFICATION_EMAIL_SALT", "signup-verification-email-salt"
+)
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
@@ -811,7 +810,7 @@ SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", No
 # Fallback cell name for monolith deployments
 # This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
-SENTRY_MONOLITH_REGION: str = "--monolith--"
+SENTRY_FALLBACK_CELL: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
 SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
@@ -861,11 +860,6 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
-# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
-# from within tasks.
-# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
-TASKWORKER_USE_TASK_PRODUCER: bool = False
-
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -889,6 +883,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
@@ -899,7 +894,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
-    "sentry.integrations.opsgenie.tasks",
     "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
     "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
@@ -915,6 +909,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.models.counter",
@@ -930,6 +925,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.preprod.vcs.status_checks.snapshots.tasks",
+    "sentry.pr_metrics.tasks",
     "sentry.processing_errors.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
@@ -942,6 +938,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
+    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
@@ -952,6 +949,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1177,8 +1175,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "seer-night-shift": {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
-        # Run daily at 10:00 AM UTC (2/3 AM Pacific)
-        "schedule": crontab("0", "10", "*", "*", "*"),
+        # Run every 12 hours, at 10:00 and 22:00 UTC
+        "schedule": crontab("0", "10,22", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
@@ -1259,6 +1257,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
         "schedule": timedelta(minutes=1),
     },
+    "cleanup-pending-users": {
+        "task": "auth.control:sentry.tasks.auth.cleanup_pending_users",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
 }
 
 if SILO_MODE == "CONTROL":
@@ -1315,7 +1317,6 @@ LOGGING: LoggingConfig = {
     "overridable": ["sentry"],
     "loggers": {
         "sentry": {"level": "INFO"},
-        "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
         "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
@@ -1527,6 +1528,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
+
+# sample rate for the ingest-replay-recordings processing (consumer and task)
+SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -2238,7 +2242,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.2"
+SELF_HOSTED_STABLE_VERSION = "26.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2255,7 +2259,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
-    "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
@@ -2275,7 +2278,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "project_root": "/usr/src",
-    "in_app_include": ["sentry", "sentry_plugins"],
+    "in_app_include": ["sentry"],
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
@@ -2340,12 +2343,44 @@ SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
 SENTRY_ORGANIZATION_CONTEXT_HELPER: Callable[..., object] | None = None
 
 # Config options that are explicitly disabled from Django
-DEAD = object()
+DEAD: Any = object()
 
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
-SENTRY_LOGGING_FORMAT = DEAD
+SENTRY_LOGGING_FORMAT = "human"
+SENTRY_BASE_HOSTNAME: str | None = os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME")
+SENTRY_ORGANIZATION_BASE_HOSTNAME: str | None = os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME")
+SENTRY_ORGANIZATION_URL_TEMPLATE: str | None = os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE")
+SENTRY_REGION_API_URL_TEMPLATE: str | None = os.environ.get("SENTRY_REGION_API_URL_TEMPLATE")
+SENTRY_INTERCOM_API_SECRET = ""
+SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
+SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
+    "base_url": "http://127.0.0.1:8888",
+    # Test-only token generator with no permissions. Only active when no real
+    # objectstore config is deployed. Exists so mint_token() does not raise in
+    # test/dev environments that lack signing keys.
+    "token_generator": {
+        "kid": "test",
+        "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
+        "permissions": [],
+    },
+}
+SENTRY_VIEWER_CONTEXT_ENABLED = True
+SENTRY_ANALYTICS_BACKEND = "noop"
+SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
+SENTRY_MAIL_LIST_NAMESPACE = "localhost"
+SENTRY_FILE_STORAGE_BACKEND = "filesystem"
+SENTRY_FILE_STORAGE_CONFIG: dict[str, Any] = {"location": "/tmp/sentry-files"}
+SENTRY_RELOCATION_FILE_STORAGE_BACKEND = "filesystem"
+SENTRY_RELOCATION_FILE_STORAGE_CONFIG: dict[str, Any] = {"location": "/tmp/sentry-relocation-files"}
+SENTRY_PROFILES_FILE_STORAGE_BACKEND = "filesystem"
+SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
+    "location": "/tmp/sentry-profiles",
+    "allow_overwrite": True,
+}
+SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
+SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -2744,6 +2779,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-limited-dlq": "default",
     "taskworker-launchpad": "default",
     "taskworker-launchpad-dlq": "default",
+    "taskworker-launchpad-push": "default",
     "taskworker-long": "default",
     "taskworker-long-dlq": "default",
     "taskworker-products": "default",
@@ -3257,8 +3293,8 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
-    SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
-    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+    SENTRY_BASE_HOSTNAME = ngrok_host
+    SENTRY_REGION_API_URL_TEMPLATE = ""
 
     # No multi-region in non-siloed ngrok dev.
     SENTRY_FEATURES["system:multi-region"] = False
@@ -3291,11 +3327,20 @@ if SILO_DEVSERVER:
         {
             "name": "us",
             "snowflake_id": 1,
-            "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
-    SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
+    SENTRY_LOCALITIES = [
+        {
+            "name": "us",
+            # TODO(cells): Deprecate category
+            "category": "MULTI_TENANT",
+            "cells": ["us"],
+            "new_org_cell": "us",
+        }
+    ]
+
+    SENTRY_FALLBACK_CELL = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [
@@ -3320,7 +3365,7 @@ if SILO_DEVSERVER:
 if ngrok_host and SILO_DEVSERVER:
     # In siloed mode + ngrok we enable multi-region so that
     # the region API URL template is set to the ngrok host.
-    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_REGION_API_URL_TEMPLATE = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
 
 CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
@@ -3343,8 +3388,25 @@ if SILO_DEVSERVER or IS_DEV:
 if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     # Pair with `devservices --mode cell-routing`. Cell-scoped API XHRs cross
     # to Synapse on :13000; UI HTML and control API stay on the devserver.
-    SENTRY_OPTIONS["system.region-api-url-template"] = "http://dev.getsentry.net:13000"
-    SENTRY_OPTIONS["system.organization-base-hostname"] = "{slug}.dev.getsentry.net:8000"
-    SENTRY_OPTIONS["system.organization-url-template"] = "http://{hostname}"
+    SENTRY_REGION_API_URL_TEMPLATE = "http://dev.getsentry.net:13000"
+    SENTRY_ORGANIZATION_BASE_HOSTNAME = "{slug}.dev.getsentry.net:8000"
+    SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"
+
+    # Synapse's ingest-router fronts the cell relays and signs its upstream
+    # requests to Sentry with its own credentials (started with --credentials-path
+    # relay-credentials.json). Register it as a static, internal relay: static auth
+    # is an alternative to the register/challenge handshake, so synapse is trusted
+    # by relay_id directly from config without ever registering. Values come from
+    # synapse's relay-credentials.json. Dev-only, gated behind cell-routing.
+    SENTRY_RELAY_STATIC_AUTH = {
+        "7835bea9-7df4-42d7-ab67-d344d026f9f6": {
+            "public_key": "Pr9zR1197orWo8Ekw85tTje4zjAGpMdIg9DgrVhFQ70",
+            "internal": True,
+        },
+    }
+    # The browser sits on the org subdomain ({slug}.dev.getsentry.net:8000) while
+    # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
+    # needs the page origin trusted explicitly.
+    CSRF_TRUSTED_ORIGINS = ["http://*.dev.getsentry.net:8000", "http://dev.getsentry.net:8000"]

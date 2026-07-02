@@ -10,10 +10,9 @@ type Props = {
   title: React.ReactNode;
   action?: React.ReactNode;
   subtitle?: React.ReactNode;
-  tabs?: React.ReactNode;
 };
 
-export function SettingsPageHeader({title, subtitle, action, tabs}: Props) {
+export function SettingsPageHeader({title, subtitle, action}: Props) {
   return (
     <Fragment>
       {typeof title === 'string' ? (
@@ -27,7 +26,6 @@ export function SettingsPageHeader({title, subtitle, action, tabs}: Props) {
           {action}
         </Flex>
       )}
-      {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
     </Fragment>
   );
 }
@@ -38,9 +36,4 @@ const Subtitle = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const TabsWrapper = styled('div')`
-  flex: 1;
-  margin: 0;
 `;

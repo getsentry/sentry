@@ -13,11 +13,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.cell import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError
 
 _TEST_CELLS = (
-    Cell("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
-    Cell("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("north_america", 1, "na.sentry.io"),
+    Cell("europe", 2, "eu.sentry.io"),
 )
 
 

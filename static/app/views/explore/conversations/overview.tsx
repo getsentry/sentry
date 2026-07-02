@@ -17,23 +17,21 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationsTableNew} from 'sentry/views/explore/conversations/components/conversationsTableNew';
+import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-
-const DISABLE_AGGREGATES: never[] = [];
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
@@ -59,18 +57,19 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
-    {},
-    'number'
-  );
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
-    {},
-    'string'
-  );
-  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
-    {},
-    'boolean'
-  );
+  useEffect(() => {
+    if (!isOnboardingLoading) {
+      if (showOnboarding) {
+        trackAnalytics('conversations.onboarding.page-view', {
+          organization,
+        });
+      } else {
+        trackAnalytics('conversations.table.page-view', {
+          organization,
+        });
+      }
+    }
+  }, [showOnboarding, isOnboardingLoading, organization]);
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -93,6 +92,8 @@ function ConversationsOverviewPage() {
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+
+  const showConversationsTableNew = hasGenAiConversationsRedesignFeature(organization);
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
@@ -119,27 +120,24 @@ function ConversationsOverviewPage() {
                   <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                 </Flex>
               )}
+              {!showOnboarding && !isOnboardingLoading && <SaveConversationQueryButton />}
             </Flex>
-            {!showOnboarding && !isOnboardingLoading && (
-              <SchemaHintsList
-                supportedAggregates={DISABLE_AGGREGATES}
-                booleanTags={booleanTags}
-                numberTags={numberTags}
-                stringTags={stringTags}
-                isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-                exploreQuery={searchQuery ?? ''}
-                source={SchemaHintsSources.CONVERSATIONS}
-              />
-            )}
           </Stack>
         </Layout.Main>
       </ExploreBodySearch>
       <ExploreBodyContent>
-        <Stack flex={1} padding="xl" gap="md">
+        <Stack
+          flex={1}
+          minWidth={showConversationsTableNew ? '0' : undefined}
+          padding="xl"
+          gap="md"
+        >
           {isOnboardingLoading ? (
             <LoadingIndicator />
           ) : showOnboarding ? (
             <ConversationOnboarding onDismiss={refetchOnboarding} />
+          ) : showConversationsTableNew ? (
+            <ConversationsTableNew />
           ) : (
             <ConversationsTable />
           )}

@@ -12,7 +12,7 @@ from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, get_gitla
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -26,7 +26,7 @@ class GitlabRequestParser(BaseRequestParser):
     _METRIC_CONTROL_PATH_FAILURE_KEY = "integrations.gitlab.get_integration_from_request.failure"
 
     def _resolve_external_id(self) -> tuple[str, str] | HttpResponseBase:
-        clear_tags_and_context()
+        clear_organization_info()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
             "user-agent": self.request.META.get("HTTP_USER_AGENT"),

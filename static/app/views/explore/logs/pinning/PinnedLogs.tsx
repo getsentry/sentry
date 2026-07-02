@@ -3,27 +3,35 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {GridRow} from 'sentry/components/tables/gridEditable/styles';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconChevron, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
+import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 
 interface Props {
-  allRows: LogTableRowItem[];
+  allRows: OurLogsResponseItem[];
   logsPinning: LogsPinning;
   pinnedLogsQuery: ReturnType<typeof usePinnedLogsQuery>;
-  renderRow: (dataRow: LogTableRowItem) => React.ReactNode;
+  renderRow: (dataRow: OurLogsResponseItem) => React.ReactNode;
 }
 
 export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: Props) {
-  const {fetchedRows: fetchedPinnedRows, isPending: isFetchingPinnedRows} =
-    pinnedLogsQuery;
+  const {
+    fetchedRows: fetchedPinnedRows,
+    isPending: isFetchingPinnedRows,
+    isError: isErrorPinnedRows,
+    refetch: refetchPinnedRows,
+  } = pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
   const pinnedRows = logsPinning.getPinnedRowIds();
 
@@ -32,7 +40,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   }, []);
 
   const rowById = useMemo(() => {
-    const map = new Map<string, LogTableRowItem>();
+    const map = new Map<string, OurLogsResponseItem>();
     for (const row of fetchedPinnedRows) {
       map.set(row[OurLogKnownFieldKey.ID], row);
     }
@@ -56,18 +64,36 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
             if (isFetchingPinnedRows) {
               return (
                 <GridRow key={rowId}>
-                  <PinnedGridBodyCell>
-                    <LoadingIndicator mini />
-                  </PinnedGridBodyCell>
+                  <LoadingGridBodyCell>
+                    <Placeholder height="100%" />
+                  </LoadingGridBodyCell>
                 </GridRow>
               );
             }
-            return null;
+            return (
+              <GridRow key={rowId}>
+                <UnavailableGridBodyCell>
+                  <Flex align="center" gap="sm">
+                    <IconWarning size="xs" />
+                    <Text size="sm" variant="muted">
+                      {isErrorPinnedRows
+                        ? t('Could not load pinned log')
+                        : t('Pinned log unavailable in the selected time range')}
+                    </Text>
+                    {isErrorPinnedRows && (
+                      <Button size="xs" onClick={() => refetchPinnedRows()}>
+                        {t('Retry')}
+                      </Button>
+                    )}
+                  </Flex>
+                </UnavailableGridBodyCell>
+              </GridRow>
+            );
           }
 
           return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
         })}
-      <GridRow role="toolbar">
+      <PinnedToolbarRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">
             <Button
@@ -90,7 +116,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
             </Button>
           </Flex>
         </PinnedGridBodyCell>
-      </GridRow>
+      </PinnedToolbarRow>
     </PinnedTableBody>
   );
 }
@@ -105,7 +131,21 @@ const PinnedTableBody = styled(TableBody)`
   scrollbar-width: thin;
 `;
 
+const PinnedToolbarRow = styled(GridRow)`
+  z-index: 1;
+`;
+
 const PinnedGridBodyCell = styled('td')`
   grid-column: 1 / -1;
   padding: ${p => p.theme.space.sm};
+`;
+
+const LoadingGridBodyCell = styled(PinnedGridBodyCell)`
+  height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
+`;
+
+const UnavailableGridBodyCell = styled(PinnedGridBodyCell)`
+  display: flex;
+  align-items: center;
+  height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 `;

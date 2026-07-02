@@ -14,7 +14,7 @@ import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 
 const SLACK_PREVIEW_BASE_URL = 'https://app.slack.com/block-kit-builder/';
 
@@ -53,7 +53,7 @@ export function SlackPreview({
           </Flex>
           <Flex direction="column" align="start" padding="sm 0" gap="md">
             <SlackBlackText size="xl" bold>
-              {subject}
+              {subject.map(block => block.text).join(' ')}
             </SlackBlackText>
             <SlackBodyText>
               <NotificationBodyRenderer
@@ -88,7 +88,7 @@ export function SlackPreview({
             )}
             {footer && (
               <SlackBlackText size="xs" variant="muted">
-                {footer}
+                {footer.map(block => block.text).join(' ')}
               </SlackBlackText>
             )}
           </Flex>

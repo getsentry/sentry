@@ -31,6 +31,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
 
@@ -224,6 +225,92 @@ describe('MetricPanel', () => {
     // not the resolved form (sum(value) + avg(value))
     expect(await screen.findByText('A + B')).toBeInTheDocument();
     expect(screen.queryByText('sum(value) + avg(value)')).not.toBeInTheDocument();
+  });
+
+  it('disables heat map visualization for equations', async () => {
+    const equationQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeEquation('equation|sum(value) + avg(value)', {
+          chartType: ChartType.LINE,
+        }),
+      ],
+      aggregateSortBys: [{field: 'equation|sum(value) + avg(value)', kind: 'desc'}],
+    });
+
+    const equationOrg = {
+      ...organization,
+      features: [
+        ...organization.features,
+        'tracemetrics-equations-in-explore',
+        'data-browsing-heat-map-widget',
+      ],
+    };
+
+    render(
+      <MetricPanel
+        traceMetric={traceMetric}
+        queryIndex={0}
+        queryLabel="ƒ1"
+        referenceMap={{A: 'sum(value)', B: 'avg(value)'}}
+      />,
+      {
+        organization: equationOrg,
+        additionalWrapper: createWrapper({
+          queryParams: equationQueryParams,
+          traceMetric,
+        }),
+      }
+    );
+
+    const chartTypeSelect = await screen.findByTestId('metric-panel-chart-type-select');
+    expect(chartTypeSelect).toBeInTheDocument();
+    await userEvent.click(chartTypeSelect);
+    expect(await screen.findByText('Type')).toBeInTheDocument();
+    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('disables heat map visualization for non-distribution metrics', async () => {
+    const counterTraceMetric: TraceMetric = {name: 'bar', type: 'counter'};
+    const counterQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('sum(value)', {chartType: ChartType.LINE})],
+      aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
+    });
+
+    const heatMapOrg = {
+      ...organization,
+      features: [...organization.features, 'data-browsing-heat-map-widget'],
+    };
+
+    render(
+      <MetricPanel traceMetric={counterTraceMetric} queryIndex={0} queryLabel="A" />,
+      {
+        organization: heatMapOrg,
+        additionalWrapper: createWrapper({
+          queryParams: counterQueryParams,
+          traceMetric: counterTraceMetric,
+        }),
+      }
+    );
+
+    const chartTypeSelect = await screen.findByTestId('metric-panel-chart-type-select');
+    await userEvent.click(chartTypeSelect);
+    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders the samples column order', async () => {

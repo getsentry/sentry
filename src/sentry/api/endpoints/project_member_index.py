@@ -25,7 +25,8 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a Project's Organization Members",
+        operation_id="listProjectMembers",
+        summary="List a Project's Organization Members",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={

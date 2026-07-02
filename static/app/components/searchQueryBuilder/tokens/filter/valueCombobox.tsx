@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -23,6 +23,7 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
+import {getMultiSelectValueState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
@@ -56,7 +57,10 @@ import {
   cleanFilterValue,
   getValueSuggestions,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
-import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  getDefaultFilterValue,
+  resolveFilterKey,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   isDateToken,
   isNumericFilterToken,
@@ -79,6 +83,7 @@ import {
   prettifyTagKey,
   type FieldDefinition,
 } from 'sentry/utils/fields';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -366,8 +371,13 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
-  const {getFieldDefinition, getTagKeys, getTagValues, filterKeys} =
-    useSearchQueryBuilderConfig();
+  const {
+    filterKeyRegistryQueryKey,
+    filterKeys,
+    getFieldDefinition,
+    getTagKeys,
+    getTagValues,
+  } = useSearchQueryBuilderConfig();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
   const valueType = getFilterValueType(token, fieldDefinition);
@@ -417,8 +427,9 @@ function useFilterSuggestions({
   const isDebouncing = baseQueryKey !== queryKey;
 
   const tagKeysBaseQueryKey = useMemo(
-    () => ['search-query-builder-tag-keys', filterValue] as const,
-    [filterValue]
+    () =>
+      ['search-query-builder-tag-keys', filterKeyRegistryQueryKey, filterValue] as const,
+    [filterKeyRegistryQueryKey, filterValue]
   );
   const tagKeysQueryKey = useDebouncedValue(tagKeysBaseQueryKey);
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
@@ -437,7 +448,10 @@ function useFilterSuggestions({
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
-    queryFn: ctx => getTagKeys?.(ctx.queryKey[1] ?? '') ?? [],
+    queryFn: ctx => {
+      const searchQuery = ctx.queryKey[2];
+      return getTagKeys?.(typeof searchQuery === 'string' ? searchQuery : '') ?? [];
+    },
     placeholderData: keepPreviousData,
     enabled: shouldFetchTagKeys,
   });
@@ -454,21 +468,30 @@ function useFilterSuggestions({
             label
           ),
         value: suggestion.value,
+        tag: suggestion.tag,
         details: suggestion.description,
         textValue: typeof label === 'string' ? label : suggestion.value,
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
         trailingItems: ({isFocused, disabled}: any) => {
+          const count =
+            suggestion.count === undefined ? null : (
+              <ValueCount>{formatAbbreviatedNumber(suggestion.count)}</ValueCount>
+            );
+
           if (!canSelectMultipleValues) {
-            return null;
+            return count;
           }
 
           return (
-            <ItemCheckbox
-              isFocused={isFocused}
-              disabled={disabled}
-              value={suggestion.value}
-            />
+            <Fragment>
+              {count}
+              <ItemCheckbox
+                isFocused={isFocused}
+                disabled={disabled}
+                value={suggestion.value}
+              />
+            </Fragment>
           );
         },
       };
@@ -483,12 +506,16 @@ function useFilterSuggestions({
         asyncKeys?.map(tag => ({
           label: prettifyTagKey(tag.key),
           value: tag.key,
+          tag,
         })) ?? [];
       groups = [{sectionText: '', suggestions}];
     } else if (shouldFetchValues) {
-      const suggestions = data?.map(value => {
+      const suggestions = data?.map(item => {
+        const value = typeof item === 'string' ? item : item.value;
+        const count = typeof item === 'string' ? undefined : item.count;
         return {
           value,
+          count,
           description:
             // When the key is device, we can help users by displaying the readable name
             key?.key === FieldKey.DEVICE ? (
@@ -549,7 +576,8 @@ function ItemCheckbox({
   isFocused: boolean;
   value: string;
 }) {
-  const {ctrlKeyPressed, selectedValueMap, token} = useValueComboboxContext();
+  const {analyticsData, ctrlKeyPressed, selectedValueMap, token} =
+    useValueComboboxContext();
   const {dispatch} = useSearchQueryBuilderState();
   const selected = selectedValueMap.get(value) ?? false;
 
@@ -565,10 +593,23 @@ function ItemCheckbox({
           checked={selected}
           disabled={disabled}
           onChange={() => {
+            const escapedValue = escapeTagValueForSearch(value);
+
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
               token,
-              value: escapeTagValueForSearch(value),
+              value: escapedValue,
+            });
+
+            const {selected: currentlySelected, selectedCount} = getMultiSelectValueState(
+              token,
+              escapedValue
+            );
+
+            trackAnalytics('search.multi_value_selected', {
+              ...analyticsData,
+              selected: !currentlySelected,
+              selected_count: currentlySelected ? selectedCount - 1 : selectedCount + 1,
             });
           }}
           aria-label={t('Toggle %s', value)}
@@ -707,10 +748,6 @@ export function SearchQueryBuilderValueCombobox({
     () => new Map(selectedValues.map(v => [v.value, v.selected] as const)),
     [selectedValues]
   );
-  const valueComboboxContextValue = useMemo(
-    () => ({token, ctrlKeyPressed, selectedValueMap}),
-    [token, ctrlKeyPressed, selectedValueMap]
-  );
 
   useEffect(() => {
     if (canSelectMultipleValues) {
@@ -749,6 +786,11 @@ export function SearchQueryBuilderValueCombobox({
       new_experience: true,
     }),
     [organization, recentSearches, searchSource, keyName, token, fieldDefinition]
+  );
+
+  const valueComboboxContextValue = useMemo(
+    () => ({token, ctrlKeyPressed, selectedValueMap, analyticsData}),
+    [token, ctrlKeyPressed, selectedValueMap, analyticsData]
   );
 
   const handleSelectAbsoluteDate = useCallback(
@@ -821,7 +863,12 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
-          value: getSuggestedFilterKey(value) ?? value,
+          value: resolveFilterKey({
+            key: value,
+            filterKeys,
+            getSuggestedFilterKey,
+            loadedItems: items,
+          }),
         });
         onCommit();
         return true;
@@ -906,6 +953,8 @@ export function SearchQueryBuilderValueCombobox({
       fieldDefinition,
       valueType,
       getSuggestedFilterKey,
+      filterKeys,
+      items,
       canSelectMultipleValues,
       analyticsData,
       selectedValues,
@@ -1119,6 +1168,11 @@ const TrailingWrap = styled('div')`
   grid-auto-flow: column;
   align-items: center;
   gap: ${p => p.theme.space.md};
+`;
+
+const ValueCount = styled('span')`
+  font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`

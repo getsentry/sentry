@@ -802,6 +802,54 @@ class SearchResolverQueryTest(TestCase):
             group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
         )
 
+    def test_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=trace_key),
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_NOT_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_not_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        not_filter=NotFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(key=trace_key),
+                                )
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
 
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:
@@ -1012,6 +1060,30 @@ class SearchResolverColumnTest(TestCase):
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
+
+    def test_max_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("max(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MAX,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="max(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_min_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MIN,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="min(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_max_string_field_raises(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.resolver.resolve_column("max(span.description)")
 
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])

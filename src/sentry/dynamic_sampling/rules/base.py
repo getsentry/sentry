@@ -9,6 +9,7 @@ from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_override_for_project
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
@@ -58,6 +59,12 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
         return float(project.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT))
 
     if has_custom_dynamic_sampling(organization):
+        # A per-project override (configured via options) hard-replaces the rate the custom
+        # dynamic sampling path would otherwise compute, winning over project/org targets and
+        # the boosted/rebalanced rate.
+        override = get_sample_rate_override_for_project(project.id)
+        if override is not None:
+            return override
         sample_rate = organization.get_option("sentry:target_sample_rate")
     else:
         sample_rate = quotas.backend.get_blended_sample_rate(

@@ -10,7 +10,6 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 
 describe('Subscription > Overview', () => {
@@ -98,7 +97,7 @@ describe('Subscription > Overview', () => {
         additionalWrapper: SecondaryNavigationContextProvider,
       });
 
-      expect(await screen.findByText('Subscription')).toBeInTheDocument();
+      expect(await screen.findByText(/Usage:/)).toBeInTheDocument();
       expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
     });
 
@@ -127,7 +126,6 @@ describe('Subscription > Overview', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization: billingOrg,
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
@@ -153,7 +151,6 @@ describe('Subscription > Overview', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
-      planTier: PlanTier.AM1,
       organization: billingOrg,
       canSelfServe: false,
     });

@@ -2,13 +2,13 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {OrganizationSummaryWithRegion} from 'sentry/views/setupWizard/types';
+import type {OrganizationSummaryWithLocality} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationProjects({
   organization,
   query,
 }: {
-  organization?: OrganizationSummaryWithRegion;
+  organization?: OrganizationSummaryWithLocality;
   query?: string;
 }) {
   return useQuery({

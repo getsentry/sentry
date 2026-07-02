@@ -1,5 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {MessagesPanel} from './messagesPanel';
@@ -122,6 +123,31 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('Hello from OUTPUT messages')).toBeInTheDocument();
     expect(screen.queryByText('Fallback response text')).not.toBeInTheDocument();
+  });
+
+  it('renders a placeholder when output text content is missing', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+    const outputMessages = JSON.stringify([
+      {role: 'assistant', content: [{type: 'text', chars: 56}]},
+    ]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputMessages,
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText(EMPTY_TEXT_CONTENT)).toBeInTheDocument();
   });
 
   it('prefers gen_ai.input.messages over gen_ai.request.messages', () => {
@@ -473,6 +499,44 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('Called tool')).toBeInTheDocument();
     expect(screen.getByText('weather_api')).toBeInTheDocument();
+  });
+
+  it('keeps reasoning text in the DOM inside a collapsed details element', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+    const outputMessages = JSON.stringify([
+      {
+        role: 'assistant',
+        parts: [
+          {type: 'reasoning', content: 'My secret thinking text'},
+          {type: 'text', text: 'The final answer'},
+        ],
+      },
+    ]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputMessages,
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    // Reasoning text is rendered in the DOM even though the <details> is
+    // collapsed, so the browser's find-in-page (Ctrl-F) can locate it and
+    // natively open the section.
+    const reasoning = screen.getByText('My secret thinking text');
+    expect(reasoning).toBeInTheDocument();
+    const details = reasoning.closest('details');
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute('open');
   });
 
   it('handles output messages as a JSON object with content key', () => {

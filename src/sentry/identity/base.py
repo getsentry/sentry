@@ -17,10 +17,21 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     A provider indicates how identity authenticate should happen for a given service.
     """
 
+    auto_create_provider_model = False
+    create_organization_identity = False
+
     def __init__(self, **config):
         super().__init__()
         self.config = config
         self.logger = logging.getLogger(f"sentry.identity.{self.key}")
+
+    def get_pipeline_config(self, data: dict[str, Any]) -> dict[str, str]:
+        """
+        Extract and validate provider-specific configuration from request data.
+
+        Raises ValueError if required configuration is missing or invalid.
+        """
+        return {}
 
     def build_identity(self, state):
         """

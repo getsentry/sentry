@@ -1,4 +1,11 @@
-import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 
 import {
   explodeFieldString,
@@ -8,7 +15,10 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
+import {
+  dispatchYAxisUpdate,
+  prepareQueriesForEquationMode,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
@@ -28,6 +38,7 @@ import {
 
 interface SeriesModeSnapshot {
   fields: QueryFieldValue[];
+  legendAlias: string[];
   query: string[];
 }
 
@@ -83,6 +94,10 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         type: BuilderStateAction.SET_QUERY,
         payload: seriesSnapshot.current.query,
       });
+      dispatch({
+        type: BuilderStateAction.SET_LEGEND_ALIAS,
+        payload: seriesSnapshot.current.legendAlias,
+      });
       return;
     }
 
@@ -109,11 +124,15 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       derivedFields = [getDatasetConfig(WidgetType.TRACEMETRICS).defaultField];
     }
 
-    seriesSnapshot.current = {fields: derivedFields, query: []};
+    seriesSnapshot.current = {fields: derivedFields, legendAlias: [], query: []};
     const actionType = getTraceMetricAggregateActionType(state.displayType);
     dispatch({type: actionType, payload: derivedFields});
     dispatch({
       type: BuilderStateAction.SET_QUERY,
+      payload: [],
+    });
+    dispatch({
+      type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
   }, [state.displayType, dispatch]);
@@ -130,13 +149,15 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         state.fields
       );
 
-      const queries = (aggregateSource ?? [])
-        .filter(f => f.kind === FieldValueKind.FUNCTION)
-        .map(f => {
-          const parsed = parseAggregateExpression(generateFieldAsString(f));
-          return parsed.metricQueries[0] ?? defaultMetricQuery();
-        })
-        .filter(Boolean);
+      const queries = prepareQueriesForEquationMode(
+        (aggregateSource ?? [])
+          .filter(f => f.kind === FieldValueKind.FUNCTION)
+          .map(f => {
+            const parsed = parseAggregateExpression(generateFieldAsString(f));
+            return parsed.metricQueries[0] ?? defaultMetricQuery();
+          })
+          .filter(Boolean)
+      );
       if (queries.length === 0) {
         queries.push(defaultMetricQuery());
       }
@@ -179,17 +200,15 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_QUERY,
       payload: [selected.queryParams.query],
     });
+    dispatch({
+      type: BuilderStateAction.SET_LEGEND_ALIAS,
+      payload: [],
+    });
   }, [state.displayType, state.yAxis, state.fields, dispatch]);
 
-  // Auto-restore the previous visualize mode when the dataset returns
-  // to TRACEMETRICS. Detects equation yAxis on return and restores the
-  // cached equation mode if the user was in equation mode when they left.
-  useEffect(() => {
-    if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
-      setIsEquationMode(false);
-      return;
-    }
-
+  // Detect an equation yAxis and restore the cached equation mode if
+  // the user was in equation mode when they left.
+  const onChangeDatasetToTraceMetrics = useEffectEvent(() => {
     const aggregateSource = getTraceMetricAggregateSource(
       state.displayType,
       state.yAxis,
@@ -205,13 +224,22 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       restoreEquationState();
       setIsEquationMode(true);
     }
-    // Intentionally keyed on dataset only — we want this to fire
-    // exactly when the user navigates back to TRACEMETRICS.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.dataset]);
+  });
+
+  // Auto-restore the previous visualize mode when the dataset returns
+  // to TRACEMETRICS.
+  useEffect(() => {
+    if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
+      setIsEquationMode(false);
+      return;
+    }
+    onChangeDatasetToTraceMetrics();
+  }, [state.dataset, hasEquations]);
 
   const handleModeToggle = useCallback(
     (nextIsEquation: boolean) => {
+      const currentLegendAlias = state.legendAlias ? [...state.legendAlias] : [];
+
       if (nextIsEquation) {
         const currentFields = getTraceMetricAggregateSource(
           state.displayType,
@@ -220,6 +248,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         );
         seriesSnapshot.current = {
           fields: currentFields ? structuredClone(currentFields) : [],
+          legendAlias: currentLegendAlias,
           query: state.query ? [...state.query] : [],
         };
         restoreEquationState();
@@ -235,6 +264,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       state.yAxis,
       state.fields,
       state.query,
+      state.legendAlias,
       restoreSeriesState,
       restoreEquationState,
     ]

@@ -20,6 +20,7 @@ from sentry.seer.agent.utils import (
     normalize_description,
 )
 from sentry.seer.sentry_data_models import (
+    EmptyResponse,
     IssueDetails,
     ProfileData,
     Span,
@@ -27,6 +28,7 @@ from sentry.seer.sentry_data_models import (
     TraceProfiles,
     Transaction,
     TransactionIssues,
+    TransactionsForProjectResponse,
 )
 from sentry.services.eventstore import backend as eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -540,22 +542,25 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
 # RPC wrappers
 
 
-def rpc_get_transactions_for_project(project_id: int) -> dict[str, Any]:
+def rpc_get_transactions_for_project(project_id: int) -> TransactionsForProjectResponse:
     transactions = get_transactions_for_project(project_id)
-    transaction_dicts = [transaction.dict() for transaction in transactions]
-    return {"transactions": transaction_dicts}
+    return TransactionsForProjectResponse(transactions=list(transactions))
 
 
-def rpc_get_trace_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
+def rpc_get_trace_for_transaction(
+    transaction_name: str, project_id: int
+) -> TraceData | EmptyResponse:
     trace = get_trace_for_transaction(transaction_name, project_id)
-    return trace.dict() if trace else {}
+    return trace if trace is not None else EmptyResponse()
 
 
-def rpc_get_profiles_for_trace(trace_id: str, project_id: int) -> dict[str, Any]:
+def rpc_get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | EmptyResponse:
     profiles = get_profiles_for_trace(trace_id, project_id)
-    return profiles.dict() if profiles else {}
+    return profiles if profiles is not None else EmptyResponse()
 
 
-def rpc_get_issues_for_transaction(transaction_name: str, project_id: int) -> dict[str, Any]:
+def rpc_get_issues_for_transaction(
+    transaction_name: str, project_id: int
+) -> TransactionIssues | EmptyResponse:
     issues = get_issues_for_transaction(transaction_name, project_id)
-    return issues.dict() if issues else {}
+    return issues if issues is not None else EmptyResponse()

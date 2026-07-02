@@ -83,6 +83,20 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
 +            EffectiveGrantStatus.from_cache(None)
 ```
 
+## Backup/Relocation Test Coverage for Models
+
+Every model with a `__relocation_scope__` other than `RelocationScope.Excluded` is automatically checked by the backup test suite in `tests/sentry/backup/`. When you add such a model (or add fields to one), CI will fail until you update the following:
+
+1. **Exhaustive fixtures** (`src/sentry/testutils/helpers/backups.py`): create at least one instance of the model in the appropriate `create_exhaustive_*` method (e.g. `create_exhaustive_organization` for org/project-scoped models, `create_exhaustive_user` for user-scoped ones). Without this, `tests/sentry/backup/test_exhaustive.py` and the `ScopingTests` in `tests/sentry/backup/test_exports.py` / `test_imports.py` fail with "Some `expected_models` entries were not found" or "models were not included in the export".
+
+2. **Comparators** (`get_default_comparators()` in `src/sentry/backup/comparators.py`): if the model has fields that change on import — e.g. `date_added`/`date_updated` from `DefaultFieldsModel` — register a comparator such as `DateUpdatedComparator("date_updated", "date_added")`. Without this, `test_exhaustive_dirty_pks` fails with `UnequalJSON` diffs on those fields.
+
+3. **Coverage checks** (`tests/sentry/backup/test_coverage.py`) may additionally require:
+   - a collision test in `tests/sentry/backup/test_imports.py` (`COLLISION_TESTED`) if the model has unique constraints not based on `Organization`/`Global`-scoped foreign keys;
+   - a dynamic relocation scope test in `tests/sentry/backup/test_models.py` (`DYNAMIC_RELOCATION_SCOPE_TESTED`) if `__relocation_scope__` is a set of scopes.
+
+See `tests/sentry/backup/README.md` for how the import/export/diff cycle and comparators work.
+
 ## File Location Map
 
 ### Tests

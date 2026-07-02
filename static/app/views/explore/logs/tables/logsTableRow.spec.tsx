@@ -20,6 +20,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -419,6 +420,64 @@ describe('logsTableRow', () => {
         query: 'message:"test \\"quoted\\" log body"',
       },
     ]);
+  });
+
+  it('uses the message template for the message cell action filter when available', async () => {
+    const rowDataWithTemplate = LogFixture({
+      [OurLogKnownFieldKey.ID]: '1',
+      [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+      [OurLogKnownFieldKey.MESSAGE]: 'User 123 logged in',
+      [OurLogKnownFieldKey.TEMPLATE]: 'User {id} logged in',
+    });
+
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowDataWithTemplate}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTemplate)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Add to filter'})
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_QUERY_KEY]).toBe(
+        'message.template:"User {id} logged in"'
+      );
+    });
+  });
+
+  it('uses the message value for the message cell action filter when no template is available', async () => {
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Add to filter'})
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_QUERY_KEY]).toBe('message:"test log body"');
+    });
   });
 
   it.isKnownFlake(

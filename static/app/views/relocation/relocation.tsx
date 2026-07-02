@@ -12,7 +12,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getRegionUrlOptions} from 'sentry/utils/regions';
+import {getSignupLocalities} from 'sentry/utils/cells';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -76,7 +76,6 @@ export function RelocationOnboarding() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
-  const regionOptions = getRegionUrlOptions();
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
@@ -87,20 +86,21 @@ export function RelocationOnboarding() {
     'relocationOnboarding',
     {
       orgSlugs: '',
-      regionUrl: '',
+      localityName: '',
       promoCode: '',
     }
   );
+  const localityOptions = getSignupLocalities();
 
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
-      regionOptions.map(option =>
-        api.requestPromise('/relocations/', {
+      localityOptions.map(option => {
+        return api.requestPromise('/relocations/', {
           method: 'GET',
-          host: option.value,
-        })
-      )
+          host: option.url,
+        });
+      })
     )
       .then(responses => {
         const response = responses.flat(1);
@@ -130,8 +130,8 @@ export function RelocationOnboarding() {
 
         // The user tried to view a later step, but at least one bit of required data was missing in
         // their local storage. Take them back to the first screen.
-        const {orgSlugs, regionUrl} = relocationState;
-        if (stepId !== 'get-started' && (!orgSlugs || !regionUrl)) {
+        const {orgSlugs, localityName} = relocationState;
+        if (stepId !== 'get-started' && (!orgSlugs || !localityName)) {
           navigate('/relocation/get-started/');
         }
 
@@ -142,7 +142,7 @@ export function RelocationOnboarding() {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, navigate, regionOptions, relocationState, stepId]);
+  }, [api, navigate, localityOptions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,17 +151,17 @@ export function RelocationOnboarding() {
   const fetchPublicKeys = useCallback(() => {
     setPublicKeysState(LoadingState.FETCHING);
     return Promise.all(
-      regionOptions.map(option =>
+      localityOptions.map(option =>
         api.requestPromise('/publickeys/relocations/', {
           method: 'GET',
-          host: option.value,
+          host: option.url,
         })
       )
     )
       .then(responses => {
         setPublicKeys(
           new Map<string, string>(
-            regionOptions.map((option, index) => [
+            localityOptions.map((option, index) => [
               option.value,
               responses[index].public_key,
             ])
@@ -173,7 +173,7 @@ export function RelocationOnboarding() {
         setPublicKeys(new Map<string, string>());
         setPublicKeysState(LoadingState.ERROR);
       });
-  }, [api, regionOptions]);
+  }, [api, localityOptions]);
   useEffect(() => {
     fetchPublicKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,13 +263,15 @@ export function RelocationOnboarding() {
             stepIndex={stepIndex}
             onUpdateRelocationState={({
               orgSlugs,
-              regionUrl,
+              localityName,
               promoCode,
             }: MaybeUpdateRelocationState) => {
               setRelocationState({
                 orgSlugs: orgSlugs === undefined ? relocationState.orgSlugs : orgSlugs,
-                regionUrl:
-                  regionUrl === undefined ? relocationState.regionUrl : regionUrl,
+                localityName:
+                  localityName === undefined
+                    ? relocationState.localityName
+                    : localityName,
                 promoCode:
                   promoCode === undefined ? relocationState.promoCode : promoCode,
               });

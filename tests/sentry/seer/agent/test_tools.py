@@ -14,6 +14,8 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
@@ -32,6 +34,7 @@ from sentry.seer.agent.tools import (
     get_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
+    get_issue_committers,
     get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -41,7 +44,12 @@ from sentry.seer.agent.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import (
+    EAPTrace,
+    ExecuteTimeseriesQueryErrorResponse,
+    ExecuteTimeseriesQuerySuccessResponse,
+    IssueDetailsResponse,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     APITestCase,
@@ -456,6 +464,54 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert exc_info.value.status_code == 500
 
     @patch("sentry.seer.agent.tools.client.get")
+    def test_spans_timeseries_query_error_handling(self, mock_client_get: Mock) -> None:
+        """400 errors return the detail under a reserved _seer_error_detail key so it can't collide
+        with a group_by value (which becomes a top-level key); non-400 errors are re-raised."""
+        # 400 error with dict body containing detail.
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="invalid_field:value",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_detail_msg}
+        # The detail is not exposed under "error", where it could shadow a group value.
+        assert "error" not in result
+
+        # 400 error with a non-dict body falls back to stringifying the whole body.
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="malformed query",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_body}
+
+        # Non-400 errors are re-raised.
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_timeseries_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                y_axes=["count()"],
+                query="",
+                stats_period="1h",
+            )
+
+        assert exc_info.value.status_code == 500
+
+    @patch("sentry.seer.agent.tools.client.get")
     def test_table_query_forwards_cross_event_params(self, mock_client_get: Mock) -> None:
         """Cross-event filters are forwarded to /events/ as repeated spanQuery/logQuery/metricQuery params."""
         mock_resp = Mock()
@@ -517,7 +573,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             group_by=["span.op"],
         )
 
-        assert result is not None
+        assert isinstance(result, ExecuteTimeseriesQuerySuccessResponse)
         # Grouped results have group values as top-level keys
         # Should have different span.op values like "db", "http.client", etc.
         assert len(result) > 0
@@ -614,20 +670,14 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         """Test the get_organization_project_ids RPC method"""
         # Test with valid organization
         result = get_organization_project_ids(org_id=self.organization.id)
-        assert "projects" in result
-        assert isinstance(result["projects"], list)
-        assert len(result["projects"]) > 0
-        # Check that projects have both id and slug
-        project = result["projects"][0]
-        assert "id" in project
-        assert "slug" in project
+        assert len(result.projects) > 0
         # Check that our project is in the results
-        project_ids = [p["id"] for p in result["projects"]]
+        project_ids = [p.id for p in result.projects]
         assert self.project.id in project_ids
 
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
-        assert result == {"projects": []}
+        assert result.dict() == {"projects": []}
 
 
 class TestSpansCrossTraceQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
@@ -1118,8 +1168,6 @@ class _IssueMetadata(BaseModel):
     type: str
     issueType: str
     issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
-    detectionContext: str | None  # Extra field added by get_issue_and_event_details.
-    troubleshootingHint: str | None  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -1271,6 +1319,43 @@ class TestGetIssueAndEventDetailsV2(
             assert isinstance(event_dict, dict)
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
+        """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
+        mock_execute.return_value = ExecuteTimeseriesQueryErrorResponse(
+            seer_error_detail="Invalid query: bad field"
+        )
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_when_no_data(self, mock_execute: Mock) -> None:
+        """A None result from execute_timeseries_query is propagated as None."""
+        mock_execute.return_value = None
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
+        """A normal timeseries payload flows through with the selected period and interval."""
+        data: dict[str, Any] = {"count()": {"data": []}}
+        mock_execute.return_value = ExecuteTimeseriesQuerySuccessResponse(__root__=data)
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is not None
+        returned_data, period, interval = result
+        assert returned_data == data
+        assert period
+        assert interval
 
     def test_get_ie_details_from_issue_id_basic(
         self,
@@ -1594,6 +1679,36 @@ class TestGetIssueAndEventDetailsV2(
             assert serialized["value"] == original.value
             assert serialized["important"] == original.important
 
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_low_value_span_event_context(self, mock_get_tags, mock_get_timeseries) -> None:
+        """Troubleshooting context lives on the serialized event, not the issue."""
+        mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_get_tags.return_value = {"tags_overview": []}
+
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+            type=LowValueSpanConfigurationType.type_id,
+            evidence_data={"span_origin": "manual"},
+        )
+
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+            include_issue=True,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert "Sentry detector" in event_dict["detectionContext"]
+        assert "Remove the manually instrumented span" in event_dict["troubleshootingHint"]
+
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Tests for get_issue_details — fetching issue-level metadata, timeseries, tags, and activity."""
@@ -1603,7 +1718,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         return self.store_event(data=data, project_id=self.project.id)
 
-    def _assert_issue_response_shape(self, result: dict):
+    def _assert_issue_response_shape(self, result: IssueDetailsResponse):
         assert isinstance(result["issue"], dict)
         _IssueMetadata.parse_obj(result["issue"])
         assert isinstance(result["event_timeseries"], dict | None)
@@ -1632,12 +1747,10 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
-        assert result["issue"]["detectionContext"] is None
-        assert result["issue"]["troubleshootingHint"] is None
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
@@ -1657,33 +1770,27 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=group.qualified_short_id,
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
-    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_low_value_span_issue_context(self, mock_tags, mock_ts):
-        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
-        mock_tags.return_value = {"tags_overview": []}
-        group = self.create_group(
-            project=self.project,
-            type=LowValueSpanConfigurationType.type_id,
-        )
+    def test_by_qualified_short_id_scoped_to_project_slug(self):
+        """A short ID is only resolvable within the project_slug-scoped projects."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
 
+        other_project = self.create_project(organization=self.organization, name="other project")
+
+        # Restricting to a different project must not resolve this project's short ID.
         result = get_issue_details(
             organization_id=self.organization.id,
-            issue_id=str(group.id),
+            issue_id=group.qualified_short_id,
+            project_slug=other_project.slug,
         )
-
-        assert isinstance(result, dict)
-        self._assert_issue_response_shape(result)
-        assert "Sentry detector" in result["issue"]["detectionContext"]
-        assert "low telemetry value" in result["issue"]["detectionContext"]
-        assert "manually instrumented" in result["issue"]["troubleshootingHint"]
-        assert "filter the automatically created span" in result["issue"]["troubleshootingHint"]
+        assert result is None
 
     # --- timeseries ---
 
@@ -1703,7 +1810,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         assert result["event_timeseries"] == {"count()": {"data": [[1000, [{"count": 3}]]]}}
         assert result["timeseries_stats_period"] == "24h"
         assert result["timeseries_interval"] == "1h"
@@ -1900,6 +2007,238 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             project_slug="nonexistent-project",
         )
 
+        assert result is None
+
+
+class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
+    """Tests for get_issue_committers — likely code authors from ingested commit data.
+
+    Returns three signals: ``stack_commits`` (frame-based blame of the failing files),
+    ``suspect_commits`` (precomputed GroupOwner suspect commit), and ``release_commits``
+    (broader pool shipped around first-seen).
+    """
+
+    def _make_error_event(self):
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        return self.store_event(data=data, project_id=self.project.id)
+
+    def _add_suspect_commit(self, group):
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        author = self.create_commit_author(organization_id=self.organization.id, user=self.user)
+        commit = self.create_commit(repo=repo, author=author, message="fix: the failing function")
+        GroupOwner.objects.create(
+            group_id=group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
+        )
+        return commit
+
+    def _make_blame_event(self, author_email):
+        """Store an event whose stacktrace frames are blamed on a release commit."""
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        release = self.create_release(project=self.project, version="blame-v1")
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["stacktrace"] = {
+            "frames": [
+                {
+                    "function": "set_commits",
+                    "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                    "module": "sentry.models.release",
+                    "in_app": True,
+                    "lineno": 39,
+                    "filename": "sentry/models/release.py",
+                }
+            ]
+        }
+        data["tags"] = {"sentry:release": release.version}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        GroupRelease.objects.create(
+            group_id=group.id, project_id=self.project.id, release_id=release.id
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+        return group
+
+    def _make_event_with_multiple_release_commits(self, author_email):
+        """Store an event linked to a release shipping several commits with differing
+        numbers of file changes, to exercise the per-commit file-change-count mapping.
+        """
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        release = self.create_release(project=self.project, version="multi-v1")
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["tags"] = {"sentry:release": release.version}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        GroupRelease.objects.create(
+            group_id=group.id, project_id=self.project.id, release_id=release.id
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "one file changed",
+                    "patch_set": [{"path": "src/one.py", "type": "M"}],
+                },
+                {
+                    "id": "b" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "three files changed",
+                    "patch_set": [
+                        {"path": "src/x.py", "type": "M"},
+                        {"path": "src/y.py", "type": "A"},
+                        {"path": "src/z.py", "type": "D"},
+                    ],
+                },
+                {
+                    "id": "c" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "Merge pull request #1",
+                    "patch_set": [{"path": "src/two.py", "type": "M"}],
+                },
+            ]
+        )
+        return group
+
+    def test_returns_suspect_commits(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        commit = self._add_suspect_commit(group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
+        assert "stack_commits" in result
+        suspect = result["suspect_commits"]
+        assert len(suspect) == 1
+        assert suspect[0]["author"]["email"] == self.user.email
+        assert suspect[0]["commits"][0]["id"] == commit.key
+        assert suspect[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+    def test_resolves_by_qualified_short_id(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        self._add_suspect_commit(group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+        )
+
+        assert result is not None
+        assert len(result["suspect_commits"]) == 1
+
+    def test_returns_file_committers_from_stacktrace_blame(self):
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        stack_commits = result["stack_commits"]
+        assert len(stack_commits) >= 1
+        assert stack_commits[0]["author"]["email"] == self.user.email
+        commit = stack_commits[0]["commits"][0]
+        assert commit["id"] == "a" * 40
+        assert commit["score"] is not None
+
+    def test_returns_release_commits_in_window(self):
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=30).isoformat(),
+            end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
+        )
+
+        assert result is not None
+        release = result["release_commits"]
+        commit = next(c for c in release if c["id"] == "a" * 40)
+        assert commit["files_changed_count"] == 1
+        assert commit["is_merge_commit"] is False
+
+    def test_release_commits_file_change_counts_are_per_commit(self):
+        """Regression test: with multiple candidate commits, the per-commit
+        ``files_changed_count`` is built from
+        ``values_list("commit_id").annotate(n=Count("id"))`` passed to ``dict()``.
+        A single ``values_list`` field still yields ``(commit_id, n)`` tuples, so
+        ``dict()`` does not raise and each commit gets its own correct count.
+        """
+        group = self._make_event_with_multiple_release_commits(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=30).isoformat(),
+            end=(before_now(minutes=0) + timedelta(days=1)).isoformat(),
+        )
+
+        assert result is not None
+        release = result["release_commits"]
+        counts = {c["id"]: c["files_changed_count"] for c in release}
+        assert counts["a" * 40] == 1
+        assert counts["b" * 40] == 3
+        assert counts["c" * 40] == 1
+
+        merge_commit = next(c for c in release if c["id"] == "c" * 40)
+        assert merge_commit["is_merge_commit"] is True
+
+    def test_no_commit_data_returns_empty_lists(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert result["stack_commits"] == []
+        assert result["suspect_commits"] == []
+        assert result["release_commits"] == []
+
+    def test_returns_none_when_issue_does_not_exist(self):
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id="123456789",
+        )
         assert result is None
 
 
@@ -2124,6 +2463,47 @@ class TestGetEventDetails(
         )
 
         assert result is None
+
+    # --- troubleshooting context on the serialized event ---
+
+    def test_low_value_span_event_context(self) -> None:
+        """Low-value-span events surface detector context on the serialized event."""
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+            type=LowValueSpanConfigurationType.type_id,
+            evidence_data={"span_origin": "manual"},
+        )
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert "Sentry detector" in event_dict["detectionContext"]
+        assert "Remove the manually instrumented span" in event_dict["troubleshootingHint"]
+
+    def test_non_detector_event_has_null_context(self) -> None:
+        """Non-detector events expose the keys with null values."""
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert event_dict["detectionContext"] is None
+        assert event_dict["troubleshootingHint"] is None
 
 
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -2504,12 +2884,12 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["organization_id"] == self.organization.id
-        assert result["integration_id"] == "123"
-        assert result["provider"] == "integrations:github"
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "seer"
-        assert result["external_id"] == "12345678"
+        assert result.organization_id == self.organization.id
+        assert result.integration_id == "123"
+        assert result.provider == "integrations:github"
+        assert result.owner == "getsentry"
+        assert result.name == "seer"
+        assert result.external_id == "12345678"
 
     def test_get_repository_definition_invalid_format(self) -> None:
         """Test that invalid repo name format returns None"""
@@ -2583,7 +2963,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["integration_id"] is None
+        assert result.integration_id is None
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
@@ -2622,7 +3002,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["provider"] == "integrations:github_enterprise"
+        assert result.provider == "integrations:github_enterprise"
 
     def test_get_repository_definition_multiple_providers(self) -> None:
         """Test that when multiple repos with different supported providers exist, first one is returned"""
@@ -2652,12 +3032,12 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         # Should return the first matching repo (in this case, GitHub)
-        assert result["provider"] in [
+        assert result.provider in [
             "integrations:github",
             "integrations:github_enterprise",
         ]
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "seer"
+        assert result.owner == "getsentry"
+        assert result.name == "seer"
 
     def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
@@ -2687,8 +3067,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         # Should return the GitHub repo, not GitLab
         assert result is not None
-        assert result["provider"] == "integrations:github"
-        assert result["external_id"] == "12345678"
+        assert result.provider == "integrations:github"
+        assert result.external_id == "12345678"
 
     def test_get_repository_definition_multipart_name(self) -> None:
         """Test repository with multi-part name (e.g., owner/project/repo)"""
@@ -2707,8 +3087,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "project/seer"
+        assert result.owner == "getsentry"
+        assert result.name == "project/seer"
 
     def test_get_repository_definition_by_external_id(self) -> None:
         """Test lookup by external_id when repo has been renamed."""
@@ -2730,8 +3110,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         # Should return the CURRENT name from the database
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "new-name"
+        assert result.owner == "getsentry"
+        assert result.name == "new-name"
 
 
 class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
@@ -2990,7 +3370,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # With dashes
             result = get_replay_metadata(
@@ -3002,7 +3382,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Invalid
             result = get_replay_metadata(
@@ -3022,7 +3402,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # No project slug
             result = get_replay_metadata(
@@ -3033,7 +3413,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Different project slug
             result = get_replay_metadata(
@@ -3076,7 +3456,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Replay 2
             result = get_replay_metadata(
@@ -3087,7 +3467,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Upper (supported but not expected)
             result = get_replay_metadata(
@@ -3098,7 +3478,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Short ID < 8 characters or not hex - returns None
             assert (
@@ -3378,11 +3758,11 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 3
+        assert len(result.data) == 3
 
         auth_log_expected = self.logs[0]
         auth_log = None
-        for item in result["data"]:
+        for item in result.data:
             if item["id"] == self.get_id_str(auth_log_expected):
                 auth_log = item
 
@@ -3411,8 +3791,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             substring_case_sensitive=False,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
 
@@ -3424,8 +3804,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             substring_case_sensitive=True,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.get_id_str(self.logs[3])
+        assert len(result.data) == 1
+        assert result.data[0]["id"] == self.get_id_str(self.logs[3])
 
     def test_get_log_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_log_attributes_for_trace(
@@ -3435,8 +3815,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             limit=1,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] in [
+        assert len(result.data) == 1
+        assert result.data[0]["id"] in [
             self.get_id_str(self.logs[0]),
             self.get_id_str(self.logs[2]),
             self.get_id_str(self.logs[3]),
@@ -3452,8 +3832,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             limit=2,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
 
@@ -3527,12 +3907,12 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 3
+        assert len(result.data) == 3
 
         # Find the first http.request.duration metric
         http_metric_expected = self.metrics[0]
         http_metric = None
-        for item in result["data"]:
+        for item in result.data:
             if item["id"] == self.get_id_str(http_metric_expected):
                 http_metric = item
 
@@ -3564,7 +3944,7 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             metric_name="http.",
         )
         assert result is not None
-        assert len(result["data"]) == 0
+        assert len(result.data) == 0
 
         # Test an exact match (case-insensitive)
         result = get_metric_attributes_for_trace(
@@ -3574,8 +3954,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             metric_name="Cache.hit.rate",
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.get_id_str(self.metrics[3])
+        assert len(result.data) == 1
+        assert result.data[0]["id"] == self.get_id_str(self.metrics[3])
 
     def test_get_metric_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_metric_attributes_for_trace(
@@ -3585,8 +3965,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             limit=1,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] in [
+        assert len(result.data) == 1
+        assert result.data[0]["id"] in [
             self.get_id_str(self.metrics[0]),
             self.get_id_str(self.metrics[2]),
             self.get_id_str(self.metrics[3]),
@@ -3601,8 +3981,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             limit=2,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.metrics[0]) in ids
         assert self.get_id_str(self.metrics[2]) in ids
 
@@ -3945,13 +4325,13 @@ class TestGetDsn(APITestCase):
         result = get_dsn(organization_id=self.organization.id, project_slug="wordcraft")
 
         assert result is not None
-        assert result == {
+        assert result.dict() == {
             "project_slug": "wordcraft",
             "platform": project.platform,
-            "dsn_public": result["dsn_public"],
+            "dsn_public": result.dsn_public,
         }
-        assert result["dsn_public"].startswith("http")
-        assert result["dsn_public"].endswith(f"/{project.id}")
+        assert result.dsn_public.startswith("http")
+        assert result.dsn_public.endswith(f"/{project.id}")
 
     def test_returns_none_for_unknown_slug(self) -> None:
         self.create_project(organization=self.organization, slug="wordcraft")

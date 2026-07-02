@@ -674,6 +674,49 @@ describe('Discover -> ColumnEditModal', () => {
         {kind: 'equation', field: '(p95() / count_if(user,equals,300)  ) *   100'},
       ]);
     });
+    it('updates equations with quoted function arguments when function values change', async () => {
+      mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count_if', 'transaction.duration', 'equals', 'foo bar'],
+            },
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+            {
+              kind: 'equation',
+              field: 'count_if(transaction.duration,equals,"foo bar") / count()',
+            },
+          ],
+          onApply,
+          customMeasurements: {},
+        },
+        initialData
+      );
+
+      const countIfValueInput = await screen.findByDisplayValue('foo bar');
+      fireEvent.change(countIfValueInput, {target: {value: 'bar baz'}});
+      fireEvent.blur(countIfValueInput);
+
+      expect(await screen.findByDisplayValue('bar baz')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      expect(onApply).toHaveBeenCalledWith([
+        {
+          kind: 'function',
+          function: ['count_if', 'transaction.duration', 'equals', 'bar baz'],
+        },
+        {kind: 'function', function: ['count', '', undefined, undefined]},
+        {
+          kind: 'equation',
+          field: 'count_if(transaction.duration,equals,"bar baz") / count()',
+        },
+      ]);
+    });
+
     it('update equation with repeated columns when they change', async () => {
       mountModal(
         {

@@ -7,6 +7,8 @@ import {
   explodeField,
   fieldAlignment,
   generateAggregateFields,
+  generateEquationFieldAsString,
+  generateFieldAsString,
   getAggregateAlias,
   isAggregateEquation,
   isAggregateField,
@@ -90,6 +92,55 @@ describe('parseFunction', () => {
       name: 'count',
       arguments: ['tags[foo,number]'],
     });
+  });
+});
+
+describe('generateFieldAsString', () => {
+  it('quotes function arguments that cannot parse raw', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: ['count_if', 'transaction.duration', 'equals', 'foo bar'],
+      })
+    ).toBe('count_if(transaction.duration,equals,"foo bar")');
+  });
+
+  it('preserves already quoted function arguments', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: ['count_if', 'transaction.duration', 'equals', '"foo bar"'],
+      })
+    ).toBe('count_if(transaction.duration,equals,"foo bar")');
+  });
+
+  it('preserves explicit tag function arguments', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: ['count', 'tags[foo,number]', undefined, undefined],
+      })
+    ).toBe('count(tags[foo,number])');
+  });
+
+  it('round-trips quoted function arguments through field parsing', () => {
+    expect(
+      explodeField({field: 'count_if(transaction.duration,equals,"foo bar")'})
+    ).toEqual({
+      kind: 'function',
+      function: ['count_if', 'transaction.duration', 'equals', 'foo bar'],
+    });
+  });
+});
+
+describe('generateEquationFieldAsString', () => {
+  it('uses function-safe field serialization', () => {
+    expect(
+      generateEquationFieldAsString({
+        kind: 'function',
+        function: ['count_if', 'transaction.duration', 'equals', 'foo bar'],
+      })
+    ).toBe('count_if(transaction.duration,equals,"foo bar")');
   });
 });
 

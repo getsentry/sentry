@@ -3,7 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataExport} from 'sentry/components/exports/dataExport';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {
+  type DataExportPayload,
+  ExportQueryType,
+} from 'sentry/components/exports/useDataExport';
 import type {Organization} from 'sentry/types/organization';
 
 const mockUnauthorizedOrg = OrganizationFixture({
@@ -16,8 +19,8 @@ const mockAuthorizedOrg = OrganizationFixture({
 
 const mockPayload = {
   queryType: ExportQueryType.ISSUES_BY_TAG,
-  queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
-};
+  queryInfo: {project: '1', group: '1027', key: 'user'},
+} satisfies DataExportPayload;
 
 const mockContext = (organization: Organization) => {
   return {organization};
@@ -116,7 +119,9 @@ describe('DataExport', () => {
     });
 
     rerender(
-      <DataExport payload={{...mockPayload, queryType: ExportQueryType.DISCOVER}} />
+      <DataExport
+        payload={{...mockPayload, queryInfo: {...mockPayload.queryInfo, key: 'browser'}}}
+      />
     );
 
     await waitFor(() => {
