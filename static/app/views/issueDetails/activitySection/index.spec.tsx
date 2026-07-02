@@ -1362,7 +1362,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(await screen.findByText('Pull request closed')).toBeInTheDocument();
     expect(screen.getByText(/by Shashank N Jarmale on GitHub/)).toBeInTheDocument();
     expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
   });
@@ -1395,7 +1395,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(await screen.findByText('Pull request closed')).toBeInTheDocument();
     expect(screen.getByText(/by Sentry on GitHub/)).toBeInTheDocument();
     expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });

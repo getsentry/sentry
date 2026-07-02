@@ -346,17 +346,14 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.PULL_REQUEST_CLOSED: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Pull Request closed'),
+        title: t('Pull request closed'),
         details: pullRequest
           ? tct('by [author] on [provider] [pullRequest]', {
               author,
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : tct('by [author]. [pullRequest]', {
-              author,
-              pullRequest: t('PR not available'),
-            }),
+          : tct('by [author]', {author}),
       };
     }
     case GroupActivityType.SET_UNRESOLVED: {
@@ -372,7 +369,7 @@ export function getCompactGroupActivityItem({
 
       const integrationLink = getIntegrationLink({data: activity.data, organization});
       return {
-        title: t('Unresolved'),
+        title: t('Issue unresolved'),
         details: integrationLink
           ? tct('via [integration]', {integration: integrationLink})
           : null,
@@ -435,7 +432,7 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.CREATE_ISSUE:
       return {
-        title: activity.data.new === false ? t('Linked Issue') : t('Created Issue'),
+        title: activity.data.new === false ? t('Linked issue') : t('Created issue'),
         details: tct('on [provider] [title]', {
           provider: activity.data.provider,
           title: (
@@ -581,12 +578,12 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.SEER_ITERATION_STARTED:
       return {
-        title: t('PR iteration started'),
+        title: t('Pull request iteration started'),
       };
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
-        title: t('Pull Request updated'),
+        title: t('Pull request updated'),
         details: pullRequest
           ? tct('on [provider] [pullRequest]', {
               provider: getProviderName(pullRequest.provider),
