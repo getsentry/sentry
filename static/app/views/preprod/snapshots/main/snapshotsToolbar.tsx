@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment, useEffect, useRef, useState} from 'react';
+import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,6 +18,19 @@ import {t} from 'sentry/locale';
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
 const TRANSPARENT_COLOR = 'transparent';
+
+// Diagonal slash drawn across an empty/transparent swatch. `halfWidth` is the
+// half-thickness of the line in px, so larger swatches can use a bolder slash.
+const slashGradient = (theme: Theme, halfWidth: number) => css`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-image: linear-gradient(
+    to top right,
+    transparent calc(50% - ${halfWidth + 1}px),
+    ${theme.tokens.content.danger} calc(50% - ${halfWidth}px),
+    ${theme.tokens.content.danger} calc(50% + ${halfWidth}px),
+    transparent calc(50% + ${halfWidth + 1}px)
+  );
+`;
 
 export type ViewMode = 'single' | 'list';
 export type SortBy = 'diff' | 'alpha';
@@ -299,18 +313,7 @@ const ColorTrigger = styled('button')<{$color: string; $slash: boolean}>`
   border: 1px solid
     ${p => p.theme.tokens.border.onVibrant[p.theme.type === 'dark' ? 'light' : 'dark']};
   background-color: ${p => (p.$slash ? 'transparent' : p.$color)};
-  ${p =>
-    p.$slash &&
-    css`
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-      background-image: linear-gradient(
-        to top right,
-        transparent calc(50% - 2px),
-        ${p.theme.tokens.content.danger} calc(50% - 1px),
-        ${p.theme.tokens.content.danger} calc(50% + 1px),
-        transparent calc(50% + 2px)
-      );
-    `}
+  ${p => p.$slash && slashGradient(p.theme, 1)}
 
   &:hover {
     border-color: ${p => p.theme.tokens.border.accent};
@@ -365,14 +368,7 @@ const OpacitySwatchFill = styled('div')<{$color: string; $opacity: number}>`
     css`
       opacity: 1;
       background-color: transparent;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-      background-image: linear-gradient(
-        to top right,
-        transparent calc(50% - 1.5px),
-        ${p.theme.tokens.content.danger} calc(50% - 0.5px),
-        ${p.theme.tokens.content.danger} calc(50% + 0.5px),
-        transparent calc(50% + 1.5px)
-      );
+      ${slashGradient(p.theme, 0.5)}
     `}
 `;
 
@@ -390,20 +386,8 @@ const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
   cursor: pointer;
   border: 2px solid
     ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  background-color: ${p => (p.$color === TRANSPARENT_COLOR ? 'transparent' : p.$color)};
+  background-color: ${p => p.$color};
   padding: 0;
   outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
   outline-offset: 1px;
-  ${p =>
-    p.$color === TRANSPARENT_COLOR &&
-    css`
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-      background-image: linear-gradient(
-        to top right,
-        transparent calc(50% - 1.5px),
-        ${p.theme.tokens.content.danger} calc(50% - 0.5px),
-        ${p.theme.tokens.content.danger} calc(50% + 0.5px),
-        transparent calc(50% + 1.5px)
-      );
-    `}
 `;
