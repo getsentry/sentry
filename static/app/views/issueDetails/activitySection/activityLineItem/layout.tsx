@@ -37,7 +37,7 @@ export function ActivityLineHeadline({
       column={3}
       row={1}
       minWidth={0}
-      minHeight={22}
+      minHeight="22px"
       align="center"
       wrap="wrap"
       gap="xs"
