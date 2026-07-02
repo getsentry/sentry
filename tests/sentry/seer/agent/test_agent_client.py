@@ -1290,6 +1290,18 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_truncates_long_title(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, flush=False, title="x" * 300
+        )
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.title == "x" * 255 + "…"
+        assert len(agent_run.title) == 256
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_creates_agent_run_mirror_extras_default_to_empty(
         self, mock_request, _mock_access
     ) -> None:

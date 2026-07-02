@@ -554,7 +554,7 @@ class SeerAgentClient:
         def _create_agent_run(run: SeerRun) -> None:
             SeerAgentRun.objects.create(
                 run=run,
-                title=title,
+                title=title[:255] + "…" if len(title) > 256 else title,
                 source=feature_id,
                 project=self.project,
                 group=self.group,
