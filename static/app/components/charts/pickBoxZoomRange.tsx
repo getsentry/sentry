@@ -31,6 +31,11 @@ export interface BrushArea {
  * a wrong zoom is immediately visible.
  *
  * Falls back to the singular `coordRange` for charts with one coordinate system.
+ *
+ * Returns `null` for a selection that collapses on either axis (a click, or a
+ * purely vertical/horizontal drag): a zero-width span isn't a zoom, and would
+ * resolve to an empty range (e.g. `value:>=x value:<x`, matching nothing).
+ * Any selection with positive extent on both axes is allowed.
  */
 export function pickBoxZoomRange(area: BrushArea | undefined): BoxZoomRange | null {
   if (!area) {
@@ -38,14 +43,19 @@ export function pickBoxZoomRange(area: BrushArea | undefined): BoxZoomRange | nu
   }
 
   const {coordRanges} = area;
-  if (Array.isArray(coordRanges) && coordRanges.length > 0) {
-    const overlay = toBoxZoomRange(coordRanges[coordRanges.length - 1]);
-    if (overlay) {
-      return overlay;
-    }
-  }
+  const range =
+    (Array.isArray(coordRanges) && coordRanges.length > 0
+      ? toBoxZoomRange(coordRanges[coordRanges.length - 1])
+      : null) ?? toBoxZoomRange(area.coordRange);
 
-  return toBoxZoomRange(area.coordRange);
+  if (
+    !range ||
+    range.xRange[0] === range.xRange[1] ||
+    range.yRange[0] === range.yRange[1]
+  ) {
+    return null;
+  }
+  return range;
 }
 
 /**
