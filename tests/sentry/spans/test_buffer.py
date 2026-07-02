@@ -14,6 +14,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_store import METRICS_SAMPLE_RATE
 from sentry.spans.buffer_types import (
     EvalshaResult,
     FlushCandidate,
@@ -368,6 +369,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 1024,
                 "root-salt",
                 "true",
+                METRICS_SAMPLE_RATE,
                 root_span.span_id,
             ),
             mock.call(
@@ -383,6 +385,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 1024,
                 "child-salt",
                 "true",
+                METRICS_SAMPLE_RATE,
                 child_span.span_id,
             ),
         ]
