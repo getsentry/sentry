@@ -435,6 +435,98 @@ class OptionsManagerTest(TestCase):
         ctx = mock_timer.return_value.__enter__.return_value
         ctx.__setitem__.assert_any_call("source", "default")
 
+    def test_get_many(self) -> None:
+        self.manager.register("bar")
+        try:
+            # Unset options resolve to their registered defaults.
+            assert self.manager.get_many(["foo", "bar"]) == {"foo": "", "bar": ""}
+
+            self.manager.set("foo", "stored")
+            self.store.flush_local_cache()
+            assert self.manager.get_many(["foo", "bar"]) == {"foo": "stored", "bar": ""}
+            # Parity with get() for each key.
+            assert self.manager.get("foo") == "stored"
+            assert self.manager.get("bar") == ""
+        finally:
+            self.manager.unregister("bar")
+
+    def test_get_many_unknown_option(self) -> None:
+        with pytest.raises(UnknownOption):
+            self.manager.get_many(["foo", "does-not-exist"])
+
+    def test_get_many_single_cache_round_trip(self) -> None:
+        self.manager.register("bar")
+        try:
+            self.manager.set("foo", "one")
+            self.manager.set("bar", "two")
+            self.store.flush_local_cache()
+
+            # A single bulk network-cache read serves all keys. (LocMemCache's
+            # get_many delegates to get internally; the store only issues the
+            # one get_many call.)
+            with patch.object(
+                self.store.cache, "get_many", wraps=self.store.cache.get_many
+            ) as cache_get_many:
+                assert self.manager.get_many(["foo", "bar"]) == {"foo": "one", "bar": "two"}
+                assert cache_get_many.call_count == 1
+
+            # A second call is served entirely from the local cache.
+            with patch.object(
+                self.store.cache, "get_many", wraps=self.store.cache.get_many
+            ) as cache_get_many:
+                assert self.manager.get_many(["foo", "bar"]) == {"foo": "one", "bar": "two"}
+                assert cache_get_many.call_count == 0
+        finally:
+            self.manager.unregister("bar")
+
+    def test_get_many_db_fallback(self) -> None:
+        # A network-cache miss falls back to the database in one query and
+        # repopulates the cache.
+        self.manager.set("foo", "stored")
+        self.store.flush_local_cache()
+        self.store.cache.clear()
+
+        assert self.manager.get_many(["foo"]) == {"foo": "stored"}
+        # The cache was repopulated by the db fallback.
+        self.store.flush_local_cache()
+        with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
+            assert self.manager.get_many(["foo"]) == {"foo": "stored"}
+
+    def test_get_many_read_hook(self) -> None:
+        self.manager.register("hooked", flags=FLAG_AUTOMATOR_MODIFIABLE)
+        self.manager.set_read_hook(
+            lambda key, opt: "served" if key == "hooked" else READ_HOOK_FALLBACK
+        )
+        try:
+            assert self.manager.get_many(["hooked", "foo"]) == {"hooked": "served", "foo": ""}
+        finally:
+            self.manager.set_read_hook(None)
+            self.manager.unregister("hooked")
+
+    def test_get_many_prioritize_disk(self) -> None:
+        self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
+        try:
+            self.manager.set("prioritize_disk", "db-value")
+            self.store.flush_local_cache()
+            with self.settings(SENTRY_OPTIONS={"prioritize_disk": "disk-value"}):
+                assert self.manager.get_many(["prioritize_disk", "foo"]) == {
+                    "prioritize_disk": "disk-value",
+                    "foo": "",
+                }
+        finally:
+            self.manager.unregister("prioritize_disk")
+
+    def test_get_many_nostore(self) -> None:
+        self.manager.register("nostore", flags=FLAG_NOSTORE)
+        try:
+            with self.settings(SENTRY_OPTIONS={"nostore": "from-disk"}):
+                assert self.manager.get_many(["nostore", "foo"]) == {
+                    "nostore": "from-disk",
+                    "foo": "",
+                }
+        finally:
+            self.manager.unregister("nostore")
+
     def test_read_hook_serves_get_and_isset(self) -> None:
         # A value that lives only in the hook is served by get(), and isset() must
         # agree — the option has a value, just from the new source.

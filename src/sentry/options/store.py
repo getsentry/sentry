@@ -100,55 +100,76 @@ class OptionsStore:
         """
         Fetches a value from the options store.
         """
-        result = self.get_cache(key, silent=silent)
-        if result is not None:
-            return result
+        return self.get_many([key], silent=silent).get(key.name)
 
-        should_log = random() < LOGGING_SAMPLE_RATE
-        if should_log:
+    def get_many(self, keys: list[Key], silent: bool = False) -> dict[str, Any]:
+        """
+        Get many option values.
+
+        Returns a dict mapping each key's name to its value; keys with no value anywhere (cache, db, grace) are omitted.
+        """
+        assert self.cache is not None, (
+            f"Option '{keys[0].name}' requested before cache initialization, which could result in excessive store queries"
+        )
+
+        results: dict[str, Any] = {}
+
+        # Serve whatever the in-process cache already holds.
+        misses: list[Key] = []
+        for key in keys:
+            value = self.get_local_cache(key)
+            if value is not None:
+                results[key.name] = value
+            else:
+                misses.append(key)
+
+        if not misses:
+            return results
+
+        # One network round-trip for everything the local cache didn't cover.
+        key_by_cache_key = {key.cache_key: key for key in misses}
+        try:
+            cached = self.cache.get_many(list(key_by_cache_key))
+        except Exception:
+            if not silent:
+                logger.warning(CACHE_FETCH_ERR, "get_many", exc_info=True)
+            cached = {}
+
+        misses = []
+        for cache_key, key in key_by_cache_key.items():
+            value = cached.get(cache_key)
+            if value is not None:
+                results[key.name] = value
+                if key.ttl > 0:
+                    self._local_cache[cache_key] = _make_cache_value(key, value)
+            else:
+                misses.append(key)
+
+        if not misses:
+            return results
+
+        if random() < LOGGING_SAMPLE_RATE:
             # Log some percentage of our cache misses for option retrieval to
             # help triage excessive queries against the store.
             logger.info(
                 "sentry_options_store.cache_miss",
-                extra={"key": key.name, "cache_configured": self.cache is not None},
+                extra={
+                    "key": misses[0].name,
+                    "cache_configured": self.cache is not None,
+                },
             )
 
-        result = self.get_store(key, silent=silent)
-        if result is not None:
-            return result
+        # Fall back to the database in one query (repopulating the network
+        # cache), then to a possibly-stale local value.
+        db_values = self.get_store_many(misses, silent=silent)
+        for key in misses:
+            value = db_values.get(key.name)
+            if value is None:
+                value = self.get_local_cache(key, force_grace=True)
+            if value is not None:
+                results[key.name] = value
 
-        # As a last ditch effort, let's hope we have a key
-        # in local cache that's possibly stale
-        return self.get_local_cache(key, force_grace=True)
-
-    def get_cache(self, key, silent=False):
-        """
-        First check against our local in-process cache, falling
-        back to the network cache.
-        """
-        assert self.cache is not None, (
-            f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
-        )
-
-        value = self.get_local_cache(key)
-        if value is not None:
-            return value
-
-        if self.cache is None:
-            return None
-
-        cache_key = key.cache_key
-        try:
-            value = self.cache.get(cache_key)
-        except Exception:
-            if not silent:
-                logger.warning(CACHE_FETCH_ERR, key.name, extra={"key": key.name}, exc_info=True)
-            value = None
-
-        if value is not None and key.ttl > 0:
-            self._local_cache[cache_key] = _make_cache_value(key, value)
-
-        return value
+        return results
 
     def get_local_cache(self, key, force_grace=False):
         """
@@ -207,34 +228,43 @@ class OptionsStore:
         between a miss vs error, but not worth it now since the value
         is limited at the moment.
         """
+        return self.get_store_many([key], silent=silent).get(key.name)
+
+    def get_store_many(self, keys: list[Key], silent: bool = False) -> dict[str, Any]:
+        """Bulk version of `get_store`. One database query for many keys."""
         try:
             # NOTE: To greatly reduce test bugs due to cache leakage, we don't enforce cross db constraints
             # because in practice the option query is consistent with the process level silo mode.
             # If you do change the way the option class model is picked, keep in mind it may not be deeply
             # tested due to the core assumption it should be stable per process in practice.
             with in_test_hide_transaction_boundary():
-                value = self.model.objects.get(key=key.name).value
-        except (self.model.DoesNotExist, ProgrammingError, OperationalError):
-            value = None
+                rows = {
+                    row.key: row.value
+                    for row in self.model.objects.filter(key__in=[key.name for key in keys])
+                }
+        except (ProgrammingError, OperationalError):
+            return {}
         except Exception:
             if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
                 raise
             elif not silent:
-                logger.exception("option.failed-lookup", extra={"key": key.name})
-            value = None
-        else:
-            # we only attempt to populate the cache if we were previously
-            # able to successfully talk to the backend
-            # NOTE: There is definitely a race condition here between updating
-            # the store and the cache
-            try:
-                self.set_cache(key, value)
-            except Exception:
-                if not silent:
-                    logger.warning(
-                        CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True
-                    )
-        return value
+                logger.exception("option.failed-lookup", extra={"keys": [key.name for key in keys]})
+            return {}
+
+        # we only attempt to populate the cache if we were previously
+        # able to successfully talk to the backend
+        # NOTE: There is definitely a race condition here between updating
+        # the store and the cache
+        for key in keys:
+            if key.name in rows:
+                try:
+                    self.set_cache(key, rows[key.name])
+                except Exception:
+                    if not silent:
+                        logger.warning(
+                            CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True
+                        )
+        return rows
 
     def get_last_update_channel(self, key) -> UpdateChannel | None:
         """
