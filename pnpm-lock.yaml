@@ -527,8 +527,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0(webpack@5.99.6(@swc/core@1.15.43)(esbuild@0.25.10)(postcss@8.5.3))
       swc-plugin-component-annotate:
-        specifier: 1.15.4
-        version: 1.15.4
+        specifier: 1.16.0
+        version: 1.16.0
       ts-checker-rspack-plugin:
         specifier: 1.5.1
         version: 1.5.1(@rspack/core@2.1.2)(@typescript/native-preview@7.0.0-dev.20260609.1)(tslib@2.8.1)(typescript@6.0.3)
@@ -8471,8 +8471,8 @@ packages:
   svg-tags@1.0.0:
     resolution: {integrity: sha512-ovssysQTa+luh7A5Weu3Rta6FJlFBBbInjOh722LIt6klpU2/HtdUbszju/G4devcvk8PGt7FCLv5wftu3THUA==}
 
-  swc-plugin-component-annotate@1.15.4:
-    resolution: {integrity: sha512-YfZcwwQE9z7/bTjbcn0UjmDSVdHrBuvDypGyDun6sTogLYGHxD2BnGAvubyuksZLzHzQAv6ru2+K9eVl/ibsng==}
+  swc-plugin-component-annotate@1.16.0:
+    resolution: {integrity: sha512-tYa3/Xiq1PwwVo+PFMO39L30X32vGlue5WgwyxnBR3yP3FYF0XWTXhK0Ob/ko8BBRG4hjMKMfPEhus6YJ4FKbA==}
 
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
@@ -18507,7 +18507,7 @@ snapshots:
 
   svg-tags@1.0.0: {}
 
-  swc-plugin-component-annotate@1.15.4: {}
+  swc-plugin-component-annotate@1.16.0: {}
 
   symbol-tree@3.2.4: {}
 

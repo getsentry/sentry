@@ -219,11 +219,10 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
           Object.assign(
             {},
             {
-              'annotate-fragments': false,
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              experimental_rewrite_emotion_styled: process.env.NODE_ENV === 'development',
+              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
