@@ -348,6 +348,8 @@ export function Controls({
                     <Tooltip
                       title={t('Duplicate Dashboard')}
                       disabled={isLoading || hasReachedDashboardLimit}
+                      position="bottom-end"
+                      overlayStyle={{zIndex: 10000}}
                     >
                       <Button
                         data-test-id="dashboard-duplicate"

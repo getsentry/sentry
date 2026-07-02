@@ -450,6 +450,11 @@ const Wrapper = styled('div')`
   gap: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.xl};
   align-items: flex-start;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    gap: ${p => p.theme.space.md};
+  }
 `;
 
 const FiltersRow = styled('div')`
@@ -461,6 +466,11 @@ const FiltersRow = styled('div')`
 
   & button[aria-haspopup] {
     height: 100%;
+    width: 100%;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    gap: ${p => p.theme.space.md};
     width: 100%;
   }
 `;
