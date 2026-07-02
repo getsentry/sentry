@@ -152,9 +152,7 @@ export function ProductBreakdownPanel({
     enabled: shouldCheckSetup,
   });
   const setupRequired =
-    shouldCheckSetup &&
-    !setupCheckLoading &&
-    !setupCheck?.isSeerConfigured;
+    shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
 
   if (!billedCategory) {
     return null;
