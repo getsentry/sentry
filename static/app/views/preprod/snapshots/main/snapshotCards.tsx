@@ -1,4 +1,4 @@
-import {Fragment, memo, useState} from 'react';
+import {memo, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -52,13 +52,32 @@ export function DarkAware({
   children: React.ReactNode;
   isDark: boolean;
 }) {
-  if (!isDark) {
-    return <Fragment>{children}</Fragment>;
-  }
+  // `isDark` is an absolute target: only impose a theme when it differs from the
+  // site theme, otherwise inherit the ambient one.
   const siteIsDark = ConfigStore.get('theme') === 'dark';
+  if (isDark === siteIsDark) {
+    return children;
+  }
   return (
-    <ThemeProvider theme={siteIsDark ? lightTheme : darkTheme}>{children}</ThemeProvider>
+    <ThemeProvider theme={isDark ? darkTheme : lightTheme}>{children}</ThemeProvider>
   );
+}
+
+export function canvasThemeOverride(
+  canvasTheme: SnapshotImage['canvas_theme']
+): boolean | null {
+  switch (canvasTheme) {
+    case 'dark':
+      return true;
+    case 'light':
+      return false;
+    default:
+      return null;
+  }
+}
+
+export function resolveDarkCanvas(override: boolean | null): boolean {
+  return override ?? ConfigStore.get('theme') === 'dark';
 }
 
 export function ErroredBanner() {
@@ -104,7 +123,12 @@ export const PairCard = memo(function PairCard({
   overlayColor?: string;
   status?: DiffStatus;
 }) {
-  const [isDark, setIsDark] = useState(false);
+  // The canvas is set dark/light by the image's canvas_theme or the toggle, or
+  // left null to follow the site theme.
+  const [canvasOverride, setCanvasOverride] = useState<boolean | null>(() =>
+    canvasThemeOverride(pair.head_image.canvas_theme)
+  );
+  const isDark = resolveDarkCanvas(canvasOverride);
   const image = pair.head_image;
   const baseUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
   const headUrl = getSnapshotImageUrl(imageBaseUrl, image);
@@ -170,7 +194,7 @@ export const PairCard = memo(function PairCard({
           status={status}
           diffPercent={pair.diff}
           isDark={isDark}
-          onToggleDark={() => setIsDark(v => !v)}
+          onToggleDark={() => setCanvasOverride(!isDark)}
           copyData={pair}
           copyUrl={copyUrl}
           onDoubleClick={handleOpen}
@@ -210,7 +234,12 @@ export const ImageCard = memo(function ImageCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
-  const [isDark, setIsDark] = useState(false);
+  // The canvas is set dark/light by the image's canvas_theme or the toggle, or
+  // left null to follow the site theme.
+  const [canvasOverride, setCanvasOverride] = useState<boolean | null>(() =>
+    canvasThemeOverride(image.canvas_theme)
+  );
+  const isDark = resolveDarkCanvas(canvasOverride);
   const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
   let status: DiffStatus | null;
   switch (cardType) {
@@ -255,7 +284,7 @@ export const ImageCard = memo(function ImageCard({
           tags={image.tags}
           status={status}
           isDark={isDark}
-          onToggleDark={() => setIsDark(v => !v)}
+          onToggleDark={() => setCanvasOverride(!isDark)}
           copyData={copyData ?? image}
           copyUrl={copyUrl}
           onDoubleClick={handleOpen}

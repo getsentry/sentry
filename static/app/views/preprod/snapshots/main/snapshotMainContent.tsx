@@ -22,7 +22,13 @@ import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {CardHeader, DarkAware, ErroredBanner} from './snapshotCards';
+import {
+  canvasThemeOverride,
+  CardHeader,
+  DarkAware,
+  ErroredBanner,
+  resolveDarkCanvas,
+} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
@@ -108,8 +114,35 @@ export function SnapshotMainContent({
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
-  const [isDark, setIsDark] = useState(false);
-  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const selectedImage = useMemo(() => {
+    if (!selectedItem) {
+      return null;
+    }
+    return isPairSidebarItem(selectedItem)
+      ? selectedItem.pairs[variantIndex]?.head_image
+      : selectedItem.images[variantIndex];
+  }, [selectedItem, variantIndex]);
+  const selectedImageKey = selectedImage?.key;
+  const selectedCanvasTheme = selectedImage?.canvas_theme;
+  const [canvasOverride, setCanvasOverride] = useState<boolean | null>(() =>
+    canvasThemeOverride(selectedCanvasTheme)
+  );
+  const isDark = resolveDarkCanvas(canvasOverride);
+  const toggleDark = useCallback(
+    () => setCanvasOverride(prev => !resolveDarkCanvas(prev)),
+    []
+  );
+  // When you navigate to an image with a canvas_theme, switch to it; images
+  // without one keep the current canvas.
+  useEffect(() => {
+    if (selectedImageKey === undefined) {
+      return;
+    }
+    const override = canvasThemeOverride(selectedCanvasTheme);
+    if (override !== null) {
+      setCanvasOverride(override);
+    }
+  }, [selectedImageKey, selectedCanvasTheme]);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
