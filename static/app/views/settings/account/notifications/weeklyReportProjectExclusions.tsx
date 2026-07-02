@@ -300,7 +300,7 @@ export function WeeklyReportProjectExclusions({
                     />
                   </PanelBody>
                 )}
-                {!projectsPending && !projectsError && (
+                {!isPending && !isError && !projectsPending && !projectsError && (
                   <Fragment>
                     {!featureDisabled && allExcluded && (
                       <StyledAlert variant="warning">
