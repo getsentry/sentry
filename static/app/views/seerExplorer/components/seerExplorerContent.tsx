@@ -557,7 +557,7 @@ export function SeerExplorerContent({
       )}
       {menu}
       {needsSlackUpgrade && (
-        <UpdateSlackAlert configurations={slackIntegrations.length} />
+        <UpdateSlackAlert num_configurations={slackIntegrations.length} />
       )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (

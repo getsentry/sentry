@@ -14,7 +14,7 @@ describe('UpdateSlackAlert', () => {
   });
 
   it('renders the nudge message and update link', () => {
-    render(<UpdateSlackAlert configurations={2} />, {organization});
+    render(<UpdateSlackAlert num_configurations={2} />, {organization});
 
     expect(
       screen.getByText(
@@ -30,7 +30,7 @@ describe('UpdateSlackAlert', () => {
   });
 
   it('auto-opens the reinstall modal when there is exactly one workspace', () => {
-    render(<UpdateSlackAlert configurations={1} />, {organization});
+    render(<UpdateSlackAlert num_configurations={1} />, {organization});
 
     expect(screen.getByRole('button', {name: 'Update Now'})).toHaveAttribute(
       'href',
@@ -39,7 +39,7 @@ describe('UpdateSlackAlert', () => {
   });
 
   it('hides the alert when dismissed', async () => {
-    render(<UpdateSlackAlert configurations={2} />, {organization});
+    render(<UpdateSlackAlert num_configurations={2} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
 
@@ -51,12 +51,12 @@ describe('UpdateSlackAlert', () => {
   });
 
   it('stays dismissed across remounts within the session', async () => {
-    const {unmount} = render(<UpdateSlackAlert configurations={2} />, {organization});
+    const {unmount} = render(<UpdateSlackAlert num_configurations={2} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
     unmount();
 
-    render(<UpdateSlackAlert configurations={2} />, {organization});
+    render(<UpdateSlackAlert num_configurations={2} />, {organization});
 
     expect(screen.queryByRole('button', {name: 'Update Now'})).not.toBeInTheDocument();
   });

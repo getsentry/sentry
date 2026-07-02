@@ -9,10 +9,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 interface UpdateSlackAlertProps {
-  configurations: number;
+  num_configurations: number;
 }
 
-export function UpdateSlackAlert({configurations}: UpdateSlackAlertProps) {
+export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
   const organization = useOrganization();
 
   // Dismiss for the current session so the alert doesn't reappear on every
@@ -32,7 +32,7 @@ export function UpdateSlackAlert({configurations}: UpdateSlackAlertProps) {
   // auto-opening the reinstall modal when there's exactly one workspace.
   const href =
     `/settings/${organization.slug}/integrations/slack/?tab=configurations&referrer=seer_explorer_update_slack` +
-    (configurations === 1 ? '&showInstallModal=1' : '');
+    (num_configurations === 1 ? '&showInstallModal=1' : '');
 
   return (
     <Container padding="lg">
@@ -47,7 +47,7 @@ export function UpdateSlackAlert({configurations}: UpdateSlackAlertProps) {
               onClick={() =>
                 trackAnalytics('seer.explorer.update_slack_clicked', {
                   organization,
-                  configurations,
+                  num_configurations,
                 })
               }
             >
