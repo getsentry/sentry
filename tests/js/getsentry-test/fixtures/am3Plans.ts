@@ -230,7 +230,6 @@ const commonFields = {
   addOnCategories: AM3_ADD_ON_CATEGORIES,
   categories: AM3_CATEGORIES,
   categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: AM3_CHECKOUT_CATEGORIES,
   onDemandCategories: AM3_ONDEMAND_CATEGORIES,
   availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES, // TODO(isabella): default budgets for sponsored plans is different
   hasOnDemandModes: false,

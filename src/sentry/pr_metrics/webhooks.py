@@ -2,7 +2,7 @@
 
 Multiple independent processors serve several webhook event types:
 - ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_metrics``,
-  ``handle_emission``, ``handle_activity``
+  ``handle_activity``, ``handle_emission``
 - ``IssueCommentEventWebhook``: ``handle_comment``
 - ``PullRequestReviewEventWebhook``: ``handle_review``
 - ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
@@ -69,7 +69,11 @@ from sentry.pr_metrics.activity_types import (
     UnassignedPayload,
     UnlabeledPayload,
 )
-from sentry.pr_metrics.attribution import JUDGE_ELIGIBLE_SIGNAL_TYPES, record_attribution_signal
+from sentry.pr_metrics.attribution import (
+    JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    SentryAppSignalDetails,
+    record_attribution_signal,
+)
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
@@ -166,7 +170,8 @@ def handle_attribution(
         return
 
     if action == "opened":
-        _write_author_attribution(pr, github_user)
+        pr_url = (pull_request or {}).get("html_url") or None
+        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     if action == "opened" and pull_request is not None and has_seer_access(organization):
@@ -425,7 +430,7 @@ def handle_activity(
     if pr is None:
         return
 
-    if not is_activity_tracking_enabled(organization):
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
@@ -469,6 +474,9 @@ def handle_comment(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     sender = event.get("sender") or {}
@@ -518,6 +526,9 @@ def handle_review(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     review = event.get("review") or {}
@@ -576,6 +587,9 @@ def handle_review_comment(
     if pr is None:
         return
 
+    if not is_activity_tracking_enabled(organization, pr):
+        return
+
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
@@ -620,6 +634,9 @@ def handle_review_thread(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     thread = event.get("thread") or {}
@@ -687,7 +704,10 @@ def handle_check_suite(
     )
 
     for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
+        if is_activity_tracking_enabled(organization, pr):
+            _write_activity_row(
+                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            )
 
 
 def handle_check_run(
@@ -730,7 +750,10 @@ def handle_check_run(
     )
 
     for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
+        if is_activity_tracking_enabled(organization, pr):
+            _write_activity_row(
+                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            )
 
 
 def _prs_from_check_payload(
@@ -946,17 +969,29 @@ def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType 
     return None
 
 
-def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None:
+def _write_author_attribution(
+    pr: PullRequest,
+    github_user: dict[str, Any],
+    pr_url: str | None = None,
+    group_ids: list[int] | None = None,
+) -> None:
     user_id = github_user.get("id")
     if user_id is None:
         return
     signal_type = _detect_app_signal(user_id)
     if signal_type is None:
         return
+    signal_details: SentryAppSignalDetails | None = None
+    if pr_url:
+        signal_details = SentryAppSignalDetails(
+            pr_url=pr_url,
+            group_ids=group_ids or [],
+        )
     record_attribution_signal(
         pull_request=pr,
         signal_type=signal_type,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
+        signal_details=signal_details.dict() if signal_details is not None else None,
     )
 
 

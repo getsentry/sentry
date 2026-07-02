@@ -664,3 +664,20 @@ class PrMetricsEmissionTest(TestCase):
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
         emit_pr_metrics_row(pull_request=self.pull_request)
         assert mock_record.call_args[0][0].group_ids == [group_id]
+
+    @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
+    @patch("sentry.analytics.record")
+    def test_emit_enqueues_cleanup_task(self, mock_record: Any, mock_cleanup: Any) -> None:
+        self._track()
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        mock_cleanup.delay.assert_called_once_with(pull_request_id=self.pull_request.id)
+
+    @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
+    @patch("sentry.analytics.record")
+    def test_untracked_pr_does_not_enqueue_cleanup(
+        self, mock_record: Any, mock_cleanup: Any
+    ) -> None:
+        # No attribution → emit returns False and must not enqueue cleanup.
+        result = emit_pr_metrics_row(pull_request=self.pull_request)
+        assert result is False
+        mock_cleanup.delay.assert_not_called()

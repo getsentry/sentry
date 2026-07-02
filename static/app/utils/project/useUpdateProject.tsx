@@ -50,6 +50,16 @@ export function useUpdateProjectMutationOptions(project: Project) {
       });
     },
     onMutate: data => {
+      // A slug change re-keys the detailed-project query and triggers URL
+      // canonicalization (see projectRouteContext's redirect effect). An
+      // optimistic write would flip the cached slug before the server confirms
+      // it — popping the "project moved" redirect and masking backend errors
+      // (e.g. a duplicate slug). Only update optimistically when the slug is
+      // unchanged; for slug changes we wait for the server response.
+      if (data.slug !== undefined && data.slug !== project.slug) {
+        return;
+      }
+
       const previousCachedDetailedProject = queryClient.getQueryData(queryKey)?.json;
       const storeProject = ProjectsStore.getById(project.id);
 

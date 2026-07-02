@@ -122,7 +122,6 @@ const commonFields = {
   addOnCategories: AM2_ADD_ON_CATEGORIES,
   categories: AM2_CATEGORIES,
   categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: AM2_CHECKOUT_CATEGORIES,
   onDemandCategories: AM2_ONDEMAND_CATEGORIES,
   hasOnDemandModes: true,
   budgetTerm: BUDGET_TERM as 'on-demand',
