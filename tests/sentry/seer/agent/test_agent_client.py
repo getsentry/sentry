@@ -1279,13 +1279,13 @@ class TestStartFeatureRun(TestCase):
             payload={"candidates": [1, 2]},
             flush=False,
             title="Agentic triage (2 candidates)",
-            extras={"shard_index": 0, "num_shards": 1},
+            extras={"foo": "bar"},
         )
 
         agent_run = SeerAgentRun.objects.get(run=run)
         assert agent_run.title == "Agentic triage (2 candidates)"
         assert agent_run.source == "night_shift"
-        assert agent_run.extras == {"shard_index": 0, "num_shards": 1}
+        assert agent_run.extras == {"foo": "bar"}
         assert run.referrer == "night_shift"
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))

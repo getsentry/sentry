@@ -592,7 +592,6 @@ def _dispatch_to_seer_feature(
                 payload=payload.dict(),
                 title=title,
                 flush=False,
-                extras={"shard_index": shard_index, "num_shards": len(shards)},
                 on_run_created=_link_shard,
             )
         except Exception:
