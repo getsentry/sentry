@@ -4,6 +4,7 @@ import {IconCommit} from 'sentry/icons';
 import type {Commit} from 'sentry/types/integrations';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
+import {getCommitRepository} from './commitRepository';
 import {InlineChip} from './inlineChip';
 
 const COMMIT_URL_PATH_BY_PROVIDER = [
@@ -24,7 +25,7 @@ const COMMIT_URL_PATH_BY_PROVIDER = [
 ];
 
 function getCommitUrl(commit: Commit) {
-  const repository = commit.repository;
+  const repository = getCommitRepository(commit);
   const provider = repository?.provider;
 
   if (!repository?.url || !provider) {

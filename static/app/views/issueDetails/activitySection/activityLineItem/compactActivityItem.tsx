@@ -25,6 +25,7 @@ import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
+import {getProviderName} from './compactActivityItem/provider';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
@@ -45,24 +46,6 @@ function getAuthorName(item: GroupActivity) {
     return item.data.pullRequest.author.name;
   }
   return 'Sentry';
-}
-
-function getProviderName(provider: null | string | undefined) {
-  const normalized = provider?.toLowerCase();
-
-  if (!normalized) {
-    return t('Git provider');
-  }
-  if (normalized.includes('github')) {
-    return t('GitHub');
-  }
-  if (normalized.includes('gitlab')) {
-    return t('GitLab');
-  }
-  if (normalized.includes('bitbucket')) {
-    return t('Bitbucket');
-  }
-  return provider;
 }
 
 function getPullRequestProvider(pullRequest: PullRequest) {
@@ -360,7 +343,7 @@ export function getCompactGroupActivityItem({
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : t('in a pull request'),
+          : null,
       };
     }
     case GroupActivityType.PULL_REQUEST_CLOSED: {
