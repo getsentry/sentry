@@ -76,7 +76,11 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
+from sentry.models.organizationonboardingtask import (
+    OnboardingTaskStatusStr,
+    OnboardingTaskStr,
+    OrganizationOnboardingTask,
+)
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.absolute_url import generate_organization_url
@@ -126,11 +130,11 @@ class _Links(TypedDict):
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
-    task: str | None  # TODO: literal/enum
-    status: str  # TODO: literal/enum
+    task: OnboardingTaskStr | None
+    status: OnboardingTaskStatusStr
     completionSeen: datetime | None
     dateCompleted: datetime
-    data: Any  # JSON objec
+    data: dict[str, Any]
 
 
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):

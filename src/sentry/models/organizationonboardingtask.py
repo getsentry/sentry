@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from django.conf import settings
 from django.core.cache import cache
@@ -43,6 +43,23 @@ class OnboardingTask(enum.IntEnum):
     @classmethod
     def values(cls) -> list[int]:
         return [member.value for member in cls]
+
+
+OnboardingTaskStatusStr = Literal["complete", "skipped"]
+
+OnboardingTaskStr = Literal[
+    "create_project",
+    "send_first_event",
+    "invite_member",
+    "setup_second_platform",
+    "setup_release_tracking",
+    "setup_sourcemaps",
+    "setup_alert_rules",
+    "setup_transactions",
+    "setup_session_replay",
+    "setup_real_time_notifications",
+    "link_sentry_to_source_code",
+]
 
 
 class OnboardingTaskStatus(enum.IntEnum):
@@ -113,13 +130,13 @@ class AbstractOnboardingTask(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    STATUS_CHOICES = (
+    STATUS_CHOICES: tuple[tuple[int, OnboardingTaskStatusStr], ...] = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
 
     STATUS_KEY_MAP = dict(STATUS_CHOICES)
-    STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
+    STATUS_LOOKUP_BY_KEY: dict[str, int] = {v: k for k, v in STATUS_CHOICES}
 
     organization = FlexibleForeignKey("sentry.Organization")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -146,7 +163,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
     """
 
-    TASK_CHOICES = (
+    TASK_CHOICES: tuple[tuple[int, OnboardingTaskStr], ...] = (
         (OnboardingTask.FIRST_PROJECT, "create_project"),
         (OnboardingTask.FIRST_EVENT, "send_first_event"),
         (OnboardingTask.INVITE_MEMBER, "invite_member"),
