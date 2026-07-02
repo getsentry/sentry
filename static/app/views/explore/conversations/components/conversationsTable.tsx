@@ -207,7 +207,7 @@ type CellContentProps = ComponentPropsWithRef<'div'> & {
   text: string;
 };
 
-function CellContent({text, ref, ...props}: CellContentProps) {
+export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
