@@ -9,6 +9,7 @@ import {
   ConversationLeftPanel,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -33,8 +34,9 @@ interface ConversationViewContentNewProps {
   selectedSpanId?: string | null;
 }
 
-// WIP: redesigned conversation view. The transcript tab is a placeholder while
-// its content treatment is being designed.
+// Redesigned conversation view. The transcript tab renders the Seer-styled
+// `MessagesPanelNew` (right-aligned user bubbles, left-aligned assistant
+// messages); the timeline tab keeps the span timeline.
 export function ConversationViewContentNew({
   conversation,
   activeTab,
@@ -77,7 +79,22 @@ export function ConversationViewContentNew({
         <ConversationLeftPanel>
           <Flex flex="1" minHeight="0" overflowY="hidden" background="secondary">
             {activeTab === 'transcript' ? (
-              <EmptyMessage>{t('Transcript view is coming soon')}</EmptyMessage>
+              <Container
+                width="100%"
+                minHeight="0"
+                background="primary"
+                border="primary"
+                radius="md"
+                overflowX="hidden"
+                overflowY="auto"
+              >
+                <MessagesPanelNew
+                  nodes={nodes}
+                  selectedNodeId={selectedNode?.id ?? null}
+                  onSelectNode={handleSelectNode}
+                  nodeTraceMap={nodeTraceMap}
+                />
+              </Container>
             ) : (
               <Container
                 padding="md"
