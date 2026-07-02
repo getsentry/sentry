@@ -360,18 +360,31 @@ export function ScmPlatformFeaturesCore({
       key="detected"
       initial={{opacity: 0}}
       animate={{opacity: 1}}
-      gap="md"
+      gap="lg"
       width="100%"
     >
-      <Flex justify="between" align="center">
-        <Flex align="center" gap="sm">
-          <IconBroadcast size="sm" />
-          <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
+      <Flex
+        justify="between"
+        align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+        maxWidth="100%"
+        minWidth="0%"
+        gap="md"
+        direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+      >
+        <Flex align="center" gap="sm" maxWidth="100%" minWidth="0%" flexShrink={1}>
+          <Flex flexShrink={0}>
+            <IconBroadcast size="sm" />
+          </Flex>
+          <Heading as="h4" ellipsis>
+            {t('Auto-detected from your repository')}
+          </Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
-          {isDetecting
-            ? t('Skip detection and select manually')
-            : t("Doesn't look right? Change platform")}
+          <Text ellipsis variant="inherit">
+            {isDetecting
+              ? t('Skip detection and select manually')
+              : t("Doesn't look right? Change platform")}
+          </Text>
         </Button>
       </Flex>
       <Stack gap="lg" width="100%">
