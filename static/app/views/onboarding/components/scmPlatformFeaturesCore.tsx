@@ -366,12 +366,10 @@ export function ScmPlatformFeaturesCore({
       <Flex
         justify="between"
         align={{'screen:xs': 'start', 'screen:sm': 'center'}}
-        maxWidth="100%"
-        minWidth="0%"
         gap="md"
         direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
       >
-        <Flex align="center" gap="sm" maxWidth="100%" minWidth="0%" flexShrink={1}>
+        <Flex align="center" gap="sm">
           <Flex flexShrink={0}>
             <IconBroadcast size="sm" />
           </Flex>
