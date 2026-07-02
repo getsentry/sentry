@@ -144,25 +144,47 @@ export function SeerExplorerHeader({
         <OverflowActions>
           <SeerExplorerHeaderActionsMenu {...actionsProps} />
         </OverflowActions>
-        <Button
-          icon={<IconAdd />}
-          onClick={onNewChatClick}
-          disabled={disableNewChatButton}
-          variant="secondary"
-          size="xs"
-          aria-label={t('Start a new chat (/new)')}
-          tooltipProps={{title: t('Start a new chat (/new)')}}
-        >
-          <NewChatLabel>{t('New chat')}</NewChatLabel>
-        </Button>
+        <NewChatFull>
+          <Button
+            icon={<IconAdd />}
+            onClick={onNewChatClick}
+            disabled={disableNewChatButton}
+            variant="secondary"
+            size="xs"
+            tooltipProps={{title: t('Start a new chat (/new)')}}
+          >
+            {t('New chat')}
+          </Button>
+        </NewChatFull>
+        <NewChatCompact>
+          <Button
+            icon={<IconAdd />}
+            onClick={onNewChatClick}
+            disabled={disableNewChatButton}
+            variant="secondary"
+            size="xs"
+            aria-label={t('Start a new chat (/new)')}
+            tooltipProps={{title: t('Start a new chat (/new)')}}
+          />
+        </NewChatCompact>
       </Flex>
     </Fragment>
   );
 }
 
-const NewChatLabel = styled('span')`
+const NewChatFull = styled('div')`
+  display: contents;
+
   @container (max-width: 460px) {
     display: none;
+  }
+`;
+
+const NewChatCompact = styled('div')`
+  display: none;
+
+  @container (max-width: 460px) {
+    display: contents;
   }
 `;
 
