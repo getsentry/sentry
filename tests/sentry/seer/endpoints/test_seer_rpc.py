@@ -2068,6 +2068,20 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
+    def test_org_less_viewer_context_is_rejected(self) -> None:
+        # A validly-signed but org-less viewer context carries no org to enforce
+        # against, so it must not authenticate on signature alone. Every seer RPC
+        # call acts on behalf of an organization.
+        org = self.create_organization(owner=self.user)
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=None, user_id=self.user.id),
+        )
+        assert response.status_code == 403
+
     def test_org_only_viewer_context_scopes_to_the_arg_org(self) -> None:
         # An org-only viewer context (no user_id — e.g. an org background job or,
         # later, a service-account viewer) must dispatch and return data scoped to

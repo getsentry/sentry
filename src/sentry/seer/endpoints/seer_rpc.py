@@ -297,10 +297,13 @@ class SeerRpcViewerContextAuthentication(BaseAuthentication):
             return None
 
         vc = viewer_context_from_header(header)
-        if vc is None:
-            # Present but unverifiable — fall through (do not raise) so a valid
-            # HMAC on the same request can still win, and otherwise the endpoint
-            # denies via _is_authorized.
+        if vc is None or vc.organization_id is None:
+            # Reject a viewer context that is unverifiable OR carries no
+            # organization: every seer RPC call acts on behalf of an org, so a
+            # VC used for auth MUST name one. We fall through (do not raise) so a
+            # valid HMAC on the same request can still win; otherwise the
+            # endpoint denies via _is_authorized. This guarantees every
+            # VC-authenticated call carries an attested org to enforce against.
             return None
 
         user: Any = AnonymousUser()
