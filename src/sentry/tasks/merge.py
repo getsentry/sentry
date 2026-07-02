@@ -12,6 +12,7 @@ from sentry import eventstream, features, similarity, tsdb
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
@@ -69,6 +70,17 @@ def merge_groups(
             "group.malformed.invalid_id",
             extra={"transaction_id": transaction_id, "old_object_ids": from_object_ids},
         )
+        return False
+
+    if killswitch_matches_context(
+        "merge.killswitch-projects", {"project_id": new_group.project_id}
+    ):
+        logger.warning(
+            "merge.halted_by_killswitch",
+            extra={"transaction_id": transaction_id, "new_group_id": new_group.id},
+        )
+        if eventstream_state:
+            eventstream.backend.end_merge(eventstream_state)
         return False
 
     if not recursed:

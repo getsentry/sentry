@@ -6,7 +6,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -19,8 +19,13 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
+import {ScmFeatureSelectionPanel} from './components/scmFeatureSelectionPanel';
 import {ScmPlatformFeaturesCore} from './components/scmPlatformFeaturesCore';
-import {getPlatformInfo, toSelectedSdk} from './components/scmPlatformHelpers';
+import {
+  DEFAULT_SCM_FEATURES,
+  getPlatformInfo,
+  toSelectedSdk,
+} from './components/scmPlatformHelpers';
 import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import type {StepProps} from './types';
 
@@ -75,7 +80,7 @@ export function ScmPlatformFeatures({
   )?.platform;
   const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
 
-  const currentFeatures = selectedFeatures ?? [ProductSolution.ERROR_MONITORING];
+  const currentFeatures = selectedFeatures ?? DEFAULT_SCM_FEATURES;
 
   const setPlatform = (platformKey: typeof currentPlatformKey) => {
     if (!platformKey) {
@@ -187,10 +192,16 @@ export function ScmPlatformFeatures({
             analyticsFlow="onboarding"
             selectedRepository={selectedRepository}
             selectedPlatform={selectedPlatform}
-            selectedFeatures={selectedFeatures}
             onPlatformChange={onPlatformChange}
             onFeaturesChange={onFeaturesChange}
             onClearProjectDetailsForm={onClearProjectDetailsForm}
+          />
+          <ScmFeatureSelectionPanel
+            analyticsFlow="onboarding"
+            selectedRepository={selectedRepository}
+            selectedPlatform={selectedPlatform}
+            selectedFeatures={selectedFeatures}
+            onFeaturesChange={onFeaturesChange}
           />
           <MotionFlex
             layout="position"

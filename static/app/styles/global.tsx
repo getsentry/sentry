@@ -173,6 +173,18 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     background: ${theme.tokens.background.primary};
   }
 
+  /*
+   * The modal portal lives at the document body, outside the app's content
+   * containers, so portaled content would otherwise have no query container for
+   * its container responsive props (bare breakpoint keys) to resolve against.
+   * Make it a container (≈ viewport width) so those @container rules resolve;
+   * the modal also provides a matching JS breakpoint for this element so CSS and
+   * JS agree.
+   */
+  #modal-portal {
+    container-type: inline-size;
+  }
+
   ${theme.type === 'dark' &&
   css`
     /*this updates styles set by base.less to match our theme*/

@@ -100,6 +100,8 @@ describe('BreadcrumbsDataSection', () => {
     expect(screen.getByText('May 21, 2019 6:00:48.760 PM UTC')).toBeInTheDocument();
     expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
 
+    expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
+
     const timeControl = screen.getByRole('button', {
       name: 'Change Time Format for Breadcrumbs',
     });

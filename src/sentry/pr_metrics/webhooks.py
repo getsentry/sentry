@@ -2,7 +2,7 @@
 
 Multiple independent processors serve several webhook event types:
 - ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_metrics``,
-  ``handle_emission``, ``handle_activity``
+  ``handle_activity``, ``handle_emission``
 - ``IssueCommentEventWebhook``: ``handle_comment``
 - ``PullRequestReviewEventWebhook``: ``handle_review``
 - ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
@@ -18,12 +18,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -47,17 +50,13 @@ from sentry.pr_metrics.activity_types import (
     AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
-    ClosedPayload,
     CommentCreatedPayload,
-    CommentEditedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
-    EditedPayload,
     EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
-    ReopenedPayload,
     ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
@@ -67,7 +66,11 @@ from sentry.pr_metrics.activity_types import (
     UnassignedPayload,
     UnlabeledPayload,
 )
-from sentry.pr_metrics.attribution import JUDGE_ELIGIBLE_SIGNAL_TYPES, record_attribution_signal
+from sentry.pr_metrics.attribution import (
+    JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    SentryAppSignalDetails,
+    record_attribution_signal,
+)
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
@@ -78,8 +81,14 @@ from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
     is_activity_tracking_enabled,
+    org_has_coding_agent_for_provider,
     resolved_group_ids,
 )
+from sentry.seer.autofix.utils import (
+    MatchDelegatedAgentPrRequest,
+    make_match_coding_agent_pr_request,
+)
+from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -88,10 +97,7 @@ logger = logging.getLogger("sentry.webhooks")
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
-        "closed",
-        "reopened",
         "synchronize",
-        "edited",
         "labeled",
         "unlabeled",
         "review_requested",
@@ -111,9 +117,7 @@ _ACTIVITY_ACTIONS = frozenset(
 # "closed" is absent because it forks on pull_request.merged — handled in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
-    "reopened": PullRequestActivityType.REOPENED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
-    "edited": PullRequestActivityType.EDITED,
     "labeled": PullRequestActivityType.LABELED,
     "unlabeled": PullRequestActivityType.UNLABELED,
     "review_requested": PullRequestActivityType.REVIEW_REQUESTED,
@@ -148,16 +152,25 @@ def handle_attribution(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
+    pr = _get_pull_request(
+        organization,
+        repo,
+        pull_request,
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
+    )
     if pr is None:
         return
 
     if action == "opened":
-        _write_author_attribution(pr, github_user)
+        pr_url = (pull_request or {}).get("html_url") or None
+        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if action == "opened" and pull_request is not None and has_seer_access(organization):
-        _detect_delegated_agent(pr, pull_request)
+    if action == "opened" and pull_request is not None:
+        provider_hint = _is_delegated_agent_candidate(pull_request)
+        if provider_hint and org_has_coding_agent_for_provider(organization, provider_hint):
+            _detect_delegated_agent(pr, pull_request, repo, provider_hint=provider_hint)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -317,7 +330,11 @@ def handle_emission(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
         return
@@ -367,7 +384,13 @@ def handle_metrics(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pr = _get_pull_request(organization, repo, pull_request, kwargs.get("github_delivery_id"))
+    pr = _get_pull_request(
+        organization,
+        repo,
+        pull_request,
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
+    )
     if pr is None:
         return
 
@@ -392,11 +415,17 @@ def handle_activity(
     if not action or action not in _ACTIVITY_ACTIONS:
         return
 
-    pr = _get_pull_request(organization, repo, pull_request_data, kwargs.get("github_delivery_id"))
+    pr = _get_pull_request(
+        organization,
+        repo,
+        pull_request_data,
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
+    )
     if pr is None:
         return
 
-    if not is_activity_tracking_enabled(organization):
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
@@ -414,7 +443,7 @@ def handle_comment(
 ) -> None:
     """Record PR comment activity from issue_comment webhook events."""
     action = event.get("action")
-    if action not in ("created", "edited"):
+    if action != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -429,48 +458,37 @@ def handle_comment(
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
-    try:
-        pr = PullRequest.objects.get(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=str(issue["number"]),
-        )
-    except PullRequest.DoesNotExist:
-        logger.warning(
-            "pr_metrics.comment.pr_not_found",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": repo.id,
-                "repo_name": repo.name,
-                "pr_number": issue["number"],
-                "action": action,
-                "github_delivery_id": webhook_id,
-            },
-        )
+    issue_created_at = issue.get("created_at")
+    pr = _resolve_or_stub_pull_request(
+        organization,
+        repo,
+        pr_number=issue["number"],
+        opened_at=parse_datetime(issue_created_at) if issue_created_at else None,
+        title=issue.get("title"),
+        github_delivery_id=webhook_id,
+        github_event=github_event,
+    )
+    if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     sender = event.get("sender") or {}
     comment = event.get("comment") or {}
 
-    if action == "created":
-        event_type = PullRequestActivityType.COMMENT_CREATED
-        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-        )
-    else:
-        event_type = PullRequestActivityType.COMMENT_EDITED
-        payload_obj = CommentEditedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-        )
+    payload_obj = CommentCreatedPayload(
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
+        author_association=comment.get("author_association", "NONE"),
+    )
 
     if not webhook_id:
         return
 
-    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+    )
 
 
 def handle_review(
@@ -496,9 +514,16 @@ def handle_review(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     review = event.get("review") or {}
@@ -541,44 +566,42 @@ def handle_review_comment(
 ) -> None:
     """Record inline PR review comments (pull_request_review_comment events)."""
     action = event.get("action")
-    if action not in ("created", "edited"):
+    if action != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
-    if action == "created":
-        event_type = PullRequestActivityType.COMMENT_CREATED
-        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-            is_review=True,
-            review_id=comment.get("pull_request_review_id"),
-        )
-    else:
-        event_type = PullRequestActivityType.COMMENT_EDITED
-        payload_obj = CommentEditedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            author_association=comment.get("author_association", "NONE"),
-            is_review=True,
-            review_id=comment.get("pull_request_review_id"),
-        )
+    payload_obj = CommentCreatedPayload(
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
+        author_association=comment.get("author_association", "NONE"),
+        is_review=True,
+        review_id=comment.get("pull_request_review_id"),
+    )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(
+        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+    )
 
 
 def handle_review_thread(
@@ -599,9 +622,16 @@ def handle_review_thread(
         return
 
     pr = _get_pull_request(
-        organization, repo, event.get("pull_request"), kwargs.get("github_delivery_id")
+        organization,
+        repo,
+        event.get("pull_request"),
+        kwargs.get("github_delivery_id"),
+        github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     thread = event.get("thread") or {}
@@ -640,8 +670,9 @@ def handle_check_suite(
     """Record the aggregate CI outcome from a completed check_suite event.
 
     Only ``completed`` carries a conclusion; ``requested``/``rerequested`` are
-    ignored. The suite's ``pull_requests`` array lists the same-repo PRs the run
-    pertains to (empty for fork PRs) — one activity row is written per PR.
+    ignored. One activity row is written per referenced PR that belongs to this
+    repo (``pull_requests`` can also carry other repos' PRs — see
+    ``_prs_from_check_payload``).
     """
     if event.get("action") != "completed":
         return
@@ -667,8 +698,11 @@ def handle_check_suite(
         )
     )
 
-    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id):
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
+    for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
+        if is_activity_tracking_enabled(organization, pr):
+            _write_activity_row(
+                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            )
 
 
 def handle_check_run(
@@ -683,7 +717,8 @@ def handle_check_run(
     """Record an individual CI check outcome from a completed check_run event.
 
     Per-check granularity beneath ``check_suite``; only ``completed`` carries a
-    conclusion. ``check_run.pull_requests`` resolves the affected same-repo PRs.
+    conclusion. ``check_run.pull_requests`` is resolved like ``check_suite`` —
+    entries from other repos are filtered in ``_prs_from_check_payload``.
     """
     if event.get("action") != "completed":
         return
@@ -709,8 +744,11 @@ def handle_check_run(
         )
     )
 
-    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id):
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
+    for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
+        if is_activity_tracking_enabled(organization, pr):
+            _write_activity_row(
+                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            )
 
 
 def _prs_from_check_payload(
@@ -718,12 +756,23 @@ def _prs_from_check_payload(
     repo: Repository,
     container: Mapping[str, Any],
     webhook_id: str,
+    github_event: GithubWebhookType,
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
-    Both events carry a ``pull_requests`` array of same-repo PR refs (empty for
-    fork PRs, and a suite can span more than one PR). Numbers are deduped before
-    resolving each to its stored row; unknown PRs are dropped by ``_get_pull_request``.
+    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
+    so ``pull_requests`` can include PRs that live in *other* repositories. The
+    common case: a PR opened to merge this repo's default branch into another
+    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
+    matches every default-branch check here — but the PR belongs to that other
+    repo and its ``number`` is scoped to it. Each entry carries its own
+    ``base.repo``, so an entry is only ours to resolve when its base repo is the
+    one this webhook is for. Resolving a foreign entry's number against ``repo``
+    would miss, or — on a number collision — attribute another repo's PR activity
+    to ours, so it is skipped.
+
+    Numbers are deduped before resolving each to its stored row; unknown PRs are
+    dropped by ``_get_pull_request``.
     """
     seen: set[str] = set()
     prs: list[PullRequest] = []
@@ -731,11 +780,115 @@ def _prs_from_check_payload(
         number = ref.get("number")
         if number is None or str(number) in seen:
             continue
+        # A PR's number is scoped to its own base repo; resolve it against
+        # ``repo`` only when the PR lives here. Entries whose base is another repo
+        # (a PR merging this repo's branch elsewhere) are not ours to record.
+        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
+        if base_repo_id is None or str(base_repo_id) != repo.external_id:
+            metrics.incr("pr_metrics.check.foreign_pull_request")
+            continue
         seen.add(str(number))
-        pr = _get_pull_request(organization, repo, {"number": number}, webhook_id)
+        # Check payloads carry no PR timestamp, only a number. A missing row is the
+        # open→check race the stub exists for, so use ``now`` as the opened_at proxy
+        # to clear the recency gate; the ``pull_request`` event overwrites it with
+        # the true opened_at when it lands.
+        pr = _resolve_or_stub_pull_request(
+            organization,
+            repo,
+            pr_number=number,
+            opened_at=timezone.now(),
+            title=None,
+            github_delivery_id=webhook_id,
+            github_event=github_event,
+        )
         if pr is not None:
             prs.append(pr)
     return prs
+
+
+# A comment, review, or check webhook can be delivered before the ``pull_request``
+# (opened) webhook that writes the PullRequest row — they are separate GitHub
+# deliveries with no ordering guarantee. When the PR was opened within this
+# window we treat a miss as that race and create a minimal stub the opened/sync
+# event later enriches; an older miss predates our ingestion (no opened event
+# will re-fire to fill the stub), so we skip it. Sized well above the observed
+# seconds-to-minutes race to absorb webhook backlog. (Check payloads carry no PR
+# timestamp, so that path passes ``now`` and always clears this window — see
+# ``_prs_from_check_payload``.)
+_PULL_REQUEST_STUB_MAX_AGE = timedelta(hours=1)
+
+
+def _resolve_or_stub_pull_request(
+    organization: Organization,
+    repo: Repository,
+    *,
+    pr_number: int,
+    opened_at: datetime | None,
+    title: str | None,
+    github_delivery_id: str | None,
+    github_event: GithubWebhookType,
+) -> PullRequest | None:
+    """Return the PullRequest row, creating a minimal stub for a recent miss.
+
+    pr_metrics piggybacks on rows written by ``PullRequestEventWebhook`` from
+    ``pull_request`` events. Comment, review, and check events are separate
+    deliveries that can arrive before that row exists. Rather than drop the
+    activity, create a minimal stub the ``pull_request`` event enriches via its
+    own ``update_or_create`` — but only for a PR opened recently, since an older
+    miss predates ingestion and has no opened event coming to fill the stub.
+    ``get_or_create`` is race-safe on the ``(repository_id, key)`` unique
+    constraint.
+
+    Callers whose payload carries no PR timestamp (the check_suite/check_run path,
+    whose PR refs hold only a number) pass ``opened_at`` as ``timezone.now()``: a
+    missing row on a check is the out-of-order race the stub exists for (CI fired
+    before the ``opened`` delivery landed), and the ``opened`` event overwrites the
+    proxy with the true ``opened_at`` when it lands.
+    """
+    key = str(pr_number)
+    try:
+        return PullRequest.objects.get(
+            organization_id=organization.id, repository_id=repo.id, key=key
+        )
+    except PullRequest.DoesNotExist:
+        pass
+
+    log_extra = {
+        "github_event": github_event,
+        "organization_id": organization.id,
+        "repository_id": repo.id,
+        "repo_name": repo.name,
+        "pr_number": pr_number,
+        "github_delivery_id": github_delivery_id,
+    }
+
+    # Two distinct misses, kept apart so rollout dashboards can tell them by
+    # `reason`: a payload that carried no parseable timestamp (`missing_opened_at`)
+    # vs. a PR known to predate our ingestion window (`predates_ingestion`).
+    # Neither can be stubbed — no `opened` event will arrive to enrich it — so both
+    # skip; only the reason differs. (Expected, not errors.)
+    if opened_at is None:
+        reason = "missing_opened_at"
+    elif opened_at < timezone.now() - _PULL_REQUEST_STUB_MAX_AGE:
+        reason = "predates_ingestion"
+    else:
+        reason = None
+
+    if reason is not None:
+        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": reason})
+        logger.info("pr_metrics.pull_request.unresolved", extra={**log_extra, "reason": reason})
+        return None
+
+    pull_request, created = PullRequest.objects.get_or_create(
+        organization_id=organization.id,
+        repository_id=repo.id,
+        key=key,
+        defaults={"opened_at": opened_at, "title": title},
+    )
+    if created:
+        metrics.incr("pr_metrics.pull_request.stub_created")
+        logger.info("pr_metrics.pull_request.stub_created", extra=log_extra)
+    return pull_request
 
 
 def _get_pull_request(
@@ -743,34 +896,28 @@ def _get_pull_request(
     repo: Repository,
     pull_request: dict[str, Any] | None,
     github_delivery_id: str | None = None,
+    *,
+    github_event: GithubWebhookType,
 ) -> PullRequest | None:
-    """Resolve the canonical PullRequest row for a webhook payload, or None.
+    """Resolve the PullRequest row for a ``pull_request``-shaped payload.
 
-    Returns None when the event carries no pull_request. Otherwise the row is
-    upserted by ``PullRequestEventWebhook._handle`` before processors run, so a
-    miss is unexpected — log it (with the delivery id, to pull the raw payload)
-    and let the caller bail.
+    Returns None when the event carries no pull_request. The row is normally
+    upserted by ``PullRequestEventWebhook._handle`` in the same delivery; for the
+    cross-delivery review events it may be missing, so we resolve-or-stub (see
+    ``_resolve_or_stub_pull_request``).
     """
     if not pull_request:
         return None
-    try:
-        return PullRequest.objects.get(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=str(pull_request["number"]),
-        )
-    except PullRequest.DoesNotExist:
-        logger.warning(
-            "pr_metrics.pr_not_found",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": repo.id,
-                "repo_name": repo.name,
-                "pr_number": pull_request["number"],
-                "github_delivery_id": github_delivery_id,
-            },
-        )
-        return None
+    created_at = pull_request.get("created_at")
+    return _resolve_or_stub_pull_request(
+        organization,
+        repo,
+        pr_number=pull_request["number"],
+        opened_at=parse_datetime(created_at) if created_at else None,
+        title=pull_request.get("title"),
+        github_delivery_id=github_delivery_id,
+        github_event=github_event,
+    )
 
 
 def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
@@ -817,38 +964,126 @@ def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType 
     return None
 
 
-def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None:
+def _write_author_attribution(
+    pr: PullRequest,
+    github_user: dict[str, Any],
+    pr_url: str | None = None,
+    group_ids: list[int] | None = None,
+) -> None:
     user_id = github_user.get("id")
     if user_id is None:
         return
     signal_type = _detect_app_signal(user_id)
     if signal_type is None:
         return
+    signal_details: SentryAppSignalDetails | None = None
+    if pr_url:
+        signal_details = SentryAppSignalDetails(
+            pr_url=pr_url,
+            group_ids=group_ids or [],
+        )
     record_attribution_signal(
         pull_request=pr,
         signal_type=signal_type,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
+        signal_details=signal_details.dict() if signal_details is not None else None,
     )
 
 
-def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, Any]) -> None:
+def _detect_delegated_agent(
+    pr: PullRequest,
+    webhook_pull_request: Mapping[str, Any],
+    repository: Repository,
+    provider_hint: str,
+) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
     Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
     """
-    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
-    # Our candidates are PRs from delegated agents
-    # That explicitly address a Sentry issue
-    if provider_hint is not None and resolved_group_ids(pr):
-        # TODO: Fire-and-forget request to Seer when the match endpoint exists.
-        # We will send: provider_hint, github_login, head_ref
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.not_implemented",
-            1,
-            attributes={"provider_hint": provider_hint},
+    group_ids = resolved_group_ids(pr)
+    if not group_ids:
+        return
+
+    repo_name_sections = repository.name.split("/")
+    if len(repo_name_sections) < 2:
+        logger.warning(
+            "pr_metrics.delegated_agent.invalid_repo_name",
+            extra={"pull_request_id": pr.id, "repo_name": repository.name},
         )
+        return
+
+    if not repository.provider or not repository.external_id:
+        logger.warning(
+            "pr_metrics.delegated_agent.missing_repo_metadata",
+            extra={
+                "pull_request_id": pr.id,
+                "has_provider": bool(repository.provider),
+                "has_external_id": bool(repository.external_id),
+            },
+        )
+        return
+
+    pr_url = webhook_pull_request.get("html_url") or ""
+    head_branch = (webhook_pull_request.get("head") or {}).get("ref") or ""
+
+    request_body = MatchDelegatedAgentPrRequest(
+        organization_id=pr.organization_id,
+        pull_request_id=pr.id,
+        pr_url=pr_url,
+        repo=SeerRepoDefinition(
+            provider=repository.provider,
+            owner=repo_name_sections[0],
+            name="/".join(repo_name_sections[1:]),
+            external_id=repository.external_id,
+        ),
+        head_branch=head_branch,
+        provider=provider_hint,
+        group_ids=group_ids,
+    )
+
+    _send_seer_delegated_agent_match(request_body, provider_hint, pr)
+
+
+def _send_seer_delegated_agent_match(
+    request_body: MatchDelegatedAgentPrRequest,
+    provider_hint: str,
+    pr: PullRequest,
+) -> None:
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+    }
+    try:
+        response = make_match_coding_agent_pr_request(request_body, timeout=5)
+    except Exception:
+        logger.warning("pr_metrics.delegated_agent.seer_match.error", extra=log_extra)
+        sentry_sdk.metrics.count(
+            "pr_metrics.delegated_agent.seer_match.error",
+            1,
+            attributes={"reason": "exception"},
+        )
+        return
+
+    if response.status >= 400:
+        logger.warning(
+            "pr_metrics.delegated_agent.seer_match.error",
+            extra={**log_extra, "status_code": response.status},
+        )
+        sentry_sdk.metrics.count(
+            "pr_metrics.delegated_agent.seer_match.error",
+            1,
+            attributes={"reason": "bad_status"},
+        )
+        return
+
+    sentry_sdk.metrics.count(
+        "pr_metrics.delegated_agent.seer_match.sent",
+        1,
+        attributes={"provider": provider_hint},
+    )
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -903,17 +1138,10 @@ def _write_activity(
         # Without a delivery ID idempotency cannot be guaranteed — skip.
         return
 
-    if action == "closed":
-        event_type = (
-            PullRequestActivityType.MERGED
-            if pull_request.get("merged")
-            else PullRequestActivityType.CLOSED
-        )
-    else:
-        mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
-        if mapped is None:
-            return
-        event_type = mapped
+    mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
+    if mapped is None:
+        return
+    event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
     _write_activity_row(pr, webhook_id, event_type, payload)
@@ -946,30 +1174,6 @@ def _build_activity_payload(
                     commits=pull_request.get("commits", 0),
                 )
             )
-        case "closed":
-            return asdict(
-                ClosedPayload(
-                    **base_kw,
-                    merged=pull_request.get("merged", False),
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                    comments=pull_request.get("comments", 0),
-                    review_comments=pull_request.get("review_comments", 0),
-                    merged_by=(pull_request.get("merged_by") or {}).get("login"),
-                )
-            )
-        case "reopened":
-            return asdict(
-                ReopenedPayload(
-                    **base_kw,
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                )
-            )
         case "synchronize":
             return asdict(
                 SynchronizePayload(
@@ -978,9 +1182,6 @@ def _build_activity_payload(
                     after_sha=event.get("after"),
                 )
             )
-        case "edited":
-            changes = event.get("changes") or {}
-            return asdict(EditedPayload(**base_kw, changed_fields=sorted(changes.keys())))
         case "labeled":
             label = event.get("label") or {}
             return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))

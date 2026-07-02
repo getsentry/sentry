@@ -2,7 +2,6 @@ import logging
 from collections.abc import Mapping
 from functools import partial
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -29,6 +28,7 @@ from sentry.taskworker.namespaces import (
 )
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +88,11 @@ def process_message(
     from sentry.utils import metrics
 
     with (
-        sentry_sdk.start_transaction(
+        start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            transaction=True,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
@@ -132,10 +133,11 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
     topic = get_topic_definition(Topic(logical_topic))["real_topic_name"]
 
     with (
-        sentry_sdk.start_transaction(
+        start_span(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            transaction=True,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
@@ -182,6 +184,16 @@ def _register_subscription_tasks() -> None:
             silo_mode=SiloMode.CELL,
         )
         def task_fn(message_bytes: bytes, _d: Dataset = dataset) -> None:
+            """Process a subscription message from raw Kafka message bytes.
+
+            This task is directly spawned from taskbroker in "raw mode". You won't find
+            any application code that calls apply_async or delay directly on it,
+            instead taskbroker itself is configured to consume a topic (in infra
+            templates) and spawns tasks for each message.
+
+            As such, the task signature, name and namespace cannot be changed without
+            coordination.
+            """
             _process_subscription_message(message_bytes, _d)
 
 

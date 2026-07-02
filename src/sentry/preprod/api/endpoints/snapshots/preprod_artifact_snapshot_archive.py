@@ -10,13 +10,16 @@ from objectstore_client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiSnapshotArchiveDownloadEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.preprod.snapshots.zip_builder import archive_exists, archive_object_key
@@ -119,6 +122,17 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         artifact, _metrics = resolved
 
         if request.GET.get("download") is not None:
+            analytics.record(
+                PreprodArtifactApiSnapshotArchiveDownloadEvent(
+                    organization_id=organization.id,
+                    project_id=artifact.project_id,
+                    user_id=(
+                        request.user.id if request.user and request.user.is_authenticated else None
+                    ),
+                    artifact_id=str(artifact.id),
+                    client=resolve_action_source(request),
+                )
+            )
             return self._download(artifact)
 
         # Readiness probe (no side effect): lets the UI download a ready archive

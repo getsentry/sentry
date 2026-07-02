@@ -37,12 +37,22 @@ describe('ScmProjectDetailsCore', () => {
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-project');
   });
 
-  it('fires step_viewed analytics for the given flow on mount', () => {
+  it('fires step_viewed analytics in onboarding on mount', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    renderCore({analyticsFlow: 'onboarding'});
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_project_details_step_viewed',
+      expect.anything()
+    );
+  });
+
+  it('does not fire step_viewed in project creation (page-viewed fires once upstream)', () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     renderCore({analyticsFlow: 'project-creation'});
 
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'project_creation.scm_project_details_step_viewed',
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'onboarding.scm_project_details_step_viewed',
       expect.anything()
     );
   });

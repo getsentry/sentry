@@ -26,7 +26,10 @@ import {
 import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import type {
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from 'sentry/views/seerExplorer/types';
 
 const POSITION_ICON_DIRECTION = {
   auto: undefined,
@@ -44,7 +47,7 @@ const POSITION_ICON_DIRECTION = {
 interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
   isPoppedOut: boolean;
-  onChangeSession: (runId: number) => void;
+  onChangeSession: (runId: SeerExplorerRunId) => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
@@ -91,13 +94,13 @@ export function SeerExplorerHeader({
       return [];
     }
     return (
-      data?.data.map(session => ({
-        value: session.run_id,
-        label: session.title,
+      data?.map(session => ({
+        value: session.id,
+        label: session.title ?? t('Untitled chat'),
         details: (
           <TimeSince
             tooltipPrefix="Last updated"
-            date={moment.utc(session.last_triggered_at).toDate()}
+            date={moment.utc(session.lastTriggeredAt).toDate()}
             suffix="ago"
           />
         ),

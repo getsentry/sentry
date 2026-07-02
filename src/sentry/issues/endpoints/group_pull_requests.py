@@ -2,46 +2,38 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime
-from typing import Literal, TypedDict
+from typing import TypedDict, cast
 
 from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.pullrequest import (
-    PullRequestSerializer,
-    PullRequestSerializerResponse,
+    LinkedPullRequestResponse,
+    LinkedPullRequestSerializer,
+    PullRequestStatus,
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 5
 
-PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
-
 
 class ProviderPullRequestResponse(TypedDict, total=False):
     draft: bool
     merged: bool
     state: str
-
-
-class LinkedPullRequestResponse(PullRequestSerializerResponse):
-    dateLinked: datetime
-    status: PullRequestStatus
 
 
 class GroupPullRequestsResponse(TypedDict):
@@ -70,6 +62,20 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
     )
+
+
+def _get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStatus | None:
+    if pull_request.state == PullRequestLifecycleState.MERGED:
+        return "merged"
+    if pull_request.state == PullRequestLifecycleState.CLOSED:
+        return "closed"
+    if pull_request.draft is True:
+        return "draft"
+    # `draft` is nullable for older rows, so only trust `open` when we know the PR
+    # is not a draft.
+    if pull_request.state == PullRequestLifecycleState.OPEN and pull_request.draft is False:
+        return "open"
+    return None
 
 
 def _get_pull_request_repo_name(repository: Repository) -> str:
@@ -114,7 +120,7 @@ def _fetch_pull_request_status_response(
     return provider_response
 
 
-def _get_pull_request_status(
+def _get_provider_pull_request_status(
     pull_request: PullRequest, repository: Repository | None
 ) -> PullRequestStatus:
     if repository is None:
@@ -149,6 +155,16 @@ def _get_pull_request_status(
     return "unknown"
 
 
+def _get_pull_request_status(
+    pull_request: PullRequest, repository: Repository | None
+) -> PullRequestStatus:
+    stored_status = _get_stored_pull_request_status(pull_request)
+    if stored_status is not None:
+        return stored_status
+
+    return _get_provider_pull_request_status(pull_request, repository)
+
+
 @cell_silo_endpoint
 class GroupPullRequestsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
@@ -157,13 +173,6 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
     }
 
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
-        if not features.has(
-            "organizations:issue-details-linked-pull-requests",
-            group.organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         organization_id = group.project.organization_id
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
@@ -190,31 +199,28 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             for pull_request in pull_requests
             if pull_request.repository_id in repositories_by_id
         ]
-        serialized_pull_requests = serialize(
-            pull_requests, request.user, serializer=PullRequestSerializer()
-        )
-        serialized_by_id: dict[int, PullRequestSerializerResponse] = {
-            pull_request.id: serialized
-            for pull_request, serialized in zip(
-                pull_requests, serialized_pull_requests, strict=False
-            )
-        }
-        date_linked_by_pr_id = {link.linked_id: link.datetime for link in group_links}
-        pull_request_responses: list[LinkedPullRequestResponse] = []
-        for pull_request in pull_requests:
-            serialized = serialized_by_id.get(pull_request.id)
-            if serialized is None:
-                continue
 
-            pull_request_responses.append(
-                {
-                    **serialized,
-                    "dateLinked": date_linked_by_pr_id[pull_request.id],
-                    "status": _get_pull_request_status(
-                        pull_request, repositories_by_id.get(pull_request.repository_id)
-                    ),
-                }
+        date_linked_by_pr_id = {link.linked_id: link.datetime for link in group_links}
+        status_by_pr_id = {
+            pull_request.id: _get_pull_request_status(
+                pull_request, repositories_by_id.get(pull_request.repository_id)
             )
+            for pull_request in pull_requests
+        }
+
+        # serialize() infers the base PullRequestSerializerResponse from the
+        # parent's generic; LinkedPullRequestSerializer returns the narrower type.
+        pull_request_responses = cast(
+            list[LinkedPullRequestResponse],
+            serialize(
+                pull_requests,
+                request.user,
+                serializer=LinkedPullRequestSerializer(
+                    date_linked_by_pr_id=date_linked_by_pr_id,
+                    status_by_pr_id=status_by_pr_id,
+                ),
+            ),
+        )
 
         response: GroupPullRequestsResponse = {"pullRequests": pull_request_responses}
 

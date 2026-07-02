@@ -157,7 +157,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             {
               key: 'switch-organization',
               label: t('Switch Organization'),
-              isSubmenu: true,
+              submenu: true,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
                 {
