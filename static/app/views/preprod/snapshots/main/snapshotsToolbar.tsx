@@ -362,7 +362,6 @@ const OpacitySwatch = styled('button')<{$selected: boolean}>`
 const OpacitySwatchFill = styled('div')<{$color: string; $opacity: number}>`
   position: absolute;
   inset: 0;
-  /* Fill the circle left-to-right by the opacity amount, so 50% reads as ◐. */
   background: ${p =>
     p.$color === TRANSPARENT_COLOR
       ? 'transparent'
