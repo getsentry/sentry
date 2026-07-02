@@ -102,6 +102,19 @@ EVENT_DATA_ALLOWLIST = {
             "version": Allow.SIMPLE_TYPE,
             "build": Allow.SIMPLE_TYPE,
         },
+        "art": {
+            "gc.total_count": Allow.SIMPLE_TYPE,
+            "gc.total_time": Allow.SIMPLE_TYPE,
+            "gc.blocking_count": Allow.SIMPLE_TYPE,
+            "gc.blocking_time": Allow.SIMPLE_TYPE,
+            "gc.pre_oome_count": Allow.SIMPLE_TYPE,
+            "gc.waiting_time": Allow.SIMPLE_TYPE,
+            "memory.free": Allow.SIMPLE_TYPE,
+            "memory.free_until_gc": Allow.SIMPLE_TYPE,
+            "memory.free_until_oome": Allow.SIMPLE_TYPE,
+            "memory.total": Allow.SIMPLE_TYPE,
+            "memory.max": Allow.SIMPLE_TYPE,
+        },
     },
 }
 
