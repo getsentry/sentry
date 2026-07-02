@@ -19,7 +19,7 @@ const PROVIDER_ICON_MAP: Record<string, string> = {
   gcp: 'gcp',
 };
 
-// TODO: currently we show only Connected or Not Connected (the backend does not give us more information than this)
+// TODO(CW-1583): currently we show only Connected or Not Connected (the backend does not give us more information than this)
 function getConnectorStatus(provider: MonitoringProvider): ConnectorStatusType {
   return provider.connected ? 'connected' : 'not_connected';
 }

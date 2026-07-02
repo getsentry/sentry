@@ -133,6 +133,7 @@ describe('SeerConnectors', () => {
       within(dialog).getByText('Connect Datadog (Personal Access Token)')
     ).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Access Token')).toBeInTheDocument();
+    expect(within(dialog).getByText('Datadog Site')).toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
 
