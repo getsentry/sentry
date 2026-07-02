@@ -741,6 +741,32 @@ def is_starred_segment_context_constructor(
     )
 
 
+def _unprefixed_convention_overrides(
+    search_type: Literal["string", "number", "boolean"],
+) -> dict[str, str]:
+    """`simple_sentry_field` assumes an attribute's internal storage key is
+    `sentry.<public_alias>`, but span-v2/streaming SDKs write some of these
+    attributes (e.g. `os.name`, `user.email`) unprefixed, matching the current
+    canonical name in `sentry_conventions`. An unprefixed key doesn't match any
+    entry in the reverse map above, so it falls through to the ambiguous
+    `tags[name,type]` representation instead of resolving to the public alias.
+    Add the unprefixed name as an extra reverse-map entry wherever it is the
+    package's current (non-deprecated) canonical form, so both old prefixed and
+    new unprefixed data resolve to the same public alias.
+    """
+    return {
+        definition.public_alias: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if (
+            not definition.secondary_alias
+            and definition.search_type == search_type
+            and definition.internal_name == f"sentry.{definition.public_alias}"
+            and (meta := ATTRIBUTE_METADATA.get(definition.public_alias)) is not None
+            and meta.deprecation is None
+        )
+    }
+
+
 SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     Literal["string", "number", "boolean"], dict[str, str]
 ] = {
@@ -758,12 +784,14 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
         "sentry.segment_name": "transaction",
-    },
+    }
+    | _unprefixed_convention_overrides("string"),
     "boolean": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type == "boolean"
-    },
+    }
+    | _unprefixed_convention_overrides("boolean"),
     "number": {
         definition.internal_name: definition.public_alias
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
@@ -773,7 +801,9 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     | {
         "sentry.start_timestamp": PRECISE_START_TS,
         "sentry.end_timestamp": PRECISE_FINISH_TS,
-    },
+    }
+    | _unprefixed_convention_overrides("boolean")
+    | _unprefixed_convention_overrides("number"),
 }
 
 SPANS_PRIVATE_ATTRIBUTES: set[str] = {
