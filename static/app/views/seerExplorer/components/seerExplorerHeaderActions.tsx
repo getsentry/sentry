@@ -88,7 +88,17 @@ function ChatHistorySelect({
         placeholder: t('Search chats…'),
       }}
       menuTitle={t('Chat history')}
+      // Seer's panel is a right-docked pane with `overflow: hidden` ancestors,
+      // and CompactSelect renders its overlay inline (no portal), so `strategy:
+      // 'fixed'` is needed to escape that clip. To pin the menu flush against
+      // the panel's right edge, over-push it right and let `preventOverflow` clamp
+      // its right edge.
+      strategy="fixed"
       position="bottom-end"
+      offset={[100, 8]}
+      preventOverflowOptions={{
+        boundary: document.body,
+      }}
       size="xs"
       menuWidth={320}
       trigger={triggerProps => (
@@ -229,8 +239,11 @@ export function SeerExplorerHeaderActionsMenu({
   sidebarPosition = 'auto',
   onSidebarPositionChange,
   sessionOptions,
+  sessionsLoading,
+  sessionsError,
   onChangeSession,
   onHistoryOpenChange,
+  onSearchChange,
 }: SeerExplorerHeaderActionsProps) {
   const dockItem: MenuItemProps | null =
     !isPoppedOut && onSidebarPositionChange
@@ -289,27 +302,6 @@ export function SeerExplorerHeaderActionsMenu({
 
   const items: MenuItemProps[] = [
     {
-      key: 'chat-history',
-      label: t('Chat History'),
-      leadingItems: <IconClock />,
-      submenu: {position: 'left-start'},
-      children:
-        sessionOptions.length > 0
-          ? sessionOptions.map(option => ({
-              key: String(option.value),
-              label: option.label,
-              details: option.details,
-              onAction: () => onChangeSession(option.value),
-            }))
-          : [
-              {
-                key: 'no-history',
-                label: t('No chats yet'),
-                disabled: true,
-              },
-            ],
-    },
-    {
       key: 'copy-link',
       label: t('Link to chat'),
       leadingItems: <IconLink />,
@@ -331,18 +323,30 @@ export function SeerExplorerHeaderActionsMenu({
   ];
 
   return (
-    <DropdownMenu
-      items={items}
-      size="xs"
-      position="bottom-end"
-      onOpenChange={onHistoryOpenChange}
-      triggerProps={{
-        'aria-label': t('More actions'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        variant: 'transparent',
-        size: 'xs',
-      }}
-    />
+    <Flex gap="0" align="center">
+      <DropdownMenu
+        items={items}
+        size="xs"
+        position="bottom-end"
+        triggerProps={{
+          'aria-label': t('More actions'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          variant: 'transparent',
+          size: 'xs',
+        }}
+      />
+      {/* Chat history keeps its own searchable dropdown here rather than
+          collapsing into the overflow menu — the DropdownMenu has no search,
+          so a submenu couldn't offer the same filtering the inline actions do. */}
+      <ChatHistorySelect
+        sessionOptions={sessionOptions}
+        sessionsLoading={sessionsLoading}
+        sessionsError={sessionsError}
+        onChangeSession={onChangeSession}
+        onHistoryOpenChange={onHistoryOpenChange}
+        onSearchChange={onSearchChange}
+      />
+    </Flex>
   );
 }

@@ -130,20 +130,28 @@ describe('SeerExplorerHeader', () => {
       expect(onCopySessionClick).toHaveBeenCalled();
     });
 
-    it('exposes chat history, link and copy in the overflow menu', async () => {
+    it('exposes link and copy in the overflow menu', async () => {
       await renderHeader();
 
       await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
 
       expect(
-        await screen.findByRole('menuitemradio', {name: /Chat History/})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole('menuitemradio', {name: /Link to chat/})
+        await screen.findByRole('menuitemradio', {name: /Link to chat/})
       ).toBeInTheDocument();
       expect(
         screen.getByRole('menuitemradio', {name: /Copy conversation to clipboard/})
       ).toBeInTheDocument();
+    });
+
+    it('opens a searchable chat history dropdown from the overflow actions', async () => {
+      await renderHeader();
+
+      // Both the inline and overflow variants mount a chat history trigger.
+      const chatHistoryButtons = screen.getAllByRole('button', {name: 'Chat history'});
+      expect(chatHistoryButtons.length).toBeGreaterThan(0);
+
+      await userEvent.click(chatHistoryButtons[0]!);
+      expect(await screen.findByPlaceholderText('Search chats…')).toBeInTheDocument();
     });
   });
 });
