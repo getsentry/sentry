@@ -385,7 +385,7 @@ export function ScmPlatformFeaturesCore({
               'screen:xs': '1fr',
               'screen:md':
                 resolvedPlatforms.length < 3
-                  ? `repeat(${resolvedPlatforms.length}, .5fr)`
+                  ? 'repeat(2, minmax(0, 1fr))'
                   : 'repeat(3, minmax(0, 1fr))',
             }}
             width="100%"
