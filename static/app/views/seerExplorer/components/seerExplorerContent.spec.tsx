@@ -67,9 +67,9 @@ describe('SeerExplorerContent', () => {
       .mockReturnValue(defaultHookReturn);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/explorer-runs/`,
+      url: `/organizations/${organization.slug}/seer/runs/`,
       method: 'GET',
-      body: {data: []},
+      body: [],
     });
   });
 
