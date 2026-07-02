@@ -423,55 +423,6 @@ export function useContainerBreakpoint(): BreakpointSize {
 }
 
 /**
- * Observes an element's content-box inline size (the box CSS `@container`
- * resolves against), calling `onSize` immediately and on every resize. Returns
- * a disconnect function.
- */
-function observeInlineSize(element: Element, onSize: (size: number) => void): () => void {
-  // Measure synchronously on attach so the first resolved breakpoint is right.
-  onSize(getContentBoxInlineSize(element));
-
-  const observer = new ResizeObserver(entries => {
-    const entry = entries[0];
-    if (!entry) {
-      return;
-    }
-    // `contentBoxSize` is exactly the box CSS `@container` queries against; fall
-    // back to a computed content box for engines without it.
-    onSize(entry.contentBoxSize?.[0]?.inlineSize ?? getContentBoxInlineSize(element));
-  });
-  observer.observe(element);
-  return () => observer.disconnect();
-}
-
-/**
- * The largest breakpoint whose min-width threshold `inlineSize` satisfies,
- * falling back mobile-first to the smallest when it satisfies none.
- */
-function resolveContainerBreakpoint(
-  inlineSize: number,
-  breakpoints: Record<string, string>
-): BreakpointSize {
-  let active: {label: string; px: number} | undefined;
-  let smallest: {label: string; px: number} | undefined;
-
-  for (const [label, value] of Object.entries(breakpoints)) {
-    const px = parseFloat(value);
-    if (Number.isNaN(px)) {
-      continue;
-    }
-    if (smallest === undefined || px < smallest.px) {
-      smallest = {label, px};
-    }
-    if (inlineSize >= px && (active === undefined || px > active.px)) {
-      active = {label, px};
-    }
-  }
-
-  return (active?.label ?? smallest?.label ?? '2xs') as BreakpointSize;
-}
-
-/**
  * The content-box inline size — the box CSS `@container` resolves against. We
  * avoid `clientWidth` (padding-box) so the JS breakpoint can't disagree with the
  * CSS reflow at boundaries on padded containers. `clientWidth` already excludes
@@ -498,20 +449,47 @@ export function ContainerQueryProvider({
   elementRef: RefObject<Element | null>;
 }) {
   const theme = useTheme();
-  const [breakpoint, setBreakpoint] = useState<BreakpointSize>('2xs');
+  const [inlineSize, setInlineSize] = useState(0);
 
-  // The observed element is rendered by the caller and passed in via `elementRef`
-  // (e.g. a Container's own node or a Modal's portal), so it's attached before
-  // this provider's layout effect runs — no callback ref needed here.
   useLayoutEffect(() => {
     const element = elementRef.current;
     if (!element) {
       return;
     }
-    return observeInlineSize(element, size =>
-      setBreakpoint(resolveContainerBreakpoint(size, theme.breakpoints))
-    );
-  }, [elementRef, theme.breakpoints]);
+
+    // Read synchronously before paint so the first resolved breakpoint is right.
+    setInlineSize(getContentBoxInlineSize(element));
+
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+      // `contentBoxSize` is exactly the box CSS `@container` queries against;
+      // fall back to a computed content box for engines without it.
+      const size =
+        entry.contentBoxSize?.[0]?.inlineSize ?? getContentBoxInlineSize(element);
+      setInlineSize(size);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [elementRef]);
+
+  // Resolve to the active breakpoint here (not the raw size) so the broadcast
+  // context value only changes on a breakpoint boundary — descendants aren't
+  // re-rendered on every pixel of a resize.
+  const breakpoint = useMemo(() => {
+    for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
+      const bp = BREAKPOINT_ORDER[i];
+      if (bp === undefined) {
+        continue;
+      }
+      if (inlineSize >= parseInt(theme.breakpoints[bp], 10)) {
+        return bp;
+      }
+    }
+    return '2xs';
+  }, [inlineSize, theme.breakpoints]);
 
   return <ContainerQueryContext value={breakpoint}>{children}</ContainerQueryContext>;
 }
