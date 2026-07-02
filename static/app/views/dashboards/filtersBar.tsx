@@ -266,7 +266,7 @@ export function FiltersBar({
   return (
     <Wrapper>
       <FiltersRow>
-        <PageFilterBar condensed>
+        <StyledPageFilterBar condensed>
           <ProjectPageFilter
             disabled={isEditingDashboard}
             storageNamespace={storageNamespace}
@@ -297,7 +297,7 @@ export function FiltersBar({
               });
             }}
           />
-        </PageFilterBar>
+        </StyledPageFilterBar>
         <SortableReleasesSelect
           sortBy={releaseSort}
           selectedReleases={selectedReleases}
@@ -472,5 +472,18 @@ const FiltersRow = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${p => p.theme.space.md};
     width: 100%;
+  }
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    max-width: 100%;
+    width: 100% !important;
+    
+    /* Ensure child filters can shrink properly on mobile */
+    & > div {
+      flex-shrink: 1;
+      min-width: 0;
+    }
   }
 `;
