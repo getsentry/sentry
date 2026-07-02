@@ -221,7 +221,7 @@ export function SeerExplorerContent({
       {
         path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {providerKey: 'slack', includeConfig: 0},
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0,
       }
     )
   );
