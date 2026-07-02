@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.seer.models.run import SeerAgentRun, SeerRun
+
+
+class RunQuestionOutput(TypedDict):
+    key: str
+    answer: str
 
 
 class SeerRunResponse(TypedDict):
@@ -18,6 +23,9 @@ class SeerRunResponse(TypedDict):
     source: str | None
     projectId: str | None
     groupId: str | None
+    # One-shot outputs (question answers), injected by the endpoint when
+    # ?outputs is passed; the serializer itself never populates them.
+    outputs: NotRequired[list[RunQuestionOutput]]
 
 
 @register(SeerRun)

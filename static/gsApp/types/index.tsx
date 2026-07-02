@@ -764,7 +764,6 @@ export type BillingMetricHistory = {
   sentUsageWarning: boolean;
   // TODO(isabella): Make SoftCapType an enum
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
-  trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
   retention?: {downsampled: number | null; standard: number | null};

@@ -90,6 +90,9 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
         except KeyError:
             raise IdentityNotValid("Missing id_token in OAuth response")
 
+        if "refresh_token" not in data:
+            raise IdentityNotValid("Missing refresh_token in OAuth response")
+
         try:
             _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
