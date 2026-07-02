@@ -704,6 +704,38 @@ default_manager.add(
         template="updated autofix automation settings for {project_count} projects",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=1173,
+        name="AUTOFIX_REPO_ADD",
+        api_name="autofix-repo.add",
+        template="added {repository_count} repositories to Seer for project {project_id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1174,
+        name="AUTOFIX_REPO_EDIT",
+        api_name="autofix-repo.edit",
+        template="edited Seer repository {repository_id} for project {project_id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1175,
+        name="AUTOFIX_REPO_REMOVE",
+        api_name="autofix-repo.remove",
+        template="removed Seer repository {repository_id} from project {project_id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1176,
+        name="AUTOFIX_REPO_REPLACE",
+        api_name="autofix-repo.replace",
+        template="replaced all Seer repositories for project {project_id} with {repository_count} repositories",
+    )
+)
 default_manager.add(events.RepoAddedAuditLogEvent())
 default_manager.add(events.RepoDisabledAuditLogEvent())
 default_manager.add(events.RepoEnabledAuditLogEvent())

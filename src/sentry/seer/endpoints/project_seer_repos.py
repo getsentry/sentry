@@ -11,6 +11,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -274,6 +275,18 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
                         unique_fields=["seer_project_repository", "tag_name", "tag_value"],
                     )
 
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("AUTOFIX_REPO_EDIT"),
+            data={
+                "project_id": project.id,
+                "repository_id": int(repo_id),
+                "fields_updated": sorted(data.keys()),
+            },
+        )
+
         return Response(_serialize_project_repo(project_repo))
 
     def delete(self, request: Request, project: Project, repo_id: int) -> Response:
@@ -286,6 +299,14 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
 
         if deleted_count == 0:
             return Response(status=404)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("AUTOFIX_REPO_REMOVE"),
+            data={"project_id": project.id, "repository_id": int(repo_id)},
+        )
 
         return Response(status=204)
 
@@ -347,6 +368,19 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
 
         add_seer_project_repos(project, repos_data)
 
+        repository_ids = [d["repository_id"] for d in repos_data]
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("AUTOFIX_REPO_ADD"),
+            data={
+                "project_id": project.id,
+                "repository_count": len(repository_ids),
+                "repository_ids": repository_ids,
+            },
+        )
+
         return Response(status=204)
 
     def put(self, request: Request, project: Project) -> Response:
@@ -363,5 +397,18 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
         replace_all_seer_project_repos(project, repos_data)
+
+        repository_ids = [d["repository_id"] for d in repos_data]
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("AUTOFIX_REPO_REPLACE"),
+            data={
+                "project_id": project.id,
+                "repository_count": len(repository_ids),
+                "repository_ids": repository_ids,
+            },
+        )
 
         return Response(status=204)
