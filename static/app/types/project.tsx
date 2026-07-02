@@ -5,14 +5,6 @@ import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
-export type SeerNightshiftTweaks = {
-  enabled?: boolean;
-  extra_triage_instructions?: string;
-  intelligence_level?: 'low' | 'medium' | 'high';
-  max_candidates?: number;
-  reasoning_effort?: 'low' | 'medium' | 'high';
-};
-
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
@@ -153,7 +145,6 @@ export interface DetailedProject extends ProjectSummary {
   scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
-  seerNightshiftTweaks?: SeerNightshiftTweaks | null;
   seerScannerAutomation?: boolean;
   subjectPrefix?: string;
   symbolSources?: string;

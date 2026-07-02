@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Known values: "Bot", "User", "Organization".
 # Typed as str to remain forward-compatible with enterprise account types
@@ -39,41 +39,10 @@ class OpenedPayload(BaseActivityPayload):
 
 
 @dataclass
-class ClosedPayload(BaseActivityPayload):
-    action: str = "closed"
-    merged: bool = False
-    additions: int = 0
-    deletions: int = 0
-    changed_files: int = 0
-    commits: int = 0
-    comments: int = 0
-    review_comments: int = 0
-    # Login of the account that merged the PR; None when not merged.
-    merged_by: str | None = None
-
-
-@dataclass
-class ReopenedPayload(BaseActivityPayload):
-    action: str = "reopened"
-    additions: int = 0
-    deletions: int = 0
-    changed_files: int = 0
-    commits: int = 0
-
-
-@dataclass
 class SynchronizePayload(BaseActivityPayload):
     action: str = "synchronize"
     before_sha: str | None = None  # head SHA before the push
     after_sha: str | None = None  # head SHA after the push
-
-
-@dataclass
-class EditedPayload(BaseActivityPayload):
-    action: str = "edited"
-    # Names of changed properties (keys from the webhook changes dict),
-    # not their values — deliberately excludes the old title/body text.
-    changed_fields: list[str] = field(default_factory=list)
 
 
 @dataclass

@@ -8,9 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Count} from 'sentry/components/count';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen, IconUser} from 'sentry/icons';
@@ -19,7 +17,6 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {
   getUserDisplayName,
   UserNotInstrumentedTooltip,
@@ -55,15 +52,6 @@ export function ConversationSummaryNew({
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
-
-  const projectSlug = useMemo(
-    () => nodes.find(node => node.projectSlug)?.projectSlug,
-    [nodes]
-  );
-  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
-  const project = projectSlug
-    ? (projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug})
-    : undefined;
 
   const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 
@@ -110,36 +98,20 @@ export function ConversationSummaryNew({
       minWidth={0}
     >
       <Stack gap="md" minWidth={0} flex={1}>
-        <Flex align="center" gap="md" minWidth={0}>
-          <Container minWidth={0}>
-            <Tooltip
-              title={conversationId}
-              showOnlyOnOverflow={!isUUID(conversationId)}
-              skipWrapper
-            >
-              <Heading as="h2" ellipsis>
-                {displayId}
-              </Heading>
-            </Tooltip>
-          </Container>
-          <CopyToClipboardButton
-            size="zero"
-            variant="transparent"
-            aria-label={t('Copy conversation ID')}
-            tooltipProps={{title: t('Copy conversation ID')}}
-            text={conversationId}
-            onCopy={() =>
-              trackAnalytics('conversations.detail.copy-conversation-id', {organization})
-            }
-          />
-        </Flex>
+        <Container minWidth={0}>
+          <Tooltip
+            title={conversationId}
+            showOnlyOnOverflow={!isUUID(conversationId)}
+            skipWrapper
+          >
+            <Heading as="h2" ellipsis>
+              {displayId}
+            </Heading>
+          </Tooltip>
+        </Container>
         <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
           {isLoading ? (
             <Fragment>
-              <Flex align="center" gap="sm">
-                <Placeholder width="16px" height="16px" />
-                <Placeholder width="64px" height="14px" />
-              </Flex>
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
@@ -151,14 +123,6 @@ export function ConversationSummaryNew({
             </Fragment>
           ) : (
             <Fragment>
-              {project && (
-                <ProjectBadge
-                  project={project}
-                  avatarSize={16}
-                  disableLink
-                  hideOverflow
-                />
-              )}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
                 {userDisplayName ? (

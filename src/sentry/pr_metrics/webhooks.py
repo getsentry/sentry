@@ -2,7 +2,7 @@
 
 Multiple independent processors serve several webhook event types:
 - ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_metrics``,
-  ``handle_emission``, ``handle_activity``
+  ``handle_activity``, ``handle_emission``
 - ``IssueCommentEventWebhook``: ``handle_comment``
 - ``PullRequestReviewEventWebhook``: ``handle_review``
 - ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
@@ -50,16 +50,13 @@ from sentry.pr_metrics.activity_types import (
     AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
-    ClosedPayload,
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
-    EditedPayload,
     EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
-    ReopenedPayload,
     ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
@@ -69,7 +66,11 @@ from sentry.pr_metrics.activity_types import (
     UnassignedPayload,
     UnlabeledPayload,
 )
-from sentry.pr_metrics.attribution import JUDGE_ELIGIBLE_SIGNAL_TYPES, record_attribution_signal
+from sentry.pr_metrics.attribution import (
+    JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    SentryAppSignalDetails,
+    record_attribution_signal,
+)
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
@@ -80,6 +81,7 @@ from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
     is_activity_tracking_enabled,
+    org_has_coding_agent_for_provider,
     resolved_group_ids,
 )
 from sentry.seer.autofix.utils import (
@@ -95,10 +97,7 @@ logger = logging.getLogger("sentry.webhooks")
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
-        "closed",
-        "reopened",
         "synchronize",
-        "edited",
         "labeled",
         "unlabeled",
         "review_requested",
@@ -118,9 +117,7 @@ _ACTIVITY_ACTIONS = frozenset(
 # "closed" is absent because it forks on pull_request.merged — handled in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
-    "reopened": PullRequestActivityType.REOPENED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
-    "edited": PullRequestActivityType.EDITED,
     "labeled": PullRequestActivityType.LABELED,
     "unlabeled": PullRequestActivityType.UNLABELED,
     "review_requested": PullRequestActivityType.REVIEW_REQUESTED,
@@ -166,11 +163,14 @@ def handle_attribution(
         return
 
     if action == "opened":
-        _write_author_attribution(pr, github_user)
+        pr_url = (pull_request or {}).get("html_url") or None
+        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if action == "opened" and pull_request is not None and has_seer_access(organization):
-        _detect_delegated_agent(pr, pull_request, repo)
+    if action == "opened" and pull_request is not None:
+        provider_hint = _is_delegated_agent_candidate(pull_request)
+        if provider_hint and org_has_coding_agent_for_provider(organization, provider_hint):
+            _detect_delegated_agent(pr, pull_request, repo, provider_hint=provider_hint)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -425,7 +425,7 @@ def handle_activity(
     if pr is None:
         return
 
-    if not is_activity_tracking_enabled(organization):
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
@@ -469,6 +469,9 @@ def handle_comment(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     sender = event.get("sender") or {}
@@ -518,6 +521,9 @@ def handle_review(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     review = event.get("review") or {}
@@ -576,6 +582,9 @@ def handle_review_comment(
     if pr is None:
         return
 
+    if not is_activity_tracking_enabled(organization, pr):
+        return
+
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
@@ -620,6 +629,9 @@ def handle_review_thread(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if not is_activity_tracking_enabled(organization, pr):
         return
 
     thread = event.get("thread") or {}
@@ -687,7 +699,10 @@ def handle_check_suite(
     )
 
     for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload)
+        if is_activity_tracking_enabled(organization, pr):
+            _write_activity_row(
+                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            )
 
 
 def handle_check_run(
@@ -730,7 +745,10 @@ def handle_check_run(
     )
 
     for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload)
+        if is_activity_tracking_enabled(organization, pr):
+            _write_activity_row(
+                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            )
 
 
 def _prs_from_check_payload(
@@ -946,22 +964,37 @@ def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType 
     return None
 
 
-def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None:
+def _write_author_attribution(
+    pr: PullRequest,
+    github_user: dict[str, Any],
+    pr_url: str | None = None,
+    group_ids: list[int] | None = None,
+) -> None:
     user_id = github_user.get("id")
     if user_id is None:
         return
     signal_type = _detect_app_signal(user_id)
     if signal_type is None:
         return
+    signal_details: SentryAppSignalDetails | None = None
+    if pr_url:
+        signal_details = SentryAppSignalDetails(
+            pr_url=pr_url,
+            group_ids=group_ids or [],
+        )
     record_attribution_signal(
         pull_request=pr,
         signal_type=signal_type,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
+        signal_details=signal_details.dict() if signal_details is not None else None,
     )
 
 
 def _detect_delegated_agent(
-    pr: PullRequest, webhook_pull_request: Mapping[str, Any], repository: Repository
+    pr: PullRequest,
+    webhook_pull_request: Mapping[str, Any],
+    repository: Repository,
+    provider_hint: str,
 ) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
@@ -969,9 +1002,8 @@ def _detect_delegated_agent(
 
     Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
     """
-    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
     group_ids = resolved_group_ids(pr)
-    if provider_hint is None or not group_ids:
+    if not group_ids:
         return
 
     repo_name_sections = repository.name.split("/")
@@ -1106,17 +1138,10 @@ def _write_activity(
         # Without a delivery ID idempotency cannot be guaranteed — skip.
         return
 
-    if action == "closed":
-        event_type = (
-            PullRequestActivityType.MERGED
-            if pull_request.get("merged")
-            else PullRequestActivityType.CLOSED
-        )
-    else:
-        mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
-        if mapped is None:
-            return
-        event_type = mapped
+    mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
+    if mapped is None:
+        return
+    event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
     _write_activity_row(pr, webhook_id, event_type, payload)
@@ -1149,30 +1174,6 @@ def _build_activity_payload(
                     commits=pull_request.get("commits", 0),
                 )
             )
-        case "closed":
-            return asdict(
-                ClosedPayload(
-                    **base_kw,
-                    merged=pull_request.get("merged", False),
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                    comments=pull_request.get("comments", 0),
-                    review_comments=pull_request.get("review_comments", 0),
-                    merged_by=(pull_request.get("merged_by") or {}).get("login"),
-                )
-            )
-        case "reopened":
-            return asdict(
-                ReopenedPayload(
-                    **base_kw,
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                )
-            )
         case "synchronize":
             return asdict(
                 SynchronizePayload(
@@ -1181,9 +1182,6 @@ def _build_activity_payload(
                     after_sha=event.get("after"),
                 )
             )
-        case "edited":
-            changes = event.get("changes") or {}
-            return asdict(EditedPayload(**base_kw, changed_fields=sorted(changes.keys())))
         case "labeled":
             label = event.get("label") or {}
             return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))

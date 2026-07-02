@@ -41,6 +41,7 @@ export const SplitPairBody = memo(function SplitPairBody({
   headLabel,
   altPrefix,
   overlayColor,
+  overlayOpacity,
   diffImageKey,
   diffImageBaseUrl,
 }: {
@@ -53,6 +54,7 @@ export const SplitPairBody = memo(function SplitPairBody({
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
@@ -100,6 +102,7 @@ export const SplitPairBody = memo(function SplitPairBody({
                   {diffMaskUrl && (
                     <DiffOverlay
                       $overlayColor={overlayColor!}
+                      $opacity={overlayOpacity}
                       $maskUrl={diffMaskUrl}
                       $maskSize={computeMaskSize(baseImage, headImage)}
                     />
@@ -124,6 +127,7 @@ export const ImageColumn = memo(function ImageColumn({
   alt,
   image,
   overlayColor,
+  overlayOpacity,
   diffImageKey,
   diffImageBaseUrl,
 }: {
@@ -133,6 +137,7 @@ export const ImageColumn = memo(function ImageColumn({
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
@@ -151,6 +156,7 @@ export const ImageColumn = memo(function ImageColumn({
           {diffMaskUrl && (
             <DiffOverlay
               $overlayColor={overlayColor!}
+              $opacity={overlayOpacity}
               $maskUrl={diffMaskUrl}
               $maskSize="100% 100%"
             />

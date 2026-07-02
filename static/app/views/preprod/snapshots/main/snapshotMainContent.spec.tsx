@@ -48,9 +48,11 @@ function renderSnapshotMainContent(
     onDiffModeChange: jest.fn(),
     onNavigateSingleView: jest.fn(),
     onOverlayColorChange: jest.fn(),
+    onOverlayOpacityChange: jest.fn(),
     onToggleSoloView: jest.fn(),
     onViewModeChange: jest.fn(),
     overlayColor: 'transparent',
+    overlayOpacity: 100,
     selectedItem: null,
     variantIndex: 0,
     viewMode: 'list',
@@ -184,6 +186,102 @@ describe('SnapshotMainContent', () => {
     await userEvent.click(nextButton);
 
     expect(onNavigateSingleView).toHaveBeenCalledWith('next');
+  });
+
+  it('exposes overlay opacity presets inside the color picker in split mode', async () => {
+    const onOverlayOpacityChange = jest.fn();
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      diffMode: 'split',
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      onOverlayOpacityChange,
+      overlayOpacity: 100,
+      viewMode: 'single',
+    });
+
+    // Presets live inside the color picker popover, not the toolbar itself.
+    expect(
+      screen.queryByRole('button', {name: 'Overlay opacity 50%'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pick overlay color'}));
+
+    expect(screen.getByRole('button', {name: 'Overlay opacity 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Overlay opacity 50%'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Overlay opacity 100%'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Overlay opacity 50%'}));
+
+    expect(onOverlayOpacityChange).toHaveBeenCalledWith(50);
+  });
+
+  it('marks only the active opacity preset as pressed', async () => {
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      diffMode: 'split',
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      overlayOpacity: 50,
+      viewMode: 'single',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pick overlay color'}));
+
+    expect(screen.getByRole('button', {name: 'Overlay opacity 50%'})).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    for (const label of ['Overlay opacity 0%', 'Overlay opacity 100%']) {
+      expect(screen.getByRole('button', {name: label})).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+    }
+  });
+
+  it('hides the color picker and opacity presets outside of split mode', () => {
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      diffMode: 'wipe',
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      viewMode: 'single',
+    });
+
+    expect(
+      screen.queryByRole('button', {name: 'Pick overlay color'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Wipe'})).toBeChecked();
   });
 
   it('renders focused errored snapshots side-by-side with a failed badge', () => {

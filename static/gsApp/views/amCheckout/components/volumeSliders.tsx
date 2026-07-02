@@ -18,6 +18,7 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
+  isReservedBudgetCategory,
 } from 'getsentry/utils/dataCategory';
 import {UnitTypeItem} from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -78,10 +79,14 @@ export function VolumeSliders({
 
   return (
     <SlidersContainer>
-      {activePlan.checkoutCategories
+      {activePlan.categories
         .filter(
-          // only show sliders for checkout categories with more than 1 bucket
-          category => (activePlan.planCategories[category]?.length ?? 0) > 1
+          // Show sliders for categories with a multi-bucket reserved-volume
+          // schedule, excluding those configured via a reserved budget (e.g.
+          // Seer), which are set through the budget rather than a volume slider.
+          category =>
+            (activePlan.planCategories[category]?.length ?? 0) > 1 &&
+            !isReservedBudgetCategory(category, activePlan)
         )
         .map(category => {
           const allowedValues = activePlan.planCategories[category]?.map(
