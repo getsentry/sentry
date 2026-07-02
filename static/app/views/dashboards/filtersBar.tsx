@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
@@ -268,7 +268,7 @@ export function FiltersBar({
     defined(onAddWidget);
 
   const pageFilterElements = (
-    <>
+    <Fragment>
       <ProjectPageFilter
         disabled={isEditingDashboard}
         storageNamespace={storageNamespace}
@@ -299,7 +299,7 @@ export function FiltersBar({
           });
         }}
       />
-    </>
+    </Fragment>
   );
 
   return (
