@@ -586,6 +586,8 @@ def _dispatch_to_seer_feature(
             "Agentic triage (%(count)d candidates)",
             num_candidates,
         ) % {"count": num_candidates}
+        if len(shards) > 1:
+            title += f" — part {shard_index + 1} of {len(shards)}"
         try:
             client.start_feature_run(
                 feature_id="night_shift",
