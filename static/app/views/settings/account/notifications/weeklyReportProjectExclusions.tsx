@@ -1,10 +1,12 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -16,7 +18,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {t} from 'sentry/locale';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -36,6 +39,8 @@ interface WeeklyReportProjectExclusionsProps {
   notificationOptions: NotificationOptionsObject[];
   organizations: OrganizationSummary[];
 }
+
+const PAGE_SIZE = 15;
 
 interface Exclusion {
   dateAdded: string;
@@ -68,6 +73,7 @@ export function WeeklyReportProjectExclusions({
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(0);
 
   const customerDomain = ConfigStore.get('customerDomain');
   const orgFromSubdomain = organizations.find(
@@ -83,6 +89,10 @@ export function WeeklyReportProjectExclusions({
   if (!organization && organizations.length === 1) {
     organization = organizations[0];
   }
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [organization?.id]);
 
   const {
     data: projects,
@@ -228,6 +238,13 @@ export function WeeklyReportProjectExclusions({
     sortedProjects.length > 0 &&
     sortedProjects.every(p => excludedProjectIds.has(String(p.id)));
 
+  const totalPages = Math.ceil(sortedProjects.length / PAGE_SIZE);
+  const paginatedProjects = sortedProjects.slice(
+    currentPage * PAGE_SIZE,
+    (currentPage + 1) * PAGE_SIZE
+  );
+  const showPagination = sortedProjects.length > PAGE_SIZE;
+
   return (
     <Fragment>
       <Panel>
@@ -299,7 +316,7 @@ export function WeeklyReportProjectExclusions({
                             {t('No projects found')}
                           </EmptyStateWarning>
                         ) : (
-                          sortedProjects.map(project => (
+                          paginatedProjects.map(project => (
                             <Item key={project.id}>
                               <IdBadge
                                 project={project}
@@ -325,6 +342,36 @@ export function WeeklyReportProjectExclusions({
                         )}
                       </StyledPanelBody>
                     </DisabledOverlay>
+                    {showPagination && (
+                      <Flex justify="end" align="center" margin="lg xl">
+                        <PaginationCaption>
+                          {tct('[start]-[end] of [total]', {
+                            start: currentPage * PAGE_SIZE + 1,
+                            end: Math.min(
+                              (currentPage + 1) * PAGE_SIZE,
+                              sortedProjects.length
+                            ),
+                            total: sortedProjects.length,
+                          })}
+                        </PaginationCaption>
+                        <ButtonBar>
+                          <Button
+                            icon={<IconChevron direction="left" />}
+                            aria-label={t('Previous')}
+                            size="sm"
+                            disabled={currentPage === 0}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                          />
+                          <Button
+                            icon={<IconChevron direction="right" />}
+                            aria-label={t('Next')}
+                            size="sm"
+                            disabled={currentPage >= totalPages - 1}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                          />
+                        </ButtonBar>
+                      </Flex>
+                    )}
                   </Fragment>
                 )}
               </Fragment>
@@ -381,4 +428,10 @@ const Item = styled('div')`
   align-items: center;
   justify-content: space-between;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+`;
+
+const PaginationCaption = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  margin-right: ${p => p.theme.space.xl};
 `;

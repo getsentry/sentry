@@ -373,4 +373,88 @@ describe('WeeklyReportProjectExclusions', () => {
       })
     ).not.toBeInTheDocument();
   });
+
+  describe('pagination', () => {
+    const manyProjects = Array.from({length: 25}, (_, i) =>
+      ProjectFixture({
+        id: String(i + 1),
+        slug: `project-${String(i + 1).padStart(2, '0')}`,
+        organization,
+      })
+    );
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: manyProjects,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/weekly-report-project-exclusions/`,
+        body: [],
+      });
+    });
+
+    it('shows first 20 projects and pagination controls', async () => {
+      render(
+        <WeeklyReportProjectExclusions
+          organizations={[organization]}
+          {...defaultNotificationProps}
+        />
+      );
+
+      await screen.findByRole('checkbox', {
+        name: 'Toggle weekly report for project-01',
+      });
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      expect(checkboxes).toHaveLength(20);
+
+      expect(screen.getByText('1-20 of 25')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
+    });
+
+    it('navigates to second page', async () => {
+      render(
+        <WeeklyReportProjectExclusions
+          organizations={[organization]}
+          {...defaultNotificationProps}
+        />
+      );
+
+      await screen.findByRole('checkbox', {
+        name: 'Toggle weekly report for project-01',
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+
+      const checkboxes = screen.getAllByRole('checkbox');
+      expect(checkboxes).toHaveLength(5);
+
+      expect(screen.getByText('21-25 of 25')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    });
+
+    it('does not show pagination for 20 or fewer projects', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: manyProjects.slice(0, 20),
+      });
+
+      render(
+        <WeeklyReportProjectExclusions
+          organizations={[organization]}
+          {...defaultNotificationProps}
+        />
+      );
+
+      await screen.findByRole('checkbox', {
+        name: 'Toggle weekly report for project-01',
+      });
+
+      expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+    });
+  });
 });
