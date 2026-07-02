@@ -197,7 +197,8 @@ export function ColorPickerButton({
       <Tooltip title={t('Overlay color')} skipWrapper>
         <ColorTrigger
           $color={color}
-          $slash={opacity === 0}
+          // `transparent` supports legacy localStorage color values.
+          $slash={opacity === 0 || color === TRANSPARENT_COLOR}
           aria-label={t('Pick overlay color')}
           onClick={() => setIsOpen(v => !v)}
         />
@@ -361,13 +362,14 @@ const OpacitySwatch = styled('button')<{$selected: boolean}>`
 const OpacitySwatchFill = styled('div')<{$color: string; $opacity: number}>`
   position: absolute;
   inset: 0;
-  background-color: ${p => (p.$color === TRANSPARENT_COLOR ? 'transparent' : p.$color)};
-  opacity: ${p => p.$opacity / 100};
+  /* Fill the circle left-to-right by the opacity amount, so 50% reads as ◐. */
+  background: ${p =>
+    p.$color === TRANSPARENT_COLOR
+      ? 'transparent'
+      : `linear-gradient(to right, ${p.$color} ${p.$opacity}%, transparent ${p.$opacity}%)`};
   ${p =>
     p.$opacity === 0 &&
     css`
-      opacity: 1;
-      background-color: transparent;
       ${slashGradient(p.theme, 0.5)}
     `}
 `;
