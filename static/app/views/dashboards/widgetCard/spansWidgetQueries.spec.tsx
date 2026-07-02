@@ -116,7 +116,7 @@ describe('spansWidgetQueries', () => {
     );
 
     await waitFor(() => expect(statsMock).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText('high')).toBeInTheDocument());
+    expect(await screen.findByText('high')).toBeInTheDocument();
   });
 
   it('triggers a normal mode request for charts', async () => {
