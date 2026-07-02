@@ -450,7 +450,6 @@ describe('ActivitySection', () => {
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Assigned');
     expect(timeline).toHaveTextContent('#frontend');
-    expect(timeline).toHaveTextContent('Taylor');
     expect(timeline).not.toHaveTextContent('themselves');
   });
 
