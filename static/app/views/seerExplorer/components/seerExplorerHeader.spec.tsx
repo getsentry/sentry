@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
@@ -32,6 +34,20 @@ function defaultProps(overrides = {}) {
   };
 }
 
+// The header resolves its layout from its query container's width (via
+// `useContainerBreakpoint`), so wrap it in a container and fake `clientWidth`.
+const originalClientWidth = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  'clientWidth'
+);
+
+function setContainerWidth(width: number) {
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+    configurable: true,
+    get: () => width,
+  });
+}
+
 describe('SeerExplorerHeader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -40,12 +56,22 @@ describe('SeerExplorerHeader', () => {
       method: 'GET',
       body: {data: []},
     });
+    // Wide enough for the expanded (inline) layout by default.
+    setContainerWidth(800);
+  });
+
+  afterEach(() => {
+    if (originalClientWidth) {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
+    }
   });
 
   async function renderHeader(props = {}, org = orgWith()) {
     const result = render(
       <SeerExplorerSessionsProvider>
-        <SeerExplorerHeader {...defaultProps(props)} />
+        <Flex containerType="inline-size">
+          <SeerExplorerHeader {...defaultProps(props)} />
+        </Flex>
       </SeerExplorerSessionsProvider>,
       {organization: org}
     );
@@ -109,18 +135,32 @@ describe('SeerExplorerHeader', () => {
   });
 
   describe('Middle actions', () => {
-    it('renders both the inline actions and the overflow menu', async () => {
+    it('renders inline actions when the container is wide', async () => {
+      setContainerWidth(800);
       await renderHeader();
 
-      // Inline copy buttons are always mounted (container query hides them via CSS).
       expect(
         screen.getByRole('button', {name: 'Copy conversation to clipboard'})
       ).toBeInTheDocument();
-      // Overflow "…" menu trigger is always mounted too.
+      // Not collapsed, so no overflow menu.
+      expect(
+        screen.queryByRole('button', {name: 'More actions'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('collapses into the overflow menu when the container is narrow', async () => {
+      setContainerWidth(320);
+      await renderHeader();
+
       expect(screen.getByRole('button', {name: 'More actions'})).toBeInTheDocument();
+      // Collapsed, so the inline copy button is not rendered.
+      expect(
+        screen.queryByRole('button', {name: 'Copy conversation to clipboard'})
+      ).not.toBeInTheDocument();
     });
 
     it('fires the copy handlers from the inline buttons', async () => {
+      setContainerWidth(800);
       const onCopySessionClick = jest.fn();
       await renderHeader({onCopySessionClick});
 
@@ -131,6 +171,7 @@ describe('SeerExplorerHeader', () => {
     });
 
     it('exposes link and copy in the overflow menu', async () => {
+      setContainerWidth(320);
       await renderHeader();
 
       await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
@@ -143,14 +184,10 @@ describe('SeerExplorerHeader', () => {
       ).toBeInTheDocument();
     });
 
-    it('opens a searchable chat history dropdown from the overflow actions', async () => {
+    it('opens a searchable chat history dropdown', async () => {
       await renderHeader();
 
-      // Both the inline and overflow variants mount a chat history trigger.
-      const chatHistoryButtons = screen.getAllByRole('button', {name: 'Chat history'});
-      expect(chatHistoryButtons.length).toBeGreaterThan(0);
-
-      await userEvent.click(chatHistoryButtons[0]!);
+      await userEvent.click(screen.getByRole('button', {name: 'Chat history'}));
       expect(await screen.findByPlaceholderText('Search chats…')).toBeInTheDocument();
     });
   });

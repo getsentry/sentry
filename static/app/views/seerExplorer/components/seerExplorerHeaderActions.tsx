@@ -37,9 +37,7 @@ interface SessionOption {
  * The "middle" cluster of header actions (copy, dock/pop-out, chat history).
  * Rendered in two shapes — {@link SeerExplorerHeaderActions} lays them out as
  * inline buttons, {@link SeerExplorerHeaderActionsMenu} folds them into a single
- * overflow menu. Both are always mounted; the parent toggles their visibility
- * with container queries. Keeping them as two components lets us later swap to a
- * ResizeObserver-based container query and render only the one we need.
+ * overflow menu.
  */
 export interface SeerExplorerHeaderActionsProps {
   isPipSupported: boolean;

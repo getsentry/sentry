@@ -27,10 +27,10 @@ import type {
  * Returns a fragment — the surface (drawer / sidebar) provides the outer
  * `<header>` wrapper and the close affordance via a slot.
  *
- * The action cluster reshapes across three container sizes (driven by the
- * `seer-explorer-root` container query): large shows everything expanded,
- * medium (`≤ 460px`) drops text labels, and small (`≤ 380px`) folds the middle
- * actions into an overflow menu.
+ * The action cluster reshapes across three sizes of its nearest query container
+ * (the Seer content pane): large shows everything expanded, medium (`≤ 460px`)
+ * drops text labels, and small (`≤ 380px`) folds the middle actions into an
+ * overflow menu.
  */
 interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
@@ -161,7 +161,7 @@ export function SeerExplorerHeader({
 }
 
 const NewChatLabel = styled('span')`
-  @container seer-explorer-root (max-width: 460px) {
+  @container (max-width: 460px) {
     display: none;
   }
 `;
@@ -169,7 +169,7 @@ const NewChatLabel = styled('span')`
 const InlineActions = styled(Flex)`
   align-items: center;
 
-  @container seer-explorer-root (max-width: 380px) {
+  @container (max-width: 380px) {
     display: none;
   }
 `;
@@ -177,7 +177,7 @@ const InlineActions = styled(Flex)`
 const OverflowActions = styled('div')`
   display: none;
 
-  @container seer-explorer-root (max-width: 380px) {
+  @container (max-width: 380px) {
     display: block;
   }
 `;

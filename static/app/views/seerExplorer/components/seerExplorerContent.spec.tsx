@@ -43,10 +43,24 @@ describe('SeerExplorerContent', () => {
     hideAiFeatures: false,
   });
 
+  // The header collapses its actions into an overflow menu on narrow containers
+  // (resolved via `useContainerBreakpoint`, which measures `clientWidth`). Fake a
+  // wide container so the expanded header — with its inline pop-out/dock buttons —
+  // renders for these tests.
+  const originalClientWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'clientWidth'
+  );
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
     jest.clearAllMocks();
+
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get: () => 800,
+    });
 
     jest
       .spyOn(useSeerExplorerModule, 'useSeerExplorer')
@@ -61,6 +75,9 @@ describe('SeerExplorerContent', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    if (originalClientWidth) {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
+    }
   });
 
   describe('Empty State', () => {

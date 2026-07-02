@@ -81,7 +81,7 @@ export function SeerExplorerDebugMenu({
 }
 
 const TriggerLabel = styled('span')`
-  @container seer-explorer-root (max-width: 460px) {
+  @container (max-width: 460px) {
     display: none;
   }
 `;

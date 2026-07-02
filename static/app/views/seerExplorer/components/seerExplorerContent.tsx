@@ -503,7 +503,7 @@ export function SeerExplorerContent({
   );
 
   return (
-    <ContentContainer
+    <Flex
       ref={rootRef}
       data-seer-explorer-root=""
       direction="column"
@@ -511,7 +511,7 @@ export function SeerExplorerContent({
       height="100%"
       background="primary"
       overflow="hidden"
-      contain="inline-size"
+      containerType="inline-size"
     >
       {renderHeader ? (
         renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
@@ -623,7 +623,7 @@ export function SeerExplorerContent({
             : undefined
         }
       />
-    </ContentContainer>
+    </Flex>
   );
 }
 
@@ -632,13 +632,4 @@ const BlocksContainer = styled(Stack)`
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-`;
-
-// Establishes the container query context used by the header's responsive
-// controls (`@container seer-explorer-root`). The query-container CSS has no
-// layout-primitive prop, so it stays in `styled`; everything else is passed as
-// `Flex` props.
-const ContentContainer = styled(Flex)`
-  container-type: inline-size;
-  container-name: seer-explorer-root;
 `;
