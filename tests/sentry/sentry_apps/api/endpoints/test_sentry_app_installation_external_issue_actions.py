@@ -1,6 +1,7 @@
 import responses
 from django.urls import reverse
 
+from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
@@ -132,7 +133,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert "uri" in response.data
 
-    def _set_up_token(self, scopes: list[str]):
+    def _set_up_token(self, scopes: list[str]) -> tuple[ApiToken, str]:
         scoped_app = self.create_sentry_app(
             name="Scoped", organization=self.org, webhook_url="https://example.com", scopes=scopes
         )
