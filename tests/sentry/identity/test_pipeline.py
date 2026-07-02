@@ -126,7 +126,7 @@ class IdentityPipelineFinishTest(TestCase):
         assert identity.external_id == "user-123"
 
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
-    def test_redirects_to_valid_config_redirect_url(
+    def test_redirects_to_valid_config_return_url(
         self, mock_build: MagicMock, mock_record: MagicMock
     ) -> None:
         idp = IdentityProvider.objects.create(
@@ -146,7 +146,7 @@ class IdentityPipelineFinishTest(TestCase):
         assert response.url == "/organizations/test-org/explorer/?explorerRunId=5"
 
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
-    def test_ignores_external_redirect_url(
+    def test_ignores_external_return_url(
         self, mock_build: MagicMock, mock_record: MagicMock
     ) -> None:
         idp = IdentityProvider.objects.create(
@@ -166,7 +166,7 @@ class IdentityPipelineFinishTest(TestCase):
         assert response.url == reverse("sentry-account-settings")
 
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
-    def test_ignores_fully_qualified_url(
+    def test_ignores_fully_qualified_return_url(
         self, mock_build: MagicMock, mock_record: MagicMock
     ) -> None:
         """Only relative paths are honored, even for a same-host absolute URL."""
