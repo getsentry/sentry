@@ -20,6 +20,7 @@ class SdkConfig(TypedDict):
     max_value_length: NotRequired[int]
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
+    transport_queue_size: NotRequired[int]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
     before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     enable_logs: NotRequired[bool]

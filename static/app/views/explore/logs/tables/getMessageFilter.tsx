@@ -1,7 +1,5 @@
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {defined} from 'sentry/utils/defined';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
 export interface MessageFilter {
   key: string;
@@ -10,12 +8,12 @@ export interface MessageFilter {
 
 export function getMessageFilter(
   field: string,
-  dataRow: OurLogsResponseItem,
+  dataRow: Record<OurLogFieldKey, string | number | null>,
   cellValue: string | number | boolean
 ): MessageFilter {
   if (field === OurLogKnownFieldKey.MESSAGE) {
     const template = dataRow[OurLogKnownFieldKey.TEMPLATE];
-    if (template !== undefined) {
+    if (defined(template)) {
       return {key: OurLogKnownFieldKey.TEMPLATE, value: template};
     }
   }

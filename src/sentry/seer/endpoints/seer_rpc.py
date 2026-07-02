@@ -1020,7 +1020,7 @@ def refresh_monitoring_provider_token(
     try:
         provider.refresh_identity(identity)
     except IdentityNotValid:
-        logger.warning(
+        logger.exception(
             "monitoring_provider.refresh.identity_not_valid",
             extra={
                 "identity_id": identity_id,

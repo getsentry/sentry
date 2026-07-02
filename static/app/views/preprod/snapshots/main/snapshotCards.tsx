@@ -81,6 +81,7 @@ export const PairCard = memo(function PairCard({
   copyUrl,
   diffMode,
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
   snapshotKey,
   status = DiffStatus.CHANGED,
@@ -102,6 +103,7 @@ export const PairCard = memo(function PairCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
   status?: DiffStatus;
 }) {
   const [isDark, setIsDark] = useState(false);
@@ -131,6 +133,7 @@ export const PairCard = memo(function PairCard({
           headLabel={headBranch ?? t('Head')}
           altPrefix={getImageName(image)}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffImageKey={pair.diff_image_key}
           diffImageBaseUrl={diffImageBaseUrl}
         />
@@ -373,18 +376,24 @@ function MetadataInfoButton({
   );
 
   return (
-    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
-      <InfoIconButton
-        type="button"
-        aria-label={t('Copy metadata as JSON')}
-        onClick={() => {
-          copy(json, {successMessage: t('Copied metadata as JSON')});
-          onCopy?.();
-        }}
-      >
-        <IconInfo size="sm" />
-      </InfoIconButton>
-    </Tooltip>
+    <Flex
+      align="center"
+      onDoubleClick={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
+      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
+        <InfoIconButton
+          type="button"
+          aria-label={t('Copy metadata as JSON')}
+          onClick={() => {
+            copy(json, {successMessage: t('Copied metadata as JSON')});
+            onCopy?.();
+          }}
+        >
+          <IconInfo size="sm" />
+        </InfoIconButton>
+      </Tooltip>
+    </Flex>
   );
 }
 
