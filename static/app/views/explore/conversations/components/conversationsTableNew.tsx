@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
@@ -41,6 +42,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
 import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
+import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
 import {
   type ConversationColumnKey,
   CONVERSATION_COLUMNS,
@@ -52,6 +54,7 @@ import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/ne
 export function ConversationsTableNew() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const {selection} = usePageFilters();
   const {openModal} = useModal();
   const {columns, setColumns} = useConversationsTableColumns();
@@ -159,9 +162,11 @@ export function ConversationsTableNew() {
 
   const handleRowClick = useCallback(
     (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects), {
+        state: getConversationsListLocationState(location.query),
+      });
     },
-    [navigate, organization, selection.projects]
+    [navigate, organization, selection.projects, location.query]
   );
 
   return (
@@ -208,12 +213,14 @@ const BodyCell = memo(function BodyCell({
   organization: Organization;
   projects: number[];
 }) {
+  const location = useLocation();
   switch (column.key) {
     case 'conversationId': {
       const detailUrl = getConversationDetailUrl(organization.slug, dataRow, projects);
       return (
         <Link
           to={detailUrl}
+          state={getConversationsListLocationState(location.query)}
           onClick={event => {
             // Let the link handle navigation; don't also trigger the row click.
             event.stopPropagation();

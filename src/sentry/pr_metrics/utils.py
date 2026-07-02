@@ -8,6 +8,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
+from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -92,6 +94,16 @@ DELEGATED_AGENT_BRANCH_PREFIXES: dict[str, str] = {
 DELEGATED_AGENT_AUTHOR_LOGINS: dict[str, str] = {
     "copilot-swe-agent[bot]": "github_copilot",
 }
+
+
+def org_has_coding_agent_for_provider(organization: Organization, provider_hint: str) -> bool:
+    """Return True if the org has at least one active integration for the given provider."""
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id,
+        providers=[provider_hint],
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    return len(integrations) > 0
 
 
 def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
