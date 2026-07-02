@@ -165,6 +165,27 @@ class IdentityPipelineFinishTest(TestCase):
         assert isinstance(response, HttpResponseRedirect)
         assert response.url == reverse("sentry-account-settings")
 
+    @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
+    def test_ignores_fully_qualified_url(
+        self, mock_build: MagicMock, mock_record: MagicMock
+    ) -> None:
+        """Only relative paths are honored, even for a same-host absolute URL."""
+        idp = IdentityProvider.objects.create(
+            type="dummy", external_id="org-456", config={"site": "example.com"}
+        )
+        pipeline = IdentityPipeline(
+            request=self.request,
+            provider_key="dummy",
+            provider_model=idp,
+            config={"return_url": "http://testserver/organizations/test-org/explorer/"},
+        )
+        pipeline.initialize()
+
+        response = pipeline.finish_pipeline()
+
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.url == reverse("sentry-account-settings")
+
 
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

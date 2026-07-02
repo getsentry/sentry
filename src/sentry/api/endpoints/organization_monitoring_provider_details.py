@@ -30,7 +30,7 @@ from sentry.users.models.identity import (
     OrganizationIdentity,
     link_provider_identity,
 )
-from sentry.utils.auth import is_valid_redirect
+from sentry.utils.auth import is_valid_relative_redirect
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +112,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         # Set the post-OAuth return URL from the request (open-redirect safe).
         return_url = data.get("return_url")
-        if return_url and is_valid_redirect(
-            return_url, allowed_hosts=(request._request.get_host(),)
-        ):
+        if return_url and is_valid_relative_redirect(return_url):
             config["return_url"] = return_url
 
         idp: IdentityProvider | None = None
