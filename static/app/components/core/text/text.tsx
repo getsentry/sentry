@@ -99,7 +99,7 @@ export interface BaseTextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
-export type ExclusiveTextEllipsisProps =
+type ExclusiveTextEllipsisProps =
   | {
       // ellipsis always needs a block-level box to truncate
       display?: never;
