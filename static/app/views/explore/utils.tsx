@@ -47,6 +47,7 @@ import {
 import type {
   TraceItemAttributeMeta,
   TraceItemDetailsMeta,
+  TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
@@ -660,6 +661,44 @@ export const removeHiddenKeys = (
   }
   return result;
 };
+
+// An untyped attribute key resolves to the string variant on the backend, but an
+// attribute can exist as both a string and a number/boolean at once, so a numeric or
+// boolean value filtered by its plain name targets the wrong (often nonexistent) string
+// variant and validates as "Unknown attribute". Look the attribute up in the
+// type-appropriate collection and use its authoritative key (plain for known fields,
+// tags[name,type] for custom attributes). Falls back to the plain key when not found, so
+// known fields and strings are left untouched.
+export function resolveAttributeFilterKey({
+  name,
+  fallbackKey,
+  type,
+  numberAttributes,
+  booleanAttributes,
+}: {
+  booleanAttributes: TagCollection;
+  fallbackKey: string;
+  name: string;
+  numberAttributes: TagCollection;
+  type: TraceItemResponseAttribute['type'];
+}): string {
+  const collection =
+    type === 'int' || type === 'float'
+      ? numberAttributes
+      : type === 'bool'
+        ? booleanAttributes
+        : undefined;
+
+  if (collection) {
+    for (const attribute of Object.values(collection)) {
+      if (attribute.name === name) {
+        return attribute.key;
+      }
+    }
+  }
+
+  return fallbackKey;
+}
 
 export function getSavedQueryTraceItemUrl({
   savedQuery,

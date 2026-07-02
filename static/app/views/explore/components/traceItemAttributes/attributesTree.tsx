@@ -23,6 +23,7 @@ const INVALID_BRANCH_REGEX = /\.{2,}/;
 
 interface Attribute {
   attribute_key: string;
+  attribute_type: TraceItemResponseAttribute['type'];
   attribute_value: string | number | null;
   original_attribute_key: string;
 }
@@ -145,6 +146,7 @@ function addToAttributeTree(
   // Recurse with a pseudo attribute, e.g. 'model', to create nesting structure
   const pseudoAttribute = {
     attribute_key: branch,
+    attribute_type: attribute.attribute_type,
     attribute_value: attribute.attribute_value,
     original_attribute_key: attribute.original_attribute_key,
   };
@@ -462,6 +464,7 @@ function getAttribute(
 
   return {
     attribute_key: prettifyAttributeName(attribute.name),
+    attribute_type: attribute.type,
     attribute_value: attributeValue,
     original_attribute_key: getAdjustedAttributeKey
       ? getAdjustedAttributeKey(attribute)

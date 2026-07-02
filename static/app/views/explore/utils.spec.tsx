@@ -8,6 +8,7 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
   removeHiddenKeys,
+  resolveAttributeFilterKey,
   viewSamplesTarget,
 } from 'sentry/views/explore/utils';
 
@@ -379,5 +380,89 @@ describe('removeHiddenKeys', () => {
     };
 
     expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+  });
+});
+
+describe('resolveAttributeFilterKey', () => {
+  const numberAttributes: TagCollection = {
+    // custom numeric attribute — keyed by its explicit form
+    'tags[message.parameter.StatusCode,number]': {
+      key: 'tags[message.parameter.StatusCode,number]',
+      name: 'message.parameter.StatusCode',
+      kind: FieldKind.MEASUREMENT,
+    },
+    // known numeric field — keyed plainly
+    payload_size: {
+      key: 'payload_size',
+      name: 'payload_size',
+      kind: FieldKind.MEASUREMENT,
+    },
+  };
+  const booleanAttributes: TagCollection = {
+    'tags[activity_object_created,boolean]': {
+      key: 'tags[activity_object_created,boolean]',
+      name: 'activity_object_created',
+      kind: FieldKind.BOOLEAN,
+    },
+  };
+
+  it('returns the explicit key when a custom numeric attribute matches', () => {
+    const result = resolveAttributeFilterKey({
+      name: 'message.parameter.StatusCode',
+      fallbackKey: 'sentry.message.parameter.StatusCode',
+      type: 'int',
+      numberAttributes,
+      booleanAttributes,
+    });
+
+    expect(result).toBe('tags[message.parameter.StatusCode,number]');
+  });
+
+  it('returns the plain key when a known numeric field matches', () => {
+    const result = resolveAttributeFilterKey({
+      name: 'payload_size',
+      fallbackKey: 'payload_size',
+      type: 'int',
+      numberAttributes,
+      booleanAttributes,
+    });
+
+    expect(result).toBe('payload_size');
+  });
+
+  it('returns the explicit key when a boolean attribute matches', () => {
+    const result = resolveAttributeFilterKey({
+      name: 'activity_object_created',
+      fallbackKey: 'activity_object_created',
+      type: 'bool',
+      numberAttributes,
+      booleanAttributes,
+    });
+
+    expect(result).toBe('tags[activity_object_created,boolean]');
+  });
+
+  it('returns the fallback key when the numeric attribute is not in the collection', () => {
+    const result = resolveAttributeFilterKey({
+      name: 'observed_timestamp',
+      fallbackKey: 'observed_timestamp',
+      type: 'float',
+      numberAttributes,
+      booleanAttributes,
+    });
+
+    expect(result).toBe('observed_timestamp');
+  });
+
+  it('returns the fallback key when the value is a string', () => {
+    const result = resolveAttributeFilterKey({
+      name: 'message.parameter.0',
+      fallbackKey: 'sentry.message.parameter.0',
+      type: 'str',
+      numberAttributes,
+      booleanAttributes,
+    });
+
+    expect(result).toBe('sentry.message.parameter.0');
   });
 });

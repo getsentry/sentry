@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
@@ -48,6 +48,12 @@ function Wrapper({children}: {children: ReactNode}) {
 
 describe('useMetricAttributesTreeActions', () => {
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [{attributeType: 'number', key: 'tags[latency,number]', name: 'latency'}],
+    });
     mockSetQueryParams.mockClear();
   });
 
@@ -59,6 +65,7 @@ describe('useMetricAttributesTreeActions', () => {
     const content: AttributesTreeContent = {
       originalAttribute: {
         attribute_key: 'release',
+        attribute_type: 'str',
         attribute_value: '1.0.0',
         original_attribute_key: 'release',
       },
@@ -72,6 +79,57 @@ describe('useMetricAttributesTreeActions', () => {
       'Add to filter',
       'Exclude this value',
     ]);
+  });
+
+  it('builds a tags[name,number] filter when a custom numeric attribute matches', async () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: 'latency',
+        attribute_type: 'int',
+        attribute_value: 5,
+        original_attribute_key: 'latency',
+      },
+      subtree: {},
+      value: 5,
+    };
+
+    await waitFor(() => {
+      result
+        .current(content)
+        .find(action => action.key === 'search-for-value')
+        ?.onAction?.();
+      expect(mockSetQueryParams).toHaveBeenLastCalledWith(
+        expect.objectContaining({query: 'tags[latency,number]:5'})
+      );
+    });
+  });
+
+  it('builds a plain filter when the attribute is a string value', () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: 'release',
+        attribute_type: 'str',
+        attribute_value: '1.0.0',
+        original_attribute_key: 'release',
+      },
+      subtree: {},
+      value: '1.0.0',
+    };
+
+    const actions = result.current(content);
+    actions.find(action => action.key === 'search-for-value')?.onAction?.();
+
+    expect(mockSetQueryParams).toHaveBeenCalledWith(
+      expect.objectContaining({query: 'release:1.0.0'})
+    );
   });
 
   it('returns no actions when originalAttribute is missing', () => {

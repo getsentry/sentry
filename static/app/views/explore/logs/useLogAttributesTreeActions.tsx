@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
@@ -14,6 +15,7 @@ import {
   useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {resolveAttributeFilterKey} from 'sentry/views/explore/utils';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const setLogsSearch = useSetQueryParamsSearch();
@@ -23,6 +25,8 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
   const sidebar = useLogsSidebar();
+  const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
 
   const addSearchFilter = useCallback(
     (content: AttributesTreeContent, negated?: boolean) => {
@@ -30,14 +34,18 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       if (!originalAttribute) {
         return;
       }
+      const key = resolveAttributeFilterKey({
+        name: originalAttribute.attribute_key,
+        fallbackKey: originalAttribute.original_attribute_key,
+        type: originalAttribute.attribute_type,
+        numberAttributes,
+        booleanAttributes,
+      });
       const newSearch = search.copy();
-      newSearch.addFilterValue(
-        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
-        String(content.value)
-      );
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(content.value));
       setLogsSearch(newSearch);
     },
-    [setLogsSearch, search]
+    [setLogsSearch, search, numberAttributes, booleanAttributes]
   );
 
   const addColumn = useCallback(
