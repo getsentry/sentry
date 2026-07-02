@@ -66,30 +66,42 @@ jobs:
           MERGE_BASE=$(gh api repos/${{ github.repository }}/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} --jq '.merge_base_commit.sha')
           echo "sha=$MERGE_BASE" >> "$GITHUB_OUTPUT"
 
-      - name: Install sentry-cli
-        if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.5.0 sh
-
-      - name: Upload snapshots
-        id: upload
+      # Serialize the PR/push VCS context for the privileged upload workflow.
+      # `sentry-cli snapshots upload` runs in a separate `workflow_run` workflow
+      # (frontend-snapshots-upload.yml) so that fork PRs, which don't get
+      # secrets on `pull_request`, can still be uploaded. jq -n --arg safely
+      # JSON-encodes these attacker-influenced values.
+      - name: Write VCS metadata
         if: ${{ !cancelled() }}
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          BASE_REPO_NAME: ${{ github.event.pull_request.base.repo.full_name || github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
         run: |
-          sentry-cli \
-            --log-level=debug \
-            snapshots upload "$SNAPSHOT_OUTPUT_DIR" \
-            --app-id sentry-frontend \
-            --project sentry-frontend \
-            ${BASE_SHA:+--base-sha "$BASE_SHA"}
+          mkdir -p "$SNAPSHOT_OUTPUT_DIR"
+          jq -n \
+            --arg event_name "$EVENT_NAME" \
+            --arg head_sha "$HEAD_SHA" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg head_repo_name "$HEAD_REPO_NAME" \
+            --arg base_repo_name "$BASE_REPO_NAME" \
+            --arg head_ref "$HEAD_REF" \
+            --arg base_ref "$BASE_REF" \
+            --arg base_sha "$BASE_SHA" \
+            '{event_name: $event_name, head_sha: $head_sha, pr_number: $pr_number, head_repo_name: $head_repo_name, base_repo_name: $base_repo_name, head_ref: $head_ref, base_ref: $base_ref, base_sha: $base_sha}' \
+            > "$SNAPSHOT_OUTPUT_DIR/../vcs-metadata.json"
+          cat "$SNAPSHOT_OUTPUT_DIR/../vcs-metadata.json"
 
-      - name: Report upload failure to Sentry
-        if: ${{ failure() && steps.upload.outcome == 'failure' }}
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
-        run: |
-          sentry-cli send-event \
-            --message "Frontend snapshot upload failed" \
-            --tag workflow:frontend-snapshots \
-            --tag commit:"${{ github.sha }}"
+      - name: Upload snapshots artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-snapshots-${{ github.run_id }}
+          path: .artifacts
+          retention-days: 1
+          if-no-files-found: error
