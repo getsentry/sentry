@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.metadata
 import logging
 import os
 import sys
@@ -28,35 +27,6 @@ class ConfigurationError(ValueError, click.ClickException):
 
 
 def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) -> None:
-    from sentry.plugins.base import plugins
-
-    # entry_points={
-    #    'sentry.plugins': [
-    #         'example = sentry_plugins.example.plugin:ExamplePlugin'
-    #     ],
-    # },
-    entry_points = {
-        ep
-        for dist in importlib.metadata.distributions()
-        for ep in dist.entry_points
-        if ep.group == "sentry.plugins"
-    }
-
-    for ep in entry_points:
-        try:
-            plugin = ep.load()
-        except Exception:
-            import traceback
-
-            click.echo(f"Failed to load plugin {ep.name!r}:\n{traceback.format_exc()}", err=True)
-            if raise_on_plugin_load_failure:
-                raise
-        else:
-            plugins.register(plugin)
-
-    for plugin in plugins.all(version=None):
-        init_plugin(plugin)
-
     from sentry.integrations.manager import default_manager as integrations
     from sentry.utils.imports import import_string
 
@@ -78,19 +48,6 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
             integration.setup()
         except AttributeError:
             pass
-
-
-def init_plugin(plugin: Any) -> None:
-    from sentry.plugins.base import bindings
-
-    plugin.setup(bindings)
-
-    # Register contexts from plugins if necessary
-    if hasattr(plugin, "get_custom_contexts"):
-        from sentry.interfaces.contexts import contexttype
-
-        for cls in plugin.get_custom_contexts() or ():
-            contexttype(cls)
 
 
 def initialize_receivers() -> None:

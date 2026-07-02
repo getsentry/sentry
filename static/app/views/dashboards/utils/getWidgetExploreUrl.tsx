@@ -353,11 +353,17 @@ function _getWidgetExploreUrl(
       yAxes: v.yAxes.map(transformLogsYAxis),
     }));
 
+    const logsField =
+      queryParams.field.length > 0 &&
+      !queryParams.field.includes(OurLogKnownFieldKey.TIMESTAMP)
+        ? [OurLogKnownFieldKey.TIMESTAMP, ...queryParams.field]
+        : queryParams.field;
+
     return getLogsUrl({
       organization: queryParams.organization,
       selection: queryParams.selection,
       query: queryParams.query,
-      field: queryParams.field,
+      field: logsField,
       groupBy: queryParams.groupBy,
       aggregateFields: logsVisualize,
       interval: queryParams.interval,

@@ -129,9 +129,9 @@ function SplitDivider({
 
   return (
     <Container position="relative" flexShrink={0}>
-      {({className}) => (
+      {containerProps => (
         <DividerLine
-          className={className}
+          {...containerProps}
           $cursor={cursor}
           aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
           aria-valuemax={Number.isFinite(max) ? max : undefined}

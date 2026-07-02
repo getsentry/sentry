@@ -9,7 +9,6 @@ from concurrent.futures import wait
 from functools import partial
 from typing import Generic, Literal, TypeVar
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import BatchStep
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -25,6 +24,7 @@ from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +51,10 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
             try:
                 # TODO: Handle subscription not existing - we should remove the subscription from
                 # the remote system in that case.
-                with sentry_sdk.start_transaction(
+                with start_span(
                     name=f"monitors.{identifier}.result_consumer.ResultProcessor",
                     op="result_processor.handle_result",
+                    transaction=True,
                 ):
                     subscription = self.get_subscription(result)
                     if self.use_subscription_lock and subscription:
@@ -286,8 +287,8 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         partitioned_values = self.partition_message_batch(message)
 
         # Submit groups for processing
-        with sentry_sdk.start_transaction(
-            op="process_batch", name=f"monitors.{self.identifier}.result_consumer"
+        with start_span(
+            op="process_batch", name=f"monitors.{self.identifier}.result_consumer", transaction=True
         ):
             futures = [
                 self.parallel_executor.submit(self.process_group, group)

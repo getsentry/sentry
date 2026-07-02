@@ -12,7 +12,7 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const PACKAGE_NAME = '@sentry/deno';
-const MIN_VERSION = '10.53.0';
+const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
 
@@ -86,7 +86,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  streamGenAiSpans: true,
   dataCollection: {
     // Control data collection of LLMs and tools.
     // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/

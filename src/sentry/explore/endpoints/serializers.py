@@ -186,7 +186,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(
         choices=ExploreSavedQueryDataset.as_text_choices(),
         default=ExploreSavedQueryDataset.get_type_name(ExploreSavedQueryDataset.SPANS),
-        help_text="The dataset you would like to query. Supported values: `spans`, `logs`, `metrics`.",
+        help_text="The dataset you would like to query. Supported values: `spans`, `logs`, `metrics`, `replays`, `ai_conversations`.",
     )
     start = serializers.DateTimeField(
         required=False,

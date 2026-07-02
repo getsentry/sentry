@@ -55,7 +55,11 @@ export default function DebugNotificationsIndex() {
                     <Tag variant="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Grid columns={{md: '1fr', lg: '1fr auto'}} gap="2xl" position="relative">
+                <Grid
+                  columns={{'screen:md': '1fr', 'screen:lg': '1fr auto'}}
+                  gap="2xl"
+                  position="relative"
+                >
                   <Flex
                     direction="column"
                     position="relative"

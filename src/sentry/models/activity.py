@@ -88,6 +88,7 @@ class ActivityManager(BaseManager["Activity"]):
         send_notification: bool = True,
         datetime: datetime | None = None,
         detector_id: DetectorId | None = None,
+        ident: str | int | None = None,
     ) -> Activity:
         if user:
             user_id = user.id
@@ -101,6 +102,8 @@ class ActivityManager(BaseManager["Activity"]):
             activity_args["user_id"] = user_id
         if datetime is not None:
             activity_args["datetime"] = datetime
+        if ident is not None:
+            activity_args["ident"] = ident
         activity = self.create(**activity_args)
 
         if send_notification:

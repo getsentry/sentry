@@ -164,7 +164,7 @@ from sentry.seer.sentry_data_models import (
     ValidateRepoSuccessResponse,
 )
 from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -173,6 +173,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
@@ -410,7 +411,7 @@ def get_organization_features(
 
     feature_set: set[str] = set()
 
-    with sentry_sdk.start_span(op="features.check", name="check batch features"):
+    with start_span(op="features.check", name="check batch features"):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -424,7 +425,7 @@ def get_organization_features(
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with sentry_sdk.start_span(op="features.check", name="check individual features"):
+    with start_span(op="features.check", name="check individual features"):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
@@ -994,10 +995,21 @@ def refresh_monitoring_provider_token(
 
     identity = identity_service.get_identity(filter={"id": identity_id})
     if identity is None:
+        logger.error(
+            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     idp = identity_service.get_provider(provider_id=identity.idp_id)
     if idp is None or idp.type not in MONITORING_PROVIDERS:
+        logger.error(
+            "monitoring_provider.refresh.identity_provider_not_found",
+            extra={
+                "identity_id": identity.id,
+                "idp_id": identity.idp_id,
+                "idp_type": idp.type if idp is not None else None,
+            },
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     provider = identity_manager.get(idp.type)
@@ -1008,16 +1020,36 @@ def refresh_monitoring_provider_token(
     try:
         provider.refresh_identity(identity)
     except IdentityNotValid:
+        logger.warning(
+            "monitoring_provider.refresh.identity_not_valid",
+            extra={
+                "identity_id": identity_id,
+                "provider": idp.type,
+                "has_refresh_token": "refresh_token" in identity.data,
+            },
+            exc_info=True,
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
     except (ApiError, KeyError, RequestException):
+        logger.exception(
+            "monitoring_provider.refresh.failed",
+            extra={"identity_id": identity_id, "provider": idp.type},
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
 
     access_token = identity.data.get("access_token")
     if not access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_not_found", extra={"identity_id": identity.id}
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
 
     encrypted_access_token = encrypt_access_token_for_seer(access_token)
     if not encrypted_access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_encryption_failed",
+            extra={"identity_id": identity.id},
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
     return RefreshMonitoringProviderTokenSuccessResponse(
@@ -1128,6 +1160,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Common to Seer features
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_project_ids": seer_rpc(get_organization_project_ids),
+    "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
     "check_repository_integrations_status": seer_rpc(check_repository_integrations_status),
     "validate_repo": seer_rpc(validate_repo),

@@ -42,7 +42,7 @@ export function ToolbarContainer({
         align="center"
         justify="between"
         gap="md"
-        padding={{xs: 'md xl', md: 'md xl md 0'}}
+        padding={{'screen:xs': 'md xl', 'screen:md': 'md xl md 0'}}
         background="primary"
         onClick={e => e.stopPropagation()}
       >
@@ -57,7 +57,11 @@ export function ToolbarContainer({
               {diffControls}
             </Flex>
           )}
-          <Flex display={{'2xs': 'none', xs: 'none', sm: 'flex'}}>{soloDiffToggle}</Flex>
+          <Flex
+            display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
+          >
+            {soloDiffToggle}
+          </Flex>
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />

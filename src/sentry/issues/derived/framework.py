@@ -144,10 +144,20 @@ class StateUpdate(_FeatureStore):
 class State(_FeatureStore):
     """Complete pipeline state."""
 
+    def __init__(self, data: dict[Feature[Any], Any] | None = None) -> None:
+        super().__init__(data)
+        self._updated: set[Feature[Any]] = set()
+
+    @property
+    def updated(self) -> frozenset[Feature[Any]]:
+        """Features that aggregators have provided updates for via merge()."""
+        return frozenset(self._updated)
+
     def view(self, allowed: frozenset[Feature[Any]]) -> "StateView":
         return StateView(self._data, allowed)
 
     def merge(self, update: StateUpdate) -> None:
+        self._updated.update(update._data)
         self._data.update(update._data)
 
     def items(self) -> Iterator[tuple[str, Any]]:
