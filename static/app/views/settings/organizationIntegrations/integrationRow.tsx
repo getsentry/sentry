@@ -117,6 +117,7 @@ export function IntegrationRow(props: Props) {
             {needsUpgrade && (
               <Tooltip
                 isHoverable
+                containerDisplayMode="flex"
                 title={
                   <IntegrationUpgradeTooltipTitle
                     displayName={displayName}
