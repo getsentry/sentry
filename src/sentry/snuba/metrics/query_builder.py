@@ -66,12 +66,12 @@ from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
-    MetricOperationType,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     MetricEntity,
+    MetricOperationType,
     get_num_intervals,
     get_timestamp_column_name,
     require_rhs_condition_resolution,
@@ -1091,7 +1091,9 @@ class SnubaQueryBuilder:
                 series_limit = self._metrics_query.max_limit
 
             if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
-                interval = self._metrics_query.interval or self._metrics_query.granularity.granularity
+                interval = (
+                    self._metrics_query.interval or self._metrics_query.granularity.granularity
+                )
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     interval
                 )
@@ -1123,7 +1125,9 @@ class SnubaQueryBuilder:
     def __update_query_dicts_with_component_entities(
         self,
         component_entities: Mapping[MetricEntity, Sequence[str]],
-        metric_mri_to_obj_dict: dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase],
+        metric_mri_to_obj_dict: dict[
+            tuple[MetricOperationType | None, str, str], MetricExpressionBase
+        ],
         fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]],
         parent_alias,
     ) -> dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase]:
@@ -1151,8 +1155,12 @@ class SnubaQueryBuilder:
         return metric_mri_to_obj_dict
 
     def get_snuba_queries(self):
-        metric_mri_to_obj_dict: dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase] = {}
-        fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {}
+        metric_mri_to_obj_dict: dict[
+            tuple[MetricOperationType | None, str, str], MetricExpressionBase
+        ] = {}
+        fields_in_entities: dict[
+            MetricEntity, list[tuple[MetricOperationType | None, str, str]]
+        ] = {}
 
         for select_field in self._metrics_query.select:
             metric_field_obj = metric_object_factory(select_field.op, select_field.metric_mri)
