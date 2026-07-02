@@ -114,6 +114,13 @@ def compare_organization_sliding_window_sample_rates(
             sample_rate=1.0,
             tags=tags,
         )
+        if eap_volume.indexed is not None:
+            metrics.distribution(
+                f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation",
+                eap_volume.indexed,
+                sample_rate=1.0,
+                tags=tags,
+            )
     if outcomes_volume is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_volume",
@@ -139,12 +146,33 @@ def run_project_balancing(
     for project_volume in project_volumes:
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
+
+    # Mirror the legacy serving path (get_guarded_project_sample_rate): a 100% org sample
+    # rate means every project is sampled at 100% and the balanced ("boost low volume
+    # projects") rate is never applied. Reproduced intentionally to match the legacy pipeline.
+    if sample_rate == 1.0:
+        return [
+            RebalancedItem(
+                id=project.id,
+                count=counts_by_project.get(project.id, 0),
+                new_sample_rate=1.0,
+            )
+            for project in config.projects
+        ]
+
+    # When no project has any volume there is nothing to rebalance, and the model would
+    # divide by zero on all-zero counts. Matches the legacy pipeline, which returns early.
+    if not counts_by_project:
+        return []
+
+    # Include every project, defaulting those without volume to a count of 0. The model
+    # assigns zero-count projects a 100% sample rate, and their presence keeps the
+    # per-project ideal budget identical to the legacy calculation.
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
-                RebalancedItem(id=project.id, count=counts_by_project[project.id])
+                RebalancedItem(id=project.id, count=counts_by_project.get(project.id, 0))
                 for project in config.projects
-                if project.id in counts_by_project
             ],
             sample_rate=sample_rate,
         )

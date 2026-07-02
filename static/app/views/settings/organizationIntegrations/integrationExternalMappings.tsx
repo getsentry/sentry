@@ -11,8 +11,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,

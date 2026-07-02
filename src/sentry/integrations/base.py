@@ -14,8 +14,6 @@ from rest_framework.exceptions import NotFound
 
 from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
-from sentry.identity.services.identity import identity_service
-from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
@@ -49,12 +47,14 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
     from django.utils.functional import _StrPromise
 
+    from sentry.identity.services.identity.model import RpcIdentity
     from sentry.integrations.pipeline import IntegrationPipeline  # noqa: F401
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
+
 
 logger = logging.getLogger(__name__)
 
@@ -490,6 +490,8 @@ class IntegrationInstallation(abc.ABC):
     @cached_property
     def default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
+        from sentry.identity.services.identity import identity_service
+
         try:
             org_integration = self.org_integration
         except OrganizationIntegrationNotFound:

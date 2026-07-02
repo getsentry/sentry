@@ -31,7 +31,7 @@ class BufferAggregate(NamedTuple):
     """
 
     operation_count: int
-    cumulative_latency_ms: int
+    cumulative_latency_ms: float
 
 
 class FlusherLogEntry(NamedTuple):
@@ -123,7 +123,7 @@ class BufferLogger:
         self._metrics_per_trace: dict[str, BufferAggregate] = {}
         self._last_log_time: float | None = None
 
-    def log(self, entries: list[tuple[str, int]]) -> None:
+    def log(self, entries: list[tuple[str, float]]) -> None:
         """
         Record a batch of EVALSHA operations and periodically log the top offenders.
 
@@ -150,7 +150,7 @@ class BufferLogger:
             log_message="spans.buffer.slow_evalsha_operations",
             entries_key="top_slow_operations",
             format_entry=lambda key,
-            val: f"{key}:{val.operation_count}:{val.cumulative_latency_ms}",
+            val: f"{key}:{val.operation_count}:{val.cumulative_latency_ms:.3f}",
         )
 
 
@@ -278,7 +278,7 @@ class SubsegmentDebugLog(NamedTuple):
 
 class InsertSpansMetrics:
     def __init__(self) -> None:
-        self._latency_entries: list[tuple[str, int]] = []
+        self._latency_entries: list[tuple[str, float]] = []
         self._latency_metrics: list[EvalshaData] = []
         self._gauge_metrics: list[EvalshaData] = []
         self._longest_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
@@ -312,7 +312,7 @@ class InsertSpansMetrics:
             )
 
     @property
-    def evalsha_latency_entries(self) -> list[tuple[str, int]]:
+    def evalsha_latency_entries(self) -> list[tuple[str, float]]:
         return self._latency_entries
 
     def emit_metrics(self) -> None:

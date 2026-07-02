@@ -3,9 +3,11 @@ from unittest.mock import MagicMock, patch
 import orjson
 from django.urls import reverse
 
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_image_detail.get_preprod_session"
 
@@ -138,7 +140,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
 
         head = data["head_image"]
         assert head is not None
-        assert head["content_hash"] == "abc123"
+        assert head["key"] == "abc123"
         assert head["display_name"] == "Alert"
         assert head["group"] == "components"
         assert head["image_file_name"] == "components/alert.png"
@@ -147,10 +149,73 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head["diff_threshold"] == 0.01
         assert head["description"] == "An alert component"
         assert head["tags"] == {"dark": "dark"}
+        assert head["canvas_theme"] is None
         assert "image_url" in head
         assert (
             head["image_url"]
             == f"/api/0/projects/{self.org.slug}/{self.project.slug}/files/images/abc123/"
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(MOCK_TARGET)
+    def test_records_web_client_analytics(self, mock_get_session, mock_record):
+        images = {
+            "components/alert.png": {
+                "content_hash": "abc123",
+                "display_name": "Alert",
+                "width": 400,
+                "height": 200,
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        response = self.client.get(self._get_url(artifact.id, "components/alert.png"))
+
+        assert response.status_code == 200
+        assert_last_analytics_event(
+            mock_record,
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(artifact.id),
+                image_identifier="components/alert.png",
+                client="web",
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @patch(MOCK_TARGET)
+    def test_records_mcp_client_analytics(self, mock_get_session, mock_record):
+        images = {
+            "components/alert.png": {
+                "content_hash": "abc123",
+                "display_name": "Alert",
+                "width": 400,
+                "height": 200,
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        response = self.client.get(
+            self._get_url(artifact.id, "components/alert.png"),
+            HTTP_USER_AGENT="sentry-mcp/1.0",
+            HTTP_X_SENTRY_MCP_CLIENT_FAMILY="cursor",
+        )
+
+        assert response.status_code == 200
+        assert_last_analytics_event(
+            mock_record,
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=self.org.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                artifact_id=str(artifact.id),
+                image_identifier="components/alert.png",
+                client="mcp:cursor",
+            ),
         )
 
     @patch(MOCK_TARGET)
@@ -214,14 +279,14 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
 
         head = data["head_image"]
         assert head is not None
-        assert head["content_hash"] == "head_hash"
+        assert head["key"] == "head_hash"
         assert head["width"] == 400
         assert head["height"] == 200
         assert "/files/images/head_hash/" in head["image_url"]
 
         base = data["base_image"]
         assert base is not None
-        assert base["content_hash"] == "base_hash"
+        assert base["key"] == "base_hash"
         assert base["width"] == 400
         assert base["height"] == 195
         assert "/files/images/base_hash/" in base["image_url"]
@@ -271,7 +336,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         data = response.data
         assert data["comparison_status"] == "added"
         assert data["head_image"] is not None
-        assert data["head_image"]["content_hash"] == "head_hash"
+        assert data["head_image"]["key"] == "head_hash"
         assert data["base_image"] is None
         assert data["diff_image_url"] is None
 
@@ -317,7 +382,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["comparison_status"] == "removed"
         assert data["head_image"] is None
         assert data["base_image"] is not None
-        assert data["base_image"]["content_hash"] == "base_hash"
+        assert data["base_image"]["key"] == "base_hash"
         assert data["base_image"]["display_name"] == "Old Screen"
         assert "/files/images/base_hash/" in data["base_image"]["image_url"]
 
@@ -459,11 +524,11 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         data = response.data
         assert data["comparison_status"] == "skipped"
         assert data["head_image"] is not None
-        assert data["head_image"]["content_hash"] == "base_hash"
+        assert data["head_image"]["key"] == "base_hash"
         assert data["head_image"]["display_name"] == "Skipped Screen"
         assert "/files/images/base_hash/" in data["head_image"]["image_url"]
         assert data["base_image"] is not None
-        assert data["base_image"]["content_hash"] == "base_hash"
+        assert data["base_image"]["key"] == "base_hash"
         assert data["diff_image_url"] is None
         assert data["diff_percentage"] is None
 
@@ -487,7 +552,7 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         data = response.data
         assert data["image_file_name"] == "components/alert.png"
         assert data["head_image"] is not None
-        assert data["head_image"]["content_hash"] == "abc123"
+        assert data["head_image"]["key"] == "abc123"
 
     @patch(MOCK_TARGET)
     def test_extra_metadata_fields_passed_through(self, mock_get_session):
@@ -512,3 +577,47 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert head is not None
         assert head["context"] == {"viewport": "mobile"}
         assert head["custom_field"] == "value"
+
+    @patch(MOCK_TARGET)
+    def test_canvas_theme_passed_through(self, mock_get_session):
+        images = {
+            "screen.png": {
+                "content_hash": "hash1",
+                "display_name": "Screen",
+                "width": 375,
+                "height": 812,
+                "canvas_theme": "dark",
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        url = self._get_url(artifact.id, "screen.png")
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        head = response.data["head_image"]
+        assert head is not None
+        assert head["canvas_theme"] == "dark"
+
+    @patch(MOCK_TARGET)
+    def test_canvas_theme_invalid_value_coerced_to_null(self, mock_get_session):
+        images = {
+            "screen.png": {
+                "content_hash": "hash1",
+                "display_name": "Screen",
+                "width": 375,
+                "height": 812,
+                "canvas_theme": "sepia",
+            },
+        }
+        artifact, _, manifest_key, manifest_json = self._create_artifact_with_manifest(images)
+        mock_get_session.return_value = self._create_mock_session({manifest_key: manifest_json})
+
+        url = self._get_url(artifact.id, "screen.png")
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        head = response.data["head_image"]
+        assert head is not None
+        assert head["canvas_theme"] is None

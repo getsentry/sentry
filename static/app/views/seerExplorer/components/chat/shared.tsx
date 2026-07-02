@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
   block: Block;
@@ -20,7 +20,7 @@ export interface AssistantBlockProps extends BlockVariantProps {
   blockIndex: number;
   interactionPending?: boolean;
   readOnly?: boolean;
-  runId?: number;
+  runId?: SeerExplorerRunId;
 }
 
 export interface ToolUseBlockProps extends BlockVariantProps {
@@ -58,9 +58,7 @@ export function getBlockStatus(block: Block): BlockStatus {
     return 'success';
   }
 
-  const failures = toolLinks.filter(
-    l => l.params?.is_error === true || l.params?.empty_results === true
-  ).length;
+  const failures = toolLinks.filter(l => l.params?.is_error === true).length;
 
   if (failures === 0) {
     return 'success';
@@ -129,10 +127,15 @@ const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
   ),
   Text: function SeerText({children}) {
     const isInsideLink = useContext(IsInsideLinkContext);
-    if (isInsideLink) {
-      return children;
+    // strip unclosed markdown syntax that the parser emitted as raw text
+    const text = children.replace(/^(?:#{1,6}\s*|`+|\*{1,3})/, '');
+    if (!text) {
+      return null;
     }
-    return <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>;
+    if (isInsideLink) {
+      return text;
+    }
+    return <LinkifyIssueShortIds>{text}</LinkifyIssueShortIds>;
   },
   InlineCode: function SeerInlineCode({children, Default}) {
     const isInsideLink = useContext(IsInsideLinkContext);

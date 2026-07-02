@@ -9,8 +9,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  providerDetails,
+  type IntegrationChannel,
   type IssueAlertNotificationProps,
+  providerDetails,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 
@@ -25,7 +26,17 @@ type ChannelListResponse = {
   results: Channel[];
 };
 
-export function MessagingIntegrationAlertRule({
+/**
+ * Shared data + handlers for the messaging-integration alert rule. Owns the
+ * channels query, channel validation, and the provider/integration/channel
+ * option lists and change handlers, so the classic inline layout
+ * (`MessagingIntegrationAlertRule`) and the SCM stacked layout
+ * (`ScmMessagingIntegrationAlertRule`) build identical controls and feed them
+ * to the same provider sentence, differing only in presentation.
+ *
+ * @public Consumed by the SCM layout in a downstream PR.
+ */
+export function useMessagingIntegrationAlertRule({
   channel,
   integration,
   provider,
@@ -79,6 +90,128 @@ export function MessagingIntegrationAlertRule({
     [providersToIntegrations, provider]
   );
 
+  const channelOptions = useMemo(
+    () =>
+      channels?.results.map(ch =>
+        provider === 'slack'
+          ? {label: ch.display, value: ch.display}
+          : {label: `${ch.display} (${ch.id})`, value: ch.id}
+      ),
+    [channels, provider]
+  );
+
+  return {
+    provider,
+    integration,
+    channel,
+    providerOptions,
+    integrationOptions,
+    channelOptions,
+    isChannelLoading: isPending || validateChannel.isFetching,
+    channelError: validateChannel.error,
+    providerDisabled: Object.keys(providersToIntegrations).length === 1,
+    integrationDisabled: integrationOptions.length === 1,
+    onProviderChange: (option: any) => {
+      setProvider(option.value);
+      setIntegration(providersToIntegrations[option.value]![0]);
+      setChannel(undefined);
+      validateChannel.clear();
+    },
+    onIntegrationChange: (option: any) => {
+      setIntegration(option.value);
+      setChannel(undefined);
+      validateChannel.clear();
+    },
+    onChannelChange: (option: {label: React.ReactNode; value: string} | null) => {
+      setChannel(
+        option ? {value: option.value, label: option.label, new: false} : undefined
+      );
+      validateChannel.clear();
+    },
+    onCreateChannel: (newOption: string) => {
+      setChannel({value: newOption, label: newOption, new: true});
+    },
+  };
+}
+
+type ChannelSelectProps = {
+  disabled: boolean;
+  isLoading: boolean;
+  onChange: (option: {label: React.ReactNode; value: string} | null) => void;
+  onCreateOption: (value: string) => void;
+  options: Array<{label: React.ReactNode; value: string}> | undefined;
+  provider: string;
+  value: IntegrationChannel | undefined;
+  className?: string;
+};
+
+/**
+ * The creatable channel picker, shared by both layouts. The Slack API returns
+ * at most 1000 channels, so it stays creatable to let users enter one that is
+ * not in the results.
+ *
+ * @public Consumed by the SCM layout in a downstream PR.
+ */
+export function ChannelSelect({
+  className,
+  provider,
+  options,
+  value,
+  isLoading,
+  disabled,
+  onChange,
+  onCreateOption,
+}: ChannelSelectProps) {
+  return (
+    <Select
+      className={className}
+      aria-label={t('channel')}
+      placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
+      isSearchable
+      options={options}
+      isLoading={isLoading}
+      disabled={disabled}
+      value={value ? {label: value.label, value: value.value} : undefined}
+      onChange={onChange}
+      onCreateOption={onCreateOption}
+      clearable
+      creatable
+      formatCreateLabel={(inputValue: string) => inputValue}
+      components={{
+        Option: optionProps => (
+          <SelectOption
+            {...(optionProps as any)}
+            data={{
+              ...optionProps.data,
+              // Hide IconAdd for new channel options by setting __isNew__ to false.
+              // We do that to not give the impression that the user can create a new channel.
+              __isNew__: false,
+            }}
+          />
+        ),
+      }}
+    />
+  );
+}
+
+export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps) {
+  const {
+    provider,
+    integration,
+    channel,
+    providerOptions,
+    integrationOptions,
+    channelOptions,
+    isChannelLoading,
+    channelError,
+    providerDisabled,
+    integrationDisabled,
+    onProviderChange,
+    onIntegrationChange,
+    onChannelChange,
+    onCreateChannel,
+  } = useMessagingIntegrationAlertRule(props);
+
   if (!provider) {
     return null;
   }
@@ -89,84 +222,32 @@ export function MessagingIntegrationAlertRule({
         providerName: (
           <InlineSelectControl
             aria-label={t('provider')}
-            disabled={Object.keys(providersToIntegrations).length === 1}
+            disabled={providerDisabled}
             value={provider}
             options={providerOptions}
-            onChange={(p: any) => {
-              setProvider(p.value);
-              setIntegration(providersToIntegrations[p.value]![0]);
-              setChannel(undefined);
-              validateChannel.clear();
-            }}
+            onChange={onProviderChange}
           />
         ),
         integrationName: (
           <InlineSelectControl
             aria-label={t('integration')}
-            disabled={integrationOptions.length === 1}
+            disabled={integrationDisabled}
             value={integration}
             options={integrationOptions}
-            onChange={(i: any) => {
-              setIntegration(i.value);
-              setChannel(undefined);
-              validateChannel.clear();
-            }}
+            onChange={onIntegrationChange}
           />
         ),
         target: (
-          <ChannelField name="channel" error={validateChannel.error} inline={false}>
+          <ChannelField name="channel" error={channelError} inline={false}>
             {() => (
-              <InlineSelect
-                aria-label={t('channel')}
-                placeholder={
-                  providerDetails[provider as keyof typeof providerDetails]?.placeholder
-                }
-                isSearchable
-                options={channels?.results.map(ch =>
-                  provider === 'slack'
-                    ? {
-                        label: ch.display,
-                        value: ch.display,
-                      }
-                    : {
-                        label: `${ch.display} (${ch.id})`,
-                        value: ch.id,
-                      }
-                )}
-                isLoading={isPending || validateChannel.isFetching}
+              <InlineChannelSelect
+                provider={provider}
+                options={channelOptions}
+                value={channel}
+                isLoading={isChannelLoading}
                 disabled={!integration}
-                value={channel ? {label: channel.label, value: channel.value} : undefined}
-                onChange={option => {
-                  if (option) {
-                    setChannel({value: option.value, label: option.label, new: false});
-                  } else {
-                    setChannel(undefined);
-                  }
-                  validateChannel.clear();
-                }}
-                onCreateOption={(newOption: string) => {
-                  setChannel({value: newOption, label: newOption, new: true});
-                }}
-                clearable
-                // The Slack API returns the maximum of channels, and users might not find the channel they want in the first 1000.
-                // This allows them to add a channel that is not present in the results.
-                creatable
-                formatCreateLabel={(inputValue: string) => inputValue}
-                components={{
-                  Option: optionProps => {
-                    return (
-                      <SelectOption
-                        {...(optionProps as any)}
-                        data={{
-                          ...optionProps.data,
-                          // Hide IconAdd for new channel options by setting __isNew__ to false
-                          // We are doing that to don't give the impression that the user can create a new channel.
-                          __isNew__: false,
-                        }}
-                      />
-                    );
-                  },
-                }}
+                onChange={onChannelChange}
+                onCreateOption={onCreateChannel}
               />
             )}
           </ChannelField>
@@ -190,10 +271,12 @@ const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 
-const InlineSelect = styled(Select)`
+// Preserves the classic inline channel-select width.
+const InlineChannelSelect = styled(ChannelSelect)`
   min-width: 220px;
 `;
 
-const ChannelField = styled(FormField)`
+/** @public Consumed by the SCM layout in a downstream PR. */
+export const ChannelField = styled(FormField)`
   padding: 0;
 `;

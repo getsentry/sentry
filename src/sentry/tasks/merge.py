@@ -8,9 +8,11 @@ from django.db.models import F
 from django.db.models.functions import Coalesce
 from taskbroker_client.retry import Retry
 
-from sentry import eventstream, similarity, tsdb
+from sentry import eventstream, features, similarity, tsdb
 from sentry.db.models.base import Model
+from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
@@ -59,12 +61,26 @@ def merge_groups(
     from_object_id = from_object_ids[0]
 
     try:
-        new_group, _ = get_group_with_redirect(to_object_id)
+        new_group, _ = get_group_with_redirect(
+            to_object_id,
+            queryset=Group.objects.select_related("project__organization"),
+        )
     except Group.DoesNotExist:
         logger.warning(
             "group.malformed.invalid_id",
             extra={"transaction_id": transaction_id, "old_object_ids": from_object_ids},
         )
+        return False
+
+    if killswitch_matches_context(
+        "merge.killswitch-projects", {"project_id": new_group.project_id}
+    ):
+        logger.warning(
+            "merge.halted_by_killswitch",
+            extra={"transaction_id": transaction_id, "new_group_id": new_group.id},
+        )
+        if eventstream_state:
+            eventstream.backend.end_merge(eventstream_state)
         return False
 
     if not recursed:
@@ -206,9 +222,17 @@ def merge_groups(
             recursed=True,
             eventstream_state=eventstream_state,
         )
-    elif eventstream_state:
-        # All `from_object_ids` have been merged!
-        eventstream.backend.end_merge(eventstream_state)
+    else:
+        if features.has(
+            "organizations:hard-delete-derived-data-invalidation",
+            new_group.project.organization,
+        ):
+            # hard delete derived data on the new group - it will be rebuilt when the next action is processed
+            invalidate_group_derived_data(new_group.id)
+
+        if eventstream_state:
+            # All `from_object_ids` have been merged!
+            eventstream.backend.end_merge(eventstream_state)
 
     return True
 

@@ -2,31 +2,36 @@ import {useMemo, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
-  isRunValidForPrIteration,
   type AutofixExplorerStep,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseResetAutofixStepOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
   section: AutofixSection;
   step: AutofixExplorerStep;
+  canReset?: boolean;
 }
 
 export function useResetAutofixStep({
   autofix,
+  canReset,
   section,
   step,
 }: UseResetAutofixStepOptions) {
   const [shouldShowReset, setShouldShowReset] = useState(false);
 
-  const organization = useOrganization();
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
-  const allowResetAfterPRs = isRunValidForPrIteration(organization);
+  const notProcessing = autofix.runState?.status !== 'processing';
+  const noPRs = Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0;
+  const noCodingAgents =
+    Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
+  const defaultCanReset = notProcessing && noPRs && noCodingAgents;
+
+  const isResetEligible = canReset ?? defaultCanReset;
 
   const handleReset = useMemo(() => {
     return async (userContext?: string) => {
@@ -45,17 +50,7 @@ export function useResetAutofixStep({
   return {
     canReset:
       // can only reset if reset prompt is not showing
-      !shouldShowReset &&
-      // can only reset if run state is not processing
-      autofix.runState?.status !== 'processing' &&
-      // can only reset if PRs states are empty (i.e. no PR have been created),
-      // except on code_changes card where PR iteration is supported
-      (step === 'code_changes'
-        ? allowResetAfterPRs ||
-          Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0
-        : Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0) &&
-      // can only reset if coding agents are empty (i.e. no coding agents have been started)
-      Object.values(autofix.runState?.coding_agents ?? {}).length === 0,
+      !shouldShowReset && isResetEligible,
     shouldShowReset,
     setShouldShowReset,
     handleReset,

@@ -26,6 +26,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -48,6 +49,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -64,6 +66,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -89,6 +92,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={onToggleFeature}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -111,6 +115,7 @@ describe('ScmFeatureSelectionCards', () => {
         }}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -127,6 +132,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -144,6 +150,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
       />
     );
 
@@ -160,6 +167,7 @@ describe('ScmFeatureSelectionCards', () => {
         disabledProducts={NO_DISABLED}
         onToggleFeature={jest.fn()}
         featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
         isVolumeLoading
       />
     );

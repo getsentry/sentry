@@ -446,19 +446,19 @@ function InnerSpendLimitSettings({
             return (
               <Flex
                 key={category}
-                direction={{xs: 'column', sm: 'row'}}
+                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
                 justify="between"
-                align={{xs: 'start', sm: 'center'}}
-                gap={{xs: 'xs', sm: 'lg'}}
+                align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+                gap={{'screen:xs': 'xs', 'screen:sm': 'lg'}}
                 padding="lg 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
                 wrap="wrap"
               >
                 <Flex
                   gap="xs"
-                  align={{xs: 'start', sm: 'center'}}
+                  align={{'screen:xs': 'start', 'screen:sm': 'center'}}
                   flexGrow={1}
-                  direction={{xs: 'column', sm: 'row'}}
+                  direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
                 >
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(pluralName)}</Text>
@@ -523,19 +523,19 @@ function InnerSpendLimitSettings({
             return (
               <Flex
                 key={apiName}
-                direction={{xs: 'column', sm: 'row'}}
+                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
                 justify="between"
-                align={{xs: 'start', sm: 'center'}}
-                gap={{xs: 'xs', sm: 'lg'}}
+                align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+                gap={{'screen:xs': 'xs', 'screen:sm': 'lg'}}
                 padding="xl 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
                 wrap="wrap"
               >
                 <Flex
                   gap="xs"
-                  align={{xs: 'start', sm: 'center'}}
+                  align={{'screen:xs': 'start', 'screen:sm': 'center'}}
                   flexGrow={1}
-                  direction={{xs: 'column', sm: 'row'}}
+                  direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
                 >
                   <Flex align="center" gap="xs">
                     <Text bold>{upperFirst(addOnInfo.productName)}</Text>
@@ -575,7 +575,7 @@ function InnerSpendLimitSettings({
             onUpdate={handleUpdate}
             reserved={null}
           />
-          <Container width={{xs: '100%', sm: LARGE_INPUT_WIDTH}}>
+          <Container width={{'screen:xs': '100%', 'screen:sm': LARGE_INPUT_WIDTH}}>
             <Text variant="muted" size="sm">
               {t(
                 'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
@@ -623,7 +623,7 @@ function BudgetModeSettings({
   }
 
   return (
-    <Grid columns={{xs: '1fr', lg: 'repeat(2, 1fr)'}} gap="lg">
+    <Grid columns={{'screen:xs': '1fr', 'screen:lg': 'repeat(2, 1fr)'}} gap="lg">
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;

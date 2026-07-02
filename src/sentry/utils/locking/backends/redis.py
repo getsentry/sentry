@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import rb
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils import redis
 from sentry.utils.locking.backends import LockBackend

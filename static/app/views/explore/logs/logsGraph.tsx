@@ -44,6 +44,7 @@ import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSearch,
@@ -61,12 +62,12 @@ import {
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
 }
 
 export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
@@ -133,6 +134,8 @@ function Graph({
   const aggregate = visualize.yAxis;
   const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -251,13 +254,20 @@ function Graph({
     />
   );
 
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
+
   return (
     <Widget
       Title={Title}
       Actions={Actions}
       Visualization={
         visualize.visible && (
-          <ChartVisualization chartInfo={chartInfo} notMerge={!autorefreshEnabled} />
+          <ChartVisualization
+            key={chartRemountKey}
+            chartInfo={chartInfo}
+            notMerge={!autorefreshEnabled}
+          />
         )
       }
       Footer={

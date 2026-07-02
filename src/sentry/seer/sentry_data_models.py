@@ -125,6 +125,16 @@ class OrganizationProjectIdsResponse(BaseModel):
     projects: list[OrganizationProject]
 
 
+class OrganizationProjectDetail(BaseModel):
+    id: int
+    slug: str
+    instrumentation: list[str]
+
+
+class OrganizationProjectsResponse(BaseModel):
+    projects: list[OrganizationProjectDetail]
+
+
 class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
@@ -505,6 +515,22 @@ class IssueAndEventDetailsResponse(_DictProxyMixin):
         return super().dict(**kwargs)
 
 
+class IssueCommittersResponse(_DictProxyMixin):
+    """`get_issue_committers` returns the likely code authors for an issue, combining
+    three commit-derived signals: `stack_commits` (frame-blame authors of the files in
+    the stacktrace), `suspect_commits` (the precomputed GroupOwner suspect commits), and
+    `release_commits` (a broader pool of commits shipped around when the issue first
+    appeared). The entries are `CommitSerializer` / committer-serializer output enriched
+    with extra keys (score, files_changed_count, is_merge_commit) — wider than
+    sentry-side can lock down — so the lists are dict passthroughs."""
+
+    stack_commits: list[dict[str, Any]]
+    suspect_commits: list[dict[str, Any]]
+    release_commits: list[dict[str, Any]]
+    project_id: int
+    project_slug: str
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
@@ -881,6 +907,7 @@ class MonitoringProviderConnectionData(BaseModel):
     url: str
     encrypted_access_token: str
     identity_id: int
+    auth_method: str
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]

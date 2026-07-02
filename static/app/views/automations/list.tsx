@@ -130,8 +130,8 @@ function TableHeader() {
       <Flex
         flexGrow={1}
         gap="md"
-        align={{xs: 'stretch', md: 'center'}}
-        direction={{xs: 'column', md: 'row'}}
+        align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
       >
         <div style={{flexGrow: 1}}>
           <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
