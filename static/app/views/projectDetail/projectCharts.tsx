@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
@@ -303,11 +303,12 @@ export function ProjectCharts({
     });
   };
 
-  const handleTotalValuesChange = (value: number | null) => {
-    if (value !== totalValues) {
-      setTotalValues(value);
-    }
-  };
+  // Keep this handler referentially stable. It is passed as `onTotalValuesChange`
+  // to the chart request components, which compare props to decide whether to
+  // refetch. Recreating it every render would trigger redundant session fetches.
+  const handleTotalValuesChange = useCallback((value: number | null) => {
+    setTotalValues(prev => (prev === value ? prev : value));
+  }, []);
 
   const hasDiscover = organization.features.includes('discover-basic');
   const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
