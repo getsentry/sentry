@@ -179,32 +179,6 @@ describe('rc', () => {
     );
     expect(rc('container-type', undefined, theme)).toBeUndefined();
   });
-
-  it('supports raw `<number>px` container breakpoints as an escape hatch', () => {
-    // `380px` has no named equivalent; it should emit a @container min-width rule.
-    const output = rc('display', {'2xs': 'none', '380px': 'flex'}, theme);
-    assert(output);
-    // 2xs (the base) is a plain declaration.
-    expect(output).toContain('display: none;');
-    expect(output).toContain('@container (min-width: 380px)');
-    expect(output).not.toContain('@media');
-  });
-
-  it('supports `screen:<number>px` viewport breakpoints as an escape hatch', () => {
-    const output = rc('display', {'2xs': 'none', 'screen:380px': 'flex'}, theme);
-    assert(output);
-    expect(output).toContain('@media (min-width: 380px)');
-    expect(output).not.toContain('@container');
-  });
-
-  it('interleaves custom px and named breakpoints mobile-first', () => {
-    // Ordering by width: 2xs (0) base, then 380px, then xs (500px).
-    const output = rc('display', {'2xs': 'none', '380px': 'flex', xs: 'grid'}, theme);
-    assert(output);
-    expect(output.indexOf('min-width: 380px')).toBeLessThan(
-      output.indexOf(`min-width: ${theme.breakpoints.xs}`)
-    );
-  });
 });
 
 describe('getBorder', () => {
@@ -588,11 +562,6 @@ describe('useContainerBreakpoint', () => {
     return <div>breakpoint:{breakpoint}</div>;
   }
 
-  function CustomBreakpointProbe() {
-    const breakpoint = useContainerBreakpoint(['0px', '380px']);
-    return <div>breakpoint:{breakpoint}</div>;
-  }
-
   function Container({children}: {children: ReactNode}) {
     const ref = useRef<HTMLDivElement>(null);
     return (
@@ -621,25 +590,5 @@ describe('useContainerBreakpoint', () => {
       </Container>
     );
     expect(screen.getByText('breakpoint:2xs')).toBeInTheDocument();
-  });
-
-  it('resolves against a custom `<number>px` token list', () => {
-    setClientWidth(400);
-    render(
-      <Container>
-        <CustomBreakpointProbe />
-      </Container>
-    );
-    expect(screen.getByText('breakpoint:380px')).toBeInTheDocument();
-  });
-
-  it('returns the smallest token when below every threshold', () => {
-    setClientWidth(300);
-    render(
-      <Container>
-        <CustomBreakpointProbe />
-      </Container>
-    );
-    expect(screen.getByText('breakpoint:0px')).toBeInTheDocument();
   });
 });
