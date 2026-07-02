@@ -14,6 +14,7 @@ concurrency:
 env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
+  VCS_METADATA_FILE: .artifacts/vcs-metadata.json
 jobs:
   snapshots:
     name: snapshot tests
@@ -60,10 +61,9 @@ jobs:
       - name: Compute merge base SHA
         if: github.event_name == 'pull_request' && !cancelled()
         id: merge-base
-        # A transient gh-api failure here must not fail the build and thereby
-        # skip the upload workflow (gated on conclusion == success). On failure
-        # base_sha is empty and the upload proceeds without --base-sha, matching
-        # the old inline behavior.
+        # Don't fail the build on a transient gh-api error: the upload workflow
+        # is gated on conclusion == success. On failure base_sha is empty and
+        # the upload proceeds without --base-sha.
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -71,36 +71,28 @@ jobs:
           MERGE_BASE=$(gh api repos/${{ github.repository }}/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} --jq '.merge_base_commit.sha')
           echo "sha=$MERGE_BASE" >> "$GITHUB_OUTPUT"
 
-      # Serialize the PR/push VCS context for the privileged upload workflow.
-      # `sentry-cli snapshots upload` runs in a separate `workflow_run` workflow
-      # (frontend-snapshots-upload.yml) so that fork PRs, which don't get
-      # secrets on `pull_request`, can still be uploaded. jq -n --arg safely
-      # JSON-encodes these attacker-influenced values.
+      # Hand the PR context the privileged upload workflow can't derive itself
+      # (see frontend-snapshots-upload.yml) to the artifact. Only these four
+      # fields cross the boundary; head_sha/head_ref/base repo come from the
+      # trusted workflow_run event there. jq -n --arg safely encodes them.
       - name: Write VCS metadata
         if: ${{ !cancelled() }}
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          BASE_REPO_NAME: ${{ github.event.pull_request.base.repo.full_name || github.repository }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
         run: |
-          mkdir -p "$SNAPSHOT_OUTPUT_DIR"
+          set -euo pipefail
+          mkdir -p "$(dirname "$VCS_METADATA_FILE")"
           jq -n \
-            --arg event_name "$EVENT_NAME" \
-            --arg head_sha "$HEAD_SHA" \
             --arg pr_number "$PR_NUMBER" \
             --arg head_repo_name "$HEAD_REPO_NAME" \
-            --arg base_repo_name "$BASE_REPO_NAME" \
-            --arg head_ref "$HEAD_REF" \
             --arg base_ref "$BASE_REF" \
             --arg base_sha "$BASE_SHA" \
-            '{event_name: $event_name, head_sha: $head_sha, pr_number: $pr_number, head_repo_name: $head_repo_name, base_repo_name: $base_repo_name, head_ref: $head_ref, base_ref: $base_ref, base_sha: $base_sha}' \
-            > "$SNAPSHOT_OUTPUT_DIR/../vcs-metadata.json"
-          cat "$SNAPSHOT_OUTPUT_DIR/../vcs-metadata.json"
+            '{pr_number: $pr_number, head_repo_name: $head_repo_name, base_ref: $base_ref, base_sha: $base_sha}' \
+            > "$VCS_METADATA_FILE"
+          cat "$VCS_METADATA_FILE"
 
       - name: Upload snapshots artifact
         if: ${{ !cancelled() }}
@@ -110,6 +102,5 @@ jobs:
           path: .artifacts
           retention-days: 1
           if-no-files-found: error
-          # .artifacts is a dot-directory; without this upload-artifact treats
-          # its contents as hidden and uploads nothing.
+          # .artifacts is a dot-directory, so its contents count as hidden.
           include-hidden-files: true
