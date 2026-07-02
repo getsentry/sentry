@@ -168,7 +168,7 @@ function IntegrationUpgradeTooltipTitle({
     {
       displayName,
       link: (
-        <Link
+        <UnderlinedLink
           to={resolveNowHref}
           onClick={() =>
             trackIntegrationAnalytics('integrations.resolve_now_clicked', {
@@ -182,6 +182,10 @@ function IntegrationUpgradeTooltipTitle({
     }
   );
 }
+
+const UnderlinedLink = styled(Link)`
+  text-decoration: underline;
+`;
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;
