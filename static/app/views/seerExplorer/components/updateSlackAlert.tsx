@@ -27,10 +27,10 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
     return null;
   }
 
-  // Mirrors the "Resolve Now" link from the integration directory
-  // (see integrationRow.tsx): open the Slack integration's configurations tab,
-  // auto-opening the reinstall modal when there's exactly one workspace.
-  const href =
+  // Open the Slack integration's configurations tab, auto-opening the reinstall
+  // modal when there's exactly one workspace (mirrors integrationRow.tsx). Use
+  // `to` (not `href`) so navigation works from the popped-out PiP window too.
+  const to =
     `/settings/${organization.slug}/integrations/slack/?tab=configurations&referrer=seer_explorer_update_slack` +
     (num_configurations === 1 ? '&showInstallModal=1' : '');
 
@@ -41,7 +41,7 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
         trailingItems={
           <Flex gap="sm" alignSelf="center">
             <LinkButton
-              href={href}
+              to={to}
               variant="primary"
               size="xs"
               onClick={() =>
