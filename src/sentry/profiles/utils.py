@@ -20,7 +20,7 @@ from sentry.utils.sdk import set_span_attribute
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, list[Any]]
 
-PROFILE_FORMAT_V2_ANDROID_TRACE = "2-android-trace"
+PROFILE_FORMAT_V2_ANDROID_TRACE = "2.android-trace"
 
 
 class RetrySkipTimeout(urllib3.Retry):

@@ -65,7 +65,7 @@ def test_deobfuscate_signature(mapper: ProguardMapper, obfuscated: str, expected
 
 def test_convert_android_methods_to_jvm_frames_trace_format() -> None:
     profile: dict[str, Any] = {
-        "version": "2-android-trace",
+        "version": "2.android-trace",
         "platform": "android",
         "profile": {
             "methods": [
@@ -173,7 +173,7 @@ def test_apply_jvm_frame_to_sample_v2_frame_skips_zero_lineno_and_missing_fields
 
 def test_merge_jvm_frames_with_android_methods_trace_format() -> None:
     profile: dict[str, Any] = {
-        "version": "2-android-trace",
+        "version": "2.android-trace",
         "platform": "android",
         "profile": {
             "methods": [
@@ -206,7 +206,7 @@ def test_merge_jvm_frames_with_android_methods_trace_format() -> None:
 def test_merge_jvm_frames_with_android_methods_trace_format_inlines() -> None:
     # Two returned frames for the same method index become inline_frames.
     profile: dict[str, Any] = {
-        "version": "2-android-trace",
+        "version": "2.android-trace",
         "platform": "android",
         "profile": {"methods": [{"name": "t", "class_name": "obf.A"}]},
     }

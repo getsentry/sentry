@@ -128,8 +128,8 @@ def test_apply_stack_trace_rules_to_profile_android() -> None:
 
 def test_is_android_trace_format_explicit_marker() -> None:
     # The explicit marker wins regardless of platform.
-    assert is_android_trace_format({"version": "2-android-trace", "platform": "android"})
-    assert is_android_trace_format({"version": "2-android-trace", "platform": "node"})
+    assert is_android_trace_format({"version": "2.android-trace", "platform": "android"})
+    assert is_android_trace_format({"version": "2.android-trace", "platform": "node"})
 
 
 def test_is_android_trace_format_fallback_no_version() -> None:

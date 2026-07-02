@@ -543,12 +543,12 @@ def test_determine_profile_type() -> None:
     # otherwise it is a (transaction-based) profile.
     assert (
         determine_profile_type(
-            {"version": "2-android-trace", "platform": "android", "profiler_id": "abc"}
+            {"version": "2.android-trace", "platform": "android", "profiler_id": "abc"}
         )
         == EventType.PROFILE_CHUNK
     )
     assert (
-        determine_profile_type({"version": "2-android-trace", "platform": "android"})
+        determine_profile_type({"version": "2.android-trace", "platform": "android"})
         == EventType.PROFILE
     )
     # fallback path: no version, android platform
