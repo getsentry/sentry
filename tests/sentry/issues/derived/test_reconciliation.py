@@ -72,18 +72,6 @@ def test_create_reconciliation_action_roundtrips_enum() -> None:
     assert STATUS.load(action.new_value) == IssueStatus.CLOSED
 
 
-def test_create_reconciliation_action_roundtrips_optional_enum() -> None:
-    action = create_reconciliation_action(PROGRESS.value(IssueProgressState.DIAGNOSED))
-    assert action.new_value == "diagnosed"
-    assert PROGRESS.load(action.new_value) == IssueProgressState.DIAGNOSED
-
-
-def test_create_reconciliation_action_roundtrips_none() -> None:
-    action = create_reconciliation_action(PROGRESS.value(None))
-    assert action.new_value is None
-    assert PROGRESS.load(action.new_value) is None
-
-
 def test_create_reconciliation_action_rejects_unsupported_feature() -> None:
     unsupported = Feature[int]("not_reconcilable", default=0)
     with pytest.raises(ValueError, match="not supported for reconciliation"):
@@ -156,60 +144,7 @@ def test_normal_actions_continue_after_reconcile() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Reconciliation through the pipeline: progress
-# ---------------------------------------------------------------------------
-
-
-def test_reconcile_progress_forward() -> None:
-    assert (
-        _run_for_feature(
-            PROGRESS,
-            [_reconcile_entry(PROGRESS.value(IssueProgressState.DIAGNOSED))],
-        )
-        == IssueProgressState.DIAGNOSED
-    )
-
-
-def test_reconcile_progress_to_none() -> None:
-    assert (
-        _run_for_feature(
-            PROGRESS,
-            [_reconcile_entry(PROGRESS.value(None))],
-        )
-        is None
-    )
-
-
-def test_reconcile_progress_backward() -> None:
-    assert (
-        _run_for_feature(
-            PROGRESS,
-            [
-                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
-                _reconcile_entry(PROGRESS.value(IssueProgressState.IDENTIFIED)),
-            ],
-        )
-        == IssueProgressState.IDENTIFIED
-    )
-
-
-# ---------------------------------------------------------------------------
-# Reconciliation with unrelated features (ignored by aggregator)
-# ---------------------------------------------------------------------------
-
-
-def test_reconcile_unrelated_feature_is_noop() -> None:
-    assert (
-        _run_for_feature(
-            STATUS,
-            [_reconcile_entry(PROGRESS.value(IssueProgressState.FIX_APPLIED))],
-        )
-        == IssueStatus.OPEN
-    )
-
-
-# ---------------------------------------------------------------------------
-# Cross-feature coupling
+# Cross-feature coupling: status reconciliation affects progress
 # ---------------------------------------------------------------------------
 
 
@@ -248,37 +183,3 @@ def test_reconcile_status_to_open_resets_progress() -> None:
     )
     assert state[STATUS] == IssueStatus.OPEN
     assert state[PROGRESS] == IssueProgressState.IDENTIFIED
-
-
-# ---------------------------------------------------------------------------
-# Multi-feature reconciliation (separate actions)
-# ---------------------------------------------------------------------------
-
-
-def test_reconcile_status_and_progress_separately() -> None:
-    p = _pipeline()
-    state = p.run(
-        [
-            _reconcile_entry(STATUS.value(IssueStatus.CLOSED)),
-            _reconcile_entry(PROGRESS.value(None)),
-        ]
-    )
-    assert state[STATUS] == IssueStatus.CLOSED
-    assert state[PROGRESS] is None
-
-
-def test_reconcile_mid_sequence_with_continuation() -> None:
-    assert (
-        _run_for_feature(
-            PROGRESS,
-            [
-                FakeEntry(type=GroupActionType.ASSIGN),
-                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
-                # Reconcile backward to IDENTIFIED
-                _reconcile_entry(PROGRESS.value(IssueProgressState.IDENTIFIED)),
-                # Then advance again normally
-                FakeEntry(type=GroupActionType.ASSIGN),
-            ],
-        )
-        == IssueProgressState.ASSIGNED
-    )

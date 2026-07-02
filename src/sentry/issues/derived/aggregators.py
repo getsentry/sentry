@@ -108,18 +108,9 @@ _ACTION_TO_MIN_PROGRESS: dict[int, IssueProgressState] = {
     deps=(STATUS,),
 )
 def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
-    if entry.type == GroupActionType.RECONCILE_FEATURES:
-        # Direct PROGRESS reconciliation sets only that feature — the
-        # caller is correcting a value, not recording a progression event,
-        # so LAST_PROGRESSED_AT is intentionally left unchanged.
-        #
-        # If the reconciliation targets a different feature (e.g. STATUS),
-        # we fall through to normal logic so progress reacts to the state
-        # change. In that case LAST_PROGRESSED_AT *is* updated, since the
-        # progress transition is a real downstream consequence.
-        result = reconcile_features(state, entry, PROGRESS)
-        if result is not None:
-            return result
+    # RECONCILE_FEATURES entries may change STATUS, which requires progress
+    # to react (e.g. closing nulls progress). No fall-through guard needed
+    # since PROGRESS is not currently reconcilable.
     current = state[PROGRESS]
     ts = entry.date_added
 
