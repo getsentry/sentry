@@ -1,8 +1,9 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {inputStyles, type InputStylesProps} from '@sentry/scraps/input/inputStyles';
 
@@ -54,31 +55,24 @@ function AutosizeTextArea({ref, rows, maxRows, ...p}: AutosizeTextAreaProps) {
   // Storing width in state re-renders on change so react-textarea-autosize recomputes
   const [, setWidth] = useState<number>();
 
-  const observerRef = useCallback(
-    (node: HTMLTextAreaElement | null) => {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref) {
-        ref.current = node;
-      }
+  const observerRef = useCallback((node: HTMLTextAreaElement | null) => {
+    if (!node) {
+      return;
+    }
 
-      if (!node) {
-        return;
-      }
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      const width = entry?.borderBoxSize?.[0]?.inlineSize ?? entry?.contentRect.width;
+      setWidth(width);
+    });
+    observer.observe(node, {box: 'border-box'});
 
-      const observer = new ResizeObserver(entries => {
-        const entry = entries[0];
-        const width = entry?.borderBoxSize?.[0]?.inlineSize ?? entry?.contentRect.width;
-        setWidth(width);
-      });
-      observer.observe(node, {box: 'border-box'});
+    return () => observer.disconnect();
+  }, []);
 
-      return () => observer.disconnect();
-    },
-    [ref]
-  );
+  const mergedRef = useMemo(() => mergeRefs(ref, observerRef), [ref, observerRef]);
 
-  return <TextareaAutosize {...p} ref={observerRef} minRows={rows} maxRows={maxRows} />;
+  return <TextareaAutosize {...p} ref={mergedRef} minRows={rows} maxRows={maxRows} />;
 }
 
 const StyledTextArea = styled(TextAreaControl, {
