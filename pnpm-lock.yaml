@@ -551,6 +551,9 @@ importers:
         specifier: ^4.4.2
         version: 4.4.2
     devDependencies:
+      '@e18e/eslint-plugin':
+        specifier: ^0.5.1
+        version: 0.5.1(eslint@9.34.0(jiti@2.7.0))
       '@emotion/eslint-plugin':
         specifier: ^11.12.0
         version: 11.12.0(eslint@9.34.0(jiti@2.7.0))(typescript@6.0.3)
@@ -1161,6 +1164,17 @@ packages:
 
   '@dual-bundle/import-meta-resolve@4.1.0':
     resolution: {integrity: sha512-+nxncfwHM5SgAtrVzgpzJOI1ol0PkumhVo469KCf9lUi21IGcY90G98VuHm9VRrUypmAzawAHO9bs6hqeADaVg==}
+
+  '@e18e/eslint-plugin@0.5.1':
+    resolution: {integrity: sha512-mqUozeyNI9xvJbjrOO7y765dT7Kud3bwCm/DHwctxdEngPdJWQaS9BNGgpM1wCCzZfOtlKQh4ZRhm3VRomT9KA==}
+    peerDependencies:
+      eslint: ^9.0.0 || ^10.0.0
+      oxlint: ^1.68.0
+    peerDependenciesMeta:
+      eslint:
+        optional: true
+      oxlint:
+        optional: true
 
   '@emmetio/abbreviation@2.3.3':
     resolution: {integrity: sha512-mgv58UrU3rh4YgbE/TzgLQwJ3pFsHHhCLqY20aJq+9comytTXUDNGG/SMtSeMJdkpxgXSXunBGLD8Boka3JyVA==}
@@ -5221,6 +5235,10 @@ packages:
     resolution: {integrity: sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==}
     engines: {node: '>= 4'}
 
+  empathic@2.0.1:
+    resolution: {integrity: sha512-YGRs8knHhKHVShLkFET/rWAU8kmHbOV5LwN938RHI0pljAJ1Gf6SzXsSmRaEzcXTtOOmVqJ5+WtQPL5uigY50Q==}
+    engines: {node: '>=14'}
+
   encoding@0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
 
@@ -7117,6 +7135,9 @@ packages:
   module-details-from-path@1.0.4:
     resolution: {integrity: sha512-EGWKgxALGMgzvxYF1UyGTy0HXX/2vHLkw6+NvDKW2jypWbHpjQuj4UMcqQWXHERJhVGKikolT06G3bcKe4fi7w==}
 
+  module-replacements@3.0.0-beta.8:
+    resolution: {integrity: sha512-sc8TepP9elxoOBXEpxmhPzKKjTjbswHVcmsKGbgvm3k6jZlLu/WMV/Lfmga6IGMgHU/V3WtY2s6VEgM4nTElUQ==}
+
   moment-timezone@0.6.2:
     resolution: {integrity: sha512-lDsQv8FoGdBUdf0+TjGsq2orxKuXdwFlQ6Zw6TX3xIcTwTfEpCLyKqvEauvCHJ8iu3KBV8+uPhlv70YsNGdUBQ==}
 
@@ -8070,6 +8091,11 @@ packages:
 
   semver@7.7.4:
     resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -9594,6 +9620,14 @@ snapshots:
       tslib: 2.8.1
 
   '@dual-bundle/import-meta-resolve@4.1.0': {}
+
+  '@e18e/eslint-plugin@0.5.1(eslint@9.34.0(jiti@2.7.0))':
+    dependencies:
+      empathic: 2.0.1
+      module-replacements: 3.0.0-beta.8
+      semver: 7.8.5
+    optionalDependencies:
+      eslint: 9.34.0(jiti@2.7.0)
 
   '@emmetio/abbreviation@2.3.3':
     dependencies:
@@ -14033,7 +14067,7 @@ snapshots:
       '@one-ini/wasm': 0.1.1
       commander: 10.0.1
       minimatch: 9.0.1
-      semver: 7.7.3
+      semver: 7.7.4
 
   electron-to-chromium@1.5.245: {}
 
@@ -14053,6 +14087,8 @@ snapshots:
   emoji-regex@9.2.2: {}
 
   emojis-list@3.0.0: {}
+
+  empathic@2.0.1: {}
 
   encoding@0.1.13:
     dependencies:
@@ -16803,6 +16839,8 @@ snapshots:
 
   module-details-from-path@1.0.4: {}
 
+  module-replacements@3.0.0-beta.8: {}
+
   moment-timezone@0.6.2:
     dependencies:
       moment: 2.30.1
@@ -17951,6 +17989,8 @@ snapshots:
   semver@7.7.3: {}
 
   semver@7.7.4: {}
+
+  semver@7.8.5: {}
 
   serialize-javascript@7.0.5: {}
 
