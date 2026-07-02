@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0023_add_seer_run_pull_request
+seer: 0025_add_seerrun_referrer_index
 
 sentry: 1124_weeklyreportprojectexclusion
 

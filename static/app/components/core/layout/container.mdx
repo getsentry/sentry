@@ -8,8 +8,6 @@ resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
 ---
 
-import {useRef} from 'react';
-
 import {Container, Flex, useContainerBreakpoint} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
@@ -18,24 +16,29 @@ export const documentation = import('!!type-loader!@sentry/scraps/layout/contain
 
 import {SIZES} from './__stories__/consts';
 
-export function ContainerBreakpointExample() {
-  const ref = useRef(null);
-  const breakpoint = useContainerBreakpoint(ref);
+export function ContainerBreakpointLabel() {
+  const breakpoint = useContainerBreakpoint();
   const isCompact = breakpoint === '2xs';
+  return (
+    <span>
+      Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
+      {isCompact ? 'showing a compact label.' : 'showing the full, descriptive label.'}
+    </span>
+  );
+}
 
-return (
-
-<Container
-      ref={ref}
+export function ContainerBreakpointExample() {
+  return (
+    <Container
+      containerType="inline-size"
       padding="md"
       background="secondary"
       border="primary"
       radius="md"
     >
-Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
-{isCompact ? 'showing a compact label.' : 'showing the full, descriptive label.'}
-</Container>
-);
+      <ContainerBreakpointLabel />
+    </Container>
+  );
 }
 
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
@@ -271,27 +274,23 @@ is a column until its container reaches `xs`, then a row once the viewport reach
 ### Reading the breakpoint in JS
 
 When you need the resolved breakpoint in JS rather than just CSS, use
-`useContainerBreakpoint(ref)` — the `ResizeObserver`-backed, container-scoped
-replacement for width-based `useMedia`. Point its `ref` at the element you want
-to measure and it returns the active breakpoint, updating as that element
-resizes. Drag the box below across the `xs` breakpoint (500px) to see the label
-swap — independent of the viewport width.
+`useContainerBreakpoint()` — the JS equivalent of a CSS container query and the
+container-scoped replacement for width-based `useMedia`. Call it from a
+descendant of a query container (a `Container`/`Flex`/… with `containerType`) and
+it returns the container's active breakpoint, updating as the container crosses a
+breakpoint. Drag the box below across the `xs` breakpoint (500px) to see the
+label swap — independent of the viewport width.
 
 <Storybook.SizingWindow display="block">
   <ContainerBreakpointExample />
 </Storybook.SizingWindow>
 ```jsx
-function MyComponent() {
-  const ref = useRef(null);
-  const breakpoint = useContainerBreakpoint(ref);
+// Rendered inside a query container, e.g.
+// <Container containerType="inline-size">…</Container>
+function PanelLabel() {
+  const breakpoint = useContainerBreakpoint();
   const isCompact = breakpoint === '2xs';
-
-return (
-
-<Container ref={ref} width="100%">
-{isCompact ? 'Compact label' : 'Full, descriptive label'}
-</Container>
-);
+  return isCompact ? 'Compact label' : 'Full, descriptive label';
 }
 ```
 

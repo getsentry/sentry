@@ -55,6 +55,9 @@ class SeerRun(DefaultFieldsModel):
         db_default=SeerRunMirrorStatus.PENDING,
     )
 
+    # What specifically triggered this run, e.g. an AutofixReferrer value.
+    referrer = models.CharField(max_length=256, null=True)
+
     last_triggered_at = models.DateTimeField()
     extras = models.JSONField(db_default={}, default=dict)
 
@@ -73,11 +76,13 @@ class SeerRun(DefaultFieldsModel):
             models.Index(fields=["organization", "user_id", "-last_triggered_at"]),
             # Per-org type breakdowns (e.g. "all PR reviews for this org").
             models.Index(fields=["organization", "type", "-last_triggered_at"]),
+            # Per-org referrer breakdowns (e.g. "all night-shift-triggered runs").
+            models.Index(fields=["organization", "referrer", "-last_triggered_at"]),
             # TTL/cleanup scans across all orgs.
             models.Index(fields=["last_triggered_at"]),
         ]
 
-    __repr__ = sane_repr("organization_id", "seer_run_state_id", "type")
+    __repr__ = sane_repr("organization_id", "seer_run_state_id", "type", "referrer")
 
 
 @cell_silo_model
