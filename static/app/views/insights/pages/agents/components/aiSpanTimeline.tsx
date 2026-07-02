@@ -83,7 +83,7 @@ export function AiSpanTimeline({
   }, [nodes]);
 
   return (
-    <Stack>
+    <Stack gap="xs">
       {nodes.map(node => {
         const aiRunNode = nodeAiRunParentsMap[node.id];
         const shouldIndent = aiRunNode && aiRunNode !== node;
@@ -156,7 +156,7 @@ const TimelineRow = memo(function TimelineRow({
           indent={indent}
           onClick={() => onSelectNode(node)}
         >
-          <Stack gap="xs" flex="1" minWidth="0" paddingBottom="xs">
+          <Stack gap="xs" flex="1" minWidth="0">
             <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
               <Flex align="center" position="relative" style={{color}} flexShrink={0}>
                 {icon}
