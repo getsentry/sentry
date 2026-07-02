@@ -14,7 +14,6 @@ import pytest
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
-    LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
     IssueStatus,
@@ -193,17 +192,6 @@ def test_reconcile_progress_backward() -> None:
     )
 
 
-def test_reconcile_last_progressed_at() -> None:
-    t = datetime(2025, 6, 15, 12, 0, tzinfo=UTC)
-    assert (
-        _run_for_feature(
-            LAST_PROGRESSED_AT,
-            [_reconcile_entry(LAST_PROGRESSED_AT.value(t))],
-        )
-        == t
-    )
-
-
 # ---------------------------------------------------------------------------
 # Reconciliation with unrelated features (ignored by aggregator)
 # ---------------------------------------------------------------------------
@@ -217,6 +205,35 @@ def test_reconcile_unrelated_feature_is_noop() -> None:
         )
         == IssueStatus.OPEN
     )
+
+
+# ---------------------------------------------------------------------------
+# Cross-feature coupling
+# ---------------------------------------------------------------------------
+
+
+def test_reconcile_status_to_closed_nulls_progress() -> None:
+    p = _pipeline()
+    state = p.run(
+        [
+            FakeEntry(type=GroupActionType.ASSIGN),
+            _reconcile_entry(STATUS.value(IssueStatus.CLOSED)),
+        ]
+    )
+    assert state[STATUS] == IssueStatus.CLOSED
+    assert state[PROGRESS] is None
+
+
+def test_reconcile_status_to_open_resets_progress() -> None:
+    p = _pipeline()
+    state = p.run(
+        [
+            FakeEntry(type=GroupActionType.RESOLVE),
+            _reconcile_entry(STATUS.value(IssueStatus.OPEN)),
+        ]
+    )
+    assert state[STATUS] == IssueStatus.OPEN
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
 # ---------------------------------------------------------------------------

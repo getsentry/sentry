@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.issues.action_log.types import GroupActionType, _ReconcileFeatureAction
-from sentry.issues.derived.features import LAST_PROGRESSED_AT, PROGRESS, STATUS
+from sentry.issues.derived.features import PROGRESS, STATUS
 from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
@@ -14,7 +14,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 # Features that have been validated for reconciliation. Each must be handled by
 # an aggregator that includes RECONCILE_FEATURES in its scope and has tests
 # covering the reconciliation path.
-RECONCILABLE_FEATURES: frozenset[Feature[Any]] = frozenset({STATUS, PROGRESS, LAST_PROGRESSED_AT})
+RECONCILABLE_FEATURES: frozenset[Feature[Any]] = frozenset({STATUS, PROGRESS})
 
 
 def reconcile_features(
