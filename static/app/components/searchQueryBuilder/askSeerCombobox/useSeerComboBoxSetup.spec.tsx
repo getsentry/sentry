@@ -281,17 +281,20 @@ describe('mapSeerResponseItem', () => {
 
   it('attaches span and log cross-events from Seer sibling queries', () => {
     expect(
-      mapSeerResponseItem({
-        query: 'span.op:db',
-        sort: '',
-        group_by: [],
-        stats_period: '24h',
-        start: null,
-        end: null,
-        mode: 'samples',
-        span_query: 'span.description:*pool*',
-        log_query: 'severity:error',
-      })
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+          span_query: 'span.description:*pool*',
+          log_query: 'severity:error',
+        },
+        'spans'
+      )
     ).toEqual(
       expect.objectContaining({
         crossEvents: [
@@ -304,17 +307,20 @@ describe('mapSeerResponseItem', () => {
 
   it('parses a metric cross-event from metric_query', () => {
     expect(
-      mapSeerResponseItem({
-        query: 'span.op:db',
-        sort: '',
-        group_by: [],
-        stats_period: '24h',
-        start: null,
-        end: null,
-        mode: 'samples',
-        metric_query:
-          'metric.name:foo.duration metric.type:distribution metric.unit:millisecond value:>100',
-      })
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+          metric_query:
+            'metric.name:foo.duration metric.type:distribution metric.unit:millisecond value:>100',
+        },
+        'spans'
+      )
     ).toEqual(
       expect.objectContaining({
         crossEvents: [
@@ -330,29 +336,50 @@ describe('mapSeerResponseItem', () => {
 
   it('drops an aggregate-mode metric cross-event with no parseable identity', () => {
     expect(
-      mapSeerResponseItem({
-        query: 'span.op:db',
-        sort: '',
-        group_by: [],
-        stats_period: '24h',
-        start: null,
-        end: null,
-        mode: 'samples',
-        metric_query: 'value:>100',
-      })
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+          metric_query: 'value:>100',
+        },
+        'spans'
+      )
     ).not.toHaveProperty('crossEvents');
   });
 
   it('omits crossEvents when there are no sibling queries', () => {
     expect(
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+        },
+        'spans'
+      )
+    ).not.toHaveProperty('crossEvents');
+  });
+
+  it('does not build cross-events outside the spans tab', () => {
+    expect(
       mapSeerResponseItem({
-        query: 'span.op:db',
+        query: 'is:unresolved',
         sort: '',
         group_by: [],
         stats_period: '24h',
         start: null,
         end: null,
         mode: 'samples',
+        log_query: 'severity:error',
       })
     ).not.toHaveProperty('crossEvents');
   });
