@@ -31,7 +31,8 @@ class SafeRolloutComparator:
     counts as a "reasonable" (close enough) match is definable by providing a comparison function.)
     Once a callsite looks correct enough, you can switch the code behavior to actually use the data
     from the experimental branch by adding the callsite indentifier to the "use experimental data"
-    allowlist option provided by the class.
+    allowlist option provided by the class. It's also possible to run the comparison separate from
+    choosing which data to use, by using the `compare` method.
 
     The flow is generally:
       1. Set up your `SafeRolloutComparator` subclass (in Sentry) & options (in options automator).
@@ -71,6 +72,16 @@ class SafeRolloutComparator:
             )
         else:
             data = control_data
+    ```
+
+    In options-automator:
+    ```
+    dynamic.saferollouts.some_new_feature.should_eval_experimental: True
+    dynamic.saferollouts.some_new_feature.callsite_experiment_sample_rate:
+      { "some.module.path.some_function": 0.0001 }
+    dynamic.saferollouts.some_new_feature.eval_experimental_sample_rate: 0.0001 # Fallback rate
+    dynamic.saferollouts.some_new_feature.mismatch_log_callsite_allowlist:
+      ["*"] # Log mismatches for all callsites
     ```
     """
 
@@ -112,9 +123,9 @@ class SafeRolloutComparator:
     @classmethod
     def _callsite_experiment_blocklist_option(cls) -> str:
         """
-        This is the callsite-level experimemt rollout option. If the option value contains a
-        callsite, the `should_check_experiment` function will return False. (This is useful if you
-        see one callsite in particular start throwing.) Defaults to an empty list.
+        This is a list containing callsites for which the experiment shouldn't be run; if the option
+        value contains a callsite, the `should_check_experiment` function will return False. (This
+        is useful if you see one callsite in particular start throwing.) Defaults to an empty list.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_callsite_blocklist"
 
@@ -333,10 +344,11 @@ class SafeRolloutComparator:
             should pass "both".
         * is_experimental_data_nullish: Whether the result is a "null result" (e.g. empty array).
             This helps to determine whether a "match" is significant.
-        * reasonable_match_comparator: Optional predicate for semantic correctness, returning True
-            if the data is "reasonably the same" and False otherwise. An example might be checking
-            whether the experimental data is a subset of the control data (useful in case of
-            migrating something where you don't yet have full retention in the experimental branch).
+        * reasonable_match_comparator: Optional function to determine if the control data and
+            experimental data are "reasonably the same." An example might be checking whether the
+            experimental data is a subset of the control data (useful in case of migrating something
+            where you don't yet have full retention in the experimental branch). If not provided, no
+            "reasonable match" comparison will be performed.
         * debug_context: Optional structured metadata included on mismatch logs.
         * data_serializer: Optional serializer for control/experimental payloads in logs. Defaults
             to `_default_serialize_for_log`.
