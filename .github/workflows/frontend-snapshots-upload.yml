@@ -42,21 +42,20 @@ jobs:
       - name: Install sentry-cli
         run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.5.0 sh
 
-      # head_sha, head_repo_name, head_ref, and base_repo_name are taken from the
-      # trusted `workflow_run` event — GitHub sets these from the run that
-      # actually triggered this workflow, so a fork cannot forge them. They are
-      # deliberately NOT read from the artifact: a fork controls the build
-      # workflow's file and could otherwise spoof commit/PR attribution (the
-      # backend posts the check-run against head_sha). Only pr_number, base_sha,
-      # and base_ref — which aren't available on the workflow_run event — are
-      # read from the (untrusted) artifact; pr_number is validated numeric and
-      # never interpolated into the script.
+      # head_sha and head_ref come from the trusted `workflow_run` event — GitHub
+      # sets these from the run that triggered this workflow, so a fork cannot
+      # forge them. head_sha in particular anchors attribution: the backend posts
+      # the check-run against it, so the results can only ever attach to the real
+      # PR head commit. base_repo_name is always this repo. pr_number, base_sha,
+      # base_ref (not on the event) and head_repo_name (event value is null for
+      # many fork PRs) are read from the artifact; pr_number is validated numeric
+      # and no artifact value is ever interpolated into the script.
       - name: Upload snapshots
         id: upload
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          HEAD_REPO_NAME: ${{ github.event.workflow_run.head_repository.full_name }}
+          HEAD_REPO_NAME_TRUSTED: ${{ github.event.workflow_run.head_repository.full_name }}
           HEAD_REF: ${{ github.event.workflow_run.head_branch }}
           BASE_REPO_NAME: ${{ github.repository }}
         run: |
@@ -64,6 +63,17 @@ jobs:
           PR_NUMBER=$(jq -r '.pr_number // ""' "$META")
           BASE_REF=$(jq -r '.base_ref // ""' "$META")
           BASE_SHA=$(jq -r '.base_sha // ""' "$META")
+
+          # head_repo_name is taken from the trusted workflow_run event when
+          # present, but GitHub leaves head_repository null for many fork PRs, so
+          # fall back to the build's recorded value. This is safe because head_sha
+          # comes from the trusted event: the check-run can only ever attach to
+          # the real PR head commit, so a spoofed head_repo_name cannot redirect
+          # it to another commit.
+          HEAD_REPO_NAME="$HEAD_REPO_NAME_TRUSTED"
+          if [ -z "$HEAD_REPO_NAME" ]; then
+            HEAD_REPO_NAME=$(jq -r '.head_repo_name // ""' "$META")
+          fi
 
           if [ -n "$PR_NUMBER" ] && ! printf '%s' "$PR_NUMBER" | grep -qE '^[0-9]+$'; then
             echo "Refusing to upload: pr_number is not numeric: $PR_NUMBER" >&2
