@@ -19,7 +19,7 @@ export function UpdateSlackAlert({configurations}: UpdateSlackAlertProps) {
   // remount (popping out to picture-in-picture, reopening the drawer), but it
   // still nudges the user again in a new session if they haven't updated.
   const [isDismissed, setIsDismissed] = useSessionStorage(
-    'seer-explorer-update-slack-alert-dismissed',
+    `seer-explorer-update-slack-alert-dismissed:${organization.slug}`,
     false
   );
 
