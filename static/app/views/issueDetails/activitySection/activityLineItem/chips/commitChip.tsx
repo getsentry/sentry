@@ -49,17 +49,23 @@ function formatCommitId(id: string) {
 }
 
 export function CommitChip({commit}: {commit: Commit}) {
-  const content = (
-    <InlineChip>
-      <IconCommit size="xs" />
-      {formatCommitId(commit.id)}
-    </InlineChip>
-  );
   const commitUrl = getCommitUrl(commit);
 
   if (!commitUrl) {
-    return content;
+    return (
+      <InlineChip>
+        <IconCommit size="xs" />
+        {formatCommitId(commit.id)}
+      </InlineChip>
+    );
   }
 
-  return <ExternalLink href={commitUrl}>{content}</ExternalLink>;
+  return (
+    <ExternalLink href={commitUrl}>
+      <InlineChip interactive>
+        <IconCommit size="xs" />
+        {formatCommitId(commit.id)}
+      </InlineChip>
+    </ExternalLink>
+  );
 }
