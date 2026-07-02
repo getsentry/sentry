@@ -115,6 +115,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
 
     def validate_dataset(self, value):
         sentry_sdk.set_tag("query.dataset", value)
+        sentry_sdk.set_attribute("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         raise ParseError(detail=f"Unsupported dataset: {value}")
@@ -369,7 +370,7 @@ class TracesExecutor:
                 traces_errors,
                 eap_traces_errors,
                 errors_callsite,
-                is_experimental_data_a_null_result=len(eap_traces_errors) == 0,
+                is_experimental_data_nullish=len(eap_traces_errors) == 0,
                 reasonable_match_comparator=_reasonable_trace_count_map_match,
                 debug_context=debug_context,
             )
@@ -386,7 +387,7 @@ class TracesExecutor:
                 traces_occurrences,
                 eap_traces_occurrences,
                 occurrences_callsite,
-                is_experimental_data_a_null_result=len(eap_traces_occurrences) == 0,
+                is_experimental_data_nullish=len(eap_traces_occurrences) == 0,
                 reasonable_match_comparator=_reasonable_trace_count_map_match,
                 debug_context=debug_context,
             )
@@ -961,6 +962,7 @@ def process_rpc_user_queries(
 
     set_span_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
+    sentry_sdk.set_attribute("user_queries.raw_queries", user_queries)
 
     return queries
 

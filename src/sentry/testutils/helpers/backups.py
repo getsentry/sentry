@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
@@ -45,9 +45,14 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    TraceItemAttributeContext,
+    TraceItemAttributeTypes,
+    TraceItemAttributeValueContext,
+    TraceItemTypes,
+    TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -63,11 +68,11 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
-    DashboardTombstone,
+    DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -76,10 +81,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
-)
-from sentry.models.dynamicsampling import (
-    CustomDynamicSamplingRule,
-    CustomDynamicSamplingRuleProject,
 )
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -99,11 +100,12 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
+from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
@@ -503,6 +505,11 @@ class ExhaustiveFixtures(Fixtures):
             sdk_version="2.41.0",
         )
         self.create_notification_action(organization=org, projects=[project])
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"custom-inbound-filter-{slug}",
+            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+        )
 
         # Auth*
         self.create_exhaustive_organization_auth(owner, org, project)
@@ -516,13 +523,6 @@ class ExhaustiveFixtures(Fixtures):
             rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
         )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=org,
-            disable_date=timezone.now(),
-            sent_initial_email_date=timezone.now(),
-            sent_final_email_date=timezone.now(),
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -554,11 +554,6 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentTrigger.objects.create(
-            incident=incident,
-            alert_rule_trigger=trigger,
-            status=1,
-        )
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -575,11 +570,6 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard,
-            member=invited,
-            last_visited=timezone.now(),
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -604,7 +594,12 @@ class ExhaustiveFixtures(Fixtures):
             field="count()",
             dashboard=linked_dashboard,
         )
-        DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
+        DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=owner_id,
+            title=dashboard.title,
+            snapshot_schema_version=1,
+        )
 
         # *Search
         RecentSearch.objects.create(
@@ -641,7 +636,12 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
         )
-        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(project_repository=project_repo)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=seer_project_repo,
             tag_name="environment",
@@ -798,6 +798,30 @@ class ExhaustiveFixtures(Fixtures):
             last_visited=timezone.now(),
         )
 
+        TraceItemAttributeContext.objects.create(
+            organization=org,
+            project=project,
+            attribute_key="http.method",
+            item_type=TraceItemTypes.SPANS,
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="The HTTP method of the request",
+            examples=["GET", "POST"],
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+        )
+
+        TraceItemAttributeValueContext.objects.create(
+            organization=org,
+            project=project,
+            attribute_name="metric.name",
+            attribute_value="my.custom.counter",
+            attribute_type=TraceMetricTypes.COUNTER,
+            item_type=TraceItemTypes.TRACEMETRICS,
+            brief="Total number of widgets processed",
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+        )
+
         InsightsStarredSegment.objects.create(
             organization=org,
             user_id=owner_id,
@@ -817,20 +841,6 @@ class ExhaustiveFixtures(Fixtures):
             data_forwarder=data_forwarder,
             project=project,
             overrides={"write_key": "test_override_write_key"},
-        )
-
-        custom_rule = CustomDynamicSamplingRule.objects.create(
-            organization=org,
-            created_by_id=owner_id,
-            condition='{"op":"and","inner":[]}',
-            end_date=timezone.now() + timedelta(days=1),
-            num_samples=100,
-            condition_hash="abc123def456abc123def456abc123def4560000",
-            sample_rate=0.5,
-        )
-        CustomDynamicSamplingRuleProject.objects.create(
-            custom_dynamic_sampling_rule=custom_rule,
-            project=project,
         )
 
         return org

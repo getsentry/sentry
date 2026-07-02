@@ -19,8 +19,9 @@ describe('OrganizationCreate', () => {
 
     configstate = ConfigStore.getState();
 
-    // Set only a single region in the config store by default
-    ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
+    // Set only a single locality in the config store by default
+    ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('signupLocalities', ['--monolith--']);
   });
 
   afterEach(() => {
@@ -53,6 +54,7 @@ describe('OrganizationCreate', () => {
   it('creates a new org', async () => {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
+      host: ConfigStore.get('links').sentryUrl,
       method: 'POST',
       body: OrganizationFixture(),
     });
@@ -84,7 +86,7 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
-        host: undefined,
+        host: ConfigStore.get('links').sentryUrl,
       });
     });
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
@@ -95,6 +97,7 @@ describe('OrganizationCreate', () => {
 
   it('creates a new org with customer domain feature', async () => {
     const orgCreateMock = MockApiClient.addMockResponse({
+      host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
       method: 'POST',
       body: OrganizationFixture(),
@@ -119,7 +122,7 @@ describe('OrganizationCreate', () => {
         method: 'POST',
         success: expect.any(Function),
         error: expect.any(Function),
-        host: undefined,
+        host: ConfigStore.get('links').sentryUrl,
       });
     });
 
@@ -129,28 +132,31 @@ describe('OrganizationCreate', () => {
     );
   });
 
-  function multiRegionSetup() {
+  function multiLocalitySetup() {
     const orgCreateMock = MockApiClient.addMockResponse({
+      host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
       method: 'POST',
       body: OrganizationFixture(),
     });
 
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {url: 'https://us.example.com', name: 'us'},
       {
         url: 'https://de.example.com',
         name: 'de',
       },
     ]);
+    ConfigStore.set('signupLocalities', ['us', 'de']);
 
     return orgCreateMock;
   }
 
   it('renders without region data and submits without host when only a single region is defined', async () => {
-    const orgCreateMock = multiRegionSetup();
+    const orgCreateMock = multiLocalitySetup();
     // Set only a single region in the config store
-    ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('signupLocalities', ['--monolith--']);
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<OrganizationCreate />);
@@ -163,7 +169,7 @@ describe('OrganizationCreate', () => {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: undefined,
+        host: ConfigStore.get('links').sentryUrl,
         data: {defaultTeam: true, name: 'Good Burger'},
       });
     });
@@ -177,7 +183,7 @@ describe('OrganizationCreate', () => {
   it('renders without a pre-selected region, and does not submit until one is selected', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
-    const orgCreateMock = multiRegionSetup();
+    const orgCreateMock = multiLocalitySetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     const link = screen.getByText<HTMLAnchorElement>('Learn More');
@@ -195,14 +201,13 @@ describe('OrganizationCreate', () => {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = 'https://us.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        host: ConfigStore.get('links').sentryUrl,
+        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'us'},
       });
     });
 
@@ -215,7 +220,7 @@ describe('OrganizationCreate', () => {
   it('uses the host of the selected region when submitting', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
-    const orgCreateMock = multiRegionSetup();
+    const orgCreateMock = multiLocalitySetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     const link = screen.getByText<HTMLAnchorElement>('Learn More');
@@ -228,14 +233,59 @@ describe('OrganizationCreate', () => {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = 'https://de.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        host: ConfigStore.get('links').sentryUrl,
+        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
+      });
+    });
+
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+      'https://org-slug.sentry.io/projects/new/'
+    );
+  });
+
+  it('submits to the control URL when multi-region is active', async () => {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+    ConfigStore.set('urlPrefix', 'https://sentry.io');
+    ConfigStore.set('localities', [
+      {url: 'https://us.example.com', name: 'us'},
+      {
+        url: 'https://de.example.com',
+        name: 'de',
+      },
+    ]);
+    ConfigStore.set('signupLocalities', ['us', 'de']);
+    const orgCreateMock = MockApiClient.addMockResponse({
+      host: ConfigStore.get('links').sentryUrl,
+      url: '/organizations/',
+      method: 'POST',
+      body: OrganizationFixture(),
+    });
+
+    render(<OrganizationCreate />);
+    expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
+    const link = screen.getByText<HTMLAnchorElement>('Learn More');
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
+    await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Data Storage Location'}),
+      '🇪🇺 European Union (EU)'
+    );
+    await userEvent.click(screen.getByText('Create Organization'));
+
+    await waitFor(() => {
+      expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
+        success: expect.any(Function),
+        error: expect.any(Function),
+        method: 'POST',
+        host: 'https://sentry.io',
+        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
       });
     });
 

@@ -184,7 +184,7 @@ function calculateScore(
   let consecutive = 0;
 
   let prevCharClass = CharTypes.CHAR_NON_WORD;
-  const pos: number[] = new Array(pattern.length);
+  const pos = Array.from<number>({length: pattern.length});
 
   if (sidx > 0) {
     prevCharClass = getCharClass(text.charCodeAt(sidx - 1));

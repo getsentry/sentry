@@ -116,6 +116,7 @@ const onboardingRetail: OnboardingConfig = {
         {
           type: 'custom',
           content: (
+            // @ts-expect-error TODO: Onboarding is passing a ProjectSummary but this form is expecting a DetailedProject.
             <ConfigForm organization={params.organization} project={params.project} />
           ),
         },
@@ -135,7 +136,7 @@ const onboardingRetail: OnboardingConfig = {
         {
           type: 'code',
           language: 'c',
-          code: `os.name: PlayStation`,
+          code: 'os.name: PlayStation',
         },
       ],
     },
@@ -289,5 +290,5 @@ const CardIllustration = styled('img')`
   object-fit: contain;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.shadow.low};
 `;

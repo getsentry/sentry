@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -60,13 +60,14 @@ export function ProjectAllocationsTable({
           <tr>
             <HeaderCell>{t('Project')}</HeaderCell>
             <HeaderCell style={{textAlign: 'right'}}>
-              <Tooltip
+              <InfoText
+                variant="inherit"
                 title={t(
                   'Allocated events are guaranteed for your specified projects. If your project goes past its allocated amount, the extra events will consume the root allocation for the organization'
                 )}
               >
                 {t('Allocated')}
-              </Tooltip>
+              </InfoText>
             </HeaderCell>
             <HeaderCell>
               <HalvedWithDivider>
@@ -78,9 +79,12 @@ export function ProjectAllocationsTable({
               </HalvedWithDivider>
             </HeaderCell>
             <HeaderCell style={{textAlign: 'right'}}>
-              <Tooltip title={t('Consumed events indicate your usage per allocation')}>
+              <InfoText
+                variant="inherit"
+                title={t('Consumed events indicate your usage per allocation')}
+              >
                 {t('Consumed')}
-              </Tooltip>
+              </InfoText>
             </HeaderCell>
             <HeaderCell>
               <HalvedWithDivider>
@@ -123,7 +127,7 @@ const Table = styled('table')`
   border-radius: ${p => p.theme.radius.md};
   border-collapse: separate;
   border: 1px ${p => 'solid ' + p.theme.tokens.border.primary};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;

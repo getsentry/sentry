@@ -35,14 +35,14 @@ describe('GroupEventAttachments', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/attachments/`,
+    route: '/organizations/:orgId/issues/:groupId/attachments/',
   };
   const screenshotRouterConfig: RouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
       query: {attachmentFilter: 'screenshot'},
     },
-    route: `/organizations/:orgId/issues/:groupId/attachments/`,
+    route: '/organizations/:orgId/issues/:groupId/attachments/',
   };
   let project: Project;
   let getAttachmentsMock: jest.Mock;
@@ -84,7 +84,6 @@ describe('GroupEventAttachments', () => {
         query: {
           screenshot: '1',
           environment: [],
-          statsPeriod: '14d',
         },
       })
     );
@@ -160,7 +159,7 @@ describe('GroupEventAttachments', () => {
     expect(screen.queryByText('12345678')).not.toBeInTheDocument();
   });
 
-  it('filters by date/query when using Streamlined UI', () => {
+  it('filters by date/query on issue details', () => {
     ConfigStore.init();
     const user = UserFixture();
     user.options.prefersIssueDetailsStreamlinedUI = true;
@@ -176,7 +175,7 @@ describe('GroupEventAttachments', () => {
             environment: ['staging'],
           },
         },
-        route: `/organizations/:orgId/issues/:groupId/attachments/`,
+        route: '/organizations/:orgId/issues/:groupId/attachments/',
       },
       organization,
     });

@@ -1,14 +1,29 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useContext, useEffect, useState, type ChangeEvent} from 'react';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
-import {SENTRY_APP_PERMISSIONS, type PermissionObj} from 'sentry/constants';
+import {FormField} from 'sentry/components/forms/formField';
+import {
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+  type PermissionObj,
+} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {
   PermissionResource,
   Permissions,
   PermissionValue,
 } from 'sentry/types/integrations';
+
+type PermissionErrors = Partial<Record<PermissionResource, string>>;
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -82,19 +97,88 @@ import type {
 
 type Props = {
   appPublished: boolean;
-  onChange: (permissions: Permissions) => void;
+  onChange: (permissions: Permissions, hasContinuousIntegration: boolean) => void;
   permissions: Permissions;
+  continuousIntegrationError?: string;
+  displaySpecialPermissions?: boolean;
   /**
    * Optional list of permissions to display in the selection.
    * Defaults to SENTRY_APP_PERMISSIONS if not provided.
    * Useful for limiting permissions available to personal tokens vs integration tokens.
    */
   displayedPermissions?: PermissionObj[];
+  errors?: PermissionErrors;
+  hasContinuousIntegration?: boolean;
 };
 
 type State = {
+  hasContinuousIntegration: boolean;
   permissions: Permissions;
 };
+
+type SpecialPermissionFieldProps = {
+  disabled: boolean;
+  disabledReason: string;
+  help: string;
+  label: string;
+  name: string;
+  onChange: (value: boolean) => void;
+  value: boolean;
+};
+
+function SpecialPermissionField({
+  disabled,
+  disabledReason,
+  help,
+  label,
+  name,
+  onChange,
+  value,
+}: SpecialPermissionFieldProps) {
+  return (
+    <FormField
+      defaultValue={value}
+      disabled={disabled}
+      disabledReason={disabledReason}
+      name={name}
+      onChange={onChange}
+    >
+      {({
+        id,
+        onChange: formOnChange,
+      }: {
+        id: string;
+        onChange: (value: boolean, event: ChangeEvent<HTMLInputElement>) => void;
+      }) => {
+        const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+          formOnChange(event.target.checked, event);
+        };
+
+        return (
+          <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
+            <Flex direction="row">
+              <Flex as="span" alignSelf="flex-start" marginRight="md">
+                <Checkbox
+                  id={id}
+                  name={name}
+                  disabled={disabled}
+                  checked={value}
+                  onChange={handleChange}
+                />
+              </Flex>
+              <FieldDescription htmlFor={id} aria-label={label}>
+                <FieldLabel disabled={disabled}>
+                  <span>{label}</span>
+                </FieldLabel>
+                <FieldHelp inline>{help}</FieldHelp>
+              </FieldDescription>
+            </Flex>
+          </Tooltip>
+        );
+      }}
+    </FormField>
+  );
+}
 
 function findResource(r: PermissionResource) {
   return SENTRY_APP_PERMISSIONS.find(permissions => permissions.resource === r);
@@ -107,69 +191,131 @@ function findResource(r: PermissionResource) {
  *    ['org:read', 'org:write', ...]
  *
  */
-function permissionStateToList(permissions: Permissions) {
-  return Object.entries(permissions).flatMap(
-    ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
+export function permissionStateToList(
+  permissions: Permissions,
+  hasContinuousIntegration: boolean
+) {
+  const scopes = Object.entries(permissions).flatMap(
+    ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes ?? []
   );
+
+  if (hasContinuousIntegration) {
+    scopes.push(CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope);
+  }
+
+  return scopes;
 }
 
-export class PermissionSelection extends Component<Props, State> {
-  state: State = {
-    permissions: this.props.permissions,
-  };
+export function PermissionSelection({
+  appPublished,
+  continuousIntegrationError,
+  displaySpecialPermissions = true,
+  displayedPermissions = SENTRY_APP_PERMISSIONS,
+  errors,
+  hasContinuousIntegration: hasContinuousIntegrationProp,
+  onChange,
+  permissions: permissionsProp,
+}: Props) {
+  const {form} = useContext(FormContext);
 
-  declare context: Required<React.ContextType<typeof FormContext>>;
-  static contextType = FormContext;
+  const [state, setState] = useState({
+    hasContinuousIntegration: hasContinuousIntegrationProp ?? false,
+    permissions: permissionsProp,
+  });
 
-  onChange = (resource: PermissionResource, choice: PermissionValue) => {
-    const {permissions} = this.state;
-    permissions[resource] = choice;
-    this.save(permissions);
-  };
+  useEffect(() => {
+    form?.setValue(
+      CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName,
+      state.hasContinuousIntegration
+    );
+    // Only run on mount to mirror the previous componentDidMount behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  save = (permissions: Permissions) => {
-    this.setState({permissions});
-    this.props.onChange(permissions);
-    this.context.form.setValue(
+  const save = (stateUpdate: Partial<State>) => {
+    const nextState = {...state, ...stateUpdate};
+    setState(nextState);
+    onChange(nextState.permissions, nextState.hasContinuousIntegration);
+    // When used inside a legacy FormModel-based form, sync the scopes field.
+    // When used outside that context (e.g. with useScrapsForm), the parent
+    // derives scopes from the onChange callback instead.
+    form?.setValue(
       'scopes',
-      permissionStateToList(this.state.permissions) as string[]
+      permissionStateToList(nextState.permissions, nextState.hasContinuousIntegration)
     );
   };
 
-  render() {
-    const {permissions} = this.state;
-    const {displayedPermissions = SENTRY_APP_PERMISSIONS} = this.props;
+  const handleChange = (resource: PermissionResource, choice: PermissionValue) => {
+    save({
+      permissions: {
+        ...state.permissions,
+        [resource]: choice,
+      },
+    });
+  };
 
-    return (
-      <Fragment>
-        {displayedPermissions.map(config => {
-          const options = Object.entries(config.choices).map(([value, {label}]) => ({
-            value,
-            label,
-          }));
+  const handleContinuousIntegrationChange = (hasContinuousIntegration: boolean) => {
+    save({hasContinuousIntegration});
+  };
 
-          const value = permissions[config.resource];
+  const {hasContinuousIntegration, permissions} = state;
 
-          return (
+  return (
+    <Fragment>
+      {displayedPermissions.map(config => {
+        const options = Object.entries(config.choices).map(([value, {label}]) => ({
+          value,
+          label,
+        }));
+
+        const value = permissions[config.resource];
+        const errorMessage = errors?.[config.resource];
+
+        return (
+          <Fragment key={config.resource}>
             <SelectField
               // These are not real fields we want submitted, so we use
               // `--permission` as a suffix here, then filter these
               // fields out when submitting the form in
               // sentryApplicationDetails.jsx
               name={`${config.resource}--permission`}
-              key={config.resource}
               options={options}
               help={config.help}
               label={config.label || config.resource}
-              onChange={this.onChange.bind(this, config.resource)}
+              onChange={(choice: PermissionValue) =>
+                handleChange(config.resource, choice)
+              }
               value={value}
               defaultValue={value}
-              disabled={this.props.appPublished}
+              disabled={appPublished}
               disabledReason={t('Cannot update permissions on a published integration')}
             />
-          );
-        })}
-      </Fragment>
-    );
-  }
+            {errorMessage ? (
+              <Text variant="danger" size="sm" role="alert">
+                {errorMessage}
+              </Text>
+            ) : null}
+          </Fragment>
+        );
+      })}
+      {displaySpecialPermissions && (
+        <Fragment>
+          <SpecialPermissionField
+            name={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName}
+            label={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.label}
+            help={CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.help}
+            onChange={handleContinuousIntegrationChange}
+            value={hasContinuousIntegration}
+            disabled={appPublished}
+            disabledReason={t('Cannot update permissions on a published integration')}
+          />
+          {continuousIntegrationError ? (
+            <Text variant="danger" size="sm" role="alert">
+              {continuousIntegrationError}
+            </Text>
+          ) : null}
+        </Fragment>
+      )}
+    </Fragment>
+  );
 }

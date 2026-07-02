@@ -24,7 +24,7 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 @control_silo_endpoint
 class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

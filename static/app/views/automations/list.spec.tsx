@@ -25,7 +25,7 @@ import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
+    features: ['workflow-engine-ui'],
   });
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
@@ -39,6 +39,14 @@ describe('AutomationsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
@@ -75,22 +83,65 @@ describe('AutomationsList', () => {
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
   });
 
-  it('displays connected detectors', async () => {
+  it('displays connected detectors and projects via a single batch request', async () => {
+    const project2 = ProjectFixture({id: '2', slug: 'project-2'});
+    const detector2 = MetricDetectorFixture({
+      id: '2',
+      name: 'Detector 2',
+      projectId: project2.id,
+    });
+    ProjectsStore.loadInitialData([project, project2]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
-      body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
+      body: [
+        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
+        AutomationFixture({id: '101', name: 'Automation 2', detectorIds: ['2']}),
+      ],
+    });
+
+    const batchDetectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector, detector2],
+      match: [MockApiClient.matchQuery({id: ['1', '2']})],
+    });
+
+    render(<AutomationsList />, {organization});
+    const rows = await screen.findAllByTestId('automation-list-row');
+    expect(rows).toHaveLength(2);
+
+    // Both rows should be served by a single batch request for detectors
+    await waitFor(() => {
+      expect(batchDetectorsRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // Projects column should show the correct project for each row
+    await waitFor(() => {
+      expect(
+        within(rows[0]!).getByRole('link', {name: 'View Project Details', hidden: true})
+      ).toHaveAttribute('aria-description', 'project-1');
+      expect(
+        within(rows[1]!).getByRole('link', {name: 'View Project Details', hidden: true})
+      ).toHaveAttribute('aria-description', 'project-2');
+    });
+
+    // Hovercard should display the detector name
+    await userEvent.hover(within(rows[0]!).getByText('1 monitor'));
+    expect(await screen.findByRole('link', {name: /Detector 1/})).toBeInTheDocument();
+  });
+
+  it('shows empty projects cell when automation has no detectors', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', name: 'No Detectors', detectorIds: []})],
     });
 
     render(<AutomationsList />, {organization});
     const row = await screen.findByTestId('automation-list-row');
-    expect(within(row).getByText('1 monitor')).toBeInTheDocument();
 
-    // Tooltip should fetch and display the detector name and project
-    await userEvent.hover(within(row).getByText('1 monitor'));
-    expect(await screen.findByRole('link', {name: /Detector 1/})).toBeInTheDocument();
-    // With single-project orgs the page filter trigger also shows the project slug,
-    // so we use getAllByText to handle multiple matches.
-    expect(screen.getAllByText('project-1').length).toBeGreaterThanOrEqual(1);
+    // Projects column should show em dash for automation with no detectors
+    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
+    expect(within(projectsColumn as HTMLElement).getByText('—')).toBeInTheDocument();
   });
 
   it('can filter by project', async () => {
@@ -180,11 +231,29 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
-      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       await screen.findByText('Slack Automation');
       expect(mockAutomationActionSlack).toHaveBeenCalled();
+    });
+
+    it('can filter by created_by', async () => {
+      const mockAutomationCreatedBy = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [AutomationFixture({name: 'My Automation'})],
+        match: [MockApiClient.matchQuery({query: 'created_by:me'})],
+      });
+
+      render(<AutomationsList />, {organization});
+      await screen.findByText('Automation 1');
+
+      // Click through menus to select created_by:me
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'created_by'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'me'}));
+
+      await screen.findByText('My Automation');
+      expect(mockAutomationCreatedBy).toHaveBeenCalled();
     });
   });
 
@@ -193,6 +262,10 @@ describe('AutomationsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       // Set up multiple automations with different states
       MockApiClient.addMockResponse({
@@ -433,7 +506,6 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
-      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       // Wait for filtered results to load
@@ -479,6 +551,10 @@ describe('AutomationsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
@@ -557,5 +633,18 @@ describe('AutomationsList', () => {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  it('disables the create alert button without alerts:write permission', async () => {
+    const noWriteOrg = OrganizationFixture({
+      features: ['workflow-engine-ui'],
+      access: ['org:read', 'alerts:read'],
+    });
+
+    render(<AutomationsList />, {organization: noWriteOrg});
+    await screen.findByText('Automation 1');
+
+    const createButton = screen.getByRole('button', {name: 'Create Alert'});
+    expect(createButton).toHaveAttribute('aria-disabled', 'true');
   });
 });

@@ -54,11 +54,11 @@ describe('OrganizationDropdown', () => {
 
     expect(await screen.findByRole('menuitemradio', {name: /Org 1/})).toHaveAttribute(
       'href',
-      `/organizations/org-1/issues/`
+      '/organizations/org-1/issues/'
     );
     expect(await screen.findByRole('menuitemradio', {name: /Org 2/})).toHaveAttribute(
       'href',
-      `/organizations/org-2/issues/`
+      '/organizations/org-2/issues/'
     );
   });
 
@@ -114,8 +114,6 @@ describe('OrganizationDropdown', () => {
     );
     // onClick should take precedence setting session storage value and navigationigating:
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Projects'}));
-    expect(readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null)).toBe(
-      'org-dropdown'
-    );
+    expect(readStorageValue(CUSTOM_REFERRER_KEY, null)).toBe('org-dropdown');
   });
 });

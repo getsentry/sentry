@@ -65,7 +65,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
   api: Client | null;
   cache: Record<string, unknown>;
 
-  doQuery = debounce((cb: (...args: [RequestError] | [null, TData]) => void) => {
+  doQuery = debounce((cb: (...args: [Error] | [null, TData]) => void) => {
     const {url, onQuery} = this.props;
     const {query} = this.state;
 
@@ -78,8 +78,8 @@ class SelectAsyncControl<TData = unknown> extends Component<
         query: typeof onQuery === 'function' ? onQuery(query) : {query},
       })
       .then(
-        data => cb(null, data),
-        err => cb(err)
+        (data: TData) => cb(null, data),
+        (err: Error) => cb(err)
       );
   }, 250);
 
@@ -115,7 +115,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
       <Select
         // The key is used as a way to force a reload of the options:
         // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
-        key={value}
+        key={String(value)}
         ref={forwardedRef}
         value={value}
         defaultOptions={defaultOptions}

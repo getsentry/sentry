@@ -1,10 +1,13 @@
+from unittest.mock import MagicMock
+
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
 
 
@@ -123,6 +126,14 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         assert response.data["id"] == self.view_id
         assert response.data["name"] == view.name
         assert response.data["query"] == view.query
+
+    def test_get_invalid_view_id(self) -> None:
+        url = reverse(
+            "sentry-api-0-organization-group-search-view-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": "abc"},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 404
 
     def test_get_nonexistent_view(self) -> None:
         nonexistent_id = "37373"
@@ -585,3 +596,22 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
         response = self.client.put(self.url, data=data)
         assert response.status_code == 404
+
+
+class GroupSearchViewPermissionTest(TestCase):
+    def test_denies_unknown_object_types(self) -> None:
+        permission = GroupSearchViewPermission()
+        request = MagicMock()
+        request.method = "PUT"
+        view = MagicMock()
+
+        assert permission.has_object_permission(request, view, object()) is False
+
+    def test_denies_related_model_types(self) -> None:
+        permission = GroupSearchViewPermission()
+        request = MagicMock()
+        request.method = "GET"
+        view = MagicMock()
+
+        starred = MagicMock(spec=GroupSearchViewStarred)
+        assert permission.has_object_permission(request, view, starred) is False

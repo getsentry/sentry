@@ -15,9 +15,11 @@ const FILTER_KEYS: TagCollection = {
 };
 
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
-  useSearchQueryBuilder: () => ({
-    size: 'normal',
+  useSearchQueryBuilderConfig: () => ({
     getFieldDefinition: () => null,
+  }),
+  useSearchQueryBuilderLayout: () => ({
+    size: 'normal',
   }),
 }));
 
@@ -99,5 +101,17 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="has:tags[foo,number]" />);
 
     expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
+  });
+
+  it('renders an escaped asterisk with the escape visible', () => {
+    render(<FormattedQuery {...defaultProps} query={'message:foo\\*bar'} />);
+
+    expect(screen.getByText('foo\\*bar')).toBeInTheDocument();
+  });
+
+  it('renders a wildcard asterisk without an escape', () => {
+    render(<FormattedQuery {...defaultProps} query="message:foo*bar" />);
+
+    expect(screen.getByText('foo*bar')).toBeInTheDocument();
   });
 });

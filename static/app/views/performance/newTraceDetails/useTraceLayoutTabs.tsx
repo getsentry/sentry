@@ -3,7 +3,14 @@ import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {
+  getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
+  type TraceMetaQueryResults,
+} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
@@ -12,7 +19,6 @@ export enum TraceLayoutTabKeys {
   PROFILES = 'profiles',
   LOGS = 'logs',
   METRICS = 'metrics',
-  SUMMARY = 'summary',
   AI_SPANS = 'ai-spans',
 }
 
@@ -39,12 +45,11 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.METRICS]: {
     slug: TraceLayoutTabKeys.METRICS,
-    label: t('Metrics'),
+    label: t('Application Metrics'),
   },
-  [TraceLayoutTabKeys.SUMMARY]: {slug: TraceLayoutTabKeys.SUMMARY, label: t('Summary')},
   [TraceLayoutTabKeys.AI_SPANS]: {
     slug: TraceLayoutTabKeys.AI_SPANS,
-    label: t('AI Spans'),
+    label: t('AI'),
   },
 };
 
@@ -71,10 +76,6 @@ function getTabOptions({
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);
   }
 
-  if (sections.hasSummary) {
-    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.SUMMARY]);
-  }
-
   if (sections.hasAiSpans) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS]);
   }
@@ -82,37 +83,109 @@ function getTabOptions({
   return tabOptions;
 }
 
+export function getInitialTab({
+  isLoading,
+  logsEnabled = true,
+  metricsEnabled = true,
+  meta,
+  sections,
+  tabOptions,
+  tabSlugFromUrl,
+}: {
+  isLoading: boolean;
+  sections: ReturnType<typeof useTraceContextSections>;
+  tabOptions: Tab[];
+  tabSlugFromUrl: string | undefined;
+  logsEnabled?: boolean;
+  meta?: TraceMetaQueryResults['data'];
+  metricsEnabled?: boolean;
+}): Tab {
+  const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0 && !sections.hasLogs;
+  const hasNoMetrics =
+    metricsEnabled && getTraceMetaMetricsCount(meta) === 0 && !sections.hasMetrics;
+
+  const shouldKeepLogsTabWhileLoading =
+    logsEnabled && !hasNoLogs && tabSlugFromUrl === TraceLayoutTabKeys.LOGS;
+
+  const shouldKeepMetricsTabWhileLoading =
+    metricsEnabled && !hasNoMetrics && tabSlugFromUrl === TraceLayoutTabKeys.METRICS;
+
+  if (isLoading) {
+    if (shouldKeepLogsTabWhileLoading) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+    }
+
+    if (shouldKeepMetricsTabWhileLoading) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS];
+    }
+
+    if (tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS];
+    }
+  }
+
+  const tabFromUrl = tabOptions.find(tab => tab.slug === tabSlugFromUrl);
+  if (tabFromUrl) {
+    return tabFromUrl;
+  }
+
+  if (sections.hasTraceEvents) {
+    return TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL];
+  }
+
+  return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+}
+
 interface UseTraceLayoutTabsProps {
+  isLoading: boolean;
   logs: OurLogsResponseItem[] | undefined;
+  logsEnabled: boolean;
   metrics: {count: number} | undefined;
+  metricsEnabled: boolean;
   tree: TraceTree;
+  meta?: TraceMetaQueryResults['data'];
 }
 
 export function useTraceLayoutTabs({
+  isLoading,
   tree,
   logs,
+  meta,
   metrics,
+  logsEnabled,
+  metricsEnabled,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
+  const organization = useOrganization();
   const sections = useTraceContextSections({
     tree,
     logs,
+    meta,
     metrics,
+    logsEnabled,
+    metricsEnabled,
   });
   const tabOptions = getTabOptions({sections: {...sections}});
 
   const queryParams = qs.parse(window.location.search);
-  const tabSlugFromUrl = queryParams.tab;
-  const initialTab =
-    tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??
-    (sections.hasTraceEvents
-      ? TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]
-      : TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
 
-  const [currentTab, setCurrentTab] = useState<Tab['slug']>(initialTab.slug);
+  const initialTab = getInitialTab({
+    isLoading,
+    logsEnabled,
+    metricsEnabled,
+    meta,
+    sections,
+    tabOptions,
+    tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
+  });
+
+  const [currentTab, setCurrentTab] = useState(initialTab.slug);
 
   const onTabChange = useCallback(
     (slug: Tab['slug']) => {
+      if (slug === TraceLayoutTabKeys.AI_SPANS) {
+        traceAnalytics.trackAITabClicked(organization);
+      }
       navigate(
         {
           pathname: location.pathname,
@@ -125,7 +198,7 @@ export function useTraceLayoutTabs({
       );
       setCurrentTab(slug);
     },
-    [navigate, queryParams]
+    [navigate, queryParams, organization]
   );
 
   // Update the tab when the tabOptions change

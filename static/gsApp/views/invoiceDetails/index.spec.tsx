@@ -69,6 +69,11 @@ describe('InvoiceDetails', () => {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('renders basic invoice details', async () => {
@@ -221,7 +226,6 @@ describe('InvoiceDetails', () => {
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
-    expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
     expect(await screen.findByText(/AWAITING PAYMENT/)).toBeInTheDocument();
     expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
@@ -309,7 +313,6 @@ describe('InvoiceDetails', () => {
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
     await waitFor(() => expect(mockapiPayments).toHaveBeenCalled());
 
-    expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText(/Pay Now/)).toHaveLength(2));
     expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();
@@ -328,6 +331,11 @@ describe('InvoiceDetails', () => {
         url: `/customers/${organization.slug}/billing-details/`,
         method: 'GET',
         body: billingDetails,
+      });
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/invoices/`,
+        method: 'GET',
+        body: [],
       });
     });
 

@@ -1,23 +1,19 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 export function NotFound() {
   return (
-    <SplashWrapper>
+    <Container padding="2xl">
       <Flex align="center" margin="3xl 0">
         <HeaderTitle>Not Found</HeaderTitle>
       </Flex>
       <div>
         <strong>Page not found.</strong>
       </div>
-    </SplashWrapper>
+    </Container>
   );
 }
-
-const SplashWrapper = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-`;
 
 const HeaderTitle = styled('h3')`
   margin: 0;

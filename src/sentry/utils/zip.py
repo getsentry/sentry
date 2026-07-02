@@ -8,10 +8,16 @@ from typing import IO
 
 
 def is_unsafe_path(path: str) -> bool:
-    if os.path.isabs(path):
+    # Normalize backslashes to forward slashes so traversal attacks using
+    # Windows-style separators (e.g. "..\..\..\evil.png") are caught even
+    # when this runs on Linux where os.path.sep is "/".
+    normalized = path.replace("\\", "/")
+    if os.path.isabs(path) or normalized.startswith("/"):
         return True
-    for segment in path.split(os.path.sep):
-        if segment == os.path.pardir:
+    if len(normalized) >= 2 and normalized[0].isalpha() and normalized[1] == ":":
+        return True
+    for segment in normalized.split("/"):
+        if segment == "..":
             return True
     return False
 

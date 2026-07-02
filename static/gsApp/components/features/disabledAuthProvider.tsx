@@ -46,7 +46,7 @@ export function DisabledAuthProvider({
               renderInstallButton: p => (
                 <Button
                   size="sm"
-                  priority="primary"
+                  variant="primary"
                   icon={<IconBusiness />}
                   onClick={() =>
                     openUpsellModal({

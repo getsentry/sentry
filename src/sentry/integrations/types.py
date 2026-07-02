@@ -46,6 +46,18 @@ class IntegrationProviderSlug(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    DATADOG = "datadog"
+    DATADOG_PAT = "datadog_pat"
+    GCP = "gcp"
+
+
+MONITORING_PROVIDERS: frozenset[str] = frozenset(
+    {
+        IntegrationProviderSlug.DATADOG,
+        IntegrationProviderSlug.DATADOG_PAT,
+        IntegrationProviderSlug.GCP,
+    }
+)
 
 
 class DataForwarderProviderSlug(StrEnum):
@@ -109,6 +121,20 @@ PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.SLACK_STAGING.value,
     ExternalProviderEnum.MSTEAMS.value,
 ]
+
+
+class ExternalActorSource(ValueEqualityEnum):
+    """How an ExternalActor row was created. New values can be added here
+    without a database migration (the column is a plain integer)."""
+
+    MANUAL = 0
+    IDENTITY = 1
+    COMMIT_AUTHOR = 2
+    SCM_API = 3
+
+    @classmethod
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
+        return tuple((e.value, e._name_.lower()) for e in cls)
 
 
 class EventLifecycleOutcome(Enum):

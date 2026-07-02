@@ -174,7 +174,7 @@ projects = self.get_projects(
 | -------------- | ---------------------- | ------------------------------------ | ------------------------------------------- |
 | Org-scoped     | `OrganizationEndpoint` | `organization` in kwargs             | `OrganizationPermission` (org:read for GET) |
 | Project-scoped | `ProjectEndpoint`      | `organization` + `project` in kwargs | `ProjectPermission`                         |
-| Region silo    | `RegionSiloEndpoint`   | Nothing — must implement own auth    | None                                        |
+| Cell silo      | `CellSiloEndpoint`     | Nothing — must implement own auth    | None                                        |
 | Control silo   | `ControlSiloEndpoint`  | Nothing — must implement own auth    | None                                        |
 
-If an endpoint inherits `RegionSiloEndpoint` or `Endpoint` directly instead of `OrganizationEndpoint`/`ProjectEndpoint`, verify it has its own authorization logic.
+If an endpoint inherits `CellSiloEndpoint` or `Endpoint` directly instead of `OrganizationEndpoint`/`ProjectEndpoint`, verify it has its own authorization logic.

@@ -32,28 +32,23 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
-import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
-import type {PlatformKey} from 'sentry/types/project';
+import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/platform';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 
+import {useOptionalDebugMetaSearch} from './debugMeta/debugMetaSearchContext';
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   emptySourceNotation: boolean;
   event: Event;
   frame: Frame;
@@ -80,7 +75,7 @@ type Props = {
   registersMeta: Record<any, any>;
 };
 
-function NativeFrame({
+export function NativeFrame({
   frame,
   nextFrame,
   prevFrame,
@@ -89,7 +84,6 @@ function NativeFrame({
   image,
   registers,
   event,
-  components,
   hiddenFrameCount,
   isFirstInAppFrame,
   isShowFramesToggleExpanded,
@@ -101,19 +95,21 @@ function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
+  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+    componentType: 'stacktrace-link',
+  });
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
   const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
+  const debugMetaSearch = useOptionalDebugMetaSearch();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.DEBUGMETA),
     debugSectionConfig?.initialCollapse ?? false
   );
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const fullStackTrace = stackView === StackView.FULL;
 
   const absolute = displayOptions.includes('absolute-addresses');
@@ -127,8 +123,8 @@ function NativeFrame({
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed &&
-    // We know the debug section is rendered (only once streamline ui is enabled)
-    (hasStreamlinedUI ? !!debugSectionConfig : true);
+    !!debugSectionConfig &&
+    !!debugMetaSearch;
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
@@ -186,7 +182,7 @@ function NativeFrame({
       return t('Found by stack scanning');
     }
 
-    return undefined;
+    return;
   }
 
   function getFunctionName() {
@@ -204,7 +200,7 @@ function NativeFrame({
       };
     }
 
-    return undefined;
+    return;
   }
 
   // this is the status of image that belongs to this frame
@@ -226,7 +222,7 @@ function NativeFrame({
           return frame.instructionAddr === '0x0' ? 'success' : 'error';
         case SymbolicatorStatus.MISSING_SYMBOL:
         default:
-          return undefined;
+          return;
       }
     }
 
@@ -234,7 +230,7 @@ function NativeFrame({
 
     switch (combinedStatus) {
       case 'unused':
-        return undefined;
+        return;
       case 'found':
         return 'success';
       default:
@@ -252,13 +248,11 @@ function NativeFrame({
           ? `${image.debug_id}!${frame.instructionAddr}`
           : frame.instructionAddr;
 
-      DebugMetaStore.updateFilter(searchTerm);
+      debugMetaSearch?.setSearchTerm(searchTerm);
     }
 
-    if (hasStreamlinedUI) {
-      // Expand the section
-      setIsCollapsed(false);
-    }
+    // Expand the section
+    setIsCollapsed(false);
 
     // Scroll to the section
     document
@@ -401,7 +395,7 @@ function NativeFrame({
                 is_frame_expanded: isShowFramesToggleExpanded,
               }}
               size="zero"
-              priority="transparent"
+              variant="transparent"
               onClick={e => {
                 onShowFramesToggle?.(e);
               }}
@@ -440,7 +434,7 @@ function NativeFrame({
               <ToggleButton
                 type="button"
                 size="zero"
-                priority="transparent"
+                variant="transparent"
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
                 icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
@@ -470,12 +464,10 @@ function NativeFrame({
   );
 }
 
-export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
-
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
-  ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
+  ${p => p.onClick && 'cursor: pointer'};
+  ${p => p.onClick && 'color:' + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`
@@ -555,7 +547,7 @@ const RowHeader = styled('span')<{
   padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-  ${p => p.expandable && `cursor: pointer;`};
+  ${p => p.expandable && 'cursor: pointer;'};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Matches the updated desktop layout */

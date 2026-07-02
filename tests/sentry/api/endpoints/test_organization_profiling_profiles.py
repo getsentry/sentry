@@ -7,6 +7,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
+from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
@@ -530,34 +531,37 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             },
         )
 
-    def test_queries_profile_candidates_from_profiles_with_continuous_profiles_without_transactions(
+    def test_queries_profile_candidates_from_profiles_with_continuous_profiles(
         self,
     ):
-        # this transaction has transaction profile
         profile_id = uuid4().hex
-        self.store_transaction(
-            transaction="foo",
-            profile_id=profile_id,
-            project=self.project,
+        span_with_transaction_profile = self.create_span(
+            project=self.project, start_ts=self.ten_mins_ago, duration=1000
         )
+        span_with_transaction_profile.update({"profile_id": profile_id, "is_segment": True})
+        self.store_span(span_with_transaction_profile)
 
-        # this transaction has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
         thread_id = "12345"
-        profiler_transaction_id = uuid4().hex
-        profiler_transaction = self.store_transaction(
-            transaction="foo",
-            profiler_id=profiler_id,
-            thread_id=thread_id,
-            transaction_id=profiler_transaction_id,
+        span_with_continuous_profile = self.create_span(
+            {"sentry_tags": {"profiler_id": profiler_id, "thread.id": thread_id}},
             project=self.project,
+            start_ts=self.ten_mins_ago,
+            duration=1000,
         )
-        start_timestamp = datetime.fromtimestamp(profiler_transaction["start_timestamp"])
-        finish_timestamp = datetime.fromtimestamp(profiler_transaction["timestamp"])
+        del span_with_continuous_profile["profile_id"]
+        span_with_continuous_profile["is_segment"] = True
+        self.store_span(span_with_continuous_profile)
+
+        start_timestamp = datetime.fromtimestamp(
+            span_with_continuous_profile["start_timestamp_precise"]
+        )
+        finish_timestamp = datetime.fromtimestamp(
+            span_with_continuous_profile["end_timestamp_precise"]
+        )
         buffer = timedelta(seconds=3)
-        # not able to write profile chunks to the table yet so mock it's response here
-        # so that the profiler transaction looks like it has a profile chunk within
-        # the specified time range
+        # not able to write profile chunks to the table yet so mock its response here
+        # so that the span looks like it has a profile chunk within the specified time range
         chunk = {
             "project_id": self.project.id,
             "profiler_id": profiler_id,
@@ -582,6 +586,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                 {
                     "project": [self.project.id],
                     "dataSource": "profiles",
+                    "statsPeriod": "1h",
                 },
             )
 
@@ -606,96 +611,13 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                             "profiler_id": profiler_id,
                             "chunk_id": chunk["chunk_id"],
                             "thread_id": thread_id,
-                            "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
-                            "end": str(int(profiler_transaction["timestamp"] * 1e9)),
-                            "transaction_id": profiler_transaction_id,
-                        },
-                    ],
-                },
-            )
-
-    def test_queries_profile_candidates_from_profiles_with_continuous_profiles_with_transactions(
-        self,
-    ):
-        # this transaction has transaction profile
-        profile_id = uuid4().hex
-        profile_transaction_id = uuid4().hex
-        self.store_transaction(
-            transaction="foo",
-            profile_id=profile_id,
-            transaction_id=profile_transaction_id,
-            project=self.project,
-        )
-
-        # this transaction has continuous profile with a matching chunk (to be mocked below)
-        profiler_id = uuid4().hex
-        thread_id = "12345"
-        profiler_transaction_id = uuid4().hex
-        profiler_transaction = self.store_transaction(
-            transaction="foo",
-            profiler_id=profiler_id,
-            thread_id=thread_id,
-            transaction_id=profiler_transaction_id,
-            project=self.project,
-        )
-
-        start_timestamp = datetime.fromtimestamp(profiler_transaction["start_timestamp"])
-        finish_timestamp = datetime.fromtimestamp(profiler_transaction["timestamp"])
-        buffer = timedelta(seconds=3)
-        # not able to write profile chunks to the table yet so mock it's response here
-        # so that the profiler transaction looks like it has a profile chunk within
-        # the specified time range
-        chunk_1 = {
-            "project_id": self.project.id,
-            "profiler_id": profiler_id,
-            "chunk_id": uuid4().hex,
-            "start_timestamp": (start_timestamp - buffer).isoformat(),
-            "end_timestamp": (finish_timestamp + buffer).isoformat(),
-        }
-
-        with (
-            patch(
-                "sentry.profiles.flamegraph.FlamegraphExecutor._query_chunks_for_profilers"
-            ) as mock_query_chunks_for_profilers,
-            patch(
-                "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
-            ) as mock_proxy_profiling_service,
-        ):
-            # Mock the chunks query for the profiler_meta
-            mock_query_chunks_for_profilers.return_value = [{"data": [chunk_1]}]
-            mock_proxy_profiling_service.return_value = HttpResponse(status=200)
-
-            response = self.do_request(
-                {
-                    "project": [self.project.id],
-                    "dataSource": "profiles",
-                },
-            )
-
-            assert response.status_code == 200, response.content
-
-            # Verify that chunks were queried for the profiler
-            mock_query_chunks_for_profilers.assert_called_once()
-
-            mock_proxy_profiling_service.assert_called_once_with(
-                method="POST",
-                path=f"/organizations/{self.project.organization.id}/flamegraph",
-                json_data={
-                    "transaction": [
-                        {
-                            "project_id": self.project.id,
-                            "profile_id": profile_id,
-                        },
-                    ],
-                    "continuous": [
-                        {
-                            "project_id": self.project.id,
-                            "profiler_id": profiler_id,
-                            "chunk_id": chunk_1["chunk_id"],
-                            "thread_id": thread_id,
-                            "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
-                            "end": str(int(profiler_transaction["timestamp"] * 1e9)),
-                            "transaction_id": profiler_transaction_id,
+                            "start": str(
+                                int(span_with_continuous_profile["start_timestamp_precise"] * 1e9)
+                            ),
+                            "end": str(
+                                int(span_with_continuous_profile["end_timestamp_precise"] * 1e9)
+                            ),
+                            "transaction_id": span_with_continuous_profile["event_id"],
                         },
                     ],
                 },
@@ -868,3 +790,124 @@ class OrganizationProfilingChunksTest(APITestCase):
                 "end": str(int(end.timestamp() * 1e9)),
             },
         )
+
+
+class OrganizationProfilingChunkAttachmentsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-profiling-chunk-attachments"
+    features = {
+        "organizations:continuous-profiling-perfetto": True,
+    }
+
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+        self.url = reverse(self.endpoint, args=(self.organization.slug,))
+        self.profiler_id = uuid4().hex
+
+    def create_attachment(
+        self, chunk_id, name="trace.perfetto", content_type="application/x-perfetto"
+    ):
+        return ProfileChunkAttachment.objects.create(
+            project_id=self.project.id,
+            profiler_id=self.profiler_id,
+            chunk_id=chunk_id,
+            name=name,
+            content_type=content_type,
+            stored_id=uuid4().hex,
+        )
+
+    def test_no_feature(self) -> None:
+        response = self.client.get(self.url, {"project": [self.project.id]})
+        assert response.status_code == 404
+
+    def test_forbids_multiple_projects(self) -> None:
+        projects = [self.create_project() for _ in range(3)]
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"project": [project.id for project in projects]})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="one project_id must be specified.", code="parse_error")
+        }
+
+    def test_requires_profiler_id(self) -> None:
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"project": [self.project.id]})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="profiler_id must be specified.", code="parse_error")
+        }
+
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
+    def test_lists_attachments_for_resolved_chunks(self, mock_raw_snql_query: MagicMock) -> None:
+        chunk_ids = [uuid4().hex for _ in range(2)]
+        mock_raw_snql_query.return_value = {
+            "data": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
+        }
+
+        attachment = self.create_attachment(chunk_ids[0])
+        # An attachment on a chunk outside the resolved set must not be returned.
+        self.create_attachment(uuid4().hex)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "profiler_id": self.profiler_id,
+                    "statsPeriod": "1d",
+                },
+            )
+
+        assert response.status_code == 200
+        assert [row["id"] for row in response.data] == [str(attachment.id)]
+        assert response.data[0]["name"] == "trace.perfetto"
+        assert response.data[0]["contentType"] == "application/x-perfetto"
+        assert response.data[0]["chunkId"] == chunk_ids[0]
+
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
+    def test_does_not_leak_other_project_attachments(self, mock_raw_snql_query: MagicMock) -> None:
+        chunk_id = uuid4().hex
+        mock_raw_snql_query.return_value = {"data": [{"chunk_id": chunk_id}]}
+
+        # Same profiler_id + chunk_id but a different project must not be returned.
+        other_project = self.create_project(organization=self.organization)
+        ProfileChunkAttachment.objects.create(
+            project_id=other_project.id,
+            profiler_id=self.profiler_id,
+            chunk_id=chunk_id,
+            name="trace.perfetto",
+            content_type="application/x-perfetto",
+            stored_id=uuid4().hex,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "profiler_id": self.profiler_id,
+                    "statsPeriod": "1d",
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.data == []
+
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
+    def test_chunk_id_param_short_circuits_snuba(self, mock_raw_snql_query: MagicMock) -> None:
+        chunk_id = uuid4().hex
+        attachment = self.create_attachment(chunk_id)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "profiler_id": self.profiler_id,
+                    "chunk_id": chunk_id,
+                    "statsPeriod": "1d",
+                },
+            )
+
+        assert response.status_code == 200
+        assert mock_raw_snql_query.call_count == 0
+        assert [row["id"] for row in response.data] == [str(attachment.id)]

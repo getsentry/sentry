@@ -4,16 +4,11 @@ export function AutofixSetupFixture(
   params: Partial<AutofixSetupResponse>
 ): AutofixSetupResponse {
   return {
-    autofixEnabled: true,
     integration: {
       ok: true,
       reason: null,
     },
     seerReposLinked: true,
-    githubWriteIntegration: {
-      ok: true,
-      repos: [],
-    },
     billing: {
       hasAutofixQuota: true,
     },

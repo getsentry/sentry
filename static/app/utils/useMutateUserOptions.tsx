@@ -1,13 +1,13 @@
+import {useMutation} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
-import {useMutation} from 'sentry/utils/queryClient';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
 interface Props {
@@ -26,6 +26,14 @@ export function useMutateUserOptions({onSuccess, onError}: Props = {}) {
       });
     },
     onMutate: (options: UpdateUserOptionsVariables) => {
+      if (
+        options.theme &&
+        user.options.theme !== options.theme &&
+        options.theme !== 'system'
+      ) {
+        ConfigStore.set('theme', options.theme);
+        removeBodyTheme();
+      }
       ConfigStore.set('user', merge({}, user, {options}));
       return onSuccess?.();
     },

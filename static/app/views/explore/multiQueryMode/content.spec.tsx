@@ -46,22 +46,11 @@ describe('MultiQueryModeContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [{key: 'span.op', name: 'span.op'}],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [{key: 'span.duration', name: 'span.duration'}],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [],
-      match: [MockApiClient.matchQuery({attributeType: 'boolean'})],
+      body: [
+        {attributeType: 'string', key: 'span.op', name: 'span.op'},
+        {attributeType: 'number', key: 'span.duration', name: 'span.duration'},
+        {attributeType: 'number', key: 'span.self_time', name: 'span.self_time'},
+      ],
     });
 
     eventsRequest = MockApiClient.addMockResponse({
@@ -100,11 +89,6 @@ describe('MultiQueryModeContent', () => {
       url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
     });
   });
 
@@ -931,7 +915,6 @@ describe('MultiQueryModeContent', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'spans',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -945,7 +928,6 @@ describe('MultiQueryModeContent', () => {
             sampling: 'NORMAL',
             sort: '-timestamp',
             statsPeriod: '7d',
-            topEvents: undefined,
             yAxis: ['count(span.duration)'],
           }),
         })
@@ -985,7 +967,6 @@ describe('MultiQueryModeContent', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'spans',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -999,7 +980,7 @@ describe('MultiQueryModeContent', () => {
             sampling: 'NORMAL',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(span.duration)'],
           }),
         })

@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 from enum import StrEnum
-from typing import Final
+from typing import TYPE_CHECKING, Any, Final
+
+if TYPE_CHECKING:
+    from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 
 
 class SentryAppActionType(StrEnum):
@@ -35,6 +40,10 @@ class IssueAlertActionType(SentryAppActionType):
     TRIGGERED = "triggered"
 
 
+class ActivityAlertActionType(SentryAppActionType):
+    TRIGGERED = "triggered"
+
+
 class InstallationActionType(SentryAppActionType):
     CREATED = "created"
     DELETED = "deleted"
@@ -47,11 +56,9 @@ class SeerActionType(SentryAppActionType):
     SOLUTION_COMPLETED = "solution_completed"
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
-    TRIAGE_STARTED = "triage_started"
-    TRIAGE_COMPLETED = "triage_completed"
-    IMPACT_ASSESSMENT_STARTED = "impact_assessment_started"
-    IMPACT_ASSESSMENT_COMPLETED = "impact_assessment_completed"
     PR_CREATED = "pr_created"
+    ITERATION_STARTED = "iteration_started"
+    ITERATION_COMPLETED = "iteration_completed"
 
 
 class PreprodArtifactActionType(SentryAppActionType):
@@ -80,6 +87,7 @@ class SentryAppResourceType(StrEnum):
 
     # Represents an issue alert resource
     EVENT_ALERT = "event_alert"
+    ACTIVITY_ALERT = "activity_alert"
 
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
@@ -106,3 +114,25 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
 VALID_EVENT_RESOURCES = EVENT_EXPANSION.keys()
+
+
+def find_alert_rule_action_ui_component(
+    app_platform_event: AppPlatformEvent[dict[str, Any]],
+) -> bool:
+    """
+    Returns True if the metric alert event contains a sentry app action with UI component settings.
+    Used to gate recording of AlertRuleUiComponentWebhookSentEvent analytics.
+    """
+    triggers = (
+        getattr(app_platform_event, "data", {})
+        .get("metric_alert", {})
+        .get("alert_rule", {})
+        .get("triggers", [])
+    )
+    actions = [
+        action
+        for trigger in triggers
+        for action in trigger.get("actions", [])
+        if (action.get("type") == "sentry_app" and action.get("settings") is not None)
+    ]
+    return bool(len(actions))

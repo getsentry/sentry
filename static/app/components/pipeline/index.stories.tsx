@@ -10,7 +10,11 @@ import * as Storybook from 'sentry/stories';
 
 import {openPipelineModal} from './modal';
 import {PIPELINE_REGISTRY} from './registry';
-import type {ProvidersByType, RegisteredPipelineType} from './registry';
+import type {
+  CompletionDataFor,
+  ProvidersByType,
+  RegisteredPipelineType,
+} from './registry';
 import {usePipeline} from './usePipeline';
 
 const pipelineMenuItems = PIPELINE_REGISTRY.map(p => ({
@@ -108,7 +112,7 @@ function PipelineRunner({
         </Flex>
       </Container>
 
-      {pipeline.error && <Text variant="muted">Error: {pipeline.error.message}</Text>}
+      {pipeline.error && <Text variant="muted">Error: {pipeline.error}</Text>}
 
       {pipeline.view}
 
@@ -123,7 +127,7 @@ function PipelineRunner({
 }
 
 function PipelineModalDemo() {
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [result, setResult] = useState<CompletionDataFor<any, any> | null>(null);
 
   return (
     <Flex direction="column" gap="lg">

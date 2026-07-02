@@ -9,7 +9,6 @@ from rest_framework.response import Response
 
 import sentry.identity.services.identity.impl  # NOQA
 import sentry.integrations.services.integration.impl  # NOQA
-import sentry.middleware.integrations.parsers.plugin  # NOQA
 import sentry.notifications.services.impl  # NOQA
 import sentry.sentry_apps.services.app.impl  # NOQA
 import sentry.users.services.user.impl  # NOQA

@@ -18,12 +18,12 @@ import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingF
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
+import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
 
@@ -31,26 +31,18 @@ type Props = {
   allowedRoles: OrgRole[];
   onModalClose: () => void;
   onSendInvite: () => void;
-  organization: Organization;
 };
 
-export function InviteBanner({
-  organization,
-  allowedRoles,
-  onSendInvite,
-  onModalClose,
-}: Props) {
-  const isEligibleForBanner =
-    organization.access.includes('org:write') && organization.githubNudgeInvite;
-  const [sendingInvite, setSendingInvite] = useState<boolean>(false);
-  const [showBanner, setShowBanner] = useState<boolean>(false);
-  const [missingMembers, setMissingMembers] = useState<MissingMember[]>(
-    [] as MissingMember[]
-  );
+export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) {
+  const organization = useOrganization();
+  const isEligibleForBanner = organization.access.includes('org:write');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [missingMembers, setMissingMembers] = useState<MissingMember[]>([]);
 
   const api = useApi();
   // NOTE: this is currently used for Github only
-  const promptsFeature = `github_missing_members`;
+  const promptsFeature = 'github_missing_members';
   const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
@@ -82,11 +74,14 @@ export function InviteBanner({
           method: 'GET',
         }
       );
-      const githubMissingMembers = data?.filter(
+      const githubEntry = data?.find(
         (integrationMissingMembers: any) =>
           integrationMissingMembers.integration === 'github'
-      )[0];
-      setMissingMembers(githubMissingMembers?.users || []);
+      );
+      if (!githubEntry?.enabled) {
+        return;
+      }
+      setMissingMembers(githubEntry.users ?? []);
     } catch (err: any) {
       if (err.status !== 403) {
         addErrorMessage(t('Unable to fetching missing commit authors'));
@@ -187,7 +182,7 @@ export function InviteBanner({
           </Stack>
           <Grid flow="column" align="center" gap="md">
             <Button
-              priority="primary"
+              variant="primary"
               size="xs"
               onClick={openInviteModal}
               analyticsEventName="Github Invite Banner: View All"
@@ -217,8 +212,6 @@ export function InviteBanner({
     </Fragment>
   );
 }
-
-export default withOrganization(InviteBanner);
 
 type MemberCardsProps = {
   handleSendInvite: (email: string) => void;
@@ -288,7 +281,7 @@ function MemberCards({
         </Stack>
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           onClick={openInviteModal}
           analyticsEventName="Github Invite Banner: View All"
           analyticsEventKey="github_invite_banner.view_all"

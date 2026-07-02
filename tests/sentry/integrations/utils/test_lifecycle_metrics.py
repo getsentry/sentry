@@ -90,7 +90,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         with metric_obj.capture(assume_success=False):
             pass
         self._check_metrics_call_args(mock_metrics, "halted")
-        mock_logger.info.assert_called_once_with(
+        mock_logger.warning.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "integration_domain": "messaging",
@@ -111,7 +111,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             lifecycle.record_halt(ExampleException(""), extra={"even": "more"})
 
         self._check_metrics_call_args(mock_metrics, "halted")
-        mock_logger.info.assert_called_once_with(
+        mock_logger.warning.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "extra": "value",
@@ -135,7 +135,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             lifecycle.record_halt("Integration went boom", extra={"even": "more"})
 
         self._check_metrics_call_args(mock_metrics, "halted")
-        mock_logger.info.assert_called_once_with(
+        mock_logger.warning.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "outcome_reason": "Integration went boom",
@@ -254,7 +254,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
         self._check_metrics_call_args(mock_metrics, "halted")
         mock_sentry_sdk.capture_exception.assert_called_once()
-        mock_logger.info.assert_called_once_with(
+        mock_logger.warning.assert_called_once_with(
             "integrations.slo.halted",
             extra={
                 "extra": "value",
@@ -366,7 +366,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         # Metrics should always be called
         self._check_metrics_call_args(mock_metrics, "halted")
         # Logger should be called since 0.05 < 0.2
-        mock_logger.info.assert_called_once()
+        mock_logger.warning.assert_called_once()
         mock_random.random.assert_called_once()
 
     @mock.patch("sentry.integrations.utils.metrics.random")
@@ -406,7 +406,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         # Metrics should always be called
         self._check_metrics_call_args(mock_metrics, "halted")
         # Logger should NOT be called since 0.15 > 0.05 (per-call rate)
-        mock_logger.info.assert_not_called()
+        mock_logger.warning.assert_not_called()
         mock_random.random.assert_called_once()
 
     @mock.patch("sentry.integrations.utils.metrics.random")
@@ -466,7 +466,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         # Metrics should always be called
         self._check_metrics_call_args(mock_metrics, "halted")
         # Logger should NOT be called since 0.25 > 0.2
-        mock_logger.info.assert_not_called()
+        mock_logger.warning.assert_not_called()
         mock_random.random.assert_called_once()
 
     @mock.patch("sentry.integrations.utils.metrics.logger")
@@ -492,4 +492,4 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             pass  # Will record halt
 
         # Should log since default is 1.0
-        mock_logger.info.assert_called_once()
+        mock_logger.warning.assert_called_once()

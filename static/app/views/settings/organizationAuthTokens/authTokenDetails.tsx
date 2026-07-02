@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -24,8 +25,6 @@ import {
   getApiQueryData,
   setApiQueryData,
   useApiQuery,
-  useMutation,
-  useQueryClient,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -46,7 +45,7 @@ type FetchOrgAuthTokenResponse = OrgAuthToken;
 
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
   [
-    getApiUrl(`/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
       path: {organizationIdOrSlug: orgSlug, tokenId},
     }),
   ] as const;

@@ -331,11 +331,12 @@ def _get_settings_url(
 ) -> str:
     """Build the settings URL for the project's preprod settings page."""
     base_url = f"/settings/projects/{project.slug}/mobile-builds/"
+    query = "tab=size"
     if triggered_rules:
         unique_rule_ids = list(dict.fromkeys(tr.rule.id for tr in triggered_rules))
         expanded_params = "&".join(f"expanded={rule_id}" for rule_id in unique_rule_ids)
-        return project.organization.absolute_url(base_url, query=expanded_params)
-    return project.organization.absolute_url(base_url)
+        query += "&" + expanded_params
+    return project.organization.absolute_url(base_url, query=query)
 
 
 def _format_failed_checks_details(

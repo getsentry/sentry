@@ -595,6 +595,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid Patch Operation.",
         }
 
@@ -604,6 +605,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid Patch Operation.",
         }
 
@@ -620,6 +622,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": '{"Operations":["Ensure this field has no more than 100 elements."]}',
         }
 

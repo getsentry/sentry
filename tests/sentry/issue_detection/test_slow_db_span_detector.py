@@ -143,7 +143,7 @@ class SlowDBQueryDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = SlowDBQueryDetector(settings[SlowDBQueryDetector.settings_key], slow_span_event)
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -154,4 +154,4 @@ class SlowDBQueryDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = SlowDBQueryDetector(settings[SlowDBQueryDetector.settings_key], slow_span_event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()

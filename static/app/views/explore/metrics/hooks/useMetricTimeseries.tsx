@@ -16,6 +16,7 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseMetricTimeseriesOptions {
@@ -68,7 +69,12 @@ function useMetricTimeseriesImpl({
       yAxis,
       interval,
       fields: [...groupBys, ...yAxis],
-      enabled: enabled && Boolean(traceMetric.name),
+      enabled:
+        enabled &&
+        (Boolean(traceMetric.name) ||
+          visualizes.some(
+            visualize => isVisualizeEquation(visualize) && visualize.expression.text
+          )),
       topEvents,
       orderby: sortBys.map(formatSort),
       ...queryExtras,

@@ -6,7 +6,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Panel} from 'sentry/components/panels/panel';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type ScoreCardProps = {
   title: React.ReactNode;
@@ -98,7 +98,7 @@ export const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const ScoreWrapper = styled((props: FlexProps<'div'>) => {
+export const ScoreWrapper = styled((props: FlexProps) => {
   return <Flex align="baseline" maxWidth="100%" {...props} />;
 })``;
 

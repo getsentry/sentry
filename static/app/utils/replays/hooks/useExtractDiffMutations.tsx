@@ -1,5 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+import type {UseQueryResult} from '@tanstack/react-query';
+
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
-import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 import {replayerStepper} from 'sentry/utils/replays/replayerStepper';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {
@@ -248,7 +250,7 @@ export function useExtractDiffMutations({
   leftOffsetMs,
   replay,
   rightOffsetMs,
-}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>, Error> {
+}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>> {
   const startTimestampMs = replay.getReplay().started_at.getTime();
   const rangeStartTimestampMs = startTimestampMs + leftOffsetMs;
   const rangeEndTimestampMs = startTimestampMs + rightOffsetMs;

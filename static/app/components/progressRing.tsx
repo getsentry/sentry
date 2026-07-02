@@ -1,9 +1,8 @@
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
-
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 type TextProps = {
   percent: number;
@@ -67,7 +66,6 @@ const animatedTextDefaultProps = {
   initial: {opacity: 0, y: -10},
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 10},
-  transition: testableTransition(),
 };
 
 export function ProgressRing({
@@ -168,7 +166,9 @@ const RingBar = styled('circle')<{
   transform-origin: 50% 50%;
   ${p =>
     p.animate &&
-    `transition:
-    stroke-dashoffset 200ms,
-    stroke 100ms;`}
+    css`
+      transition:
+        stroke-dashoffset 200ms,
+        stroke 100ms;
+    `}
 `;

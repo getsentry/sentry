@@ -62,9 +62,15 @@ export function useFilteredAnomalyThresholdSeries({
     const [upperThreshold, lowerThreshold, seerValue] = anomalyThresholdSeries;
 
     const filtered = [];
-    if (thresholdType !== AlertRuleThresholdType.BELOW) filtered.push(upperThreshold);
-    if (thresholdType !== AlertRuleThresholdType.ABOVE) filtered.push(lowerThreshold);
-    if (seerValue) filtered.push(seerValue);
+    if (thresholdType !== AlertRuleThresholdType.BELOW) {
+      filtered.push(upperThreshold);
+    }
+    if (thresholdType !== AlertRuleThresholdType.ABOVE) {
+      filtered.push(lowerThreshold);
+    }
+    if (seerValue) {
+      filtered.push(seerValue);
+    }
 
     return filtered.filter((s): s is NonNullable<typeof s> => !!s);
   }, [anomalyThresholdSeries, detector, isAnomalyDetection, directThresholdType]);

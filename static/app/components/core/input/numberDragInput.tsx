@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {clamp} from 'sentry/utils/profiling/colors/utils';
+import {clamp} from 'sentry/utils/profiling/colors/clamp';
 
 // @TODO(jonasbadalic): Not sure this needs to be its own component,
 // given that we mostly wrap around the NumberInput component.
@@ -78,40 +78,34 @@ export function NumberDragInput({
     document.removeEventListener('pointerup', onPointerUp);
   }, [onPointerMove]);
 
-  const onPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLElement>) => {
-      if (event.button !== 0) {
-        return;
-      }
+  const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
 
-      // Request pointer lock and add move and pointer up handlers
-      // that release the lock and cleanup handlers
-      event.currentTarget.requestPointerLock();
-      document.addEventListener('pointermove', onPointerMove);
-      document.addEventListener('pointerup', onPointerUp);
-    },
-    [onPointerMove, onPointerUp]
-  );
+    // Request pointer lock and add move and pointer up handlers
+    // that release the lock and cleanup handlers
+    event.currentTarget.requestPointerLock();
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  };
 
   const onKeyDownProp = props.onKeyDown;
-  const onKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      onKeyDownProp?.(event);
+  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    onKeyDownProp?.(event);
 
-      if (!inputRef.current || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
-        return;
-      }
+    if (!inputRef.current || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+      return;
+    }
 
-      event.preventDefault();
-      const value = parseFloat(inputRef.current.value);
-      const step = parseFloat(props.step?.toString() ?? '1');
-      const min = props.min ?? Number.NEGATIVE_INFINITY;
-      const max = props.max ?? Number.POSITIVE_INFINITY;
-      const newValue = clamp(value + (event.key === 'ArrowUp' ? step : -step), min, max);
-      setInputValueAndDispatchChange(inputRef.current, newValue.toString());
-    },
-    [onKeyDownProp, props.min, props.max, props.step]
-  );
+    event.preventDefault();
+    const value = parseFloat(inputRef.current.value);
+    const step = parseFloat(props.step?.toString() ?? '1');
+    const min = props.min ?? Number.NEGATIVE_INFINITY;
+    const max = props.max ?? Number.POSITIVE_INFINITY;
+    const newValue = clamp(value + (event.key === 'ArrowUp' ? step : -step), min, max);
+    setInputValueAndDispatchChange(inputRef.current, newValue.toString());
+  };
 
   return (
     <InputGroup>

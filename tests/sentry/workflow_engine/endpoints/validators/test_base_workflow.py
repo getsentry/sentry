@@ -7,7 +7,6 @@ from rest_framework.serializers import ValidationError
 from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
-from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
     WorkflowSerializer,
@@ -103,6 +102,11 @@ class TestWorkflowValidator(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
+    def test_invalid_data__action_filters_with_non_dict_items(self) -> None:
+        self.valid_data["actionFilters"] = ["some_string"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+
     def test_invalid_data__no_name(self) -> None:
         self.valid_data["name"] = ""
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
@@ -117,6 +121,215 @@ class TestWorkflowValidator(TestCase):
         self.valid_data["triggers"] = {"foo": "bar"}
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
+
+
+class TestWorkflowValidatorActivityTrigger(TestCase):
+    def setUp(self) -> None:
+        self.context = {
+            "organization": self.organization,
+            "request": self.make_request(),
+        }
+
+        self.valid_data = {
+            "name": "test",
+            "enabled": True,
+            "config": {"frequency": 30},
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.SEER_ACTIVITY_TRIGGER,
+                        "comparison": ["rca_started"],
+                        "conditionResult": True,
+                    }
+                ],
+            },
+            "actionFilters": [],
+        }
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_supported_action_type_with_activity_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_with_activity_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.PAGERDUTY,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_without_activity_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any",
+            "conditions": [],
+        }
+        self.valid_data["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.PAGERDUTY,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_update_without_triggers_in_payload(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        when_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.create_data_condition(
+            condition_group=when_condition_group,
+            type=Condition.SEER_ACTIVITY_TRIGGER,
+            comparison=["rca_started"],
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=when_condition_group,
+            config={"frequency": 30},
+        )
+
+        data = {
+            "name": "updated",
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "type": Action.Type.PAGERDUTY,
+                            "config": {"foo": "bar"},
+                            "data": {"baz": "bar"},
+                            "integrationId": self.integration.id,
+                        }
+                    ],
+                }
+            ],
+        }
+        context = {**self.context, "workflow": workflow}
+        validator = WorkflowValidator(data=data, context=context)
+        assert validator.is_valid() is False
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_supported_action_type_update_without_triggers_in_payload(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        when_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.create_data_condition(
+            condition_group=when_condition_group,
+            type=Condition.SEER_ACTIVITY_TRIGGER,
+            comparison=["rca_started"],
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=when_condition_group,
+            config={"frequency": 30},
+        )
+
+        data = {
+            "name": "updated",
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "type": Action.Type.SLACK,
+                            "config": {"foo": "bar"},
+                            "data": {"baz": "bar"},
+                            "integrationId": self.integration.id,
+                        }
+                    ],
+                }
+            ],
+        }
+        context = {**self.context, "workflow": workflow}
+        validator = WorkflowValidator(data=data, context=context)
+        assert validator.is_valid() is True
 
 
 class TestWorkflowValidatorCreate(TestCase):
@@ -155,6 +368,16 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.config == self.valid_data["config"]
         assert workflow.organization_id == self.organization.id
         assert workflow.created_by_id == self.user.id
+
+    def test_create__without_config(self) -> None:
+        del self.valid_data["config"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.id is not None
+        assert workflow.name == "test"
+        assert workflow.config == {}
 
     def test_create__without_action_filters(self) -> None:
         data_without_action_filters = {
@@ -897,64 +1120,3 @@ class TestWorkflowValidatorUpdate(TestCase):
         workflow = validator.update(self.workflow, validator.validated_data)
         assert workflow.owner_team_id == team.id
         assert workflow.owner_user_id is None
-
-    def test_reassign_owner_from_own_team_to_any_team(
-        self, mock_action_validator: mock.MagicMock
-    ) -> None:
-        member_team = self.create_team(organization=self.organization)
-        member_user = self.create_user()
-        self.create_member(
-            user=member_user,
-            organization=self.organization,
-            role="member",
-            teams=[member_team],
-        )
-        target_team = self.create_team(organization=self.organization)
-
-        self.workflow.owner_team_id = member_team.id
-        self.workflow.save()
-
-        current_owner = Actor.from_id(user_id=None, team_id=member_team.id)
-        context = {
-            **self.context,
-            "request": self.make_request(user=member_user),
-            "current_owner": current_owner,
-        }
-        self.valid_data["owner"] = f"team:{target_team.id}"
-        validator = WorkflowValidator(data=self.valid_data, context=context)
-        assert validator.is_valid() is True
-        workflow = validator.update(self.workflow, validator.validated_data)
-        assert workflow.owner_team_id == target_team.id
-
-    def test_cannot_reassign_owner_from_other_team(
-        self, mock_action_validator: mock.MagicMock
-    ) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        other_team = self.create_team(organization=self.organization)
-        member_team = self.create_team(organization=self.organization)
-        member_user = self.create_user()
-        self.create_member(
-            user=member_user,
-            organization=self.organization,
-            role="member",
-            teams=[member_team],
-        )
-        target_team = self.create_team(organization=self.organization)
-
-        self.workflow.owner_team_id = other_team.id
-        self.workflow.save()
-
-        current_owner = Actor.from_id(user_id=None, team_id=other_team.id)
-        context = {
-            **self.context,
-            "request": self.make_request(user=member_user),
-            "current_owner": current_owner,
-        }
-        self.valid_data["owner"] = f"team:{target_team.id}"
-        validator = WorkflowValidator(data=self.valid_data, context=context)
-        assert validator.is_valid() is False
-        assert str(validator.errors["owner"][0]) == "You can only assign teams you are a member of"
-        self.workflow.refresh_from_db()
-        assert self.workflow.owner_team_id == other_team.id

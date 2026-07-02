@@ -68,6 +68,9 @@ class Condition(StrEnum):
     # Migration Only
     EVERY_EVENT = "every_event"
 
+    # Activity trigger conditions
+    SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
+
 
 TRIGGER_CONDITIONS = [
     Condition.FIRST_SEEN_EVENT,

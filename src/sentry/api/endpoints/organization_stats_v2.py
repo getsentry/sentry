@@ -1,7 +1,5 @@
 from contextlib import contextmanager
-from typing import Any, TypedDict
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -18,7 +16,7 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -27,6 +25,7 @@ from sentry.snuba.outcomes import (
     COLUMN_MAP,
     GROUPBY_MAP,
     QueryDefinition,
+    StatsApiResponse,
     massage_outcomes_result,
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
@@ -34,6 +33,7 @@ from sentry.snuba.outcomes import (
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.outcomes import Outcome
+from sentry.utils.tracing import start_span
 
 
 class OrgStatsQueryParamsSerializer(serializers.Serializer):
@@ -44,7 +44,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         help_text=(
             "This defines the range of the time series, relative to now. "
             "The range is given in a `<number><unit>` format. "
-            "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks."
+            "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks. "
             "You must either provide a `statsPeriod`, or a `start` and `end`."
         ),
         required=False,
@@ -58,13 +58,13 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         required=False,
     )
     start = serializers.DateTimeField(
-        help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+        help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
         "Use along with `end` instead of `statsPeriod`.",
         required=False,
     )
     end = serializers.DateTimeField(
         help_text=(
-            "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+            "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
             "Use along with `start` instead of `statsPeriod`."
         ),
         required=False,
@@ -139,26 +139,13 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
 
-class _StatsGroup(TypedDict):  # this response is pretty dynamic, leaving generic
-    by: dict[str, Any]
-    totals: dict[str, Any]
-    series: dict[str, Any]
-
-
-class StatsApiResponse(TypedDict):
-    start: str
-    end: str
-    intervals: list[str]
-    groups: list[_StatsGroup]
-
-
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.DASHBOARDS
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -172,7 +159,8 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
-        operation_id="Retrieve Event Counts for an Organization (v2)",
+        operation_id="listOrganizationStatsV2",
+        summary="Retrieve Event Counts for an Organization (v2)",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
@@ -182,26 +170,26 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsApiResponse]:
         """
         Query event counts for your Organization.
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
+            with start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="run_outcomes_query"):
+            with start_span(op="outcomes.endpoint", name="run_outcomes_query"):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
                     else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
+            with start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 
@@ -218,21 +206,22 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         # look at the raw project_id filter passed in, if its empty
         # and project_id is not in groupBy filter, treat it as an
         # org wide query and don't pass project_id in to QueryDefinition
-        req_proj_ids = self.get_requested_project_ids_unchecked(request)
-        if self._is_org_total_query(request, req_proj_ids):
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        if self._is_org_total_query(request, requested_projects):
             return None
         else:
-            projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+            projects = self.get_projects(request, organization)
             if not projects:
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
 
-    def _is_org_total_query(self, request: Request, project_ids):
-        return all(
-            [
-                not project_ids or project_ids == ALL_ACCESS_PROJECTS,
-                "project" not in request.GET.get("groupBy", []),
-            ]
+    def _is_org_total_query(self, request: Request, requested_projects):
+        no_project_filter = not requested_projects.has_values
+        all_access_filter = (
+            requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
+        ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
+        return (no_project_filter or all_access_filter) and "project" not in request.GET.getlist(
+            "groupBy"
         )
 
     @contextmanager

@@ -1,11 +1,13 @@
 import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {queryOptions, skipToken, useQuery} from '@tanstack/react-query';
 
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import {Client, type ApiResult} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {ApiResult} from 'sentry/types/api';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
@@ -14,7 +16,6 @@ import {
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {queryOptions, skipToken, useQuery} from 'sentry/utils/queryClient';
 
 // 30 second stale time
 // Stale time decides if the query should be refetched
@@ -46,6 +47,10 @@ export function useBootstrapOrganizationQuery(orgSlug: string | null) {
       const scope = Sentry.getCurrentScope();
       scope.setTag('organization', organization.id);
       scope.setTag('organization.slug', organization.slug);
+      scope.setAttributes({
+        organization: organization.id,
+        'organization.slug': organization.slug,
+      });
       scope.setContext('organization', {
         id: organization.id,
         slug: organization.slug,

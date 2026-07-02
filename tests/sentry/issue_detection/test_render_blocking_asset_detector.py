@@ -100,7 +100,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
             settings[RenderBlockingAssetSpanDetector.settings_key], event
         )
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -113,7 +113,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
             settings[RenderBlockingAssetSpanDetector.settings_key], event
         )
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_does_not_detect_if_resource_overlaps_fcp(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")

@@ -160,6 +160,20 @@ def clear_caches() -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
+def reset_translation() -> Generator[None]:
+    # SentryLocaleMiddleware calls translation.activate() from the user's
+    # session language preference. In the test client, all requests share one
+    # thread, so an activated locale leaks into subsequent tests. Reset to the
+    # default language after each test to prevent snapshot failures and other
+    # locale-sensitive assertions. deactivate() is a single thread-local write
+    # so the autouse overhead is negligible.
+    from django.utils import translation
+
+    yield
+    translation.deactivate()
+
+
+@pytest.fixture(autouse=True)
 def check_leaked_responses_mocks() -> Generator[None]:
     yield
     leaked = responses.registered()

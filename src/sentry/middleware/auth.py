@@ -8,11 +8,13 @@ from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
 
 from sentry.api.authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    ViewerContextAuthentication,
 )
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
@@ -50,7 +52,7 @@ def get_user(request):
 
 
 class AuthenticationMiddleware(MiddlewareMixin):
-    def process_request(self, request: HttpRequest) -> None:
+    def process_request(self, request: Request) -> None:
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
@@ -76,11 +78,20 @@ class AuthenticationMiddleware(MiddlewareMixin):
                     request.user, request.auth = result
                 else:
                     # default to anonymous user and use IP ratelimit
-                    request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
+                    request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None  # type:ignore[assignment]
                 return
 
+        # Try viewer context authentication (signed headers from trusted services)
+        try:
+            result = ViewerContextAuthentication().authenticate(request)
+        except AuthenticationFailed:
+            result = None
+        if result:
+            request.user, request.auth = result
+            return
+
         # default to anonymous user and use IP ratelimit
-        request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
+        request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None  # type:ignore[assignment]
 
     def process_exception(
         self, request: HttpRequest, exception: Exception

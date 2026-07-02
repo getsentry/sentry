@@ -16,6 +16,7 @@ export type IntegrationView = {
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
     | 'onboarding'
+    | 'onboarding_scm'
     | 'project_creation'
     | 'developer_settings'
     | 'new_integration_modal'
@@ -33,7 +34,18 @@ type SingleIntegrationEventParams = {
   integration_status?: SentryAppStatus;
   integration_tab?: 'configurations' | 'overview' | 'features';
   plan?: string;
+  referrer?: string;
 } & IntegrationView;
+
+// Required on install events so the data team can filter SCM connections
+// without maintaining a slug list in queries. Derived via isScmProvider() from
+// provider.metadata.features for first-party integrations; explicitly `false`
+// for sentry_app, plugin, and doc_integration types. Made required (not
+// optional) so the type checker catches any new install call site that
+// forgets to set it.
+type IntegrationInstallEventParams = SingleIntegrationEventParams & {
+  is_scm: boolean;
+};
 
 type MultipleIntegrationsEventParams = {
   integrations_installed: number;
@@ -75,10 +87,11 @@ export type IntegrationEventParameters = {
   'integrations.disabled': SingleIntegrationEventParams;
   'integrations.enabled': SingleIntegrationEventParams;
   'integrations.index_viewed': MultipleIntegrationsEventParams;
+  'integrations.install_modal_auto_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
-  'integrations.installation_complete': SingleIntegrationEventParams;
+  'integrations.installation_complete': IntegrationInstallEventParams;
   'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
-  'integrations.installation_start': SingleIntegrationEventParams;
+  'integrations.installation_start': IntegrationInstallEventParams;
   'integrations.integration_tab_clicked': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
   'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
@@ -94,12 +107,13 @@ export type IntegrationEventParameters = {
   'project_ownership.saved': ProjectOwnershipModalParams;
 } & PlatformEventParameters;
 
-export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
+type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 // Event key to name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
+  'integrations.install_modal_auto_opened': 'Integrations: Install Modal Auto Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
   'integrations.installation_complete': 'Integrations: Installation Complete',

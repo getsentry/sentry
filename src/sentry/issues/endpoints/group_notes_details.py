@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -8,8 +9,18 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.activity import ActivitySerializerResponse
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import RESPONSE_NO_CONTENT
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -30,10 +41,13 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
+    @extend_schema(responses={204: RESPONSE_NO_CONTENT})
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
     def delete(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
+
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
 
         notes_by_user = Activity.objects.filter(
             group=group, type=ActivityType.NOTE.value, user_id=request.user.id
@@ -41,7 +55,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not len(notes_by_user):
             raise ResourceDoesNotExist
 
-        user_note = [n for n in notes_by_user if n.id == int(note_id)]
+        user_note = [n for n in notes_by_user if n.id == note_id_int]
         if not user_note or len(user_note) > 1:
             raise ResourceDoesNotExist
         note = user_note[0]
@@ -54,6 +68,14 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         }
 
         note.delete()
+
+        publish_action(
+            CommentDeleteAction(comment_id=note_id_int),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            project=group.project,
+            actor=GroupActionActor.user(request.user.id),
+        )
 
         comment_deleted.send_robust(
             project=group.project,
@@ -73,14 +95,22 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         return Response(status=204)
 
+    @extend_schema(
+        request=NoteSerializer,
+        responses={
+            200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
+        },
+    )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
     def put(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id
+                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -96,6 +126,14 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # Would be nice to have a last_modified timestamp we could bump here
             note.data.update(dict(payload))
             note.save()
+
+            publish_action(
+                CommentEditAction(comment_id=note.id),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                project=group.project,
+                actor=GroupActionActor.user(request.user.id),
+            )
 
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)

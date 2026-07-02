@@ -1,40 +1,56 @@
 import logging
-from datetime import datetime, timedelta
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import (
     ObjectStatus,
 )
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    Feedback,
+    PrIterationNoPullRequestException,
+    PrIterationNotEnabledException,
+    get_autofix_run_state,
+    parse_feedback,
+    trigger_autofix_agent,
+)
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
-    AutofixStatus,
+    AutofixReferrer,
     SeerAutomationSource,
 )
+from sentry.seer.autofix.feedback_queue import (
+    QueuedAutofixFeedback,
+    pop_queued_autofix_feedback,
+)
 from sentry.seer.autofix.utils import (
-    bulk_get_project_preferences,
-    bulk_set_project_preferences,
-    bulk_write_preferences_to_sentry_db,
-    deduplicate_repositories,
-    get_autofix_repos_from_project_code_mappings,
-    get_autofix_state,
+    SEAT_BASED_STOPPING_POINTS,
+    AutofixStoppingPoint,
+    AutomationCodingAgent,
+    SeerProjectSettingsUpdate,
+    bulk_read_preferences_from_sentry_db,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
-    resolve_repository_ids,
+    update_seer_project_settings,
 )
-from sentry.seer.models import SeerProjectPreference
+from sentry.seer.models import SeerPermissionError
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
+from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks, seer_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -48,23 +64,113 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
         return None
 
 
-@instrumented_task(
-    name="sentry.tasks.autofix.check_autofix_status",
-    namespace=issues_tasks,
-    retry=Retry(times=1),
-)
-def check_autofix_status(run_id: int, organization_id: int) -> None:
-    state = get_autofix_state(run_id=run_id, organization_id=organization_id)
+def _github_comment_id(feedback: Feedback) -> int | None:
+    source: Mapping[str, Any] = feedback.source
+    if source.get("type") != "github-pr-comment":
+        return None
+    comment: Mapping[str, Any] = source.get("comment") or {}
+    return comment.get("id")
 
-    if (
-        state
-        and state.status == AutofixStatus.PROCESSING
-        and state.updated_at < datetime.now() - timedelta(minutes=5)
-    ):
-        # This should log to sentry
-        logger.error(
-            "Autofix run has been processing for more than 5 minutes", extra={"run_id": run_id}
-        )
+
+def _processed_github_comment_ids(state: SeerRunState) -> set[int]:
+    ids: set[int] = set()
+    for block in state.blocks:
+        raw = (block.message.metadata or {}).get("feedback")
+        if not raw:
+            continue
+        for entry in parse_feedback(raw):
+            cid = _github_comment_id(entry)
+            if cid is not None:
+                ids.add(cid)
+    return ids
+
+
+def _dedup_github_feedback(
+    items: list[QueuedAutofixFeedback], processed: set[int]
+) -> list[QueuedAutofixFeedback]:
+    deduped: list[QueuedAutofixFeedback] = []
+    seen: set[int] = set()
+    for item in items:
+        cid = _github_comment_id(item.feedback)
+        if cid is not None:
+            if cid in processed or cid in seen:
+                continue
+            seen.add(cid)
+        deduped.append(item)
+    return deduped
+
+
+def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
+    referrers = {item.referrer for item in items}
+    if len(referrers) == 1:
+        return referrers.pop()
+    return AutofixReferrer.UNKNOWN
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.consume_queued_feedback",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+)
+def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id: int) -> None:
+    lock = locks.get(
+        f"autofix:feedback:lock:{run_id}",
+        duration=60,
+        name="autofix_feedback",
+    )
+
+    with lock.acquire():
+        group = Group.objects.filter(
+            id=group_id,
+            project__organization_id=organization_id,
+        ).first()
+        if group is None:
+            logger.warning(
+                "autofix.feedback_task.group_not_found",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        try:
+            state = get_autofix_run_state(group, run_id)
+        except SeerPermissionError:
+            logger.warning(
+                "autofix.feedback_task.run_state_not_found",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        if state.status == "processing":
+            return
+
+        queued_items = pop_queued_autofix_feedback(run_id)
+        if not queued_items:
+            return
+
+        queued_items = _dedup_github_feedback(queued_items, _processed_github_comment_ids(state))
+        if not queued_items:
+            return
+
+        feedback_items = [item.feedback for item in queued_items]
+        try:
+            trigger_autofix_agent(
+                group=group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=_get_feedback_referrer(queued_items),
+                run_id=run_id,
+                user_context="\n\n".join(item.text for item in feedback_items),
+                feedback=feedback_items,
+            )
+        except (
+            PrIterationNoPullRequestException,
+            PrIterationNotEnabledException,
+            SeerPermissionError,
+        ) as error:
+            logger.info(
+                "autofix.feedback_task.skipped",
+                extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
+            )
 
 
 @instrumented_task(
@@ -78,6 +184,7 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
+    sentry_sdk.set_attribute("trigger_path", trigger_path)
 
     group = _get_group_or_log(group_id, "generate_summary_and_run_automation")
     if group is None:
@@ -208,7 +315,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     Sets:
     - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
-    - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
+    - Seer project preferences (all projects): automated_run_stopping_point="code_changes" or "open_pr",
+      and automation_handoff backfilled from the org defaults (when set) for projects that don't already
+      have one configured.
 
     Ignores:
     - Org-level: enable_seer_coding
@@ -217,7 +326,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     organization = Organization.objects.get(id=organization_id)
 
     sentry_sdk.set_tag("organization_id", organization.id)
+    sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
+    sentry_sdk.set_attribute("organization_slug", organization.slug)
 
     # Set org-level options
     organization.update_option(
@@ -242,70 +353,42 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             )
 
     default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    default_handoff_dict = default_handoff.dict() if default_handoff else None
-
-    valid_stopping_points = {"open_pr", "code_changes"}
-
-    preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
+    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
 
     # Determine which projects need updates
-    preferences_to_set = []
-    projects_by_id = {p.id: p for p in projects}
-    for project_id in project_ids:
+    preferences_set = 0
+    for project in projects:
         stopping_point = default_stopping_point
-        handoff = default_handoff_dict
+        handoff = default_handoff
 
-        existing_pref = preferences_by_id.get(str(project_id))
-        if not existing_pref:
-            # No existing preferences, get repositories from code mappings
-            repositories = get_autofix_repos_from_project_code_mappings(projects_by_id[project_id])
-        else:
-            repositories = existing_pref.get("repositories") or []
-
-            existing_stopping_point = existing_pref.get("automated_run_stopping_point")
-            existing_handoff = existing_pref.get("automation_handoff")
+        existing_pref = preferences.get(project.id)
+        if existing_pref:
+            existing_stopping_point = existing_pref.automated_run_stopping_point
+            existing_handoff = existing_pref.automation_handoff
 
             # Skip projects that a) already have an acceptable stopping point configured
             # AND b) already have a handoff configured or no org default handoff.
-            if existing_stopping_point in valid_stopping_points and (
-                existing_handoff or default_handoff_dict is None
+            if existing_stopping_point in SEAT_BASED_STOPPING_POINTS and (
+                existing_handoff or default_handoff is None
             ):
                 continue
 
-            if existing_stopping_point in valid_stopping_points:
+            if existing_stopping_point in SEAT_BASED_STOPPING_POINTS:
                 stopping_point = existing_stopping_point
             if existing_handoff:
                 handoff = existing_handoff
 
-        preferences_to_set.append(
-            {
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "repositories": deduplicate_repositories(repositories) or [],
-                "automated_run_stopping_point": stopping_point,
-                "automation_handoff": handoff,
-            }
-        )
+        update = SeerProjectSettingsUpdate(stopping_point=stopping_point)
+        if handoff is not None:
+            update["agent"] = AutomationCodingAgent(handoff.target)
+            update["integration_id"] = handoff.integration_id
+            update["auto_create_pr"] = handoff.auto_create_pr
+        else:
+            update["agent"] = AutomationCodingAgent.SEER
+            update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
 
-    if len(preferences_to_set) > 0:
-        bulk_set_project_preferences(organization_id, preferences_to_set)
-
-        if features.has("organizations:seer-project-settings-dual-write", organization):
-            try:
-                validated_preferences = [
-                    SeerProjectPreference.validate(pref) for pref in preferences_to_set
-                ]
-                # Seer API responses don't include repository_id.
-                # Resolve before dual-writing so repos aren't skipped.
-                # This will not be necessary once we start keying by repo ID.
-                resolved_preferences = resolve_repository_ids(
-                    organization_id, validated_preferences
-                )
-                bulk_write_preferences_to_sentry_db(projects, resolved_preferences)
-            except Exception:
-                logger.exception(
-                    "seer.write_preferences.failed", extra={"organization_id": organization_id}
-                )
+        update_seer_project_settings([project.id], update)
+        preferences_set += 1
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated
@@ -317,6 +400,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             "org_id": organization.id,
             "org_slug": organization.slug,
             "projects_configured": len(project_ids),
-            "preferences_set_via_api": len(preferences_to_set),
+            "preferences_set": preferences_set,
         },
     )

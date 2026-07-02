@@ -12,7 +12,6 @@ import {
 import {feedbackConfig} from 'sentry/utils/issueTypeConfig/feedbackConfig';
 import {frontendConfig} from 'sentry/utils/issueTypeConfig/frontendConfig';
 import {httpClientConfig} from 'sentry/utils/issueTypeConfig/httpClientConfig';
-import {instrumentationConfig} from 'sentry/utils/issueTypeConfig/instrumentationConfig';
 import {metricConfig} from 'sentry/utils/issueTypeConfig/metricConfig';
 import {metricIssueConfig} from 'sentry/utils/issueTypeConfig/metricIssueConfig';
 import {mobileConfig} from 'sentry/utils/issueTypeConfig/mobileConfig';
@@ -52,6 +51,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   header: {
     filterBar: {enabled: true, fixedEnvironment: false, searchBar: {enabled: true}},
     graph: {enabled: true, type: 'discover-events'},
+    eventNavigation: {enabled: true},
     tagDistribution: {enabled: true},
     occurrenceSummary: {enabled: false},
   },
@@ -71,6 +71,9 @@ const BASE_CONFIG: IssueTypeConfig = {
     tagsTab: {enabled: true},
   },
   autofix: false,
+  configurationProblem: {enabled: false},
+  configurationTroubleshooting: {enabled: false},
+  contexts: {enabled: true},
   eventAndUserCounts: {enabled: true},
   detector: {enabled: false},
   logLevel: {enabled: false},
@@ -84,6 +87,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   stacktrace: {enabled: true},
   stats: {enabled: true},
   tags: {enabled: true},
+  trace: {enabled: true},
   discover: {enabled: true},
   evidence: {title: t('Evidence')},
   resources: null,
@@ -91,7 +95,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   issueSummary: {enabled: false},
   useOpenPeriodChecks: false,
   groupingInfo: {enabled: true},
-  instrumentationFixSection: {enabled: false},
 };
 
 const issueTypeConfig: Config = {
@@ -110,7 +113,6 @@ const issueTypeConfig: Config = {
   [IssueCategory.METRIC]: metricConfig,
   [IssueCategory.AI_DETECTED]: aiDetectedConfig,
   [IssueCategory.PREPROD]: preprodConfig,
-  [IssueCategory.INSTRUMENTATION]: instrumentationConfig,
   [IssueCategory.CONFIGURATION]: configurationIssuesConfig,
 };
 

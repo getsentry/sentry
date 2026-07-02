@@ -142,6 +142,6 @@ describe('javascript onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 });

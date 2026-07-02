@@ -17,7 +17,8 @@ import {
 import {DATA_CATEGORY_INFO, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
@@ -35,13 +36,12 @@ export function CustomerStatsFilters({
   onDemandPeriodStart,
   onDemandPeriodEnd,
 }: Props) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const onDemand = !!onDemandPeriodStart && !!onDemandPeriodEnd;
 
   const pageDateTime = useMemo((): DateTimeObject => {
-    const query = router.location.query;
-
-    const {start, end, statsPeriod} = normalizeDateTimeParams(query, {
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -59,7 +59,7 @@ export function CustomerStatsFilters({
     }
 
     return {};
-  }, [router.location.query]);
+  }, [location.query]);
 
   const handleDateChange = useCallback(
     (datetime: ChangeData) => {
@@ -68,10 +68,10 @@ export function CustomerStatsFilters({
       if (start && end) {
         const parser = utc ? moment.utc : moment;
 
-        router.push({
+        navigate({
           ...location,
           query: {
-            ...router.location.query,
+            ...location.query,
             statsPeriod: undefined,
             start: parser(start).format(),
             end: parser(end).format(),
@@ -81,10 +81,10 @@ export function CustomerStatsFilters({
         return;
       }
 
-      router.push({
+      navigate({
         ...location,
         query: {
-          ...router.location.query,
+          ...location.query,
           statsPeriod: relative === ON_DEMAND_PERIOD_KEY ? undefined : relative,
           start: undefined,
           end: undefined,
@@ -92,7 +92,7 @@ export function CustomerStatsFilters({
         },
       });
     },
-    [router]
+    [location, navigate]
   );
 
   const {start, end, period, utc} = pageDateTime;

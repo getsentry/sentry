@@ -5,15 +5,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-import {AddIntegration} from './addIntegration';
+import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {useAutoOpenInstallModal} from 'sentry/utils/integrations/useAutoOpenInstallModal';
 
 interface AddIntegrationButtonProps
   extends
     Omit<ButtonProps, 'children' | 'analyticsParams'>,
     Pick<
-      React.ComponentProps<typeof AddIntegration>,
-      'provider' | 'organization' | 'analyticsParams' | 'modalParams'
+      AddIntegrationParams,
+      'provider' | 'organization' | 'analyticsParams' | 'suppressSuccessMessage'
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
@@ -28,8 +29,8 @@ export function AddIntegrationButton({
   organization,
   reinstall,
   analyticsParams,
-  modalParams,
   installStatus,
+  suppressSuccessMessage,
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
@@ -40,37 +41,44 @@ export function AddIntegrationButton({
         ? t('Reinstall')
         : t('Add %s', provider.metadata.noun));
 
+  const {startFlow} = useAddIntegration();
+
+  // This is hooked to the button since the button is only rendered when all the flags/plan checks pass.
+  useAutoOpenInstallModal({
+    provider,
+    organization,
+    onInstall: onAddIntegration,
+    analyticsParams,
+    suppressSuccessMessage,
+  });
+
   return (
     <Tooltip
       disabled={provider.canAdd}
       title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
     >
-      <AddIntegration
-        provider={provider}
-        onInstall={onAddIntegration}
-        organization={organization}
-        analyticsParams={analyticsParams}
-        modalParams={modalParams}
+      <Button
+        disabled={!provider.canAdd}
+        {...buttonProps}
+        onClick={() => {
+          if (label === t('Reinstall')) {
+            trackAnalytics('integrations.integration_reinstall_clicked', {
+              organization,
+              provider: provider.metadata.noun,
+            });
+          }
+          startFlow({
+            provider,
+            organization,
+            onInstall: onAddIntegration,
+            analyticsParams,
+            suppressSuccessMessage,
+          });
+        }}
+        aria-label={t('Add integration')}
       >
-        {onClick => (
-          <Button
-            disabled={!provider.canAdd}
-            {...buttonProps}
-            onClick={() => {
-              if (label === t('Reinstall')) {
-                trackAnalytics('integrations.integration_reinstall_clicked', {
-                  organization,
-                  provider: provider.metadata.noun,
-                });
-              }
-              onClick();
-            }}
-            aria-label={t('Add integration')}
-          >
-            {label}
-          </Button>
-        )}
-      </AddIntegration>
+        {label}
+      </Button>
     </Tooltip>
   );
 }

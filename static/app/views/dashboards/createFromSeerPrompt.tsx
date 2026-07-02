@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -13,7 +13,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function CreateFromSeerPrompt() {
   const organization = useOrganization();
@@ -21,9 +20,8 @@ export function CreateFromSeerPrompt() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const hasPageFrame = useHasPageFrameFeature();
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) {
       return;
     }
@@ -59,10 +57,10 @@ export function CreateFromSeerPrompt() {
       setIsGenerating(false);
       addErrorMessage(t('Failed to start dashboard generation'));
     }
-  }, [prompt, organization.slug, location.query, navigate]);
+  };
 
   return (
-    <Stack flex={1} padding="2xl 3xl" background={hasPageFrame ? undefined : 'secondary'}>
+    <Stack flex={1} padding="2xl 3xl">
       <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
         <Flex direction="column" gap="sm" width="640px">
           <Heading as="h3">{t('Describe your Dashboard')}</Heading>
@@ -90,7 +88,7 @@ export function CreateFromSeerPrompt() {
               />
               <Container>
                 <Button
-                  priority="primary"
+                  variant="primary"
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim()}
                 >

@@ -20,7 +20,7 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -517,7 +517,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      let timeframe: {end: number; start: number} | undefined = undefined;
+      let timeframe: {end: number; start: number} | undefined;
       const seriesAdditionalInfo: Record<string, AdditionalSeriesInfo> = {};
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map(
@@ -569,7 +569,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
       const previousTimeseriesData = sortedTimeseriesData.some(item => item[2] === null)
         ? undefined
         : sortedTimeseriesData.map(item => {
-            return item[2] as Series;
+            return item[2]!;
           });
 
       return children({

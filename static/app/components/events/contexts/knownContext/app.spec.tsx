@@ -21,6 +21,12 @@ const MOCK_APP_CONTEXT: AppContext = {
   is_active: false,
   app_memory: 1048576 * 12,
   view_names: ['app.view1', 'app.view2'],
+  is_split_apks: false,
+  permissions: {
+    ACCESS_NETWORK_STATE: 'granted',
+    CAMERA: 'not_granted',
+    INTERNET: 'granted',
+  },
   // Extra data is still valid and preserved
   extra_data: 'something',
   unknown_key: 123,
@@ -72,6 +78,16 @@ describe('AppContext', () => {
         key: 'view_names',
         subject: 'View Names',
         value: ['app.view1', 'app.view2'],
+      },
+      {key: 'is_split_apks', subject: 'Split APKs', value: false},
+      {
+        key: 'permissions',
+        subject: 'Permissions',
+        value: {
+          ACCESS_NETWORK_STATE: 'granted',
+          CAMERA: 'not_granted',
+          INTERNET: 'granted',
+        },
       },
       {
         key: 'extra_data',

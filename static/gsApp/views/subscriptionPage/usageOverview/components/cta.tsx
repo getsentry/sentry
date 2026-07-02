@@ -50,7 +50,7 @@ function Cta({
       background="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
-      gap={isBanner ? {'2xs': 'xl', xl: '3xl'} : 'xl'}
+      gap={isBanner ? {'screen:2xs': 'xl', 'screen:xl': '3xl'} : 'xl'}
       borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
@@ -69,7 +69,9 @@ function Cta({
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
           {title}
         </Text>
-        <Container maxWidth={{'2xs': '300px', xl: isBanner ? 'unset' : '300px'}}>
+        <Container
+          maxWidth={{'screen:2xs': '300px', 'screen:xl': isBanner ? 'unset' : '300px'}}
+        >
           <Text
             variant="muted"
             size="sm"
@@ -104,7 +106,7 @@ function FindOutMoreButton({
   return (
     <LinkButton
       icon={<IconOpen />}
-      priority="link"
+      variant="link"
       size="sm"
       href={href}
       to={to ?? ''}
@@ -207,7 +209,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -244,7 +246,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -288,7 +290,7 @@ function UpgradeCta({
             subscription.canSelfServe ? (
               <LinkButton
                 icon={<IconUpload />}
-                priority="primary"
+                variant="primary"
                 href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
               >
                 {t('Add to plan')}
@@ -337,7 +339,7 @@ function UpgradeCta({
         subscription.canSelfServe && hasBillingPerms ? (
           <Fragment>
             <LinkButton
-              priority="primary"
+              variant="primary"
               href={`/checkout/${organization.slug}/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
             >
               {t('Upgrade now')}
@@ -365,21 +367,29 @@ function SetupCta({
     return null;
   }
 
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
+
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={t(
-        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-      )}
+      subtitle={
+        hasGitLabSupport
+          ? t(
+              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+          : t(
+              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+      }
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton
           icon={<IconSeer />}
           href={`/settings/${organization.slug}/seer/?referrer=${USAGE_OVERVIEW_PANEL_REFERRER}`}
-          priority="primary"
+          variant="primary"
           analyticsEventName="Subscription Settings: Set Up Button Clicked"
           analyticsEventKey="subscription_settings.set_up_button_clicked"
           analyticsParams={{

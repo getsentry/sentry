@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -203,6 +203,19 @@ describe('Core StackTrace', () => {
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
+  it('starts all frames collapsed when collapseAll is set', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    render(
+      <TestStackTraceProvider event={event} stacktrace={stacktrace} collapseAll>
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(4);
+    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+  });
+
   it('toggles frame expansion when clicking the right trailing area', async () => {
     renderStackTrace();
 
@@ -263,8 +276,8 @@ describe('Core StackTrace', () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
-    const projectDetails = ProjectFixture({
+    const project = DetailedProjectFixture({id: event.projectID});
+    const projectDetails = DetailedProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
@@ -390,7 +403,7 @@ describe('Core StackTrace', () => {
   it('renders stacktrace code mapping links when project data is available', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
+    const project = DetailedProjectFixture({id: event.projectID});
 
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -464,7 +477,7 @@ describe('Core StackTrace', () => {
       sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
     });
     const organization = OrganizationFixture({slug: 'org-slug'});
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       id: javascriptEvent.projectID,
       slug: 'project-slug',
       platform: 'javascript',
@@ -472,7 +485,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug-blue-thunder-edition/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
       body: {
         dist: null,
         exceptions: [
@@ -603,7 +616,7 @@ describe('Core StackTrace', () => {
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const organization = OrganizationFixture();
-    const project = ProjectFixture({id: event.projectID});
+    const project = DetailedProjectFixture({id: event.projectID});
     const integration = GitHubIntegrationFixture();
 
     ProjectsStore.loadInitialData([project]);
@@ -711,6 +724,37 @@ describe('Core StackTrace', () => {
     expect(screen.queryByText('MainActivity.java')).not.toBeInTheDocument();
   });
 
+  it('renders <unknown> with line number when frame has no filename or module', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: null,
+              module: null,
+              absPath: null,
+              function: 'eval',
+              lineNo: 5,
+              colNo: 20,
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findByText('<unknown>')).toBeInTheDocument();
+    expect(screen.queryByText(':5:20')).not.toBeInTheDocument();
+  });
+
   it('does not render line number when lineNo is zero', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
@@ -812,6 +856,46 @@ describe('Core StackTrace', () => {
     expect(screen.getByText('abc123')).toBeInTheDocument();
   });
 
+  it('shows in-app frames with maxDepth even when system frames outnumber them', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    // 2 in-app frames followed by 10 system frames — the in-app frames are
+    // near the start, so a naive maxDepth slice on all frames would miss them.
+    const appFrames = Array.from({length: 2}, (_, i) => ({
+      ...frame,
+      inApp: true,
+      function: `app_fn_${i}`,
+      lineNo: i + 1,
+      instructionAddr: `0xA${i}`,
+    }));
+    const systemFrames = Array.from({length: 10}, (_, i) => ({
+      ...frame,
+      inApp: false,
+      function: `system_fn_${i}`,
+      lineNo: i + 100,
+      instructionAddr: `0xS${i}`,
+    }));
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [...appFrames, ...systemFrames],
+        }}
+        maxDepth={4}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    const rows = await screen.findAllByTestId('core-stacktrace-frame-row');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('app_fn_0')).toBeInTheDocument();
+    expect(screen.getByText('app_fn_1')).toBeInTheDocument();
+  });
+
   it('renders empty source notation for single frame with no details', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
@@ -878,7 +962,7 @@ describe('Core StackTrace', () => {
   });
 
   it('shows URL link in tooltip when absPath is an http URL', async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({advanceTimers: true});
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 

@@ -144,7 +144,7 @@ export function BaseChartActionDropdown({
       key: 'add-to-dashboard',
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
         >
@@ -155,7 +155,7 @@ export function BaseChartActionDropdown({
       disabled: !hasDashboardEdit,
     };
     if (Array.isArray(addToDashboardOptions)) {
-      menuOption.isSubmenu = true;
+      menuOption.submenu = true;
       menuOption.children = addToDashboardOptions.map((option, idx) => ({
         key: `${option.chartType}-${idx}-${option.yAxes}`,
         label: option.widgetName,
@@ -164,7 +164,7 @@ export function BaseChartActionDropdown({
         },
       }));
     } else {
-      menuOption.isSubmenu = false;
+      menuOption.submenu = false;
       menuOption.onAction = () => {
         addToSpanDashboard(addToDashboardOptions);
       };
@@ -180,7 +180,7 @@ export function BaseChartActionDropdown({
     menuOptions.push({
       key: 'create-alert',
       label: newAlertLabel,
-      isSubmenu: true,
+      submenu: true,
       children: alertMenuOptions.map(option => ({
         ...option,
         onAction: () => {
@@ -200,7 +200,7 @@ export function BaseChartActionDropdown({
       triggerProps={{
         'aria-label': t('Widget actions'),
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         icon: <IconEllipsis direction="down" size="sm" />,
       }}

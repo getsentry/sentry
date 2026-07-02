@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import Feature from 'sentry/components/acl/feature';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,9 +34,9 @@ export function GroupSimilarIssues() {
 
   return (
     <Fragment>
-      <Feature features="similarity-view" project={project}>
+      {project.features.includes('similarity-view') && (
         <SimilarStackTrace project={project} />
-      </Feature>
+      )}
       <GroupRelatedIssues group={group} />
     </Fragment>
   );

@@ -1,30 +1,45 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {
   IconCheckmark,
   IconDelete,
+  IconDownload,
   IconEllipsis,
+  IconInfo,
+  IconOpen,
+  IconReceipt,
   IconRefresh,
+  IconSettings,
   IconThumb,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
+import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface SnapshotHeaderActionsProps {
@@ -42,12 +57,20 @@ export function SnapshotHeaderActions({
   const clientRef = useRef(new Client());
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
+  const organization = useOrganization();
+  const breakpoints = useBreakpoints();
   const isSentryEmployee = useIsSentryEmployee();
+  const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportConfirmedRef = useRef(false);
 
-  const isApproved = data.approval_info?.status === 'approved';
-  const approvers: AvatarUser[] = (data.approval_info?.approvers ?? []).map((a, i) => ({
+  const comparisonState = data.comparison_state;
+  const approvalStatus = data.approval_status;
+  const isApproved = approvalStatus === 'approved' || approvalStatus === 'auto_approved';
+  const isAutoApproved = approvalStatus === 'auto_approved';
+  const approvers: AvatarUser[] = (data.approvers ?? []).map((a, i) => ({
     id: a.id ?? `approver-${i}`,
     name: a.name ?? '',
     email: a.email ?? '',
@@ -62,7 +85,11 @@ export function SnapshotHeaderActions({
       : undefined,
   }));
 
-  const handleApprove = useCallback(() => {
+  const handleApprove = () => {
+    trackAnalytics('preprod.snapshots.details.approve_clicked', {
+      organization,
+      build_id: data.head_artifact_id,
+    });
     setIsApproving(true);
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprodartifacts/${data.head_artifact_id}/approve/`,
@@ -84,14 +111,30 @@ export function SnapshotHeaderActions({
         },
       }
     );
-  }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
+  };
 
-  const handleRerunComparison = useCallback(() => {
+  const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
       `/organizations/${organizationSlug}/preprod-artifact/rerun-status-checks/${data.head_artifact_id}/`,
       {
         method: 'POST',
         data: {check_types: ['snapshots']},
+        success: () => {
+          addSuccessMessage(t('Status checks rerun initiated'));
+          queryClient.invalidateQueries({queryKey: [apiUrl]});
+        },
+        error: (_resp: any) => {
+          addErrorMessage(t('Failed to rerun status checks'));
+        },
+      }
+    );
+  }, [organizationSlug, data.head_artifact_id, queryClient, apiUrl]);
+
+  const handleRerunComparison = useCallback(() => {
+    clientRef.current.request(
+      `/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/recompare/`,
+      {
+        method: 'POST',
         success: () => {
           addSuccessMessage(t('Re-run comparison initiated'));
           queryClient.invalidateQueries({queryKey: [apiUrl]});
@@ -127,26 +170,111 @@ export function SnapshotHeaderActions({
     });
   }, [apiUrl, navigate]);
 
+  const handleDownloadImages = useCallback(() => {
+    const archiveUrl = `/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/archive/`;
+
+    const triggerBuild = () => {
+      setIsExporting(true);
+      clientRef.current.request(archiveUrl, {
+        method: 'POST',
+        success: () => {
+          setIsExporting(false);
+          addSuccessMessage(
+            t(
+              "We're building your snapshot images — we'll email you a download link when it's ready."
+            )
+          );
+        },
+        error: (resp: any) => {
+          setIsExporting(false);
+          if (resp?.status === 403) {
+            handleStaffPermissionError(resp?.responseJSON?.detail);
+          } else {
+            addErrorMessage(t('Failed to start snapshot image export.'));
+          }
+        },
+      });
+    };
+
+    // Probe readiness first: a built archive downloads immediately, otherwise we
+    // confirm and kick off an async build that emails a link when it's ready.
+    setIsExporting(true);
+    clientRef.current.request(archiveUrl, {
+      method: 'GET',
+      success: (resp: {ready?: boolean}) => {
+        if (resp?.ready) {
+          setIsExporting(false);
+          downloadFromHref(
+            `snapshot_images_${data.head_artifact_id}.zip`,
+            `/api/0${archiveUrl}?download=true`
+          );
+          return;
+        }
+        exportConfirmedRef.current = false;
+        openConfirmModal({
+          header: t('Export all snapshots to a zip file'),
+          message: t(
+            "Exporting can take a bit, so we'll email you when the .zip is ready and available for download here."
+          ),
+          onConfirm: () => {
+            exportConfirmedRef.current = true;
+            triggerBuild();
+          },
+          onClose: () => {
+            if (!exportConfirmedRef.current) {
+              setIsExporting(false);
+            }
+          },
+        });
+      },
+      error: (resp: any) => {
+        setIsExporting(false);
+        if (resp?.status === 403) {
+          handleStaffPermissionError(resp?.responseJSON?.detail);
+        } else {
+          addErrorMessage(t('Failed to check snapshot image download.'));
+        }
+      },
+    });
+  }, [organizationSlug, data.head_artifact_id]);
+
   return (
     <Flex align="center" gap="md">
-      {data.approval_info &&
-        (isApproved ? (
-          <Flex align="center" gap="sm">
-            <Tag variant="success" icon={<IconCheckmark />}>
-              {t('Approved')}
-            </Tag>
+      {comparisonState === 'success' ? (
+        isApproved ? (
+          <Flex align="center" gap="xl">
+            <Flex align="center" gap="xs">
+              <Tag variant="success" icon={<IconCheckmark />}>
+                {isAutoApproved ? t('Auto-approved') : t('Approved')}
+              </Tag>
+              {isAutoApproved && (
+                <Tooltip
+                  title={t(
+                    'Automatically approved because the changes match a previously approved build on this PR.'
+                  )}
+                >
+                  <Flex align="center">
+                    <IconInfo size="sm" />
+                  </Flex>
+                </Tooltip>
+              )}
+            </Flex>
             {approvers.length > 0 && (
-              <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              <Container display={{'screen:2xs': 'none', 'screen:md': 'flex'}}>
+                <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+              </Container>
             )}
           </Flex>
-        ) : (
+        ) : approvalStatus === 'requires_approval' ? (
           <Flex align="center" gap="sm">
-            <Tag variant="warning" icon={<IconTimer />}>
-              {t('Requires approval')}
-            </Tag>
+            <Container display={{'screen:2xs': 'none', 'screen:lg': 'block'}}>
+              <Tag variant="warning" icon={<IconTimer />}>
+                {t('Needs approval')}
+              </Tag>
+            </Container>
             <Button
-              size="sm"
-              priority="primary"
+              size={breakpoints.xs ? 'sm' : 'xs'}
+              variant="primary"
               icon={<IconThumb />}
               onClick={handleApprove}
               disabled={isApproving}
@@ -154,17 +282,97 @@ export function SnapshotHeaderActions({
               {t('Approve')}
             </Button>
           </Flex>
-        ))}
+        ) : null
+      ) : (
+        <SnapshotStatusBadge
+          comparisonState={comparisonState}
+          approvalStatus={approvalStatus}
+          errorMessage={data.comparison_error_message}
+        />
+      )}
 
       <ConfirmDelete
         message={t(
           'Are you sure you want to delete this snapshot? This action cannot be undone and will permanently remove all associated files and data.'
         )}
-        confirmInput={data.head_artifact_id}
+        confirmInput="delete"
         onConfirm={handleDelete}
       >
         {({open: openDeleteModal}) => {
-          const menuItems: MenuItemProps[] = [
+          const menuItems: MenuItemProps[] = [];
+
+          menuItems.push({
+            key: 'build-debug-info',
+            label: (
+              <Flex align="center" gap="sm">
+                <IconReceipt size="sm" />
+                {t('Build Metadata')}
+              </Flex>
+            ),
+            onAction: () => openBuildDebugInfoModal(data),
+            textValue: t('Build Metadata'),
+          });
+
+          if (data.base_artifact_id) {
+            const baseBuildPath = getSnapshotPath({
+              organizationSlug,
+              snapshotId: data.base_artifact_id,
+            });
+            menuItems.push({
+              key: 'go-to-base-build',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconOpen size="sm" />
+                  {t('Go to Base Build')}
+                </Flex>
+              ),
+              onAction: () => navigate(baseBuildPath),
+              textValue: t('Go to Base Build'),
+            });
+          }
+
+          menuItems.push(
+            {
+              key: 'download-images',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconDownload size="sm" />
+                  {t('Download Images')}
+                </Flex>
+              ),
+              onAction: handleDownloadImages,
+              textValue: t('Download Images'),
+              disabled: isExporting,
+            },
+            {
+              key: 'rerun-status-checks',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconRefresh size="sm" />
+                  {t('Rerun Status Checks')}
+                </Flex>
+              ),
+              onAction: handleRerunStatusChecks,
+              textValue: t('Rerun Status Checks'),
+            },
+            ...(project
+              ? [
+                  {
+                    key: 'snapshot-settings',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconSettings size="sm" />
+                        {t('Snapshot Settings')}
+                      </Flex>
+                    ),
+                    onAction: () =>
+                      navigate(
+                        `/settings/${organizationSlug}/projects/${project.slug}/snapshots/`
+                      ),
+                    textValue: t('Snapshot Settings'),
+                  },
+                ]
+              : []),
             {
               key: 'delete',
               label: (
@@ -175,8 +383,8 @@ export function SnapshotHeaderActions({
               ),
               onAction: openDeleteModal,
               textValue: t('Delete Snapshots'),
-            },
-          ];
+            }
+          );
 
           if (isSentryEmployee) {
             menuItems.push({

@@ -1,7 +1,8 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -10,7 +11,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  ConversationDetailPanel,
+  ConversationLeftPanel,
+  ConversationSplitLayout,
+} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -18,22 +26,16 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
+function useAiSpanSelection(nodes: AITraceSpanNode[]) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {nodes, isLoading, error} = useAITrace(traceSlug);
+
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(() => {
     const path = getScrollToPath()?.path;
     const lastSpan = path?.findLast(item => item.startsWith('span-'));
     return lastSpan?.replace('span-', '') ?? null;
   });
-
-  useEffect(() => {
-    trackAnalytics('agent-monitoring.trace.rendered', {
-      organization,
-    });
-  }, [organization]);
 
   const selectedNode = useMemo(() => {
     return (
@@ -53,7 +55,6 @@ export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
         organization,
       });
 
-      // Update the node path url param to keep the trace waterfal in sync
       const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
       navigate(
         {
@@ -69,22 +70,61 @@ export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
     [location, navigate, organization]
   );
 
-  const handleViewFullTraceClick = useCallback(() => {
+  return {selectedNode, handleSelectNode};
+}
+
+interface TraceAiSpansProps {
+  traceSlug: string;
+  error?: boolean;
+  isLoading?: boolean;
+  nodes?: AITraceSpanNode[];
+}
+
+/**
+ * Standalone AI spans view with full chrome (border, header, "View in Full Trace").
+ * Used when there are no conversations in the trace.
+ */
+export function TraceAiSpans({
+  traceSlug,
+  nodes: externalNodes,
+  isLoading: externalIsLoading,
+  error: externalError,
+}: TraceAiSpansProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const aiTrace = useAITrace(traceSlug);
+  const nodes = externalNodes ?? aiTrace.nodes;
+  const isLoading = externalIsLoading ?? aiTrace.isLoading;
+  const error = externalError ?? aiTrace.error;
+
+  const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
+
+  const showTimeline = hasGenAiConversationsRedesignFeature(organization);
+  const nodeTraceMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const node of nodes) {
+      map.set(node.id, traceSlug);
+    }
+    return map;
+  }, [nodes, traceSlug]);
+
+  const handleViewFullTraceClick = () => {
     trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
       organization,
     });
-  }, [organization]);
+  };
 
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (nodes.length === 0) {
-    return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
-  }
-
   if (error) {
     return <div>{t('Failed to load trace')}</div>;
+  }
+
+  if (nodes.length === 0) {
+    return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
   }
 
   return (
@@ -107,11 +147,20 @@ export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
       </HeaderCell>
       <LeftPanel>
         <SpansHeader>{t('AI Spans')}</SpansHeader>
-        <AISpanList
-          nodes={nodes}
-          onSelectNode={handleSelectNode}
-          selectedNodeKey={selectedNode?.id ?? null}
-        />
+        {showTimeline ? (
+          <AiSpanTimeline
+            nodes={nodes}
+            onSelectNode={handleSelectNode}
+            selectedNodeKey={selectedNode?.id ?? null}
+            nodeTraceMap={nodeTraceMap}
+          />
+        ) : (
+          <AISpanList
+            nodes={nodes}
+            onSelectNode={handleSelectNode}
+            selectedNodeKey={selectedNode?.id ?? null}
+          />
+        )}
       </LeftPanel>
       <RightPanel>
         {selectedNode?.renderDetails({
@@ -123,9 +172,73 @@ export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
           replay: null,
           traceId: traceSlug,
           hideNodeActions: true,
+          initiallyCollapseAiIO: false,
         })}
       </RightPanel>
     </Wrapper>
+  );
+}
+
+/**
+ * AI spans content in a resizable split layout, without chrome.
+ * Used inside the conversations tabs for consistent layout.
+ */
+export function AiSpansSplitView({
+  nodes,
+  traceSlug,
+}: {
+  nodes: AITraceSpanNode[];
+  traceSlug: string;
+}) {
+  const organization = useOrganization();
+  const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
+
+  const showTimeline = hasGenAiConversationsRedesignFeature(organization);
+
+  const nodeTraceMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const node of nodes) {
+      map.set(node.id, traceSlug);
+    }
+    return map;
+  }, [nodes, traceSlug]);
+
+  if (nodes.length === 0) {
+    return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
+  }
+
+  return (
+    <ConversationSplitLayout
+      left={
+        <ConversationLeftPanel>
+          <Flex flex="1" minHeight="0" overflowY="auto" overflowX="hidden">
+            <Container padding="md lg md lg" width="100%">
+              {showTimeline ? (
+                <AiSpanTimeline
+                  nodes={nodes}
+                  onSelectNode={handleSelectNode}
+                  selectedNodeKey={selectedNode?.id ?? null}
+                  nodeTraceMap={nodeTraceMap}
+                />
+              ) : (
+                <AISpanList
+                  nodes={nodes}
+                  onSelectNode={handleSelectNode}
+                  selectedNodeKey={selectedNode?.id ?? null}
+                />
+              )}
+            </Container>
+          </Flex>
+        </ConversationLeftPanel>
+      }
+      right={
+        <ConversationDetailPanel
+          selectedNode={selectedNode}
+          nodeTraceMap={nodeTraceMap}
+          initiallyCollapseAiIO={false}
+        />
+      }
+    />
   );
 }
 

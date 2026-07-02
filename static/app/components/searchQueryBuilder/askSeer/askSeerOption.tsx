@@ -6,11 +6,12 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   AskSeerLabel,
   AskSeerListItem,
 } from 'sentry/components/searchQueryBuilder/askSeer/components';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,7 +21,8 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
-  const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilder();
+  const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilderAI();
+  const analyticsArea = useAnalyticsArea();
 
   const organization = useOrganization();
 
@@ -39,10 +41,12 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   );
 
   const handleClick = () => {
-    if (optionDisableOverride) return;
-
-    trackAnalytics('trace.explorer.ai_query_interface', {
+    if (optionDisableOverride) {
+      return;
+    }
+    trackAnalytics('ai_query.interface', {
       organization,
+      area: analyticsArea,
       action: 'opened',
     });
     setDisplayAskSeer(true);

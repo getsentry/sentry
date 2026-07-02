@@ -1,6 +1,7 @@
 import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
@@ -16,14 +17,15 @@ import type {Project} from 'sentry/types/project';
 
 function createWrapper(projectSlug?: string) {
   return function Wrapper({children}: any) {
+    const wrapped = <SentryNuqsTestingAdapter>{children}</SentryNuqsTestingAdapter>;
     const memoryRouter = createMemoryRouter([
       {
         path: '/',
-        element: children,
+        element: wrapped,
       },
       {
         path: '/:projectId/',
-        element: children,
+        element: wrapped,
       },
     ]);
 

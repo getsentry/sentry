@@ -12,6 +12,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
 import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
+import {InsightTimedOutWarning} from 'sentry/views/preprod/buildDetails/main/insights/insightTimedOutWarning';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
@@ -30,7 +31,7 @@ export function AppSizeInsights({
   const isSidebarOpen = searchParams.get('insights') === 'open';
   const organization = useOrganization();
 
-  const openSidebar = useCallback(() => {
+  const openSidebar = () => {
     trackAnalytics('preprod.builds.details.open_insights_sidebar', {
       organization,
       platform: platform ?? null,
@@ -40,7 +41,7 @@ export function AppSizeInsights({
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');
     setSearchParams(newParams);
-  }, [organization, platform, projectType, searchParams, setSearchParams]);
+  };
 
   const closeSidebar = useCallback(() => {
     const newParams = new URLSearchParams(searchParams);
@@ -88,9 +89,12 @@ export function AppSizeInsights({
             height="22px"
             padding="xs sm"
           >
-            <Text size="sm" bold>
-              {insight.name}
-            </Text>
+            <Flex align="center" gap="xs">
+              <Text size="sm" bold>
+                {insight.name}
+              </Text>
+              <InsightTimedOutWarning insight={insight} />
+            </Flex>
             <Flex align="center" gap="sm">
               <Text variant="muted" size="sm" tabular>
                 -{formatBytesBase10(insight.totalSavings)}

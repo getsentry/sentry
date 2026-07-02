@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 from abc import ABC, abstractmethod
@@ -5,15 +7,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from types import TracebackType
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import sentry_sdk
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.integrations.base import IntegrationDomain
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +46,7 @@ class EventLifecycleMetric(ABC):
         """Get extra data to log."""
         return {}
 
-    def capture(
-        self, assume_success: bool = True, sample_log_rate: float = 1.0
-    ) -> "EventLifecycle":
+    def capture(self, assume_success: bool = True, sample_log_rate: float = 1.0) -> EventLifecycle:
         """Open a context to measure the event."""
         return EventLifecycle(self, assume_success, sample_log_rate)
 
@@ -107,7 +110,7 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
 
     def capture(
         self, assume_success: bool = True, sample_log_rate: float = 1.0
-    ) -> "IntegrationEventLifecycle":
+    ) -> IntegrationEventLifecycle:
         return IntegrationEventLifecycle(self, assume_success, sample_log_rate)
 
 
@@ -208,7 +211,7 @@ class EventLifecycle:
                 if outcome == EventLifecycleOutcome.FAILURE:
                     logger.warning(key, **log_params)
                 elif outcome == EventLifecycleOutcome.HALTED:
-                    logger.info(key, **log_params)
+                    logger.warning(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
@@ -373,6 +376,9 @@ class IntegrationPipelineViewType(StrEnum):
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"
 
+    # Datadog
+    DCR_REGISTRATION = "dcr_registration"
+
     # GitHub
     OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
@@ -448,11 +454,15 @@ class IntegrationWebhookEventType(StrEnum):
     # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     INSTALLATION = "installation"
+    INSTALLATION_REPOSITORIES = "installation_repositories"
     ISSUE_COMMENT = "issue_comment"
     MERGE_REQUEST = "pull_request"
     MERGE_REQUEST_REVIEW = "pull_request_review"
     MERGE_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
+    MERGE_REQUEST_REVIEW_THREAD = "pull_request_review_thread"
     PUSH = "push"
+
+    CHECK_SUITE = "check_suite"
 
 
 @dataclass

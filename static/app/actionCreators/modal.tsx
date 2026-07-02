@@ -1,8 +1,9 @@
+import type {ModalTypes} from '@sentry/scraps/modal';
+
 import type {
   CommandPaletteState,
   CommandPaletteDispatch,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
@@ -13,7 +14,6 @@ import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types'
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -146,22 +146,16 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   });
 }
 
-export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/deprecatedCommandPalette');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
 export async function toggleCommandPalette(
   options: ModalOptions = {},
   organization: Organization,
   state: CommandPaletteState,
   dispatch: CommandPaletteDispatch,
-  source: 'button' | 'keyboard'
+  source: 'button' | 'keyboard',
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void
 ) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/commandPalette/ui/modal');
+  const {CommandPalette: Modal, modalCss} =
+    await import('sentry/components/commandPalette/ui/commandPalette');
 
   function closeCommandPaletteModal() {
     dispatch({type: 'toggle modal'});
@@ -173,10 +167,13 @@ export async function toggleCommandPalette(
   } else {
     trackAnalytics('command_palette.opened', {organization, source});
     dispatch({type: 'toggle modal'});
-    openModal(deps => <Modal {...deps} {...options} />, {
-      modalCss,
-      onClose: closeCommandPaletteModal,
-    });
+    openModal(
+      deps => <Modal {...deps} {...options} openSeerExplorer={openSeerExplorer} />,
+      {
+        modalCss,
+        onClose: closeCommandPaletteModal,
+      }
+    );
   }
 }
 type RecoveryModalOptions = {
@@ -200,18 +197,6 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
     await import('sentry/components/modals/teamAccessRequestModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
-}
-
-type HelpSearchModalOptions = {
-  organization?: Organization;
-  placeholder?: string;
-};
-
-export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/helpSearchModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type DebugFileSourceModalOptions = {
@@ -275,16 +260,6 @@ export async function openAddToDashboardModal(options: AddToDashboardModalProps)
   });
 }
 
-export async function openLinkToDashboardModal(options: LinkToDashboardModalProps) {
-  const {LinkToDashboardModal, modalCss} =
-    await import('sentry/components/modals/widgetBuilder/linkToDashboardModal');
-
-  openModal(deps => <LinkToDashboardModal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
-    modalCss,
-  });
-}
-
 export async function openImportDashboardFromFileModal(
   options: ImportDashboardFromFileModalProps
 ) {
@@ -341,27 +316,21 @@ export async function openWidgetViewerModal({
   ...options
 }: DataWidgetViewerModalOptions & {onClose?: () => void}) {
   if (options.widget.displayType === DisplayType.TEXT) {
-    const {
-      default: Modal,
-      modalCss,
-      backdropCss,
-    } = await import('sentry/components/modals/textWidgetViewerModal');
+    const {default: Modal, modalCss} =
+      await import('sentry/components/modals/textWidgetViewerModal');
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
-      backdropCss,
+      backdrop: {zIndex: 'widgetBuilderDrawer'},
       onClose,
     });
   } else {
-    const {
-      default: Modal,
-      modalCss,
-      backdropCss,
-    } = await import('sentry/components/modals/dataWidgetViewerModal');
+    const {default: Modal, modalCss} =
+      await import('sentry/components/modals/dataWidgetViewerModal');
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
-      backdropCss,
+      backdrop: {zIndex: 'widgetBuilderDrawer'},
       onClose,
     });
   }

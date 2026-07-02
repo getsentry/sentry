@@ -2,7 +2,7 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-// eslint-disable-next-line boundaries/entry-point
+// eslint-disable-next-line boundaries/dependencies
 import {SentryAppAvatar} from './sentryAppAvatar';
 
 describe('SentryAppAvatar', () => {

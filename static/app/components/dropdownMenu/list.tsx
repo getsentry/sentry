@@ -1,5 +1,6 @@
 import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -58,6 +59,10 @@ export interface DropdownMenuListProps
    */
   closeOnSelect?: boolean;
   /**
+   * Prevent users from highlighting text inside the menu.
+   */
+  disableTextSelection?: boolean;
+  /**
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
@@ -80,6 +85,7 @@ export function DropdownMenuList({
   size,
   menuTitle,
   menuFooter,
+  disableTextSelection,
   overlayState,
   overlayPositionProps,
   zIndex,
@@ -116,7 +122,7 @@ export function DropdownMenuList({
     // logically follows from the tree-like structure and single-selection
     // nature of menus.
     const isLeafSubmenu = !stateCollection.some(node => {
-      const isSection = node.hasChildNodes && !node.value?.isSubmenu;
+      const isSection = node.hasChildNodes && !node.value?.submenu;
       // A submenu with key [key] is expanded if
       // state.selectionManager.isSelected([key]) = true
       return isSection
@@ -160,6 +166,9 @@ export function DropdownMenuList({
       return null;
     }
 
+    const submenuConfig = node.value.submenu;
+    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
+
     const trigger = (triggerProps: any) => (
       <DropdownMenuItem
         renderAs="div"
@@ -185,11 +194,12 @@ export function DropdownMenuList({
         trigger={trigger}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
-        menuTitle={node.value.submenuTitle}
+        disableTextSelection={disableTextSelection}
+        menuTitle={submenuOptions.title}
         shouldCloseOnBlur={false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
-        position="right-start"
+        position={submenuOptions.position ?? 'right-start'}
         offset={-4}
         size={size}
       />
@@ -212,7 +222,7 @@ export function DropdownMenuList({
           </DropdownMenuSection>
         );
       } else {
-        itemToRender = node.value?.isSubmenu
+        itemToRender = node.value?.submenu
           ? renderItemWithSubmenu(node)
           : renderItem(node);
       }
@@ -245,6 +255,7 @@ export function DropdownMenuList({
             <DropdownMenuListWrap
               ref={menuRef}
               hasTitle={!!menuTitle}
+              disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
@@ -265,14 +276,31 @@ const StyledOverlay = styled(Overlay)`
   flex-direction: column;
 `;
 
-const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
+const DropdownMenuListWrap = styled('ul')<{
+  hasTitle: boolean;
+  disableTextSelection?: boolean;
+}>`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
 
-  ${p => p.hasTitle && `padding-top: calc(${p.theme.space.xs} + 1px);`}
+  ${p =>
+    p.disableTextSelection &&
+    css`
+      &,
+      * {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    `}
+
+  ${p =>
+    p.hasTitle &&
+    css`
+      padding-top: calc(${p.theme.space.xs} + 1px);
+    `}
 
   &:focus {
     outline: none;

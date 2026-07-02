@@ -2,7 +2,8 @@ import {createContext, useContext, useMemo, useState} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event, Frame} from 'sentry/types/event';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import type {
@@ -53,12 +54,16 @@ export function StackTraceViewStateProvider({
 export interface StackTraceContextValue {
   /** All frames regardless of system-frame filter, for Activity-based rendering. */
   allRows: Row[];
+  /** When true, all frames start collapsed regardless of their position. */
+  collapseAll: boolean;
   /** Event payload for project/platform metadata and integrations. */
   event: Event;
   /** Active frame list for the selected (symbolicated/minified) stacktrace. */
   frames: Frame[];
   /** True when any visible frame row has expandable details. */
   hasAnyExpandableFrames: boolean;
+  /** True when the SCM source context feature is enabled for this org. */
+  hasScmSourceContext: boolean;
   /** Hidden-system-frame expansion state keyed by frame index. */
   hiddenFrameToggleMap: Record<number, boolean>;
   /** True when the "Unminify Code" source map action must be hidden. */

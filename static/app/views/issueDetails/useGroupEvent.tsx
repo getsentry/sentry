@@ -1,12 +1,11 @@
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {Event} from 'sentry/types/event';
-import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
+import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
 import {
-  getGroupEventQueryKey,
+  groupEventApiOptions,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
 } from 'sentry/views/issueDetails/utils';
@@ -24,12 +23,7 @@ export function useGroupEvent({
   options,
 }: UseGroupEventOptions) {
   const organization = useOrganization();
-  const location = useLocation<{
-    end?: string;
-    query?: string;
-    start?: string;
-    statsPeriod?: string;
-  }>();
+  const location = useLocation();
   const defaultIssueEvent = useDefaultIssueEvent();
   const environments = useEnvironmentsFromUrl();
   const eventQuery = useEventQuery();
@@ -38,26 +32,23 @@ export function useGroupEvent({
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
   const isSpecificEventId = eventId && !isReservedEventId;
 
-  const {selection: pageFilters} = usePageFilters();
+  const statsPeriod = decodeScalar(location.query.statsPeriod);
+  const start = decodeScalar(location.query.start);
+  const end = decodeScalar(location.query.end);
 
-  const hasSetStatsPeriod =
-    // If we are on a specific event, the endpoint will return it regardless of the time range
-    !isSpecificEventId &&
-    (location.query.statsPeriod || location.query.start || location.query.end);
-  const periodQuery = hasSetStatsPeriod ? getPeriod(pageFilters.datetime) : {};
+  const staleTime = isSpecificEventId ? Infinity : 30_000;
 
-  const queryKey = getGroupEventQueryKey({
-    orgSlug: organization.slug,
-    groupId,
-    eventId,
-    environments,
-    query: eventQuery,
-    ...periodQuery,
-  });
-
-  const staleTime = isSpecificEventId ? Infinity : 30000;
-
-  return useApiQuery<Event>(queryKey, {
+  return useQuery({
+    ...groupEventApiOptions({
+      orgSlug: organization.slug,
+      groupId,
+      eventId,
+      environments,
+      query: eventQuery,
+      statsPeriod,
+      start,
+      end,
+    }),
     staleTime,
     enabled: options?.enabled && !!eventId,
     retry: false,

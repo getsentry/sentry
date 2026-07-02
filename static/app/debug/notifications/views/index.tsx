@@ -55,7 +55,11 @@ export default function DebugNotificationsIndex() {
                     <Tag variant="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Grid columns={{md: '1fr', lg: '1fr auto'}} gap="2xl" position="relative">
+                <Grid
+                  columns={{'screen:md': '1fr', 'screen:lg': '1fr auto'}}
+                  gap="2xl"
+                  position="relative"
+                >
                   <Flex
                     direction="column"
                     position="relative"
@@ -100,11 +104,6 @@ const SidebarContainer = styled('nav')`
   max-height: calc(100dvh - ${HEADER_HEIGHT}px);
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
-  scrollbar-width: thin;
-  /* eslint-disable @sentry/scraps/use-semantic-token */
-  scrollbar-color: ${p => p.theme.tokens.border.primary}
-    ${p => p.theme.tokens.background.primary};
-  /* eslint-enable @sentry/scraps/use-semantic-token */
   display: flex;
   flex-direction: column;
 `;

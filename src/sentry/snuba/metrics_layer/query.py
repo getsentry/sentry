@@ -44,7 +44,7 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
-FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition, str, list]
+FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition, str, list[Any]]
 
 
 ALLOWED_GRANULARITIES = [10, 60, 3600, 86400]

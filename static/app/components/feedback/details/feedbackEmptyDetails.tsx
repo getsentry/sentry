@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 
 export const FeedbackEmptyDetails = styled((props: any) => (
   <FluidHeight {...props}>

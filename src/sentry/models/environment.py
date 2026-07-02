@@ -42,7 +42,7 @@ class Environment(Model):
 
     organization_id = BoundedBigIntegerField()
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["pk"])
@@ -70,7 +70,9 @@ class Environment(Model):
 
     @classmethod
     def get_name_or_default(cls, name):
-        return name or ""
+        if name:
+            return name[:ENVIRONMENT_NAME_MAX_LENGTH]
+        return ""
 
     @classmethod
     def get_for_organization_id(cls, organization_id, name):

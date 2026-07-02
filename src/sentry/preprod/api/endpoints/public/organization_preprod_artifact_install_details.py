@@ -4,7 +4,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -12,6 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.preprod.api.models.public.installable_builds import (
@@ -39,7 +39,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
     )
 
     @extend_schema(
-        operation_id="Retrieve install info for a given artifact",
+        operation_id="getOrganizationPreprodArtifactInstallDetails",
+        summary="Retrieve install info for a given artifact",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -63,7 +64,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[InstallInfoResponseDict] | Response[DetailResponse]:
         """
         Retrieve install info for a given artifact.
 
@@ -71,11 +72,6 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
         including whether the artifact is installable, the install URL, download count,
         and iOS-specific code signing information.
         """
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
             artifact = PreprodArtifact.objects.select_related(
@@ -85,6 +81,9 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
                 "project__organization",
             ).get(id=int(artifact_id), project__organization_id=organization.id)
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
+
+        if not request.access.has_project_access(artifact.project):
             return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
 
         response_data = create_install_info_dict(artifact)

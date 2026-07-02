@@ -6,8 +6,9 @@ import {Text} from '@sentry/scraps/text';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
@@ -23,7 +24,6 @@ import {
   formatReservedWithUnits,
   getSoftCapType,
   hasPaygBudgetForCategory,
-  isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
@@ -114,7 +114,7 @@ function UsageBreakdownInfo({
     return null;
   }
 
-  const interval = plan.contractInterval === 'monthly' ? t('month') : t('year');
+  const interval = plan.billingInterval === 'monthly' ? t('month') : t('year');
 
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
@@ -196,6 +196,7 @@ function DataCategoryUsageBreakdownInfo({
   metricHistory,
   activeProductTrial,
 }: DataCategoryUsageBreakdownInfoProps) {
+  const organization = useOrganization();
   const {planDetails: plan} = subscription;
   const productCanUsePayg =
     plan.onDemandCategories.includes(category) &&
@@ -236,6 +237,8 @@ function DataCategoryUsageBreakdownInfo({
       0);
 
   const otherSpend = calculateSeerUserSpend(metricHistory);
+
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const formattedOtherSpend =
     otherSpend > 0 ? (
       <UsageBreakdownField
@@ -243,9 +246,15 @@ function DataCategoryUsageBreakdownInfo({
         value={displayPriceWithCents({
           cents: otherSpend,
         })}
-        help={t(
-          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-        )}
+        help={
+          hasGitLabSupport
+            ? t(
+                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+              )
+            : t(
+                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
+              )
+        }
       />
     ) : undefined;
 
@@ -279,7 +288,7 @@ function ReservedBudgetUsageBreakdownInfo({
       plan.onDemandCategories.includes(category) &&
       hasPaygBudgetForCategory(subscription, category)
   );
-  const onTrialOrSponsored = isTrialPlan(subscription.plan) || subscription.isSponsored;
+  const onTrialOrSponsored = subscription.onTrialPlan || subscription.isSponsored;
 
   const platformReservedField = onTrialOrSponsored
     ? tct('[planName] plan', {planName: plan.name})

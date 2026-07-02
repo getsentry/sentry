@@ -307,61 +307,55 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
 
     @freeze_time(MOCK_DATETIME_PLUS_TEN_MINUTES)
     def test_minute_resolution(self) -> None:
-        with self.feature("organizations:minute-resolution-sessions"):
-            response = self.do_request(
-                {
-                    "project": [self.project1.id, self.project2.id],
-                    "statsPeriod": "30m",
-                    "interval": "10m",
-                    "field": ["sum(session)"],
-                }
-            )
-            assert response.status_code == 200, response.content
-
-            ten_min = 10 * 60
-            expected_start = adjust_start(
-                MOCK_DATETIME.replace(hour=12, minute=0, second=0), ten_min
-            )
-            expected_end = adjust_end(MOCK_DATETIME.replace(hour=12, minute=38, second=0), ten_min)
-
-            assert result_sorted(response.data) == {
-                "start": expected_start.strftime(SNUBA_TIME_FORMAT),
-                "end": expected_end.strftime(SNUBA_TIME_FORMAT),
-                "query": "",
-                "intervals": [
-                    *[
-                        MOCK_DATETIME.replace(hour=12, minute=min, second=0).strftime(
-                            SNUBA_TIME_FORMAT
-                        )
-                        for min in [0, 10, 20, 30]
-                    ],
-                ],
-                "groups": [
-                    {
-                        "by": {},
-                        "series": {"sum(session)": [2, 1, 1, 0]},
-                        "totals": {"sum(session)": 4},
-                    }
-                ],
+        response = self.do_request(
+            {
+                "project": [self.project1.id, self.project2.id],
+                "statsPeriod": "30m",
+                "interval": "10m",
+                "field": ["sum(session)"],
             }
+        )
+        assert response.status_code == 200, response.content
+
+        ten_min = 10 * 60
+        expected_start = adjust_start(MOCK_DATETIME.replace(hour=12, minute=0, second=0), ten_min)
+        expected_end = adjust_end(MOCK_DATETIME.replace(hour=12, minute=38, second=0), ten_min)
+
+        assert result_sorted(response.data) == {
+            "start": expected_start.strftime(SNUBA_TIME_FORMAT),
+            "end": expected_end.strftime(SNUBA_TIME_FORMAT),
+            "query": "",
+            "intervals": [
+                *[
+                    MOCK_DATETIME.replace(hour=12, minute=min, second=0).strftime(SNUBA_TIME_FORMAT)
+                    for min in [0, 10, 20, 30]
+                ],
+            ],
+            "groups": [
+                {
+                    "by": {},
+                    "series": {"sum(session)": [2, 1, 1, 0]},
+                    "totals": {"sum(session)": 4},
+                }
+            ],
+        }
 
     @freeze_time(MOCK_DATETIME_PLUS_TEN_MINUTES)
     def test_10s_resolution(self) -> None:
-        with self.feature("organizations:minute-resolution-sessions"):
-            response = self.do_request(
-                {
-                    "project": [self.project1.id],
-                    "statsPeriod": "1m",
-                    "interval": "10s",
-                    "field": ["sum(session)"],
-                }
-            )
-            assert response.status_code == 200, response.content
+        response = self.do_request(
+            {
+                "project": [self.project1.id],
+                "statsPeriod": "1m",
+                "interval": "10s",
+                "field": ["sum(session)"],
+            }
+        )
+        assert response.status_code == 200, response.content
 
-            # With the metrics backend, we should get exactly what we asked for,
-            # 6 intervals with 10 second length. However, since we add both the
-            # starting and ending interval we get 7 intervals.
-            assert len(response.data["intervals"]) == 7
+        # With the metrics backend, we should get exactly what we asked for,
+        # 6 intervals with 10 second length. However, since we add both the
+        # starting and ending interval we get 7 intervals.
+        assert len(response.data["intervals"]) == 7
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_projects(self) -> None:

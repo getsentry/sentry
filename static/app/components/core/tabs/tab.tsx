@@ -113,7 +113,7 @@ const innerWrapStyles = ({
           : 0};
         /* static padding towards SelectionIndicator */
         padding-left: ${theme.space.md};
-      `};
+      `}
 
   li[aria-disabled]:hover & {
     background-color: transparent;
@@ -185,7 +185,7 @@ const StyledTabSelectionIndicator = styled('div')<{
           left: -6px;
           top: 50%;
           transform: translateY(-50%);
-        `};
+        `}
 `;
 
 export interface TabProps extends AriaTabProps {

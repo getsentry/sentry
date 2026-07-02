@@ -2,6 +2,7 @@ import pytest
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -38,6 +39,21 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.validated_data["environment"] == self.environment
         assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
+
+    def test_environment_get_or_create(self) -> None:
+        new_env_name = "new-test-environment"
+        assert not Environment.objects.filter(
+            name=new_env_name, organization_id=self.project.organization_id
+        ).exists()
+
+        self.valid_data["environment"] = new_env_name
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+
+        env = validator.validated_data["environment"]
+        assert isinstance(env, Environment)
+        assert env.name == new_env_name
+        assert env.organization_id == self.project.organization_id
 
     def test_invalid_query(self) -> None:
         unsupported_query = "release:latest"
@@ -100,86 +116,8 @@ class SnubaQueryValidatorTest(TestCase):
                     )
                 ]
 
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_valid_group_by(self) -> None:
-        """Test that valid group_by data is accepted."""
-        self.valid_data["group_by"] = ["project", "environment"]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert validator.is_valid()
-        assert validator.validated_data["group_by"] == ["project", "environment"]
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_empty_group_by(self) -> None:
-        """Test that empty group_by list is rejected."""
-        self.valid_data["group_by"] = []
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-        assert not validator.is_valid()
-
-        # The serializer catches this before our custom validation
-        assert "groupBy" in validator.errors
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_empty_group_by_string(self) -> None:
-        """Test that empty group_by list is rejected."""
-        self.valid_data["group_by"] = [""]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert not validator.is_valid()
-        assert "groupBy" in validator.errors
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_none_group_by(self) -> None:
-        """Test that None group_by is handled correctly."""
-        self.valid_data["group_by"] = None
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert not validator.is_valid()
-        assert "groupBy" in validator.errors
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_invalid_group_by_not_list(self) -> None:
-        """Test that non-list group_by raises validation error."""
-
-        self.valid_data["group_by"] = "not_a_list"
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-        assert not validator.is_valid()
-
-        assert "groupBy" in validator.errors
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_group_by_too_many_items(self) -> None:
-        """Test that group_by with more than 100 items raises validation error."""
-
-        self.valid_data["group_by"] = [f"field_{i}" for i in range(101)]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert not validator.is_valid()
-        assert validator.errors.get("nonFieldErrors") == [
-            ErrorDetail(string="Group by must be 100 or fewer items", code="invalid")
-        ]
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_group_by_duplicate_items(self) -> None:
-        """Test that group_by with duplicate items raises validation error."""
-
-        self.valid_data["group_by"] = ["project", "environment", "project"]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert not validator.is_valid()
-        assert validator.errors.get("nonFieldErrors") == [
-            ErrorDetail(string="Group by must be a unique list of strings", code="invalid")
-        ]
-
-    def test_group_by_no_feature(self) -> None:
-        """Test group_by with performance dataset."""
+    def test_group_by_rejected(self) -> None:
+        """Group by Metric Alerts is not enabled; any non-None group_by is rejected."""
         self.valid_data.update(
             {
                 "queryType": SnubaQuery.Type.ERROR.value,
@@ -199,83 +137,6 @@ class SnubaQueryValidatorTest(TestCase):
             )
         ]
 
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_group_by_string_too_long(self) -> None:
-        """Test that group_by with strings longer than 200 characters is rejected."""
-
-        self.valid_data["group_by"] = ["project", "a" * 201, "environment"]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert not validator.is_valid()
-        assert "groupBy" in validator.errors
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_group_by_mixed_types(self) -> None:
-        """Test that group_by with non-string items is converted to strings."""
-
-        self.valid_data["group_by"] = ["project", 123, "environment"]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert validator.is_valid()
-        assert validator.validated_data["group_by"] == ["project", "123", "environment"]
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_group_by_with_valid_fields(self) -> None:
-        """Test that common valid group_by fields are accepted."""
-
-        valid_group_by_fields = [
-            "project",
-            "environment",
-            "release",
-            "user",
-            "transaction",
-            "message",
-            "level",
-            "type",
-            "mechanism",
-            "handled",
-            "unhandled",
-            "culprit",
-            "title",
-            "location",
-            "function",
-            "package",
-            "sdk_name",
-            "sdk_version",
-            "device_name",
-            "device_family",
-            "device_model",
-            "os_name",
-            "os_version",
-            "browser_name",
-            "browser_version",
-            "geo_country_code",
-            "geo_region",
-            "geo_city",
-        ]
-
-        for field in valid_group_by_fields:
-            self.valid_data["group_by"] = [field]
-            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-            assert validator.is_valid(), f"Failed for field: {field}"
-            assert validator.validated_data["group_by"] == [field]
-
-    @with_feature("organizations:workflow-engine-metric-alert-group-by-creation")
-    def test_group_by_multiple_valid_fields(self) -> None:
-        self.valid_data["group_by"] = ["project", "environment", "release", "user"]
-
-        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
-
-        assert validator.is_valid()
-        assert validator.validated_data["group_by"] == [
-            "project",
-            "environment",
-            "release",
-            "user",
-        ]
-
     def test_eap_user_misery_aggregate(self) -> None:
         data = {
             "dataset": Dataset.EventsAnalyticsPlatform.value,
@@ -292,7 +153,6 @@ class SnubaQueryValidatorTest(TestCase):
     @with_feature(
         {
             "organizations:performance-view": True,
-            "organizations:tracemetrics-alerts": True,
             "organizations:tracemetrics-enabled": True,
             "organizations:custom-metrics": True,
         }

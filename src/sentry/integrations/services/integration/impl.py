@@ -45,16 +45,19 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.utils.webhooks import MetricAlertActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import (
+    MetricAlertActionType,
+    SentryAppResourceType,
+    find_alert_rule_action_ui_component,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -254,6 +257,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
                         "install.organization": install.organization_id,
                     },
                 )
+                if integration_id is not None:
+                    scope.set_attribute("localscope.integration_id", integration_id)
+                scope.set_attribute("localscope.organization_id", organization_id)
+                scope.set_attribute("localscope.install.organization", install.organization_id)
                 sentry_sdk.capture_message(
                     "integration.installation does not belong to requested_org"
                 )

@@ -9,14 +9,13 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
-} from 'sentry/components/globalModal/components';
+} from '@sentry/scraps/modal';
+
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 const group = GroupFixture({
   id: '1337',
-  pluginActions: [],
-  pluginIssues: [],
 });
 
 describe('ReprocessEventModal', () => {

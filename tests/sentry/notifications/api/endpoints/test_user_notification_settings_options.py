@@ -104,6 +104,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             NotificationSettingEnum.QUOTA_MONITOR_SEATS,
             NotificationSettingEnum.QUOTA_SPANS,
             NotificationSettingEnum.QUOTA_LOG_BYTES,
+            NotificationSettingEnum.QUOTA_TRACE_METRIC_BYTES,
             NotificationSettingEnum.QUOTA_SEER_USERS,
             NotificationSettingEnum.QUOTA_SIZE_ANALYSIS,
         ]

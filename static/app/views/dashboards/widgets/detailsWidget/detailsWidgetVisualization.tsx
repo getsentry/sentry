@@ -61,7 +61,7 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
         (spanDescription.split('?')[0] ?? '').split('.').pop()?.toLowerCase() ?? ''
       );
 
-    if (isImage) {
+    if (isImage && spanGroup) {
       const projectId = span[SpanFields.PROJECT_ID]
         ? Number(span[SpanFields.PROJECT_ID])
         : undefined;
@@ -119,7 +119,7 @@ function HttpSpanVisualization(props: {
 
   return (
     <Flex align="center" padding="xl" gap="md" height="100%">
-      <h1>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h1>
+      <h2>{httpSpan[0][SpanFields.SPAN_DOMAIN]}</h2>
       <DomainStatusLink domain={httpSpan[0][SpanFields.SPAN_DOMAIN]} />
     </Flex>
   );

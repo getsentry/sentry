@@ -51,6 +51,8 @@ export function UsageOverview({
     if (productFromQuery) {
       const isAddOn = checkIsAddOn(productFromQuery);
       if (selectedProduct !== productFromQuery) {
+        const dataCategory = productFromQuery as DataCategory;
+        const metricHistory = subscription.categories[dataCategory];
         const isSelectable = isAddOn
           ? (subscription.addOns?.[productFromQuery as AddOnCategory]?.enabled ??
               false) &&
@@ -59,17 +61,12 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : (subscription.categories[productFromQuery as DataCategory]?.reserved ?? 0) >
-              0 ||
-            !!getActiveProductTrial(
-              subscription.productTrials ?? null,
-              productFromQuery as DataCategory
-            ) ||
+          : (metricHistory?.prepaid ?? 0) !== 0 ||
+            !!metricHistory?.softCapType ||
+            !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
             (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
               ? subscription.onDemandBudgets.sharedMaxBudget
-              : (subscription.onDemandBudgets?.budgets?.[
-                  productFromQuery as DataCategory
-                ] ?? 0)) > 0;
+              : (subscription.onDemandBudgets?.budgets?.[dataCategory] ?? 0)) > 0;
         if (isSelectable) {
           setSelectedProduct(
             isAddOn
@@ -104,7 +101,10 @@ export function UsageOverview({
 
   return (
     <Grid
-      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: 'repeat(2, 1fr)'}}
+      columns={{
+        'screen:xs': '1fr',
+        [`screen:${SIDE_PANEL_MIN_SCREEN_BREAKPOINT}`]: 'repeat(2, 1fr)',
+      }}
       gap="lg"
       align="start"
     >

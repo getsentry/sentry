@@ -16,12 +16,12 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
@@ -58,6 +58,7 @@ export function PageFiltersContainer({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   maxPickableDays,
+  maxDateRange,
   children,
   ...props
 }: Props) {
@@ -103,6 +104,7 @@ export function PageFiltersContainer({
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
       maxPickableDays,
+      maxDateRange,
       memberProjects,
       nonMemberProjects,
       defaultSelection,
@@ -132,9 +134,8 @@ export function PageFiltersContainer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded]);
 
-  // Handle dynamic maxPickableDays changes (e.g., switching between pages with different limits).
-  // When the limit decreases and the current selection exceeds it, reset to the new max.
-  const previousMaxPickableDays = usePrevious(maxPickableDays);
+  // Handle invalid date selections after initialization, including route changes
+  // while the container stays mounted.
   const shouldResetDateTime = useMemo(() => {
     // Don't act until page filters are initialized - selection.datetime contains
     // default values until isReady, not the actual URL state
@@ -142,31 +143,37 @@ export function PageFiltersContainer({
       return false;
     }
 
-    // Only act when maxPickableDays decreases (increasing the limit never invalidates selection)
-    if (
-      previousMaxPickableDays === maxPickableDays ||
-      previousMaxPickableDays < maxPickableDays
-    ) {
-      return false;
-    }
-
+    const effectiveMaxDays = maxDateRange ?? maxPickableDays;
     const {period, start, end} = selection.datetime;
 
     // For relative periods (e.g., "14d"), check if the period exceeds the new max
     if (period) {
-      return statsPeriodToDays(period) > maxPickableDays;
+      return statsPeriodToDays(period) > effectiveMaxDays;
     }
 
     // For absolute date ranges, check if the start date is before the allowed window.
     // Uses same calculation as initialization in pageFilters.tsx
     if (start && end) {
+      const periodStart = new Date(start);
+      const periodEnd = new Date(end);
       const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
       const maxStart = new Date(maxPeriod.start);
-      return new Date(start).getTime() < maxStart.getTime();
+
+      if (maxDateRange) {
+        const maxTimeRange = maxDateRange * DAY_IN_MS;
+        return (
+          periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
+          periodStart.getTime() < maxStart.getTime()
+        );
+      }
+
+      return periodStart.getTime() < maxStart.getTime();
     }
 
     return false;
-  }, [isReady, maxPickableDays, previousMaxPickableDays, selection.datetime]);
+  }, [isReady, maxDateRange, maxPickableDays, selection.datetime]);
+
+  const resetPeriodDays = maxDateRange ?? maxPickableDays;
 
   useLayoutEffect(() => {
     if (!shouldResetDateTime) {
@@ -175,7 +182,7 @@ export function PageFiltersContainer({
 
     // Reset to a relative period matching the new max (clears any absolute dates)
     const newDateState = getDatetimeFromState({
-      period: `${maxPickableDays}d`,
+      period: `${resetPeriodDays}d`,
       start: null,
       end: null,
       utc: selection.datetime.utc,
@@ -183,7 +190,7 @@ export function PageFiltersContainer({
       project: [],
     });
     updateDateTime(newDateState, location, navigate);
-  }, [maxPickableDays, location, navigate, selection.datetime.utc, shouldResetDateTime]);
+  }, [location, navigate, resetPeriodDays, selection.datetime.utc, shouldResetDateTime]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);

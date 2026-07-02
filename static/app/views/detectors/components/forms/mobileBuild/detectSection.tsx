@@ -60,7 +60,7 @@ export function MobileBuildDetectSection() {
   return (
     <Fragment>
       <Container>
-        <FormSection title={t('Choose Your Measurement')}>
+        <FormSection step={2} title={t('Choose Your Measurement')}>
           <MetricField
             name={PREPROD_DETECTOR_FORM_FIELDS.measurement}
             choices={metricOptions}
@@ -72,7 +72,7 @@ export function MobileBuildDetectSection() {
       </Container>
 
       <Container>
-        <FormSection title={t('Issue Detection')}>
+        <FormSection step={3} title={t('Issue Detection')}>
           <MeasurementField
             name={PREPROD_DETECTOR_FORM_FIELDS.thresholdType}
             choices={thresholdTypeOptions}

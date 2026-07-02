@@ -25,19 +25,20 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
         PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
     )
     def test_quick_start_sidebar_is_not_automatically_opened_after_project_creation(self) -> None:
-        self.browser.get("/organizations/new/")
+        with self.options({"system.url-prefix": self.browser.live_server_url}):
+            self.browser.get("/organizations/new/")
 
-        self.browser.element('input[name="name"]').send_keys("new org")
-        self.browser.element('input[name="agreeTerms"]').click()
-        self.browser.click('button[type="submit"]')
+            self.browser.element('input[name="name"]').send_keys("new org")
+            self.browser.element('input[name="agreeTerms"]').click()
+            self.browser.click('button[type="submit"]')
 
-        self.browser.wait_until_test_id("platform-javascript-react")
-        self.browser.click('[data-test-id="platform-javascript-react"')
-        self.browser.click('button[aria-label="Create Project"]')
+            self.browser.wait_until_test_id("platform-javascript-react")
+            self.browser.click('[data-test-id="platform-javascript-react"')
+            self.browser.click('button[aria-label="Create Project"]')
 
-        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
 
-        assert not self.browser.element_exists_by_test_id("quick-start-content")
+            assert not self.browser.element_exists_by_test_id("quick-start-content")
 
     @pytest.mark.skip(reason="Temporarily skipped")
     @with_feature("organizations:onboarding")

@@ -13,12 +13,13 @@ from sentry.incidents.endpoints.utils import translate_data_condition_type
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.migration_helpers.utils import get_resolve_threshold
+from sentry.workflow_engine.migration_helpers.utils import get_resolve_thresholds
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
     DataCondition,
     DataConditionAlertRuleTrigger,
+    DataConditionGroup,
     DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
@@ -28,7 +29,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class WorkflowEngineDataConditionSerializer(Serializer):
+class WorkflowEngineDataConditionSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self,
         item_list: Sequence[DataCondition],
@@ -77,15 +78,23 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         for dcg_ids in detector_to_dcg_ids.values():
             all_dcg_ids.update(dcg_ids)
 
-        # Map (condition_group_id, comparison) → action-filter DC exists in that DCG
-        # We need: for a given detector's DCGs + priority level → matching DCG IDs
-        # NOTE: Assumes DataConditions are limited to what would be dual written.
-        dcg_comparison_pairs: dict[int, set[int | float]] = defaultdict(set)
+        # Per action-filter DCG, the priority levels it gates on, and whether it gates on priority
+        # at all. A DCG with no priority gate fires for any priority, so its actions attach to every trigger.
+        # DCG_id -> priority number (e.g 75 is HIGH)
+        # E.g.  {1: {75, 50}, 2: {75}}
+        dcg_priority_comparisons_mapping: dict[int, set[int | float]] = defaultdict(set)
+
+        # A set of DCG ids that have a issue priority condition
+        dcgs_with_priority_condition: set[int] = set()
         for dc in DataCondition.objects.filter(condition_group__in=all_dcg_ids):
+            if dc.type != Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL:
+                continue
+            dcgs_with_priority_condition.add(dc.condition_group_id)
+
             # Only collect numeric comparison values; non-numeric values (e.g. dicts
             # from anomaly detection conditions) don't match condition_result levels.
             if isinstance(dc.comparison, (int, float)):
-                dcg_comparison_pairs[dc.condition_group_id].add(dc.comparison)
+                dcg_priority_comparisons_mapping[dc.condition_group_id].add(dc.comparison)
 
         # Bulk-fetch all DCG → action mappings
         dcg_to_action_ids: dict[int, list[int]] = defaultdict(list)
@@ -112,6 +121,12 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             )
         )
 
+        # Bulk-fetch resolve thresholds for all condition groups
+        condition_groups_by_id = {
+            cg.id: cg for cg in DataConditionGroup.objects.filter(id__in=condition_group_ids)
+        }
+        resolve_thresholds = get_resolve_thresholds(list(condition_groups_by_id.values()))
+
         result: defaultdict[DataCondition, dict[str, Any]] = defaultdict(dict)
 
         for trigger in item_list:
@@ -119,11 +134,12 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             detector_id = detector.id if detector else None
             trigger_dcg_ids = detector_to_dcg_ids.get(detector_id, set()) if detector_id else set()
 
-            # Find DCGs in this detector's workflows that match the trigger's priority level
+            # Find DCGs in this detector's workflows that match the trigger's priority level, or has no priority gate at all.
             matching_dcg_ids = [
                 dcg_id
                 for dcg_id in trigger_dcg_ids
-                if trigger.condition_result in dcg_comparison_pairs.get(dcg_id, set())
+                if trigger.condition_result in dcg_priority_comparisons_mapping.get(dcg_id, set())
+                or dcg_id not in dcgs_with_priority_condition
             ]
 
             # Collect actions from those DCGs
@@ -137,8 +153,8 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 key=lambda a: a.id,
             )
 
-            alert_rule_trigger_id = trigger_id_map.get(
-                trigger.id, get_fake_id_from_object_id(trigger.id)
+            alert_rule_trigger_id = trigger_id_map.get(trigger.id) or get_fake_id_from_object_id(
+                trigger.id
             )
 
             serialized_actions = serialize(
@@ -158,6 +174,9 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             result[trigger]["detector"] = detector
             result[trigger]["alert_rule_trigger_id"] = alert_rule_trigger_id
             result[trigger]["alert_rule_id"] = alert_rule_id
+            result[trigger]["resolve_threshold"] = resolve_thresholds.get(
+                trigger.condition_group_id
+            )
 
         return result
 
@@ -169,9 +188,11 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         **kwargs: Any,
     ) -> dict[str, Any]:
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
-        detector = attrs["detector"]
-        alert_rule_trigger_id = attrs["alert_rule_trigger_id"]
-        alert_rule_id = attrs["alert_rule_id"]
+        detector: Detector | None = attrs["detector"]
+        alert_rule_trigger_id: int = attrs["alert_rule_trigger_id"]
+        alert_rule_id: int | None = attrs["alert_rule_id"]
+
+        comparison_delta = detector.config.get("comparison_delta") if detector else None
 
         if obj.type == Condition.ANOMALY_DETECTION:
             threshold_type = obj.comparison["threshold_type"]
@@ -179,25 +200,24 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         else:
             threshold_type = (
                 AlertRuleThresholdType.ABOVE.value
-                if obj.type == Condition.GREATER
+                if obj.type in (Condition.GREATER, Condition.GREATER_OR_EQUAL)
                 else AlertRuleThresholdType.BELOW.value
             )
             # For static/metric rules, calculate resolve threshold from the resolve condition
             resolve_threshold = translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                comparison_delta,
                 obj.type,
-                get_resolve_threshold(obj.condition_group),
+                attrs["resolve_threshold"],
             )
-
         return {
             "id": str(alert_rule_trigger_id),
-            "alertRuleId": str(alert_rule_id),
+            "alertRuleId": str(alert_rule_id) if alert_rule_id is not None else None,
             "label": (
                 "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
             ),
             "thresholdType": threshold_type,
             "alertThreshold": translate_data_condition_type(
-                detector.config.get("comparison_delta"),
+                comparison_delta,
                 obj.type,
                 (
                     0 if obj.type == Condition.ANOMALY_DETECTION else obj.comparison

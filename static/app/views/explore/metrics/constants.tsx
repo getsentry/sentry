@@ -7,11 +7,15 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
+  type SampleTableColumnKey,
   type TraceMetricFieldKey,
 } from 'sentry/views/explore/metrics/types';
+
+export const NONE_UNIT = 'none';
 
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
@@ -62,9 +66,13 @@ export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
+export const HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET = new Set(
+  HiddenTraceMetricGroupByFields
+);
+
 const TRACEMETRICS_FILTERS: FilterKeySection = {
   value: 'tracemetrics_filters',
-  label: t('Metrics'),
+  label: t('Application Metrics'),
   children: [...SENTRY_TRACEMETRIC_STRING_TAGS, ...SENTRY_TRACEMETRIC_NUMBER_TAGS],
 };
 
@@ -72,37 +80,44 @@ export const TRACEMETRICS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   TRACEMETRICS_FILTERS,
 ];
 
-export const TraceSamplesTableStatColumns: VirtualTableSampleColumnKey[] = [
-  VirtualTableSampleColumnKey.LOGS,
-  VirtualTableSampleColumnKey.SPANS,
-  VirtualTableSampleColumnKey.ERRORS,
-];
-
 export const TraceSamplesTableColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
-  TraceMetricKnownFieldKey.TIMESTAMP,
   TraceMetricKnownFieldKey.TRACE,
-  ...TraceSamplesTableStatColumns,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
 export const TraceSamplesTableEmbeddedColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
-  TraceMetricKnownFieldKey.TIMESTAMP,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
-export const NoPaddingColumns: VirtualTableSampleColumnKey[] = [
-  VirtualTableSampleColumnKey.EXPAND_ROW,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
-];
+const VIRTUAL_SAMPLE_COLUMNS = new Set<string>(
+  Object.values(VirtualTableSampleColumnKey)
+);
+
+function isVirtualSampleColumn(
+  column: SampleTableColumnKey
+): column is VirtualTableSampleColumnKey {
+  return VIRTUAL_SAMPLE_COLUMNS.has(column);
+}
+
+export function getTraceSamplesTableFields(
+  columns: SampleTableColumnKey[]
+): TraceMetricFieldKey[] {
+  return columns.filter(
+    (column): column is TraceMetricFieldKey => !isVirtualSampleColumn(column)
+  );
+}
 
 export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
   counter: [
@@ -334,7 +349,22 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
 };
 
 /**
+ * Heat maps plot the distribution of a measurement's values over time, so they
+ * only make sense for `distribution` metrics. Counters (always `1`) and gauges
+ * have no meaningful value distribution to visualize.
+ */
+export function doesMetricSupportHeatMapVisualization(metric: TraceMetric): boolean {
+  return metric.type === 'distribution';
+}
+
+export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);
+
+/**
  * Query parameter key for controlling the metrics drawer state.
  * When this parameter is set to 'true', the metrics drawer should open automatically.
  */
 export const METRICS_DRAWER_QUERY_PARAM = 'metricsDrawer';
+
+// We do not support labels beyond Z yet, due to requiring single-character labels
+// for the arithmetic builder currently.
+export const MAX_METRIC_ALLOWED_LABEL_VALUE = 'Z';

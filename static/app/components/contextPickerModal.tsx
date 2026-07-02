@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
@@ -26,10 +27,11 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -66,7 +68,7 @@ type SharedProps = ModalRenderProps & {
 };
 
 type ContentProps = SharedProps & {
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   setSelectedOrgSlug: (slug: string) => void;
   projectSlugs?: string[];
@@ -118,13 +120,15 @@ function ContextPickerContent({
   // Note: use `isLoading` (not `isPending`) because `isPending` is true when
   // `enabled` is false (query hasn't started). `isLoading` = isPending && isFetching,
   // so it's only true when the query is actively running.
-  const {data: rawProjects = [], isLoading: projectsLoading} = useApiQuery<Project[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: selectedOrgSlug ?? ''},
-      }),
-    ],
-    {staleTime: Infinity, enabled: !!selectedOrgSlug && needProject}
+  const {data: rawProjects = [], isLoading: projectsLoading} = useQuery(
+    apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path:
+        selectedOrgSlug && needProject
+          ? {organizationIdOrSlug: selectedOrgSlug}
+          : skipToken,
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
+      staleTime: Infinity,
+    })
   );
 
   const projects = useMemo(() => {
@@ -135,13 +139,12 @@ function ContextPickerContent({
     return rawProjects.filter(p => slugSet.has(p.slug));
   }, [rawProjects, projectSlugs]);
 
-  const {data: teams = [], isLoading: teamsLoading} = useApiQuery<Team[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
-        path: {organizationIdOrSlug: selectedOrgSlug ?? ''},
-      }),
-    ],
-    {staleTime: Infinity, enabled: !!selectedOrgSlug && needTeam}
+  const {data: teams = [], isLoading: teamsLoading} = useQuery(
+    apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+      path:
+        selectedOrgSlug && needTeam ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+      staleTime: Infinity,
+    })
   );
 
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | null>(null);
@@ -462,7 +465,7 @@ function TeamSelector({
 function ConfigUrlContainer(
   props: SharedProps & {
     configQueryKey: ApiQueryKey;
-    organizations: Organization[];
+    organizations: OrganizationSummary[];
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
@@ -512,7 +515,7 @@ function ConfigPickerContent({
   Body,
 }: SharedProps & {
   integrationConfigs: Integration[];
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
 }) {

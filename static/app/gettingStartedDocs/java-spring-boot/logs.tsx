@@ -43,7 +43,7 @@ export const logs: OnboardingConfig = {
             {
               label: 'application.properties',
               language: 'properties',
-              code: `sentry.logs.enabled=true`,
+              code: 'sentry.logs.enabled=true',
             },
             {
               label: 'application.yml',

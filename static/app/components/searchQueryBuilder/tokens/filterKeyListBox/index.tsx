@@ -16,7 +16,12 @@ import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -63,7 +68,7 @@ function ListBoxSectionButton({
   return (
     <SectionButton
       size="zero"
-      priority="transparent"
+      variant="transparent"
       aria-selected={selected}
       onClick={onClick}
       tabIndex={-1}
@@ -74,7 +79,7 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
-  const {searchSource} = useSearchQueryBuilder();
+  const {searchSource} = useSearchQueryBuilderConfig();
 
   return (
     <SectionedOverlayFooter>
@@ -204,7 +209,8 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys, enableAISearch} = useSearchQueryBuilder();
+  const {filterKeys} = useSearchQueryBuilderConfig();
+  const {enableAISearch} = useSearchQueryBuilderAI();
   const focusedItem = state.selectionManager.focusedKey
     ? (state.collection.getItem(state.selectionManager.focusedKey)?.props?.value as
         | string
@@ -218,7 +224,10 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
     <Fragment>
       {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
-        <RecentFiltersPane>
+        <RecentFiltersPane
+          // PanelBody applies legacy textStyles to plain ul elements; opt this layout row out.
+          data-panel-body-text-styles="ignore"
+        >
           {recentFilters.map(filter => (
             <RecentSearchFilterOption
               key={getKeyName(filter.key)}
@@ -290,8 +299,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query, portalTarget, enableAISearch, size} =
-    useSearchQueryBuilder();
+  const {query} = useSearchQueryBuilderState();
+  const {filterKeyMenuWidth, wrapperRef, portalTarget, size} =
+    useSearchQueryBuilderLayout();
+  const {enableAISearch} = useSearchQueryBuilderAI();
 
   const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
     const baseHidden = [
@@ -300,8 +311,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     ];
 
     if (enableAISearch) {
-      baseHidden.push(ASK_SEER_ITEM_KEY);
-      baseHidden.push(ASK_SEER_CONSENT_ITEM_KEY);
+      baseHidden.push(ASK_SEER_ITEM_KEY, ASK_SEER_CONSENT_ITEM_KEY);
     }
 
     return new Set(baseHidden);

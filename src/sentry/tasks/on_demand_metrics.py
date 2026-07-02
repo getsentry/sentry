@@ -436,10 +436,14 @@ def check_field_cardinality(
     with sentry_sdk.isolation_scope() as scope:
         if widget_query:
             scope.set_tag("widget_query.widget_id", widget_query.id)
+            scope.set_attribute("widget_query.widget_id", widget_query.id)
             scope.set_tag("widget_query.org_slug", organization.slug)
+            scope.set_attribute("widget_query.org_slug", organization.slug)
             scope.set_tag("widget_query.conditions", widget_query.conditions)
+            scope.set_attribute("widget_query.conditions", widget_query.conditions)
         else:
             scope.set_tag("cardinality_check.org_slug", organization.slug)
+            scope.set_attribute("cardinality_check.org_slug", organization.slug)
 
         try:
             processed_results, columns_to_check = _query_cardinality(
@@ -452,6 +456,7 @@ def check_field_cardinality(
 
                 if not column_low_cardinality:
                     scope.set_tag("widget_query.column_name", column)
+                    scope.set_attribute("widget_query.column_name", column)
                     if widget_query:
                         sentry_sdk.capture_message(
                             "On Demand Metrics: Cardinality exceeded for dashboard_widget_query",

@@ -8,8 +8,8 @@ import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
 } from 'sentry/utils/issueTypeConfig';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type EvidenceProps = {
   event: Event;
@@ -46,10 +46,9 @@ export function EventEvidence({
   }
 
   return (
-    <InterimSection
-      type={SectionKey.EVIDENCE}
+    <FoldSection
+      sectionKey={SectionKey.EVIDENCE}
       title={config.title}
-      help={config.helpText}
       disableCollapsePersistence={disableCollapsePersistence}
     >
       <KeyValueList
@@ -60,6 +59,6 @@ export function EventEvidence({
         }))}
         shouldSort={false}
       />
-    </InterimSection>
+    </FoldSection>
   );
 }

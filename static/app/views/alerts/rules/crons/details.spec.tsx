@@ -46,7 +46,7 @@ describe('Monitor Details', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [],
     });
   });

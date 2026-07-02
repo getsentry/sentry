@@ -209,7 +209,7 @@ export class EventedProfile extends Profile {
     this.lastValue = at;
   }
 
-  build(): EventedProfile {
+  build(): this {
     if (this.calltree.length > 1) {
       throw new Error('Unbalanced append order stack');
     }

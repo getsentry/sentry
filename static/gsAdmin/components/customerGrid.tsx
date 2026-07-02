@@ -9,7 +9,7 @@ import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerName} from 'admin/components/customerName';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {PercentChange} from 'admin/components/percentChange';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Subscription} from 'getsentry/types';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
@@ -82,6 +82,12 @@ export function CustomerGrid(props: Props) {
     <ResultGrid
       inPanel
       isCellScoped
+      probeAcrossRegions
+      // An exact match is an org whose slug equals the searched term, so we can
+      // surface the cross-region hint even when only similar slugs come back in
+      // the current region. `query` arrives trimmed + lower-cased; org slugs are
+      // always lower-case, so a direct comparison is correct.
+      exactMatchQuery={(row: Subscription, query: string) => row.slug === query}
       path="/_admin/customers/"
       method="GET"
       columns={[

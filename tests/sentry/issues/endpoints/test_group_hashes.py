@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -120,32 +119,20 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         eventstream.end_merge(state)
 
-        # Get the grouphashes for both events (refresh after merge)
+        # Get the grouphashes for both events
         hash1 = event1.get_primary_hash()
         hash2 = event2.get_primary_hash()
-
-        # Refresh the grouphashes after merge to get updated group assignments
         grouphash1 = GroupHash.objects.get(project=self.project, hash=hash1)
         grouphash2 = GroupHash.objects.get(project=self.project, hash=hash2)
+        assert grouphash2.metadata
 
-        # Manually update grouphash2 to point to the merged group (event1.group_id)
+        # Manually update grouphash2 to point to the merged group (event1.group_id) and its metadata
+        # to reflect the Seer match
         grouphash2.group = event1.group
+        grouphash2.metadata.seer_matched_grouphash = grouphash1
+        grouphash2.metadata.seer_match_distance = 0.01
         grouphash2.save()
-
-        # Get or create metadata for both grouphashes
-        metadata1, _ = GroupHashMetadata.objects.get_or_create(
-            grouphash=grouphash1, defaults={"schema_version": "8"}
-        )
-        metadata2, _ = GroupHashMetadata.objects.get_or_create(
-            grouphash=grouphash2,
-            defaults={
-                "schema_version": "8",
-                "seer_matched_grouphash": grouphash1,  # hash2 points to hash1 as its seer match
-            },
-        )
-        # Update the seer match if metadata already existed
-        metadata2.seer_matched_grouphash = grouphash1
-        metadata2.save()
+        grouphash2.metadata.save()
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
@@ -159,9 +146,34 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         # hash1 should not be matched by seer (it's the parent)
         assert hash1_data["mergedBySeer"] is False
+        assert hash1_data["seerMatchDistance"] is None
 
         # hash2 should be matched by seer (it points to hash1)
         assert hash2_data["mergedBySeer"] is True
+        assert hash2_data["seerMatchDistance"] == 0.01
+
+    def test_full_param(self) -> None:
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group_id}/hashes/"
+
+        response = self.client.get(f"{url}?full=true", format="json")
+        assert response.status_code == 200, response.content
+        assert "entries" in response.data[0]["latestEvent"]
+
+        response = self.client.get(f"{url}?full=false", format="json")
+        assert response.status_code == 200, response.content
+        assert "entries" not in response.data[0]["latestEvent"]
 
     def test_unmerge(self) -> None:
         self.login_as(user=self.user)
@@ -248,3 +260,48 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 409
         assert response.data["detail"] == "Already being unmerged"
+
+    def test_unmerge_rejects_large_group(self) -> None:
+        self.login_as(user=self.user)
+
+        group = self.create_group(platform="javascript", times_seen=10001)
+
+        hashes = [
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
+        ]
+
+        url = "?".join(
+            [
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
+                urlencode({"id": [h.hash for h in hashes]}, True),
+            ]
+        )
+
+        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
+            response = self.client.put(url, format="json")
+
+        assert response.status_code == 400
+        assert "temporarily restricted" in response.data["detail"]
+
+    def test_unmerge_allows_group_at_threshold(self) -> None:
+        self.login_as(user=self.user)
+
+        group = self.create_group(platform="javascript", times_seen=10000)
+
+        hashes = [
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
+        ]
+
+        url = "?".join(
+            [
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
+                urlencode({"id": [h.hash for h in hashes]}, True),
+            ]
+        )
+
+        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
+            response = self.client.put(url, format="json")
+
+        assert response.status_code == 202

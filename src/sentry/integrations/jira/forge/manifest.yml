@@ -1,0 +1,57 @@
+app:
+  id: ari:cloud:ecosystem::app/b48115c6-8f4c-4bb6-9bbe-f20c25f26bcf
+  connect:
+    key: sentry.io.jira
+    remote: connect
+    authentication: jwt
+  runtime:
+    name: nodejs22.x
+remotes:
+  - key: connect
+    baseUrl: https://sentry.io
+connectModules:
+  jira:lifecycle:
+    - key: lifecycle-events
+      installed: /extensions/jira/installed/
+      uninstalled: /extensions/jira/uninstalled/
+  jira:postInstallPage:
+    - url: /extensions/jira/ui-hook/
+      name:
+        value: Configure Sentry Add-on
+      key: post-install-sentry
+  jira:configurePage:
+    - url: /extensions/jira/ui-hook/
+      name:
+        value: Configure Sentry Add-on
+      key: configure-sentry
+  jira:jiraIssueContexts:
+    - icon:
+        width: 24
+        height: 24
+        url: https://sentry.io/_static/dist/sentry/entrypoints/logo-sentry.svg
+      content:
+        type: label
+        label:
+          value: Linked Issues
+      target:
+        type: web_panel
+        url: /extensions/jira/issue-details/{issue.key}/
+      name:
+        value: 'Sentry '
+      key: sentry-issues-glance
+  jira:webhooks:
+    - event: jira:issue_updated
+      url: /extensions/jira/issue-updated/
+      excludeBody: false
+      key: sentry-issue-updated-webhook
+permissions:
+  scopes:
+    - read:connect-jira
+    - write:connect-jira
+    - act-as-user:connect-jira
+    # The Connect descriptor conditionally includes this scope based on
+    # JIRA_USE_EMAIL_SCOPE. This Forge manifest is only used for the
+    # sentry.io Marketplace listing where that setting is enabled;
+    # self-hosted installs use their own Connect descriptor.
+    - access-email-addresses:connect-jira
+modules: {}

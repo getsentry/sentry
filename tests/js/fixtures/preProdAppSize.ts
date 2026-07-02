@@ -26,7 +26,7 @@ export function ProcessedInsightFixture(
       {
         path: 'src/components/Icon.js',
         savings: 256000,
-        percentage: 4.0,
+        percentage: 4,
         data: {
           fileType: 'regular' as const,
           originalFile: {
@@ -38,11 +38,11 @@ export function ProcessedInsightFixture(
       {
         path: 'src/assets/logo.png',
         savings: 128000,
-        percentage: 2.0,
+        percentage: 2,
         data: {
           fileType: 'optimizable_image' as const,
           minifyPercentage: 0,
-          conversionPercentage: 2.0,
+          conversionPercentage: 2,
           isDuplicateVariant: false,
           originalFile: {
             file_path: 'src/assets/logo.png',

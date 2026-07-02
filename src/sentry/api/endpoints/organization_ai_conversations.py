@@ -1,4 +1,3 @@
-import json  # noqa: S003
 import logging
 from collections import defaultdict
 from datetime import datetime
@@ -17,6 +16,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.constants import NON_FAILURE_STATUS
@@ -24,6 +24,13 @@ from sentry.search.events.types import SAMPLING_MODES
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.ai_message_normalizer import (
+    FILTERED,
+    extract_assistant_output,
+    normalize_to_messages,
+    stringify_message_content,
+)
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -61,48 +68,18 @@ def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
 
 
-def _parse_messages(messages: str | list | None) -> list | None:
-    if not messages:
-        return None
-    if isinstance(messages, str):
-        try:
-            messages = json.loads(messages)
-        except (json.JSONDecodeError, TypeError):
-            return None
-    if not isinstance(messages, list):
-        return None
-    return messages
-
-
-def _extract_content_from_parts(msg: dict) -> str | None:
-    """Extract text content from a message with parts format, concatenating multiple text parts."""
-    parts = msg.get("parts", [])
-    if not isinstance(parts, list):
-        return None
-
-    text_contents = []
-    for part in parts:
-        if isinstance(part, dict) and part.get("type") == "text":
-            content = part.get("content")
-            if content:
-                text_contents.append(content)
-
-    return "\n".join(text_contents) if text_contents else None
-
-
-def _extract_first_user_message(messages: str | list | None) -> str | None:
+def _extract_first_user_message(messages: Any) -> str | None:
     """Extract first user message, handling both old (content) and new (parts) formats."""
-    parsed = _parse_messages(messages)
+    if isinstance(messages, str) and messages == FILTERED:
+        return FILTERED
+    parsed = normalize_to_messages(messages, "user")
     if not parsed:
         return None
     for msg in parsed:
-        if isinstance(msg, dict) and msg.get("role") == "user":
-            # Try old format first (content field)
-            content = msg.get("content")
+        if msg.get("role") == "user":
+            content = stringify_message_content(msg.get("content"))
             if content:
                 return content
-            # Try new parts format
-            return _extract_content_from_parts(msg)
     return None
 
 
@@ -131,24 +108,14 @@ def _get_last_output(row: dict) -> str | None:
     Gets output text from output attributes, checking in priority order.
     Priority: gen_ai.output.messages > gen_ai.response.text
     """
-    # 1. Check new format first (gen_ai.output.messages)
     output_messages = row.get("gen_ai.output.messages")
     if output_messages:
-        # Extract text from the last assistant message
-        parsed = _parse_messages(output_messages)
-        if parsed:
-            for msg in reversed(parsed):
-                if isinstance(msg, dict) and msg.get("role") == "assistant":
-                    # Try old format first (content field)
-                    content = msg.get("content")
-                    if content:
-                        return content
-                    # Try new parts format
-                    parts_content = _extract_content_from_parts(msg)
-                    if parts_content:
-                        return parts_content
+        if output_messages == FILTERED:
+            return FILTERED
+        text = extract_assistant_output(output_messages, "assistant")["response_text"]
+        if text:
+            return text
 
-    # 2. Check current format (gen_ai.response.text)
     response_text = row.get("gen_ai.response.text")
     if response_text:
         return response_text
@@ -188,6 +155,8 @@ def _build_conversation_response(
     llm_calls: int,
     tool_calls: int,
     total_tokens: int,
+    input_tokens: int,
+    output_tokens: int,
     total_cost: float,
     trace_ids: list[str],
     flow: list[str],
@@ -204,6 +173,8 @@ def _build_conversation_response(
         "llmCalls": llm_calls,
         "toolCalls": tool_calls,
         "totalTokens": total_tokens,
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
         "totalCost": total_cost,
         "startTimestamp": start_timestamp,
         "endTimestamp": end_timestamp,
@@ -266,11 +237,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        base_filter = (
-            "has:gen_ai.conversation.id"
-            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
-            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
-        )
+        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
@@ -279,6 +246,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
         sentry_sdk.set_tag("ai_conversations.count", len(conversation_ids))
+        sentry_sdk.set_attribute("ai_conversations.count", len(conversation_ids))
 
         if not conversation_ids:
             return []
@@ -319,13 +287,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ]
 
         # Execute all queries in a single bulk RPC call
-        with sentry_sdk.start_span(
-            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
-        ):
+        with start_span(op="ai_conversations.bulk_rpc", name="Execute bulk table queries"):
             results = Spans.run_bulk_table_queries(queries)
 
         # Process results
-        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+        with start_span(op="ai_conversations.process", name="Process query results"):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
             self._apply_enrichment(conversations_map, results["enrichment"])
             self._apply_first_last_io(conversations_map, results["first_last_io"])
@@ -341,13 +307,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="aggregations",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}]",
+            query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
                 "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
                 "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
@@ -365,7 +333,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="enrichment",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] has:gen_ai.operation.type",
+            query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} has:gen_ai.operation.type",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.operation.type",
@@ -392,7 +360,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> TableQuery:
         return TableQuery(
             name="first_last_io",
-            query_string=f"gen_ai.conversation.id:[{','.join(conversation_ids)}] gen_ai.operation.type:ai_client",
+            query_string=f"{build_escaped_term_filter('gen_ai.conversation.id', conversation_ids)} gen_ai.operation.type:ai_client",
             selected_columns=[
                 "gen_ai.conversation.id",
                 "gen_ai.input.messages",
@@ -412,7 +380,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
@@ -436,6 +404,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                         )
                         or 0
                     ),
+                    input_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    output_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
                     total_cost=float(
                         row.get(
                             "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
@@ -453,12 +433,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_enrichment",
             name="Apply enrichment data",
         ) as span:
             enrichment_rows = enrichment_data.get("data", [])
-            span.set_data("rows_count", len(enrichment_rows))
+            set_span_data(span, "rows_count", len(enrichment_rows))
 
             flows_by_conversation: dict[str, list[str]] = defaultdict(list)
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
@@ -512,12 +492,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_first_last_io",
             name="Apply first/last IO data",
         ) as span:
             io_rows = first_last_io_data.get("data", [])
-            span.set_data("rows_count", len(io_rows))
+            set_span_data(span, "rows_count", len(io_rows))
 
             first_input_by_conv: dict[str, str] = {}
             last_output_by_conv: dict[str, tuple[float, str]] = {}

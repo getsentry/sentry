@@ -324,7 +324,10 @@ def validate_actor(actor: Actor, organization_id: int) -> None:
         if obj.organization_id != organization_id:
             raise serializers.ValidationError("Team is not a member of this organization")
     elif isinstance(obj, RpcUser):
-        if not OrganizationMember.objects.filter(
+        membership = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=obj.id
-        ).exists():
+        ).first()
+        if not membership:
             raise serializers.ValidationError("User is not a member of this organization")
+        if not membership.user_is_active:
+            raise serializers.ValidationError("Cannot assign to a deactivated member")

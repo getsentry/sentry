@@ -1,6 +1,8 @@
-import {Button} from '@sentry/scraps/button';
+import {useMemo} from 'react';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,9 +13,13 @@ import {
   actionNodesMap,
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
+import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function TicketActionSettingsButton() {
+  const {openModal} = useModal();
+
   const {action, onUpdate} = useActionNodeContext();
+  const {automation} = useAutomationFormContext();
 
   const ticketAction = action as TicketCreationAction;
 
@@ -27,7 +33,8 @@ export function TicketActionSettingsButton() {
         // Overwrite the choices because the user's pick is in this list.
         if (
           field.name in formData &&
-          fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+          fetchedFieldOptionsCache &&
+          Object.hasOwn(fetchedFieldOptionsCache, field.name)
         ) {
           field.choices = fetchedFieldOptionsCache[field.name];
         }
@@ -42,10 +49,35 @@ export function TicketActionSettingsButton() {
     });
   };
 
+  // Find saved action data from the API response
+  const savedActionData = useMemo(() => {
+    if (!automation) {
+      return;
+    }
+
+    for (const af of automation.actionFilters) {
+      const found = af.actions?.find(a => a.id === action.id);
+      if (found) {
+        return found.data;
+      }
+    }
+
+    return;
+  }, [automation, action.id]);
+
+  const additionalFields =
+    ticketAction.data.additional_fields ??
+    savedActionData?.additionalFields ??
+    savedActionData?.additional_fields;
+
+  const dynamicFormFields = ticketAction.data.dynamic_form_fields?.length
+    ? ticketAction.data.dynamic_form_fields
+    : (savedActionData?.dynamicFormFields ?? savedActionData?.dynamic_form_fields ?? []);
+
   const instance = {
-    ...ticketAction.data.additional_fields,
+    ...additionalFields,
     integration: ticketAction.integrationId,
-    dynamic_form_fields: ticketAction.data.dynamic_form_fields || [],
+    dynamic_form_fields: dynamicFormFields,
   } as TicketActionData;
 
   return (

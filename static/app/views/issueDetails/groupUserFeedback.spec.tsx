@@ -16,7 +16,7 @@ describe('GroupUserFeedback', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/`,
+    route: '/organizations/:orgId/issues/:groupId/',
   };
 
   beforeEach(() => {

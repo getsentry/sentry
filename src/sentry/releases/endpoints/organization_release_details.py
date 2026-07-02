@@ -1,7 +1,7 @@
 import sentry_sdk
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
-from rest_framework.exceptions import ParseError
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_serializer
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
@@ -17,6 +17,10 @@ from sentry.api.endpoints.organization_releases import (
     get_stats_period_detail,
 )
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
+from sentry.api.helpers.projects import (
+    PROJECT_ID_OR_SLUG_SCHEMA,
+    ProjectIdOrSlugField,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -32,10 +36,15 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
@@ -298,7 +307,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -306,11 +315,26 @@ class OrganizationReleaseDetailsEndpoint(
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Release",
+        operation_id="getOrganizationRelease",
+        summary="Retrieve an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            ReleaseParams.PROJECT_ID,
+            OpenApiParameter(
+                name="project_id",
+                location="query",
+                required=False,
+                type=str,
+                deprecated=True,
+                description="Deprecated. Use project instead.",
+            ),
+            OpenApiParameter(
+                name="project",
+                location="query",
+                required=False,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
+                description="The project ID or slug to filter by. Overrides project_id when both are sent.",
+            ),
             ReleaseParams.HEALTH,
             ReleaseParams.ADOPTION_STAGES,
             ReleaseParams.SUMMARY_STATS_PERIOD,
@@ -327,14 +351,16 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def get(self, request: Request, organization, version) -> Response:
+    def get(
+        self, request: Request, organization, version
+    ) -> Response[ReleaseSerializerResponse] | Response[DetailResponse]:
         """
 
         Return details on an individual release.
         """
         # Dictionary responsible for storing selected project meta data
         current_project_meta = {}
-        project_id = request.GET.get("project")
+        project_id = request.GET.get("project") or request.GET.get("project_id")
         with_health = request.GET.get("health") == "1"
         with_adoption_stages = request.GET.get("adoptionStages") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
@@ -356,20 +382,45 @@ class OrganizationReleaseDetailsEndpoint(
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        if with_health and project_id:
+        # Validate project access when a project identifier is provided.
+        project = None
+        project_ids: set[int] | None = None
+        project_slugs: set[str] | None = None
+        if project_id:
             try:
-                project = Project.objects.get_from_cache(id=int(project_id))
-            except (ValueError, Project.DoesNotExist):
+                project_id_or_slug = ProjectIdOrSlugField().run_validation(project_id)
+            except ValidationError:
                 raise ParseError(detail="Invalid project")
+
+            if isinstance(project_id_or_slug, int):
+                if project_id_or_slug == ALL_ACCESS_PROJECT_ID:
+                    raise ParseError(detail="Invalid project")
+                project_ids = {project_id_or_slug}
+            else:
+                if project_id_or_slug == ALL_ACCESS_PROJECTS_SLUG:
+                    raise ParseError(detail="Invalid project")
+                project_slugs = {project_id_or_slug}
+
+            validated_projects = self.get_projects(
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
+            )
+            if not validated_projects:
+                raise ResourceDoesNotExist
+            project = validated_projects[0]
+
+        if with_health and project:
             release._for_project_id = project.id
 
-        if project_id:
+        if project:
             # Add sessions time bound to current project meta data
             environments = set(request.GET.getlist("environment")) or None
             current_project_meta.update(
                 {
                     **release_health.backend.get_release_sessions_time_bounds(
-                        project_id=int(project_id),
+                        project_id=project.id,
                         release=release.version,
                         org_id=organization.id,
                         environments=environments,
@@ -379,7 +430,12 @@ class OrganizationReleaseDetailsEndpoint(
 
             # Get prev and next release to current release
             try:
-                filter_params = self.get_filter_params(request, organization)
+                filter_params = self.get_filter_params(
+                    request,
+                    organization,
+                    project_ids=project_ids,
+                    project_slugs=project_slugs,
+                )
                 current_project_meta.update(
                     {
                         **self.get_adjacent_releases_to_current_release(
@@ -394,7 +450,7 @@ class OrganizationReleaseDetailsEndpoint(
                         **self.get_first_and_last_releases(
                             org=organization,
                             environment=filter_params.get("environment"),
-                            project_id=[project_id],
+                            project_id=[project.id],
                             sort=sort,
                         ),
                     }
@@ -402,20 +458,20 @@ class OrganizationReleaseDetailsEndpoint(
             except InvalidSortException:
                 return Response({"detail": "invalid sort"}, status=400)
 
-        return Response(
-            serialize(
-                release,
-                request.user,
-                with_health_data=with_health,
-                with_adoption_stages=with_adoption_stages,
-                summary_stats_period=summary_stats_period,
-                health_stats_period=health_stats_period,
-                current_project_meta=current_project_meta,
-            )
+        data: ReleaseSerializerResponse = serialize(
+            release,
+            request.user,
+            with_health_data=with_health,
+            with_adoption_stages=with_adoption_stages,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
+            current_project_meta=current_project_meta,
         )
+        return Response(data)
 
     @extend_schema(
-        operation_id="Update an Organization's Release",
+        operation_id="updateOrganizationRelease",
+        summary="Update an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -429,7 +485,9 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def put(self, request: Request, organization: Organization, version) -> Response:
+    def put(
+        self, request: Request, organization: Organization, version
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
 
         Update a release. This can change some metadata associated with
@@ -439,6 +497,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("version", version)
+        scope.set_attribute("version", version)
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
             projects = release.projects.all()
@@ -456,7 +515,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
 
@@ -506,6 +565,7 @@ class OrganizationReleaseDetailsEndpoint(
                     release.clear_commits()
 
         scope.set_tag("has_refs", bool(refs))
+        scope.set_attribute("has_refs", bool(refs))
         if refs:
             if not request.user.is_authenticated and not request.auth:
                 scope.set_tag("failure_reason", "user_not_authenticated")
@@ -531,14 +591,14 @@ class OrganizationReleaseDetailsEndpoint(
                 )
 
         no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        return Response(
-            serialize(
-                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-            )
+        data: ReleaseSerializerResponse = serialize(
+            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
         )
+        return Response(data)
 
     @extend_schema(
-        operation_id="Delete an Organization's Release",
+        operation_id="deleteOrganizationRelease",
+        summary="Delete an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -550,7 +610,9 @@ class OrganizationReleaseDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version) -> Response:
+    def delete(
+        self, request: Request, organization, version
+    ) -> Response[None] | Response[DetailResponse]:
         """
 
         Permanently remove a release and all of its files.

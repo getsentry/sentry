@@ -295,7 +295,11 @@ def test_variable_resolution() -> None:
         ("{{  default }}", "{{ default }}"),
         ("{{ dog }}", "<unrecognized-variable-dog>"),
         ("{{ message }}", "That's ball number <int> that Charlie hasn't brought back!"),
+        ("{{ value }}", "That's ball number <int> that Charlie hasn't brought back!"),
+        ("{{ error.value }}", "That's ball number <int> that Charlie hasn't brought back!"),
         ("{{ raw_message }}", "That's ball number 6 that Charlie hasn't brought back!"),
+        ("{{ raw_value }}", "That's ball number 6 that Charlie hasn't brought back!"),
+        ("{{ error.raw_value }}", "That's ball number 6 that Charlie hasn't brought back!"),
     ]:
         assert resolve_fingerprint_values([fingerprint_entry], event, context) == [
             expected_resolved_value

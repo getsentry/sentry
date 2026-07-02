@@ -1,4 +1,5 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -14,7 +15,7 @@ import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 describe('OrganizationAuthTokensAuthTokenRow', () => {
-  const {organization, router} = initializeOrg();
+  const {organization} = initializeOrg();
 
   const revokeToken = jest.fn();
   const token: OrgAuthToken = {
@@ -31,12 +32,8 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
     token,
     revokeToken,
     projectLastUsed: undefined,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
+    ...RouteComponentPropsFixture({params: {orgId: organization.slug}}),
     route: {},
-    routeParams: router.params,
   };
 
   beforeEach(() => {

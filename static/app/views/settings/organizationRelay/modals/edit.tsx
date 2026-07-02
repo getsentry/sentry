@@ -7,9 +7,7 @@ type Props = {
   relay: Relay;
 } & ModalManager['props'];
 
-type State = ModalManager['state'];
-
-export class Edit extends ModalManager<Props, State> {
+export class Edit extends ModalManager<Props> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),

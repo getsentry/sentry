@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +15,7 @@ import {
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {useAM2UpsellModal} from 'getsentry/hooks/useAM2UpsellModal';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {hasPerformance} from 'getsentry/utils/billing';
 import type {ProductUnavailableUpsellAlert} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -103,7 +103,7 @@ function RequestUpdateAlert({
     );
   }, [analyticsCommonProps]);
 
-  const handleClick = useCallback(async () => {
+  const handleClick = async () => {
     setLoading(true);
 
     trackGetsentryAnalytics(
@@ -127,7 +127,7 @@ function RequestUpdateAlert({
     }
 
     setLoading(false);
-  }, [api, isAncientPlan, organization, analyticsCommonProps]);
+  };
 
   return (
     <AlertWithCustomMargin
@@ -194,7 +194,7 @@ function UpdatePlanAlert({
     );
   }, [analyticsCommonProps]);
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     trackGetsentryAnalytics(
       'product_unavailable_upsell_alert_button.clicked',
       analyticsCommonProps
@@ -205,7 +205,7 @@ function UpdatePlanAlert({
     }
 
     am2UpsellModal.showModal();
-  }, [analyticsCommonProps, canSelfServe, isAncientPlan, am2UpsellModal]);
+  };
 
   return (
     <AlertWithCustomMargin
@@ -246,11 +246,10 @@ function ProductUnavailableCTAContainer({
     return null;
   }
 
-  // MM1 & MM2 plans have no direct update path into AM2, prices could be wildly different
-  // Members can email owners requesting a plan upgrade and owners can manage subscription
-  const isAncientPlan = [PlanTier.MM1, PlanTier.MM2].includes(
-    subscription.planTier as PlanTier
-  );
+  // Legacy MM1 & MM2 plans predate performance/tracing and have no direct update
+  // path into AM2, prices could be wildly different. Members can email owners
+  // requesting a plan upgrade and owners can manage subscription
+  const isAncientPlan = !hasPerformance(subscription.planDetails);
 
   const hasBillingAccess = organization.access?.includes('org:billing');
   const canSelfServe = subscription.canSelfServe;

@@ -707,8 +707,6 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
-GITHUB_COMMENT_BOT_DEFAULT = False
-GITLAB_COMMENT_BOT_DEFAULT = False
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False
@@ -716,9 +714,8 @@ UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
-DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
+AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
-ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
 ENABLE_SEER_CODING_DEFAULT = True
 # Seer Org level default for automated_run_stopping_point in project preferences
 AUTO_OPEN_PRS_DEFAULT = False
@@ -732,7 +729,7 @@ SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
 SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT = "code_changes"
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
-DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT = 20
+DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT = 10
 
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
@@ -757,9 +754,9 @@ CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
 # 3. `src/sentry/event_manager.py:_get_event_user_many` we have `set_tag`.
 # 4. `src/sentry/event_manager.py:_get_or_create_release_many` we have `set_tag`.
 # 5. `src/sentry/interfaces/exception.py:Mechanism` we have `iter_tags`.
-# 6. `src/sentry/plugins/sentry_urls/models.py:UrlsPlugin`.
-# 7. `sentry/src/sentry/plugins/sentry_interface_types/models.py`.
-# 8. `src/sentry/plugins/sentry_useragents/models.py:UserAgentPlugin`.
+# 6. `src/sentry/event_manager_auto_tags.py:UrlTagDeriver`.
+# 7. `src/sentry/event_manager_auto_tags.py:InterfaceTypeTagDeriver`.
+# 8. `src/sentry/event_manager_auto_tags.py:BrowserTagDeriver` (and OsTagDeriver, DeviceTagDeriver).
 # Note:
 # should be sorted alphabetically so that it is easy to maintain in future
 # if you update this list please add explanation or source of it
@@ -812,6 +809,9 @@ HEALTH_CHECK_GLOBS = [
     "*/readyz{/,}",
     "*/ping{/,}",
     "*/up{/,}",
+    # Globs for Spring Boot: https://docs.spring.io/spring-boot/api/rest/actuator/health.html
+    "*/actuator/health{/*,}",
+    "*/manage/health{/*,}",
 ]
 
 
@@ -1072,3 +1072,6 @@ EXTENSION_LANGUAGE_MAP = {
 # After this date APIs that are incompatible with cell routing
 # will begin periodic brownouts.
 CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
+ALERTS_API_DEPRECATION_DATE = datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC)
+# Option key prefix for the deprecated alerts API brownout schedule and duration.
+ALERTS_API_DEPRECATION_KEY = "api.deprecation.alerts"

@@ -118,7 +118,7 @@ export function BillingDetailsPanel({
             }}
             extraButton={
               <Button
-                priority="default"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setIsEditing(false);
@@ -171,7 +171,7 @@ export function BillingDetailsPanel({
       </Flex>
       {!isEditing && (
         <Button
-          priority="default"
+          variant="secondary"
           size="sm"
           onClick={() => setIsEditing(true)}
           aria-label={t('Edit business address')}

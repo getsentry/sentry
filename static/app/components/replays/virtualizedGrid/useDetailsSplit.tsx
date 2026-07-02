@@ -1,7 +1,7 @@
 import type {RefObject} from 'react';
 import {useCallback} from 'react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
-import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface OnClickProps {
@@ -26,26 +26,23 @@ export function useDetailsSplit({
   onShowDetails,
   urlParamName,
 }: Props) {
-  const {getParamValue: getDetailIndex, setParamValue: setDetailIndex} = useUrlParams(
-    urlParamName,
-    ''
-  );
+  const [detailIndex, setDetailIndex] = useQueryState(urlParamName, parseAsInteger);
 
   const onClickCell = useCallback(
     ({dataIndex, rowIndex}: OnClickProps) => {
-      if (getDetailIndex() === String(dataIndex)) {
-        setDetailIndex('');
+      if (detailIndex === dataIndex) {
+        setDetailIndex(null);
         onHideDetails?.();
       } else {
-        setDetailIndex(String(dataIndex));
+        setDetailIndex(dataIndex);
         onShowDetails?.({dataIndex, rowIndex});
       }
     },
-    [getDetailIndex, setDetailIndex, onHideDetails, onShowDetails]
+    [detailIndex, setDetailIndex, onHideDetails, onShowDetails]
   );
 
   const onCloseDetailsSplit = useCallback(() => {
-    setDetailIndex('');
+    setDetailIndex(null);
     onHideDetails?.();
   }, [setDetailIndex, onHideDetails]);
 
@@ -63,13 +60,15 @@ export function useDetailsSplit({
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - handleHeight;
   const splitSize =
-    frames && getDetailIndex() ? Math.min(maxContainerHeight, containerSize) : undefined;
+    frames && detailIndex !== null
+      ? Math.min(maxContainerHeight, containerSize)
+      : undefined;
 
   return {
     onClickCell,
     onCloseDetailsSplit,
     resizableDrawerProps,
-    selectedIndex: getDetailIndex(),
+    selectedIndex: detailIndex,
     splitSize,
   };
 }

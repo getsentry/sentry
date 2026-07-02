@@ -48,7 +48,7 @@ def test_export_replay_row_set(replay_store) -> None:  # type: ignore[no-untyped
     replay1_id = "030c5419-9e0f-46eb-ae18-bfe5fd0331b5"
     replay2_id = "0dbda2b3-9286-4ecc-a409-aa32b241563d"
     replay3_id = "ff08c103-a9a4-47c0-9c29-73b932c2da34"
-    t0 = datetime.datetime(year=2025, month=1, day=1)
+    t0 = datetime.datetime.utcnow().replace(second=0, microsecond=0) - datetime.timedelta(hours=1)
     t1 = t0 + datetime.timedelta(seconds=30)
     t2 = t0 + datetime.timedelta(minutes=1)
 

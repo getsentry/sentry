@@ -267,4 +267,80 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(screen.getByText('~0%')).toBeInTheDocument();
     expect(screen.getByText('Potential savings 100 B')).toBeInTheDocument();
   });
+
+  const duplicateFilesInsight = (fileCount: number) =>
+    ProcessedInsightFixture({
+      files: [
+        {
+          path: 'Assets.car',
+          savings: fileCount * 10000,
+          percentage: 5,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: {
+              name: 'Assets.car',
+              total_savings: fileCount * 10000,
+              files: Array.from({length: fileCount}, (_, i) => ({
+                file_path: `dup/file-${i}.png`,
+                total_savings: 10000,
+              })),
+            },
+          },
+        },
+      ],
+    });
+
+  it('collapses duplicate files within a group beyond the visible limit', async () => {
+    render(
+      <AppSizeInsightsSidebarRow
+        {...getDefaultProps()}
+        insight={duplicateFilesInsight(18)}
+        isExpanded
+      />
+    );
+
+    // Only the first 15 files render; the rest are hidden behind a toggle.
+    expect(screen.getByText('dup/file-0.png')).toBeInTheDocument();
+    expect(screen.getByText('dup/file-14.png')).toBeInTheDocument();
+    expect(screen.queryByText('dup/file-15.png')).not.toBeInTheDocument();
+
+    // Expanding reveals the remaining files.
+    await userEvent.click(screen.getByRole('button', {name: 'Show 3 more files'}));
+
+    expect(screen.getByText('dup/file-15.png')).toBeInTheDocument();
+    expect(screen.getByText('dup/file-17.png')).toBeInTheDocument();
+
+    // Collapsing hides them again.
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+    expect(screen.queryByText('dup/file-15.png')).not.toBeInTheDocument();
+  });
+
+  it('shows all duplicate files without a toggle at or below the visible limit', () => {
+    render(
+      <AppSizeInsightsSidebarRow
+        {...getDefaultProps()}
+        insight={duplicateFilesInsight(15)}
+        isExpanded
+      />
+    );
+
+    expect(screen.getByText('dup/file-0.png')).toBeInTheDocument();
+    expect(screen.getByText('dup/file-14.png')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Show \d+ more file/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses singular copy when exactly one duplicate file is hidden', () => {
+    render(
+      <AppSizeInsightsSidebarRow
+        {...getDefaultProps()}
+        insight={duplicateFilesInsight(16)}
+        isExpanded
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Show 1 more file'})).toBeInTheDocument();
+  });
 });

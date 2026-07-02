@@ -17,7 +17,7 @@ WORKFLOW_CONFIG_HELP_TEXT = """
         ```
         """
 
-WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below.
+WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below. Note: `seer_activity_trigger` may not be available to all organizations.
         ```json
             "triggers": {
                 "organizationId": "1",
@@ -41,6 +41,21 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                     {
                         "type": "regression_event",
                         "comparison": true,
+                        "conditionResult": true
+                    },
+                    {
+                        "type": "seer_activity_trigger",
+                        "comparison": [
+                            "rca_started",
+                            "rca_completed",
+                            "solution_started",
+                            "solution_completed",
+                            "coding_started",
+                            "coding_completed",
+                            "pr_created",
+                            "iteration_started",
+                            "iteration_completed"
+                        ],
                         "conditionResult": true
                     }
                 ],
@@ -630,6 +645,7 @@ DATA_SOURCES_HELP_TEXT = """
             The data sources for the monitor to use based on what you want to measure.
 
             **Number of Errors Metric Monitor**
+            - `eventTypes`: Any of `error` or `default`.
             ```json
                 [
                     {
@@ -645,6 +661,7 @@ DATA_SOURCES_HELP_TEXT = """
             ```
 
             **Users Experiencing Errors Metric Monitor**
+            - `eventTypes`: Any of `error` or `default`.
             ```json
                 [
                     {
@@ -709,6 +726,9 @@ DATA_SOURCES_HELP_TEXT = """
             ```
 
             **Largest Contentful Paint Metric Monitor**
+            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
+            - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
+
             ```json
                 [
                     {
@@ -723,6 +743,29 @@ DATA_SOURCES_HELP_TEXT = """
                     },
                 ],
             ```
+
+            **Custom Metric Monitor**
+            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
+            - `aggregate`: Valid values are:
+            `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p50(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p75(x)`, where x is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p95(x)`, where x is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p99(x)`, where x is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p100(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `percentile(x,y)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`, and `y` is the custom percentile.
+            `failure_rate()`
+            `apdex(x)`, where `x` is the value of the Apdex score.
+            `count()`
+
+            ```json
+            [
+                {
+                    "aggregate": "p75(measurements.ttfb)"
+                    "dataset": "events_analytics_platform",
+                    "queryType": 1,
+                },
+            ],
 """
 
 DETECTOR_CONFIG_HELP_TEXT = """

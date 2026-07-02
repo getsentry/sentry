@@ -3,8 +3,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('DataSecrecy', () => {
   const {organization} = initializeOrg({
     organization: {features: ['data-secrecy']},
@@ -24,9 +22,6 @@ describe('DataSecrecy', () => {
     render(<DataSecrecy />, {organization: orgWithoutAccess});
 
     expect(screen.getByText('Support Access')).toBeInTheDocument();
-    expect(
-      screen.getByText('Sentry employees do not have access to your organization')
-    ).toBeInTheDocument();
 
     const checkbox = screen.getByRole('checkbox', {
       name: /Sentry employees will not have access to your data unless granted permission/,
@@ -43,9 +38,6 @@ describe('DataSecrecy', () => {
     render(<DataSecrecy />, {organization: orgWithAccess});
 
     expect(screen.getByText('Support Access')).toBeInTheDocument();
-    expect(
-      screen.getByText('Sentry employees have access to your organization')
-    ).toBeInTheDocument();
 
     const checkbox = screen.getByRole('checkbox', {
       name: /Sentry employees will not have access to your data unless granted permission/,

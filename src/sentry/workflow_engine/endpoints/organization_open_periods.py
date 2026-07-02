@@ -11,7 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -26,7 +26,6 @@ from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
     GroupOpenPeriodSerializer,
 )
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -41,9 +40,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationDetectorPermission,)
 
-    def get_group_from_detector_id(
+    def get_detector_from_detector_id(
         self, detector_id: str, organization: Organization
-    ) -> Group | None:
+    ) -> Detector:
         validated_detector_id = to_valid_int_id("detectorId", detector_id)
         try:
             detector = (
@@ -57,13 +56,16 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector.project.organization_id != organization.id:
             raise ValidationError({"detectorId": "Detector not found"})
 
+        return detector
+
+    def get_group_from_detector(self, detector: Detector) -> Group | None:
         detector_group = (
             DetectorGroup.objects.filter(detector=detector).order_by("-date_added").first()
         )
 
         return detector_group.group if detector_group else None
 
-    def get_group_from_group_id(self, group_id: str, organization: Organization) -> Group | None:
+    def get_group_from_group_id(self, group_id: str, organization: Organization) -> Group:
         validated_group_id = to_valid_int_id("groupId", group_id)
         try:
             group = Group.objects.select_related("project").get(id=validated_group_id)
@@ -74,6 +76,27 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             raise ValidationError({"groupId": "Group not found"})
 
         return group
+
+    def _get_target_group(
+        self,
+        request: Request,
+        organization: Organization,
+        detector_id: str | None,
+        group_id: str | None,
+    ) -> Group | None:
+        if detector_id:
+            detector = self.get_detector_from_detector_id(detector_id, organization)
+            if not request.access.has_project_access(detector.project):
+                raise ValidationError({"detectorId": "Detector not found"})
+            return self.get_group_from_detector(detector)
+
+        if group_id:
+            group = self.get_group_from_group_id(group_id, organization)
+            if not request.access.has_project_access(group.project):
+                raise ValidationError({"groupId": "Group not found"})
+            return group
+
+        return None
 
     @extend_schema(
         operation_id="Fetch Group Open Periods",
@@ -134,15 +157,13 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector_id_param and group_id_param:
             raise ValidationError({"detail": "Must provide only one of detectorId or groupId"})
 
-        target_group: Group | None = (
-            self.get_group_from_detector_id(detector_id_param, organization)
-            if detector_id_param
-            else (
-                self.get_group_from_group_id(group_id_param, organization)
-                if group_id_param
-                else None
-            )
+        target_group = self._get_target_group(
+            request=request,
+            organization=organization,
+            detector_id=detector_id_param,
+            group_id=group_id_param,
         )
+
         if not target_group:
             return self.paginate(request=request, queryset=[])
 

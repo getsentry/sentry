@@ -43,6 +43,55 @@ S014_msg = "S014 Use `unittest.mock` instead"
 
 S016_msg = "S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor` instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation."
 
+S017_msg = (
+    "S017 Platform boundary violation: do not import non-platform getsentry code in "
+    "billing/platform/. Use only getsentry.billing.platform.* imports."
+)
+
+S018_msg = (
+    "S018 Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
+    "instead of `django.core.cache.backends.memcached.PyMemcacheCache`."
+)
+S018_fqn = "django.core.cache.backends.memcached.PyMemcacheCache"  # noqa: S018
+S018_module = "django.core.cache.backends.memcached"
+
+S019_fmt = (
+    "S019 {!r} is a reserved LogRecord attribute; using it as a key in "
+    "logging extra= raises KeyError at runtime"
+)
+S019_logging_methods = frozenset(
+    ("debug", "info", "warning", "warn", "error", "exception", "critical", "fatal", "log")
+)
+# Keys rejected by logging.Logger.makeRecord: the attributes set in
+# LogRecord.__init__ plus the explicit "message"/"asctime" guard.
+S019_logrecord_attrs = frozenset(
+    (
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "taskName",
+        "message",
+        "asctime",
+    )
+)
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -55,6 +104,19 @@ def _s015_msg() -> str:
 
 def _is_tests_path(filename: str) -> bool:
     return "tests/" in filename or "testutils/" in filename
+
+
+def _is_platform_path(filename: str) -> bool:
+    return "billing/platform/" in filename and "tests/" not in filename
+
+
+def _is_non_platform_import(module: str) -> bool:
+    """Check if a getsentry import is outside the billing platform."""
+    if module.startswith("getsentry.") or module == "getsentry":
+        platform_prefix = "getsentry.billing.platform"
+        if not (module.startswith(platform_prefix + ".") or module == platform_prefix):
+            return True
+    return False
 
 
 # Returns the literal year when this is a datetime(...) call shape we lint for.
@@ -119,6 +181,18 @@ class SentryVisitor(ast.NodeVisitor):
                 x.name == "ThreadPoolExecutor" for x in node.names
             ):
                 self.errors.append((node.lineno, node.col_offset, S016_msg))
+            elif node.module == S018_module and any(
+                x.name == "PyMemcacheCache" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S018_msg))
+
+        if (
+            _is_platform_path(self.filename)
+            and node.module
+            and not node.level
+            and _is_non_platform_import(node.module)
+        ):
+            self.errors.append((node.lineno, node.col_offset, S017_msg))
 
         self.generic_visit(node)
 
@@ -134,6 +208,11 @@ class SentryVisitor(ast.NodeVisitor):
             ):
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
 
+        if _is_platform_path(self.filename):
+            for alias in node.names:
+                if _is_non_platform_import(alias.name):
+                    self.errors.append((node.lineno, node.col_offset, S017_msg))
+
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -141,12 +220,26 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
         elif node.attr in S004_methods:
             self.errors.append((node.lineno, node.col_offset, S004_msg))
+        elif (
+            node.attr == "ThreadPoolExecutor"
+            and isinstance(node.value, ast.Attribute)
+            and node.value.attr == "futures"
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "concurrent"
+        ):
+            self.errors.append((node.lineno, node.col_offset, S016_msg))
 
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
         if node.id == "print":
             self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_Constant(self, node: ast.Constant) -> None:
+        if isinstance(node.value, str) and node.value == S018_fqn:
+            self.errors.append((node.lineno, node.col_offset, S018_msg))
 
         self.generic_visit(node)
 
@@ -243,6 +336,19 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
+            for keyword in node.keywords:
+                if keyword.arg == "extra" and isinstance(keyword.value, ast.Dict):
+                    for key in keyword.value.keys:
+                        if (
+                            isinstance(key, ast.Constant)
+                            and isinstance(key.value, str)
+                            and key.value in S019_logrecord_attrs
+                        ):
+                            self.errors.append(
+                                (key.lineno, key.col_offset, S019_fmt.format(key.value))
+                            )
 
         self.generic_visit(node)
 

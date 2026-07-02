@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
@@ -23,11 +23,11 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import type {
   EditableRule,
   Rule,
-  SourceSuggestion,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   AllowedDataScrubbingDatasets,
@@ -97,6 +97,13 @@ export function DataScrubFormModal({
 }: DataScrubFormModalProps) {
   const organization = useOrganization();
   const traceItemDatasetsEnabled = areScrubbingDatasetsEnabled(organization);
+  const enabledDatasets = [AllowedDataScrubbingDatasets.DEFAULT];
+  if (organization.features.includes('ourlogs-enabled')) {
+    enabledDatasets.push(AllowedDataScrubbingDatasets.LOGS);
+  }
+  if (canUseMetricsPiiScrubbingUI(organization)) {
+    enabledDatasets.push(AllowedDataScrubbingDatasets.METRICS);
+  }
   const {sourceGroupData} = useSourceGroupData();
 
   // Compute initial dataset from initialState
@@ -114,9 +121,9 @@ export function DataScrubFormModal({
   const initialDataset =
     traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
 
-  const [dataset, setDataset] = useState<AllowedDataScrubbingDatasets>(initialDataset);
+  const [dataset, setDataset] = useState(initialDataset);
   const [displayEventId, setDisplayEventId] = useState(!!sourceGroupData.eventId);
-  const [sourceSuggestions, setSourceSuggestions] = useState<SourceSuggestion[]>(
+  const [sourceSuggestions, setSourceSuggestions] = useState(
     sourceGroupData.sourceSuggestions
   );
   const [eventIdError, setEventIdError] = useState<string | undefined>(undefined);
@@ -134,7 +141,7 @@ export function DataScrubFormModal({
     onSubmit: async ({value}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
-      const newRules = onGetNewRules(ruleValues as EditableRule);
+      const newRules = onGetNewRules(ruleValues);
 
       try {
         const data = await submitRules(api, endpoint, newRules);
@@ -163,23 +170,20 @@ export function DataScrubFormModal({
 
   const type = useStore(form.store, state => state.values.type);
 
-  const handleValidateAttributeField = useCallback(
-    (value: string) => {
-      const traceItemField = TraceItemFieldSelector.fromField(dataset, value);
+  const handleValidateAttributeField = (value: string) => {
+    const traceItemField = TraceItemFieldSelector.fromField(dataset, value);
 
-      if (!traceItemField) {
-        return;
-      }
+    if (!traceItemField) {
+      return;
+    }
 
-      const validation = validateTraceItemFieldSelector(traceItemField);
-      if (!validation.isValid && validation.error) {
-        setFieldErrors(form, {
-          source: {message: validation.error},
-        });
-      }
-    },
-    [dataset, form]
-  );
+    const validation = validateTraceItemFieldSelector(traceItemField);
+    if (!validation.isValid && validation.error) {
+      setFieldErrors(form, {
+        source: {message: validation.error},
+      });
+    }
+  };
 
   const containsRootDeepWildcard = (source: string) => {
     return /(^|[^.])\*\*$/.test(source);
@@ -235,7 +239,7 @@ export function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        <Stack gap={{xs: 'md', sm: 'xl'}}>
+        <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
@@ -252,8 +256,8 @@ export function DataScrubFormModal({
                     hintText={t('The dataset targeted by the scrubbing rule')}
                     variant="compact"
                   >
-                    <Flex gap="lg">
-                      {sortBy(Object.values(AllowedDataScrubbingDatasets)).map(value => (
+                    <Flex direction="column" gap="lg">
+                      {sortBy(enabledDatasets).map(value => (
                         <field.Radio.Item key={value} value={value}>
                           {getDatasetLabelLong(value)}
                         </field.Radio.Item>
@@ -269,9 +273,11 @@ export function DataScrubFormModal({
             {method => (
               <Grid
                 columns={
-                  method === MethodType.REPLACE ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'
+                  method === MethodType.REPLACE
+                    ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
+                    : '1fr'
                 }
-                gap={{sm: 'md'}}
+                gap={{'screen:sm': 'md'}}
               >
                 <form.AppField
                   name="method"
@@ -322,8 +328,12 @@ export function DataScrubFormModal({
           </form.Subscribe>
 
           <Grid
-            columns={type === RuleType.PATTERN ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'}
-            gap={{sm: 'md'}}
+            columns={
+              type === RuleType.PATTERN
+                ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
+                : '1fr'
+            }
+            gap={{'screen:sm': 'md'}}
           >
             <form.AppField
               name="type"
@@ -408,7 +418,7 @@ export function DataScrubFormModal({
                         <Flex justify="end">
                           {displayEventId ? (
                             <Toggle
-                              priority="link"
+                              variant="link"
                               onClick={() => setDisplayEventId(false)}
                             >
                               {t('Hide event ID field')}
@@ -416,7 +426,7 @@ export function DataScrubFormModal({
                             </Toggle>
                           ) : (
                             <Toggle
-                              priority="link"
+                              variant="link"
                               onClick={() => setDisplayEventId(true)}
                             >
                               {t('Use event ID for auto-completion')}
@@ -449,7 +459,7 @@ export function DataScrubFormModal({
                           {containsRootDeepWildcard(sourceValue) && (
                             <Alert variant="warning" style={{marginTop: '8px'}}>
                               {t(
-                                `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
+                                "Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)"
                               )}
                             </Alert>
                           )}
@@ -493,12 +503,12 @@ export function DataScrubFormModal({
                 <Fragment>
                   <Flex justify="end">
                     {displayEventId ? (
-                      <Toggle priority="link" onClick={() => setDisplayEventId(false)}>
+                      <Toggle variant="link" onClick={() => setDisplayEventId(false)}>
                         {t('Hide event ID field')}
                         <IconChevron direction="up" size="xs" />
                       </Toggle>
                     ) : (
-                      <Toggle priority="link" onClick={() => setDisplayEventId(true)}>
+                      <Toggle variant="link" onClick={() => setDisplayEventId(true)}>
                         {t('Use event ID for auto-completion')}
                         <IconChevron direction="down" size="xs" />
                       </Toggle>
@@ -582,7 +592,7 @@ const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
     css`
       border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.tokens.border.primary};
-      box-shadow: ${p.theme.dropShadowMedium};
+      box-shadow: ${p.theme.shadow.medium};
       padding: ${p.theme.space.xl};
     `}
 `;
@@ -593,7 +603,7 @@ function SourceGroup({
 }: React.PropsWithChildren<{isExpanded?: boolean}>) {
   return (
     <SourceGroupContainer isExpanded={isExpanded}>
-      <Stack gap={{xs: 'md', sm: 'xl'}}>{children}</Stack>
+      <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>{children}</Stack>
     </SourceGroupContainer>
   );
 }

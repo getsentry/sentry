@@ -5,33 +5,8 @@ import pytest
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
     IgnoreHealthChecksTraceBias,
-    IgnoreHealthChecksTransactionBias,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-
-
-@django_db_all
-def test_generate_bias_rules_v2(default_project) -> None:
-    rules = IgnoreHealthChecksTransactionBias().generate_rules(
-        project=default_project, base_sample_rate=1.0
-    )
-    assert rules == [
-        {
-            "condition": {
-                "inner": [
-                    {
-                        "name": "event.transaction",
-                        "op": "glob",
-                        "value": HEALTH_CHECK_GLOBS,
-                    }
-                ],
-                "op": "or",
-            },
-            "id": 1002,
-            "samplingValue": {"type": "sampleRate", "value": 0.2},
-            "type": "transaction",
-        }
-    ]
 
 
 @django_db_all
@@ -72,6 +47,8 @@ def expand_glob_for_fnmatch(pattern: str) -> list[str]:
     pattern = pattern.replace(r"\[", "[[]").replace(r"\]", "[]]")
 
     # Expand {/,} brace syntax
+    if "{/*,}" in pattern:
+        return [pattern.replace("{/*,}", "/*"), pattern.replace("{/*,}", "")]
     if "{/,}" in pattern:
         return [pattern.replace("{/,}", "/"), pattern.replace("{/,}", "")]
     return [pattern]
@@ -169,6 +146,14 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("/api/up/", "*/up{/,}"),
         ("GET /up", "*/up{/,}"),
         ("/status/up", "*/up{/,}"),
+        # Pattern: */actuator/health{/*,}
+        ("/actuator/health", "*/actuator/health{/*,}"),
+        ("/actuator/health/db", "*/actuator/health{/*,}"),
+        ("GET /actuator/health/db", "*/actuator/health{/*,}"),
+        # Pattern: */manage/health{/*,}
+        ("/manage/health", "*/actuator/health{/*,}"),
+        ("/manage/health/db", "*/actuator/health{/*,}"),
+        ("GET /manage/health/db", "*/actuator/health{/*,}"),
     ],
 )
 def test_health_check_globs_match_health_endpoints(

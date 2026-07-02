@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 
-from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.context import GroupingContext
@@ -45,7 +44,7 @@ if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -147,15 +146,6 @@ class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
 
     option_name = "sentry:secondary_grouping_config"
     cache_prefix = "secondary-grouping-enhancements:"
-
-
-class BackgroundGroupingConfigLoader(GroupingConfigLoader):
-    """Does not affect grouping, runs in addition to measure performance impact"""
-
-    cache_prefix = "background-grouping-enhancements:"
-
-    def _get_config_id(self, _project: Project) -> str:
-        return options.get("store.background-grouping-config-id")
 
 
 @sentry_sdk.tracing.trace
@@ -288,7 +278,7 @@ def apply_server_side_fingerprinting(
 
 
 def _get_variants_from_strategies(
-    event: Event, context: GroupingContext
+    event: BaseEvent, context: GroupingContext
 ) -> dict[str, ComponentVariant]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
@@ -367,7 +357,7 @@ def _get_variants_from_strategies(
 
 # This is called by the Event model in get_grouping_variants()
 def get_grouping_variants_for_event(
-    event: Event, config: StrategyConfiguration | None = None
+    event: BaseEvent, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this event is the checksum variant.
@@ -471,7 +461,7 @@ def get_grouping_variants_for_event(
 
 
 def _apply_custom_title_if_needed(
-    fingerprint_info: FingerprintInfo, event: Event, use_legacy_unknown_variable_handling: bool
+    fingerprint_info: FingerprintInfo, event: BaseEvent, use_legacy_unknown_variable_handling: bool
 ) -> None:
     """
     If the given event has a custom fingerprint which includes a title template, apply the custom

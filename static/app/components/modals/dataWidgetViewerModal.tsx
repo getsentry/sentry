@@ -11,25 +11,26 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
 import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -79,7 +80,6 @@ import {
   dashboardFiltersToString,
   eventViewFromWidget,
   getFieldsFromEquations,
-  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -91,6 +91,7 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
+  widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
@@ -98,10 +99,7 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import {
-  DashboardsMEPProvider,
-  useDashboardsMEPContext,
-} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
@@ -251,7 +249,7 @@ function DataWidgetViewerModal(props: Props) {
     [start, end, selection]
   );
 
-  const [modalSelection, setModalSelection] = useState<PageFilters>(locationPageFilter);
+  const [modalSelection, setModalSelection] = useState(locationPageFilter);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
@@ -285,12 +283,16 @@ function DataWidgetViewerModal(props: Props) {
     selectedQueryIndex = 0;
   }
 
-  // Top N widget charts (including widgets with limits) results rely on the sorting of the query
-  // Set the orderby of the widget chart to match the location query params
-  const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || widget.limit !== undefined
-      ? {...widget, queries: sortedQueries}
+  const resolvedWidget =
+    widget.displayType === DisplayType.TOP_N
+      ? {...widget, displayType: DisplayType.AREA}
       : widget;
+
+  // Widgets with limits rely on the sorting of the query
+  // Set the orderby of the widget chart to match the location query params
+  const primaryWidget = defined(resolvedWidget.limit)
+    ? {...resolvedWidget, queries: sortedQueries}
+    : resolvedWidget;
   const api = useApi();
 
   // Create Table widget
@@ -304,7 +306,6 @@ function DataWidgetViewerModal(props: Props) {
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
   const {orderby} = widget.queries[0]!;
-  const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
   const fields =
@@ -338,14 +339,6 @@ function DataWidgetViewerModal(props: Props) {
         }
       });
     }
-  }
-
-  // Need to set the orderby of the eventsv2 query to equation[index] format
-  // since eventsv2 does not accept the raw equation as a valid sort payload
-  if (isEquation(rawOrderby) && tableWidget.queries[0]!.orderby === orderby) {
-    tableWidget.queries[0]!.orderby = `${order ? '-' : ''}equation[${
-      getNumEquations(fields) - 1
-    }]`;
   }
 
   // Default table columns for visualizations that don't have a group by set
@@ -646,7 +639,7 @@ function DataWidgetViewerModal(props: Props) {
       <Fragment>
         {hasSessionDuration && SESSION_DURATION_ALERT}
         {shouldRenderChartVisualization && (
-          <Container
+          <ChartContainer
             height={
               widget.displayType === DisplayType.BIG_NUMBER
                 ? BIG_NUMBER_HEIGHT
@@ -658,7 +651,7 @@ function DataWidgetViewerModal(props: Props) {
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 isFullScreen
                 showConfidenceWarning={
@@ -675,7 +668,7 @@ function DataWidgetViewerModal(props: Props) {
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{
@@ -691,7 +684,7 @@ function DataWidgetViewerModal(props: Props) {
                 widgetInterval={widgetInterval}
               />
             )}
-          </Container>
+          </ChartContainer>
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
@@ -703,7 +696,7 @@ function DataWidgetViewerModal(props: Props) {
           </Alert.Container>
         )}
         {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
-          <QueryContainer>
+          <Container marginBottom="xl" position="relative">
             <Select
               value={selectedQueryIndex}
               options={queryOptions}
@@ -789,7 +782,7 @@ function DataWidgetViewerModal(props: Props) {
                 size="sm"
               />
             )}
-          </QueryContainer>
+          </Container>
         )}
         {shouldRenderTable && renderWidgetViewerTable()}
       </Fragment>
@@ -907,8 +900,6 @@ function OpenButton({
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
-  const {isMetricsData} = useDashboardsMEPContext();
-
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
@@ -919,13 +910,25 @@ function OpenButton({
       path = getWidgetReleasesUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.SPANS:
+    case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      const multiQueryUnsupported =
+        widget.queries.length > 1 &&
+        !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+      if (multiQueryUnsupported) {
+        return (
+          <Tooltip
+            title={t('Explore does not support multiple queries for this dataset')}
+          >
+            <Button variant="primary" disabled>
+              {openLabel}
+            </Button>
+          </Tooltip>
+        );
+      }
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization)!;
       break;
-    case WidgetType.LOGS:
-      openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
-      break;
+    }
     case WidgetType.TRACEMETRICS:
       openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
@@ -940,9 +943,7 @@ function OpenButton({
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       break;
   }
@@ -951,7 +952,7 @@ function OpenButton({
     <Tooltip title={disabledTooltip} disabled={!disabled}>
       <LinkButton
         to={path}
-        priority="primary"
+        variant="primary"
         disabled={disabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
@@ -1065,8 +1066,8 @@ function ViewerTableV2({
     datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
-  // Inject any prettified function names that aren't currently aliased into the aliases
   for (const column of tableColumns) {
+    // Inject any prettified function names that aren't currently aliased into the aliases
     const parsedFunction = parseFunction(column.key);
     if (!aliases[column.key] && parsedFunction) {
       aliases[column.key] = prettifyParsedFunction(parsedFunction);
@@ -1161,6 +1162,7 @@ function ViewerTableV2({
 
           return {
             location,
+            navigate,
             organization,
             theme,
             unit,
@@ -1227,21 +1229,12 @@ export const modalCss = css`
   max-width: 1200px;
 `;
 
-export const backdropCss = css`
-  z-index: 9998;
-`;
-
-const Container = styled('div')<{height?: number | null}>`
+const ChartContainer = styled('div')<{height?: number | null}>`
   display: flex;
   flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const QueryContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  position: relative;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

@@ -1,26 +1,33 @@
 import logging
 
+import sentry_sdk
+
+from sentry import features
+from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
+    activity_handler_registry,
     group_type_notification_registry,
     issue_alert_handler_registry,
     metric_alert_handler_registry,
 )
-from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.notifications.notification_action.types import (
+    ActivityHandlerValidationError,
+    BaseMetricAlertHandler,
+)
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
-
-
-def should_fire_workflow_actions(org: Organization, type_id: int) -> bool:
-    return True
 
 
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
@@ -45,6 +52,21 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             and invocation.event_data.group.type == MetricIssue.type_id
         ):
             return execute_via_metric_alert_handler(invocation)
+
+        organization_id = invocation.detector.project.organization_id
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:workflow-engine-evaluate-seer-activities", organization):
+                return execute_via_activity_type_registry(invocation=invocation)
+        except (Exception, Organization.DoesNotExist):
+            logger.exception(
+                "Error executing via activity type registry",
+                extra={
+                    "action_id": invocation.action.id,
+                    "detector_id": invocation.detector.id,
+                    "organization_id": organization_id,
+                },
+            )
         return invocation.event_data.event.send_notification()
 
     try:
@@ -113,26 +135,113 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
 
 
 def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotificationData:
-    from sentry.notifications.notification_action.types import BaseIssueAlertHandler
-
     action = invocation.action
     detector = invocation.detector
     event_data = invocation.event_data
 
-    rule_instance = BaseIssueAlertHandler.create_rule_instance_from_action(
+    handler = issue_alert_handler_registry.get(action.type)
+    rule_instance = handler.create_rule_instance_from_action(
         action=action,
         detector=detector,
         event_data=event_data,
+        workflow_id=invocation.workflow_id,
     )
-    rule_instance.data["tags"] = action.data.get("tags", "")
-    rule_instance.data["notes"] = action.data.get("notes", "")
+    tags = action.data.get("tags", None)
+    tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
+    notes = action.data.get("notes", None)
     rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 
     return IssueNotificationData(
+        tags=tag_list,
+        notes=notes,
         event_id=event_id,
         group_id=event_data.group.id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,
     )
+
+
+def metric_alert_notification_data_factory(
+    issue_notif_context: IssueNotificationContext,
+) -> MetricAlertNotificationData:
+    from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+        get_detector_serializer,
+    )
+
+    notification_context = issue_notif_context.notification_context
+    alert_context = issue_notif_context.alert_context
+    metric_issue_context = issue_notif_context.metric_issue_context
+    open_period_context = issue_notif_context.open_period_context
+    organization = issue_notif_context.organization
+
+    if notification_context.integration_id is None:
+        raise ValueError("Integration ID is None")
+
+    if notification_context.target_identifier is None:
+        raise ValueError("Target identifier is None")
+
+    referrer = f"metric_alert_{issue_notif_context.action_type}"
+    attachment_info = incident_attachment_info(
+        organization=organization,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        notification_uuid=issue_notif_context.notification_uuid,
+        referrer=referrer,
+    )
+
+    detector_serialized_response = get_detector_serializer(issue_notif_context.detector)
+
+    chart_url = None
+    if features.has("organizations:metric-alert-chartcuterie", organization):
+        try:
+            chart_url = build_metric_alert_chart(
+                organization=organization,
+                snuba_query=metric_issue_context.snuba_query,
+                alert_context=alert_context,
+                open_period_context=open_period_context,
+                subscription=metric_issue_context.subscription,
+                detector_serialized_response=detector_serialized_response,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    return MetricAlertNotificationData(
+        group_id=metric_issue_context.id,
+        organization_id=organization.id,
+        notification_uuid=issue_notif_context.notification_uuid,
+        action_id=notification_context.id,
+        open_period_context=open_period_context,
+        new_status=metric_issue_context.new_status.value,
+        title=attachment_info["title"],
+        title_link=attachment_info["title_link"],
+        text=attachment_info["text"],
+        chart_url=chart_url,
+    )
+
+
+def execute_via_activity_type_registry(invocation: ActionInvocation) -> None:
+    logging_ctx = {
+        "action_id": invocation.action.id,
+        "detector_id": invocation.detector.id,
+        "action_type": invocation.action.type,
+    }
+    try:
+        handler = activity_handler_registry.get(invocation.action.type)
+    except NoRegistrationExistsError:
+        logger.exception("No activity handler found for action type", extra=logging_ctx)
+        raise
+
+    try:
+        activity = handler.validate_activity(invocation=invocation)
+    except (Exception, ActivityHandlerValidationError):
+        logger.exception("Error validating activity for activity handler", extra=logging_ctx)
+        raise
+
+    try:
+        handler.invoke_action(invocation=invocation, activity=activity)
+    except Exception:
+        logger.exception("Error invoking action via activity handler", extra=logging_ctx)
+        raise
+    logger.info("Invoked action via activity handler", extra=logging_ctx)

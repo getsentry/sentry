@@ -20,6 +20,6 @@ export const TransparentLoadingMask = styled(
   }
 )<TransparentLoadingMaskProps>`
   ${p => !p.visible && 'display: none;'};
-  opacity: 0.4;
+  opacity: ${p => (p.loaded ? 1 : 0.4)};
   z-index: 1;
 `;

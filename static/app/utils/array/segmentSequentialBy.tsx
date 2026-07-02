@@ -16,7 +16,9 @@ export function segmentSequentialBy<T>(
   data: T[],
   predicate: Predicate<T>
 ): Array<Partition<T>> {
-  if (!data.length) return [];
+  if (!data.length) {
+    return [];
+  }
 
   const firstDatum: T = data.at(0)!;
   let previousPredicateValue = predicate(firstDatum);

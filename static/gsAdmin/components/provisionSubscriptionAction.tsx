@@ -17,12 +17,16 @@ import SelectField from 'sentry/components/deprecatedforms/selectField';
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
-import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {
+  CPE_MULTIPLIER_TO_CENTS,
+  MONTHLY,
+  RESERVED_BUDGET_QUOTA,
+} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
   type BillingConfig,
@@ -30,15 +34,7 @@ import {
   type ReservedBudgetMetricHistory,
   type Subscription,
 } from 'getsentry/types';
-import {
-  displayBudgetName,
-  getAmPlanTier,
-  isAm3DsPlan,
-  isAm3Plan,
-  isAmEnterprisePlan,
-  isAmPlan,
-  isTrialPlan,
-} from 'getsentry/utils/billing';
+import {displayBudgetName, hasPerformance} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -75,6 +71,8 @@ class DollarsFieldNoContext extends NumberFieldNoContext {
 
 const DollarsField = withFormContext(DollarsFieldNoContext);
 
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps> {
   getField() {
     return (
@@ -193,24 +191,18 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const {subscription, billingConfig} = this.props;
 
     const provisionablePlans = billingConfig
-      ? billingConfig.planList.reduce(
-          (acc, plan) => {
-            if (
-              (isAmEnterprisePlan(plan.id) ||
-                plan.id === 'e1' ||
-                plan.id === 'mm2_a' ||
-                plan.id === 'mm2_b') &&
-              !plan.id.endsWith('_ac') &&
-              !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id) &&
-              !plan.isTestPlan
-            ) {
-              acc[plan.id] = plan;
-            }
-            return acc;
-          },
-          {} as Record<string, Plan>
-        )
+      ? billingConfig.planList.reduce<Record<string, Plan>>((acc, plan) => {
+          if (
+            plan.isEnterprise &&
+            // Legacy errors-only enterprise plans (e1, mm2) can no longer be
+            // provisioned.
+            hasPerformance(plan) &&
+            plan.billingInterval === MONTHLY
+          ) {
+            acc[plan.id] = plan;
+          }
+          return acc;
+        }, {})
       : {};
 
     this.setState(state => ({
@@ -236,9 +228,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     });
     const seerBudget = reservedBudgets?.find(
       budget => budget.apiName === ReservedBudgetCategoryType.SEER
-    )?.reservedBudget;
-    const dynamicSamplingBudget = reservedBudgets?.find(
-      budget => budget.apiName === ReservedBudgetCategoryType.DYNAMIC_SAMPLING
     )?.reservedBudget;
 
     const infoFromMetricHistories: Record<string, any> = {};
@@ -290,7 +279,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         ...enterpriseData,
         ...infoFromMetricHistories,
         seerBudget: toDollars(seerBudget ?? 0),
-        dynamicSamplingBudget: toDollars(dynamicSamplingBudget ?? 0),
       },
     }));
   }
@@ -312,29 +300,17 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       .filter(([key, _]) => key.startsWith('softCapType'))
       .some(([_, value]) => value !== null);
 
-  isReservedBudgetCategory = (isAm3Ds: boolean, category: DataCategory): boolean => {
+  isReservedBudgetCategory = (category: DataCategory): boolean => {
     const seerCategories = [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER];
-    const spansCategories = [DataCategory.SPANS, DataCategory.SPANS_INDEXED];
 
-    return (
-      seerCategories.includes(category) || (isAm3Ds && spansCategories.includes(category))
-    );
+    return seerCategories.includes(category);
   };
 
   /**
-   * If the user has set reserved CPEs for both span categories, assume we're setting the spans budget
+   * If the user has set reserved CPEs for both Seer categories, assume we're setting the Seer budget
    * NOTE: this and probably the way we let users set reserved budgets in this form will need to
    * change if we ever allowed reserved budgets for other subsets of categories
    */
-  isSettingSpansBudget = () =>
-    isAm3DsPlan(this.state.data.plan) &&
-    Object.entries(this.state.data)
-      .filter(([key, _]) => key.startsWith('reservedCpeSpans'))
-      .every(([_, value]) => value !== null || value !== undefined) &&
-    Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
-      .length >= 2;
-
-  // Same as above, but for Seer budgets
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
       .filter(
@@ -350,9 +326,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     ).length >= 2;
 
   isSettingReservedBudget = (category: DataCategory) => {
-    if (category === DataCategory.SPANS || category === DataCategory.SPANS_INDEXED) {
-      return this.isSettingSpansBudget();
-    }
     if (
       category === DataCategory.SEER_AUTOFIX ||
       category === DataCategory.SEER_SCANNER
@@ -363,18 +336,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   };
 
   /**
-   * Whether the user has set all the required fields to provision a spans budget.
-   * These include the reserved CPEs and reserved volumes for each span category,
-   * as well as a custom price for spans which serves as the budget amount.
+   * Whether the user has set all the required fields to provision a Seer budget.
+   * These include the reserved CPEs and reserved volumes for each Seer category,
+   * as well as a budget amount.
    */
-  hasCompleteSpansBudget = () =>
-    this.isSettingSpansBudget() &&
-    Object.entries(this.state.data)
-      .filter(([key, _]) => key.startsWith('reservedSpans'))
-      .every(([_, value]) => value === RESERVED_BUDGET_QUOTA) &&
-    this.state.data.dynamicSamplingBudget;
-
-  // Same as above, but for Seer budgets
   hasCompleteSeerBudget = () =>
     this.isSettingSeerBudget() &&
     Object.entries(this.state.data)
@@ -419,8 +384,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       delete postData.coterm;
     }
 
-    // remove custom price fields if the plan is not AM Enterprise
-    const hasCustomSkuPrices = isAmEnterprisePlan(postData.plan);
+    // remove custom price fields if no plan is selected; every provisionable
+    // plan is AM Enterprise and has custom SKU prices
+    const hasCustomSkuPrices = Boolean(postData.plan);
     if (!hasCustomSkuPrices) {
       const customSkuFields = Object.keys(postData).filter(
         key => key.startsWith('customPrice') && key !== 'customPrice'
@@ -430,9 +396,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    const allCategories = Object.values(DATA_CATEGORY_INFO).map(
-      c => c.plural as DataCategory
-    );
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
     const planCategories = allCategories.filter(c =>
       this.state.provisionablePlans[postData.plan]?.categories.includes(c)
     );
@@ -509,9 +473,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       ) {
         postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
       } else if (
-        (key.startsWith('customPrice') ||
-          key === 'seerBudget' ||
-          key === 'dynamicSamplingBudget') &&
+        (key.startsWith('customPrice') || key === 'seerBudget') &&
         !isNaN(value as number)
       ) {
         postData[key] = toCents(value as number); // price should be in cents
@@ -546,7 +508,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       ? !this.disableRetainOnDemand()
       : false;
 
-    if (isAmPlan(postData.plan)) {
+    if (postData.plan) {
       // Setting soft cap types to null if not `ON_DEMAND` or `TRUE_FORWARD` ensures soft cap type
       // is disabled if it was set but is not set with the new provisioning request.
       planCategories.forEach(category => {
@@ -570,29 +532,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }
 
     postData.reservedBudgets = [];
-    if (isAm3DsPlan(postData.plan)) {
-      // Validate DS plan and reserved spans budget
-      if (this.hasCompleteSpansBudget()) {
-        postData.reservedBudgets.push({
-          categories: [
-            DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural,
-            DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED].plural,
-          ],
-          budget: postData.dynamicSamplingBudget,
-        });
-      } else {
-        onSubmitError({
-          responseJSON: {
-            customPriceSpans: [
-              'Dynamic Sampling plans require reserved spans budget with reserved CPEs for both accepted and stored spans',
-            ],
-          },
-        });
-        return;
-      }
-    }
-    delete postData.dynamicSamplingBudget;
-
     if (this.hasCompleteSeerBudget()) {
       postData.reservedBudgets.push({
         categories: [DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER],
@@ -623,9 +562,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const {Header, Body, closeModal} = this.props;
     const {data} = this.state;
 
-    const isAmEnt = isAmEnterprisePlan(data.plan);
-    const isAm3Ds = isAm3DsPlan(data.plan);
-    const hasCustomSkuPrices = isAmEnt;
+    // every provisionable plan is AM Enterprise and has custom SKU prices
+    const hasCustomSkuPrices = Boolean(data.plan);
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
     const selectedPlan = this.state.provisionablePlans[data.plan];
 
@@ -652,38 +590,19 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   clearable={false}
                   choices={Object.entries(this.state.provisionablePlans)
                     .reverse()
-                    .map(([id, plan]) => {
-                      const suffix = isAm3DsPlan(plan.id) ? ' with Dynamic Sampling' : '';
-
-                      return [
-                        id,
-                        `${plan.name}${suffix} (${isAmPlan(plan.id) ? getAmPlanTier(plan.id) : plan.id === 'e1' ? 'mm1' : 'mm2'})`,
-                      ];
-                    })}
+                    .map(([id, plan]) => [id, `${plan.name} (${plan.id})`])}
                   onChange={v => {
-                    // Reset price fields if next plan is not AM Enterprise
-                    const isManagedPlan = isAmEnterprisePlan(v as string);
-                    const chosenPlanIsAm3Ds = isAm3DsPlan(v as string);
-                    const nextPrices = isManagedPlan
-                      ? {}
-                      : Object.keys(this.state.data)
-                          .filter(key => key.startsWith('customPrice'))
-                          .reduce((acc, key) => {
-                            return {...acc, [key]: ''};
-                          }, {});
-                    const nextReservedCpes = chosenPlanIsAm3Ds
-                      ? {}
-                      : Object.keys(this.state.data)
-                          .filter(key => key.startsWith('reservedCpe'))
-                          .reduce((acc, key) => {
-                            return {...acc, [key]: null};
-                          }, {});
+                    // Reset reserved CPEs when changing plans
+                    const nextReservedCpes = Object.keys(this.state.data)
+                      .filter(key => key.startsWith('reservedCpe'))
+                      .reduce((acc, key) => {
+                        return {...acc, [key]: null};
+                      }, {});
                     this.setState(state => ({
                       ...state,
                       data: {
                         ...state.data,
                         plan: v,
-                        ...nextPrices,
                         ...nextReservedCpes,
                       },
                     }));
@@ -692,7 +611,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 <BooleanField
                   label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
-                    this.props.subscription.contractPeriodEnd
+                    this.props.subscription.billingPeriodEnd
                   )})`}
                   name="atPeriodEnd"
                   disabled={this.state.data.coterm}
@@ -782,7 +701,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     choices={
-                      isAm3Plan(this.state.data.plan)
+                      // per-category max spend is only available on plans
+                      // with on-demand budget modes
+                      selectedPlan && !selectedPlan.hasOnDemandModes
                         ? [
                             ['SHARED', 'Shared'],
                             ['DISABLE', 'Disable'],
@@ -840,7 +761,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         plan: selectedPlan,
                         category,
                         title: true,
-                        hadCustomDynamicSampling: isAm3Ds,
                       });
                       const suffix = isByteCategory(category) ? ' (in GB)' : '';
                       const capitalizedApiName = this.capitalizeForApiName(
@@ -885,7 +805,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               }))
                             }
                           />
-                          {this.isReservedBudgetCategory(isAm3Ds, category) && (
+                          {this.isReservedBudgetCategory(category) && (
                             <StyledDollarsAndCentsField
                               label={`Reserved Cost-Per-Event ${titleName}`}
                               name={`reservedCpe${capitalizedApiName}`}
@@ -1005,24 +925,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         }
                       />
                     )}
-                    {isAm3DsPlan(selectedPlan.id) && (
-                      <StyledDollarsField
-                        label="Dynamic Sampling Budget"
-                        name="dynamicSamplingBudget"
-                        help="Monthly reserved budget for Dynamic Sampling"
-                        required={this.isSettingSpansBudget()}
-                        value={data.dynamicSamplingBudget}
-                        onChange={v =>
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              dynamicSamplingBudget: v,
-                            },
-                          }))
-                        }
-                      />
-                    )}
                   </Fragment>
                 )}
               </div>
@@ -1040,17 +942,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     plan: selectedPlan,
                     category,
                     title: true,
-                    hadCustomDynamicSampling: isAm3Ds,
                   });
                   const settingReservedBudget = this.isSettingReservedBudget(category);
                   const isDisabled =
-                    settingReservedBudget &&
-                    (category === DataCategory.SPANS_INDEXED ||
-                      category === DataCategory.SEER_SCANNER);
+                    settingReservedBudget && category === DataCategory.SEER_SCANNER;
                   const suffix =
-                    settingReservedBudget &&
-                    (category === DataCategory.SPANS ||
-                      category === DataCategory.SEER_AUTOFIX)
+                    settingReservedBudget && category === DataCategory.SEER_AUTOFIX
                       ? ` (${toTitleCase(
                           Object.values(
                             selectedPlan?.availableReservedBudgetTypes ?? {}

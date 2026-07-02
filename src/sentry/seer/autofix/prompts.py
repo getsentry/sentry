@@ -3,9 +3,34 @@ Prompts for Explorer-based Autofix steps.
 """
 
 from textwrap import dedent
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from sentry.seer.agent.client_models import SeerRunState
 
 
-def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
+class PromptBuilder(Protocol):
+    """Signature shared by all autofix step prompt builders."""
+
+    def __call__(
+        self,
+        *,
+        short_id: str,
+        title: str,
+        culprit: str,
+        artifact_key: str | None,
+        run_state: "SeerRunState | None" = None,
+    ) -> str: ...
+
+
+def root_cause_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
+) -> str:
     return dedent(
         f"""\
         Analyze issue {short_id}: "{title}" (culprit: {culprit})
@@ -30,7 +55,14 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: 
     )
 
 
-def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
+def solution_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
+) -> str:
     return dedent(
         f"""\
         Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
@@ -58,7 +90,12 @@ def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: st
 
 
 def code_changes_prompt(
-    *, short_id: str, title: str, culprit: str, artifact_key: str | None
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
 ) -> str:
     return dedent(
         f"""\
@@ -78,66 +115,53 @@ def code_changes_prompt(
     )
 
 
-def impact_assessment_prompt(
-    *, short_id: str, title: str, culprit: str, artifact_key: str | None
+def pr_iteration_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
 ) -> str:
-    return dedent(
+    prompt = dedent(
         f"""\
-        Assess the impact of issue {short_id}: "{title}" (culprit: {culprit})
+        Iterate on the pull request for issue {short_id}: "{title}" (culprit: {culprit})
 
-        Analyze how this issue affects the system, users, and business.
+        Review the existing pull request, previous code changes, and any available feedback. Update the codebase to address the requested revisions while preserving the original fix.
 
         Steps:
-        1. Fetch the issue details to understand the error and its frequency
-        2. Understand upstream and downstream dependencies
-        3. Check for relevant metrics, performance data, and connected issues
-        4. Consider affected functionality, user-facing impact, data integrity, and system stability
+        1. Inspect the existing pull request and prior file patches
+        2. Identify the smallest set of follow-up changes needed
+        3. Use the code editing tools to revise the implementation
 
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have assessed the impact, always generate the impact_assessment artifact {artifact_tool_str(artifact_key)}:
-        - one_line_description: A concise summary of the overall impact in under 30 words
-        - impacts: List of specific impacts, each with:
-          - label: What is impacted (e.g., "User Authentication", "Payment Flow")
-          - rating: Severity of the impact. High is an urgent incident, medium is a significant but non-urgent problem, low is a minor issue or no impact at all.
-          - impact_description: One line describing the impact
-          - evidence: Evidence or reasoning for this assessment
+        Use your coding tools to make changes directly to the codebase.
         """
     )
 
+    pr_links = pr_links_section(run_state)
+    if pr_links:
+        prompt = f"{prompt}\n{pr_links}"
 
-def triage_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
-    return dedent(
-        f"""\
-        Triage issue {short_id}: "{title}" (culprit: {culprit})
+    return prompt
 
-        Help triage this issue by identifying potential suspects and assignees.
 
-        Steps:
-        1. Consider the issue details, the relevant telemetry, impacted systems, and the root cause of the issue
-        2. Look at recent commits that touched the problematic systems (use git history if available)
-        3. Identify who might have introduced the issue or at least who owns the affected code
-        4. Consider code ownership patterns in the repository
+def pr_links_section(run_state: "SeerRunState | None") -> str:
+    """Render a section linking the open pull request URLs for the run, if any."""
+    if run_state is None:
+        return ""
 
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
+    lines = [
+        f"- {pr.repo_name}: {pr.pr_url}" for pr in run_state.repo_pr_states.values() if pr.pr_url
+    ]
+    if not lines:
+        return ""
 
-        When you have enough information, always generate the triage artifact {artifact_tool_str(artifact_key)}:
-        - suspect_commit: If you can identify a likely culprit commit:
-          - sha: The git commit SHA (7 characters)
-          - repo_name: Full repository name (e.g. 'getsentry/sentry')
-          - message: The commit message/title
-          - author_name: Name of the commit author
-          - author_email: Email of the commit author
-          - committed_date: When the commit was made (YYYY-MM-DD format)
-          - description: Why this commit is suspected of causing the issue
-        - suggested_assignee: If you can identify who should fix this:
-          - name: Name of the suggested assignee
-          - email: Email of the suggested assignee
-          - why: Reason for suggesting this person
-
-        Either field can be omitted if you cannot determine it with reasonable confidence.
-        """
+    header = (
+        "We've created/updated the following pull request(s) as a result of your changes. "
+        "Review each one — including its description, diff, and review comments — "
+        "before making further changes:"
     )
+    return "\n".join([header, *lines])
 
 
 def artifact_tool_str(artifact_key: str | None) -> str:

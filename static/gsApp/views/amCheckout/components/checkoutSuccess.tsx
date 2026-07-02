@@ -14,7 +14,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
@@ -113,7 +113,7 @@ function ScheduledChanges({
   effectiveDate,
   total,
 }: ScheduledChangesProps) {
-  const shortInterval = plan ? utils.getShortInterval(plan.contractInterval) : undefined;
+  const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
     <Flex
       data-test-id="scheduled-changes"
@@ -498,6 +498,15 @@ function Receipt({
   );
 }
 
+const checkoutSuccessFeedbackOptions = {
+  formTitle: t('Give feedback'),
+  messagePlaceholder: t('How can we make the checkout experience better for you?'),
+  tags: {
+    ['feedback.source']: 'checkout_success',
+    ['feedback.owner']: 'billing',
+  },
+};
+
 export function CheckoutSuccess({
   invoice,
   basePlan,
@@ -583,19 +592,27 @@ export function CheckoutSuccess({
       align="center"
       justify="between"
       gap="3xl"
-      direction={{sm: 'column', md: 'row'}}
+      direction={{'screen:sm': 'column', 'screen:md': 'row'}}
     >
-      <Flex direction="column" align={{sm: 'center', md: 'start'}} maxWidth="500px">
+      <Flex
+        direction="column"
+        align={{'screen:sm': 'center', 'screen:md': 'start'}}
+        maxWidth="500px"
+      >
         <Title size="2xl" as="h1" align="left">
           {contentTitle}
         </Title>
-        <Flex gap="2xl" direction="column" align={{sm: 'center', md: 'start'}}>
+        <Flex
+          gap="2xl"
+          direction="column"
+          align={{'screen:sm': 'center', 'screen:md': 'start'}}
+        >
           <Description variant="muted" size="lg" align="left">
             {contentDescription}
           </Description>
           <Flex gap="sm">
             <LinkButton
-              priority="primary"
+              variant="primary"
               aria-label={t('View your subscription')}
               to={`/settings/${organization.slug}/billing/overview/${viewSubscriptionQueryParams}`}
             >
@@ -607,19 +624,7 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton
-              feedbackOptions={{
-                formTitle: t('Give feedback'),
-                messagePlaceholder: t(
-                  'How can we make the checkout experience better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'checkout_success',
-                  ['feedback.owner']: 'billing',
-                },
-              }}
-              size="md"
-            />
+            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
           </Flex>
         </Flex>
       </Flex>

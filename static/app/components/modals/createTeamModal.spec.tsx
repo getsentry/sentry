@@ -1,17 +1,12 @@
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {createTeam} from 'sentry/actionCreators/teams';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
-import CreateTeamModal from 'sentry/components/modals/createTeamModal';
+import {makeCloseButton} from '@sentry/scraps/modal';
 
-jest.mock('sentry/actionCreators/teams', () => ({
-  createTeam: jest.fn(
-    (...args: Parameters<typeof createTeam>) => new Promise(resolve => resolve(args))
-  ),
-}));
+import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
 describe('CreateTeamModal', () => {
   const org = OrganizationFixture();
@@ -20,9 +15,17 @@ describe('CreateTeamModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
-  it('calls createTeam action creator on submit', async () => {
+  it('creates a team and closes the modal on submit', async () => {
+    const team = TeamFixture({slug: 'new-team'});
+    const createRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'POST',
+      body: team,
+    });
+
     const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
     render(
       <CreateTeamModal
@@ -39,8 +42,12 @@ describe('CreateTeamModal', () => {
     await userEvent.type(screen.getByRole('textbox', {name: 'Team Slug'}), 'new-team');
     await userEvent.click(screen.getByLabelText('Create Team'));
 
-    await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
-    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => expect(createRequest).toHaveBeenCalledTimes(1));
+    expect(createRequest).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/teams/`,
+      expect.objectContaining({data: {slug: 'new-team'}})
+    );
+    expect(onClose).toHaveBeenCalledWith(team);
     expect(closeModal).toHaveBeenCalled();
   });
 });

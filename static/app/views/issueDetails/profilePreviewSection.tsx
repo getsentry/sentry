@@ -14,22 +14,23 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
   ProfileGroupProvider,
   useProfileGroup,
-} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {
   ProfileContext,
   ProfilesProvider,
   useProfiles,
-} from 'sentry/views/profiling/profilesProvider';
+} from 'sentry/views/explore/profiling/profilesProvider';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfilePreviewSection({
   event,
@@ -82,8 +83,8 @@ export function ProfilePreviewSection({
       >
         <ProfileContext.Consumer>
           {profiles => (
-            <InterimSection
-              type={SectionKey.PROFILE_PREVIEW}
+            <FoldSection
+              sectionKey={SectionKey.PROFILE_PREVIEW}
               title={
                 <span>
                   {sectionTitle}
@@ -117,7 +118,7 @@ export function ProfilePreviewSection({
                   />
                 </FlamegraphThemeProvider>
               </ProfileGroupProvider>
-            </InterimSection>
+            </FoldSection>
           )}
         </ProfileContext.Consumer>
       </ProfilesProvider>

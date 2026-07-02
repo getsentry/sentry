@@ -7,7 +7,7 @@ from typing import Any
 import click
 from django.urls import reverse
 
-from sentry.runner.decorators import configuration
+from sentry.runner.decorators import configuration, log_options
 from sentry.utils import json
 
 
@@ -24,6 +24,7 @@ from sentry.utils import json
     default=False,
     help="List RPC methods that produce errors and suppress all other output.",
 )
+@log_options()
 @configuration
 def rpcschema(diagnose: bool, partial: bool) -> None:
     # Defered imports because openapi_pydantic is only installed as a dev dependency

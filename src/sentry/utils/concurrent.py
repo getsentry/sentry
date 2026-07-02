@@ -19,27 +19,6 @@ import sentry_sdk.scope
 logger = logging.getLogger(__name__)
 
 
-def execute[T](function: Callable[..., T], daemon=True) -> Future[T]:
-    future: Future[T] = Future()
-
-    def run():
-        if not future.set_running_or_notify_cancel():
-            return
-
-        try:
-            result = function()
-        except Exception as e:
-            future.set_exception(e)
-        else:
-            future.set_result(result)
-
-    t = threading.Thread(target=run)
-    t.daemon = daemon
-    t.start()
-
-    return future
-
-
 @functools.total_ordering
 class PriorityTask[T](NamedTuple):
     priority: int

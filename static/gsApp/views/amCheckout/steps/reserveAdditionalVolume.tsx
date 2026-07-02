@@ -9,7 +9,8 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
-import {isDeveloperPlan, isTrialPlan} from 'getsentry/utils/billing';
+import {isDeveloperPlan} from 'getsentry/utils/billing';
+import {isReservedBudgetCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -19,27 +20,21 @@ export function ReserveAdditionalVolume({
   organization,
   subscription,
   activePlan,
-  checkoutTier,
   formData,
   onUpdate,
 }: Pick<
   StepProps,
-  | 'organization'
-  | 'subscription'
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'formData'
-  | 'onUpdate'
+  'organization' | 'subscription' | 'activePlan' | 'formData' | 'onUpdate'
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
-  const [showSliders, setShowSliders] = useState<boolean>(
-    isDeveloperPlan(subscription.planDetails) || isTrialPlan(subscription.plan)
+  const [showSliders, setShowSliders] = useState(
+    isDeveloperPlan(subscription.planDetails) || subscription.onTrialPlan
       ? false
       : Object.values(subscription.categories ?? {})
           .filter(
             ({category}) =>
-              activePlan.checkoutCategories.includes(category) &&
-              category in activePlan.planCategories
+              (activePlan.planCategories[category]?.length ?? 0) > 1 &&
+              !isReservedBudgetCategory(category, activePlan)
           )
           .some(
             ({category, reserved}) =>
@@ -49,9 +44,7 @@ export function ReserveAdditionalVolume({
               }).price > 0
           )
   );
-  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
-    formData.reserved
-  );
+  const [reserved, setReserved] = useState(formData.reserved);
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
@@ -98,7 +91,7 @@ export function ReserveAdditionalVolume({
         <Stack gap="sm" align="start">
           <Button
             size="sm"
-            priority="link"
+            variant="link"
             icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders
@@ -123,10 +116,10 @@ export function ReserveAdditionalVolume({
         </Stack>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size={{xs: 'lg', sm: 'xl'}} bold density="compressed">
+            <Text size={{'screen:xs': 'lg', 'screen:sm': 'xl'}} bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
-            <Text size={{xs: 'sm', sm: 'lg'}} variant="muted">
+            <Text size={{'screen:xs': 'sm', 'screen:sm': 'lg'}} variant="muted">
               /{getShortInterval(activePlan.billingInterval)}
             </Text>
           </Container>
@@ -136,11 +129,9 @@ export function ReserveAdditionalVolume({
         <Stack direction="column" borderTop="primary">
           <Flex borderTop="primary" width="100%" />
           <VolumeSliders
-            checkoutTier={checkoutTier}
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
-            subscription={subscription}
             onReservedChange={(newReserved, category) => {
               setReserved(prev => ({...prev, [category]: newReserved}));
               debouncedReservedChange(newReserved, category);

@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
@@ -7,10 +6,8 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {defined} from 'sentry/utils';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -19,7 +16,7 @@ export function getAutomationActions(automation: Automation): ActionType[] {
         .flatMap(dataConditionGroup =>
           dataConditionGroup.actions?.map(action => action.type)
         )
-        .filter(x => x)
+        .filter(Boolean)
     ),
   ] as ActionType[];
 }
@@ -52,23 +49,6 @@ export function getAutomationActionsWarning(
     };
   }
   return null;
-}
-
-export function useAutomationProjectSlugs(automation: Automation) {
-  const {data: detectors, isLoading} = useDetectorsQuery(
-    {ids: automation.detectorIds},
-    {enabled: automation.detectorIds.length > 0}
-  );
-
-  const projectIds = [
-    ...new Set(detectors?.map(detector => detector.projectId).filter(defined) ?? []),
-  ];
-
-  const projectSlugs = projectIds
-    .map(projectId => ProjectsStore.getById(projectId)?.slug)
-    .filter(defined);
-
-  return {projectSlugs, isLoading};
 }
 
 export function findConflictingConditions(

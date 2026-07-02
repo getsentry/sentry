@@ -14,7 +14,7 @@ const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
   [AlertRuleThresholdType.ABOVE_AND_BELOW]: 'both',
 } as const;
 
-interface EventAnomalyPayload {
+type EventAnomalyPayload = {
   config: {
     direction: 'up' | 'down' | 'both';
     /**
@@ -31,7 +31,7 @@ interface EventAnomalyPayload {
   historical_data: Array<[timestamp: number, {count: number}]>;
   organization_id: string;
   project_id: string;
-}
+};
 
 interface UseMetricDetectorAnomaliesProps {
   enabled: boolean;

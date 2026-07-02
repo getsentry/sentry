@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DERIVED_STATUS_METRICS_PATTERN} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {
@@ -79,7 +79,7 @@ export function transformSessionsResponseToSeries(
       requestedStatusMetrics.forEach(status => {
         const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
         if (result) {
-          let metricField: string | undefined = undefined;
+          let metricField: string | undefined;
           if (group.by['session.status'] === result[1]) {
             if (result[2] === 'session') {
               metricField = 'sum(session)';

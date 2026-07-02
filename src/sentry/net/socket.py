@@ -14,6 +14,7 @@ from urllib3.util.connection import _set_socket_options, allowed_gai_family
 from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
 
 from sentry.exceptions import RestrictedIPAddress
+from sentry.utils.tracing import set_span_data, start_span
 
 if TYPE_CHECKING:
     from sentry.net.http import IsIpAddressPermitted
@@ -22,16 +23,24 @@ DISALLOWED_IPS = frozenset(
     ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
 
+ALLOWED_IPS = frozenset(
+    ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_ALLOWED_IPS
+)
+
 
 @functools.lru_cache(maxsize=100)
 def is_ipaddress_allowed(ip: str) -> bool:
     """
     Test if a given IP address is allowed or not
-    based on the DISALLOWED_IPS rules.
+    based on the DISALLOWED_IPS AND ALLOWED_IPS rules.
     """
     if not DISALLOWED_IPS:
         return True
     ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
+    for ip_network in ALLOWED_IPS:
+        if ip_address in ip_network:
+            return True
+
     for ip_network in DISALLOWED_IPS:
         if ip_address in ip_network:
             return False
@@ -135,13 +144,13 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    with sentry_sdk.start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
+    with start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
         addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
-        gai_span.set_data("address_count", len(addresses))
-        gai_span.set_data("addresses", addresses)
+        set_span_data(gai_span, "address_count", len(addresses))
+        set_span_data(gai_span, "addresses", addresses)
 
     for res in addresses:
-        with sentry_sdk.start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
+        with start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
             af, socktype, proto, canonname, sa = res
 
             # Begin custom code.
@@ -169,7 +178,7 @@ def safe_create_connection(
                     sock.settimeout(timeout)
                 if source_address:
                     sock.bind(source_address)
-                with sentry_sdk.start_span(op="socket.connect", name=f"sock.connect.{sa}"):
+                with start_span(op="socket.connect", name=f"sock.connect.{sa}"):
                     sock.connect(sa)
                 return sock
 

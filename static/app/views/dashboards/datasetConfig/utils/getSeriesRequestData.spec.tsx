@@ -188,6 +188,140 @@ describe('utils', () => {
       expect(requestData.field).not.toContain('count_unique_user');
     });
 
+    describe('equation orderby handling for trace metrics', () => {
+      it('passes full equation orderby through and adds it to fields for TRACEMETRICS', () => {
+        const widget = WidgetFixture({
+          displayType: DisplayType.LINE,
+          queries: [
+            WidgetQueryFixture({
+              fields: [
+                'project',
+                'avg(value,test_metric,millisecond,none)',
+                'equation|avg(value,test_metric,millisecond,none) / 2',
+              ],
+              aggregates: ['avg(value,test_metric,millisecond,none)'],
+              columns: ['project'],
+              orderby: '-equation|avg(value,test_metric,millisecond,none) / 2',
+            }),
+          ],
+        });
+        const pageFilters = PageFiltersFixture();
+        const organization = OrganizationFixture();
+
+        const requestData = getSeriesRequestData(
+          widget,
+          0,
+          organization,
+          pageFilters,
+          DiscoverDatasets.TRACEMETRICS,
+          'test-referrer'
+        );
+
+        expect(requestData.orderby).toBe(
+          '-equation|avg(value,test_metric,millisecond,none) / 2'
+        );
+        expect(requestData.field).toContain(
+          'equation|avg(value,test_metric,millisecond,none) / 2'
+        );
+      });
+
+      it('resolves equation alias orderby to full equation form for TRACEMETRICS', () => {
+        const widget = WidgetFixture({
+          displayType: DisplayType.LINE,
+          queries: [
+            WidgetQueryFixture({
+              fields: [
+                'project',
+                'avg(value,test_metric,millisecond,none)',
+                'equation|avg(value,test_metric,millisecond,none) / 2',
+              ],
+              aggregates: ['avg(value,test_metric,millisecond,none)'],
+              columns: ['project'],
+              orderby: '-equation[0]',
+            }),
+          ],
+        });
+        const pageFilters = PageFiltersFixture();
+        const organization = OrganizationFixture();
+
+        const requestData = getSeriesRequestData(
+          widget,
+          0,
+          organization,
+          pageFilters,
+          DiscoverDatasets.TRACEMETRICS,
+          'test-referrer'
+        );
+
+        expect(requestData.orderby).toBe(
+          '-equation|avg(value,test_metric,millisecond,none) / 2'
+        );
+      });
+
+      it('resolves ascending equation alias orderby for TRACEMETRICS', () => {
+        const widget = WidgetFixture({
+          displayType: DisplayType.LINE,
+          queries: [
+            WidgetQueryFixture({
+              fields: [
+                'project',
+                'avg(value,test_metric,millisecond,none)',
+                'equation|avg(value,test_metric,millisecond,none) / 2',
+              ],
+              aggregates: ['avg(value,test_metric,millisecond,none)'],
+              columns: ['project'],
+              orderby: 'equation[0]',
+            }),
+          ],
+        });
+        const pageFilters = PageFiltersFixture();
+        const organization = OrganizationFixture();
+
+        const requestData = getSeriesRequestData(
+          widget,
+          0,
+          organization,
+          pageFilters,
+          DiscoverDatasets.TRACEMETRICS,
+          'test-referrer'
+        );
+
+        expect(requestData.orderby).toBe(
+          'equation|avg(value,test_metric,millisecond,none) / 2'
+        );
+      });
+
+      it('converts full equation orderby to alias format for non-EAP datasets', () => {
+        const widget = WidgetFixture({
+          displayType: DisplayType.LINE,
+          queries: [
+            WidgetQueryFixture({
+              fields: ['project', 'count()', 'equation|count() / 2'],
+              aggregates: ['count()'],
+              columns: ['project'],
+              orderby: '-equation|count() / 2',
+            }),
+          ],
+        });
+        const pageFilters = PageFiltersFixture();
+        const organization = OrganizationFixture();
+
+        const requestData = getSeriesRequestData(
+          widget,
+          0,
+          organization,
+          pageFilters,
+          DiscoverDatasets.ERRORS,
+          'test-referrer'
+        );
+
+        // Non-EAP datasets convert to equation[N] alias format
+        // The index is based on the number of equations in aggregates (0 here)
+        expect(requestData.orderby).toBe('-equation[0]');
+        expect(requestData.field).toContain('equation|count() / 2');
+      });
+    });
+
     it('adds the orderby to fields if it is not in fields, columns, or aggregates', () => {
       const widget = WidgetFixture({
         displayType: DisplayType.LINE,

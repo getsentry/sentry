@@ -127,7 +127,6 @@ type GetsentryEventParameters = {
   };
   'gen_ai_consent.view_in_settings_clicked': Record<PropertyKey, unknown>;
   'github.multi_org.upsell': {source?: string};
-  'grace_period_modal.seen': HasSub;
   'growth.clicked_enter_sandbox': {
     scenario: string;
   };
@@ -152,6 +151,8 @@ type GetsentryEventParameters = {
   'growth.upsell_feature.cancelled': UpsellProvider;
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
+  'intercom_link.clicked': {source?: string};
+  'intercom_link.viewed': {source?: string};
   'learn_more_link.clicked': {source?: string};
   'ondemand_budget_modal.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'ondemand_budget_modal.ondemand_budget.update': OnDemandBudgetUpdate;
@@ -249,8 +250,6 @@ type GetsentryEventParameters = {
     has_price_change: undefined | boolean;
   };
   'usage_exceeded_modal.seen': HasSub;
-  'zendesk_link.clicked': {source?: string};
-  'zendesk_link.viewed': {source?: string};
 };
 
 export type AM2UpdateSurfaces =
@@ -260,7 +259,7 @@ export type AM2UpdateSurfaces =
   | 'replay_project_creation'
   | 'replay'
   | 'subscription_page';
-type UpdateProps = Pick<Subscription, 'planTier' | 'canSelfServe' | 'channel'> & {
+type UpdateProps = Pick<Subscription, 'canSelfServe' | 'channel'> & {
   has_billing_scope: boolean;
   surface: AM2UpdateSurfaces;
 };
@@ -296,7 +295,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'performance.quota_exceeded_alert.displayed':
     'Performance: Quota Exceeded Alert Displayed',
   'trial_ended_notice.dismissed_understood': 'Trial Ended Notice: Dismissed understood',
-  'grace_period_modal.seen': 'Grace Period Modal Seen',
   'usage_exceeded_modal.seen': 'Usage Exceeded Modal Seen',
   'past_due_modal.seen': 'Past Due Modal Seen',
   'deactivated_member_alert.snoozed': 'Deactivated Member Alert: Snoozed',
@@ -368,8 +366,8 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'upgrade_now.modal.sent_email': 'Upgrade Now Modal: Sent Email',
   'upgrade_now.modal.update_now': 'Upgrade Now Modal: Clicked Update Now',
   'upgrade_now.modal.viewed': 'Upgrade Now Modal: Viewed Modal',
-  'zendesk_link.viewed': 'Zendesk Link Viewed',
-  'zendesk_link.clicked': 'Zendesk Link Clicked',
+  'intercom_link.clicked': 'Intercom Link Clicked',
+  'intercom_link.viewed': 'Intercom Link Viewed',
   'learn_more_link.clicked': 'Learn More Link Clicked',
   'spend_allocations.open_form': 'Spend Allocations: Form Opened',
   'spend_allocations.submit': 'Spend Allocations: Form Submitted',

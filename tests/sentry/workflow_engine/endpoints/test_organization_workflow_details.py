@@ -1,4 +1,5 @@
 from contextlib import AbstractContextManager
+from unittest import mock
 
 import responses
 
@@ -9,6 +10,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
@@ -17,6 +19,7 @@ from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleWorkflow,
     Condition,
     DataConditionGroup,
     DataConditionGroupAction,
@@ -25,7 +28,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, ProjectAccessTestMixin
+from tests.sentry.workflow_engine.test_base import (
+    BaseWorkflowTest,
+    MockActionValidatorTranslator,
+    ProjectAccessTestMixin,
+)
 
 
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
@@ -91,6 +98,78 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_action_filter_with_string_encoded_id(self) -> None:
+        dcg = DataConditionGroup.objects.create(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        WorkflowDataConditionGroup.objects.create(
+            condition_group=dcg,
+            workflow=self.workflow,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "id": str(dcg.id),
+                    "logicType": "all",
+                    "conditions": [],
+                    "actions": [],
+                }
+            ],
+        }
+
+        self.get_success_response(self.organization.slug, self.workflow.id, raw_data=data)
+
+        dcg.refresh_from_db()
+        assert dcg.logic_type == DataConditionGroup.Type.ALL
+
+    def test_update__assigned_to_foreign_team(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": other_team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
+    def test_update__assigned_to_in_org(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": self.team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        assert response.status_code == 200
 
     def test_update_owner(self) -> None:
         assert self.workflow.owner_team_id is None
@@ -783,6 +862,58 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         other_dcg.refresh_from_db()
         assert other_dcg.conditions.count() == original_condition_count
 
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_update_rejects_unsupported_action_when_existing_trigger_is_activity(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        when_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.create_data_condition(
+            condition_group=when_condition_group,
+            type=Condition.SEER_ACTIVITY_TRIGGER,
+            comparison=["rca_started"],
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=when_condition_group,
+        )
+
+        data = {
+            "name": workflow.name,
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "type": Action.Type.PAGERDUTY,
+                            "config": {
+                                "targetIdentifier": "test",
+                                "targetDisplay": "Test",
+                                "targetType": "specific",
+                            },
+                            "data": {},
+                            "integrationId": self.integration.id,
+                        },
+                    ],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+        assert "not supported for activity triggers" in str(response.data)
+
 
 @cell_silo_test
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
@@ -873,6 +1004,23 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             response = self.get_error_response(self.organization.slug, workflow.id)
             assert response.status_code == 404
+
+    def test_delete_dual_written_workflow_cleans_up_rule(self) -> None:
+        rule = self.create_project_rule(project=self.project)
+        self.create_alert_rule_workflow(
+            rule_id=rule.id,
+            workflow=self.workflow,
+        )
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.workflow.id)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects_for_deletion.filter(id=self.workflow.id).exists()
+        assert not Rule.objects.filter(id=rule.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
 
 
 @cell_silo_test

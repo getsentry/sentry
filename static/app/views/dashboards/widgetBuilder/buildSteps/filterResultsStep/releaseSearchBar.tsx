@@ -89,7 +89,7 @@ export function useReleasesSearchBarDataProvider(
   }, []);
 
   const getTagValues = useCallback<GetTagValues>(
-    (tag, searchQuery) => {
+    ({tag, searchQuery}) => {
       if (tag.name === 'session.status') {
         return Promise.resolve(SESSION_STATUSES);
       }

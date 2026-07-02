@@ -7,11 +7,20 @@ import {
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import DetectorNewSettings from 'sentry/views/detectors/new-settings';
 
 describe('DetectorEdit', () => {
@@ -66,11 +75,6 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -101,6 +105,27 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
       body: [],
     });
+  });
+
+  it('selects the first project when an invalid project is provided in the URL', async () => {
+    render(<DetectorNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue', project: 'not-a-project-id'},
+        },
+      },
+    });
+
+    await screen.findByText('New Monitor');
+
+    // Verify the project dropdown has the first project selected
+    const projectSection = screen
+      .getByText(/Choose the Project and Environment/)
+      .closest('section')!;
+    expect(within(projectSection).getByText(project.slug)).toBeInTheDocument();
   });
 
   describe('Metric Detector', () => {
@@ -167,7 +192,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '123'}),
       });
@@ -190,7 +215,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/detectors/`,
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'Foo',
@@ -242,7 +267,7 @@ describe('DetectorEdit', () => {
 
     it('prefills form when selecting a template', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '123'}),
       });
@@ -274,7 +299,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/detectors/`,
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               type: 'metric_issue',
@@ -297,7 +322,7 @@ describe('DetectorEdit', () => {
 
     it('prefills from URL query params and submits', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '123'}),
       });
@@ -331,7 +356,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/detectors/`,
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'Users experiencing errors above 100 over past 1 hour',
@@ -374,7 +399,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with event.type:error', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '123'}),
       });
@@ -410,7 +435,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/detectors/`,
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               conditionGroup: {
@@ -447,7 +472,7 @@ describe('DetectorEdit', () => {
 
     it('submits manual resolution threshold when selected', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '321'}),
       });
@@ -477,7 +502,7 @@ describe('DetectorEdit', () => {
       });
 
       expect(mockCreateDetector).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/detectors/`,
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'metric_issue',
@@ -505,7 +530,7 @@ describe('DetectorEdit', () => {
 
     it('uses medium threshold for default resolution when both high and medium are set', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '789'}),
       });
@@ -535,7 +560,7 @@ describe('DetectorEdit', () => {
       });
 
       expect(mockCreateDetector).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/detectors/`,
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'metric_issue',
@@ -597,7 +622,7 @@ describe('DetectorEdit', () => {
 
     it('creates detector with dynamic detection and no resolution thresholds', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '456'}),
       });
@@ -630,7 +655,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/detectors/`,
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'Dynamic',
@@ -675,7 +700,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with apdex aggregate', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '789'}),
       });
@@ -711,7 +736,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/detectors/`,
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'Apdex',
@@ -756,14 +781,13 @@ describe('DetectorEdit', () => {
   });
 
   describe('Metric Detector with Metrics dataset', () => {
-    it('shows metrics dataset option when tracemetrics-alerts feature flag is enabled', async () => {
+    it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
         features: [
           'workflow-engine-ui',
           'visibility-explore-view',
           'performance-view',
           'tracemetrics-enabled',
-          'tracemetrics-alerts',
         ],
       });
 
@@ -786,6 +810,12 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: /Metrics/})).toBeInTheDocument();
     });
 
+    it('auto-generates names using application metrics wording', () => {
+      expect(
+        getDatasetConfig(DetectorDataset.METRICS).formatAggregateForTitle?.('count()')
+      ).toBe('Number of application metrics');
+    });
+
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
         features: [
@@ -793,7 +823,6 @@ describe('DetectorEdit', () => {
           'visibility-explore-view',
           'performance-view',
           'tracemetrics-enabled',
-          'tracemetrics-alerts',
         ],
       });
 
@@ -803,7 +832,7 @@ describe('DetectorEdit', () => {
       });
 
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${metricsOrganization.slug}/detectors/`,
+        url: `/organizations/${metricsOrganization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: MetricDetectorFixture({id: '999'}),
       });
@@ -836,7 +865,7 @@ describe('DetectorEdit', () => {
 
       await waitFor(() => {
         expect(mockCreateDetector).toHaveBeenCalledWith(
-          `/organizations/${metricsOrganization.slug}/detectors/`,
+          `/organizations/${metricsOrganization.slug}/projects/${project.id}/detectors/`,
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'Metrics Alert',
@@ -859,28 +888,6 @@ describe('DetectorEdit', () => {
         );
       });
     });
-
-    it('does not show metrics dataset option without tracemetrics-alerts feature flag', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {detectorType: 'metric_issue', project: project.id},
-          },
-        },
-      });
-
-      await screen.findByText('New Monitor');
-
-      // Open dataset dropdown
-      await userEvent.click(screen.getByText('Errors'));
-
-      expect(
-        screen.queryByRole('menuitemradio', {name: /Metrics/})
-      ).not.toBeInTheDocument();
-    });
   });
 
   describe('Uptime Detector', () => {
@@ -894,7 +901,7 @@ describe('DetectorEdit', () => {
 
     it('shows detect and resolve fields and submits default thresholds', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: UptimeDetectorFixture(),
       });
@@ -930,6 +937,11 @@ describe('DetectorEdit', () => {
       await userEvent.click(bodyInput);
       await userEvent.paste('{"test": "data"}');
 
+      // Issue preview reflects the URL
+      expect(
+        screen.getByText('Downtime detected for uptime.example.com')
+      ).toBeInTheDocument();
+
       await selectEvent.openMenu(screen.getByLabelText('Select Environment'));
       expect(
         screen.queryByRole('menuitemradio', {name: 'All Environments'})
@@ -943,7 +955,7 @@ describe('DetectorEdit', () => {
       });
 
       expect(mockCreateDetector).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/detectors/`,
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         expect.objectContaining({
           data: expect.objectContaining({
             config: {
@@ -994,7 +1006,7 @@ describe('DetectorEdit', () => {
 
     it('submits custom thresholds when changed', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: UptimeDetectorFixture(),
       });
@@ -1030,7 +1042,7 @@ describe('DetectorEdit', () => {
       });
 
       expect(mockCreateDetector).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/detectors/`,
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         expect.objectContaining({
           data: expect.objectContaining({
             config: {
@@ -1134,7 +1146,7 @@ describe('DetectorEdit', () => {
 
     it('submits default cron config with no changes', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: CronDetectorFixture({id: '999'}),
       });
@@ -1151,7 +1163,7 @@ describe('DetectorEdit', () => {
       });
 
       expect(mockCreateDetector).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/detectors/`,
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'monitor_check_in_failure',
@@ -1179,7 +1191,7 @@ describe('DetectorEdit', () => {
 
     it('submits crons config with changes', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/detectors/`,
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         body: CronDetectorFixture({id: '999'}),
       });
@@ -1199,7 +1211,7 @@ describe('DetectorEdit', () => {
       });
 
       expect(mockCreateDetector).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/detectors/`,
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         expect.objectContaining({
           data: expect.objectContaining({
             type: 'monitor_check_in_failure',
@@ -1208,6 +1220,71 @@ describe('DetectorEdit', () => {
           }),
         })
       );
+    });
+
+    it('displays slug errors on the name field and in a toast', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          dataSources: {slug: ['The slug "new-test-cron-job" is already in use.']},
+        },
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('new-test-cron-job{enter}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'The slug "new-test-cron-job" is already in use.'
+        );
+      });
+
+      // The slug error is mapped to the name field and shown inline
+      expect(
+        await screen.findByText('The slug "new-test-cron-job" is already in use.')
+      ).toBeInTheDocument();
+    });
+
+    it('displays schedule config errors on the schedule field and in a toast', async () => {
+      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          dataSources: {
+            config: {schedule: ['Invalid schedule for schedule unit count']},
+          },
+        },
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockAddErrorMessage).toHaveBeenCalledWith(
+          'Invalid schedule for schedule unit count'
+        );
+      });
+
+      expect(
+        await screen.findByText('Invalid schedule for schedule unit count')
+      ).toBeInTheDocument();
     });
   });
 });

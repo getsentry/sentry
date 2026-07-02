@@ -1,18 +1,16 @@
 import type {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
-import type {MotionNodeAnimationOptions} from 'framer-motion';
+import type {MotionNodeAnimationOptions, Transition} from 'framer-motion';
 import {motion} from 'framer-motion';
-
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 type Props = {
   animateVariant: MotionNodeAnimationOptions['animate'];
 } & HTMLAttributes<HTMLDivElement>;
 
 export function PageCorners({animateVariant, ...rest}: Props) {
-  const baseTransition = testableTransition({type: 'spring', duration: 0.8});
+  const baseTransition: Transition = {type: 'spring', duration: 0.8};
   // Consistent enter delay for visible variants
-  const delayedTransition = testableTransition({type: 'spring', duration: 0.8, delay: 1});
+  const delayedTransition: Transition = {type: 'spring', duration: 0.8, delay: 1};
   return (
     <Container {...rest}>
       <TopRight

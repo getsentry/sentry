@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
-from django.db.models import UniqueConstraint
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -14,6 +15,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SupportedTraceItemType
 
 
 class ExploreSavedQueryDataset(TypesClass):
@@ -21,6 +23,7 @@ class ExploreSavedQueryDataset(TypesClass):
     OURLOGS = 1
     METRICS = 2
     REPLAYS = 3
+    AI_CONVERSATIONS = 4
     # This is a temporary dataset to be used for the discover -> explore migration.
     # It will track which queries are generated from discover queries.
     SEGMENT_SPANS = 101
@@ -31,6 +34,7 @@ class ExploreSavedQueryDataset(TypesClass):
         (SEGMENT_SPANS, "segment_spans"),
         (METRICS, "metrics"),
         (REPLAYS, "replays"),
+        (AI_CONVERSATIONS, "ai_conversations"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -222,6 +226,54 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             )
             return True
 
+    def insert_starred_query_alphabetically(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: ExploreSavedQuery,
+    ) -> bool:
+        """
+        Inserts a starred query at the position of the next prebuilt starred query
+        whose name sorts after this one, shifting later positions by 1. Falls back
+        to appending at the end when nothing sorts later.
+        """
+        with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
+            if self.get_starred_query(organization, user_id, query):
+                return False
+
+            next_prebuilt = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    starred=True,
+                    position__isnull=False,
+                    explore_saved_query__prebuilt_id__isnull=False,
+                    explore_saved_query__name__gt=query.name,
+                )
+                .order_by("position")
+                .first()
+            )
+
+            position: int
+            if next_prebuilt is None or next_prebuilt.position is None:
+                position = self.get_last_position(organization, user_id) + 1
+            else:
+                position = next_prebuilt.position
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    position__gte=position,
+                ).update(position=models.F("position") + 1)
+
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                explore_saved_query=query,
+                position=position,
+                starred=True,
+            )
+            return True
+
     def delete_starred_query(
         self, organization: Organization, user_id: int, query: ExploreSavedQuery
     ) -> bool:
@@ -297,3 +349,203 @@ class ExploreSavedQueryStarred(DefaultFieldsModel):
                 deferrable=models.Deferrable.DEFERRED,
             )
         ]
+
+
+class TraceItemTypes(TypesClass):
+    """
+    Integer-backed mirror of ``SupportedTraceItemType`` used for compact storage.
+
+    Each member's name is the corresponding ``SupportedTraceItemType`` value, so the
+    two can be converted with ``get_type_name`` / ``get_id_for_type_name``. The
+    integer ids are stable identifiers and must never be reused or reordered. A test
+    in ``tests/sentry/explore/test_models.py`` guards against drift from the enum.
+    """
+
+    SPANS = 0
+    LOGS = 1
+    TRACEMETRICS = 2
+    UPTIME_RESULTS = 3
+    PROFILE_FUNCTIONS = 4
+    PREPROD = 5
+    ATTACHMENTS = 6
+    PROCESSING_ERRORS = 7
+    OCCURRENCES = 8
+    REPLAYS = 9
+
+    TYPES = [
+        (SPANS, SupportedTraceItemType.SPANS.value),
+        (LOGS, SupportedTraceItemType.LOGS.value),
+        (TRACEMETRICS, SupportedTraceItemType.TRACEMETRICS.value),
+        (UPTIME_RESULTS, SupportedTraceItemType.UPTIME_RESULTS.value),
+        (PROFILE_FUNCTIONS, SupportedTraceItemType.PROFILE_FUNCTIONS.value),
+        (PREPROD, SupportedTraceItemType.PREPROD.value),
+        (ATTACHMENTS, SupportedTraceItemType.ATTACHMENTS.value),
+        (PROCESSING_ERRORS, SupportedTraceItemType.PROCESSING_ERRORS.value),
+        (OCCURRENCES, SupportedTraceItemType.OCCURRENCES.value),
+        (REPLAYS, SupportedTraceItemType.REPLAYS.value),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class TraceItemAttributeTypes(TypesClass):
+    """The value type of an attribute, as exposed by the trace item attributes API."""
+
+    STRING = 0
+    NUMBER = 1
+    BOOLEAN = 2
+
+    TYPES = [
+        (STRING, "string"),
+        (NUMBER, "number"),
+        (BOOLEAN, "boolean"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class TraceMetricTypes(TypesClass):
+    """
+    Integer-backed mirror of ``sentry.search.eap.trace_metrics.types.TraceMetricType``,
+    the metric type of a trace metric value (counter / gauge / distribution).
+
+    The integer ids are stable identifiers and must never be reused or reordered. A
+    test in ``tests/sentry/explore/test_models.py`` guards against drift from
+    ``ALLOWED_METRIC_TYPES``.
+    """
+
+    COUNTER = 0
+    GAUGE = 1
+    DISTRIBUTION = 2
+
+    TYPES = [
+        (COUNTER, "counter"),
+        (GAUGE, "gauge"),
+        (DISTRIBUTION, "distribution"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+@cell_silo_model
+class TraceItemAttributeContext(DefaultFieldsModel):
+    """
+    Human (and agent) authored context for a trace item attribute (e.g. a span or
+    log attribute). Used to surface descriptions and example values when building
+    queries. Attributes are scoped to an organization and, optionally, a project
+    (a null project means the context applies org-wide).
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    # A null project means the context applies to the whole organization.
+    project = FlexibleForeignKey("sentry.Project", null=True)
+
+    # The attribute this context is for, e.g. "http.method".
+    attribute_key = models.CharField()
+    item_type = BoundedPositiveIntegerField(choices=TraceItemTypes.as_choices())
+    attribute_type = BoundedPositiveIntegerField(choices=TraceItemAttributeTypes.as_choices())
+
+    # A short, one-line description of the attribute.
+    brief = models.CharField(max_length=280, null=True)
+    # Longer markdown notes / additional context about the attribute often used for agents.
+    additional_context = models.TextField(null=True)
+    # Example values the attribute can take, used to help build filters.
+    examples = ArrayField(models.TextField(), default=list)
+
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_traceitemattributecontext"
+        # project is nullable, so unique_together would treat each null project as
+        # distinct and allow duplicate org-wide rows. Use partial unique constraints
+        # to enforce uniqueness for both the project-scoped and org-wide cases.
+        constraints = [
+            UniqueConstraint(
+                fields=["organization", "project", "item_type", "attribute_key", "attribute_type"],
+                name="explore_traceitemattr_unique_project_scoped",
+                condition=Q(project__isnull=False),
+            ),
+            UniqueConstraint(
+                fields=["organization", "item_type", "attribute_key", "attribute_type"],
+                name="explore_traceitemattr_unique_org_scoped",
+                condition=Q(project__isnull=True),
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "item_type", "attribute_key"]),
+        ]
+
+    __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_key")
+
+
+@cell_silo_model
+class TraceItemAttributeValueContext(DefaultFieldsModel):
+    """
+    Human (and agent) authored context for a trace item attribute *value* (e.g. a
+    specific custom metric). Used to surface descriptions of individual values when
+    building queries.
+
+    Under the hood metric names are attribute values, so for v0 ``attribute_name`` is
+    typically ``metric.name`` and ``attribute_value`` is the metric's name. Context is
+    scoped to an organization and, optionally, a project (a null project means the
+    context applies org-wide).
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    # A null project means the context applies to the whole organization.
+    project = FlexibleForeignKey("sentry.Project", null=True)
+
+    # The attribute and value this context is for, e.g. "metric.name" / "my.counter".
+    attribute_name = models.CharField()
+    attribute_value = models.CharField()
+    # For metrics this is the metric type (counter / gauge / distribution).
+    attribute_type = BoundedPositiveIntegerField(choices=TraceMetricTypes.as_choices())
+    item_type = BoundedPositiveIntegerField(choices=TraceItemTypes.as_choices())
+
+    # A short, one-line description of the attribute value.
+    brief = models.CharField(max_length=280, null=True)
+    # Longer markdown notes / additional context about the attribute value.
+    additional_context = models.TextField(null=True)
+
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_traceitemattributevaluecontext"
+        # project is nullable, so unique_together would treat each null project as
+        # distinct and allow duplicate org-wide rows. Use partial unique constraints
+        # to enforce uniqueness for both the project-scoped and org-wide cases.
+        constraints = [
+            UniqueConstraint(
+                fields=[
+                    "organization",
+                    "project",
+                    "item_type",
+                    "attribute_name",
+                    "attribute_value",
+                    "attribute_type",
+                ],
+                name="explore_traceitemvalue_unique_project_scoped",
+                condition=Q(project__isnull=False),
+            ),
+            UniqueConstraint(
+                fields=[
+                    "organization",
+                    "item_type",
+                    "attribute_name",
+                    "attribute_value",
+                    "attribute_type",
+                ],
+                name="explore_traceitemvalue_unique_org_scoped",
+                condition=Q(project__isnull=True),
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "item_type", "attribute_name", "attribute_value"]),
+        ]
+
+    __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_name")

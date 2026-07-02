@@ -4,8 +4,7 @@ import {z} from 'zod';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
 
 const OPTIONS = [
   {value: 'apple', label: 'Apple'},

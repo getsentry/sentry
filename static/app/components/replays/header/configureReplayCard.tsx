@@ -12,7 +12,7 @@ import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function ConfigureReplayCard({
   isMobile,
@@ -33,7 +33,7 @@ export function ConfigureReplayCard({
       }}
       items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
       trigger={(triggerProps, isOpen) => (
-        <DropdownButton {...triggerProps} isOpen={isOpen} size="xs">
+        <DropdownButton {...triggerProps} isOpen={isOpen} size="sm">
           {t('Configure Replay')}
         </DropdownButton>
       )}
@@ -90,7 +90,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('general'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration',
     },
     {
       key: 'masking',
@@ -101,7 +102,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('masking'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration',
     },
     {
       key: 'users',
@@ -112,7 +114,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('users'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users',
     },
     {
       key: 'network',
@@ -123,7 +126,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('network'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details',
     },
     {
       key: 'canvas',
@@ -137,7 +141,8 @@ function getWebItems(): MenuItemProps[] {
         />
       ),
       textValue: keyToTitle('canvas'),
-      externalHref: `https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording`,
+      externalHref:
+        'https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording',
     },
   ] satisfies MenuItemProps[];
 }

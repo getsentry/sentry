@@ -81,7 +81,9 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+    def render_label(
+        cls, organization_id: int, blob: dict[str, Any], integration_cache: Any = None
+    ) -> str:
         """
         blob: {
             'id': 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',
@@ -105,10 +107,7 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                 alert_rule_component = component
                 break
 
-        if not alert_rule_component:
-            raise ValidationError(
-                f"Alert Actions are not enabled for the {sentry_app.name} integration."
-            )
-
-        schema_title = alert_rule_component.app_schema.get("title")
+        schema_title = None
+        if alert_rule_component is not None:
+            schema_title = alert_rule_component.app_schema.get("title")
         return schema_title if schema_title is not None else sentry_app.name

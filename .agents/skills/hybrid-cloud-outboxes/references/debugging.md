@@ -45,7 +45,7 @@ When debugging stuck outboxes, you'll often need to generate SQL for a developer
 
 | Direction          | Model class     | Table name             |
 | ------------------ | --------------- | ---------------------- |
-| Cell -> Control    | `RegionOutbox`  | `sentry_regionoutbox`  |
+| Cell -> Control    | `CellOutbox`    | `sentry_regionoutbox`  |
 | Control -> Cell(s) | `ControlOutbox` | `sentry_controloutbox` |
 
 **How to determine direction**: Look at the model that changed.

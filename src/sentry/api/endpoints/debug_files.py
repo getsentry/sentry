@@ -1,20 +1,27 @@
 import logging
 import posixpath
 import re
+import shutil
+import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
-from typing import TYPE_CHECKING, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Case, Exists, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from objectstore_client import RequestError
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
+from urllib3.exceptions import HTTPError
+
+from sentry.apidocs.response_types import DetailResponse
 
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
@@ -27,6 +34,12 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.debug_file import DebugFileSerializerResponse
+from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.dsym_examples import DebugFileExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -197,12 +210,47 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
         return Response({"releases": releases})
 
 
+DSYM_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description="Substring filter matched against object name, debug ID, code ID, CPU name, and file headers.",
+)
+
+DSYM_DEBUG_ID_PARAM = OpenApiParameter(
+    name="debug_id",
+    location="query",
+    required=False,
+    type=str,
+    description="Filter results to debug information files matching the given debug ID.",
+)
+
+DSYM_CODE_ID_PARAM = OpenApiParameter(
+    name="code_id",
+    location="query",
+    required=False,
+    type=str,
+    description="Filter results to debug information files matching the given code ID.",
+)
+
+DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
+    name="file_formats",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    description="Restrict results to one or more file formats.",
+)
+
+
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
@@ -228,37 +276,56 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
-            fp = debug_file.file.getfile()
+            fp = debug_file.get_file()
+
+            def stream_debug_file():
+                try:
+                    yield from iter(lambda: fp.read(4096), b"")
+                finally:
+                    fp.close()
+
             response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
+                stream_debug_file(), content_type="application/octet-stream"
             )
-            response["Content-Length"] = debug_file.file.size
+            response["Content-Length"] = debug_file.get_file_size()
             response["Content-Disposition"] = (
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
-        except OSError:
+        except (OSError, RequestError, Project.DoesNotExist, HTTPError):
             raise Http404
 
-    def get(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="listProjectDebugFiles",
+        summary="List a Project's Debug Information Files",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            DSYM_QUERY_PARAM,
+            DSYM_DEBUG_ID_PARAM,
+            DSYM_CODE_ID_PARAM,
+            DSYM_FILE_FORMATS_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListProjectDebugFilesResponse", list[DebugFileSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DebugFileExamples.LIST_PROJECT_DEBUG_FILES,
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[DebugFileSerializerResponse]] | Response[DetailResponse]:
         """
-        List a Project's Debug Information Files
-        ````````````````````````````````````````
-
         Retrieve a list of debug information files for a given project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          file belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to list the
-                                     DIFs of.
-        :qparam string query: If set, this parameter is used to locate DIFs with.
-        :qparam string id: If set, the specified DIF will be sent in the response.
-        :qparam string file_formats: If set, only DIFs with these formats will be returned.
-        :auth: required
         """
         download_requested = request.GET.get("id") is not None
         if download_requested and has_download_permission(request, project):
-            return self.download(request.GET.get("id"), project)
+            return self.download(to_valid_int_id("id", request.GET["id"], raise_404=True), project)
         elif download_requested:
             return Response(status=403)
 
@@ -282,7 +349,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
             for file_format in file_formats:
                 known_file_format = DIF_MIMETYPES.get(file_format)
                 if known_file_format:
-                    file_format_q |= Q(file__headers__icontains=known_file_format)
+                    file_format_q |= Q(file__headers__icontains=known_file_format) | Q(
+                        content_type__icontains=known_file_format
+                    )
             q &= file_format_q
 
         queryset = None
@@ -313,11 +382,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 | Q(code_id__icontains=query)
                 | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
+                | Q(content_type__icontains=query)
             )
 
             known_file_format = DIF_MIMETYPES.get(query)
             if known_file_format:
-                query_q |= Q(file__headers__icontains=known_file_format)
+                query_q |= Q(file__headers__icontains=known_file_format) | Q(
+                    content_type__icontains=known_file_format
+                )
 
             q &= query_q
 
@@ -356,9 +428,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
         debug_file_id = request.GET.get("id")
         if debug_file_id and _has_delete_permission(request.access, project):
+            validated_id = to_valid_int_id("id", debug_file_id, raise_404=True)
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )
@@ -422,18 +495,56 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def get_file_info(file) -> tuple[str | None, str | None, list[str]]:
+class AssembleRequestFile(TypedDict):
+    """One file entry from the DIF assemble request body."""
+
+    name: str
+    chunks: list[str]
+    debug_id: NotRequired[str]
+
+
+AssembleRequestPayload = dict[str, AssembleRequestFile]
+"""Mapping from file checksums to the corresponding assemble request payload."""
+
+
+def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
+    """Parse and validate the DIF assemble request body."""
+    schema: dict[str, object] = {
+        "type": "object",
+        "patternProperties": {
+            "^[0-9a-f]{40}$": {
+                "type": "object",
+                "required": ["name", "chunks"],
+                "properties": {
+                    "name": {"type": "string"},
+                    "debug_id": {"type": "string", "pattern": "^[A-Fa-f0-9-]+$"},
+                    "chunks": {
+                        "type": "array",
+                        "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                    },
+                },
+                "additionalProperties": True,
+            }
+        },
+        "additionalProperties": False,
+    }
+    payload_obj: object = orjson.loads(body)
+    jsonschema.validate(payload_obj, schema)
+    return cast(AssembleRequestPayload, payload_obj)
+
+
+def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]]:
     """
     Extracts file information from one assemble payload.
     """
-    name = file.get("name")
+    name = file["name"]
     debug_id = file.get("debug_id")
-    chunks = file.get("chunks", [])
+    chunks = file["chunks"]
 
     return name, debug_id, chunks
 
 
-def batch_assemble(project, files):
+def batch_assemble(project: Project, files: AssembleRequestPayload):
     """
     Performs assembling in a batch fashion, issuing queries that span multiple files.
     """
@@ -477,7 +588,7 @@ def batch_assemble(project, files):
     )
 
     for debug_file in existing_debug_files:
-        checksum = debug_file.checksum
+        checksum = debug_file.nonnull_checksum
         file = files_to_check.pop(checksum)
         requested_debug_id = requested_debug_ids_by_checksum[checksum]
 
@@ -558,22 +669,22 @@ def batch_assemble(project, files):
     return file_response
 
 
-def _get_requested_debug_id(file) -> str | None:
+def _get_requested_debug_id(file: AssembleRequestFile) -> str | None:
     """Returns the effective requested debug ID for one assemble payload.
 
     This normalizes an explicit ``debug_id`` when present, or derives one from a
     ProGuard-style request name such as ``/proguard/mapping-<uuid>.txt``.
     """
-    return get_debug_id_from_dif_request(name=file.get("name"), debug_id=file.get("debug_id"))
+    return get_debug_id_from_dif_request(name=file["name"], debug_id=file.get("debug_id"))
 
 
-def _is_requested_proguard(file) -> bool:
+def _is_requested_proguard(file: AssembleRequestFile) -> bool:
     """Returns whether one assemble payload should be treated as a ProGuard request.
 
     This is true only when the request's effective debug ID comes from a
     ProGuard-style filename, rather than merely from an explicit ``debug_id``.
     """
-    name = file.get("name")
+    name = file["name"]
     requested_debug_id = _get_requested_debug_id(file)
     return (
         requested_debug_id is not None
@@ -583,7 +694,7 @@ def _is_requested_proguard(file) -> bool:
 
 def _is_proguard_reupload_clone_request(
     requested_debug_id: str | None,
-    file,
+    file: AssembleRequestFile,
     selected_debug_id: str | None,
 ) -> TypeGuard[str]:
     """Return whether the assemble request should clone a ProGuard debug file."""
@@ -595,6 +706,7 @@ def _is_proguard_reupload_clone_request(
 
 
 class _DebugFileAnnotations(TypedDict):
+    nonnull_checksum: str
     requested_debug_id_match: int
     proguard_clone_source_match: int
 
@@ -639,8 +751,11 @@ def _find_existing_debug_files(
         ProjectDebugFile.objects.filter(
             project_id=project.id,
             checksum__in=checksums,
+            checksum__isnull=False,
         )
         .annotate(
+            # Mirror the filtered checksum into an annotated non-null field for type safety.
+            nonnull_checksum=F("checksum"),
             requested_debug_id_match=_build_requested_debug_id_match_annotation(
                 requested_debug_ids_by_checksum.items()
             ),
@@ -675,15 +790,22 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
     """Builds a per-row match score for ProGuard clone-source selection.
 
     The annotation returns ``1`` when a row belongs to one of the requested
-    checksums, points at a ``project.dif`` file, and its linked ``File`` has
-    headers exactly matching the stored ProGuard content type. It returns ``0``
-    for all other rows.
+    checksums and is a ProGuard mapping — either via the linked ``File``
+    (type ``project.dif`` with matching content-type header) or via the
+    Objectstore path (``file`` is NULL, ``content_type`` matches directly).
+    It returns ``0`` for all other rows.
     """
+    proguard_ct = DIF_MIMETYPES["proguard"]
     return Case(
         When(
-            checksum__in=checksums,
-            file__type="project.dif",
-            file__headers={"Content-Type": DIF_MIMETYPES["proguard"]},
+            Q(checksum__in=checksums)
+            & (
+                Q(
+                    file__type="project.dif",
+                    file__headers={"Content-Type": proguard_ct},
+                )
+                | Q(file__isnull=True, content_type=proguard_ct)
+            ),
             then=Value(1),
         ),
         default=Value(0),
@@ -713,7 +835,21 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    if debug_file.file is not None:
+        dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    elif debug_file.storage_path is not None:
+        source_fileobj = debug_file.get_file()
+        try:
+            # Spool into a temporary file to get a seekable stream.
+            with tempfile.TemporaryFile() as tmp:
+                shutil.copyfileobj(source_fileobj, tmp)
+                tmp.seek(0)
+                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
+        finally:
+            source_fileobj.close()
+    else:
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
     if created:
         record_last_upload(project)
 
@@ -740,29 +876,8 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         :auth: required
         """
-        schema = {
-            "type": "object",
-            "patternProperties": {
-                "^[0-9a-f]{40}$": {
-                    "type": "object",
-                    "required": ["name", "chunks"],
-                    "properties": {
-                        "name": {"type": "string"},
-                        "debug_id": {"type": "string"},
-                        "chunks": {
-                            "type": "array",
-                            "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                        },
-                    },
-                    "additionalProperties": True,
-                }
-            },
-            "additionalProperties": False,
-        }
-
         try:
-            files = orjson.loads(request.body)
-            jsonschema.validate(files, schema)
+            files = parse_assemble_request_payload(request.body)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
         except Exception:

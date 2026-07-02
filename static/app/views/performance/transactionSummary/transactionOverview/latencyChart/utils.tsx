@@ -6,8 +6,8 @@ export const ZOOM_START = 'startDuration';
 export const ZOOM_END = 'endDuration';
 
 export function decodeHistogramZoom(location: Location) {
-  let min: number | undefined = undefined;
-  let max: number | undefined = undefined;
+  let min: number | undefined;
+  let max: number | undefined;
 
   if (ZOOM_START in location.query) {
     min = decodeInteger(location.query[ZOOM_START], 0);

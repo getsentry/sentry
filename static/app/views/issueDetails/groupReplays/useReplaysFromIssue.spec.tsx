@@ -8,6 +8,10 @@ import {IssueCategory} from 'sentry/types/group';
 import {useReplaysFromIssue} from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 
 describe('useReplaysFromIssue', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   const initialRouterConfig = {
     route: '/organizations/:orgSlug/issues/:groupId/',
     location: {
@@ -39,13 +43,6 @@ describe('useReplaysFromIssue', () => {
         organization,
       },
       initialRouterConfig,
-    });
-
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
     });
 
     await waitFor(() =>
@@ -80,13 +77,6 @@ describe('useReplaysFromIssue', () => {
       initialRouterConfig,
     });
 
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
-    });
-
     await waitFor(() =>
       expect(result.current).toEqual({
         eventView: expect.objectContaining({
@@ -105,7 +95,9 @@ describe('useReplaysFromIssue', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
-      body: {},
+      body: {
+        [MOCK_GROUP.id]: [],
+      },
     });
 
     const {result} = renderHookWithProviders(useReplaysFromIssue, {
@@ -115,13 +107,6 @@ describe('useReplaysFromIssue', () => {
         organization,
       },
       initialRouterConfig,
-    });
-
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: true,
-      pageLinks: null,
     });
 
     await waitFor(() =>

@@ -59,7 +59,9 @@ function getSentryAppAvatarProps(
   )?.avatarUrl;
 
   // If there is no upload URL, return null and fall
-  if (!uploadUrl) return null;
+  if (!uploadUrl) {
+    return null;
+  }
 
   return {
     type: 'upload',

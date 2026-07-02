@@ -1,6 +1,8 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
@@ -39,6 +41,110 @@ describe('VirtualizedViewManger', () => {
       0, 0, 1000, 1,
     ]);
     expect(manager.view.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
+  });
+
+  it('recomputes time compression before redrawing during divider resize', () => {
+    const scheduler = new TraceScheduler();
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      scheduler,
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTraceSpace([0, 0, 1000, 1]);
+    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+    manager.divider = document.createElement('div');
+    manager.dividerStartVec = [0, 0];
+    manager.previousDividerClientVec = [0, 0];
+
+    const recomputeSpy = jest.spyOn(manager, 'recomputeTimeCompression');
+    const dispatchSpy = jest.spyOn(scheduler, 'dispatch');
+
+    manager.onDividerMouseMove(new MouseEvent('mousemove', {clientX: 100, clientY: 0}));
+
+    expect(manager.view.trace_physical_space.width).toBe(400);
+    expect(recomputeSpy).toHaveBeenCalledTimes(1);
+    expect(recomputeSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      dispatchSpy.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('uses explicit time compression options over previously stored options', () => {
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      new TraceScheduler(),
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+    manager.timeCompressionOptions = {
+      enabled: true,
+      traceSpace: [0, 1000],
+      nodes: [{type: 'span', space: [100, 10]} as BaseNode],
+      indicators: [],
+    };
+
+    manager.recomputeTimeCompression({
+      enabled: true,
+      traceSpace: [10_000, 2000],
+      nodes: [{type: 'span', space: [10_500, 10]} as BaseNode],
+      indicators: [],
+    });
+
+    expect(manager.time_compression.start).toBe(10_000);
+    expect(manager.time_compression.duration).toBe(2000);
+  });
+
+  it('re-dispatches the container content box when scrollbar width changes', () => {
+    const scheduler = new TraceScheduler();
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      scheduler,
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTracePhysicalSpace([0, 0, 500, 200], [0, 0, 250, 200]);
+
+    const container = document.createElement('div');
+    container.style.paddingTop = '38px';
+    container.style.paddingLeft = '10px';
+    container.style.paddingRight = '10px';
+    manager.container = container;
+
+    jest.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 238,
+      right: 520,
+      width: 520,
+      height: 238,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    let dispatchedContainerPhysicalSpace: [number, number, number, number] | null = null;
+    scheduler.on('set container physical space', containerPhysicalSpace => {
+      dispatchedContainerPhysicalSpace = containerPhysicalSpace;
+    });
+
+    manager.onScrollbarWidthChange(14);
+
+    // 520 - 10 (paddingLeft) - 10 (paddingRight) = 500
+    // 238 - 38 (paddingTop) = 200
+    expect(dispatchedContainerPhysicalSpace).toEqual([0, 0, 500, 200]);
   });
 
   describe('computeSpanCSSMatrixTransform', () => {
@@ -207,12 +313,299 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
       manager.view.setTraceView({width: 500, x: 500});
 
-      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-500);
+      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-1000);
+    });
+  });
+
+  describe('trace issue icon placement', () => {
+    it('does not treat icons away from the physical right edge as end-clamped in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+
+      expect(manager.computeTraceIconPlacement(109.5, 18, [100, 100]).edge).toBeNull();
+    });
+
+    it('uses current view geometry before the span matrix has been recomputed', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+
+      const placement = manager.computeTraceIconPlacement(199.5, 18, [100, 100]);
+
+      expect(placement.edge).toBe('end');
+      expect(placement.anchorTimestamp).toBe(200);
+      expect(placement.bounds).toEqual([196.4, 200]);
+    });
+
+    it('anchors end-clamped icons to the visible trace end in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+
+      const placement = manager.computeTraceIconPlacement(199.5, 18, [100, 100]);
+
+      expect(placement.edge).toBe('end');
+      expect(placement.anchorTimestamp).toBe(200);
+    });
+  });
+
+  describe('isTimestampInsideCollapsedGap', () => {
+    it('only treats timestamps inside collapsed gaps as hidden timeline intervals', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.setTimeCompression({
+        enabled: true,
+        gaps: [
+          {
+            start: 100,
+            end: 900,
+            duration: 800,
+            retainedDuration: 28,
+            compressedStart: 100,
+            compressedEnd: 128,
+          },
+        ],
+      } as TraceTimeCompression);
+
+      expect(manager.isTimestampInsideCollapsedGap(99)).toBe(false);
+      expect(manager.isTimestampInsideCollapsedGap(100)).toBe(false);
+      expect(manager.isTimestampInsideCollapsedGap(500)).toBe(true);
+      expect(manager.isTimestampInsideCollapsedGap(900)).toBe(false);
+      expect(manager.isTimestampInsideCollapsedGap(901)).toBe(false);
+    });
+  });
+
+  describe('drawCollapsedGapMarkers', () => {
+    it('centers markers using the actual compressed gap width', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 20, 1], [0, 0, 20, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 20,
+        nodes: [
+          {type: 'span', space: [100, 0]},
+          {type: 'span', space: [900, 0]},
+        ] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const gap = manager.time_compression.gaps[0]!;
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+
+      manager.drawCollapsedGapMarkers();
+
+      const placement = manager.transformXFromTimestamp(gap.start);
+      const actualGapWidth =
+        manager.transformXFromTimestamp(gap.end) -
+        manager.transformXFromTimestamp(gap.start);
+      const markerLeft = Number.parseFloat(
+        markerRef.style.transform.replace('translateX(', '')
+      );
+
+      expect(markerLeft).toBeCloseTo(placement + actualGapWidth / 2 - 20);
+    });
+
+    it('treats nearby timeline labels as overlapping collapsed gap markers', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [
+          {type: 'span', space: [100, 0]},
+          {type: 'span', space: [900, 0]},
+        ] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const gap = manager.time_compression.gaps[0]!;
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+      manager.drawCollapsedGapMarkers();
+
+      const indicatorRef = document.createElement('div');
+      const labelRef = document.createElement('div');
+      Object.defineProperty(labelRef, 'offsetWidth', {value: 30});
+      indicatorRef.appendChild(labelRef);
+
+      const markerLeft = Number.parseFloat(
+        markerRef.style.transform.replace('translateX(', '')
+      );
+      const indicatorPlacement = markerLeft + markerRef.offsetWidth + 4;
+
+      expect(
+        manager.timelineIndicatorOverlapsCollapsedGapMarker(
+          indicatorRef,
+          indicatorPlacement
+        )
+      ).toBe(true);
     });
   });
 
   describe('horizontal scrolling', () => {
+    it('uses compressed viewport width when the real viewport is at max zoom', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [
+          {type: 'span', space: [0, 10]},
+          {type: 'span', space: [990, 10]},
+        ] as any,
+        indicators: [],
+      });
+      manager.view.setTraceView({x: 500, width: manager.view.MAX_ZOOM_PRECISION_MS});
+
+      const compressedView = manager.getCompressedView();
+      expect(compressedView.width).toBeCloseTo(
+        compressedView.right - compressedView.left
+      );
+      expect(compressedView.width).toBeLessThan(manager.view.MAX_ZOOM_PRECISION_MS);
+
+      const realTimestampAtRightEdge =
+        manager.getConfigSpaceCursor({
+          x: manager.view.trace_physical_space.width,
+          y: 0,
+        })[0] + manager.view.to_origin;
+      expect(realTimestampAtRightEdge).toBeCloseTo(501);
+    });
+
     describe('onWheel (timeline/span durations)', () => {
+      it('keeps the cursor anchored when zooming a compressed timeline', () => {
+        const scheduler = new TraceScheduler();
+        const manager = new VirtualizedViewManager(
+          {
+            list: {width: 0.5},
+            span_list: {width: 0.5},
+          },
+          scheduler,
+          new TraceView(),
+          ThemeFixture()
+        );
+
+        manager.view.setTraceSpace([0, 0, 1000, 1]);
+        manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+        manager.time_compression = TraceTimeCompression.FromVisibleItems({
+          enabled: true,
+          traceSpace: [0, 1000],
+          physicalWidth: 1000,
+          nodes: [
+            {type: 'transaction', space: [0, 100]},
+            {type: 'span', space: [500, 100]},
+          ] as any,
+          indicators: [],
+        });
+
+        const cursorX = 165;
+        const cursorTimestamp =
+          manager.getConfigSpaceCursor({x: cursorX, y: 0})[0] + manager.view.to_origin;
+        const wheelEvent = new WheelEvent('wheel', {
+          ctrlKey: true,
+          deltaY: -10,
+          bubbles: true,
+          cancelable: true,
+        });
+        Object.defineProperty(wheelEvent, 'offsetX', {value: cursorX});
+
+        let dispatchedView: {width?: number; x?: number} | null = null;
+        scheduler.on('set trace view', (view: {width?: number; x?: number}) => {
+          dispatchedView = view;
+        });
+
+        manager.onWheel(wheelEvent);
+        expect(dispatchedView).not.toBeNull();
+
+        manager.view.setTraceView(dispatchedView!);
+        const compressedView = manager.getCompressedView();
+        const remappedCursorX =
+          ((manager.time_compression.toCompressedOffset(cursorTimestamp) -
+            compressedView.left) /
+            compressedView.width) *
+          manager.view.trace_physical_space.width;
+
+        expect(remappedCursorX).toBeCloseTo(cursorX);
+      });
+
       it('scrolls horizontally with shift + vertical wheel', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(
@@ -485,7 +878,7 @@ describe('VirtualizedViewManger', () => {
       expect(textTransform).toBe(153);
     });
 
-    it('uses ceil(text_width) when placing text inside on the right', () => {
+    it('keeps grouped issue pill bounds centered when it does not cross the view edge', () => {
       const manager = new VirtualizedViewManager(
         {
           list: {width: 0},
@@ -498,6 +891,223 @@ describe('VirtualizedViewManger', () => {
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
+        if (text === '2') {
+          return 6.5;
+        }
+        return 38;
+      });
+
+      const childErrorA = {
+        event_id: 'child-error-a',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const childErrorB = {
+        event_id: 'child-error-b',
+        issue_id: 2,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const childErrorC = {
+        event_id: 'child-error-c',
+        issue_id: 3,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const node = {
+        value: {errors: [], occurrences: []},
+        errors: new Set([childErrorA, childErrorB, childErrorC]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [100, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(119.5);
+    });
+
+    it('keeps direct issue icon bounds centered when it does not cross the view edge', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [100, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(112.5);
+    });
+
+    it('uses the physical viewport edge for issue icon bounds in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1095,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [109, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBeCloseTo(107);
+    });
+
+    it('places right-outside text after a view-edge anchored direct issue icon', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.0005,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [0, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(21);
+    });
+
+    it('places right-outside text after a view-edge anchored grouped issue pill', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
+        if (text === '1') {
+          return 6.5;
+        }
+        return 38;
+      });
+
+      const childErrorA = {
+        event_id: 'child-error-a',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.0005,
+      };
+      const childErrorB = {
+        event_id: 'child-error-b',
+        issue_id: 2,
+        level: 'warning',
+        start_timestamp: 0.0005,
+      };
+      const node = {
+        value: {errors: [], occurrences: []},
+        errors: new Set([childErrorA, childErrorB]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [0, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(35);
+    });
+
+    it('uses ceil(text_width) when placing text inside on the right', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 200, 1], [0, 0, 200, 1]);
       manager.view.setTraceView({width: 100, x: 950});
 
       const measuredWidth = 200.2;
@@ -634,6 +1244,128 @@ describe('VirtualizedViewManger', () => {
 
       expect(inside).toBe(0);
       expect(textTransform).toBe(manager.transformXFromTimestamp(100.1) + 3);
+    });
+
+    it('moves duration text away from collapsed gap markers', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [
+          {type: 'span', space: [0, 100]},
+          {type: 'span', space: [500, 100]},
+        ] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const measuredWidth = 50;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [0, 100],
+        '32.34ms'
+      );
+
+      expect(manager.spanTextOverlapsCollapsedGap(textTransform, measuredWidth)).toBe(
+        false
+      );
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(manager.transformXFromTimestamp(100) + 3);
+    });
+
+    it('keeps duration text clear of the right side of collapsed gap markers', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      const gap = {
+        start: 500,
+        end: 600,
+        duration: 100,
+        retainedDuration: 28,
+        compressedStart: 500,
+        compressedEnd: 528,
+      };
+      const removedDuration = gap.duration - gap.retainedDuration;
+      manager.time_compression = {
+        enabled: true,
+        gaps: [gap],
+        start: 0,
+        duration: 1000,
+        compressedDuration: 1000 - removedDuration,
+        toCompressedOffset(timestamp: number) {
+          if (timestamp < gap.start) {
+            return timestamp;
+          }
+          if (timestamp <= gap.end) {
+            const progress = (timestamp - gap.start) / gap.duration;
+            return gap.compressedStart + progress * gap.retainedDuration;
+          }
+          return timestamp - removedDuration;
+        },
+        toRealTimestamp(compressedOffset: number) {
+          if (compressedOffset < gap.compressedStart) {
+            return compressedOffset;
+          }
+          if (compressedOffset <= gap.compressedEnd) {
+            const progress =
+              (compressedOffset - gap.compressedStart) / gap.retainedDuration;
+            return gap.start + progress * gap.duration;
+          }
+          return compressedOffset + removedDuration;
+        },
+      } as TraceTimeCompression;
+      manager.recomputeSpanToPXMatrix();
+
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+      manager.drawCollapsedGapMarkers();
+
+      const measuredWidth = 6;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const spanSpace: [number, number] = [617, 5];
+      const leftOutsideTransform =
+        manager.transformXFromTimestamp(spanSpace[0]) - 3 - measuredWidth;
+
+      expect(
+        manager.spanTextOverlapsCollapsedGap(leftOutsideTransform, measuredWidth)
+      ).toBe(true);
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        spanSpace,
+        '5ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(manager.transformXFromTimestamp(622) + 3);
     });
   });
 });

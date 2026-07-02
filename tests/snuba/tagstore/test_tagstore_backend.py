@@ -10,7 +10,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -192,16 +192,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == {"foo", "baz", "environment", "sentry:release", "sentry:user", "level"}
+        assert set(tags) == {
+            "foo",
+            "baz",
+            "environment",
+            "sentry:release",
+            "sentry:user",
+            "level",
+            "interface_type",
+        }
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "baz"
         assert result[0].top_values[0].value == "quux"
         assert result[0].count == 2
 
-        assert result[4].key == "sentry:release"
-        assert result[4].count == 2
-        top_release_values = result[4].top_values
+        assert result[5].key == "sentry:release"
+        assert result[5].count == 2
+        top_release_values = result[5].top_values
         assert len(top_release_values) == 2
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -249,6 +257,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "device.family",
             "environment",
             "foo",
+            "interface_type",
             "level",
             "runtime",
             "runtime.name",
@@ -265,9 +274,9 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert biz_values.get("baz") == 1
         assert result[0].count == sum(biz_values.values())
 
-        assert result[12].key == "sentry:release"
-        assert result[12].count == 2
-        top_release_values = result[12].top_values
+        assert result[13].key == "sentry:release"
+        assert result[13].count == 2
+        top_release_values = result[13].top_values
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
@@ -423,6 +432,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "sentry:release",
             "sentry:user",
             "level",
+            "interface_type",
         }
         keys = {
             k.key: k
@@ -452,6 +462,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "foo",
             "sentry:user",
             "level",
+            "interface_type",
         }
         keys = {
             k.key: k
@@ -501,7 +512,15 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         }
-        assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
+        assert set(keys) == {
+            "baz",
+            "environment",
+            "foo",
+            "sentry:release",
+            "sentry:user",
+            "level",
+            "interface_type",
+        }
 
     def test_get_group_tag_key_perf(self) -> None:
         perf_group, env = self.perf_group_and_env
@@ -541,6 +560,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "device.family",
             "environment",
             "foo",
+            "interface_type",
             "level",
             "runtime",
             "runtime.name",
@@ -758,6 +778,33 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 last_seen=self.now - timedelta(seconds=1),
             )
         ]
+
+    def test_get_tag_value_paginator_array_meta_columns(self) -> None:
+        # tags.key/tags.value are array meta-columns that previously crashed with
+        # "TypeError: unhashable type: 'list'" in nest_groups (SENTRY-5PD7). They should
+        # short-circuit to an empty result instead.
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    "tags.key",
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                ).get_result(10)
+            )
+            == []
+        )
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    "tags.value",
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                ).get_result(10)
+            )
+            == []
+        )
 
     def test_get_tag_value_paginator_with_dates(self) -> None:
         from sentry.tagstore.types import TagValue
@@ -1203,7 +1250,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert total_count == 15
 
     def test_eap_read_path(self) -> None:
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True}):
             gk = self.ts.get_group_tag_key(
                 self.proj1group1,
                 None,
@@ -1215,6 +1262,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
             assert gk.key == "foo"
             assert gk.values_seen == 1
+            assert gk.top_values is not None
             assert gk.top_values[0].value == "bar"
 
 
@@ -1568,7 +1616,7 @@ class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
         self.run_test("4", ["456"], env_2)
 
 
-class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase, OccurrenceTestCase):
+class TestEAPTagStorageQueries(TestCase, SnubaTestCase, OccurrenceTestCase):
     FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def setUp(self) -> None:
@@ -1865,3 +1913,366 @@ class TestEAPGetGroupsUserCounts(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
 
         assert eap_result == {group_a.id: 1}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_release_tags_match(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+
+        # Store events with release tags for two different releases
+        for _ in range(2):
+            self.store_events_to_snuba_and_eap(
+                "group-rel",
+                count=1,
+                timestamp=ts,
+                extra_event_data={
+                    "tags": {"sentry:release": "1.0"},
+                    "release": "1.0",
+                },
+            )
+        self.store_events_to_snuba_and_eap(
+            "group-rel",
+            count=1,
+            timestamp=ts,
+            extra_event_data={
+                "tags": {"sentry:release": "2.0"},
+                "release": "2.0",
+            },
+        )
+
+        start = self.FROZEN_TIME - timedelta(hours=1)
+
+        snuba_result = self.ts.get_release_tags(
+            self.organization.id, [self.project.id], None, ["1.0", "2.0"]
+        )
+        eap_result = self.ts._eap_get_release_tags(
+            self.organization.id, [self.project.id], None, ["1.0", "2.0"], start
+        )
+
+        snuba_by_value = {tv.value: tv for tv in snuba_result}
+        eap_by_value = {tv.value: tv for tv in eap_result}
+
+        assert set(snuba_by_value.keys()) == {"1.0", "2.0"}
+        assert set(eap_by_value.keys()) == set(snuba_by_value.keys())
+        assert snuba_by_value["1.0"].times_seen == eap_by_value["1.0"].times_seen == 2
+        assert snuba_by_value["2.0"].times_seen == eap_by_value["2.0"].times_seen == 1
+        assert snuba_by_value["1.0"].first_seen == eap_by_value["1.0"].first_seen
+        assert snuba_by_value["1.0"].last_seen == eap_by_value["1.0"].last_seen
+        assert snuba_by_value["2.0"].first_seen == eap_by_value["2.0"].first_seen
+        assert snuba_by_value["2.0"].last_seen == eap_by_value["2.0"].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_group_list_tag_value_match_multiple_groups(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        env = self.create_environment(project=self.project, name="production")
+
+        # Group A: 2 events in "production"
+        self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env.name}
+        )
+        events_a = self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env.name}
+        )
+        group_a = events_a[0].group
+        assert group_a is not None
+
+        # Group B: 1 event in "production"
+        events_b = self.store_events_to_snuba_and_eap(
+            "group-b", count=1, timestamp=ts, extra_event_data={"environment": env.name}
+        )
+        group_b = events_b[0].group
+        assert group_b is not None
+
+        group_ids = [group_a.id, group_b.id]
+
+        snuba_result = self.ts.get_group_list_tag_value(
+            [self.project.id],
+            group_ids,
+            [env.id],
+            "environment",
+            env.name,
+            tenant_ids={"referrer": "r", "organization_id": self.project.organization_id},
+        )
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            group_ids,
+            [env.id],
+            "environment",
+            env.name,
+            referrer="tagstore.get_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert set(snuba_result.keys()) == {group_a.id, group_b.id}
+        assert set(eap_result.keys()) == set(snuba_result.keys())
+        assert snuba_result[group_a.id].times_seen == eap_result[group_a.id].times_seen == 2
+        assert snuba_result[group_b.id].times_seen == eap_result[group_b.id].times_seen == 1
+        assert snuba_result[group_a.id].first_seen == eap_result[group_a.id].first_seen
+        assert snuba_result[group_a.id].last_seen == eap_result[group_a.id].last_seen
+        assert snuba_result[group_b.id].first_seen == eap_result[group_b.id].first_seen
+        assert snuba_result[group_b.id].last_seen == eap_result[group_b.id].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_group_list_tag_value_with_environment_filter(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        env_prod = self.create_environment(project=self.project, name="production")
+        env_staging = self.create_environment(project=self.project, name="staging")
+
+        # 2 events in "production", 1 event in "staging"
+        self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env_prod.name}
+        )
+        self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env_prod.name}
+        )
+        events = self.store_events_to_snuba_and_eap(
+            "group-a", count=1, timestamp=ts, extra_event_data={"environment": env_staging.name}
+        )
+        group_a = events[0].group
+        assert group_a is not None
+
+        # Filter by production only
+        snuba_result = self.ts.get_group_list_tag_value(
+            [self.project.id],
+            [group_a.id],
+            [env_prod.id],
+            "environment",
+            env_prod.name,
+            tenant_ids={"referrer": "r", "organization_id": self.project.organization_id},
+        )
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            [group_a.id],
+            [env_prod.id],
+            "environment",
+            env_prod.name,
+            referrer="tagstore.get_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert group_a.id in snuba_result
+        assert group_a.id in eap_result
+        assert snuba_result[group_a.id].times_seen == eap_result[group_a.id].times_seen == 2
+        assert snuba_result[group_a.id].first_seen == eap_result[group_a.id].first_seen
+        assert snuba_result[group_a.id].last_seen == eap_result[group_a.id].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_group_list_tag_value_issue_platform(self) -> None:
+        ts = self.FROZEN_TIME - timedelta(minutes=5)
+        env = self.create_environment(project=self.project, name="production")
+
+        group = self.create_group(project=self.project)
+
+        eap_item_1 = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=ts,
+            environment=env.name,
+            issue_occurrence_id=uuid4().hex,
+        )
+        eap_item_2 = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=ts + timedelta(minutes=1),
+            environment=env.name,
+            issue_occurrence_id=uuid4().hex,
+        )
+        self.store_eap_items([eap_item_1, eap_item_2])
+
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            [group.id],
+            [env.id],
+            "environment",
+            env.name,
+            referrer="tagstore.get_generic_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        assert group.id in eap_result
+        assert eap_result[group.id].times_seen == 2
+        assert eap_result[group.id].key == "environment"
+        assert eap_result[group.id].value == env.name
+        assert eap_result[group.id].first_seen is not None
+        assert eap_result[group.id].last_seen is not None
+        assert eap_result[group.id].first_seen <= eap_result[group.id].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_group_list_tag_value_empty_result(self) -> None:
+        group = self.create_group(project=self.project)
+
+        eap_result = self.ts._eap_get_group_list_tag_value(
+            [self.project.id],
+            [group.id],
+            None,
+            "environment",
+            "nonexistent",
+            referrer="tagstore.get_group_list_tag_value",
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert eap_result == {}
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_group_tag_value_iter_match(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        env = self.create_environment(project=self.project, name="production")
+
+        # Store 2 events with different user tag values
+        self.store_events_to_snuba_and_eap(
+            "group-iter",
+            count=1,
+            timestamp=ts,
+            extra_event_data={
+                "environment": env.name,
+                "user": {"id": "user1"},
+                "tags": {"sentry:user": "id:user1"},
+            },
+        )
+        events = self.store_events_to_snuba_and_eap(
+            "group-iter",
+            count=1,
+            timestamp=ts,
+            extra_event_data={
+                "environment": env.name,
+                "user": {"id": "user2"},
+                "tags": {"sentry:user": "id:user2"},
+            },
+        )
+        group = events[0].group
+        assert group is not None
+
+        snuba_result = self.ts.get_group_tag_value_iter(
+            group,
+            [env.id],
+            "sentry:user",
+            tenant_ids={"referrer": "r", "organization_id": self.project.organization_id},
+        )
+        eap_result = self.ts._eap_get_group_tag_value_iter(
+            group,
+            [env.id],
+            "sentry:user",
+            orderby="-first_seen",
+            limit=1000,
+            offset=0,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        snuba_by_value = {tv.value: tv for tv in snuba_result}
+        eap_by_value = {tv.value: tv for tv in eap_result}
+
+        assert set(snuba_by_value.keys()) == {"id:user1", "id:user2"}
+        assert set(eap_by_value.keys()) == set(snuba_by_value.keys())
+        for value in snuba_by_value:
+            assert snuba_by_value[value].times_seen == eap_by_value[value].times_seen
+            assert snuba_by_value[value].first_seen == eap_by_value[value].first_seen
+            assert snuba_by_value[value].last_seen == eap_by_value[value].last_seen
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_and_snuba_group_tag_value_iter_with_environment_filter(self) -> None:
+        ts = (self.FROZEN_TIME - timedelta(minutes=5)).timestamp()
+        env_prod = self.create_environment(project=self.project, name="production")
+        env_staging = self.create_environment(project=self.project, name="staging")
+
+        # 1 event in production, 1 event in staging — different users
+        self.store_events_to_snuba_and_eap(
+            "group-iter-env",
+            count=1,
+            timestamp=ts,
+            extra_event_data={
+                "environment": env_prod.name,
+                "user": {"id": "user1"},
+                "tags": {"sentry:user": "id:user1"},
+            },
+        )
+        events = self.store_events_to_snuba_and_eap(
+            "group-iter-env",
+            count=1,
+            timestamp=ts,
+            extra_event_data={
+                "environment": env_staging.name,
+                "user": {"id": "user2"},
+                "tags": {"sentry:user": "id:user2"},
+            },
+        )
+        group = events[0].group
+        assert group is not None
+
+        # Filter by production only — should only see user1
+        snuba_result = self.ts.get_group_tag_value_iter(
+            group,
+            [env_prod.id],
+            "sentry:user",
+            tenant_ids={"referrer": "r", "organization_id": self.project.organization_id},
+        )
+        eap_result = self.ts._eap_get_group_tag_value_iter(
+            group,
+            [env_prod.id],
+            "sentry:user",
+            orderby="-first_seen",
+            limit=1000,
+            offset=0,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        snuba_by_value = {tv.value: tv for tv in snuba_result}
+        eap_by_value = {tv.value: tv for tv in eap_result}
+
+        assert set(snuba_by_value.keys()) == {"id:user1"}
+        assert set(eap_by_value.keys()) == set(snuba_by_value.keys())
+        assert snuba_by_value["id:user1"].times_seen == eap_by_value["id:user1"].times_seen == 1
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_group_tag_value_iter_issue_platform(self) -> None:
+        ts = self.FROZEN_TIME - timedelta(minutes=5)
+        env = self.create_environment(project=self.project, name="production")
+
+        group = self.create_group(project=self.project)
+
+        eap_item_1 = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=ts,
+            environment=env.name,
+            issue_occurrence_id=uuid4().hex,
+            tags={"custom_tag": "value_a"},
+        )
+        eap_item_2 = self.create_eap_occurrence(
+            group_id=group.id,
+            timestamp=ts + timedelta(minutes=1),
+            environment=env.name,
+            issue_occurrence_id=uuid4().hex,
+            tags={"custom_tag": "value_b"},
+        )
+        self.store_eap_items([eap_item_1, eap_item_2])
+
+        eap_result = self.ts._eap_get_group_tag_value_iter(
+            group,
+            [env.id],
+            "custom_tag",
+            orderby="-first_seen",
+            limit=1000,
+            offset=0,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+
+        eap_by_value = {tv.value: tv for tv in eap_result}
+        assert set(eap_by_value.keys()) == {"value_a", "value_b"}
+        for tv in eap_result:
+            assert tv.group_id == group.id
+            assert tv.key == "custom_tag"
+            assert tv.times_seen == 1
+            assert tv.first_seen is not None
+            assert tv.last_seen is not None
+
+    @freeze_time(FROZEN_TIME)
+    def test_eap_group_tag_value_iter_empty_result(self) -> None:
+        group = self.create_group(project=self.project)
+
+        eap_result = self.ts._eap_get_group_tag_value_iter(
+            group,
+            [],
+            "nonexistent_tag",
+            orderby="-first_seen",
+            limit=1000,
+            offset=0,
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+
+        assert eap_result == []

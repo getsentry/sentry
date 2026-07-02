@@ -36,7 +36,7 @@ function BillingInformation({subscription}: Props) {
   }
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Billing Information')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Billing Information')} />
       {hasBillingPerms ? (
@@ -70,5 +70,4 @@ function BillingInformation({subscription}: Props) {
 
 export default withSubscription(BillingInformation);
 
-/** @internal exported for tests only */
 export {BillingInformation};

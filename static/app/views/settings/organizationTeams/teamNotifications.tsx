@@ -158,7 +158,7 @@ export default function TeamNotificationSettings() {
     refetch: refetchTeam,
   } = useApiQuery<Team>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
       }),
       {
@@ -177,7 +177,7 @@ export default function TeamNotificationSettings() {
     refetch: refetchIntegrations,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

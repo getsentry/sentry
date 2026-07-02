@@ -12,7 +12,7 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const PACKAGE_NAME = '@sentry/deno';
-const MIN_VERSION = '10.45.0';
+const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
 
@@ -86,9 +86,11 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  // Add data like inputs and responses to/from LLMs and tools;
-  // see https://docs.sentry.io/platforms/javascript/data-management/data-collected/ for more info
-  sendDefaultPii: true,
+  dataCollection: {
+    // Control data collection of LLMs and tools.
+    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
+    // genAI: { inputs: false, outputs: false },
+  },
 });`,
               },
             ],
@@ -96,11 +98,14 @@ Sentry.init({
           {
             type: 'text',
             text: tct(
-              'To correctly capture spans, pass the [code:experimental_telemetry] object to every [code:generateText], [code:generateObject], and [code:streamText] function call. For more details, see the [link:AI SDK Telemetry Metadata docs].',
+              'When using [code:generateText], [code:generateObject], or [code:streamText], pass the [code:experimental_telemetry] object to correctly capture spans. For the [code:ToolLoopAgent] class, telemetry is configured via the constructor. For more details, see the [telemetryLink:AI SDK Telemetry Metadata docs] and the [agentLink:ToolLoopAgent docs].',
               {
                 code: <code />,
-                link: (
+                telemetryLink: (
                   <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+                ),
+                agentLink: (
+                  <ExternalLink href="https://ai-sdk.dev/docs/agents/overview#toolloopagent-class" />
                 ),
               }
             ),
@@ -109,7 +114,7 @@ Sentry.init({
             type: 'code',
             tabs: [
               {
-                label: 'JavaScript',
+                label: 'generateText',
                 language: 'javascript',
                 code: `import { generateText } from "npm:ai";
 import { openai } from "npm:@ai-sdk/openai";
@@ -122,6 +127,38 @@ const result = await generateText({
     recordInputs: true,
     recordOutputs: true,
   },
+});`,
+              },
+              {
+                label: 'ToolLoopAgent',
+                language: 'javascript',
+                code: `import { ToolLoopAgent, tool } from "npm:ai";
+import { z } from "npm:zod";
+
+const agent = new ToolLoopAgent({
+  model: "openai/gpt-5.4",
+  tools: {
+    weather: tool({
+      description: "Get the weather in a location",
+      inputSchema: z.object({
+        location: z.string().describe("The location to get the weather for"),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+    }),
+  },
+  telemetry: {
+    isEnabled: true,
+    functionId: "weather_agent",
+    recordInputs: true,
+    recordOutputs: true,
+  },
+});
+
+const result = await agent.generate({
+  prompt: "What is the weather in San Francisco?",
 });`,
               },
             ],

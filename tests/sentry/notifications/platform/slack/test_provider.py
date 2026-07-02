@@ -18,7 +18,10 @@ from sentry.notifications.platform.provider import (
     SendFailureStatus,
     SendSuccessResult,
 )
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
+from sentry.notifications.platform.slack.provider import (
+    SlackNotificationProvider,
+    SlackRenderable,
+)
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
@@ -47,14 +50,29 @@ class SlackRendererTest(TestCase):
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
-            {"text": {"text": "Mock Notification", "type": "plain_text"}, "type": "header"},
-            {"text": {"text": "test", "type": "mrkdwn"}, "type": "section"},
+            {"text": {"text": "Alert: Mock Notification", "type": "plain_text"}, "type": "header"},
+            {
+                "text": {
+                    "text": "test *important* _urgent_ <https://sentry.io/issue/1|View Issue>",
+                    "type": "mrkdwn",
+                },
+                "type": "section",
+            },
+            {
+                "text": {"text": "```raise Exception('test')```", "type": "mrkdwn"},
+                "type": "section",
+            },
+            {
+                "text": {"text": ">This is a quoted message", "type": "mrkdwn"},
+                "type": "section",
+            },
             {
                 "elements": [
                     {
                         "text": {"emoji": True, "text": "Visit Sentry", "type": "plain_text"},
                         "type": "button",
                         "url": "https://www.sentry.io",
+                        "value": "link_clicked",
                     }
                 ],
                 "type": "actions",
@@ -65,7 +83,7 @@ class SlackRendererTest(TestCase):
                 "type": "image",
             },
             {
-                "elements": [{"text": "This is a mock footer", "type": "mrkdwn"}],
+                "elements": [{"text": "Sent via `sentry-alerts`", "type": "mrkdwn"}],
                 "type": "context",
             },
         ]
@@ -118,14 +136,6 @@ class SlackNotificationProviderSendTest(TestCase):
         return target
 
     def _create_renderable(self) -> SlackRenderable:
-        """Create a sample SlackRenderable for testing"""
-        from slack_sdk.models.blocks import (
-            HeaderBlock,
-            MarkdownTextObject,
-            PlainTextObject,
-            SectionBlock,
-        )
-
         return SlackRenderable(
             blocks=[
                 HeaderBlock(text=PlainTextObject(text="Test Notification")),
@@ -148,7 +158,12 @@ class SlackNotificationProviderSendTest(TestCase):
         assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id is None
         mock_client_instance.chat_postMessage.assert_called_once_with(
-            channel="C1234567890", blocks=renderable["blocks"], text=renderable["text"]
+            channel="C1234567890",
+            blocks=renderable["blocks"],
+            text=renderable["text"],
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     def test_send_invalid_target_class(self) -> None:
@@ -185,7 +200,12 @@ class SlackNotificationProviderSendTest(TestCase):
         SlackNotificationProvider.send(target=target, renderable=renderable)
 
         mock_client_instance.chat_postMessage.assert_called_once_with(
-            channel="U1234567890", blocks=renderable["blocks"], text=renderable["text"]
+            channel="U1234567890",
+            blocks=renderable["blocks"],
+            text=renderable["text"],
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
 
@@ -278,6 +298,9 @@ class SlackNotificationProviderThreadingTest(TestCase):
             blocks=renderable["blocks"],
             text=renderable["text"],
             thread_ts="1111111111.111111",
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
@@ -316,6 +339,9 @@ class SlackNotificationProviderThreadingTest(TestCase):
             text=renderable["text"],
             thread_ts="1111111111.111111",
             reply_broadcast=True,
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
@@ -349,6 +375,9 @@ class SlackNotificationProviderThreadingTest(TestCase):
             channel="C1234567890",
             blocks=renderable["blocks"],
             text=renderable["text"],
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
         )
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")

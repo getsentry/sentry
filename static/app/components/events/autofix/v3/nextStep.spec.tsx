@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,26 +8,28 @@ import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {SeerDrawerNextStep} from './nextStep';
 
+jest.mock('sentry/utils/analytics');
+
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
 ): ReturnType<typeof useExplorerAutofix> {
-  return {
+  const base: ReturnType<typeof useExplorerAutofix> = {
     runState: {run_id: 1} as any,
     startStep: jest.fn(),
     createPR: jest.fn(),
-    sendMessage: jest.fn(),
     reset: jest.fn(),
     triggerCodingAgentHandoff: jest.fn(),
+    codingAgentErrors: [],
+    dismissCodingAgentError: jest.fn(),
     isLoading: false,
     isPolling: false,
-    isReady: true,
-    isStreaming: false,
-    ...overrides,
-  } as ReturnType<typeof useExplorerAutofix>;
+  };
+  return {...base, ...overrides};
 }
 
 function defaultArtifacts(step: string): AutofixSection['artifacts'] {
@@ -92,7 +95,7 @@ function makeSection(
   return {
     step,
     artifacts: artifacts ?? defaultArtifacts(step),
-    messages: [],
+    blocks: [],
     status: 'completed',
   };
 }
@@ -110,6 +113,18 @@ describe('SeerDrawerNextStep', () => {
     const autofix = makeAutofix();
     const {container} = render(
       <SeerDrawerNextStep group={GroupFixture()} sections={[]} autofix={autofix} />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('returns null while polling', () => {
+    const autofix = makeAutofix({isPolling: true});
+    const {container} = render(
+      <SeerDrawerNextStep
+        group={GroupFixture()}
+        sections={[makeSection('root_cause')]}
+        autofix={autofix}
+      />
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -158,7 +173,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
-      expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
     });
 
     it('shows feedback UI on no click', async () => {
@@ -192,11 +207,10 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Try a different approach');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink root cause'}));
-      expect(autofix.startStep).toHaveBeenCalledWith(
-        'root_cause',
-        1,
-        'Try a different approach'
-      );
+      expect(autofix.startStep).toHaveBeenCalledWith('root_cause', {
+        runId: 1,
+        userContext: 'Try a different approach',
+      });
     });
 
     it('proceeds like yes on nevermind click', async () => {
@@ -210,7 +224,26 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, make a plan'}));
-      expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
+    });
+
+    it('shows coding agent dropdown with Add Integration CTA when no integrations exist', async () => {
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      const addIntegrationLink = screen.getByRole('button', {name: 'Add Integration'});
+      expect(addIntegrationLink).toHaveAttribute(
+        'href',
+        '/settings/org-slug/integrations/?category=coding%20agent'
+      );
     });
 
     it('shows coding agent dropdown when integrations exist', async () => {
@@ -308,7 +341,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Yes, write a code fix'}));
-      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {runId: 1});
     });
 
     it('shows feedback UI on no click', async () => {
@@ -340,11 +373,10 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Consider edge cases');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink plan'}));
-      expect(autofix.startStep).toHaveBeenCalledWith(
-        'solution',
-        1,
-        'Consider edge cases'
-      );
+      expect(autofix.startStep).toHaveBeenCalledWith('solution', {
+        runId: 1,
+        userContext: 'Consider edge cases',
+      });
     });
 
     it('proceeds like yes on nevermind click', async () => {
@@ -360,11 +392,18 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       );
-      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {runId: 1});
     });
   });
 
   describe('CodeChangesNextStep', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
     it('returns null when section has no artifacts', () => {
       const autofix = makeAutofix();
       const {container} = render(
@@ -377,7 +416,7 @@ describe('SeerDrawerNextStep', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders prompt and yes button', () => {
+    it('renders prompt and yes button', async () => {
       const autofix = makeAutofix();
       render(
         <SeerDrawerNextStep
@@ -387,7 +426,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       expect(
-        screen.getByText('Are you happy with these code changes?')
+        await screen.findByText('Are you happy with these code changes?')
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Yes, draft a PR'})).toBeInTheDocument();
@@ -402,7 +441,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'Yes, draft a PR'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Yes, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
     });
 
@@ -415,7 +454,7 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
       expect(screen.getByRole('textbox')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Rethink code changes'})
@@ -434,14 +473,13 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Fix the error handling');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink code changes'}));
-      expect(autofix.startStep).toHaveBeenCalledWith(
-        'code_changes',
-        1,
-        'Fix the error handling'
-      );
+      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {
+        runId: 1,
+        userContext: 'Fix the error handling',
+      });
     });
 
     it('proceeds like yes on nevermind click', async () => {
@@ -453,12 +491,12 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
-      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
     });
 
-    it('does not show coding agent dropdown', () => {
+    it('does not show coding agent dropdown', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
         body: {
@@ -475,9 +513,135 @@ describe('SeerDrawerNextStep', () => {
           autofix={autofix}
         />
       );
+      await screen.findByText('Are you happy with these code changes?');
       expect(
         screen.queryByRole('button', {name: 'More code fix options'})
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('PullRequestNextStep', () => {
+    const prIterationOrganization = OrganizationFixture({
+      features: ['autofix-pr-iteration'],
+    });
+
+    function makePrIterationAutofix(
+      overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
+    ) {
+      return makeAutofix({
+        runState: {run_id: 1, blocks: []} as any,
+        ...overrides,
+      });
+    }
+
+    beforeEach(() => {
+      jest.mocked(trackAnalytics).mockClear();
+    });
+
+    it('returns null when the run is not valid for PR iteration', () => {
+      const autofix = makeAutofix({
+        runState: {run_id: 1, blocks: []} as any,
+      });
+      const {container} = render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('keeps the feedback form visible while a run is polling', () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={makePrIterationAutofix({isPolling: true})}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+
+    it('renders the feedback prompt, textarea, and submit button', () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={makePrIterationAutofix()}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(
+        screen.getByText('Anything else you want to see on your PR?')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
+    });
+
+    it('submits feedback via startStep and tracks analytics', async () => {
+      const autofix = makePrIterationAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture({id: '123'})}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'Add a test for this');
+      await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+      expect(autofix.startStep).toHaveBeenCalledWith('pr_iteration', {
+        runId: 1,
+        userContext: 'Add a test for this',
+      });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'autofix.pr_iteration.feedback',
+        expect.objectContaining({group_id: '123', mode: 'explorer'})
+      );
+    });
+
+    it('submits on Enter but not on Shift+Enter', async () => {
+      const autofix = makePrIterationAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const textbox = screen.getByRole('textbox');
+      await userEvent.type(textbox, 'first line{Shift>}{Enter}{/Shift}');
+      expect(autofix.startStep).not.toHaveBeenCalled();
+
+      await userEvent.type(textbox, '{Enter}');
+      expect(autofix.startStep).toHaveBeenCalledWith(
+        'pr_iteration',
+        expect.objectContaining({userContext: expect.stringContaining('first line')})
+      );
+    });
+
+    it('does not submit when feedback is empty', async () => {
+      const autofix = makePrIterationAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), '{Enter}');
+      expect(autofix.startStep).not.toHaveBeenCalled();
     });
   });
 });

@@ -18,7 +18,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {Repository} from './repository';

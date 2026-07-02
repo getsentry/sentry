@@ -31,7 +31,6 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   NOTIFICATION_SETTING_FIELDS,
   QUOTA_FIELDS,
-  SPEND_FIELDS,
 } from './fields';
 import {NotificationSettingsByEntity} from './notificationSettingsByEntity';
 import type {Identity} from './types';
@@ -98,12 +97,16 @@ export function NotificationSettingsByType({notificationType}: Props) {
   );
 
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
-    useApiQuery<OrganizationIntegration[]>(
-      [getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}})],
+    useApiQuery<Array<OrganizationIntegration | null>>(
+      [
+        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
+        {query: {provider: [...ALLOWED_PROVIDERS]}},
+      ],
       {staleTime: 30_000}
     );
-  const organizationIntegrations = allOrgIntegrations.filter(orgIntegration =>
-    ALLOWED_PROVIDERS.has(orgIntegration.provider.key as SupportedProviders)
+  const organizationIntegrations = allOrgIntegrations.filter(
+    (orgIntegration): orgIntegration is OrganizationIntegration =>
+      ALLOWED_PROVIDERS.has(orgIntegration?.provider.key as SupportedProviders)
   );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
@@ -210,88 +213,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const filterCategoryFields = (
-    fields: Array<{
-      choices: ReadonlyArray<readonly [string, string]>;
-      name: string;
-      help?: React.ReactNode;
-      label?: React.ReactNode;
-    }>
-  ) => {
-    // at least one org exists with am3 tiered plan
-    const hasOrgWithAm3 = organizations.some(organization =>
-      organization.features?.includes('am3-tier')
-    );
-
-    // at least one org exists without am3 tier plan
-    const hasOrgWithoutAm3 = organizations.some(
-      organization => !organization.features?.includes('am3-tier')
-    );
-
-    // at least one org exists with am2 tier plan
-    const hasOrgWithAm2 = organizations.some(organization =>
-      organization.features?.includes('am2-tier')
-    );
-
-    // at least one org exists with am1 tier plan
-    const hasOrgWithAm1 = organizations.some(organization =>
-      organization.features?.includes('am1-tier')
-    );
-
-    // Check if any organization has the continuous-profiling-billing feature flag
-    const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
-      organization.features?.includes('continuous-profiling-billing')
-    );
-
-    const hasSeerBilling = organizations.some(organization =>
-      organization.features?.includes('seer-billing')
-    );
-
-    const hasLogsBilling = organizations.some(organization =>
-      organization.features?.includes('logs-billing')
-    );
-
-    const hasSeerUserBilling = organizations.some(organization =>
-      organization.features?.includes('seer-user-billing-launch')
-    );
-
-    const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
-    const includeSpans = hasOrgWithAm3;
-    const includeProfileDuration =
-      (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
-    const includeSeer = hasSeerBilling;
-    const includeLogs = hasLogsBilling;
-    const includeSizeAnalysis = hasOrgWithAm3 || hasOrgWithAm2 || hasOrgWithAm1;
-
-    return fields.filter(field => {
-      if (field.name === 'quotaSpans' && !includeSpans) {
-        return false;
-      }
-      if (field.name === 'quotaTransactions' && excludeTransactions) {
-        return false;
-      }
-      if (
-        ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
-        !includeProfileDuration
-      ) {
-        return false;
-      }
-      if (field.name.startsWith('quotaSeerBudget') && !includeSeer) {
-        return false;
-      }
-      if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
-        return false;
-      }
-      if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
-        return false;
-      }
-      if (field.name.startsWith('quotaSize') && !includeSizeAnalysis) {
-        return false;
-      }
-      return true;
-    });
-  };
-
   const removeNotificationMutation = useMutation({
     mutationFn: (id: string) =>
       fetchMutation({method: 'DELETE', url: `/users/me/notification-options/${id}/`}),
@@ -358,20 +279,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
   const unlinkedSlackStagingOrgs = getUnlinkedOrgs('slack_staging');
-  let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
-  if (
-    notificationType === 'quota' &&
-    organizations.some(org => org.features?.includes('spend-visibility-notifications'))
-  ) {
-    notificationDetails = {
-      ...notificationDetails,
-      title: t('Spend Notifications'),
-      description: t('Control the notifications you receive for organization spend.'),
-    };
-  }
-  const {title, description} = notificationDetails;
+  const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
 
   const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
+
+  if (notificationType === 'quota' && ConfigStore.get('isSelfHosted')) {
+    return null;
+  }
 
   if (
     notificationOptionStatus === 'pending' ||
@@ -389,7 +303,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const optionMutationOptions = (fieldName: string) =>
     mutationOptions({
       mutationFn: (data: Record<string, string>) =>
-        fetchMutation({
+        fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
           url: '/users/me/notification-options/',
           data: {
@@ -399,7 +313,23 @@ export function NotificationSettingsByType({notificationType}: Props) {
             value: data[fieldName],
           },
         }),
-      onSuccess: () => trackTuningUpdated('general'),
+      onSuccess: notificationOption => {
+        trackTuningUpdated('general');
+        setApiQueryData<NotificationOptionsObject[]>(
+          queryClient,
+          notificationOptionsQueryKey(notificationType),
+          currentOptions => {
+            const existing = currentOptions ?? [];
+            const idx = existing.findIndex(opt => opt.id === notificationOption.id);
+            if (idx >= 0) {
+              return existing.map(opt =>
+                opt.id === notificationOption.id ? notificationOption : opt
+              );
+            }
+            return [...existing, notificationOption];
+          }
+        );
+      },
     });
 
   const providerChoices = (
@@ -422,16 +352,18 @@ export function NotificationSettingsByType({notificationType}: Props) {
           providers: data.provider,
         },
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+          {query: getQueryParams(notificationType)},
+        ],
+      });
+    },
   });
 
   const renderQuotaFields = () => {
-    const hasSpendVisibility = organizations.some(organization =>
-      organization.features?.includes('spend-visibility-notifications')
-    );
-    const sourceFields = hasSpendVisibility ? SPEND_FIELDS : QUOTA_FIELDS;
-    const filteredFields = filterCategoryFields(sourceFields);
-
-    return filteredFields.map(field => {
+    return QUOTA_FIELDS.map(field => {
       const schema = z.object({[field.name]: z.string()});
       return (
         <AutoSaveForm

@@ -45,27 +45,24 @@ export function getUTMState(): UTMState {
     ...extraData,
     ...Object.keys(trackableQuery)
       .filter(isUTM)
-      .reduce(
-        (a, utm) => {
-          // Send the first touch as the saved first touch or this one.
-          const ftk = toFirstTouchKey(utm);
-          const firstTouch = touches[ftk] || trackableQuery[utm];
+      .reduce<Record<string, string>>((a, utm) => {
+        // Send the first touch as the saved first touch or this one.
+        const ftk = toFirstTouchKey(utm);
+        const firstTouch = touches[ftk] || trackableQuery[utm];
 
-          if (!firstTouch) {
-            return a;
-          }
-
-          a[ftk] = firstTouch;
-
-          // If a last touch is safed, send it.
-          const ltk = toLastTouchKey(utm);
-          if (touches[ltk]) {
-            a[ltk] = touches[ltk];
-          }
+        if (!firstTouch) {
           return a;
-        },
-        {} as Record<string, string>
-      ),
+        }
+
+        a[ftk] = firstTouch;
+
+        // If a last touch is safed, send it.
+        const ltk = toLastTouchKey(utm);
+        if (touches[ltk]) {
+          a[ltk] = touches[ltk];
+        }
+        return a;
+      }, {}),
   };
   return {
     data: extraData,

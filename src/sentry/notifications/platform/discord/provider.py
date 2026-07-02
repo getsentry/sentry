@@ -17,15 +17,17 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
+    LinkTextBlock,
+    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTarget,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -66,30 +68,29 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         embeds = []
 
         body_blocks = cls.render_body_blocks(rendered_template.body)
+        subject = cls.render_text_blocks(rendered_template.subject_blocks, include_links=False)
+
+        footer: DiscordMessageEmbedFooter | None = None
+        if rendered_template.footer:
+            # Discord does not support rich footers
+            footer = DiscordMessageEmbedFooter(text=rendered_template.footer_text)
 
         embeds.append(
             DiscordMessageEmbed(
-                title=rendered_template.subject,
+                title=subject,
                 description=body_blocks,
                 image=(
                     DiscordMessageEmbedImage(url=rendered_template.chart.url)
                     if rendered_template.chart
                     else None
                 ),
-                footer=(
-                    DiscordMessageEmbedFooter(text=rendered_template.footer)
-                    if rendered_template.footer
-                    else None
-                ),
+                footer=footer,
             )
         )
 
         if len(rendered_template.actions) > 0:
             buttons = [
-                DiscordLinkButton(
-                    label=action.label,
-                    url=action.link,
-                )
+                DiscordLinkButton(label=action.label, url=action.link)
                 for action in rendered_template.actions
             ]
             components.append(DiscordActionRow(components=buttons))
@@ -99,25 +100,40 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         return builder.build()
 
     @classmethod
-    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> str:
+    def render_body_blocks(cls, body: list[NotificationSection]) -> str:
         description = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+            if block.type == NotificationSectionType.PARAGRAPH:
                 description.append(f"\n{cls.render_text_blocks(block.blocks)}")
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+            elif block.type == NotificationSectionType.CODE_BLOCK:
                 description.append(f"\n```{cls.render_text_blocks(block.blocks)}```")
+            elif block.type == NotificationSectionType.BLOCK_QUOTE:
+                description.append(f"\n>>> {cls.render_text_blocks(block.blocks)}")
         return "".join(description)
 
     @classmethod
-    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def render_text_blocks(
+        cls, blocks: list[NotificationTextBlock], include_links: bool = True
+    ) -> str:
+        """
+        For Discord, in some cases links will not be supported even though other rich text is.
+        If include_links is False, the text will be rendered as plain text with the URL in parentheses.
+        """
         texts = []
         for block in blocks:
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(block.text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"*{block.text}*")
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
+            elif block.type == NotificationTextBlockType.LINK and isinstance(block, LinkTextBlock):
+                if include_links:
+                    texts.append(f"[{block.text}]({block.url})")
+                else:
+                    texts.append(f"{block.text} ({block.url})")
         return " ".join(texts)
 
 
@@ -135,6 +151,21 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def get_renderer(
+        cls, *, data: NotificationData, category: NotificationCategory
+    ) -> type[NotificationRenderer[DiscordRenderable]]:
+        from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
+        from sentry.notifications.platform.discord.renderers.metric_alert import (
+            DiscordMetricAlertRenderer,
+        )
+
+        if category == NotificationCategory.ISSUE:
+            return IssueDiscordRenderer
+        if category == NotificationCategory.METRIC_ALERT:
+            return DiscordMetricAlertRenderer
+        return cls.default_renderer
 
     @classmethod
     def send(

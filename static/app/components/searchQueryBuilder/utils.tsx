@@ -5,6 +5,7 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {
   BooleanOperator,
   FilterType,
+  InvalidReason,
   parseSearch,
   Token,
   type ParseResult,
@@ -12,13 +13,75 @@ import {
   type SearchConfig,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
-function getSearchConfigFromKeys(
-  keys: TagCollection,
+function getFilterKeysFromQuery(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  const keys = new Set<string>();
+  const filterKeyPattern = /(?:^|[\s(])!?([^\s():]+):/g;
+
+  for (const match of value.matchAll(filterKeyPattern)) {
+    if (match[1]) {
+      keys.add(match[1]);
+    }
+  }
+
+  return Array.from(keys);
+}
+
+function addKeyToSearchConfig(
+  config: Partial<SearchConfig>,
+  key: string,
   getFieldDefinition: FieldDefinitionGetter
-): Partial<SearchConfig> {
+) {
+  const fieldDef = getFieldDefinition(key);
+  if (!fieldDef) {
+    return;
+  }
+
+  if (fieldDef.allowComparisonOperators) {
+    config.textOperatorKeys!.add(key);
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.BOOLEAN:
+      config.booleanKeys!.add(key);
+      break;
+    case FieldValueType.NUMBER:
+    case FieldValueType.INTEGER:
+    case FieldValueType.PERCENTAGE:
+    case FieldValueType.CURRENCY:
+      config.numericKeys!.add(key);
+      break;
+    case FieldValueType.DATE:
+      config.dateKeys!.add(key);
+      break;
+    case FieldValueType.DURATION:
+      config.durationKeys!.add(key);
+      break;
+    case FieldValueType.SIZE:
+      config.sizeKeys!.add(key);
+      break;
+    default:
+      break;
+  }
+}
+
+function getSearchConfigFromKeys({
+  keys,
+  getFieldDefinition,
+  queryKeys = [],
+}: {
+  getFieldDefinition: FieldDefinitionGetter;
+  keys: TagCollection;
+  queryKeys?: string[];
+}): Partial<SearchConfig> {
   const config = {
     textOperatorKeys: new Set<string>(),
     booleanKeys: new Set<string>(),
@@ -30,40 +93,44 @@ function getSearchConfigFromKeys(
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
-    const fieldDef = getFieldDefinition(key);
-    if (!fieldDef) {
-      continue;
-    }
+    addKeyToSearchConfig(config, key, getFieldDefinition);
+  }
 
-    if (fieldDef.allowComparisonOperators) {
-      config.textOperatorKeys.add(key);
-    }
-
-    switch (fieldDef.valueType) {
-      case FieldValueType.BOOLEAN:
-        config.booleanKeys.add(key);
-        break;
-      case FieldValueType.NUMBER:
-      case FieldValueType.INTEGER:
-      case FieldValueType.PERCENTAGE:
-      case FieldValueType.CURRENCY:
-        config.numericKeys.add(key);
-        break;
-      case FieldValueType.DATE:
-        config.dateKeys.add(key);
-        break;
-      case FieldValueType.DURATION:
-        config.durationKeys.add(key);
-        break;
-      case FieldValueType.SIZE:
-        config.sizeKeys.add(key);
-        break;
-      default:
-        break;
-    }
+  for (const key of queryKeys) {
+    addKeyToSearchConfig(config, key, getFieldDefinition);
   }
 
   return config;
+}
+
+function markInvalidFilterKeys(
+  tokens: ParseResult | null,
+  invalidFilterKeys: string[] | undefined
+): ParseResult | null {
+  if (!tokens || !invalidFilterKeys?.length) {
+    return tokens;
+  }
+
+  const invalidFilterKeySet = new Set(invalidFilterKeys);
+
+  return tokens.map(token => {
+    if (token.type !== Token.FILTER) {
+      return token;
+    }
+
+    const keyName = getKeyName(token.key, {aggregateWithArgs: true});
+    if (!invalidFilterKeySet.has(keyName) || token.invalid) {
+      return token;
+    }
+
+    return {
+      ...token,
+      invalid: {
+        type: InvalidReason.INVALID_KEY,
+        reason: t('Invalid key. "%s" is not a supported search key.', token.key.text),
+      },
+    };
+  });
 }
 
 export function parseQueryBuilderValue(
@@ -77,27 +144,37 @@ export function parseQueryBuilderValue(
     disallowWildcard?: boolean;
     filterKeyAliases?: TagCollection;
     getFilterTokenWarning?: (key: string) => React.ReactNode;
+    invalidFilterKeys?: string[];
     invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
-  return collapseTextTokens(
-    parseSearch(value || ' ', {
-      flattenParenGroups: true,
-      disallowFreeText: options?.disallowFreeText,
-      getFilterTokenWarning: options?.getFilterTokenWarning,
-      validateKeys: options?.disallowUnsupportedFilters,
-      disallowWildcard: options?.disallowWildcard,
-      disallowedLogicalOperators: options?.disallowLogicalOperators
-        ? new Set([BooleanOperator.AND, BooleanOperator.OR])
-        : undefined,
-      disallowParens: options?.disallowLogicalOperators,
-      ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
-      invalidMessages: options?.invalidMessages,
-      supportedTags: {
-        ...(options?.filterKeys ? options.filterKeys : {}),
-        ...(options?.filterKeyAliases ? options.filterKeyAliases : {}),
-      },
-    })
+  return markInvalidFilterKeys(
+    collapseTextTokens(
+      parseSearch(value || ' ', {
+        flattenParenGroups: true,
+        disallowFreeText: options?.disallowFreeText,
+        getFilterTokenWarning: options?.getFilterTokenWarning,
+        validateKeys: options?.disallowUnsupportedFilters,
+        disallowWildcard: options?.disallowWildcard,
+        disallowedLogicalOperators: options?.disallowLogicalOperators
+          ? new Set([BooleanOperator.AND, BooleanOperator.OR])
+          : undefined,
+        disallowParens: options?.disallowLogicalOperators,
+        ...getSearchConfigFromKeys({
+          keys: options?.filterKeys ?? {},
+          getFieldDefinition,
+          queryKeys: options?.disallowUnsupportedFilters
+            ? []
+            : getFilterKeysFromQuery(value),
+        }),
+        invalidMessages: options?.invalidMessages,
+        supportedTags: {
+          ...(options?.filterKeys ? options.filterKeys : {}),
+          ...(options?.filterKeyAliases ? options.filterKeyAliases : {}),
+        },
+      })
+    ),
+    options?.invalidFilterKeys
   );
 }
 

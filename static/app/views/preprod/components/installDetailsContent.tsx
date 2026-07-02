@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -14,18 +15,45 @@ import {t, tct, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
+export function getDistributionErrorTooltip(
+  errorCode?: string | null,
+  errorMessage?: string | null
+): string {
+  // Legacy rows: before the granular codes existed, the reason was stuffed into
+  // error_message as a short-code string. Translate those to real sentences.
+  // Drop once launchpad has been emitting the new codes long enough that old
+  // rows have aged out.
+  if (errorCode === 'skipped') {
+    if (errorMessage === 'invalid_signature') {
+      return t('Code signature is invalid');
+    }
+    if (errorMessage === 'simulator') {
+      return t('Simulator builds cannot be distributed');
+    }
+  }
+
+  return errorMessage || t('Not installable');
+}
+
 interface InstallDetailsContentProps {
   artifactId: string;
+  projectSlug: string;
+  distributionErrorCode?: string | null;
+  distributionErrorMessage?: string | null;
   size?: 'sm' | 'lg';
 }
 
 export function InstallDetailsContent({
   artifactId,
+  projectSlug,
   size = 'sm',
+  distributionErrorCode,
+  distributionErrorMessage,
 }: InstallDetailsContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -54,7 +82,31 @@ export function InstallDetailsContent({
     ],
     {
       staleTime: 0,
+      retry: (failureCount, apiError: RequestError) => {
+        if (apiError?.status === 404) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     }
+  );
+
+  const distributionDisabledBody = (
+    <Flex direction="column" align="center" gap={outerGap}>
+      <Text>{t('Build distribution is not enabled')}</Text>
+      <Text size="sm" variant="muted" align="center">
+        {tct(
+          'The installable file is not available for this build. Enable build distribution in your [link:project settings].',
+          {
+            link: (
+              <Link
+                to={`/settings/${organization.slug}/projects/${projectSlug}/mobile-builds/?tab=distribution`}
+              />
+            ),
+          }
+        )}
+      </Text>
+    </Flex>
   );
 
   let body: ReactNode;
@@ -66,12 +118,32 @@ export function InstallDetailsContent({
       </Flex>
     );
   } else if (isError || !installDetails) {
-    body = (
-      <Flex direction="column" align="center" gap={outerGap}>
-        <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
-        <Button onClick={() => refetch()}>{t('Retry')}</Button>
-      </Flex>
-    );
+    if (error?.status === 404) {
+      // 404 means there's no installable file. Use the error_code/message the
+      // parent passes from build-details to explain why — only show the
+      // settings link when distribution is actually disabled for the project.
+      if (distributionErrorCode === 'distribution_disabled') {
+        body = distributionDisabledBody;
+      } else {
+        const message = distributionErrorCode
+          ? getDistributionErrorTooltip(distributionErrorCode, distributionErrorMessage)
+          : t('No install download link available');
+        body = (
+          <Flex direction="column" align="center" gap={outerGap}>
+            <Text>{message}</Text>
+          </Flex>
+        );
+      }
+    } else {
+      body = (
+        <Flex direction="column" align="center" gap={outerGap}>
+          <Text>
+            {t('Error: %s', error?.message || 'Failed to fetch install details')}
+          </Text>
+          <Button onClick={() => refetch()}>{t('Retry')}</Button>
+        </Flex>
+      );
+    }
   } else if (installDetails.codesigning_type === 'appstore') {
     body = (
       <Flex direction="column" align="center" gap={outerGap}>
@@ -116,7 +188,7 @@ export function InstallDetailsContent({
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <Container display={{xs: 'none', sm: 'block'}}>
+            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
                 value={
@@ -128,7 +200,7 @@ export function InstallDetailsContent({
               />
             </Container>
             {details}
-            <Container display={{xs: 'none', sm: 'block'}}>
+            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
               <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
                 <Text align="center" size="lg">
                   {t(
@@ -138,7 +210,7 @@ export function InstallDetailsContent({
               </Flex>
             </Container>
           </Stack>
-          <Container display={{xs: 'none', sm: 'block'}} width="100%">
+          <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}} width="100%">
             <Flex align="center" gap="md" width="100%">
               <Separator
                 orientation="horizontal"
@@ -159,14 +231,14 @@ export function InstallDetailsContent({
             <Flex
               gap="md"
               width="100%"
-              direction={{xs: 'column', sm: 'row'}}
+              direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
               justify="center"
-              align={{xs: 'stretch', sm: 'center'}}
+              align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
             >
-              <Flex width={{xs: '100%', sm: 'auto'}}>
+              <Flex width={{'screen:xs': '100%', 'screen:sm': 'auto'}}>
                 <Button
                   onClick={() => window.open(installDetails.install_url, '_blank')}
-                  priority="primary"
+                  variant="primary"
                   size="md"
                   style={{width: '100%'}}
                 >
@@ -175,10 +247,13 @@ export function InstallDetailsContent({
               </Flex>
               {installDetails.install_url && (
                 <Flex
-                  alignSelf={{xs: 'stretch', sm: 'center'}}
-                  width={{xs: '100%', sm: 'auto'}}
+                  alignSelf={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
+                  width={{'screen:xs': '100%', 'screen:sm': 'auto'}}
                 >
-                  <Container display={{xs: 'block', sm: 'none'}} width="100%">
+                  <Container
+                    display={{'screen:xs': 'block', 'screen:sm': 'none'}}
+                    width="100%"
+                  >
                     <Button
                       onClick={() =>
                         copy(installDetails.install_url!, {
@@ -186,13 +261,13 @@ export function InstallDetailsContent({
                         })
                       }
                       size="md"
-                      priority="default"
+                      variant="secondary"
                       style={{width: '100%'}}
                     >
                       {t('Copy Download Link')}
                     </Button>
                   </Container>
-                  <Container display={{xs: 'none', sm: 'block'}}>
+                  <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
                     <Tooltip title={t('Copy Download Link')}>
                       <Button
                         aria-label={t('Copy Download Link')}
@@ -230,36 +305,36 @@ export function InstallDetailsContent({
         </Fragment>
       </Flex>
     );
+  } else if (distributionErrorCode === 'distribution_disabled') {
+    body = distributionDisabledBody;
   } else {
-    if (installDetails.is_code_signature_valid) {
-      body = (
-        <Flex direction="column" align="center" gap={outerGap}>
-          <Text>{t('No install download link available')}</Text>
-        </Flex>
+    let message: string;
+    if (distributionErrorCode) {
+      message = getDistributionErrorTooltip(
+        distributionErrorCode,
+        distributionErrorMessage
       );
+    } else if (installDetails.is_code_signature_valid === false) {
+      message = t('Code signature is invalid');
     } else {
-      let errors = null;
-      if (
-        installDetails.code_signature_errors &&
-        installDetails.code_signature_errors.length > 0
-      ) {
-        errors = (
-          <CodeSignatureInfo>
-            <Stack gap="sm">
-              {installDetails.code_signature_errors.map((e, index) => (
-                <Text key={index}>{e}</Text>
-              ))}
-            </Stack>
-          </CodeSignatureInfo>
-        );
-      }
-      body = (
-        <Flex direction="column" align="center" gap={outerGap}>
-          <Text>{'Code signature is invalid'}</Text>
-          {errors}
-        </Flex>
-      );
+      message = t('No install download link available');
     }
+
+    body = (
+      <Flex direction="column" align="center" gap={outerGap}>
+        <Text>{message}</Text>
+        {installDetails.code_signature_errors &&
+          installDetails.code_signature_errors.length > 0 && (
+            <CodeSignatureInfo>
+              <Stack gap="sm">
+                {installDetails.code_signature_errors.map((e, index) => (
+                  <Text key={index}>{e}</Text>
+                ))}
+              </Stack>
+            </CodeSignatureInfo>
+          )}
+      </Flex>
+    );
   }
 
   return body;

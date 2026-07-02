@@ -22,7 +22,7 @@ async function renderBreadcrumbDrawer() {
       toJSON: jest.fn(),
     }));
   render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
-  await userEvent.click(screen.getByRole('button', {name: 'View All Breadcrumbs'}));
+  await userEvent.click(screen.getByRole('button', {name: 'View 2 more'}));
   return screen.getByRole('complementary', {name: 'breadcrumb drawer'});
 }
 

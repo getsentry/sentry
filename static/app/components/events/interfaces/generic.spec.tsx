@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Generic} from 'sentry/components/events/interfaces/generic';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 
 describe('Generic entry', () => {
   it('display redacted data', async () => {

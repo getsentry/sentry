@@ -1,20 +1,22 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock, IconEllipsis, IconGraph} from 'sentry/icons';
+import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useIsShortViewport} from 'sentry/utils/useIsShortViewport';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -23,19 +25,26 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
-  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSearch,
@@ -53,12 +62,12 @@ import {
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
 }
 
 export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
@@ -118,11 +127,15 @@ function Graph({
   timeseriesResult,
   visualize,
 }: GraphProps) {
+  const isShortViewport = useIsShortViewport();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
   const aggregate = visualize.yAxis;
   const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -160,8 +173,23 @@ function Graph({
     tableIsPending,
   ]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
+
   const Title = (
-    <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
+    <Widget.WidgetTitle
+      summary={
+        !visualize.visible && plottablesCanBeVisualized(plottables) ? (
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            notMerge={false}
+            showLegend="never"
+            showXAxis="never"
+            showYAxis="never"
+          />
+        ) : null
+      }
+      title={prettifyAggregation(aggregate) ?? aggregate}
+    />
   );
 
   const chartIcon =
@@ -171,7 +199,7 @@ function Graph({
         ? 'area'
         : 'bar';
 
-  const Actions = (
+  const Actions = visualize.visible ? (
     <Fragment>
       <CompactSelect
         trigger={triggerProps => (
@@ -181,7 +209,7 @@ function Graph({
               title: t('Type of chart displayed in this visualization (ex. line)'),
             }}
             icon={<IconGraph type={chartIcon} />}
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             size="xs"
           />
@@ -201,7 +229,7 @@ function Graph({
               title: t('Time interval displayed in this visualization (ex. 5m)'),
             }}
             icon={<IconClock />}
-            priority="transparent"
+            variant="transparent"
             showChevron={false}
             size="xs"
           />
@@ -209,20 +237,39 @@ function Graph({
         menuTitle="Interval"
         options={intervalOptions}
       />
-      <ContextMenu
-        interval={interval}
-        visualize={visualize}
-        visible={visualize.visible}
-        setVisible={onChartVisibilityChange}
+      <ContextMenu interval={interval} visualize={visualize} />
+      <Button
+        aria-label={t('Collapse chart')}
+        icon={<IconContract />}
+        onClick={() => onChartVisibilityChange(false)}
+        size="xs"
       />
     </Fragment>
+  ) : (
+    <Button
+      aria-label={t('Expand chart')}
+      icon={<IconExpand />}
+      onClick={() => onChartVisibilityChange(true)}
+      size="xs"
+    />
   );
+
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
     <Widget
       Title={Title}
       Actions={Actions}
-      Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+      Visualization={
+        visualize.visible && (
+          <ChartVisualization
+            key={chartRemountKey}
+            chartInfo={chartInfo}
+            notMerge={!autorefreshEnabled}
+          />
+        )
+      }
       Footer={
         visualize.visible && (
           <ConfidenceFooter
@@ -235,23 +282,13 @@ function Graph({
           />
         )
       }
-      height={visualize.visible ? 200 : 50}
+      height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}
       revealActions="always"
     />
   );
 }
 
-function ContextMenu({
-  interval,
-  visualize,
-  visible,
-  setVisible,
-}: {
-  interval: string;
-  setVisible: (visible: boolean) => void;
-  visible: boolean;
-  visualize: Visualize;
-}) {
+function ContextMenu({interval, visualize}: {interval: string; visualize: Visualize}) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -268,116 +305,97 @@ function ContextMenu({
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-    const menuItems = [];
-
-    menuItems.push({
-      key: 'create-alert',
-      textValue: t('Create an Alert'),
-      label: t('Create an Alert'),
-      to: getAlertsUrl({
-        project,
-        query: search.formatString(),
-        pageFilters: pageFilters.selection,
-        aggregate: visualize.yAxis,
-        organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-        eventTypes: [EventTypes.TRACE_ITEM_LOG],
-      }),
-      onAction: () => {
-        trackAnalytics('logs.save_as', {
-          save_type: 'alert',
-          ui_source: 'chart',
-          organization,
-        });
-        return undefined;
-      },
-    });
-
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    menuItems.push({
-      key: 'add-to-dashboard',
-      textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
-      onAction: () => {
-        if (disableAddToDashboard) {
-          return;
-        }
-        trackAnalytics('logs.save_as', {
-          save_type: 'dashboard',
-          ui_source: 'chart',
-          organization,
-        });
 
-        const fields =
-          mode === Mode.SAMPLES
-            ? []
-            : aggregateFields
-                .map(aggregateField => {
-                  if (isVisualize(aggregateField)) {
-                    return aggregateField.yAxis;
-                  }
-                  if (isGroupBy(aggregateField)) {
-                    return aggregateField.groupBy;
-                  }
-                  return null;
-                })
-                .filter(defined);
-
-        const discoverQuery: NewQuery = {
-          name: DEFAULT_WIDGET_NAME,
-          fields,
-          orderby: aggregateSortBys.map(formatSort),
+    return [
+      {
+        key: 'create-alert',
+        textValue: t('Create an Alert'),
+        label: t('Create an Alert'),
+        to: getAlertsUrl({
+          project,
           query: search.formatString(),
-          version: 2,
-          dataset: DiscoverDatasets.OURLOGS,
-          yAxis: [visualize.yAxis],
-        };
-
-        const eventView = EventView.fromNewQueryWithPageFilters(
-          discoverQuery,
-          pageFilters.selection
-        );
-        // the chart currently track the chart type internally so force bar type for now
-        eventView.display = DisplayType.BAR;
-
-        handleAddQueryToDashboard({
+          pageFilters: pageFilters.selection,
+          aggregate: visualize.yAxis,
           organization,
-          location,
-          eventView,
-          yAxis: visualize.yAxis,
-          widgetType: WidgetType.LOGS,
-          source: DashboardWidgetSource.LOGS,
-        });
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+          eventTypes: [EventTypes.TRACE_ITEM_LOG],
+        }),
+        onAction: () => {
+          trackAnalytics('logs.save_as', {
+            save_type: 'alert',
+            ui_source: 'chart',
+            organization,
+          });
+          return;
+        },
       },
-    });
+      {
+        key: 'add-to-dashboard',
+        textValue: t('Add to Dashboard'),
+        label: (
+          <Feature
+            overrideName="feature-disabled:dashboards-edit"
+            features="organizations:dashboards-edit"
+            renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
+          >
+            {t('Add to Dashboard')}
+          </Feature>
+        ),
+        disabled: disableAddToDashboard,
+        onAction: () => {
+          if (disableAddToDashboard) {
+            return;
+          }
+          trackAnalytics('logs.save_as', {
+            save_type: 'dashboard',
+            ui_source: 'chart',
+            organization,
+          });
 
-    if (visible) {
-      menuItems.push({
-        key: 'hide-chart',
-        textValue: t('Hide Chart'),
-        label: t('Hide Chart'),
-        onAction: () => setVisible(false),
-      });
-    } else {
-      menuItems.push({
-        key: 'show-chart',
-        textValue: t('Show Chart'),
-        label: t('Show Chart'),
-        onAction: () => setVisible(true),
-      });
-    }
+          const fields =
+            mode === Mode.SAMPLES
+              ? []
+              : aggregateFields
+                  .map(aggregateField => {
+                    if (isVisualize(aggregateField)) {
+                      return aggregateField.yAxis;
+                    }
+                    if (isGroupBy(aggregateField)) {
+                      return aggregateField.groupBy;
+                    }
+                    return null;
+                  })
+                  .filter(defined);
 
-    return menuItems;
+          const discoverQuery: NewQuery = {
+            name: DEFAULT_WIDGET_NAME,
+            fields,
+            orderby: aggregateSortBys.map(formatSort),
+            query: search.formatString(),
+            version: 2,
+            dataset: DiscoverDatasets.OURLOGS,
+            yAxis: [visualize.yAxis],
+          };
+
+          const eventView = EventView.fromNewQueryWithPageFilters(
+            discoverQuery,
+            pageFilters.selection
+          );
+          eventView.display = CHART_TYPE_TO_DISPLAY_TYPE[visualize.chartType];
+
+          handleAddQueryToDashboard({
+            organization,
+            location,
+            eventView,
+            yAxis: visualize.yAxis,
+            widgetType: WidgetType.LOGS,
+            source: DashboardWidgetSource.LOGS,
+          });
+        },
+      },
+    ];
   }, [
     aggregateFields,
     aggregateSortBys,
@@ -388,8 +406,7 @@ function ContextMenu({
     pageFilters,
     projects,
     search,
-    setVisible,
-    visible,
+    visualize.chartType,
     visualize.yAxis,
   ]);
 
@@ -401,7 +418,7 @@ function ContextMenu({
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         icon: <IconEllipsis />,
       }}

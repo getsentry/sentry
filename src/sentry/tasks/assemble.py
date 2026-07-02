@@ -44,7 +44,7 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from rediscluster import RedisCluster
+    from sentry_redis_tools.clients import RedisCluster
 
 
 class ChunkFileState:
@@ -185,7 +185,7 @@ def _get_cache_key(task, scope, checksum):
 
 def _get_redis_cluster_for_assemble() -> RedisCluster:
     cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 @sentry_sdk.tracing.trace
@@ -242,7 +242,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.models.debugfile import BadDif, create_dif_from_file
     from sentry.models.project import Project
 
-    sentry_sdk.get_isolation_scope().set_tag("project", project_id)
+    sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
 
     delete_file = False
 
@@ -277,7 +278,10 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            delete_file = False
+            # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
+            # or when the new DIF references an already existing underlying `File` that's not this temporary one.
+            # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
+            delete_file = dif.file is not file
 
             if created:
                 record_last_upload(project)
@@ -405,8 +409,6 @@ class ArtifactBundlePostAssembler:
         # We take a snapshot in time in order to have consistent values in the database.
         date_snapshot = timezone.now()
 
-        # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
-        # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
         new_date_added = {"date_added": date_snapshot}
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
@@ -426,23 +428,21 @@ class ArtifactBundlePostAssembler:
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
             if self.release:
-                ReleaseArtifactBundle.objects.create_or_update(
+                ReleaseArtifactBundle.objects.update_or_create(
                     organization_id=self.organization.id,
                     release_name=self.release,
                     # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                     # tables.
                     dist_name=self.dist or NULL_STRING,
                     artifact_bundle=artifact_bundle,
-                    values=new_date_added,
                     defaults=new_date_added,
                 )
 
             for project_id in self.project_ids:
-                ProjectArtifactBundle.objects.create_or_update(
+                ProjectArtifactBundle.objects.update_or_create(
                     organization_id=self.organization.id,
                     project_id=project_id,
                     artifact_bundle=artifact_bundle,
-                    values=new_date_added,
                     defaults=new_date_added,
                 )
 

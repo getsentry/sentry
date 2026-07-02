@@ -1,9 +1,10 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
@@ -20,7 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -31,6 +32,7 @@ import {
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
 import {DetailsTimeline} from './detailsTimeline';
@@ -130,7 +132,7 @@ export default function UptimeAlertDetails() {
               {
                 label: t('Alerts'),
                 to: makeAlertsPathname({
-                  path: `/rules/`,
+                  path: '/rules/',
                   organization,
                 }),
               },
@@ -149,29 +151,25 @@ export default function UptimeAlertDetails() {
             {detector.name}
           </Layout.Title>
         </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <StatusToggleButton
-              uptimeDetector={detector}
-              onToggleStatus={data => toggleStatus(data)}
-              size="sm"
-              disabled={!canEdit}
-              {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
-            />
-            <LinkButton
-              size="sm"
-              icon={<IconEdit />}
-              disabled={!canEdit}
-              tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
-              to={makeAlertsPathname({
-                path: `/uptime-rules/${project.slug}/${detectorId}/`,
-                organization,
-              })}
-            >
-              {t('Edit Rule')}
-            </LinkButton>
-          </Grid>
-        </Layout.HeaderActions>
+        <TopBar.Slot name="actions">
+          <StatusToggleButton
+            uptimeDetector={detector}
+            onToggleStatus={data => toggleStatus(data)}
+            disabled={!canEdit}
+            {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
+          />
+          <LinkButton
+            icon={<IconEdit />}
+            disabled={!canEdit}
+            tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+            to={makeAlertsPathname({
+              path: `/uptime-rules/${project.slug}/${detectorId}/`,
+              organization,
+            })}
+          >
+            {t('Edit Rule')}
+          </LinkButton>
+        </TopBar.Slot>
       </Layout.Header>
       <Layout.Body>
         <Layout.Main>

@@ -8,8 +8,8 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
 
 type Options = {
   location: Location;
@@ -64,6 +64,8 @@ export function useReplaysFromTransaction({
         `/organizations/${organization.slug}/events/`,
         replayIdsEventView.getEventsAPIPayload({
           query: {cursor},
+          // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         } as Location<ReplayListLocationQuery>)
       );
 

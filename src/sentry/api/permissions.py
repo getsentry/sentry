@@ -8,6 +8,7 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthentic
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -121,7 +122,15 @@ class ScopedPermission(BasePermission):
         assert request.method is not None
         allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
-        return any(s in allowed_scopes for s in current_scopes)
+        if any(s in allowed_scopes for s in current_scopes):
+            return True
+        if allowed_scopes:
+            # Token-authorized (request.auth is set) but under-scoped. Record the required
+            # scopes so permission_denied can advertise them via RFC 6750 insufficient_scope;
+            # has_permission itself stays a plain bool. (Skipped when no scope could satisfy
+            # the method, e.g. an unset scope_map entry, to avoid an empty challenge.)
+            setattr(request, INSUFFICIENT_SCOPE_ATTR, allowed_scopes)
+        return False
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         return False
@@ -203,9 +212,10 @@ class SentryPermission(ScopedPermission):
             rpc_user_org_context=org_context,
         )
 
-        if auth.is_user_signed_request(request):
-            # if the user comes from a signed request
-            # we let them pass if sso is enabled
+        if auth.is_user_signed_request(request) or auth.is_user_from_viewer_context(request):
+            # Signed requests and viewer-context-authenticated service
+            # callbacks already carry a trusted assertion of user identity, so
+            # they should not depend on browser-session SSO completion.
             logger.info(
                 "access.signed-sso-passthrough",
                 extra=extra,

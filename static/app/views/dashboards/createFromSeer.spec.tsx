@@ -76,6 +76,10 @@ describe('CreateFromSeer', () => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',

@@ -81,6 +81,22 @@ class TwoFactorTest(TestCase):
             ("/organizations/new/", 302),
         ]
 
+    @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
+    def test_suspended_user_redirected_to_login(self, mock_validate: mock.MagicMock) -> None:
+        user = self.create_user()
+        interface = TotpInterface()
+        interface.enroll(user)
+
+        self.login_as(user)
+        self.session["_pending_2fa"] = [user.id, time() - 2]
+        self.save_session()
+
+        user.update(is_suspended=True)
+
+        resp = self.client.post("/auth/2fa/", data={"otp": "123456"})
+        assert resp.status_code == 302
+        assert resp["Location"] == "/auth/login/"
+
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
     @mock.patch("time.sleep")
     def test_rate_limit(self, mock_validate: mock.MagicMock, mock_sleep: mock.MagicMock) -> None:

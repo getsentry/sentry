@@ -1,8 +1,9 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -145,7 +146,9 @@ export function validateEventUniqueUserFrequencyCondition({
     return t('You must select a comparison type.');
   }
   if (
-    !condition.comparison.value ||
+    condition.comparison.value === null ||
+    condition.comparison.value === undefined ||
+    Number.isNaN(condition.comparison.value) ||
     !condition.comparison.interval ||
     (condition.type === DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT &&
       !condition.comparison.comparisonInterval)

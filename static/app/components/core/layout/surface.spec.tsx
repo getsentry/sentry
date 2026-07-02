@@ -1,4 +1,4 @@
-import React, {createRef} from 'react';
+import {createRef, Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -35,14 +35,14 @@ describe('Surface', () => {
 
   it('reuses class names for the same props', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Surface variant="primary" radius="md">
           First
         </Surface>
         <Surface variant="primary" radius="md">
           Second
         </Surface>
-      </React.Fragment>
+      </Fragment>
     );
 
     const first = screen.getByText('First').className;
@@ -52,11 +52,11 @@ describe('Surface', () => {
 
   it('applies different class names for different variants', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Surface variant="primary">Primary</Surface>
         <Surface variant="secondary">Secondary</Surface>
         <Surface variant="overlay">Overlay</Surface>
-      </React.Fragment>
+      </Fragment>
     );
 
     const primary = screen.getByText('Primary').className;
@@ -70,7 +70,7 @@ describe('Surface', () => {
 
   it('applies different class names for different elevations', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Surface variant="overlay" elevation="low">
           Low
         </Surface>
@@ -80,7 +80,7 @@ describe('Surface', () => {
         <Surface variant="overlay" elevation="high">
           High
         </Surface>
-      </React.Fragment>
+      </Fragment>
     );
 
     const low = screen.getByText('Low').className;

@@ -12,23 +12,12 @@ describe('SubscriptionUpsellBanner', () => {
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/prompts-activity/`,
+      url: '/organizations/org-slug/prompts-activity/',
       body: promptResponse,
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/plan-migrations/?applied=0`,
-      method: 'GET',
+      url: '/customers/org-slug/',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/org-slug/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/org-slug/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
     });
   });
 
@@ -36,7 +25,6 @@ describe('SubscriptionUpsellBanner', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
-      planTier: 'am2',
       plan: 'am2_f',
     });
     render(
@@ -58,7 +46,6 @@ describe('SubscriptionUpsellBanner', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
-      planTier: 'am2',
       plan: 'am2_f',
     });
     render(

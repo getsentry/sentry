@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
@@ -24,26 +26,26 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
+import {
+  getSessionTermDescription,
+  SessionTerm,
+} from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   getANRRateText,
   isPlatformANRCompatible,
   isPlatformForegroundANRCompatible,
 } from 'sentry/views/projectDetail/utils';
-import {
-  getSessionTermDescription,
-  SessionTerm,
-} from 'sentry/views/releases/utils/sessionTerm';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
@@ -69,6 +71,7 @@ type Props = {
   hasSessions: boolean | null;
   hasTransactions: boolean;
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   theme: Theme;
   visibleCharts: string[];
@@ -299,14 +302,14 @@ class ProjectCharts extends Component<Props, State> {
   }
 
   handleDisplayModeChange = (value: string) => {
-    const {location, chartId, chartIndex, organization} = this.props;
+    const {navigate, location, chartId, chartIndex, organization} = this.props;
     trackAnalytics('project_detail.change_chart', {
       organization,
       metric: value,
       chart_index: chartIndex,
     });
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, [chartId]: value},
     });
@@ -363,7 +366,7 @@ class ProjectCharts extends Component<Props, State> {
                     query ?? '',
                   ]).formatString()}
                   yAxis="failure_rate()"
-                  field={[`failure_rate()`]}
+                  field={['failure_rate()']}
                   api={api}
                   location={location}
                   organization={organization}
@@ -383,7 +386,7 @@ class ProjectCharts extends Component<Props, State> {
                     query ?? '',
                   ]).formatString()}
                   yAxis="tpm()"
-                  field={[`tpm()`]}
+                  field={['tpm()']}
                   api={api}
                   location={location}
                   organization={organization}
@@ -404,7 +407,7 @@ class ProjectCharts extends Component<Props, State> {
                       query ?? '',
                     ]).formatString()}
                     yAxis="count()"
-                    field={[`count()`]}
+                    field={['count()']}
                     api={api}
                     location={location}
                     organization={organization}
@@ -432,7 +435,7 @@ class ProjectCharts extends Component<Props, State> {
                     query ?? '',
                   ]).formatString()}
                   yAxis="count()"
-                  field={[`count()`]}
+                  field={['count()']}
                   api={api}
                   location={location}
                   organization={organization}
@@ -543,4 +546,9 @@ class ProjectCharts extends Component<Props, State> {
   }
 }
 
-export default withApi(withTheme(ProjectCharts));
+function ProjectChartsWithNavigate(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <ProjectCharts {...props} navigate={navigate} />;
+}
+
+export default withApi(withTheme(ProjectChartsWithNavigate));

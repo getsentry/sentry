@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 import logging
 import operator
 from datetime import timedelta
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from sentry.models.environment import Environment
+    from sentry.snuba.models import SnubaQuery
 
 import sentry_sdk
 from django import forms
 from django.db import router, transaction
 from parsimonious.exceptions import ParseError
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
@@ -30,6 +38,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.incidents.serializers.utils import validate_object_ids_belong
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
@@ -40,10 +49,15 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_update_alert_rule,
     dual_write_alert_rule,
 )
+from sentry.workflow_engine.types import AlertRuleNotDualWritten
 
 from .alert_rule_trigger import AlertRuleTriggerSerializer
 
 logger = logging.getLogger(__name__)
+
+UNSUPPORTED_LEGACY_API = (
+    "This Alert cannot be modified with the legacy API. See: https://docs.sentry.io/api/monitors/"
+)
 
 
 class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRule]):
@@ -54,7 +68,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
      - `user`: The user from `request.user`
     """
 
-    environment = EnvironmentField(required=False, allow_null=True)
+    environment = serializers.CharField(required=False, allow_null=True)
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
         required=False,
@@ -120,7 +134,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
 
-    def validate_threshold_type(self, threshold_type):
+    def validate_environment(self, value: str | None) -> Environment | None:
+        field = EnvironmentField()
+        field.bind("environment", self)
+        return field.to_internal_value(value)
+
+    def validate_threshold_type(self, threshold_type: int) -> AlertRuleThresholdType:
         try:
             return AlertRuleThresholdType(threshold_type)
         except ValueError:
@@ -129,7 +148,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 % [item.value for item in AlertRuleThresholdType]
             )
 
-    def validate_aggregate(self, aggregate):
+    def validate_aggregate(self, aggregate: str) -> str:
         """
         Validate aggregate field and reject upsampled_count() from user input.
 
@@ -143,17 +162,17 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
         return aggregate
 
-    def validate_eap_rule(self, data):
+    def validate_eap_rule(self, data: dict[str, Any]) -> None:
         """
         Validate EAP rule data.
         """
         event_types = data.get("event_types", [])
 
         if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
-            aggregate = data.get("aggregate")
+            aggregate: str = data.get("aggregate", "")
             validate_trace_metrics_aggregate(aggregate)
 
-    def validate_deprecated_transactions_datasets(self, data):
+    def validate_deprecated_transactions_datasets(self, data: dict[str, Any]) -> None:
         new_dataset = data.get("dataset")
         organization = self.context.get("organization")
         if organization and features.has(
@@ -164,7 +183,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                     "Updating transaction-based alerts is disabled as we migrate to the spans dataset. Update the dataset to events_analytics_platform with the is_transaction:true filter instead."
                 )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Performs validation on an alert rule's data.
         This includes ensuring there is either 1 or 2 triggers, which each have
@@ -211,16 +230,15 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
-        if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
-            time_window = data["time_window"]
-            if time_window < 5:
-                raise serializers.ValidationError(
-                    "Invalid Time Window: Time window for this alert type must be at least 5 minutes."
-                )
-
         return data
 
-    def _translate_thresholds(self, threshold_type, comparison_delta, triggers, data):
+    def _translate_thresholds(
+        self,
+        threshold_type: AlertRuleThresholdType,
+        comparison_delta: int | None,
+        triggers: list[dict[str, Any]],
+        data: dict[str, Any],
+    ) -> None:
         """
         Performs transformations on the thresholds used in the alert. Currently this is used to
         translate thresholds for comparison alerts. The frontend will pass in the delta percent
@@ -243,7 +261,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         for trigger in triggers:
             trigger["alert_threshold"] = translator(trigger["alert_threshold"])
 
-    def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
+    def _validate_trigger_thresholds(
+        self,
+        threshold_type: AlertRuleThresholdType,
+        trigger: dict[str, Any],
+        resolve_threshold: int | float | None,
+    ) -> None:
         if trigger.get("alert_threshold") is None:
             raise serializers.ValidationError("Trigger must have an alertThreshold")
 
@@ -269,20 +292,25 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 f"{trigger['label']} alert threshold must be {threshold_type.name.lower()} resolution threshold"
             )
 
-    def _validate_critical_warning_triggers(self, threshold_type, critical, warning):
+    def _validate_critical_warning_triggers(
+        self,
+        threshold_type: AlertRuleThresholdType,
+        critical: dict[str, Any],
+        warning: dict[str, Any],
+    ) -> None:
         if threshold_type == AlertRuleThresholdType.ABOVE:
             alert_op = operator.lt
-            threshold_type = "above"
+            threshold_name = "above"
         else:
             alert_op = operator.gt
-            threshold_type = "below"
+            threshold_name = "below"
 
         if alert_op(critical["alert_threshold"], warning["alert_threshold"]):
             raise serializers.ValidationError(
-                f"Critical trigger must have an alert threshold {threshold_type} warning trigger"
+                f"Critical trigger must have an alert threshold {threshold_name} warning trigger"
             )
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> AlertRule:  # type: ignore[override]
         org_subscription_count = QuerySubscription.objects.filter(
             project__organization_id=self.context["organization"].id,
             status__in=(
@@ -318,6 +346,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
+            except APIException:
+                raise
             except Exception as e:
                 logger.exception(
                     "Error when creating alert rule",
@@ -335,7 +365,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
             return alert_rule
 
-    def _apply_error_upsampling_if_needed(self, validated_data):
+    def _apply_error_upsampling_if_needed(self, validated_data: dict[str, Any]) -> None:
         """
         Automatically convert count() to upsampled_count() for error alerts on upsampled projects.
         """
@@ -349,7 +379,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             if are_any_projects_error_upsampled(project_ids):
                 validated_data["aggregate"] = "upsampled_count()"
 
-    def update(self, instance, validated_data):
+    def update(self, instance: AlertRule, validated_data: dict[str, Any]) -> AlertRule:  # type: ignore[override]
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
@@ -372,6 +402,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
+            except APIException:
+                raise
             except Exception as e:
                 logger.exception(
                     "Error when updating alert rule",
@@ -381,6 +413,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             self._handle_triggers(alert_rule, triggers)
             try:
                 dual_update_alert_rule(alert_rule)
+            except AlertRuleNotDualWritten:
+                raise serializers.ValidationError(UNSUPPORTED_LEGACY_API)
             except Exception:
                 sentry_sdk.capture_exception()
                 raise BadRequest(message="Error when updating alert rule")
@@ -390,17 +424,27 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
             return alert_rule
 
-    def _handle_triggers(self, alert_rule, triggers):
+    def _handle_triggers(self, alert_rule: AlertRule, triggers: list[dict[str, Any]]) -> None:
         channel_lookup_timeout_error = None
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
-            trigger_ids = [x["id"] for x in triggers if "id" in x]
+            raw_trigger_ids = [x["id"] for x in triggers if "id" in x]
+            trigger_ids = validate_object_ids_belong(
+                "triggers",
+                raw_trigger_ids,
+                AlertRuleTrigger.objects.filter(alert_rule=alert_rule),
+                "Trigger IDs do not belong to this alert rule, this alert rule may be incompatible with the legacy API.",
+            )
             triggers_to_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
                 id__in=trigger_ids
             )
             for trigger in triggers_to_delete:
                 with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
-                    dual_delete_migrated_alert_rule_trigger(trigger)
+                    try:
+                        dual_delete_migrated_alert_rule_trigger(trigger)
+                    except AlertRuleNotDualWritten:
+                        raise serializers.ValidationError(UNSUPPORTED_LEGACY_API)
+
                     delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:
@@ -438,7 +482,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error
 
-    def _mark_query_as_user_updated(self, snuba_query):
+    def _mark_query_as_user_updated(self, snuba_query: SnubaQuery) -> None:
         """
         Mark the snuba query as user-updated in the query_snapshot field.
         This is used to skip automatic migrations for queries that users have already modified.

@@ -49,7 +49,7 @@ describe('OnboardingSidebarContent', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       body: [],
     });
   });
@@ -106,7 +106,7 @@ describe('OnboardingSidebarContent', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       body: [],
     });
 

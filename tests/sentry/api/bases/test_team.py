@@ -1,12 +1,16 @@
+from django.contrib.sessions.backends.base import SessionBase
+from django.test import RequestFactory
 from rest_framework.views import APIView
 
-from sentry.api.bases.team import TeamPermission
+from sentry.api.bases.team import TeamEndpoint, TeamPermission
+from sentry.auth.access import from_request
 from sentry.models.apitoken import ApiToken
 from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
+from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
 
 
 class TeamPermissionBase(TestCase):
@@ -31,6 +35,27 @@ class TeamPermissionBase(TestCase):
         return perm.has_permission(drf_request, APIView()) and perm.has_object_permission(
             drf_request, APIView(), obj
         )
+
+
+class TeamEndpointViewerContextTest(TeamPermissionBase):
+    def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
+        endpoint = TeamEndpoint()
+        self.create_member(user=self.user, organization=self.org, role="member", teams=[self.team])
+        raw_request = RequestFactory().get("/")
+        raw_request.session = SessionBase()
+        raw_request.user = self.user
+        raw_request.auth = None
+        raw_request.access = from_request(drf_request_from_request(raw_request), self.org)
+        request = drf_request_from_request(raw_request)
+        request._request.organization = None
+
+        with viewer_context_scope(ViewerContext(user_id=self.user.id)):
+            endpoint.convert_args(request, self.org.slug, self.team.slug)
+            ctx = get_viewer_context()
+
+        assert ctx is not None
+        assert ctx.user_id == self.user.id
+        assert ctx.organization_id == self.org.id
 
 
 class TeamPermissionTest(TeamPermissionBase):

@@ -18,8 +18,8 @@ import type {
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
+import {defined} from 'sentry/utils/defined';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {trimCommonAffixes} from 'sentry/utils/string/trimCommonAffixes';
@@ -27,6 +27,7 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
@@ -76,7 +77,7 @@ interface CategoricalSeriesWidgetVisualizationProps {
 export function CategoricalSeriesWidgetVisualization(
   props: CategoricalSeriesWidgetVisualizationProps
 ) {
-  if (props.plottables.every(plottable => plottable.isEmpty)) {
+  if (!plottablesCanBeVisualized(props.plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
@@ -168,9 +169,7 @@ export function CategoricalSeriesWidgetVisualization(
     axisLabel: {
       // Show the first/last category on the axis. We hide them by default
       // because on time series charts, this causes visual congestion.
-      // @ts-expect-error: ECharts types `showMinLabel` incorrect as a boolean, the documentation also allows `null`
       showMaxLabel: null,
-      // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
       showMinLabel: null,
       rotate: shouldRotate ? ROTATED_LABEL_ANGLE : 0,
       ...(shouldRotate ? {interval: 0} : {}),

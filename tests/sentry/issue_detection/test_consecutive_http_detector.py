@@ -372,7 +372,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
             settings[ConsecutiveHTTPSpanDetector.settings_key], event
         )
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -385,7 +385,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
             settings[ConsecutiveHTTPSpanDetector.settings_key], event
         )
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_ignores_non_http_operations(self) -> None:
         span_duration = 2000
@@ -399,7 +399,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         assert len(problems) == 0
 
     def test_ignores_http_spans_with_gen_ai_parent(self) -> None:
-        """Test that HTTP spans with gen_ai.chat parent spans are ignored."""
+        """Test that HTTP spans with gen_ai.* parent spans are ignored."""
         span_duration = 2000
 
         # Create a gen_ai.chat span first

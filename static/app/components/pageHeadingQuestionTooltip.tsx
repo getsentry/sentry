@@ -32,5 +32,5 @@ export function PageHeadingQuestionTooltip({
     </Flex>
   );
 
-  return <InfoTip title={contents} size="sm" variant="muted" position="right" />;
+  return <InfoTip title={contents} size="sm" position="right" />;
 }

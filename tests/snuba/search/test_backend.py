@@ -8,12 +8,12 @@ from django.utils import timezone
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.issues.issue_search import convert_query_values, issue_search_config, parse_search_query
@@ -31,8 +31,8 @@ from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import snuba
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
@@ -461,10 +461,10 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         group_3 = event_3.group
         group_3.update(type=PerformanceNPlusOneGroupType.type_id)
-        results = self.make_query(search_filter_query="issue.category:performance")
+        results = self.make_query(search_filter_query="issue.category:db_query")
         assert set(results) == {group_3}
 
-        results = self.make_query(search_filter_query="issue.category:[error, performance]")
+        results = self.make_query(search_filter_query="issue.category:[error, db_query]")
         assert set(results) == {self.group1, self.group2, group_3}
 
         with pytest.raises(InvalidSearchQuery):
@@ -474,7 +474,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query="issue.category:error foo")
         assert set(results) == {self.group1}
 
-        not_results = self.make_query(search_filter_query="!issue.category:performance foo")
+        not_results = self.make_query(search_filter_query="!issue.category:db_query foo")
         assert set(not_results) == {self.group1}
 
     def test_type(self) -> None:
@@ -1073,6 +1073,75 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             environments=[self.environments["staging"]], search_filter_query="is:linked"
         )
         assert set(results) == {linked_group2}
+
+    def test_issue_progress(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="issue.progress:diagnosed")
+        assert set(results) == {self.group1}
+
+        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
+        assert set(results) == {self.group2}
+
+        results = self.make_query(search_filter_query="issue.progress:fix_applied")
+        assert set(results) == set()
+
+    def test_issue_progress_multiple_values(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="issue.progress:[diagnosed, fix_proposed]")
+        assert set(results) == {self.group1, self.group2}
+
+    def test_issue_progress_identified(self) -> None:
+        results = self.make_query(search_filter_query="issue.progress:identified")
+        assert self.group1 in set(results)
+        assert self.group2 not in set(results)
+
+    def test_issue_progress_assigned(self) -> None:
+        results = self.make_query(search_filter_query="issue.progress:assigned")
+        assert self.group2 in set(results)
+        assert self.group1 not in set(results)
+
+    def test_issue_progress_assigned_with_activity(self) -> None:
+        self.create_group_activity(group=self.group2, type=ActivityType.SEER_RCA_COMPLETED.value)
+
+        results = self.make_query(search_filter_query="issue.progress:diagnosed")
+        assert self.group2 in set(results)
+
+        results = self.make_query(search_filter_query="issue.progress:assigned")
+        assert self.group2 not in set(results)
+
+    def test_issue_progress_negation(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+
+        results = self.make_query(search_filter_query="!issue.progress:diagnosed")
+        assert self.group2 in set(results)
+        assert self.group1 not in set(results)
+
+    def test_issue_progress_regression_resets(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
+
+        results = self.make_query(search_filter_query="issue.progress:identified")
+        assert self.group1 in set(results)
+
+        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
+        assert self.group1 not in set(results)
+
+    def test_issue_progress_regression_preserves_assigned(self) -> None:
+        GroupAssignee.objects.create(
+            user_id=self.user.id, group=self.group1, project=self.group1.project
+        )
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
+
+        results = self.make_query(search_filter_query="issue.progress:assigned")
+        assert self.group1 in set(results)
+
+        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
+        assert self.group1 not in set(results)
 
     def test_unassigned(self) -> None:
         results = self.make_query(search_filter_query="is:unassigned")
@@ -2658,6 +2727,16 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == set()
 
+    def test_issue_shortid_filter_disjoint_with_status(self) -> None:
+        # When the postgres candidate set and the snuba group_id condition
+        # have no overlap, the search should return empty rather than surface
+        # a SnubaError.
+        assert self.group2.status == GroupStatus.RESOLVED
+        results = self.make_query(
+            search_filter_query=f"is:unresolved issue:{self.group2.qualified_short_id}",
+        )
+        assert set(results) == set()
+
 
 class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
     pass
@@ -3160,7 +3239,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
     def test_performance_query(self) -> None:
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+            results = self.make_query(search_filter_query="issue.category:frontend my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
             results = self.make_query(
@@ -3176,14 +3255,6 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
-    def test_performance_issue_search_feature_off(self) -> None:
-        with Feature({"organizations:performance-issues-search": False}):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-            assert list(results) == []
-        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-            assert list(results) == [self.perf_group_1, self.perf_group_2]
-
     def test_error_performance_query(self) -> None:
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="my_tag:1")
@@ -3194,7 +3265,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
                 self.error_group_1,
             ]
             results = self.make_query(
-                search_filter_query="issue.category:[performance, error] my_tag:1"
+                search_filter_query="issue.category:[frontend, error] my_tag:1"
             )
             assert list(results) == [
                 self.perf_group_1,
@@ -3217,7 +3288,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3228,7 +3299,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3239,7 +3310,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:performance my_tag:1",
+                search_filter_query="issue.category:frontend my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3298,7 +3369,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert result["data"][0]["transaction_name"] == transaction_name
             assert result["data"][0]["group_id"] == created_group.id
 
-            results = self.make_query(search_filter_query="issue.category:performance tea")
+            results = self.make_query(search_filter_query="issue.category:frontend tea")
             assert set(results) == {created_group}
 
             results2 = self.make_query(search_filter_query="tea")
@@ -3488,33 +3559,13 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         )
         self.error_group_2 = error_event_2.group
 
-    def test_no_feature(self) -> None:
-        event_id = uuid.uuid4().hex
-
-        with self.feature(MetricIssue.build_ingest_feature_name()):
-            _, group_info = self.process_occurrence(
-                event_id=event_id,
-                project_id=self.project.id,
-                type=MetricIssue.type_id,
-                fingerprint=["some perf issue"],
-                event_data={
-                    "title": "some problem",
-                    "platform": "python",
-                    "tags": {"my_tag": "1"},
-                    "timestamp": before_now(minutes=1).isoformat(),
-                    "received": before_now(minutes=1).isoformat(),
-                },
-            )
-            assert group_info is not None
-
-        results = self.make_query(search_filter_query="issue.category:metric_alert my_tag:1")
-        assert list(results) == []
-
     def test_generic_query(self) -> None:
-        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        results = self.make_query(
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1"
+        )
         assert list(results) == [self.profile_group_1, self.profile_group_2]
         results = self.make_query(
-            search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1"
         )
         assert list(results) == [self.profile_group_1, self.profile_group_2]
 
@@ -3545,13 +3596,11 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 )
                 assert group_info is not None
 
-            with self.feature(
-                [
-                    *group_type.build_visible_feature_name(),
-                    "organizations:performance-issues-search",
-                ]
-            ):
-                results = self.make_query(search_filter_query="issue.category:performance my_tag:3")
+            with self.feature(group_type.build_visible_feature_name()):
+                results = self.make_query(
+                    search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} my_tag:3"
+                )
+
         assert list(results) == [group_info.group]
 
     def test_error_generic_query(self) -> None:
@@ -3563,7 +3612,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             self.error_group_1,
         ]
         results = self.make_query(
-            search_filter_query="issue.category:[performance, error] my_tag:1"
+            search_filter_query=f"issue.type:[{ProfileFileIOGroupType.slug}, error] my_tag:1"
         )
         assert list(results) == [
             self.profile_group_1,
@@ -3573,7 +3622,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         ]
 
         results = self.make_query(
-            search_filter_query="issue.type:[profile_file_io_main_thread, error] my_tag:1"
+            search_filter_query=f"issue.type:[{ProfileFileIOGroupType.slug}, error] my_tag:1"
         )
         assert list(results) == [
             self.profile_group_1,
@@ -3585,7 +3634,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_cursor_profile_issues(self) -> None:
         results = self.make_query(
             projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1",
             sort_by="date",
             limit=1,
             count_hits=True,
@@ -3596,7 +3645,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
         results = self.make_query(
             projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1",
             sort_by="date",
             limit=1,
             cursor=results.next,
@@ -3607,7 +3656,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
         results = self.make_query(
             projects=[self.project],
-            search_filter_query="issue.category:performance my_tag:1",
+            search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1",
             sort_by="date",
             limit=1,
             cursor=results.next,
@@ -3835,14 +3884,9 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             group = Group.objects.get(id=group_info.group.id)
             assert "perfkeyword456" not in group.message
 
-            with self.feature(
-                [
-                    *group_type.build_visible_feature_name(),
-                    "organizations:performance-issues-search",
-                ]
-            ):
+            with self.feature(group_type.build_visible_feature_name()):
                 results = self.make_query(
-                    search_filter_query="issue.category:performance perfkeyword456"
+                    search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} perfkeyword456"
                 )
                 assert list(results) == [group_info.group]
 
@@ -3868,3 +3912,399 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         # Negated search for the keyword should NOT return this group
         results = self.make_query(search_filter_query="!message:excludethis999")
         assert group_info.group not in set(results)
+
+
+class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
+    def test_recommended_sort_recency(self) -> None:
+        new_project = self.create_project(organization=self.project.organization)
+        base_datetime = before_now(hours=1)
+
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["recent-group"],
+                "event_id": "a" * 32,
+                "message": "recent issue",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+                "tags": {"sentry:user": "user1@example.com"},
+            },
+            project_id=new_project.id,
+        )
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["old-group"],
+                "event_id": "b" * 32,
+                "message": "old issue",
+                "timestamp": (base_datetime - timedelta(days=5)).isoformat(),
+                "level": "info",
+                "tags": {"sentry:user": "user2@example.com"},
+            },
+            project_id=new_project.id,
+        )
+        recent_group = Group.objects.get(id=recent_event.group.id)
+        old_group = Group.objects.get(id=old_event.group.id)
+
+        results = self.make_query(sort_by="recommended", projects=[new_project])
+        assert list(results) == [recent_group, old_group]
+
+    def test_recommended_sort_severity(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        fatal_event = self.store_event(
+            data={
+                "fingerprint": ["fatal-group"],
+                "event_id": "c" * 32,
+                "message": "fatal issue",
+                "timestamp": (base_datetime - timedelta(minutes=30)).isoformat(),
+                "level": "fatal",
+                "tags": {"sentry:user": "user1@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        info_event = self.store_event(
+            data={
+                "fingerprint": ["info-group"],
+                "event_id": "d" * 32,
+                "message": "info issue",
+                "timestamp": base_datetime.isoformat(),
+                "level": "info",
+                "tags": {"sentry:user": "user2@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        fatal_group = Group.objects.get(id=fatal_event.group.id)
+        info_group = Group.objects.get(id=info_event.group.id)
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[fatal_group.id, info_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        scores = {gid: score for gid, score in results}
+        # Fatal event should score higher despite being slightly older
+        assert scores[fatal_group.id] > scores[info_group.id]
+
+    def test_recommended_user_impact(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        # Issue affecting many users
+        for i in range(10):
+            self.store_event(
+                data={
+                    "fingerprint": ["many-users-group"],
+                    "event_id": f"a{i:031d}",
+                    "message": "many users",
+                    "timestamp": base_datetime.isoformat(),
+                    "level": "error",
+                    "tags": {"sentry:user": f"user{i}@example.com"},
+                },
+                project_id=self.project.id,
+            )
+        many_users_group = Group.objects.get(
+            project=self.project,
+            message="many users",
+        )
+
+        # Issue affecting one user
+        self.store_event(
+            data={
+                "fingerprint": ["one-user-group"],
+                "event_id": "b" * 32,
+                "message": "one user",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+                "tags": {"sentry:user": "solo@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        one_user_group = Group.objects.get(
+            project=self.project,
+            message="one user",
+        )
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[many_users_group.id, one_user_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        scores = {gid: score for gid, score in results}
+        assert scores[many_users_group.id] > scores[one_user_group.id]
+
+    def test_recommended_issue_platform(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["error-group"],
+                "event_id": "a" * 32,
+                "timestamp": base_datetime.isoformat(),
+                "message": "error event",
+                "level": "error",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        error_group = error_event.group
+
+        profile_event_id = uuid.uuid4().hex
+        _, group_info = self.process_occurrence(
+            event_id=profile_event_id,
+            project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+        profile_group = group_info.group
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[error_group.id, profile_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        # Both groups should be returned with valid scores
+        returned_group_ids = {gid for gid, _ in results}
+        assert error_group.id in returned_group_ids
+        assert profile_group.id in returned_group_ids
+
+    def test_recommended_event_volume(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        # Store 5 events for the high-volume group
+        for i in range(5):
+            self.store_event(
+                data={
+                    "fingerprint": ["high-volume-group"],
+                    "event_id": f"{'a' * 31}{i}",
+                    "message": "high volume",
+                    "timestamp": base_datetime.isoformat(),
+                    "level": "error",
+                },
+                project_id=self.project.id,
+            )
+
+        # Store 1 event for the low-volume group
+        self.store_event(
+            data={
+                "fingerprint": ["low-volume-group"],
+                "event_id": "b" * 32,
+                "message": "low volume",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        high_volume_group = Group.objects.get(project=self.project, message="high volume")
+        low_volume_group = Group.objects.get(project=self.project, message="low volume")
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[high_volume_group.id, low_volume_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+
+        scores = {group_id: score for group_id, score in results}
+        assert scores[high_volume_group.id] > scores[low_volume_group.id]
+
+    def test_recommended_group_type_boost(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["error-group"],
+                "event_id": "a" * 32,
+                "timestamp": base_datetime.isoformat(),
+                "message": "error event",
+                "level": "error",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        error_group = error_event.group
+
+        _, group_info = self.process_occurrence(
+            event_id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": base_datetime.isoformat(),
+                "received": base_datetime.isoformat(),
+            },
+            type=ProfileFileIOGroupType.type_id,
+        )
+        assert group_info is not None
+        profile_group = group_info.group
+
+        # Boost ProfileFileIOGroupType so it outranks the error group
+        boost = {ProfileFileIOGroupType.type_id: 0.5}
+        with self.options({"snuba.search.recommended.group-type-boost": boost}):
+            query_executor = self.backend._get_query_executor()
+            results = query_executor.snuba_search(
+                start=None,
+                end=None,
+                project_ids=[self.project.id],
+                environment_ids=[],
+                sort_field="recommended",
+                organization=self.organization,
+                group_ids=[error_group.id, profile_group.id],
+                limit=150,
+                referrer=Referrer.TESTING_TEST,
+            )[0]
+
+        scores = {gid: score for gid, score in results}
+        assert scores[profile_group.id] > scores[error_group.id]
+
+    def _recommended_scores(self, group_ids: list[int]) -> dict[int, float]:
+        results = self.backend._get_query_executor().snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=group_ids,
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        return {gid: score for gid, score in results}
+
+    def test_recommended_message_penalty(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        exception_event = self.store_event(
+            data={
+                "fingerprint": ["exception-group"],
+                "event_id": "a" * 32,
+                "timestamp": ts,
+                "message": "exception-group",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "something broke",
+                            "stacktrace": {"frames": [{"module": "app.main"}]},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        message_event = self.store_event(
+            data={
+                "fingerprint": ["message-group"],
+                "event_id": "b" * 32,
+                "timestamp": ts,
+                "message": "message-group",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        with self.options({"snuba.search.recommended.message-penalty-weight": 0.10}):
+            scores = self._recommended_scores([exception_event.group.id, message_event.group.id])
+
+        assert scores[exception_event.group.id] > scores[message_event.group.id]
+
+    def test_recommended_zero_weight_factor_excluded(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        for i in range(5):
+            self.store_event(
+                data={
+                    "fingerprint": ["high-vol"],
+                    "event_id": f"{'a' * 31}{i}",
+                    "message": "high-vol",
+                    "level": "info",
+                    "timestamp": ts,
+                },
+                project_id=self.project.id,
+            )
+        self.store_event(
+            data={
+                "fingerprint": ["low-vol"],
+                "event_id": "b" * 32,
+                "message": "low-vol",
+                "level": "fatal",
+                "timestamp": ts,
+            },
+            project_id=self.project.id,
+        )
+        high = Group.objects.get(project=self.project, message="high-vol")
+        low = Group.objects.get(project=self.project, message="low-vol")
+
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.2,
+            "snuba.search.recommended.group-type-boost": {},
+        }
+        with self.options(options):
+            scores = self._recommended_scores([high.id, low.id])
+
+        assert scores[high.id] > scores[low.id]
+
+    def test_recommended_all_factors_zero_with_boost(self) -> None:
+        # All factor weights are dropped, leaving only the group type boost. The
+        # boost can be a non-aggregate expression, so the query must still be a
+        # valid aggregation and succeed.
+        event = self.store_event(
+            data={
+                "fingerprint": ["boost-only"],
+                "event_id": "a" * 32,
+                "level": "error",
+                "timestamp": before_now(hours=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.0,
+            "snuba.search.recommended.group-type-boost": {1: 0.5},
+        }
+        with self.options(options):
+            scores = self._recommended_scores([event.group.id])
+
+        assert event.group.id in scores

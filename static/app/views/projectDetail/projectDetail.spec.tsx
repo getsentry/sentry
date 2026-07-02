@@ -14,7 +14,6 @@ import * as pageFilters from 'sentry/components/pageFilters/actions';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {ProjectDetail} from './projectDetail';
-import ProjectDetailContainer from './';
 
 jest.mock('sentry/actionCreators/organization');
 
@@ -110,20 +109,7 @@ describe('ProjectDetail', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByText(/project details/i)).toBeInTheDocument();
-    expect(screen.getByText(project.slug)).toBeInTheDocument();
-  });
-
-  it('Render deprecation dialog', async () => {
-    ProjectsStore.loadInitialData([project]);
-    setupMockResponses();
-
-    render(<ProjectDetailContainer />, {
-      organization,
-      initialRouterConfig,
-    });
-
-    expect(await screen.findByText(/similar charts are available/i)).toBeInTheDocument();
+    expect(await screen.findByText(project.slug)).toBeInTheDocument();
   });
 
   it('Sync project with slug', async () => {

@@ -86,7 +86,11 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -186,6 +190,10 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/integrations/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/repos/`,
@@ -335,7 +343,7 @@ describe('groupDetails', () => {
 
   it('renders error when project does not exist', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/other-project-slug/issues/`,
+      url: '/projects/org-slug/other-project-slug/issues/',
       method: 'PUT',
     });
     MockApiClient.addMockResponse({

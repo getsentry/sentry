@@ -8,11 +8,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
+import {t, tn} from 'sentry/locale';
 import type {
   IntegrationInstallationStatus,
-  PluginWithProjectList,
   SentryApp,
   SentryAppStatus,
 } from 'sentry/types/integrations';
@@ -24,7 +23,6 @@ import {
 
 import {AlertContainer} from './integrationAlertContainer';
 import {IntegrationStatus} from './integrationStatus';
-import {PluginDeprecationAlert} from './pluginDeprecationAlert';
 
 type Props = {
   categories: string[];
@@ -33,14 +31,14 @@ type Props = {
   organization: Organization;
   publishStatus: SentryAppStatus;
   slug: string;
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration';
+  type: 'firstParty' | 'sentryApp' | 'docIntegration';
   /**
    * If provided, render an alert message with this text.
    */
   alertText?: string;
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
-  plugin?: PluginWithProjectList;
+  disabledConfigurations?: number;
   /**
    * If `alertText` was provided, this text overrides the "Resolve now" message
    * in the alert.
@@ -50,7 +48,6 @@ type Props = {
 };
 
 const urlMap = {
-  plugin: 'plugins',
   firstParty: 'integrations',
   sentryApp: 'sentry-apps',
   docIntegration: 'document-integrations',
@@ -68,9 +65,9 @@ export function IntegrationRow(props: Props) {
     categories,
     alertText,
     resolveText,
-    plugin,
     customAlert,
     customIcon,
+    disabledConfigurations,
   } = props;
 
   const baseUrl =
@@ -78,16 +75,34 @@ export function IntegrationRow(props: Props) {
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
+  // When there's exactly one installed workspace there's nothing to
+  // disambiguate, so auto-open the install/upgrade modal (via
+  // `useAutoOpenInstallModal`) instead of making the user pick on the config
+  // page. With multiple workspaces we still send them to the config tab to
+  // choose which one to update.
+  const resolveNowHref =
+    `${baseUrl}?tab=configurations&referrer=directory_resolve_now` +
+    (configurations === 1 ? '&showInstallModal=1' : '');
+
   const renderDetails = () => {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    // TODO: Use proper translations
-    return configurations > 0 ? (
-      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
-        configurations > 1 ? 's' : ''
-      }`}</StyledLink>
-    ) : null;
+    if (configurations <= 0) {
+      return null;
+    }
+    return (
+      <Flex align="center" gap="xs">
+        <StyledLink to={`${baseUrl}?tab=configurations`}>
+          {tn('%s Configuration', '%s Configurations', configurations)}
+        </StyledLink>
+        {disabledConfigurations ? (
+          <Tag variant="warning">
+            {tn('%s disabled', '%s disabled', disabledConfigurations)}
+          </Tag>
+        ) : null}
+      </Flex>
+    );
   };
 
   const renderStatus = () => {
@@ -123,8 +138,9 @@ export function IntegrationRow(props: Props) {
             <Alert
               variant="warning"
               trailingItems={
-                <ResolveNowButton
-                  href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+                <LinkButton
+                  href={resolveNowHref}
+                  variant="primary"
                   size="xs"
                   onClick={() =>
                     trackIntegrationAnalytics('integrations.resolve_now_clicked', {
@@ -135,7 +151,7 @@ export function IntegrationRow(props: Props) {
                   }
                 >
                   {resolveText || t('Resolve Now')}
-                </ResolveNowButton>
+                </LinkButton>
               }
             >
               {alertText}
@@ -144,18 +160,9 @@ export function IntegrationRow(props: Props) {
         </AlertContainer>
       )}
       {customAlert}
-      {plugin?.deprecationDate && (
-        <PluginDeprecationAlertWrapper>
-          <PluginDeprecationAlert organization={organization} plugin={plugin} />
-        </PluginDeprecationAlertWrapper>
-      )}
     </PanelRow>
   );
 }
-
-const PluginDeprecationAlertWrapper = styled('div')`
-  padding: 0px ${p => p.theme.space['2xl']} 0px 68px;
-`;
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;
@@ -208,9 +215,4 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     margin-right: ${p => p.theme.space.sm};
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
-`;
-
-const ResolveNowButton = styled(LinkButton)`
-  color: ${p => p.theme.tokens.content.secondary};
-  float: right;
 `;

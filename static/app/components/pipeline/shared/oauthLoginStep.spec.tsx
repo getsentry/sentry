@@ -1,4 +1,9 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {
+  dispatchPipelineMessage,
+  setupMockPopup,
+} from 'sentry/components/pipeline/testUtils';
 
 import {OAuthLoginStep} from './oauthLoginStep';
 
@@ -8,33 +13,12 @@ describe('OAuthLoginStep', () => {
 
   beforeEach(() => {
     mockOnOAuthCallback.mockClear();
-    mockPopup = {
-      closed: false,
-      close: jest.fn(),
-      focus: jest.fn(),
-    } as unknown as Window;
-    jest.spyOn(window, 'open').mockReturnValue(mockPopup);
+    mockPopup = setupMockPopup();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
-
-  function dispatchPipelineMessage({
-    data,
-    origin = document.location.origin,
-    source = mockPopup,
-  }: {
-    data: Record<string, string>;
-    origin?: string;
-    source?: Window | MessageEventSource | null;
-  }) {
-    act(() => {
-      window.dispatchEvent(
-        new MessageEvent('message', {data, origin, source: source as Window})
-      );
-    });
-  }
 
   it('renders the authorize button with the service name', () => {
     render(
@@ -51,6 +35,28 @@ describe('OAuthLoginStep', () => {
         'Authorize your GitLab account with Sentry to complete the integration setup.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('renders a custom description in place of the default intro copy', () => {
+    render(
+      <OAuthLoginStep
+        serviceName="Slack"
+        oauthUrl="https://slack.com/oauth/authorize"
+        onOAuthCallback={mockOnOAuthCallback}
+        description="Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly"
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Authorize your Slack account with Sentry to complete the integration setup.'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('disables the authorize button when no oauthUrl is provided', () => {
@@ -108,8 +114,9 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {
-        source: 'sentry-pipeline',
+        _pipeline_source: 'sentry-pipeline',
         code: 'auth-code-123',
         state: 'state-456',
         installation_id: 'inst-789',
@@ -135,6 +142,7 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
+      source: mockPopup,
       data: {source: 'some-extension', code: 'nope'},
     });
 
@@ -153,7 +161,12 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
-      data: {source: 'sentry-pipeline', code: 'auth-code-123', state: 'state-456'},
+      source: mockPopup,
+      data: {
+        _pipeline_source: 'sentry-pipeline',
+        code: 'auth-code-123',
+        state: 'state-456',
+      },
       origin: 'https://evil.example.com',
     });
 
@@ -172,7 +185,11 @@ describe('OAuthLoginStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Authorize GitLab'}));
 
     dispatchPipelineMessage({
-      data: {source: 'sentry-pipeline', code: 'auth-code-123', state: 'state-456'},
+      data: {
+        _pipeline_source: 'sentry-pipeline',
+        code: 'auth-code-123',
+        state: 'state-456',
+      },
       source: null,
     });
 
@@ -202,7 +219,7 @@ describe('OAuthLoginStep', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows loading state when isLoading is true', () => {
+  it('shows busy state when isLoading is true', () => {
     render(
       <OAuthLoginStep
         serviceName="GitLab"
@@ -212,6 +229,9 @@ describe('OAuthLoginStep', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: 'Authorizing...'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Authorize GitLab'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
   });
 });

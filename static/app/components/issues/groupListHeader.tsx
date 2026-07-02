@@ -13,7 +13,7 @@ type Props = {
 };
 
 export function GroupListHeader({
-  withChart = true,
+  withChart,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
   return (
@@ -49,6 +49,11 @@ export function GroupListHeader({
         <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="right">
           {t('Priority')}
         </PriorityLabel>
+      )}
+      {withColumns.includes('progress') && (
+        <ProgressLabel breakpoint={COLUMN_BREAKPOINTS.PROGRESS} align="right">
+          {t('Progress')}
+        </ProgressLabel>
       )}
       {withColumns.includes('assignee') && (
         <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
@@ -86,6 +91,10 @@ const EventsOrUsersLabel = styled(GroupListHeaderLabel)`
 
 const PriorityLabel = styled(GroupListHeaderLabel)`
   width: 70px;
+`;
+
+const ProgressLabel = styled(GroupListHeaderLabel)`
+  width: 90px;
 `;
 
 const AssigneeLabel = styled(GroupListHeaderLabel)`

@@ -25,6 +25,7 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
@@ -105,8 +106,9 @@ const integrationEmptyStateWidgets = [
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {organization, InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
@@ -618,6 +620,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -642,6 +645,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -673,6 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -681,8 +686,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = (listItem[SpanFields.NORMALIZED_DESCRIPTION] ??
-            '') as string;
+          const description = listItem[SpanFields.NORMALIZED_DESCRIPTION] as
+            | string
+            | undefined;
           const group = listItem[SpanFields.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;
@@ -717,6 +723,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -745,6 +752,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -769,6 +777,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
+                        navigate,
                       })
                     }
                   />
@@ -789,6 +798,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />

@@ -48,6 +48,7 @@ from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +142,18 @@ class ReleaseModelManager(BaseManager["Release"]):
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
+        )
+
+    def filter_by_environment(
+        self,
+        value: str | Sequence[str],
+        project_ids: Sequence[int],
+        *,
+        lookup: str = "in",
+        negated: bool = False,
+    ) -> ReleaseQuerySet:
+        return self.get_queryset().filter_by_environment(
+            value, project_ids, lookup=lookup, negated=negated
         )
 
     def order_by_recent(self):
@@ -613,7 +626,7 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user_id, fetch=False):
-        with sentry_sdk.start_span(op="set_refs"):
+        with start_span(op="set_refs", name="set_refs"):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
@@ -714,8 +727,10 @@ class Release(Model):
         """
         qs = (
             ArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
+                organization_id=self.organization_id,
+                releaseartifactbundle__organization_id=self.organization_id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__organization_id=self.organization_id,
                 projectartifactbundle__project_id__in=project_ids,
             )
             .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
@@ -733,7 +748,7 @@ class Release(Model):
         """
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
-        with sentry_sdk.start_span(op="clear_commits"):
+        with start_span(op="clear_commits", name="clear_commits"):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 

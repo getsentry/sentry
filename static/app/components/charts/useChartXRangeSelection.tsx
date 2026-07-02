@@ -8,6 +8,14 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from 'echarts';
+// FOOTGUN: this imports the full `echarts` bundle (not `echarts/core`), whose
+// entry calls `use()` on *every* feature — including `LegacyGridContainLabel`.
+// ECharts' feature registry is a process-wide singleton shared with
+// `echarts/core`, so this flips every `grid.containLabel` chart in the app
+// (e.g., anything built on `BaseChart`) onto the legacy grid layout, which
+// reserves space differently than ECharts 6's default `outerBounds` layout.
+// If you switch this to `echarts/core`, audit `containLabel` charts for shifted
+// axis padding. See heatMapWidget/utils/heatMapAxes.tsx for one place this bit us.
 import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
@@ -156,14 +164,18 @@ export function useChartXRangeSelection({
   const previousInitialSelection = usePrevious(initialSelection);
 
   const clearSelection = useCallback(() => {
-    if (!selectionState?.selection) return;
+    if (!selectionState?.selection) {
+      return;
+    }
 
     const chartInstance = chartRef.current?.getEchartsInstance();
 
     chartInstance?.dispatchAction({type: 'brush', areas: []});
 
     // Restore the tooltip as we clear selection
-    if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
+    if (tooltipFrameRef.current) {
+      cancelAnimationFrame(tooltipFrameRef.current);
+    }
 
     tooltipFrameRef.current = requestAnimationFrame(() => {
       chartInstance?.setOption({tooltip: {show: true}}, {silent: true});
@@ -192,7 +204,9 @@ export function useChartXRangeSelection({
 
       // Disable the tooltip as we start dragging, as it covers regions of the chart that the user
       // may want to select. The tooltip remains hidden until the box is cleared.
-      if (tooltipFrameRef.current) cancelAnimationFrame(tooltipFrameRef.current);
+      if (tooltipFrameRef.current) {
+        cancelAnimationFrame(tooltipFrameRef.current);
+      }
 
       tooltipFrameRef.current = requestAnimationFrame(() => {
         chartInstance.setOption(
@@ -210,7 +224,9 @@ export function useChartXRangeSelection({
 
   const onBrushEnd = useCallback<EChartBrushEndHandler>(
     (evt, chartInstance) => {
-      if (!chartInstance) return;
+      if (!chartInstance) {
+        return;
+      }
 
       const area = evt.areas[0];
 
@@ -251,7 +267,9 @@ export function useChartXRangeSelection({
   }, [chartRef]);
 
   const syncSelectionStates = useCallback(() => {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     const chartInstance = chartRef.current?.getEchartsInstance();
 
@@ -312,10 +330,14 @@ export function useChartXRangeSelection({
   ]);
 
   useEffect(() => {
-    if (disabled || !selectionState?.selection) return;
+    if (disabled || !selectionState?.selection) {
+      return;
+    }
 
     const chartInstance = chartRef.current?.getEchartsInstance();
-    if (!chartInstance) return;
+    if (!chartInstance) {
+      return;
+    }
 
     const handleInsideSelectionClick = (event: MouseEvent) => {
       const [selectedMin, selectedMax] = selectionState.selection.range;
@@ -326,7 +348,9 @@ export function useChartXRangeSelection({
       // @ts-expect-error TODO Abdullah Khan: chartInstance.getModel is a private method, but we access it to get the axis extremes
       // could not find a better way, this works out perfectly for now. Passing down the entire series data to the hook is more gross.
       const yAxis = chartInstance.getModel()?.getComponent?.('yAxis', 0);
-      if (!yAxis) return;
+      if (!yAxis) {
+        return;
+      }
 
       const yMin = yAxis.axis.scale.getExtent()[0];
       const yMinPixel = chartInstance.convertToPixel({yAxisIndex: 0}, yMin);
@@ -447,7 +471,7 @@ export function useChartXRangeSelection({
 
   const toolBox = useMemo<ToolboxComponentOption | undefined>(() => {
     if (disabled) {
-      return undefined;
+      return;
     }
 
     return ToolBox(
@@ -467,8 +491,9 @@ export function useChartXRangeSelection({
       !selectionState?.actionMenuPosition ||
       !actionMenuRenderer ||
       !selectionState.isActionMenuVisible
-    )
+    ) {
       return null;
+    }
 
     // We want the top right corner of the action menu to be aligned with the bottom left
     // corner of the selection box, when the menu is positioned to the left. Using a transform, saves us

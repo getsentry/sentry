@@ -1,4 +1,4 @@
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 
 MOCK_RUN_ID = 123
 MOCK_GROUP_ID = 456

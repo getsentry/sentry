@@ -82,7 +82,8 @@ export function useAttributeBreakdownsTooltip({
   actions,
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
-  const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
+  const tooltipContentRef = useRef<string | null>(null);
+  const tooltipValueRef = useRef<string | null>(null);
 
   // This effect runs on load and when the frozen position changes.
   // - If frozen position is set, trigger a re-render of the tooltip with frozen position to show the
@@ -90,7 +91,9 @@ export function useAttributeBreakdownsTooltip({
   // - Sets up the listener for clicks anywhere on the chart to toggle the frozen tooltip state.
   useEffect(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
-    if (!chartInstance) return;
+    if (!chartInstance) {
+      return;
+    }
 
     if (frozenPosition) {
       chartInstance.dispatchAction({
@@ -109,7 +112,8 @@ export function useAttributeBreakdownsTooltip({
       // If the tooltip is frozen, toggle the frozen state and reset the tooltip params.
       if (frozenPosition) {
         setFrozenPosition(null);
-        tooltipParamsRef.current = null;
+        tooltipContentRef.current = null;
+        tooltipValueRef.current = null;
       } else {
         // If the tooltip is not frozen, set the frozen position to the current pixel point.
         setFrozenPosition(pixelPoint);
@@ -127,7 +131,8 @@ export function useAttributeBreakdownsTooltip({
         el = el.parentElement;
       }
 
-      tooltipParamsRef.current = null;
+      tooltipContentRef.current = null;
+      tooltipValueRef.current = null;
       setFrozenPosition(null);
     };
 
@@ -143,7 +148,9 @@ export function useAttributeBreakdownsTooltip({
   // This effect sets up the on click listeners for the tooltip actions.
   // e-charts tooltips do not support actions out of the box, so we need to handle them manually.
   useEffect(() => {
-    if (!frozenPosition) return;
+    if (!frozenPosition) {
+      return;
+    }
 
     const handleClickActions = (event: MouseEvent) => {
       event.preventDefault();
@@ -205,7 +212,12 @@ export function useAttributeBreakdownsTooltip({
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.
         if (!frozenPosition) {
-          tooltipParamsRef.current = params;
+          const formattedContent = formatter(params);
+          const tooltipValue =
+            (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
+
+          tooltipContentRef.current = formattedContent;
+          tooltipValueRef.current = tooltipValue;
 
           const actionsPlaceholder = actions?.htmlRenderer
             ? `
@@ -223,18 +235,24 @@ export function useAttributeBreakdownsTooltip({
         `.trim()
             : '';
 
-          return wrapContent(formatter(params) + actionsPlaceholder);
+          return wrapContent(formattedContent + actionsPlaceholder);
         }
 
-        if (!tooltipParamsRef.current) {
+        const frozenTooltipContent = tooltipContentRef.current ?? formatter(params);
+        const frozenTooltipValue =
+          tooltipValueRef.current ??
+          (Array.isArray(params) ? params[0]?.name : params.name) ??
+          '';
+
+        if (!frozenTooltipContent) {
           return wrapContent('\u2014');
         }
 
-        // If the tooltip is frozen, use the cached tooltip params and
-        // return the formatted content, including the tooltip actions.
-        const p = tooltipParamsRef.current;
-        const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return wrapContent(formatter(p) + (actions?.htmlRenderer(value) ?? ''));
+        // If the tooltip is frozen, use the cached tooltip content and
+        // append the tooltip actions based on the cached value.
+        return wrapContent(
+          frozenTooltipContent + (actions?.htmlRenderer(frozenTooltipValue) ?? '')
+        );
       },
       position(
         point: [number, number],
@@ -243,7 +261,7 @@ export function useAttributeBreakdownsTooltip({
       ) {
         const dom = el as HTMLDivElement;
         const tooltipWidth = dom?.offsetWidth ?? 0;
-        const [rawX = 0, rawY = 0] = frozenPosition ?? point;
+        const [rawX, rawY] = frozenPosition ?? point;
 
         let x = rawX + TOOLTIP_POSITION_X_OFFSET;
         const y = rawY + TOOLTIP_POSITION_Y_OFFSET;
@@ -256,7 +274,7 @@ export function useAttributeBreakdownsTooltip({
         return [x, y];
       },
     }),
-    [frozenPosition, chartWidth, formatter, actions, tooltipParamsRef]
+    [frozenPosition, chartWidth, formatter, actions, tooltipContentRef, tooltipValueRef]
   );
 
   return tooltipConfig;

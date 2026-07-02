@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
@@ -11,9 +11,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -24,12 +24,11 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {DataCategory, type DataCategoryInfo, type PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import {DataCategory, type DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   canUseMetricsStatsBytesUI,
@@ -40,14 +39,17 @@ import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import type {OrganizationStatsProps} from './types';
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import {UsageStatsOrganization as UsageStatsOrg} from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
-const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
-const HookOrgStatsProfilingBanner = HookOrDefault({
-  hookName: 'component:org-stats-profiling-banner',
+const OverrideStatsBanner = OverrideOrDefault({
+  overrideName: 'component:org-stats-banner',
+});
+const OverrideOrgStatsProfilingBanner = OverrideOrDefault({
+  overrideName: 'component:org-stats-profiling-banner',
 });
 
 export const PAGE_QUERY_PARAMS = [
@@ -68,13 +70,6 @@ export const PAGE_QUERY_PARAMS = [
   // From show data discarded on client toggle
   'clientDiscard',
 ];
-
-export type OrganizationStatsProps = {
-  location: Location;
-  navigate: ReactRouter3Navigate;
-  organization: Organization;
-  selection: PageFilters;
-};
 
 export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
   get dataCategoryInfo(): DataCategoryInfo {
@@ -275,7 +270,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return organization.features.includes('ourlogs-enabled');
       }
       if ([DataCategory.LOG_ITEM].includes(opt.value)) {
-        return organization.features.includes('ourlogs-stats');
+        return organization.features.includes('explore-dev-features');
       }
       if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
         return canUseMetricsStatsUI(organization);
@@ -369,11 +364,11 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             )}
             <div>
               <Layout.Main width="full">
-                <HookHeader organization={organization} />
+                <OverrideStatsBanner organization={organization} />
                 <Flex justify="between" align="center" marginBottom="xl" gap="xs">
                   {this.renderProjectPageControl()}
                 </Flex>
-                {showProfilingBanner && <HookOrgStatsProfilingBanner />}
+                {showProfilingBanner && <OverrideOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>
@@ -400,8 +395,8 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
   }
 }
 
-const HookOrgStats = HookOrDefault({
-  hookName: 'component:enhanced-org-stats',
+const OverrideOrgStats = OverrideOrDefault({
+  overrideName: 'component:enhanced-org-stats',
   defaultComponent: OrganizationStatsInner,
 });
 
@@ -411,7 +406,7 @@ export default function OrganizationStats() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   return (
-    <HookOrgStats
+    <OverrideOrgStats
       location={location}
       navigate={navigate}
       organization={organization}

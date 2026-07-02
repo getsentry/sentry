@@ -1,11 +1,24 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
-import ErrorsContent from './content';
+import ErrorsContent, {ErrorsBody} from './content';
+
+function TopBarWrapper({children}: {children: ReactNode}) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="title">
+        {props => <div {...props} data-test-id="topbar-title-slot" />}
+      </TopBar.Slot.Outlet>
+      {children}
+    </TopBar.Slot.Provider>
+  );
+}
 
 describe('ErrorsContent', () => {
   beforeEach(() => {
@@ -37,7 +50,7 @@ describe('ErrorsContent', () => {
 
   it('renders the Errors page title', async () => {
     const organization = OrganizationFixture();
-    render(<ErrorsContent />, {organization});
+    render(<ErrorsContent />, {organization, additionalWrapper: TopBarWrapper});
     expect(await screen.findByText('Errors')).toBeInTheDocument();
   });
 
@@ -57,5 +70,29 @@ describe('ErrorsContent', () => {
     expect(
       await screen.findByRole('combobox', {name: /add a search term/i})
     ).toBeInTheDocument();
+  });
+});
+
+describe('ErrorsBody', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('renders with sidebar expanded by default', async () => {
+    render(<ErrorsBody />);
+    const collapseButton = await screen.findByRole('button', {name: 'Collapse sidebar'});
+    expect(collapseButton).toBeInTheDocument();
+    expect(collapseButton).not.toHaveTextContent('Advanced');
+  });
+
+  it('collapses sidebar when chevron button is clicked', async () => {
+    render(<ErrorsBody />);
+
+    const collapseButton = await screen.findByRole('button', {name: 'Collapse sidebar'});
+    await userEvent.click(collapseButton);
+
+    const expandButton = screen.getByRole('button', {name: 'Expand sidebar'});
+    expect(expandButton).toBeInTheDocument();
+    expect(expandButton).toHaveTextContent('Advanced');
   });
 });

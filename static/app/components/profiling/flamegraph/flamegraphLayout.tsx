@@ -57,10 +57,10 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
 
       if (isSidebarLayout) {
         flamegraphDrawerRef.current.style.width = `${maybeOldSize ?? newSize}px`;
-        flamegraphDrawerRef.current.style.height = `100%`;
+        flamegraphDrawerRef.current.style.height = '100%';
       } else {
         flamegraphDrawerRef.current.style.height = `${maybeOldSize ?? newSize}px`;
-        flamegraphDrawerRef.current.style.width = `100%`;
+        flamegraphDrawerRef.current.style.width = '100%';
       }
     };
 
@@ -332,8 +332,8 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? '100%'
       : layout === 'table left'
-        ? `min-content auto`
-        : `auto min-content`};
+        ? 'min-content auto'
+        : 'auto min-content'};
 
   /* false positive for grid layout */
   /* stylelint-disable */

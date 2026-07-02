@@ -20,8 +20,10 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -46,6 +48,9 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
 )
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -225,6 +230,13 @@ class Fixtures:
             project = self.project
         return Factories.create_project_key(project, *args, **kwargs)
 
+    def create_project_custom_inbound_filter(
+        self, project=None, *args, **kwargs
+    ) -> CustomInboundFilter:
+        if project is None:
+            project = self.project
+        return Factories.create_project_custom_inbound_filter(project, *args, **kwargs)
+
     def create_project_rule(self, project=None, *args, **kwargs) -> Rule:
         if project is None:
             project = self.project
@@ -276,6 +288,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
+
+    def create_seer_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_seer_project_repository(project, **kwargs)
 
     def create_repository_settings(self, *args, **kwargs):
         return Factories.create_repository_settings(*args, **kwargs)
@@ -351,6 +368,16 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
+
+    def create_group_owner(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_owner(group, **kwargs)
+
+    def create_group_action_log_entry(self, group=None, *args, **kwargs) -> GroupActionLogEntry:
+        if group is None:
+            group = self.group
+        return Factories.create_group_action_log_entry(group, *args, **kwargs)
 
     def create_n_groups_with_hashes(
         self, number_of_groups: int, project: Project, group_type: int | None = None
@@ -466,9 +493,6 @@ class Fixtures:
     def create_incident_activity(self, *args, **kwargs):
         return Factories.create_incident_activity(*args, **kwargs)
 
-    def create_incident_trigger(self, incident, alert_rule_trigger, status):
-        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
@@ -485,7 +509,6 @@ class Fixtures:
         self,
         alert_rule_trigger=None,
         target_identifier=None,
-        triggered_for_incident=None,
         *args,
         **kwargs,
     ):
@@ -494,9 +517,6 @@ class Fixtures:
 
         if not target_identifier:
             target_identifier = str(self.user.id)
-
-        if triggered_for_incident is not None:
-            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
 
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
@@ -509,6 +529,9 @@ class Fixtures:
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
+
+    def create_weekly_report_project_exclusion(self, **kwargs):
+        return Factories.create_weekly_report_project_exclusion(**kwargs)
 
     def create_user_option(self, *args, **kwargs):
         return Factories.create_user_option(*args, **kwargs)
@@ -643,6 +666,9 @@ class Fixtures:
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
 
+    def create_organization_identity(self, *args, **kwargs):
+        return Factories.create_organization_identity(*args, **kwargs)
+
     def create_identity_provider(
         self,
         integration: Integration | None = None,
@@ -687,6 +713,8 @@ class Fixtures:
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
     def create_workflow(self, *args, **kwargs) -> Workflow:
+        if "organization" not in kwargs:
+            kwargs["organization"] = self.organization
         return Factories.create_workflow(*args, **kwargs)
 
     def create_data_source(self, *args, **kwargs) -> DataSource:
@@ -768,6 +796,9 @@ class Fixtures:
     # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
+
+    def create_action_invocation(self, *args, **kwargs):
+        return Factories.create_action_invocation(*args, **kwargs)
 
     def create_uptime_subscription(
         self,
@@ -952,6 +983,32 @@ class Fixtures:
             head_size_analysis=head_size_analysis,
             base_size_analysis=base_size_analysis,
             **kwargs,
+        )
+
+    def create_preprod_snapshot_metrics(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodSnapshotMetrics:
+        return Factories.create_preprod_snapshot_metrics(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
+
+    def create_preprod_snapshot_comparison(
+        self,
+        head_snapshot_metrics: PreprodSnapshotMetrics,
+        base_snapshot_metrics: PreprodSnapshotMetrics,
+        **kwargs,
+    ) -> PreprodSnapshotComparison:
+        return Factories.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_snapshot_metrics,
+            base_snapshot_metrics=base_snapshot_metrics,
+            **kwargs,
+        )
+
+    def create_preprod_comparison_approval(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodComparisonApproval:
+        return Factories.create_preprod_comparison_approval(
+            preprod_artifact=preprod_artifact, **kwargs
         )
 
     def create_preprod_build_configuration(
@@ -1177,6 +1234,14 @@ class Fixtures:
         )
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
+
+    def create_seer_run(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_seer_run(organization=organization, **kwargs)
+
+    def create_seer_agent_run(self, run, **kwargs):
+        return Factories.create_seer_agent_run(run=run, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

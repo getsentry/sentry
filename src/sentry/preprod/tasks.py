@@ -11,7 +11,6 @@ from django.db import router, transaction
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -27,8 +26,8 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodSnapshotComparison,
 )
-from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
 from sentry.preprod.quotas import (
     has_installable_quota,
     has_size_quota,
@@ -64,7 +63,7 @@ logger = logging.getLogger(__name__)
 @launchpad_tasks.register(
     name="process_artifact",
     retry=Retry(times=3),
-    processing_deadline_duration=60 * 12,
+    processing_deadline_duration=60 * 15,
 )
 def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
     pass
@@ -165,15 +164,12 @@ def assemble_preprod_artifact(
         except Exception:
             pass
 
-    if features.has("organizations:launchpad-taskbroker-rollout", organization):
-        _dispatch_taskbroker_shadow(project_id, org_id, artifact_id)
-
-    kafka_dispatched = _dispatch_kafka(project_id, org_id, artifact_id, checksum)
-    if not kafka_dispatched:
+    taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
+    if not taskbroker_dispatched:
         return
 
     logger.info(
-        "Finished preprod artifact row creation and kafka dispatch",
+        "Finished preprod artifact dispatch",
         extra={
             "preprod_artifact_id": artifact_id,
             "project_id": project_id,
@@ -560,6 +556,7 @@ def _assemble_preprod_artifact_size_analysis(
                 "was_created": was_created,
                 "project_id": project.id,
                 "organization_id": org_id,
+                "organization_slug": organization.slug,
             },
         )
 
@@ -676,6 +673,7 @@ def _assemble_preprod_artifact_size_analysis(
             "project_id": project.id,
             "org_id": org_id,
             "artifact_id": artifact_id,
+            "triggered_at": timezone.now().isoformat(),
         }
     )
 
@@ -722,7 +720,7 @@ def _assemble_preprod_artifact_installable_app(
         logger.exception(
             "PreprodArtifact not found during installable app assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
@@ -838,6 +836,7 @@ def detect_expired_preprod_artifacts() -> None:
     - PreprodArtifacts that have been processing for more than 30 minutes
     - PreprodArtifactSizeMetrics that have been in progress for more than 30 minutes
     - PreprodArtifactSizeComparisons that have been in progress for more than 30 minutes
+    - PreprodSnapshotComparisons that have been in progress for more than 30 minutes
     """
     current_time = timezone.now()
     timeout_threshold = current_time - datetime.timedelta(minutes=30)
@@ -891,7 +890,7 @@ def detect_expired_preprod_artifacts() -> None:
                 "PreprodArtifact expired",
                 level="error",
                 extras={
-                    "artifact_id": artifact_id,
+                    "preprod_artifact_id": artifact_id,
                 },
             )
             try:
@@ -901,7 +900,7 @@ def detect_expired_preprod_artifacts() -> None:
             except Exception:
                 logger.exception(
                     "preprod.tasks.detect_expired_preprod_artifacts.failed_to_trigger_status_check",
-                    extra={"artifact_id": artifact_id},
+                    extra={"preprod_artifact_id": artifact_id},
                 )
 
     # Find expired PreprodArtifactSizeMetrics (those in PROCESSING state for more than 30 minutes)
@@ -959,43 +958,80 @@ def detect_expired_preprod_artifacts() -> None:
         )
         expired_size_comparisons_count = 0
 
+    # Find expired PreprodSnapshotComparisons stuck in PROCESSING or PENDING for more than
+    # 30 minutes. PENDING is included because selective-base reconstruction parks a comparison
+    # in PENDING between deferral retries; if a rescheduled task is lost the row would otherwise
+    # orphan forever. A healthy or actively-deferring row keeps date_updated fresh (normal rows
+    # leave PENDING within seconds; deferral bumps date_updated each retry), so the stale
+    # threshold only catches genuinely orphaned rows.
+    expired_snapshot_comparisons = PreprodSnapshotComparison.objects.filter(
+        state__in=[
+            PreprodSnapshotComparison.State.PROCESSING,
+            PreprodSnapshotComparison.State.PENDING,
+        ],
+        date_updated__lte=timeout_threshold,
+    )
+
+    try:
+        with transaction.atomic(router.db_for_write(PreprodSnapshotComparison)):
+            expired_snapshot_comparisons_count = expired_snapshot_comparisons.update(
+                state=PreprodSnapshotComparison.State.FAILED,
+                error_code=PreprodSnapshotComparison.ErrorCode.TIMEOUT,
+                error_message="Snapshot comparison timed out after 30 minutes",
+            )
+
+            if expired_snapshot_comparisons_count > 0:
+                logger.info(
+                    "preprod.tasks.detect_expired_preprod_artifacts.batch_updated_expired_snapshot_comparisons_as_failed",
+                    extra={
+                        "expired_snapshot_comparisons_count": expired_snapshot_comparisons_count,
+                    },
+                )
+    except Exception:
+        logger.exception(
+            "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_snapshot_comparisons",
+        )
+        expired_snapshot_comparisons_count = 0
+
     logger.info(
         "preprod.tasks.detect_expired_preprod_artifacts.completed",
         extra={
             "expired_artifacts_count": expired_artifacts_count,
             "expired_size_metrics_count": expired_size_metrics_count,
             "expired_size_comparisons_count": expired_size_comparisons_count,
+            "expired_snapshot_comparisons_count": expired_snapshot_comparisons_count,
             "total_expired_count": expired_artifacts_count
             + expired_size_metrics_count
-            + expired_size_comparisons_count,
+            + expired_size_comparisons_count
+            + expired_snapshot_comparisons_count,
         },
     )
 
 
-def _dispatch_kafka(project_id: int, org_id: int, artifact_id: int, checksum: str) -> bool:
-    # Note: requested_features is no longer used for filtering - all features are
-    # requested here, and the actual quota/filter checks happen in the update endpoint
-    # (project_preprod_artifact_update.py) after preprocessing completes.
+def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
     try:
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            requested_features=[
-                PreprodFeature.SIZE_ANALYSIS,
-                PreprodFeature.BUILD_DISTRIBUTION,
-            ],
+        logger.info(
+            "preprod.dispatch_taskbroker",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+
+        process_artifact.delay(
+            artifact_id=str(artifact_id),
+            project_id=str(project_id),
+            organization_id=str(org_id),
         )
         return True
-    except Exception as e:
+    except Exception:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
-        sentry_sdk.capture_exception(e)
         logger.exception(
             user_friendly_error_message,
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
-                "checksum": checksum,
                 "preprod_artifact_id": artifact_id,
             },
         )
@@ -1011,33 +1047,3 @@ def _dispatch_kafka(project_id: int, org_id: int, artifact_id: int, checksum: st
             }
         )
         return False
-
-
-def _dispatch_taskbroker_shadow(project_id: int, org_id: int, artifact_id: int) -> None:
-    # TODO: When taskbroker becomes the primary path, add PreprodArtifactSizeMetrics
-    # state management here (mirroring project_preprod_artifact_update.py). Currently
-    # omitted to avoid racing with the primary Kafka consumer path.
-    try:
-        logger.info(
-            "preprod.dispatch_taskbroker_shadow",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "preprod_artifact_id": artifact_id,
-            },
-        )
-
-        process_artifact.delay(
-            artifact_id=str(artifact_id),
-            project_id=str(project_id),
-            organization_id=str(org_id),
-        )
-    except Exception:
-        logger.exception(
-            "Failed to dispatch shadow taskbroker event",
-            extra={
-                "project_id": project_id,
-                "organization_id": org_id,
-                "preprod_artifact_id": artifact_id,
-            },
-        )

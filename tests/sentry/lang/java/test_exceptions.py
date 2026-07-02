@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from sentry.lang.java.exceptions import Exceptions
 
@@ -7,11 +8,13 @@ def build_event(exceptions_values):
     return {"exception": {"values": exceptions_values}}
 
 
-def test_get_processable_exceptions_filters_by_module_and_type() -> None:
+def test_get_processable_exceptions_filters_by_type() -> None:
     data = build_event(
         [
             {"type": "RuntimeException", "module": "java.lang", "value": "boom"},
             {"type": "IllegalStateException", "value": "oops"},
+            # Root-package obfuscated exception (R8 aggressive mode) — no module.
+            {"type": "kj", "value": "compose boom"},
             {"module": "kotlin", "value": "meh"},
             {"value": "just text"},
         ]
@@ -20,9 +23,11 @@ def test_get_processable_exceptions_filters_by_module_and_type() -> None:
     excs = Exceptions(data)
     processable = excs.get_processable_exceptions()
 
-    assert len(processable) == 1
+    assert len(processable) == 3
     assert processable[0]["type"] == "RuntimeException"
     assert processable[0]["module"] == "java.lang"
+    assert processable[1]["type"] == "IllegalStateException"
+    assert processable[2]["type"] == "kj"
 
 
 def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values() -> None:
@@ -90,6 +95,29 @@ def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values() ->
     assert "io.sample.MainActivity" in exc3["value"]
     assert "alpha.beta.C$1" in exc3["value"]
     assert exc3["raw_value"].startswith("Caused by com.example.myapp.MainActivity")
+
+
+def test_deobfuscate_and_save_root_package_exception() -> None:
+    # R8 aggressive mode produces root-package classes with no module;
+    # raw_module must be preserved as None when originally absent.
+    exc: dict[str, Any] = {"type": "kj", "value": "compose boom"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    mapped_exceptions = [
+        {
+            "type": "DiagnosticComposeException",
+            "module": "androidx.compose.runtime.tooling",
+        }
+    ]
+
+    excs.deobfuscate_and_save(None, mapped_exceptions)
+
+    assert exc["raw_type"] == "kj"
+    assert exc["raw_module"] is None
+    assert exc["type"] == "DiagnosticComposeException"
+    assert exc["module"] == "androidx.compose.runtime.tooling"
 
 
 def test_deobfuscate_value_replaces_longest_tokens_first() -> None:

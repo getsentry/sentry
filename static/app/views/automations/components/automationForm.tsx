@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {EditConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
-import {ActionIntervalSelectField} from 'sentry/views/automations/components/forms/actionIntervalSelectField';
+import {ActionThrottleSelectField} from 'sentry/views/automations/components/forms/actionThrottleSelectField';
 import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 export function AutomationForm({model}: {model: FormModel}) {
@@ -33,10 +33,8 @@ export function AutomationForm({model}: {model: FormModel}) {
       />
       <Card>
         <FormSection
-          title={t('Choose Environment')}
-          description={t(
-            'If you select environments different than your monitors then the automation will not fire.'
-          )}
+          title={t('Filter Issues')}
+          description={t('Only get alerted on Issues from these environments.')}
         >
           <EnvironmentSelector />
         </FormSection>
@@ -48,10 +46,10 @@ export function AutomationForm({model}: {model: FormModel}) {
       </Card>
       <Card>
         <FormSection
-          title={t('Action Interval')}
-          description={t('Perform the actions above this often for an issue.')}
+          title={t('Throttling')}
+          description={t('Set how often this alert can be triggered for a given issue.')}
         >
-          <ActionIntervalSelectField />
+          <ActionThrottleSelectField />
         </FormSection>
       </Card>
     </Flex>

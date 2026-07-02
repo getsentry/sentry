@@ -1,9 +1,51 @@
-import {dummyIntegrationPipeline} from './pipelineDummyProvider';
+import {dummyIntegrationPipeline} from './dummyProvider';
+import {awsLambdaIntegrationPipeline} from './integrationAwsLambda';
+import {bitbucketIntegrationPipeline} from './integrationBitbucket';
+import {bitbucketServerIntegrationPipeline} from './integrationBitbucketServer';
+import {claudeCodeIntegrationPipeline} from './integrationClaudeCode';
+import {cursorIntegrationPipeline} from './integrationCursor';
+import {discordIntegrationPipeline} from './integrationDiscord';
+import {githubIntegrationPipeline} from './integrationGitHub';
+import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
+import {gitlabIntegrationPipeline} from './integrationGitLab';
+import {jiraIntegrationPipeline} from './integrationJira';
+import {jiraServerIntegrationPipeline} from './integrationJiraServer';
+import {msTeamsIntegrationPipeline} from './integrationMsTeams';
+import {opsgenieIntegrationPipeline} from './integrationOpsgenie';
+import {pagerDutyIntegrationPipeline} from './integrationPagerDuty';
+import {perforceIntegrationPipeline} from './integrationPerforce';
+import {
+  slackIntegrationPipeline,
+  slackStagingIntegrationPipeline,
+} from './integrationSlack';
+import {vercelIntegrationPipeline} from './integrationVercel';
+import {vstsIntegrationPipeline} from './integrationVsts';
 
 /**
  * All registered pipeline definitions.
  */
-export const PIPELINE_REGISTRY = [dummyIntegrationPipeline] as const;
+export const PIPELINE_REGISTRY = [
+  awsLambdaIntegrationPipeline,
+  bitbucketIntegrationPipeline,
+  bitbucketServerIntegrationPipeline,
+  claudeCodeIntegrationPipeline,
+  cursorIntegrationPipeline,
+  discordIntegrationPipeline,
+  dummyIntegrationPipeline,
+  githubIntegrationPipeline,
+  githubEnterpriseIntegrationPipeline,
+  gitlabIntegrationPipeline,
+  jiraIntegrationPipeline,
+  jiraServerIntegrationPipeline,
+  msTeamsIntegrationPipeline,
+  opsgenieIntegrationPipeline,
+  pagerDutyIntegrationPipeline,
+  perforceIntegrationPipeline,
+  slackIntegrationPipeline,
+  slackStagingIntegrationPipeline,
+  vstsIntegrationPipeline,
+  vercelIntegrationPipeline,
+] as const;
 
 type AllPipelines = (typeof PIPELINE_REGISTRY)[number];
 

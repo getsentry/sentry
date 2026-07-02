@@ -12,7 +12,6 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -1407,7 +1406,6 @@ class SetResponseCaptureEnabledTest(UptimeTestCase):
 
 
 class UptimeDetectorCacheInvalidationTest(UptimeTestCase):
-    @with_feature("organizations:cache-detectors-by-data-source")
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_disable_detector_invalidates_cache(self, mock_disable_seat: mock.MagicMock) -> None:
         """
@@ -1440,7 +1438,6 @@ class UptimeDetectorCacheInvalidationTest(UptimeTestCase):
         cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
         assert len(cached_detectors) == 0
 
-    @with_feature("organizations:cache-detectors-by-data-source")
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
         return_value=Outcome.ACCEPTED,

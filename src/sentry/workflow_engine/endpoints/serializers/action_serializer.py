@@ -16,7 +16,7 @@ class ActionSerializerResponse(TypedDict):
 
 
 @register(Action)
-class ActionSerializer(Serializer):
+class ActionSerializer(Serializer[ActionSerializerResponse]):
     def serialize(self, obj: Action, *args: Any, **kwargs: Any) -> ActionSerializerResponse:
         # Get the action handler and config transformer if available
         action_handler = action_handler_registry.get(obj.type)
@@ -32,7 +32,7 @@ class ActionSerializer(Serializer):
             "id": str(obj.id),
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
-            "data": convert_dict_key_case(obj.data, snake_to_camel_case),
+            "data": action_handler.serialize_data(obj.data),
             "config": convert_dict_key_case(config, snake_to_camel_case),
             "status": obj.get_status_display(),
         }

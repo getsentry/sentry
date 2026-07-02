@@ -1,67 +1,124 @@
+import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {slot, withSlots} from '@sentry/scraps/slot';
+import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
+import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {
+  getExplorerFeedbackOptions,
+  isSeerExplorerEnabled,
+} from 'sentry/views/seerExplorer/utils';
 
-import {NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME} from './constants';
-import {PRIMARY_HEADER_HEIGHT} from './constants';
+import {
+  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
+  TOP_BAR_HEIGHT_CSS_VAR,
+} from './constants';
 
-export function TopBar() {
+const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
+
+function TopBarContent() {
   const theme = useTheme();
+  const {barTop, contentTop} = useTopOffset();
+
   const organization = useOrganization({allowNull: true});
-  const hasPageFrame = useHasPageFrameFeature();
 
-  const {openExplorerPanel} = useExplorerPanel();
+  useEffect(() => {
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    return () => {
+      document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
+    };
+  }, [contentTop]);
 
-  if (!hasPageFrame) {
-    return null;
-  }
+  const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
+  const {runId: seerExplorerRunId} = useSeerExplorerChatState();
+
+  const feedbackOptions = useMemo(() => {
+    if (isSeerExplorerOpen) {
+      return getExplorerFeedbackOptions(seerExplorerRunId);
+    }
+    return {tags: {['feedback.source']: 'top_navigation'}};
+  }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   return (
     <Flex
+      as="header"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
-      padding={{sm: 'sm lg', md: 'md xl'}}
+      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
-      // Keep the top bar in a cascade slightly below the sidebar panel so that when the sidebar panel
-      // is in the hover preview state, the top bar does not sit over it.
+      top={barTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
     >
       <SizeProvider size="sm">
-        {/* @TODO(JonasBadalic): Implement breadcrumbs here */}
-        <Flex />
-        <Flex align="center" gap="md">
-          {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
-              {t('Ask Seer')}
-            </Button>
-          ) : null}
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
-          >
-            {null}
-          </FeedbackButton>
+        {/*
+         * The title slot is rendered as a semantic <h1> so the page title
+         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
+         * as the page heading. The Heading uses variant="inherit" so it carries
+         * the TopBar typography (no visual weight of its own), and Flex's render
+         * function applies the layout className to that same <h1> element.
+         */}
+        <Slot.Outlet name="title">
+          {props => (
+            <Flex align="center" gap="sm" minWidth="0">
+              {flexProps => (
+                <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
+              )}
+            </Flex>
+          )}
+        </Slot.Outlet>
+
+        <Flex align="center" gap="sm">
+          <Slot.Outlet name="search">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </Slot.Outlet>
+
+          <Slot.Outlet name="actions">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </Slot.Outlet>
+
+          <SearchButton />
+          {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
+
+          <Slot.Outlet name="feedback">
+            {props => (
+              <Flex {...props}>
+                {/* If no component registers a feedback button, show the default one */}
+                <Slot.Fallback>
+                  <FeedbackButton
+                    aria-label={t('Give Feedback')}
+                    feedbackOptions={feedbackOptions}
+                    tooltipProps={{title: t('Give Feedback')}}
+                  >
+                    {null}
+                  </FeedbackButton>
+                </Slot.Fallback>
+              </Flex>
+            )}
+          </Slot.Outlet>
         </Flex>
       </SizeProvider>
     </Flex>
   );
 }
+
+export const TopBar = withSlots(TopBarContent, Slot);

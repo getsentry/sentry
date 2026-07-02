@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Heading} from '@sentry/scraps/text';
@@ -9,7 +10,7 @@ import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -45,8 +46,8 @@ function ChangeDatesModal({
       const postData: Record<string, any> = {
         onDemandPeriodStart: subscription.onDemandPeriodStart,
         onDemandPeriodEnd: subscription.onDemandPeriodEnd,
-        contractPeriodStart: subscription.contractPeriodStart,
-        contractPeriodEnd: subscription.contractPeriodEnd,
+        contractPeriodStart: subscription.billingPeriodStart,
+        contractPeriodEnd: subscription.billingPeriodEnd,
       };
 
       for (const k in formData) {
@@ -109,14 +110,14 @@ function ChangeDatesModal({
             label="Contract Period Start Date"
             name="contractPeriodStart"
             help="The new start date for the contract period."
-            defaultValue={subscription.contractPeriodStart}
+            defaultValue={subscription.billingPeriodStart}
             type="date"
           />
           <DateField
             label="Contract Period End Date"
             name="contractPeriodEnd"
             help="The new end date for the contract period."
-            defaultValue={subscription.contractPeriodEnd}
+            defaultValue={subscription.billingPeriodEnd}
             type="date"
           />
         </Form>

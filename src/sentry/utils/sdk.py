@@ -20,6 +20,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
@@ -30,6 +31,8 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+from sentry.utils.tracing import start_span
+from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -69,15 +72,20 @@ SAMPLED_TASKS = {
     "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
+    # Mirror the rate the ingest-replay-recordings consumer used for its
+    # per-message transaction, now that the work runs as a task.
+    "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
-    "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket": 1.0,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
@@ -137,7 +145,9 @@ def set_current_event_project(project_id):
     scope = sentry_sdk.get_isolation_scope()
 
     scope.set_tag("processing_event_for_project", project_id)
+    scope.set_attribute("processing_event_for_project", project_id)
     scope.set_tag("project", project_id)
+    scope.set_attribute("project", project_id)
 
 
 def get_project_key():
@@ -252,10 +262,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
-        if settings.SENTRY_REGION:
-            event["tags"]["sentry_region"] = settings.SENTRY_REGION
+        if settings.SENTRY_LOCAL_CELL:
+            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
-    if hint.get("exc_info", [None])[0] == OperationalError:
+    event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
+    if event_exc == asyncio.CancelledError:
+        return None
+    if event_exc == OperationalError:
         event["level"] = "warning"
 
     return event
@@ -300,30 +313,31 @@ def patch_transport_for_instrumentation(transport, transport_name):
 class Dsns(NamedTuple):
     sentry4sentry: str | None
     sentry_saas: str | None
+    sentry_mirror: str | None
 
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
-    sdk_options["send_client_reports"] = True
     sdk_options["add_full_stack"] = True
-    sdk_options["enable_http_request_source"] = True
+    sdk_options["max_value_length"] = 100_000
     sdk_options["traces_sampler"] = traces_sampler
-    sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["transport_queue_size"] = 2_000
     sdk_options["before_send"] = before_send
+    sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["enable_logs"] = True
+    sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
-        before_send_log=before_send_log,
-        enable_logs=True,
-        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
+        sentry_mirror=sdk_options.pop("sentry_mirror_dsn", None),
     )
 
     return sdk_options, dsns
@@ -520,28 +534,49 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    integrations = [
+        DjangoAtomicIntegration(),
+        DjangoIntegration(
+            signals_spans=False,
+            cache_spans=True,
+            middleware_spans=False,
+            db_transaction_spans=True,
+        ),
+        # This makes it so all levels of logging are recorded as breadcrumbs,
+        # but none are captured as events (that's handled by the `internal`
+        # logger defined in `server.py`, which ignores the levels set
+        # in the integration and goes straight to the underlying handler class).
+        LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
+        RustInfoIntegration(),
+        RedisIntegration(),
+    ]
+    disabled_integrations = []
+
+    if settings.SENTRY_SDK_THREADING_INTEGRATION:
+        integrations.append(ThreadingIntegration())
+    else:
+        disabled_integrations.append(ThreadingIntegration())
+
+    if dsns.sentry_mirror:
+        sdk_options.setdefault("_experiments", {}).update(
+            trace_lifecycle="stream",
+        )
+
+        sentry_sdk.init(
+            dsn=dsns.sentry_mirror,
+            integrations=integrations,
+            disabled_integrations=disabled_integrations,
+            **sdk_options,
+        )
+        return
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,
         transport=MultiplexingTransport,
-        integrations=[
-            DjangoAtomicIntegration(),
-            DjangoIntegration(
-                signals_spans=False,
-                cache_spans=True,
-                middleware_spans=False,
-                db_transaction_spans=True,
-            ),
-            # This makes it so all levels of logging are recorded as breadcrumbs,
-            # but none are captured as events (that's handled by the `internal`
-            # logger defined in `server.py`, which ignores the levels set
-            # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
-            RustInfoIntegration(),
-            RedisIntegration(),
-            ThreadingIntegration(),
-        ],
+        integrations=integrations,
+        disabled_integrations=disabled_integrations,
         **sdk_options,
     )
 
@@ -680,9 +715,10 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     scope = sentry_sdk.get_isolation_scope()
+    set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
+    with start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -742,11 +778,15 @@ def bind_ambiguous_org_context(
     check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
 
     scope.set_tag("organization", MULTIPLE_ORGS_TAG)
+    scope.set_attribute("organization", MULTIPLE_ORGS_TAG)
     scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+    scope.set_attribute("organization.slug", MULTIPLE_ORGS_TAG)
 
     scope.set_context(
         "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
     )
+    scope.set_attribute("organization.multiple_possible", org_slugs)
+    scope.set_attribute("organization.source", source or "unknown")
 
 
 def get_trace_id():
@@ -757,6 +797,13 @@ def get_trace_id():
 
 
 def set_span_attribute(data_name, value):
+    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
+    if span_streaming:
+        streamed_span = sentry_sdk.traces.get_current_span()
+        if streamed_span is not None:
+            streamed_span.set_attribute(data_name, value)
+        return
+
     span = sentry_sdk.get_current_span()
     if span is not None:
         span.set_data(data_name, value)

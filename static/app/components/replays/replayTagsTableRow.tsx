@@ -45,7 +45,7 @@ function renderValueList(values: ReactNode[]) {
   const valueItems = values[0] as string[];
 
   if (!valueItems.length) {
-    return undefined;
+    return;
   }
 
   return valueItems.map((value, index) => (

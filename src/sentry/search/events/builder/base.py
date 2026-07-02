@@ -74,6 +74,7 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
+from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
@@ -202,6 +203,7 @@ class BaseQueryBuilder:
         entity: Entity | None = None,
     ):
         sentry_sdk.set_tag("querybuilder.name", type(self).__name__)
+        sentry_sdk.set_attribute("querybuilder.name", type(self).__name__)
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
@@ -308,7 +310,11 @@ class BaseQueryBuilder:
 
     def resolve_column_name(self, col: str) -> str:
         # TODO: when utils/snuba.py becomes typed don't need this extra annotation
-        column_resolver: Callable[[str], str] = resolve_column(self.dataset)
+        column_resolver: Callable[[str], str] = (
+            self.builder_config.column_resolver
+            if self.builder_config.column_resolver is not None
+            else resolve_column(self.dataset)
+        )
         column_name = column_resolver(col)
         # If the original column was passed in as tag[X], then there won't be a conflict
         # and there's no need to prefix the tag
@@ -328,20 +334,20 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", name="resolve_query"):
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
+        with start_span(op="QueryBuilder", name="resolve_query"):
+            with start_span(op="QueryBuilder", name="resolve_time_conditions"):
                 # Has to be done early, since other conditions depend on start and end
                 self.resolve_time_conditions()
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_conditions"):
+            with start_span(op="QueryBuilder", name="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(query)
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_params"):
+            with start_span(op="QueryBuilder", name="resolve_params"):
                 # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
                 self.where += self.resolve_params()
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_columns"):
+            with start_span(op="QueryBuilder", name="resolve_columns"):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_orderby"):
+            with start_span(op="QueryBuilder", name="resolve_orderby"):
                 self.orderby = self.resolve_orderby(orderby)
-            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_groupby"):
+            with start_span(op="QueryBuilder", name="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
@@ -413,9 +419,13 @@ class BaseQueryBuilder:
         query: str | None,
     ) -> tuple[list[WhereType], list[WhereType]]:
         sentry_sdk.set_tag("query.query_string", query if query else "<No Query>")
+        sentry_sdk.set_attribute("query.query_string", query if query else "<No Query>")
         sentry_sdk.set_tag(
             "query.use_aggregate_conditions",
             self.builder_config.use_aggregate_conditions,
+        )
+        sentry_sdk.set_attribute(
+            "query.use_aggregate_conditions", self.builder_config.use_aggregate_conditions
         )
         parsed_terms = self.parse_query(query)
 
@@ -423,6 +433,7 @@ class BaseQueryBuilder:
             event_search.SearchBoolean.is_or_operator(term) for term in parsed_terms
         )
         sentry_sdk.set_tag("query.has_or_condition", self.has_or_condition)
+        sentry_sdk.set_attribute("query.has_or_condition", self.has_or_condition)
 
         if any(
             isinstance(term, event_search.ParenExpression)
@@ -435,7 +446,9 @@ class BaseQueryBuilder:
             having = self.resolve_having(parsed_terms)
 
         sentry_sdk.set_tag("query.has_having_conditions", len(having) > 0)
+        sentry_sdk.set_attribute("query.has_having_conditions", len(having) > 0)
         sentry_sdk.set_tag("query.has_where_conditions", len(where) > 0)
+        sentry_sdk.set_attribute("query.has_where_conditions", len(where) > 0)
 
         return where, having
 
@@ -625,6 +638,9 @@ class BaseQueryBuilder:
         stripped_columns = [column.strip() for column in set(selected_columns)]
 
         sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
+        sentry_sdk.set_attribute(
+            "query.has_equations", equations is not None and len(equations) > 0
+        )
         if equations:
             stripped_columns, parsed_equations = resolve_equation_list(
                 equations,
@@ -1200,9 +1216,9 @@ class BaseQueryBuilder:
 
     def resolve_measurement_value(self, unit: str, value: float) -> float:
         if unit in constants.SIZE_UNITS:
-            return constants.SIZE_UNITS[cast(constants.SizeUnit, unit)] * value
+            return constants.SIZE_UNITS[unit] * value
         elif unit in constants.DURATION_UNITS:
-            return constants.DURATION_UNITS[cast(constants.DurationUnit, unit)] * value
+            return constants.DURATION_UNITS[unit] * value
         return value
 
     def convert_aggregate_filter_to_condition(
@@ -1366,7 +1382,9 @@ class BaseQueryBuilder:
             subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
+                sentry_sdk.set_attribute("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
+                sentry_sdk.set_attribute("query.rhs", value)
                 sentry_sdk.capture_message("Tag value was not a string", level="error")
                 value = str(value)
             lhs = Function("ifNull", [lhs, ""])
@@ -1608,8 +1626,8 @@ class BaseQueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
-        with sentry_sdk.start_span(op="QueryBuilder", name="process_results") as span:
-            span.set_data("result_count", len(results.get("data", [])))
+        with start_span(op="QueryBuilder", name="process_results") as span:
+            set_span_data(span, "result_count", len(results.get("data", [])))
             translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
                 translated_columns.update(

@@ -14,7 +14,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
@@ -48,7 +48,7 @@ export function ReleasesSelectControl({
   id,
 }: ReleasesSelectControlProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
+  const [activeReleases, setActiveReleases] = useState(selectedReleases);
   const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
 
   // Event counts are lazy-loaded only when the dropdown is open to reduce API calls

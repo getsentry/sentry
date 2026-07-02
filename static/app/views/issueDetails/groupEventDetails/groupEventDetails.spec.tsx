@@ -46,7 +46,7 @@ const makeDefaultMockData = (
         pathname: `/organizations/${org.slug}/issues/${group.id}/`,
         query: query ?? {},
       },
-      route: `/organizations/:orgId/issues/:groupId/`,
+      route: '/organizations/:orgId/issues/:groupId/',
     },
     group,
     event: EventFixture({
@@ -213,13 +213,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
-  });
-
-  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
     body: [],
   });
@@ -305,7 +298,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/customers/org-slug/policies/`,
+    url: '/customers/org-slug/policies/',
     body: {},
   });
 
@@ -332,10 +325,6 @@ const mockGroupApis = (
       integration: {
         ok: true,
         reason: null,
-      },
-      githubWriteIntegration: {
-        ok: true,
-        repos: [],
       },
     }),
   });
@@ -379,7 +368,7 @@ describe('groupEventDetails', () => {
         ...props.initialRouterConfig.location,
         pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
       },
-      route: `/organizations/:orgId/issues/:groupId/events/:eventId/`,
+      route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
     };
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
@@ -537,7 +526,7 @@ describe('groupEventDetails', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByRole('region', {name: 'tags'})).toBeInTheDocument();
+    expect(await screen.findByRole('region', {name: 'Tags'})).toBeInTheDocument();
     const highlights = screen.getByRole('region', {name: 'Highlights'});
 
     expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();

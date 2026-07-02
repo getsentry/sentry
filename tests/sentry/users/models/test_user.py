@@ -16,8 +16,7 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
-from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
@@ -45,15 +44,15 @@ from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.cell import Cell, RegionCategory, find_cells_for_user
+from sentry.types.cell import Cell, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from tests.sentry.backup import expect_models
 
 _TEST_CELLS = (
-    Cell("na", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Cell("eu", 2, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Cell("na", 1, "http://eu.testserver"),
+    Cell("eu", 2, "http://na.testserver"),
 )
 
 
@@ -497,9 +496,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         Activity,
         AlertRule,
         AlertRuleActivity,
-        CustomDynamicSamplingRule,
         Dashboard,
         DashboardFavoriteUser,
+        DashboardRevision,
         GroupAssignee,
         GroupBookmark,
         GroupSeen,
@@ -541,9 +540,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         Activity,
         AlertRule,
         AlertRuleActivity,
-        CustomDynamicSamplingRule,
         Dashboard,
         DashboardFavoriteUser,
+        DashboardRevision,
         GroupAssignee,
         GroupBookmark,
         GroupSeen,

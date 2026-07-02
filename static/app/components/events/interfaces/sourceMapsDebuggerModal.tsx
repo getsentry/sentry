@@ -1,6 +1,7 @@
 import type {PropsWithChildren, ReactNode} from 'react';
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
@@ -11,10 +12,10 @@ import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
@@ -31,10 +32,11 @@ import {
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -187,6 +189,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'javascript-sveltekit': 'sveltekit',
   'javascript-astro': 'astro',
   'javascript-tanstackstart-react': 'tanstackstart-react',
+  'react-native': 'react-native',
 };
 
 function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
@@ -210,11 +213,13 @@ function getPlatform({
 export function getSourceMapsDocLinks(platform: string) {
   if (platform === 'react-native') {
     return {
-      sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
-      legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
-      sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
-      bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
-      debugIds: `https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/`,
+      sourcemaps: 'https://docs.sentry.io/platforms/react-native/sourcemaps/',
+      legacyUploadingMethods:
+        'https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/',
+      sentryCli: 'https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/',
+      bundlerPluginRepoLink:
+        'https://docs.sentry.io/platforms/react-native/manual-setup/metro/',
+      debugIds: 'https://docs.sentry.io/platforms/react-native/sourcemaps/debug-ids/',
     };
   }
 
@@ -228,7 +233,8 @@ export function getSourceMapsDocLinks(platform: string) {
     // Although we have a few specific sourcemap pages (see: https://github.com/getsentry/sentry-docs/tree/master/platform-includes/sourcemaps/primer),
     // they don't include the Sentry bundler section. All the others just render content for JavaScript.
     // Therefore, we have a static link here.
-    sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
+    sentryBundleSupport:
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support',
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
     debugIds: ['cordova', 'capacitor'].includes(platform)
       ? undefined
@@ -266,7 +272,8 @@ export function getSourceMapsDocLinks(platform: string) {
     ].includes(platform)
       ? undefined
       : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
-    bundlerPluginRepoLink: `https://github.com/getsentry/sentry-javascript-bundler-plugins`,
+    bundlerPluginRepoLink:
+      'https://github.com/getsentry/sentry-javascript-bundler-plugins',
   };
 }
 
@@ -498,6 +505,8 @@ export function SourceMapsDebuggerModal({
   organization,
   projectId,
 }: SourceMapsDebuggerModalProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
 
   const {projects} = useProjects();
@@ -1024,14 +1033,11 @@ function getToolUsedToUploadSourceMaps({
     'esbuild-plugin',
   ];
 
-  return tools.reduce(
-    (acc, tool) => {
-      const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
-      acc[key] = releaseUserAgent?.includes(tool) ?? false;
-      return acc;
-    },
-    {} as Record<string, boolean>
-  );
+  return tools.reduce<Record<string, boolean>>((acc, tool) => {
+    const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
+    acc[key] = releaseUserAgent?.includes(tool) ?? false;
+    return acc;
+  }, {});
 }
 
 type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMaps>;
@@ -1980,7 +1986,11 @@ function SourceMapStepNotRequiredNote() {
 }
 
 const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p => !p.hideAllTabs && `padding-top: ${p.theme.space.xl};`}
+  ${p =>
+    !p.hideAllTabs &&
+    css`
+      padding-top: ${p.theme.space.xl};
+    `}
 `;
 
 const CheckList = styled('ul')`

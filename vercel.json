@@ -2,9 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
 
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{"type": "host", "value": "sentry.dev"}],
+      "destination": "https://sentry.io/$1",
+      "permanent": false
+    }
+  ],
+
   "rewrites": [
     {
-      "source": "/(api|organization-avatar|avatar)/(.*)",
+      "source": "/(api|organization-avatar|team-avatar|avatar)/(.*)",
       "destination": "https://sentry.io/$1/$2"
     },
     {
@@ -18,7 +27,21 @@
     {
       "source": "/api/(.*)",
       "headers": [{"key": "Referer", "value": "https://sentry.io/"}]
+    },
+    {
+      "source": "/_assets/(chunks|assets)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/entrypoints/service-worker.js",
+      "headers": [{"key": "Service-Worker-Allowed", "value": "/"}]
     }
   ],
-  "github": {"silent": true}
+  "github": {"silent": true},
+  "ignoreCommand": "git rev-parse -q --verify HEAD^&& ! git diff --name-only HEAD^|grep -qE '^(static|build-utils|src/sentry/(locale|static/sentry/images))|^(package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore)$'"
 }

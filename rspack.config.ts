@@ -12,7 +12,7 @@ import type {
   SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
-import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
+import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -93,6 +93,10 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
+
+// Silence proxy logs, they can be noisy and not interesting
+// eslint-disable-next-line no-console
+const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
 
 const require = createRequire(import.meta.url);
 
@@ -180,6 +184,17 @@ for (const locale of supportedLocales) {
   };
 }
 
+const DEFINED_ENV_VARS = {
+  'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+  'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+  'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+  'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+  'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+  'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+  'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
+  'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
+};
+
 const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
@@ -242,6 +257,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
  */
 
 const appConfig: Configuration = {
+  name: 'app',
   mode: WEBPACK_MODE,
   target: 'browserslist',
   // Fail on first error instead of continuing to build
@@ -255,11 +271,6 @@ const appConfig: Configuration = {
      */
     app: ['sentry/utils/statics-setup', 'sentry'],
 
-    /**
-     * Pipeline View for integrations
-     */
-    pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
-
     // admin interface
     gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 
@@ -271,16 +282,10 @@ const appConfig: Configuration = {
     sentry: 'less/sentry.less',
   },
   context: staticPrefix,
+  incremental: DEV_MODE,
   experiments: {
-    // https://rspack.dev/config/experiments#experimentsincremental
-    incremental: DEV_MODE,
     futureDefaults: true,
-    // Native css parsing not working in production
-    // Build production bundle and open the entrypoints/sentry.css file
-    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
-    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
-    css: false,
-    // https://rspack.dev/config/experiments#experimentsnativewatcher
+    // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
@@ -305,10 +310,22 @@ const appConfig: Configuration = {
      */
     rules: [
       {
-        test: /\.(js|jsx|ts|tsx)$/,
+        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: path.resolve(
+              import.meta.dirname,
+              './build-utils/frontmatter-index-loader.ts'
+            ),
+          },
+        ],
+      },
+      {
+        test: /\.(?:tsx?|jsx?)$/,
         // core-js: Avoids recompiling core-js based on usage imports
         // react-select: Ships pre-compiled ESM with emotion's keyframes already
-        // compiled via Babel. Re-processing with @swc/plugin-emotion causes
+        // compiled via swc. Re-processing with @swc/plugin-emotion causes
         // "illegal escape sequence" warnings in dev mode.
         exclude: /node_modules[\\/](core-js|react-select)/,
         loader: 'builtin:swc-loader',
@@ -347,7 +364,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.css/,
+        test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
       {
@@ -365,7 +382,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
         type: 'asset',
       },
     ],
@@ -428,21 +445,13 @@ const appConfig: Configuration = {
     /**
      * Defines environment specific flags.
      */
-    new rspack.DefinePlugin({
-      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
-      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
-      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-      'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-      'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
-      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
-      'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
-      'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
-    }),
+    new rspack.DefinePlugin(DEFINED_ENV_VARS),
 
     ...(SHOULD_FORK_TS
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
+              tsgo: true,
               configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
               configOverwrite: {
                 compilerOptions: {
@@ -455,6 +464,7 @@ const appConfig: Configuration = {
                   '**/*.spec.*',
                   '**/*.snapshots.*',
                   'static/eslint/**/*',
+                  'static/app/serviceWorker/worker/**/*',
                   'scripts/**/*',
                 ],
               },
@@ -543,12 +553,16 @@ const appConfig: Configuration = {
     // Prefers local modules over node_modules
     preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
+    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
     symlinks: true,
   },
   output: {
     crossOriginLoading: 'anonymous',
-    clean: true, // Clean the output directory before emit.
+    // Clean the output dir before emit, but keep the service-worker assets
+    // emitted by the separate `workerConfig` compiler below. Both compilers
+    // write to this same `dist` path and run in parallel, so without `keep`
+    // app's clean would race and delete the worker's output.
+    clean: {keep: /(entrypoints|sourcemaps)\/service-worker/},
     path: distPath,
     publicPath: '',
     filename: 'entrypoints/[name].js',
@@ -578,6 +592,44 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
+/**
+ * Separate config for the service-worker entry point.
+ */
+const workerConfig: Configuration = {
+  name: 'service-worker',
+  mode: appConfig.mode,
+  target: 'webworker',
+  bail: appConfig.bail,
+  entry: {
+    'service-worker': 'sentry/serviceWorker/worker/worker',
+  },
+  context: staticPrefix,
+  experiments: appConfig.experiments,
+  lazyCompilation: appConfig.lazyCompilation,
+  module: appConfig.module,
+  plugins: [
+    /**
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
+     */
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Defines environment specific flags.
+     */
+    new rspack.DefinePlugin(DEFINED_ENV_VARS),
+  ],
+  resolveLoader: {},
+  resolve: appConfig.resolve,
+  // Don't clean: app's compiler owns cleaning `dist` (see its `clean.keep`).
+  output: {...appConfig.output, clean: false},
+  optimization: appConfig.optimization,
+  devtool: appConfig.devtool,
+};
+
 if (IS_TEST) {
   (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
     import.meta.dirname,
@@ -588,6 +640,7 @@ if (IS_TEST) {
 
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
+  workerConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
 // Dev only! Hot module reloading
@@ -680,6 +733,7 @@ if (
             '/api/0/assistant/**',
           ],
           target: controlSiloAddress,
+          logger: proxyLoggerQuiet,
         },
       ];
     }
@@ -700,10 +754,12 @@ if (
             '/api/0/relays/outcomes/**',
           ],
           target: relayAddress,
+          logger: proxyLoggerQuiet,
         },
         {
           context: ['!/_static/dist/sentry/**'],
           target: backendAddress,
+          logger: proxyLoggerQuiet,
         },
       ],
     };
@@ -747,7 +803,8 @@ if (IS_UI_DEV_ONLY) {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
       }
-    : {};
+    : // Will attempt to self sign via the selfsigned package
+      {};
 
   appConfig.devServer = {
     ...appConfig.devServer,
@@ -760,13 +817,20 @@ if (IS_UI_DEV_ONLY) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
+      'Service-Worker-Allowed': '/',
     },
     static: {
       publicPath: '/_assets/',
     },
     proxy: [
       {
-        context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
+        context: [
+          '/api/',
+          '/avatar/',
+          '/organization-avatar/',
+          '/team-avatar/',
+          '/extensions/',
+        ],
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
@@ -776,8 +840,10 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        logger: proxyLoggerQuiet,
         router: req => {
-          const orgSlug = extractSlug((req as any).hostname);
+          const host = req.headers.host!.split(':')[0]!;
+          const orgSlug = extractSlug(host);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
@@ -798,13 +864,14 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',
         },
-        router: (req: any) => {
+        router: req => {
           const regionPathPattern = /^\/region\/([^/]+)/;
-          const regionname = req.path.match(regionPathPattern);
-          if (regionname) {
+          const regionname = (req.url ?? '').match(regionPathPattern);
+          if (regionname?.[1]) {
             return `https://${regionname[1]}.sentry.io`;
           }
           return 'https://sentry.io';
@@ -812,7 +879,12 @@ if (IS_UI_DEV_ONLY) {
       },
     ],
     historyApiFallback: {
-      rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+      rewrites: [
+        {
+          from: /^(?!\/(?:_assets|api|avatar|organization-avatar|team-avatar|extensions|region)\/).*$/,
+          to: '/_assets/index.html',
+        },
+      ],
     },
   };
   // Hot reloading breaks if we aren't using a single runtime chunk
@@ -836,7 +908,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
@@ -846,15 +918,24 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
 }
 
 if (IS_PRODUCTION) {
-  // This compression-webpack-plugin generates pre-compressed files
-  // ending in .gz, to be picked up and served by our internal static media
-  // server as well as nginx when paired with the gzip_static module.
-  appConfig.plugins?.push(
-    new CompressionPlugin({
-      algorithm: 'gzip',
-      test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-    })
-  );
+  if (!IS_DEPLOY_PREVIEW) {
+    // This compression-webpack-plugin generates pre-compressed files
+    // ending in .gz, to be picked up and served by our internal static media
+    // server as well as nginx when paired with the gzip_static module.
+    // Skipped for deploy previews since Vercel handles compression itself.
+    appConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+    workerConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+  }
 
   // Enable sentry-webpack-plugin for production builds
   appConfig.plugins?.push(
@@ -884,9 +965,9 @@ if (IS_PRODUCTION) {
 // Cache rspack builds
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
-  appConfig.experiments!.cache = {
+  appConfig.cache = {
     type: 'persistent',
-    // https://rspack.dev/config/experiments#cachestorage
+    // https://rspack.rs/config/cache
     storage: {
       type: 'filesystem',
       directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
@@ -894,4 +975,5 @@ if (env.WEBPACK_CACHE_PATH) {
   };
 }
 
-export default appConfig;
+const configs = [appConfig, workerConfig];
+export default configs;

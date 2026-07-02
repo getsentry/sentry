@@ -7,7 +7,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 import {MoreFeaturesLink} from 'getsentry/views/amCheckout/components/moreFeaturesLink';
 
@@ -51,7 +50,6 @@ export function FeatureList({
           aria-selected={feat === selected ? true : undefined}
           data-test-id={feat.id}
           whileTap={{x: -7}}
-          transition={testableTransition()}
         >
           <IconBusiness />
           {feat.name}

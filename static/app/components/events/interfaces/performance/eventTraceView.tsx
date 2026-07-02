@@ -9,6 +9,8 @@ import {
   TRACE_WATERFALL_PREFERENCES_KEY,
 } from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
@@ -17,8 +19,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
 import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
@@ -51,6 +53,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  compressed_timeline: false,
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -73,6 +76,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
     traceSlug: traceId,
     limit: 10000,
     targetEventId: event.id,
+    referrer: 'api.trace-view.issues.get-events',
   });
   const params = useTraceQueryParams({
     timestamp,
@@ -89,6 +93,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp,
     traceId,
   });
 
@@ -151,7 +156,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     () =>
       getInitialTracePreferences(
         TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+        'issues'
       ),
     []
   );
@@ -167,8 +173,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     {
       ...location,
       query: {
-        ...location.query,
         groupId: event.groupID,
+        referrer: location.query.referrer,
       },
     },
     TraceViewSources.ISSUE_DETAILS
@@ -177,8 +183,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const hasTracePreviewFeature = organization.features.includes('profiling');
 
   return (
-    <InterimSection
-      type={SectionKey.TRACE}
+    <FoldSection
+      sectionKey={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
         <Grid flow="column" align="center" gap="md">
@@ -194,18 +200,20 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       }
     >
       <OneOtherIssueEvent event={event} />
-      {hasTracePreviewFeature && (
-        <TraceStateProvider
-          initialPreferences={preferences}
-          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
-        >
-          <EventTraceViewInner
-            event={event}
-            organization={organization}
-            traceId={traceId}
-          />
-        </TraceStateProvider>
-      )}
-    </InterimSection>
+      <LazyRender observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}>
+        {hasTracePreviewFeature && (
+          <TraceStateProvider
+            initialPreferences={preferences}
+            preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
+          >
+            <EventTraceViewInner
+              event={event}
+              organization={organization}
+              traceId={traceId}
+            />
+          </TraceStateProvider>
+        )}
+      </LazyRender>
+    </FoldSection>
   );
 }

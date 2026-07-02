@@ -9,9 +9,8 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
-import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
-import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
+import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {MobileBuildDetectSection} from 'sentry/views/detectors/components/forms/mobileBuild/detectSection';
@@ -41,10 +40,11 @@ function MobileBuildDetectorForm() {
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
-      <ProjectSection />
+      <ProjectSection step={1} />
       <MobileBuildDetectSection />
       <Container>
         <FormSection
+          step={4}
           title={t('Filters')}
           description={t(
             'Narrow down which builds are monitored by filtering on build attributes.'
@@ -62,10 +62,9 @@ function MobileBuildDetectorForm() {
           />
         </FormSection>
       </Container>
-      <MobileBuildPreviewSection />
-      <AssignSection />
-      <DescribeSection />
-      <AutomateSection />
+      <IssueOwnershipSection step={5} />
+      <MobileBuildPreviewSection step={6} />
+      <AutomateSectionDeprecated step={7} />
     </Stack>
   );
 }

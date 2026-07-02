@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -12,13 +13,9 @@ import type {
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
 
@@ -31,7 +28,7 @@ export function IntegrationServerlessFunctions({
   const queryClient = useQueryClient();
   const queryKey: ApiQueryKey = [
     getApiUrl(
-      `/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/`,
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
       {
         path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
       }
@@ -81,7 +78,7 @@ export function IntegrationServerlessFunctions({
                   queryKey,
                   existingServerlessFunctions => {
                     if (!existingServerlessFunctions) {
-                      return undefined;
+                      return;
                     }
                     const newServerlessFunctions = [...existingServerlessFunctions];
                     const updatedFunction = {

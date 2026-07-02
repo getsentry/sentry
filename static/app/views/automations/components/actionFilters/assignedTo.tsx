@@ -1,4 +1,5 @@
 import {Container} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -6,8 +7,8 @@ import {
   AutomationBuilderSelect,
   selectControlStyles,
 } from 'sentry/components/workflowEngine/form/automationBuilderSelect';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -78,6 +79,7 @@ function IdentifierField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
+  const projectIds = useFormField<string[]>('projectIds');
 
   if (condition.comparison.targetType === TargetType.TEAM) {
     return (
@@ -108,6 +110,7 @@ function IdentifierField() {
       <Container width="200px">
         <SelectMembers
           organization={organization}
+          projectIds={projectIds}
           key={`${condition_id}.data.targetIdentifier`}
           aria-label={t('Member')}
           value={String(condition.comparison.targetIdentifier)}

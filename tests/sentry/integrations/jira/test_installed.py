@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 import responses
+from jwt import DecodeError, ExpiredSignatureError, InvalidSignatureError
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
@@ -16,7 +17,11 @@ from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_query_hash,
 )
-from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_failure_metric,
+    assert_halt_metric,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
@@ -49,19 +54,12 @@ class JiraInstalledTest(APITestCase):
             headers={**(headers or {}), "alg": jira_signing_algorithm},
         )
 
-    def jwt_token_secret(self):
-        return self._jwt_token("HS256", self.shared_secret)
-
     def jwt_token_cdn(self):
         return self._jwt_token("RS256", RS256_KEY, headers={"kid": self.kid})
 
-    def body(self) -> Mapping[str, Any]:
+    def body(self, client_key: str | None = None) -> Mapping[str, Any]:
         return {
-            "jira": {
-                "metadata": {},
-                "external_id": self.external_id,
-            },
-            "clientKey": "limepie",
+            "clientKey": client_key if client_key is not None else self.external_id,
             "oauthClientId": "EFG",
             "publicKey": "yourCar",
             "sharedSecret": self.shared_secret,
@@ -110,18 +108,113 @@ class JiraInstalledTest(APITestCase):
             status_code=status.HTTP_409_CONFLICT,
         )
 
+    @patch(
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        side_effect=ExpiredSignatureError(),
+    )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry_sdk.set_tag")
-    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event) -> None:
-        self.get_success_response(
-            **self.body(),
-            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
-        )
-        integration = Integration.objects.get(provider="jira", external_id=self.external_id)
+    @responses.activate
+    def test_expired_signature(
+        self, mock_record_event: MagicMock, mock_authenticate_asymmetric_jwt: MagicMock
+    ) -> None:
+        self.add_response()
 
-        mock_set_tag.assert_any_call("integration_id", integration.id)
-        assert integration.status == ObjectStatus.ACTIVE
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (failure) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_failure_metric(
+            mock_record_event,
+            ExpiredSignatureError(),
+        )
+
+    @patch(
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        side_effect=InvalidSignatureError(),
+    )
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_invalid_signature(
+        self, mock_record_event: MagicMock, mock_authenticate_asymmetric_jwt: MagicMock
+    ) -> None:
+        self.add_response()
+
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "JWT contained invalid signature",
+        )
+
+    @patch(
+        "sentry.integrations.jira.webhooks.installed.authenticate_asymmetric_jwt",
+        side_effect=DecodeError(),
+    )
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_decode_error(
+        self, mock_record_event: MagicMock, mock_authenticate_asymmetric_jwt: MagicMock
+    ) -> None:
+        self.add_response()
+
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "Could not decode JWT token",
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_non_rs256_algorithm(self, mock_record_event: MagicMock) -> None:
+        """
+        Test an algorithm-confusion attack: the token carries a valid key id (kid) but is
+        signed with a symmetric algorithm (HS256) rather than RS256. since authenticate_asymmetric_jwt
+        only allows RS256 the token is rejected with a clean 400 halt rather than a 500
+        """
+        self.add_response()
+
+        token = self._jwt_token("HS256", "attacker-secret", headers={"kid": self.kid})
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + token),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id=self.external_id
+        ).exists()
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "JWT signed with unexpected algorithm",
+        )
 
     @patch("sentry_sdk.set_tag")
     @responses.activate
@@ -138,7 +231,84 @@ class JiraInstalledTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jwt_iss_does_not_match_client_key(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) but the body
+        # carries a different tenant in clientKey. build_integration falls back
+        # to clientKey for external_id, so rejecting on iss != clientKey prevents
+        # persisting a row keyed by an unsigned tenant.
+        body = dict(self.body(client_key="some-other-tenant"))
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_top_level_external_id_does_not_match_jwt_iss(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) and clientKey
+        # matches it, but the body injects a top-level external_id + metadata for
+        # a different tenant. build_integration prefers that top-level pair (the
+        # shape the API pipeline binds), so the issuer check must validate
+        # against it rather than clientKey — otherwise a valid token for one
+        # tenant could persist a row keyed to another tenant.
+        body = dict(self.body())
+        body["external_id"] = "some-other-tenant"
+        body["metadata"] = {"base_url": "https://attacker.example"}
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_without_key_id(self, mock_record_event: MagicMock) -> None:
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(
+                HTTP_AUTHORIZATION="JWT " + self._jwt_token("RS256", RS256_KEY, headers={})
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "Missing key_id (kid)",
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
     def test_with_invalid_key_id(self, mock_record_event: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://connect-install-keys.atlassian.com/fake-kid",
+            body=b"Not Found",
+            status=404,
+        )
+
         self.get_error_response(
             **self.body(),
             extra_headers=dict(

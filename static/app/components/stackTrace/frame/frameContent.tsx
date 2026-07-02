@@ -1,10 +1,8 @@
 import {Activity, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Assembly} from 'sentry/components/events/interfaces/frame/assembly';
 import {FrameRegisters} from 'sentry/components/events/interfaces/frame/frameRegisters';
@@ -14,27 +12,24 @@ import {
   hasContextRegisters,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
-import {Coverage} from 'sentry/types/integrations';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
-const COVERAGE_TEXT: Record<Coverage, string | undefined> = {
-  [Coverage.NOT_COVERED]: t('Line uncovered by tests'),
-  [Coverage.COVERED]: t('Line covered by tests'),
-  [Coverage.PARTIAL]: t('Line partially covered by tests'),
-  [Coverage.NOT_APPLICABLE]: undefined,
-};
-
 interface FrameContentProps {
-  sourceLineCoverage?: Array<Coverage | undefined>;
+  effectiveContext?: Array<[number, string | null]>;
+  isLoadingSourceContext?: boolean;
 }
 
-export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
+export function FrameContent({
+  effectiveContext,
+  isLoadingSourceContext,
+}: FrameContentProps) {
   const {event, frame, frameContextId, frameIndex, isExpanded, platform} =
     useStackTraceFrameContext();
   const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
@@ -46,7 +41,7 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
     hasBeenExpandedRef.current = true;
   }
 
-  const contextLines = isExpanded ? (frame.context ?? []) : [];
+  const contextLines = isExpanded ? (effectiveContext ?? frame.context ?? []) : [];
   const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({
     contextLines,
@@ -62,7 +57,11 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
   const hasFrameVariables = !!frameVariables && Object.keys(frameVariables).length > 0;
   const hasFrameRegisters = !!expandedFrameRegisters;
   const hasAnyFrameDetails =
-    hasSourceContext || hasFrameVariables || hasFrameRegisters || hasFrameAssembly;
+    hasSourceContext ||
+    isLoadingSourceContext ||
+    hasFrameVariables ||
+    hasFrameRegisters ||
+    hasFrameAssembly;
   const shouldShowNoDetails =
     frameIndex === lastFrameIndex && frameIndex === 0 && !hasAnyFrameDetails;
 
@@ -78,29 +77,24 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
         overflowX="hidden"
         data-test-id="core-stacktrace-frame-context"
       >
-        {hasSourceContext ? (
+        {isLoadingSourceContext ? (
+          <Container padding="sm md">
+            <LoadingIndicator mini size={16} />
+            {t('Loading source context…')}
+          </Container>
+        ) : hasSourceContext ? (
           <FrameSourceGrid>
             {contextLines.map(([lineNumber, lineValue], lineIndex) => (
               <FrameSourceRow
                 key={`${lineNumber}-${lineIndex}`}
                 isActive={lineNumber === frame.lineNo}
               >
-                <Tooltip
-                  skipWrapper
-                  title={
-                    COVERAGE_TEXT[
-                      sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE
-                    ]
-                  }
+                <FrameSourceLineNumber
+                  aria-label={`Line ${lineNumber}`}
+                  isActive={lineNumber === frame.lineNo}
                 >
-                  <FrameSourceLineNumber
-                    aria-label={`Line ${lineNumber}`}
-                    isActive={lineNumber === frame.lineNo}
-                    coverage={sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE}
-                  >
-                    {lineNumber}
-                  </FrameSourceLineNumber>
-                </Tooltip>
+                  {lineNumber}
+                </FrameSourceLineNumber>
                 <FrameSourceCode
                   className={fileExtension ? `language-${fileExtension}` : undefined}
                 >
@@ -167,7 +161,6 @@ const FrameSourceRow = styled('div')<{isActive: boolean}>`
 `;
 
 const FrameSourceLineNumber = styled('div')<{
-  coverage: Coverage;
   isActive: boolean;
 }>`
   display: flex;
@@ -182,49 +175,6 @@ const FrameSourceLineNumber = styled('div')<{
   user-select: none;
   padding-inline: 1ch;
   border-right: 3px solid transparent;
-
-  ${p =>
-    p.coverage === Coverage.COVERED &&
-    css`
-      background: ${p.theme.colors.green100};
-      border-right-color: ${p.theme.tokens.border.success.vibrant};
-    `}
-
-  ${p =>
-    p.coverage === Coverage.NOT_COVERED &&
-    css`
-      background: ${p.theme.colors.red100};
-      border-right-color: ${p.theme.tokens.border.danger.vibrant};
-    `}
-
-  ${p =>
-    p.coverage === Coverage.PARTIAL &&
-    css`
-      background: ${p.theme.colors.yellow100};
-      border-right-style: dashed;
-      border-right-color: ${p.theme.tokens.border.warning.vibrant};
-    `}
-
-  ${p =>
-    p.isActive &&
-    p.coverage === Coverage.PARTIAL &&
-    css`
-      background: ${p.theme.colors.yellow200};
-    `}
-
-  ${p =>
-    p.isActive &&
-    p.coverage === Coverage.COVERED &&
-    css`
-      background: ${p.theme.colors.green200};
-    `}
-
-  ${p =>
-    p.isActive &&
-    p.coverage === Coverage.NOT_COVERED &&
-    css`
-      background: ${p.theme.colors.red200};
-    `}
 `;
 
 // overrides code[class*='language-'] in global.tsx

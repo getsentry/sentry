@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.seer.fetch_issues.utils import (
+    NoProjectsForRepoError,
     RepoProjects,
     as_issue_details,
     bulk_serialize_for_seer,
@@ -10,6 +11,7 @@ from sentry.seer.fetch_issues.utils import (
     get_repo_and_projects,
     handle_fetch_issues_exceptions,
 )
+from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -75,7 +77,7 @@ class TestGetRepoAndProjects(TestCase):
             external_id="123",
         )
 
-        with pytest.raises(ValueError, match="No Sentry projects found for repo"):
+        with pytest.raises(NoProjectsForRepoError, match="No Sentry projects found for repo"):
             get_repo_and_projects(
                 organization_id=self.organization.id,
                 provider="integrations:github",
@@ -189,12 +191,12 @@ class TestBulkSerializeForSeer(TestCase):
         non_null_groups = [group for group in groups if group is not None]
         result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result["issues"]) == 2
-        assert len(result["issues_full"]) == 2
-        assert all(isinstance(item, dict) for item in result["issues_full"])
+        assert len(result.issues) == 2
+        assert len(result.issues_full) == 2
+        assert all(isinstance(item, dict) for item in result.issues_full)
 
         # Check that each dict has the expected IssueDetails fields with correct values
-        for item, group in zip(result["issues_full"], non_null_groups):
+        for item, group in zip(result.issues_full, non_null_groups):
             assert item["id"] == str(group.id)  # IDs are converted to strings
             assert item["title"] == group.title
             assert item["culprit"] == group.culprit
@@ -210,13 +212,13 @@ class TestBulkSerializeForSeer(TestCase):
         non_null_groups = [group for group in groups if group is not None]
         result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result["issues"]) == 2
-        assert len(result["issues_full"]) == 2
-        assert all(item is not None for item in result["issues_full"])
+        assert len(result.issues) == 2
+        assert len(result.issues_full) == 2
+        assert all(item is not None for item in result.issues_full)
 
         # Check that the non-None items have the correct values
         assert event.group is not None
-        for group_serialized in result["issues_full"]:
+        for group_serialized in result.issues_full:
             assert group_serialized["id"] == str(event.group.id)  # IDs are converted to strings
             assert group_serialized["title"] == event.group.title
             assert group_serialized["culprit"] == event.group.culprit
@@ -245,17 +247,16 @@ class TestGetLatestIssueEvent(TestCase):
         assert group is not None
         result = get_latest_issue_event(group.id, self.organization.id)
 
-        assert result is not None
-        assert isinstance(result, dict)
-        assert result["id"] == group.id
-        assert result["title"] == group.title
-        assert len(result["events"]) == 1
-        assert result["events"][0]["id"] == event.event_id
+        assert isinstance(result, IssueDetails)
+        assert result.id == group.id
+        assert result.title == group.title
+        assert len(result.events) == 1
+        assert result.events[0]["id"] == event.event_id
 
     def test_get_latest_issue_event_not_found(self) -> None:
         nonexistent_group_id = 999999
         result = get_latest_issue_event(nonexistent_group_id, self.organization.id)
-        assert result == {}
+        assert isinstance(result, EmptyResponse)
 
     def test_get_latest_issue_event_with_short_id(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=1))
@@ -265,29 +266,28 @@ class TestGetLatestIssueEvent(TestCase):
         assert group is not None
         result = get_latest_issue_event(group.qualified_short_id, self.organization.id)
 
-        assert result is not None
-        assert isinstance(result, dict)
-        assert result["id"] == group.id
-        assert result["title"] == group.title
-        assert len(result["events"]) == 1
-        assert result["events"][0]["id"] == event.event_id
+        assert isinstance(result, IssueDetails)
+        assert result.id == group.id
+        assert result.title == group.title
+        assert len(result.events) == 1
+        assert result.events[0]["id"] == event.event_id
 
     def test_get_latest_issue_event_with_short_id_not_found(self) -> None:
         result = get_latest_issue_event("INVALID-SHORT-ID", self.organization.id)
-        assert result == {}
+        assert isinstance(result, EmptyResponse)
 
     def test_get_latest_issue_event_no_events(self) -> None:
         # Create a group but don't store any events for it
         group = self.create_group(project=self.project)
         result = get_latest_issue_event(group.id, self.organization.id)
-        assert result == {}
+        assert isinstance(result, EmptyResponse)
 
     def test_get_latest_issue_event_wrong_organization(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         group = event.group
         assert group is not None
         results = get_latest_issue_event(group.id, self.organization.id + 1)
-        assert results == {}
+        assert isinstance(results, EmptyResponse)
 
     def test_get_latest_issue_event_numeric_id_cross_org(self) -> None:
         """Numeric group ID from another org must not be returned."""
@@ -299,7 +299,7 @@ class TestGetLatestIssueEvent(TestCase):
         assert other_group is not None
 
         result = get_latest_issue_event(other_group.id, self.organization.id)
-        assert result == {}
+        assert isinstance(result, EmptyResponse)
 
 
 class TestHandleFetchIssuesExceptions(TestCase):

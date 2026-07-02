@@ -12,7 +12,7 @@ from sentry.users.services.user import RpcUser
 
 
 @register(DocIntegration)
-class DocIntegrationSerializer(Serializer):
+class DocIntegrationSerializer(Serializer[Any]):
     def get_attrs(
         self,
         item_list: Sequence[DocIntegration],

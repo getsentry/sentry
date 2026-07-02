@@ -63,7 +63,7 @@ export function getAlertsUrl({
 
   return (
     makeAlertsPathname({
-      path: `/new/metric/`,
+      path: '/new/metric/',
       organization,
     }) + `?${qs.stringify(queryParams)}`
   );

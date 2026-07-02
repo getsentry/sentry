@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -7,9 +8,9 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AggregateProfileSource} from 'sentry/utils/analytics/profilingAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -30,8 +31,8 @@ import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 import {AggregateFlamegraphTreeContextMenu} from './aggregateFlamegraphTreeContextMenu';
 import {
@@ -337,9 +338,7 @@ export function AggregateFlamegraphTreeTable({
   }, [tree]);
 
   const scrollContainers = useMemo(() => {
-    return [scrollContainerRef, dynamicScrollContainerRef].filter(
-      c => !!c
-    ) as HTMLElement[];
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(c => !!c);
   }, [dynamicScrollContainerRef, scrollContainerRef]);
 
   const {
@@ -528,7 +527,11 @@ const FrameBar = styled('div')<{withoutBorders?: boolean}>`
   width: 100%;
   position: relative;
   background-color: ${p => p.theme.tokens.background.tertiary};
-  ${p => !p.withoutBorders && `border-top: 1px solid ${p.theme.tokens.border.primary};`}
+  ${p =>
+    !p.withoutBorders &&
+    css`
+      border-top: 1px solid ${p.theme.tokens.border.primary};
+    `}
   flex: 1 1 100%;
 `;
 

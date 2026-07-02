@@ -2,12 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
@@ -18,20 +17,6 @@ import {
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useTransactionsSeriesQuery', () => {
   const organization = OrganizationFixture({
@@ -67,15 +52,13 @@ describe('useTransactionsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTransactionsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -113,16 +96,14 @@ describe('useTransactionsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-          mepSetting: MEPState.AUTO,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTransactionsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+        mepSetting: MEPState.AUTO,
+      })
     );
 
     await waitFor(() => {
@@ -172,15 +153,13 @@ describe('useTransactionsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTransactionsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -217,16 +196,14 @@ describe('useTransactionsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useTransactionsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-          mepSetting: MEPState.AUTO,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useTransactionsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+        mepSetting: MEPState.AUTO,
+      })
     );
 
     await waitFor(() => {

@@ -79,7 +79,7 @@ export function TeamIssuesBreakdown({
     refetch,
   } = useApiQuery<IssuesBreakdown>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/issue-breakdown/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/issue-breakdown/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {

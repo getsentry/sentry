@@ -84,7 +84,7 @@ function IssueOwnerDebbuging() {
             minLength={1}
             placeholder="/src/sentry/integrations/github/webhook.py"
           />
-          <Button priority="primary" type="submit">
+          <Button variant="primary" type="submit">
             Submit
           </Button>
         </SearchContainer>
@@ -220,7 +220,7 @@ function IssueEscalatingDebugging() {
             minLength={1}
             placeholder="1"
           />
-          <Button priority="primary" type="submit">
+          <Button variant="primary" type="submit">
             Submit
           </Button>
         </SearchContainer>

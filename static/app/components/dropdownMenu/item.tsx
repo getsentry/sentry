@@ -11,6 +11,7 @@ import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import {IconChevron} from 'sentry/icons';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
@@ -23,13 +24,18 @@ export interface MenuItemProps extends MenuListItemProps {
   /**
    * Sub-items that are nested inside this item. By default, sub-items are
    * rendered collectively as menu sections inside the current menu. If
-   * `isSubmenu` is true, then they will be rendered together in a sub-menu.
+   * `submenu` is set, then they will be rendered together in a sub-menu.
    */
   children?: MenuItemProps[];
   /**
    * Pass a class name to the menu item.
    */
   className?: string;
+  /**
+   * Whether to close the menu when this item is clicked. Overrides the list-level
+   * `closeOnSelect` prop when set.
+   */
+  closeOnSelect?: boolean;
   /**
    * Destination if this menu item is an external link.
    */
@@ -39,11 +45,6 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
-  /**
-   * Whether this menu item is a trigger for a nested sub-menu. Only works
-   * when `children` is also defined.
-   */
-  isSubmenu?: boolean;
   /**
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.
@@ -55,10 +56,12 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   onAction?: () => void;
   /**
-   * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
-   * if `children` is defined and `isSubmenu` is true)
+   * Renders this item as a trigger for a nested sub-menu (only works when
+   * `children` is also defined). Pass `true` for the defaults, or an object to
+   * customize the sub-menu: `title` is shown as its header, and `position`
+   * overrides where it opens relative to this item (defaults to `right-start`).
    */
-  submenuTitle?: string;
+  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
@@ -111,19 +114,31 @@ export function DropdownMenuItem({
   const innerWrapRef = useRef<HTMLDivElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, trailingItems, externalHref, ...itemProps} =
-    node.value ?? {};
+  const {
+    key,
+    onAction,
+    to,
+    label,
+    submenu,
+    trailingItems,
+    externalHref,
+    closeOnSelect: itemCloseOnSelect,
+    ...itemProps
+  } = node.value ?? {};
+  const isSubmenu = !!submenu;
   const {size} = node.props;
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
+  const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
   const actionHandler = () => {
     if (isLink) {
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
-      if (closeOnSelect) {
+      if (resolvedCloseOnSelect) {
         requestAnimationFrame(() => rootOverlayState?.close());
       }
+      onAction?.();
       return;
     }
     if (isSubmenu) {
@@ -180,7 +195,7 @@ export function DropdownMenuItem({
         onClose?.();
         rootOverlayState?.close();
       },
-      closeOnSelect: isLink ? false : closeOnSelect,
+      closeOnSelect: isLink ? false : resolvedCloseOnSelect,
       isDisabled,
     },
     state,

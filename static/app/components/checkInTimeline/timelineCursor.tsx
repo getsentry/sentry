@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Overlay} from 'sentry/components/overlay';
 import {Sticky} from 'sentry/components/sticky';
-import {testableTransition} from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
 
@@ -142,7 +142,7 @@ function useTimelineCursor<E extends HTMLElement>({
             initial="initial"
             animate="animate"
             exit="exit"
-            transition={testableTransition({duration: 0.1})}
+            transition={{duration: 0.1}}
             variants={{
               initial: {opacity: 0},
               animate: {opacity: 1},
@@ -184,7 +184,13 @@ const CursorLabel = styled(Overlay)<{
   line-height: 1.2;
   position: absolute;
   ${p =>
-    p.anchor === 'top' ? `top: ${p.anchorOffset}px;` : `bottom: ${p.anchorOffset}px;`}
+    p.anchor === 'top'
+      ? css`
+          top: ${p.anchorOffset}px;
+        `
+      : css`
+          bottom: ${p.anchorOffset}px;
+        `}
   left: clamp(
     0px,
     calc(var(--cursorOffset) + ${p => p.offsets?.left ?? 0}px + ${TOOLTIP_OFFSET}px),

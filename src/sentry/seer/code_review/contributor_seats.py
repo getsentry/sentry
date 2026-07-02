@@ -8,21 +8,23 @@ can reuse it without pulling in GitHub/GitLab internals.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import router, transaction
+from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributorAction,
     OrganizationContributors,
 )
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.utils import metrics
 
@@ -37,38 +39,27 @@ def _is_code_review_enabled_for_repo(repository_id: int) -> bool:
     ).exists()
 
 
-def _is_autofix_enabled_for_repo(organization_id: int, repository_id: int) -> bool:
+def _is_autofix_enabled_for_repo(organization: Organization, repository_id: int) -> bool:
     """
-    Check if autofix automation is enabled (not "off") for any project
-    associated with this repository via code mappings.
+    Check if autofix is enabled for any active project associated with
+    this repository, ie, if any project has this repository configured
+    in Seer preferences.
     """
-    repo_configs = RepositoryProjectPathConfig.objects.filter(
-        repository_id=repository_id,
-        organization_id=organization_id,
-    ).values_list("project_id", flat=True)
-
-    if not repo_configs:
-        return False
-
-    return (
-        ProjectOption.objects.filter(
-            project_id__in=repo_configs,
-            project__status=ObjectStatus.ACTIVE,
-            key="sentry:autofix_automation_tuning",
-        )
-        .exclude(value=AutofixAutomationTuningSettings.OFF.value)
-        .exclude(value__isnull=True)
-        .exists()
-    )
+    return SeerProjectRepository.objects.filter(
+        project_repository__repository_id=repository_id,
+        project_repository__project__organization_id=organization.id,
+        project_repository__project__status=ObjectStatus.ACTIVE,
+        project_repository__repository__status=ObjectStatus.ACTIVE,
+    ).exists()
 
 
-def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int) -> bool:
+def _has_code_review_or_autofix_enabled(organization: Organization, repository_id: int) -> bool:
     """
     Check if either code review is enabled for the repo OR autofix automation
     is enabled for any linked project.
     """
     return _is_code_review_enabled_for_repo(repository_id) or _is_autofix_enabled_for_repo(
-        organization_id, repository_id
+        organization, repository_id
     )
 
 
@@ -84,8 +75,8 @@ def should_increment_contributor_seat(
     """
     if (
         repo.integration_id is None
-        or not _has_code_review_or_autofix_enabled(organization.id, repo.id)
         or contributor.is_bot
+        or not _has_code_review_or_autofix_enabled(organization, repo.id)
         or not features.has("organizations:seat-based-seer-enabled", organization)
     ):
         return False
@@ -105,12 +96,9 @@ def track_contributor_seat(
     user_id: str | int,
     user_username: str,
     provider: str,
+    logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
-    """
-    Track a contributor for seat billing. Creates or retrieves the contributor
-    record, checks eligibility, atomically increments the action count, and
-    queues seat assignment when the activation threshold is reached.
-    """
+    """Informational logging for the legacy seat-charging path."""
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration_id,
@@ -121,33 +109,86 @@ def track_contributor_seat(
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
 
+    logger.info(
+        "scm.webhook.organization_contributor.num_actions_should_increment",
+        extra={
+            "provider": provider,
+            "organization_id": organization.id,
+            "integration_id": integration_id,
+            "pr_author_id": str(user_id),
+            "pr_author_login": user_username,
+            "contributor_id": contributor.id,
+            **(logs_extra or {}),
+        },
+    )
     metrics.incr(
-        "scm.webhook.organization_contributor.should_create",
+        "scm.webhook.organization_contributor.num_actions_should_increment",
         sample_rate=1.0,
         tags={"provider": provider},
     )
 
-    locked_contributor = None
-    with transaction.atomic(router.db_for_write(OrganizationContributors)):
-        try:
-            locked_contributor = OrganizationContributors.objects.select_for_update().get(
-                id=contributor.id,
-            )
-            locked_contributor.num_actions += 1
-            locked_contributor.save(update_fields=["num_actions", "date_updated"])
-        except OrganizationContributors.DoesNotExist:
-            logger.warning(
-                "scm.webhook.organization_contributor.not_found",
-                extra={
-                    "provider": provider,
-                    "organization_id": organization.id,
-                    "integration_id": integration_id,
-                    "external_identifier": str(user_id),
-                },
-            )
+
+def record_contributor_action(
+    *,
+    organization: Organization,
+    repo: Repository,
+    integration_id: int,
+    user_id: str | int,
+    user_username: str | None,
+    provider: str,
+    pr_number: str | int,
+    is_opened: bool,
+    logs_extra: Mapping[str, Any] | None = None,
+    tags: Mapping[str, Any] | None = None,
+) -> None:
+    """Seed a contributor and record the contributor's PR-opened action."""
+    contributor, _ = OrganizationContributors.objects.get_or_create(
+        organization_id=organization.id,
+        integration_id=integration_id,
+        external_identifier=str(user_id),
+        defaults={"alias": user_username},
+    )
 
     if (
-        locked_contributor
-        and locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+        not is_opened
+        or features.has("organizations:seat-based-seer-skip-record-action", organization)
+        or not should_increment_contributor_seat(organization, repo, contributor)
     ):
-        assign_seat_to_organization_contributor.delay(locked_contributor.id)
+        return
+
+    with transaction.atomic(router.db_for_write(OrganizationContributors)):
+        _, created = OrganizationContributorAction.objects.get_or_create(
+            repository_id=repo.id,
+            pr_number=str(pr_number),
+            defaults={"organization_contributor": contributor},
+        )
+        if not created:
+            return
+
+        OrganizationContributors.objects.filter(id=contributor.id).update(
+            num_actions=F("num_actions") + 1
+        )
+
+    logger.info(
+        "scm.webhook.organization_contributor.action_recorded",
+        extra={
+            "provider": provider,
+            "organization_id": organization.id,
+            "integration_id": integration_id,
+            "pr_author_id": str(user_id),
+            "pr_author_login": user_username,
+            "contributor_id": contributor.id,
+            "pr_number": str(pr_number),
+            **(logs_extra or {}),
+            **(tags or {}),
+        },
+    )
+    metrics.incr(
+        "scm.webhook.organization_contributor.action_recorded",
+        sample_rate=1.0,
+        tags={"provider": provider, **(tags or {})},
+    )
+
+    contributor.refresh_from_db(fields=["num_actions"])
+    if contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD:
+        assign_seat_to_organization_contributor.delay(contributor.id)

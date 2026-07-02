@@ -9,7 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -17,11 +16,20 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.organization_detector_index import get_detector_validator
-from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializer,
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 
 
@@ -35,13 +43,14 @@ class OrganizationProjectDetectorPermission(ProjectPermission):
 @extend_schema(tags=["Monitors"])
 class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationProjectDetectorPermission,)
 
     @extend_schema(
-        operation_id="Create a Monitor for a Project",
+        operation_id="createOrganizationProjectDetector",
+        summary="Create a Monitor for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -54,11 +63,16 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_DETECTOR,
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> (
+        Response[DetectorSerializerResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Create a Monitor for a project
         """
         organization = project.organization
@@ -67,16 +81,22 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        # Restrict creating metric issue detectors by plan type
+        # Restrict creating metric issue detectors by plan type.
+        # This is a coarse pre-check; the validator enforces the dataset-specific
+        # is_metric_subscription_allowed check after the dataset is validated.
         if detector_type == MetricIssue.slug and not features.has(
             "organizations:incidents", organization, actor=request.user
         ):
-            raise ResourceDoesNotExist
+            return Response(
+                {"detail": "Unable to process request, confirm payment options."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         validator = get_detector_validator(request, project, detector_type)
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
 
         detector = validator.save()
 
-        return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
+        body: DetectorSerializerResponse = serialize(detector, request.user, DetectorSerializer())
+        return Response(body, status=status.HTTP_201_CREATED)

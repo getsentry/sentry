@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from django.db import router, transaction
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as TeamRequestSerializer
+from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
@@ -23,13 +24,22 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
-@extend_schema_serializer(exclude_fields=["name"])
 class TeamDetailsSerializer(CamelSnakeModelSerializer):
+    name = serializers.CharField(
+        max_length=64,
+        required=False,
+        help_text="The name of the team.",
+    )
     slug = SentrySerializerSlugField(
         max_length=DEFAULT_SLUG_MAX_LENGTH,
         help_text="Uniquely identifies a team. This is must be available.",
@@ -66,7 +76,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return self._allow_idp_changes
 
     @extend_schema(
-        operation_id="Retrieve a Team",
+        operation_id="getTeam",
+        summary="Retrieve a Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -81,7 +92,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.RETRIEVE_TEAM_DETAILS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team) -> Response[TeamSerializerResponse]:
         """
         Return details on an individual team.
         """
@@ -94,12 +105,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
         else:
             expand.append("organization")
 
-        return Response(
-            serialize(team, request.user, TeamRequestSerializer(collapse=collapse, expand=expand))
+        body: TeamSerializerResponse = serialize(
+            team, request.user, TeamRequestSerializer(collapse=collapse, expand=expand)
         )
+        return Response(body)
 
     @extend_schema(
-        operation_id="Update a Team",
+        operation_id="updateTeam",
+        summary="Update a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=TeamDetailsSerializer,
         responses={
@@ -110,7 +123,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.UPDATE_TEAM,
     )
-    def put(self, request: Request, team) -> Response:
+    def put(
+        self, request: Request, team
+    ) -> (
+        Response[TeamSerializerResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given
         team.
@@ -135,12 +154,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 data=data,
             )
 
-            return Response(serialize(team, request.user))
+            body: TeamSerializerResponse = serialize(team, request.user)
+            return Response(body)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete a Team",
+        operation_id="deleteTeam",
+        summary="Delete a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -149,7 +170,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
     )
     @sudo_required
-    def delete(self, request: Request, team) -> Response:
+    def delete(self, request: Request, team) -> Response[None] | Response[DetailResponse]:
         """
         Schedules a team for deletion.
 
