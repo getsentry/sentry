@@ -8,9 +8,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReauthMonitoringProviderData} from 'sentry/views/seerExplorer/types';
 
@@ -19,6 +21,10 @@ const PROVIDER_LABELS: Record<string, string> = {
   datadog_pat: 'Datadog',
   gcp: 'Google Cloud Platform',
 };
+
+function monitoringProvidersSettingsPath(organization: Organization) {
+  return normalizeUrl(`/settings/${organization.slug}/seer/advanced/`);
+}
 
 interface ReauthMonitoringProviderBlockProps {
   data: ReauthMonitoringProviderData;
@@ -50,7 +56,7 @@ export function ReauthMonitoringProviderBlock({
           }
         ),
         data: {
-          return_url: returnUrl ?? `/settings/${organization.slug}/seer/advanced/`,
+          return_url: returnUrl ?? monitoringProvidersSettingsPath(organization),
         },
       }),
     onSuccess: responseData => {
