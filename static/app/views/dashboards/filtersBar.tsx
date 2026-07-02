@@ -507,18 +507,18 @@ const StyledPageFilterBar = styled(PageFilterBar)`
       flex: 1 1 auto;
       min-width: 0;
       max-width: 100%;
-      
+
       /* Remove the min-width constraint on last child */
       &:last-child {
         min-width: 0;
       }
-      
+
       /* Allow first child to shrink on mobile */
       &:first-child {
         flex-shrink: 1;
       }
     }
-    
+
     /* Ensure buttons inside also respect width */
     & button[aria-haspopup] {
       max-width: 100%;
