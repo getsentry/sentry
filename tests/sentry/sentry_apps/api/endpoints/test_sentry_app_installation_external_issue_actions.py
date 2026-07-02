@@ -163,6 +163,23 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert not PlatformExternalIssue.objects.filter(group_id=self.group.id).exists()
 
+    def test_rejects_token_with_only_read_scope(self) -> None:
+        token, url = self._set_up_token(["event:read"])
+        response = self.client.post(
+            url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "/create-issues",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 403
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(group_id=self.group.id).exists()
+
     @responses.activate
     def test_creates_external_issue_with_event_scope(self) -> None:
         token, url = self._set_up_token(["event:write"])
