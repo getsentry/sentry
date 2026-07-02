@@ -2068,6 +2068,28 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
+    def test_org_only_viewer_context_scopes_to_the_arg_org(self) -> None:
+        # An org-only viewer context (no user_id — e.g. an org background job or,
+        # later, a service-account viewer) must dispatch and return data scoped to
+        # the org passed in args. org_id reaches the method via request args, not
+        # auth, so filtering is unchanged; the org-binding guard only requires the
+        # arg org to equal the signed context's org.
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+        returned_ids = {p["id"] for p in response.data["projects"]}
+        assert returned_ids == {project.id}
+
     def test_user_scoped_viewer_context_authenticates(self) -> None:
         org = self.create_organization(owner=self.user)
         path = self._get_path("get_organization_features")
