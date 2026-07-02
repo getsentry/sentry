@@ -566,8 +566,7 @@ export function SeerExplorerContent({
             isError={isError}
             errorStatusCode={errorStatusCode}
             runId={runId}
-            hasSlackIntegration={hasSlackIntegration}
-            needsSlackUpgrade={needsSlackUpgrade}
+            displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
         ) : (

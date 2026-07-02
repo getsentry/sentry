@@ -16,11 +16,10 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 interface EmptyStateProps {
+  displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
-  hasSlackIntegration?: boolean;
   isError?: boolean;
   isLoading?: boolean;
-  needsSlackUpgrade?: boolean;
   onSuggestionClick?: (question: string) => void;
   runId?: SeerExplorerRunId | null;
 }
@@ -29,8 +28,7 @@ export function EmptyState({
   isLoading = false,
   isError = false,
   errorStatusCode = null,
-  hasSlackIntegration = false,
-  needsSlackUpgrade = false,
+  displaySlackAgentReminder = false,
   runId,
   onSuggestionClick,
 }: EmptyStateProps) {
@@ -72,7 +70,7 @@ export function EmptyState({
               ))}
             </Flex>
           )}
-          {hasSlackIntegration && !needsSlackUpgrade && (
+          {displaySlackAgentReminder && (
             <Text>
               {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
             </Text>
