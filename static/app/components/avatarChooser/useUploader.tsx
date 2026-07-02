@@ -22,9 +22,9 @@ export function useUploader({onSelect, minImageSize}: UseUploaderOptions) {
 
   useEffect(() => () => cleanupObjectUrl(), [cleanupObjectUrl]);
 
-  const openUpload = useCallback((ev: React.MouseEvent<HTMLElement>) => {
-    ev.currentTarget.blur();
-    ev.preventDefault();
+  const openUpload = useCallback((ev?: React.MouseEvent<HTMLElement>) => {
+    ev?.currentTarget.blur();
+    ev?.preventDefault();
     fileInputRef.current?.click();
   }, []);
 
