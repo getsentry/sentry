@@ -218,11 +218,19 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField()
+    projects = ListField(help_text="A list of project slugs that are involved in this release.")
     headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,
+        help_text="(Deprecated) Use `refs` instead. An optional list of head commits to associate with the release, one per repository.",
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="An optional list of commit references, one per repository, used to associate commits with the release.",
+    )
 
 
 @sentry_sdk.trace
@@ -313,10 +321,10 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -949,7 +957,7 @@ class OrganizationReleaseTimeseriesData(TypedDict):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

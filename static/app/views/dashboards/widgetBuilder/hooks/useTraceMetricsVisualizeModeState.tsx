@@ -15,7 +15,10 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
+import {
+  dispatchYAxisUpdate,
+  prepareQueriesForEquationMode,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
@@ -146,13 +149,15 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         state.fields
       );
 
-      const queries = (aggregateSource ?? [])
-        .filter(f => f.kind === FieldValueKind.FUNCTION)
-        .map(f => {
-          const parsed = parseAggregateExpression(generateFieldAsString(f));
-          return parsed.metricQueries[0] ?? defaultMetricQuery();
-        })
-        .filter(Boolean);
+      const queries = prepareQueriesForEquationMode(
+        (aggregateSource ?? [])
+          .filter(f => f.kind === FieldValueKind.FUNCTION)
+          .map(f => {
+            const parsed = parseAggregateExpression(generateFieldAsString(f));
+            return parsed.metricQueries[0] ?? defaultMetricQuery();
+          })
+          .filter(Boolean)
+      );
       if (queries.length === 0) {
         queries.push(defaultMetricQuery());
       }

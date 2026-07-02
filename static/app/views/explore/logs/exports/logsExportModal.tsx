@@ -67,7 +67,7 @@ export function LogsExportModal({
     }),
     [queryInfo]
   );
-  const handleDataExport = useDataExport();
+  const {mutateAsync: handleDataExport} = useDataExport();
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
@@ -86,7 +86,6 @@ export function LogsExportModal({
       const isAllColumns = value.columns === 'all';
       const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
 
-      // The backend only supports exporting all columns in JSONL format.
       const format = isAllColumns ? 'jsonl' : value.format;
 
       trackAnalytics('explore.table_exported', {
@@ -106,14 +105,20 @@ export function LogsExportModal({
       });
 
       if (isAllColumns || passedSyncLimit) {
-        await handleDataExport({
-          format,
-          queryInfo: isAllColumns ? {...payload.queryInfo, field: []} : payload.queryInfo,
-          queryType: isAllColumns
-            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
-            : ExportQueryType.EXPLORE,
-          limit: value.limit,
-        });
+        try {
+          await handleDataExport({
+            format,
+            queryInfo: isAllColumns
+              ? {...payload.queryInfo, field: []}
+              : payload.queryInfo,
+            queryType: isAllColumns
+              ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+              : ExportQueryType.EXPLORE,
+            limit: value.limit,
+          });
+        } catch {
+          // The error message is surfaced by useDataExport's onError handler.
+        }
       } else {
         downloadLogs({
           rows: tableData.slice(0, value.limit),
@@ -137,21 +142,11 @@ export function LogsExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>{t('Large data export files will be sent to your email address.')}</Text>
-          <form.AppField name="columns">
-            {field => (
-              <field.Layout.Stack label={t('All Columns?')}>
-                <field.Switch
-                  checked={field.state.value === ModalColumnValue.ALL}
-                  onChange={checked =>
-                    field.handleChange(
-                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
-                    )
-                  }
-                />
-              </field.Layout.Stack>
+          <Text>
+            {t(
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
             )}
-          </form.AppField>
+          </Text>
           <form.AppField name="format">
             {field => (
               <field.Radio.Group
@@ -174,6 +169,23 @@ export function LogsExportModal({
                   </field.Radio.Item>
                 </field.Layout.Stack>
               </field.Radio.Group>
+            )}
+          </form.AppField>
+          <form.AppField name="columns">
+            {field => (
+              <field.Layout.Stack
+                hintText={t('All columns are only supported by JSONL.')}
+                label={t('All Columns?')}
+              >
+                <field.Switch
+                  checked={field.state.value === ModalColumnValue.ALL}
+                  onChange={checked =>
+                    field.handleChange(
+                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
+                    )
+                  }
+                />
+              </field.Layout.Stack>
             )}
           </form.AppField>
           <form.AppField name="limit">

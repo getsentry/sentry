@@ -27,6 +27,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_monitoring_provider_connections,
     get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
@@ -41,7 +42,7 @@ from sentry.seer.sentry_data_models import (
     PrAttributionResponse,
     SendSeerWebhookSuccessResponse,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
@@ -90,6 +91,18 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
+
+    def test_get_organization_projects_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert "projects" in response.data
+        assert project.id in [p["id"] for p in response.data["projects"]]
 
     def test_validate_llm_proxy_key(self) -> None:
         path = self._get_path("validate_llm_proxy_key")
@@ -498,7 +511,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.metrics import SentryAppEventType
+        from sentry.sentry_apps.event_types import SentryAppEventType
 
         # Get all seer event types
         seer_events = [
@@ -1698,6 +1711,60 @@ class TestGetOrganizationFeatures(APITestCase):
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@with_feature("organizations:seer-infra-telemetry")
+@cell_silo_test
+class TestGetMonitoringProviderConnections(APITestCase):
+    def test_returns_connections(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
+        assert len(result.connections) == 1
+        connection = result.connections[0]
+        assert connection.provider_key == "datadog"
+        assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        assert connection.identity_id == identity.id
+        assert connection.auth_method == "oauth"
+        decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
+            connection.encrypted_access_token.encode("utf-8")
+        )
+        assert decrypted.decode("utf-8") == "access-token"
+
+    def test_unknown_organization_returns_empty(self) -> None:
+        result = get_monitoring_provider_connections(organization_id=999999, user_id=self.user.id)
+
+        assert result.connections == []
+
+    def test_non_member_returns_empty(self) -> None:
+        other_org = self.create_organization()
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-2")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-2",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=other_org.id, user_id=self.user.id
+        )
+
+        assert result.connections == []
+
+
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
 @cell_silo_test
 class TestRefreshMonitoringProviderToken(APITestCase):
     def setUp(self) -> None:
@@ -1824,6 +1891,20 @@ class TestRefreshMonitoringProviderToken(APITestCase):
 
         # Not "identity_not_valid" due to KeyError from get_oauth_data before reaching the .get() guard
         assert result == {"error": "refresh_failed"}
+
+    def test_pat_provider_not_refreshable(self) -> None:
+        # Static-token providers (Datadog PAT) have no refresh flow.
+        pat_idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-pat")
+        pat_identity = self.create_identity(
+            user=self.user,
+            identity_provider=pat_idp,
+            external_id="dd-user-pat",
+            data={"access_token": "pat-tok", "site": "datadoghq.com"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
+
+        assert result == {"error": "refresh_not_supported"}
 
 
 @with_feature("organizations:pr-metrics-attribution")

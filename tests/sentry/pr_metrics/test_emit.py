@@ -15,6 +15,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
     active_attributions,
     build_pr_metrics_row,
@@ -34,6 +35,28 @@ SENTRY_APP_ATTRIBUTION = {
     "source": "seer_data",
     "signal_details": None,
 }
+
+# A conversation judge result for the emission tests: the semantic
+# outputs promoted to columns plus the opaque metadata drill-down bundle.
+CONVERSATION_METADATA = {
+    "judge": "conversation.v1",
+    "sentiment_reasoning": "reviewer approved after the fix",
+    "comment_intents": [
+        {"comment_id": "IC_123", "author": "octocat", "author_class": "human", "intent": "praise"},
+    ],
+    "intent_counts": {"praise": 1},
+}
+CONVERSATION_ANALYSIS = PrConversationAnalysis(
+    sentiment="positive",
+    comments_bot=0,
+    comments_human=1,
+    comments_total=3,
+    comments_judged=2,
+    comments_truncated=1,
+    metadata=CONVERSATION_METADATA,
+)
+# Cross-judge close-reason labels, threaded independently of the conversation analysis.
+DIAGNOSIS_LABELS = ["trivial"]
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
@@ -150,6 +173,7 @@ class PrMetricsEmissionTest(TestCase):
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
+                "repository_id": self.pull_request.repository_id,
                 "pull_request_id": self.pull_request.id,
             },
         )
@@ -165,6 +189,7 @@ class PrMetricsEmissionTest(TestCase):
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
+                "repository_id": self.pull_request.repository_id,
                 "pull_request_id": self.pull_request.id,
             },
         )
@@ -364,6 +389,90 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.group_ids == [7, 9]
 
+    def test_build_row_carries_conversation_analysis(self) -> None:
+        # The conversation judge's semantic outputs land on their own prefixed
+        # columns; only the metadata bundle is JSON-encoded (as attributions is).
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+            conversation_analysis=CONVERSATION_ANALYSIS,
+        )
+        assert row.conversation_sentiment == "positive"
+        assert row.conversation_comments_bot == 0
+        assert row.conversation_comments_human == 1
+        assert row.conversation_comments_total == 3
+        assert row.conversation_comments_judged == 2
+        assert row.conversation_comments_truncated == 1
+        assert row.conversation_metadata is not None
+        assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
+
+    def test_build_row_carries_diagnosis_labels(self) -> None:
+        # The cross-judge close-reason "why" is threaded independently of the
+        # conversation analysis, onto its own unprefixed repeated column.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+            diagnosis_labels=DIAGNOSIS_LABELS,
+        )
+        assert row.diagnosis_labels == ["trivial"]
+
+    def test_build_row_empty_diagnosis_labels_stays_empty(self) -> None:
+        # An empty list is a valid value (judge ran, no labels) and emits [], not null.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+            diagnosis_labels=[],
+        )
+        assert row.diagnosis_labels == []
+
+    def test_build_row_without_judge_enrichment_leaves_fields_null(self) -> None:
+        # The no-judge path / old Seer pods supply nothing — every judge column
+        # stays null rather than emitting an empty placeholder.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.conversation_sentiment is None
+        assert row.conversation_comments_bot is None
+        assert row.diagnosis_labels is None
+        assert row.conversation_metadata is None
+
+    def test_build_row_conversation_metadata_null_when_absent(self) -> None:
+        # An analysis without a metadata bundle emits a null conversation_metadata (not
+        # "null"-the-string); the semantic columns still populate.
+        conversation_analysis = PrConversationAnalysis(sentiment="neutral")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+            conversation_analysis=conversation_analysis,
+        )
+        assert row.conversation_sentiment == "neutral"
+        assert row.conversation_metadata is None
+
+    @patch("sentry.analytics.record")
+    def test_emit_threads_judge_enrichment(self, mock_record: Any) -> None:
+        self._track()
+        emit_pr_metrics_row(
+            pull_request=self.pull_request,
+            conversation_analysis=CONVERSATION_ANALYSIS,
+            diagnosis_labels=DIAGNOSIS_LABELS,
+        )
+        row = mock_record.call_args[0][0]
+        assert row.conversation_sentiment == "positive"
+        assert row.conversation_comments_human == 1
+        assert row.diagnosis_labels == ["trivial"]
+        assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
+
     @patch("sentry.analytics.record")
     def test_emit_carries_resolved_group_ids(self, mock_record: Any) -> None:
         self._track()
@@ -555,3 +664,20 @@ class PrMetricsEmissionTest(TestCase):
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
         emit_pr_metrics_row(pull_request=self.pull_request)
         assert mock_record.call_args[0][0].group_ids == [group_id]
+
+    @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
+    @patch("sentry.analytics.record")
+    def test_emit_enqueues_cleanup_task(self, mock_record: Any, mock_cleanup: Any) -> None:
+        self._track()
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        mock_cleanup.delay.assert_called_once_with(pull_request_id=self.pull_request.id)
+
+    @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
+    @patch("sentry.analytics.record")
+    def test_untracked_pr_does_not_enqueue_cleanup(
+        self, mock_record: Any, mock_cleanup: Any
+    ) -> None:
+        # No attribution → emit returns False and must not enqueue cleanup.
+        result = emit_pr_metrics_row(pull_request=self.pull_request)
+        assert result is False
+        mock_cleanup.delay.assert_not_called()

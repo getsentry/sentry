@@ -345,15 +345,39 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
                 "project": [self.project.id],
                 "dataset": "spans",
                 "field": ["span.duration"],
-                "query": "Thing AND",
+                "query": "project:foo AND",
             }
         )
 
         assert response.status_code == 400, response.content
         assert not response.data["valid"]
-        assert response.data["query"] == [
-            {"valid": False, "error": "Condition is missing on the right side of 'AND' operator"}
-        ]
+        assert response.data["query"] == {
+            "valid": False,
+            "error": "Condition is missing on the right side of 'AND' operator",
+            "fields": [
+                {"attrType": "string", "error": None, "name": "project", "valid": True},
+            ],
+        }
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "project:foo AND p90(hello",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["query"] == {
+            "valid": False,
+            "error": "Parse error at ' p90(hello' (column 20). This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
+            "fields": [
+                {"attrType": "string", "error": None, "name": "project", "valid": True},
+                {"attrType": "string", "error": None, "name": "message", "valid": True},
+            ],
+        }
 
         response = self.do_request(
             {
@@ -366,12 +390,11 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
 
         assert response.status_code == 400, response.content
         assert not response.data["valid"]
-        assert response.data["query"] == [
-            {
-                "valid": False,
-                "error": "span.duration: Invalid number: >hello. Expected number then optional k, m, or b suffix (e.g. 500k).",
-            }
-        ]
+        assert response.data["query"] == {
+            "valid": False,
+            "error": "span.duration: Invalid number: >hello. Expected number then optional k, m, or b suffix (e.g. 500k).",
+            "fields": [],
+        }
 
     def test_valid_query(self) -> None:
         response = self.do_request(
@@ -385,20 +408,24 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
 
         assert response.status_code == 200, response.content
         assert response.data["valid"]
-        assert response.data["query"] == [
-            {
-                "error": None,
-                "name": "span.duration",
-                "valid": True,
-                "attrType": "number",
-            },
-            {
-                "error": None,
-                "name": "p95(span.duration)",
-                "valid": True,
-                "attrType": "number",
-            },
-        ]
+        assert response.data["query"] == {
+            "valid": True,
+            "error": None,
+            "fields": [
+                {
+                    "error": None,
+                    "name": "span.duration",
+                    "valid": True,
+                    "attrType": "number",
+                },
+                {
+                    "error": None,
+                    "name": "p95(span.duration)",
+                    "valid": True,
+                    "attrType": "number",
+                },
+            ],
+        }
 
     def test_mixed_validity_query(self) -> None:
         response = self.do_request(
@@ -412,32 +439,36 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
 
         assert response.status_code == 400, response.content
         assert not response.data["valid"]
-        assert response.data["query"] == [
-            {
-                "error": None,
-                "name": "span.duration",
-                "valid": True,
-                "attrType": "number",
-            },
-            {
-                "error": "Unknown attribute",
-                "name": "hello",
-                "valid": False,
-                "attrType": None,
-            },
-            {
-                "error": "Unknown attribute",
-                "name": "world",
-                "valid": False,
-                "attrType": None,
-            },
-            {
-                "error": "Unknown attribute",
-                "name": "or",
-                "valid": False,
-                "attrType": None,
-            },
-        ]
+        assert response.data["query"] == {
+            "error": "Unknown attribute",
+            "valid": False,
+            "fields": [
+                {
+                    "error": None,
+                    "name": "span.duration",
+                    "valid": True,
+                    "attrType": "number",
+                },
+                {
+                    "error": "Unknown attribute",
+                    "name": "hello",
+                    "valid": False,
+                    "attrType": None,
+                },
+                {
+                    "error": "Unknown attribute",
+                    "name": "world",
+                    "valid": False,
+                    "attrType": None,
+                },
+                {
+                    "error": "Unknown attribute",
+                    "name": "or",
+                    "valid": False,
+                    "attrType": None,
+                },
+            ],
+        }
 
     def test_user_tags_in_storage_for_query(self) -> None:
         self.store_spans(
@@ -460,9 +491,13 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
 
         assert response.status_code == 200, response.content
         assert response.data["valid"]
-        assert response.data["query"] == [
-            {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
-        ]
+        assert response.data["query"] == {
+            "error": None,
+            "valid": True,
+            "fields": [
+                {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
+            ],
+        }
 
     def test_invalid_field_in_fields_and_query(self) -> None:
         response = self.do_request(
@@ -484,14 +519,18 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
                 "attrType": None,
             },
         ]
-        assert response.data["query"] == [
-            {
-                "error": "Unknown attribute",
-                "name": "hello",
-                "valid": False,
-                "attrType": None,
-            },
-        ]
+        assert response.data["query"] == {
+            "error": "Unknown attribute",
+            "valid": False,
+            "fields": [
+                {
+                    "error": "Unknown attribute",
+                    "name": "hello",
+                    "valid": False,
+                    "attrType": None,
+                },
+            ],
+        }
 
     def test_multiple_invalid_issues(self) -> None:
         response = self.do_request(
@@ -514,14 +553,18 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
                 "attrType": None,
             },
         ]
-        assert response.data["query"] == [
-            {
-                "error": "Unknown attribute",
-                "name": "hello",
-                "valid": False,
-                "attrType": None,
-            },
-        ]
+        assert response.data["query"] == {
+            "error": "Unknown attribute",
+            "valid": False,
+            "fields": [
+                {
+                    "error": "Unknown attribute",
+                    "name": "hello",
+                    "valid": False,
+                    "attrType": None,
+                },
+            ],
+        }
         assert response.data["orderby"] == [
             {
                 "error": "Orderby must also be a selected field",

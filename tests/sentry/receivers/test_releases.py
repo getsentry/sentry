@@ -14,7 +14,7 @@ from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -403,3 +403,58 @@ class ProjectHasReleasesReceiverTest(TestCase):
             filters={"release_id": -1, "project_id": -2},
             sender=ReleaseProject,
         )
+
+
+class PullRequestClosedSignalTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(project=self.project, name="example/repo")
+        self.group = self.create_group(project=self.project)
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="1"
+        )
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pull_request.id,
+        )
+
+    def _save_with_state(self, state: str) -> None:
+        self.pull_request.state = state
+        self.pull_request.save()
+
+    def test_closed_emits_activity_when_flag_enabled(self) -> None:
+        with self.feature("organizations:pr-group-activity"):
+            self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.ident == str(self.pull_request.id)
+        assert activity.data == {"pull_request": self.pull_request.id}
+
+    def test_merged_does_not_emit_activity(self) -> None:
+        with self.feature("organizations:pr-group-activity"):
+            self._save_with_state(PullRequestLifecycleState.MERGED)
+
+        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+
+    def test_open_does_not_emit_activity(self) -> None:
+        with self.feature("organizations:pr-group-activity"):
+            self._save_with_state(PullRequestLifecycleState.OPEN)
+
+        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+
+    def test_closed_skips_activity_when_flag_disabled(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+
+    def test_resaving_closed_pr_does_not_duplicate(self) -> None:
+        with self.feature("organizations:pr-group-activity"):
+            self._save_with_state(PullRequestLifecycleState.CLOSED)
+            self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        assert Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).count() == 1

@@ -7,6 +7,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from '.';
@@ -94,10 +95,15 @@ describe('EventNavigation', () => {
 
   describe('all events buttons', () => {
     it('renders the all events controls', () => {
-      render(<IssueEventNavigation {...defaultProps} />, {
-        initialRouterConfig,
-        organization,
-      });
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>,
+        {
+          initialRouterConfig,
+          organization,
+        }
+      );
 
       const discoverButton = screen.getByLabelText('Open in Discover');
       expect(discoverButton).toBeInTheDocument();
@@ -117,10 +123,15 @@ describe('EventNavigation', () => {
     });
 
     it('supplies the default timestamp sort when no sort is set in the query params', () => {
-      render(<IssueEventNavigation {...defaultProps} />, {
-        initialRouterConfig,
-        organization,
-      });
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>,
+        {
+          initialRouterConfig,
+          organization,
+        }
+      );
 
       const discoverButton = screen.getByLabelText('Open in Discover');
       expect(discoverButton).toBeInTheDocument();
@@ -132,16 +143,21 @@ describe('EventNavigation', () => {
     });
 
     it('supplies the sort when it is set in the query params', () => {
-      render(<IssueEventNavigation {...defaultProps} />, {
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {sort: '-title'},
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>,
+        {
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              query: {sort: '-title'},
+            },
           },
-        },
-        organization,
-      });
+          organization,
+        }
+      );
 
       const discoverButton = screen.getByLabelText('Open in Discover');
       expect(discoverButton).toBeInTheDocument();
@@ -155,7 +171,11 @@ describe('EventNavigation', () => {
 
   describe('counts', () => {
     it('renders default counts', async () => {
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>
+      );
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
@@ -172,7 +192,11 @@ describe('EventNavigation', () => {
         body: [EventAttachmentFixture()],
       });
 
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>
+      );
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
@@ -190,7 +214,11 @@ describe('EventNavigation', () => {
         },
       });
 
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <IssueEventNavigation {...defaultProps} />
+        </GroupDataContextProvider>
+      );
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(

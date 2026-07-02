@@ -137,6 +137,33 @@ export function isPartOfReservedBudget(
 }
 
 /**
+ * Whether a category belongs to a reserved budget available on the plan (e.g.
+ * Seer's seerAutofix/seerScanner). Such categories are configured through their
+ * reserved budget rather than a per-category reserved-volume slider, so they are
+ * excluded from the checkout volume sliders.
+ */
+export function isReservedBudgetCategory(category: DataCategory, plan: Plan): boolean {
+  return Object.values(plan?.availableReservedBudgetTypes ?? {}).some(budgetInfo =>
+    budgetInfo.dataCategories.includes(category)
+  );
+}
+
+/**
+ * Whether a category is reservable in checkout — i.e. it has a real reserved
+ * tier (its first reserved bucket is a non-zero or unlimited amount, rather than
+ * a PAYG-only 0) and isn't billed through a reserved budget. Mirrors the
+ * server's is_checkout_category, and is the set shown in the admin reserved
+ * volume controls. Categories whose only reserved option is 0 (e.g. continuous
+ * profiling, Seer users) are excluded.
+ */
+export function isCheckoutCategory(category: DataCategory, plan: Plan): boolean {
+  return (
+    (plan.planCategories[category]?.[0]?.events ?? 0) !== 0 &&
+    !isReservedBudgetCategory(category, plan)
+  );
+}
+
+/**
  * Convert a list of reserved budget categories to a display name for the budget
  */
 export function getReservedBudgetDisplayName({

@@ -32,7 +32,7 @@ describe('PartnerPlanEndingModal', () => {
 
   it('shows request upgrade when user does not have billing permissions', async () => {
     const org = OrganizationFixture({access: []});
-    const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
+    const sub = SubscriptionFixture({organization: org, billingPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
 
     const mockCall = MockApiClient.addMockResponse({
@@ -56,7 +56,7 @@ describe('PartnerPlanEndingModal', () => {
 
   it('shows an upgrade now button with billing permission', () => {
     const org = OrganizationFixture({access: ['org:billing']});
-    const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
+    const sub = SubscriptionFixture({organization: org, billingPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
 
     render(
@@ -73,7 +73,7 @@ describe('PartnerPlanEndingModal', () => {
 
   it('displays 7 days left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
-    const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-08'});
+    const sub = SubscriptionFixture({organization: org, billingPeriodEnd: '2024-08-08'});
     SubscriptionStore.set(org.slug, sub);
 
     render(
@@ -91,7 +91,7 @@ describe('PartnerPlanEndingModal', () => {
 
   it('displays 1 day left', () => {
     const org = OrganizationFixture({access: ['org:billing']});
-    const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-08-02'});
+    const sub = SubscriptionFixture({organization: org, billingPeriodEnd: '2024-08-02'});
     SubscriptionStore.set(org.slug, sub);
 
     render(
@@ -110,7 +110,7 @@ describe('PartnerPlanEndingModal', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({
       organization: org,
-      contractPeriodEnd: '2024-08-30',
+      billingPeriodEnd: '2024-08-30',
       planDetails: PlanFixture({
         name: PlanName.TEAM_SPONSORED,
       }),
@@ -132,7 +132,7 @@ describe('PartnerPlanEndingModal', () => {
     const org = OrganizationFixture({access: ['org:billing']});
     const sub = SubscriptionFixture({
       organization: org,
-      contractPeriodEnd: '2024-08-30',
+      billingPeriodEnd: '2024-08-30',
       planDetails: PlanFixture({
         name: PlanName.BUSINESS_SPONSORED,
       }),
@@ -158,7 +158,7 @@ describe('PartnerPlanEndingModal', () => {
 
   it('does not display if plan ended', () => {
     const org = OrganizationFixture({access: ['org:billing']});
-    const sub = SubscriptionFixture({organization: org, contractPeriodEnd: '2024-07-31'});
+    const sub = SubscriptionFixture({organization: org, billingPeriodEnd: '2024-07-31'});
     SubscriptionStore.set(org.slug, sub);
 
     render(

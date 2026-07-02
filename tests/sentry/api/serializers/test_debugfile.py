@@ -1,7 +1,9 @@
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import TestCase
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 
+@debug_files_test_both_backends
 class DebugFileSerializerTest(TestCase):
     def test_simple(self) -> None:
         file = self.create_file(

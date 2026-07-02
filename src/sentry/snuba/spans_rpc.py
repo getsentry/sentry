@@ -111,6 +111,10 @@ class Spans(rpc_dataset_common.RPCBase):
             "sdk.name",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
+            "measurements.app_start_cold",
+            "measurements.app_start_warm",
+            "measurements.frames_slow_rate",
+            "measurements.frames_frozen_rate",
             "measurements.lcp",
             "measurements.score.ratio.lcp",
             "measurements.fcp",
@@ -129,6 +133,11 @@ class Spans(rpc_dataset_common.RPCBase):
             "browser.web_vital.fcp.value",
             # The UI does not currently use FP values, so do not request it yet.
             # "browser.web_vital.fp.value",
+            # span v2 mobile vital values
+            "app.vitals.start.cold.value",
+            "app.vitals.start.warm.value",
+            "app.vitals.ttid.value",
+            "app.vitals.ttfd.value",
             *additional_attributes,
         ]
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())

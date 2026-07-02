@@ -194,7 +194,7 @@ export function NewWelcomeUI(props: StepProps) {
           </MotionStack>
 
           <MotionGrid
-            columns={{xs: '1fr', md: 'repeat(3, 1fr)'}}
+            columns={{'screen:xs': '1fr', 'screen:md': 'repeat(3, 1fr)'}}
             gap="3xl"
             {...ONBOARDING_WELCOME_STAGGER_ITEM}
             border="muted"

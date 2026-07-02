@@ -8,6 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
+    SUPPORTED_ACTIVITIES,
     activity_handler,
     seer_activity_handler,
 )
@@ -162,6 +163,37 @@ class GenericActivityHandlerTest(TestCase):
             group_id=self.group.id,
             detector_id=self.detector.id,
         )
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_resolution_activity_types_dispatch(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        # Enumerate the resolution types explicitly (rather than looping over
+        # SUPPORTED_ACTIVITIES) so that removing any of these from the source list makes
+        # this test fail rather than silently test fewer types.
+        resolution_activity_types = [
+            ActivityType.SET_RESOLVED,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ActivityType.SET_RESOLVED_BY_AGE,
+            ActivityType.SET_RESOLVED_IN_COMMIT,
+            ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+        ]
+        assert set(resolution_activity_types) <= set(SUPPORTED_ACTIVITIES)
+
+        for activity_type in resolution_activity_types:
+            mock_process_workflow_activity.reset_mock()
+            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+            activity_handler(self.group, activity, self.detector.id)
+            assert mock_process_workflow_activity.delay.called, (
+                f"Task not dispatched for {activity_type.value}"
+            )
+            mock_process_workflow_activity.delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=self.group.id,
+                detector_id=self.detector.id,
+            )
 
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"

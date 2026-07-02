@@ -24,6 +24,7 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
@@ -75,7 +76,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
     metricQueries.length >= MAX_METRICS_ALLOWED ||
-    metricQueries.some(q => q.label === 'Z');
+    metricQueries.some(q => q.label === MAX_METRIC_ALLOWED_LABEL_VALUE);
 
   return (
     <ExploreBodySearch>

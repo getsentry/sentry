@@ -58,7 +58,6 @@ import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergr
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -70,6 +69,8 @@ import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
+  getStoredIssueSort,
+  setStoredIssueSort,
   isForReviewQuery,
   IssueSortOptions,
   Query,
@@ -91,6 +92,7 @@ interface Props {
   clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
+  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -139,6 +141,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
+  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
@@ -223,10 +226,16 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const sort = decodeScalar(
-    location.query.sort,
-    DEFAULT_ISSUE_STREAM_SORT
-  ) as IssueSortOptions;
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
+  );
+  const defaultSort =
+    initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSortDefault
+        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+        : DEFAULT_ISSUE_STREAM_SORT
+      : initialSort;
+  const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
     const currentPeriod = decodeScalar(
@@ -258,7 +267,7 @@ function IssueListOverviewInner({
       params.start = getUtcDateString(params.start);
     }
 
-    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
+    if (sort !== IssueSortOptions.DATE) {
       params.sort = sort;
     }
 
@@ -700,6 +709,9 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
+    if (hasRecommendedSortDefault && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
+      setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
+    }
     transitionTo({sort: newSort});
   };
 
@@ -905,8 +917,6 @@ function IssueListOverviewInner({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
@@ -965,12 +975,7 @@ function IssueListOverviewInner({
           headerActions={headerActions}
         />
         <StyledBody>
-          <Grid
-            area="content"
-            padding={
-              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
-            }
-          >
+          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}

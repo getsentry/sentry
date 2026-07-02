@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import options as sentry_options
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -27,7 +27,7 @@ from sentry.signals import user_feedback_received
 from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
-from sentry.utils.http import is_valid_origin, origin_from_request
+from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
 from sentry.web.frontend.base import cell_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
@@ -102,7 +102,7 @@ class ErrorEmbedResolver(CellRequestResolver):
         host = parsed.hostname
         if not host:
             return None
-        app_host = urlparse(options.get("system.url-prefix")).hostname
+        app_host = urlparse(sentry_options.get("system.url-prefix")).hostname
         if not app_host or not host.endswith(app_host):
             # Don't further parse URLs that aren't for us.
             return None
@@ -265,7 +265,10 @@ class ErrorPageEmbedView(View):
         elif request.method == "POST":
             return self._smart_response(request, {"errors": dict(form.errors)}, status=400)
 
-        endpoint = get_local_locality().to_url(request.get_full_path())
+        if sentry_options.get("error-embeds.control-silo-address"):
+            endpoint = absolute_uri(request.get_full_path())
+        else:
+            endpoint = get_local_locality().to_url(request.get_full_path())
         show_branding = (
             ProjectOption.objects.get_value(
                 project=key.project, key="feedback:branding", default="1"

@@ -11,18 +11,19 @@ from sentry.tasks.summaries.utils import (
     ProjectContext,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
+    fetch_past_resolved_issue_links,
     org_key_errors,
     organization_project_issue_substatus_summaries,
     project_event_counts_for_organization,
     project_key_errors,
     project_key_performance_issues,
-    project_key_transactions_last_week,
-    project_key_transactions_this_week,
+    project_past_resolved_issues,
 )
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
+from sentry.utils.tracing import start_span
 
 
 class OrganizationReportContextFactory:
@@ -40,7 +41,9 @@ class OrganizationReportContextFactory:
         """Find the projects associated with each user.
         Populates context.project_ownership which is { user_id: set<project_id> }
         """
-        with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
+        with start_span(
+            op="weekly_reports.user_project_ownership", name="weekly_reports.user_project_ownership"
+        ):
             for project_id, user_id in OrganizationMember.objects.filter(
                 organization_id=ctx.organization.id,
                 teams__projectteam__project__isnull=False,
@@ -51,7 +54,10 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_event_counts")
     def _append_project_event_counts(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
+        with start_span(
+            op="weekly_reports.project_event_counts_for_organization",
+            name="weekly_reports.project_event_counts_for_organization",
+        ):
             event_counts = project_event_counts_for_organization(
                 start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
             )
@@ -83,7 +89,10 @@ class OrganizationReportContextFactory:
         Reads from Redis cache first (written by cache_project_metrics() at the end of each
         weekly report run), then falls back to a Snuba query for any cache misses.
         """
-        with sentry_sdk.start_span(op="weekly_reports.project_event_counts_previous_week"):
+        with start_span(
+            op="weekly_reports.project_event_counts_previous_week",
+            name="weekly_reports.project_event_counts_previous_week",
+        ):
             project_ids = list(ctx.projects_context_map.keys())
             cached = read_project_metrics(ctx.organization.id, project_ids)
 
@@ -124,14 +133,15 @@ class OrganizationReportContextFactory:
     def _append_organization_project_issue_substatus_summaries(
         self, ctx: OrganizationReportContext
     ) -> None:
-        with sentry_sdk.start_span(
-            op="weekly_reports.organization_project_issue_substatus_summaries"
+        with start_span(
+            op="weekly_reports.organization_project_issue_substatus_summaries",
+            name="weekly_reports.organization_project_issue_substatus_summaries",
         ):
             organization_project_issue_substatus_summaries(ctx)
 
     @metrics.wraps("weekly_report.create_context.project_key_errors")
     def _append_project_key_errors(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.project_passes"):
+        with start_span(op="weekly_reports.project_passes", name="weekly_reports.project_passes"):
             organization = ctx.organization
             use_batched = features.has(
                 "organizations:weekly-report-batched-key-errors", organization
@@ -176,26 +186,6 @@ class OrganizationReportContextFactory:
                             (e["events.group_id"], e["count()"]) for e in per_project_key_errors
                         ]
 
-                key_transactions_this_week = project_key_transactions_this_week(ctx, project)
-                if key_transactions_this_week:
-                    project_ctx.key_transactions = [
-                        (i["transaction_name"], i["count"], i["p95"])
-                        for i in key_transactions_this_week
-                    ]
-                    query_result = project_key_transactions_last_week(
-                        ctx, project, key_transactions_this_week
-                    )
-                    # Join last week's transaction counts and p95s to this week's key transactions for week-over-week comparison
-                    last_week_data = {
-                        i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
-                    }
-
-                    project_ctx.key_transactions = [
-                        (i["transaction_name"], i["count"], i["p95"])
-                        + last_week_data.get(i["transaction_name"], (0, 0))
-                        for i in key_transactions_this_week
-                    ]
-
                 key_performance_issues = project_key_performance_issues(
                     ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
                 )
@@ -206,13 +196,36 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_error_groups")
     def _hydrate_key_error_groups(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
+        with start_span(
+            op="weekly_reports.fetch_key_error_groups", name="weekly_reports.fetch_key_error_groups"
+        ):
             fetch_key_error_groups(ctx)
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_performance_issues")
     def _hydrate_key_performance_issue_groups(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
+        with start_span(
+            op="weekly_reports.fetch_key_performance_issue_groups",
+            name="weekly_reports.fetch_key_performance_issue_groups",
+        ):
             fetch_key_performance_issue_groups(ctx)
+
+    @metrics.wraps("weekly_report.create_context.project_past_resolved_issues")
+    def _append_project_past_resolved_issues(self, ctx: OrganizationReportContext) -> None:
+        with start_span(
+            op="weekly_reports.project_past_resolved_issues",
+            name="weekly_reports.project_past_resolved_issues",
+        ):
+            for project in ctx.organization.project_set.all():
+                if project.id not in ctx.projects_context_map:
+                    continue
+                project_ctx = ctx.projects_context_map[project.id]
+                resolved = project_past_resolved_issues(
+                    ctx, project, referrer=Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+                )
+                if resolved:
+                    project_ctx.past_resolved_issues = resolved
+
+            fetch_past_resolved_issue_links(ctx)
 
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
@@ -234,5 +247,7 @@ class OrganizationReportContextFactory:
                 self._append_project_key_errors(ctx)
                 self._hydrate_key_error_groups(ctx)
                 self._hydrate_key_performance_issue_groups(ctx)
+                if features.has("organizations:weekly-report-past-issues", self.organization):
+                    self._append_project_past_resolved_issues(ctx)
 
         return ctx

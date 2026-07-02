@@ -1,9 +1,10 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
+from pydantic import ValidationError
 from scm.types import CreatePullRequestCommentReactionProtocol
 
 from fixtures.gitlab import (
@@ -15,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
 from sentry.seer.code_review.webhooks.merge_request import (
     WEBHOOK_NOTE_SEEN_KEY_PREFIX,
     WEBHOOK_SEEN_KEY_PREFIX,
@@ -175,6 +177,44 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_validation_failure_is_captured_and_review_dropped(self) -> None:
+        # A payload that fails SeerCodeReviewTaskRequest validation means the
+        # review is dropped entirely and never reaches Seer, so it must be
+        # escalated via sentry_sdk.capture_exception (not just debug-logged).
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with pytest.raises(ValidationError) as exc_info:
+            SeerCodeReviewTaskRequestForPrReview.parse_obj({})
+        validation_error = exc_info.value
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request."
+                "SeerCodeReviewTaskRequestForPrReview.parse_obj",
+                side_effect=validation_error,
+            ),
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.sentry_sdk.capture_exception"
+            ) as mock_capture,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        mock_capture.assert_called_once_with(
+            validation_error,
+            level="warning",
+            contexts={"code_review_validation": {"seer_path": ANY}},
+        )
+        self.mock_seer.assert_not_called()
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_when_gitlab_flag_disabled(self) -> None:

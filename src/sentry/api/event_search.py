@@ -2018,12 +2018,14 @@ def parse_search_query(
         idx = e.column()
         prefix = query[max(0, idx - 5) : idx]
         suffix = query[idx : (idx + 5)]
-        raise InvalidSearchQuery(
+        err = InvalidSearchQuery(
             "{} {}".format(
                 f"Parse error at '{prefix}{suffix}' (column {e.column():d}).",
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
-            )
+            ),
         )
+        err.extra = {"idx": idx}
+        raise err
 
     return SearchVisitor(
         config,

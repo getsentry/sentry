@@ -2,6 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
 
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{"type": "host", "value": "sentry.dev"}],
+      "destination": "https://sentry.io/$1",
+      "permanent": false
+    }
+  ],
+
   "rewrites": [
     {
       "source": "/(api|organization-avatar|team-avatar|avatar)/(.*)",
@@ -27,6 +36,10 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/entrypoints/service-worker.js",
+      "headers": [{"key": "Service-Worker-Allowed", "value": "/"}]
     }
   ],
   "github": {"silent": true},

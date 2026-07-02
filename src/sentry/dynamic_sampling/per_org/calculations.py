@@ -27,6 +27,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
     get_eap_organization_volume,
+    get_generic_metrics_organization_volume,
     get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -66,6 +67,9 @@ def compare_organization_sliding_window_sample_rates(
     end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
     eap_volume = get_eap_organization_volume(config, time_interval=window, end=end)
     outcomes_volume = get_outcomes_organization_volume(config, time_interval=window, end=end)
+    generic_metrics_volume = get_generic_metrics_organization_volume(
+        config.organization.id, time_interval=window, end=end
+    )
 
     def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
         if volume is None:
@@ -79,6 +83,7 @@ def compare_organization_sliding_window_sample_rates(
 
     eap_sample_rate = sample_rate_for(eap_volume)
     outcomes_sample_rate = sample_rate_for(outcomes_volume)
+    generic_metrics_sample_rate = sample_rate_for(generic_metrics_volume)
 
     tags = {"ds_org": str(config.organization.id)}
     if eap_sample_rate is not None:
@@ -95,6 +100,13 @@ def compare_organization_sliding_window_sample_rates(
             sample_rate=1.0,
             tags=tags,
         )
+    if generic_metrics_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_sample_rate",
+            generic_metrics_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
     if eap_volume is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume",
@@ -102,10 +114,24 @@ def compare_organization_sliding_window_sample_rates(
             sample_rate=1.0,
             tags=tags,
         )
+        if eap_volume.indexed is not None:
+            metrics.distribution(
+                f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_volume_without_extrapolation",
+                eap_volume.indexed,
+                sample_rate=1.0,
+                tags=tags,
+            )
     if outcomes_volume is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_volume",
             outcomes_volume.total,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if generic_metrics_volume is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.generic_metrics_volume",
+            generic_metrics_volume.total,
             sample_rate=1.0,
             tags=tags,
         )
@@ -120,12 +146,33 @@ def run_project_balancing(
     for project_volume in project_volumes:
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
+
+    # Mirror the legacy serving path (get_guarded_project_sample_rate): a 100% org sample
+    # rate means every project is sampled at 100% and the balanced ("boost low volume
+    # projects") rate is never applied. Reproduced intentionally to match the legacy pipeline.
+    if sample_rate == 1.0:
+        return [
+            RebalancedItem(
+                id=project.id,
+                count=counts_by_project.get(project.id, 0),
+                new_sample_rate=1.0,
+            )
+            for project in config.projects
+        ]
+
+    # When no project has any volume there is nothing to rebalance, and the model would
+    # divide by zero on all-zero counts. Matches the legacy pipeline, which returns early.
+    if not counts_by_project:
+        return []
+
+    # Include every project, defaulting those without volume to a count of 0. The model
+    # assigns zero-count projects a 100% sample rate, and their presence keeps the
+    # per-project ideal budget identical to the legacy calculation.
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
-                RebalancedItem(id=project.id, count=counts_by_project[project.id])
+                RebalancedItem(id=project.id, count=counts_by_project.get(project.id, 0))
                 for project in config.projects
-                if project.id in counts_by_project
             ],
             sample_rate=sample_rate,
         )
@@ -229,6 +276,9 @@ def compare_rebalanced_projects_with_cache(
                 generic_metrics_sample_rate=generic_metrics_sample_rate,
                 eap_volume=rebalanced_project.count,
                 eap_volume_without_extrapolation=eap_volume_without_extrapolation,
+                seconds_since_last_item=(
+                    project_volume.seconds_since_last_item if project_volume is not None else None
+                ),
             )
 
 
@@ -239,6 +289,7 @@ def _emit_project_balancing_debug_metrics(
     generic_metrics_sample_rate: float | None,
     eap_volume: float,
     eap_volume_without_extrapolation: float | None,
+    seconds_since_last_item: float | None,
 ) -> None:
     tags = {"org": str(org_id), "ds_project": str(project_id)}
     metrics.distribution(
@@ -247,6 +298,13 @@ def _emit_project_balancing_debug_metrics(
         sample_rate=1.0,
         tags=tags,
     )
+    if seconds_since_last_item is not None:
+        metrics.distribution(
+            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_seconds_since_last_item",
+            seconds_since_last_item,
+            sample_rate=1.0,
+            tags=tags,
+        )
     if generic_metrics_sample_rate is not None:
         metrics.distribution(
             f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.generic_metrics_sample_rate",

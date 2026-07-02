@@ -25,6 +25,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -36,7 +37,7 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -47,6 +48,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.tracing import start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -213,7 +215,9 @@ def prepare_organization_report(
             timestamp=timestamp, duration=duration, organization=organization
         ).create_context()
 
-        with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+        with start_span(
+            op="weekly_reports.check_if_ctx_is_empty", name="weekly_reports.check_if_ctx_is_empty"
+        ):
             report_is_available = not ctx.is_empty()
         set_tag("report.available", report_is_available)
         sentry_sdk.set_attribute("report.available", report_is_available)
@@ -222,29 +226,30 @@ def prepare_organization_report(
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
 
-    if not dry_run:
-        try:
-            project_metrics: dict[int, dict[str, int]] = {}
-            for project_id, project_ctx in ctx.projects_context_map.items():
-                if not project_ctx.check_if_project_is_empty():
-                    project_metrics[project_id] = {
-                        "e": project_ctx.accepted_error_count,
-                        "t": project_ctx.accepted_transaction_count,
-                    }
-            if project_metrics:
-                cache_project_metrics(organization_id, project_metrics)
-        except Exception:
-            sentry_sdk.capture_exception()
-
-    # Finally, deliver the reports
+    # Deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+    with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
             extra={"batch_id": str(batch_id), "organization": organization_id},
         )
         with metrics.timer("weekly_report.deliver_reports.duration"):
             batch.deliver_reports()
+
+    # Cache after delivery so a failed attempt doesn't poison the
+    # previous-week lookup on retry.
+    if not dry_run:
+        try:
+            project_metrics: dict[int, dict[str, int]] = {}
+            for project_id, project_ctx in ctx.projects_context_map.items():
+                project_metrics[project_id] = {
+                    "e": project_ctx.accepted_error_count,
+                    "t": project_ctx.accepted_transaction_count,
+                }
+            if project_metrics:
+                cache_project_metrics(organization_id, project_metrics)
+        except Exception:
+            sentry_sdk.capture_exception()
 
 
 @dataclass(frozen=True)
@@ -332,14 +337,16 @@ class OrganizationReportBatch:
             if template_context and user_id:
                 dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
                 if not dupe_check.check_for_duplicate_delivery():
-                    self.send_email(template_ctx=template_context, user_id=user_id)
-                    dupe_check.record_delivery()
+                    was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
+
+                    # Record delivery if email was sent successfully
+                    if was_sent:
+                        dupe_check.record_delivery()
                 else:
                     lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
                     metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
-    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
-        # get user options timezone for this user, then format the timestamp according to the timezone
+    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> bool:
         local_start, local_end = get_local_dates(self.ctx, user_id)
 
         message = MessageBuilder(
@@ -352,11 +359,12 @@ class OrganizationReportBatch:
         )
         if self.dry_run:
             metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
-            return
+            return False
 
         if self.email_override:
             message.send(to=(self.email_override,))
             metrics.incr("weekly_report.email.sent")
+            return True
         else:
             try:
                 analytics.record(
@@ -385,8 +393,10 @@ class OrganizationReportBatch:
             if message._send_to:
                 message.send_async()
                 metrics.incr("weekly_report.email.sent")
+                return True
             else:
                 metrics.incr("weekly_report.email.skipped", tags={"reason": "no_email"})
+                return False
 
 
 class _DuplicateDeliveryCheck:
@@ -569,7 +579,11 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
-def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
+def render_template_context(
+    ctx,
+    user_id: int | None,
+    excluded_project_ids: set[int] | None = None,
+) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
@@ -578,6 +592,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             project_ctx
             for project_ctx in ctx.projects_context_map.values()
             if project_ctx.project.id in ctx.project_ownership[user_id]
+            and (excluded_project_ids is None or project_ctx.project.id not in excluded_project_ids)
         ]
         if len(user_projects) == 0:
             return None
@@ -730,26 +745,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
 
-    def key_transactions():
-        def all_key_transactions():
-            for project_ctx in user_projects:
-                for (
-                    transaction_name,
-                    count_this_week,
-                    p95_this_week,
-                    count_last_week,
-                    p95_last_week,
-                ) in project_ctx.key_transactions:
-                    yield {
-                        "name": transaction_name,
-                        "count": count_this_week,
-                        "p95": p95_this_week,
-                        "p95_prev_week": p95_last_week,
-                        "project": project_ctx.project,
-                    }
-
-        return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
-
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
@@ -780,6 +775,23 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
+    def past_issues():
+        def all_past_issues():
+            for project_ctx in user_projects:
+                for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                    display = get_group_display(group)
+                    yield {
+                        "count": count,
+                        "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
+                        "has_linked_pr_or_commit": has_linked_pr_or_commit,
+                        "_relevance": count
+                        * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
+                    }
+
+        return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
+
     def issue_summary():
         new_substatus_count = 0
         escalating_substatus_count = 0
@@ -800,14 +812,17 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_substatus_count": total_substatus_count,
         }
 
+    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
         "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
-        "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "past_issues": past_issues() if show_past_issues else [],
+        "show_past_issues": show_past_issues,
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
@@ -821,9 +836,21 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
+    exclusions_by_user: dict[int, set[int]] = {}
+    valid_user_ids = [uid for uid in user_ids if uid is not None]
+    if valid_user_ids and features.has(
+        "organizations:weekly-report-project-exclusions", ctx.organization
+    ):
+        for exc_user_id, exc_project_id in WeeklyReportProjectExclusion.objects.filter(
+            user_id__in=valid_user_ids,
+            project__organization_id=ctx.organization.id,
+        ).values_list("user_id", "project_id"):
+            exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
+
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
-        template_ctx = render_template_context(ctx, user_id)
+        excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
+        template_ctx = render_template_context(ctx, user_id, excluded_project_ids=excluded)
         if not template_ctx:
             logger.debug(
                 "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
