@@ -45,6 +45,7 @@ from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
@@ -98,7 +99,7 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     inRelease: str
     inCommit: str
     pendingEvents: int
-    info: Any
+    info: ReprocessingInfo | None
 
 
 class GroupProjectResponse(TypedDict):

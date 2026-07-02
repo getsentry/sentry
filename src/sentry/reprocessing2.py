@@ -112,6 +112,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.services.eventstore.reprocessing import reprocessing_store
+from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
@@ -722,7 +723,9 @@ def is_group_finished(group_id: int) -> bool:
     return pending <= 0
 
 
-def get_progress(group_id: int, project_id: int | None = None) -> tuple[int, Any | None]:
+def get_progress(
+    group_id: int, project_id: int | None = None
+) -> tuple[int, ReprocessingInfo | None]:
     pending, ttl = reprocessing_store.get_pending(group_id)
     info = reprocessing_store.get_progress(group_id)
     if pending is None:
