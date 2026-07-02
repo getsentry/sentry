@@ -326,6 +326,56 @@ class OrganizationEventsTraceEndpointTest(
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
+    def test_with_browser_web_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["browser_web_vital"] == {
+            "browser.web_vital.lcp.value": 2807.335,
+            "browser.web_vital.cls.value": 0.0382,
+            "browser.web_vital.inp.value": 120.0,
+            "browser.web_vital.ttfb.value": 450.0,
+            "browser.web_vital.fcp.value": 2258.06,
+        }
+        assert "browser.web_vital.lcp.value" not in span["measurements"]
+
+    def test_with_mobile_app_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["mobile_app_vital"] == {
+            "app.vitals.start.cold.value": 1600.0,
+            "app.vitals.start.warm.value": 400.0,
+            "app.vitals.ttid.value": 1200.0,
+            "app.vitals.ttfd.value": 2400.0,
+        }
+        assert span["measurements"]["measurements.app_start_cold"] == 0.0
+
+    def test_with_mobile_frames_rate_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["measurements"]["measurements.frames_slow_rate"] == 0.0
+        assert span["measurements"]["measurements.frames_frozen_rate"] == 0.0
+
     def test_with_errors_data(self) -> None:
         self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)

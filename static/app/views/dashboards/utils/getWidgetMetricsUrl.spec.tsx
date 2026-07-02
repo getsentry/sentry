@@ -444,6 +444,34 @@ describe('getWidgetMetricsUrl', () => {
       const metricQuery = JSON.parse(metrics[0]!);
       expect(metricQuery.aggregateFields[0].chartType).toBe(ChartType.AREA);
     });
+
+    it('maps HEATMAP display type to HEATMAP chart type', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Heat Map',
+        displayType: DisplayType.HEATMAP,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: ['count(value,duration,d,none)'],
+            columns: [],
+            conditions: '',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      const metricQuery = JSON.parse(metrics[0]!);
+      expect(metricQuery.aggregateFields[0].chartType).toBe(ChartType.HEATMAP);
+    });
   });
 
   it('handles empty query conditions', () => {

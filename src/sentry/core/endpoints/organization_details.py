@@ -4,6 +4,7 @@ import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
+from urllib.parse import urlsplit
 
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
@@ -26,7 +27,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
+    OrganizationSerializerResponse,
+    OrganizationSummarySerializerResponse,
     OrganizationWithProjectsAndTeamsSerializer,
+    OrganizationWithProjectsAndTeamsSerializerResponse,
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
@@ -38,6 +42,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -117,6 +122,10 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
+RELAY_DSN_ENDPOINT_OPTION = "sentry:relay_dsn_endpoint"
+ERR_RELAY_DSN_ENDPOINT_INVALID = (
+    "Enter an absolute http(s) base URL with a host and no credentials, query, or fragment."
+)
 
 
 ORG_OPTIONS = (
@@ -257,6 +266,7 @@ ORG_OPTIONS = (
         str,
         INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ),
+    ("relayDsnEndpoint", RELAY_DSN_ENDPOINT_OPTION, str, None),
     (
         "enabledConsolePlatforms",
         "sentry:enabled_console_platforms",
@@ -326,6 +336,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    relayDsnEndpoint = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
@@ -453,17 +464,43 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_ingestThroughTrustedRelaysOnly(self, value):
+    def validate_relayDsnEndpoint(self, value: str | None) -> str | None:
         organization = self.context["organization"]
         request = self.context["request"]
+
         if not features.has(
-            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
+            "organizations:relay-dsn-endpoint-override", organization, actor=request.user
         ):
-            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
             raise serializers.ValidationError(
-                "Organization does not have the ingest through trusted relays only feature enabled."
+                "Organization does not have the Relay DSN endpoint override feature enabled."
             )
-        return value
+
+        if value is None:
+            return None
+
+        value = value.strip()
+        if not value:
+            return None
+
+        try:
+            parts = urlsplit(value)
+            hostname = parts.hostname
+            # parts.port raises ValueError on a malformed port; urlsplit itself does not.
+            _ = parts.port
+        except ValueError:
+            raise serializers.ValidationError(ERR_RELAY_DSN_ENDPOINT_INVALID)
+
+        if (
+            parts.scheme not in {"http", "https"}
+            or not hostname
+            or parts.username is not None
+            or parts.password is not None
+            or parts.query
+            or parts.fragment
+        ):
+            raise serializers.ValidationError(ERR_RELAY_DSN_ENDPOINT_INVALID)
+
+        return value.rstrip("/")
 
     def validate_enabledConsolePlatforms(self, value):
         request = self.context["request"]
@@ -1044,6 +1081,12 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
                                           """,
         required=False,
     )
+    relayDsnEndpoint = serializers.CharField(
+        help_text="A Relay base URL to use when displaying Client Key DSNs for this organization.",
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
 
     # slack features
     issueAlertsThreadFlag = serializers.BooleanField(
@@ -1077,7 +1120,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization",
+        operation_id="getOrganization",
+        summary="Retrieve an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.DETAILED],
         request=None,
         responses={
@@ -1088,7 +1132,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationSummarySerializerResponse]
+        | Response[OrganizationSerializerResponse]
+        | Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+    ):
         """
         Return details on an individual organization, including various details
         such as membership access and teams.
@@ -1116,7 +1166,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context)
 
     @extend_schema(
-        operation_id="Update an Organization",
+        operation_id="updateOrganization",
+        summary="Update an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -1132,7 +1183,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given organization.
         """
@@ -1171,10 +1227,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         organization_id=organization.id, slug=slug
                     )
                 except RpcValidationException:
-                    return self.respond(
-                        {"slug": [f'The slug "{slug}" is in use by another organization.']},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    slug_err: ValidationErrorResponse = {
+                        "slug": [f'The slug "{slug}" is in use by another organization.'],
+                    }
+                    return self.respond(slug_err, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
@@ -1279,7 +1335,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             )
 
             return self.respond(context)
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects

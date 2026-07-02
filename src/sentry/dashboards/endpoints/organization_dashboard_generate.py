@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from pydantic import BaseModel
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -108,6 +109,11 @@ User Query:
 """
 
 
+class DashboardGenerateResponse(BaseModel):
+    run_id: int
+    sentry_run_id: str
+
+
 class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
     prompt = serializers.CharField(
         required=True,
@@ -198,7 +204,11 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 artifact_schema=GeneratedDashboard,
                 request=request,
             )
-            return Response({"run_id": run.seer_run_state_id})
+            return Response(
+                DashboardGenerateResponse(
+                    run_id=run.seer_run_state_id, sentry_run_id=str(run.uuid)
+                ).dict()
+            )
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError:

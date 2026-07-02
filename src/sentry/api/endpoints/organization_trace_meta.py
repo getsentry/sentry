@@ -1,7 +1,6 @@
 import logging
 
 import sentry_sdk
-from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -222,7 +221,8 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         )
 
     @extend_schema(
-        operation_id="Retrieve Trace Metadata",
+        operation_id="getOrganizationTraceMeta",
+        summary="Retrieve Trace Metadata",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             TRACE_ID_PATH_PARAM,
@@ -241,7 +241,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         },
         examples=TraceExamples.TRACE_META,
     )
-    def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+    def get(
+        self, request: Request, organization: Organization, trace_id: str
+    ) -> Response[OrganizationTraceMetaResponse] | Response[None]:
         """
         Retrieve aggregate metadata for a single trace, including counts of spans,
         errors, performance issues, logs, and metrics, along with per-span-operation

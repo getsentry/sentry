@@ -1,7 +1,6 @@
 import {DataCategory} from 'sentry/types/core';
 
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 
 type Product = {
   categories: DataCategory[];
@@ -108,7 +107,7 @@ export function getProductForPath(
 ): Product | null {
   path = normalizePath(path);
 
-  if (subscription.planTier === PlanTier.AM3) {
+  if (subscription.planDetails?.categories.includes(DataCategory.SPANS)) {
     if (Object.hasOwn(PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES, path)) {
       return PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES[path]!;
     }

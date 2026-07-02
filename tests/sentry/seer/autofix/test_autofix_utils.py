@@ -28,6 +28,7 @@ from sentry.seer.autofix.utils import (
     deduplicate_repositories,
     extract_api_error_message,
     get_org_default_seer_automation_handoff,
+    get_repo_url_path,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
@@ -48,6 +49,30 @@ from sentry.seer.models.project_repository import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
+
+
+class TestGetRepoUrlPath(TestCase):
+    def test_github_returns_name_unchanged(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        assert get_repo_url_path(repo) == "getsentry/sentry"
+
+    def test_gitlab_returns_path_with_namespace(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="My Group / My Project", provider="integrations:gitlab"
+        )
+        repo.config = {"path": "my-group/my-project"}
+        assert get_repo_url_path(repo) == "my-group/my-project"
+
+    def test_gitlab_missing_path_raises(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="My Group / My Project", provider="integrations:gitlab"
+        )
+        # repo.config defaults to {} (no "path"), which should never happen for a
+        # real GitLab repo — fail loudly instead of returning the display name.
+        with pytest.raises(ValueError):
+            get_repo_url_path(repo)
 
 
 class TestAutofixStateParsing(TestCase):
@@ -1663,11 +1688,27 @@ class TestAddSeerProjectRepos(TestCase):
         assert overrides[0].branch_name == "release"
 
     def test_upserts_existing_repo(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="old")
+        existing = self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="old"
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=existing,
+            tag_name="env",
+            tag_value="staging",
+            branch_name="old-staging",
+        )
 
         add_seer_project_repos(
             self.project,
-            [{"repository_id": self.repo1.id, "branch_name": "new"}],
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_name": "new",
+                    "branch_overrides": [
+                        {"tag_name": "env", "tag_value": "prod", "branch_name": "release"},
+                    ],
+                }
+            ],
         )
 
         assert (
@@ -1678,6 +1719,11 @@ class TestAddSeerProjectRepos(TestCase):
             project_repository__project=self.project, project_repository__repository=self.repo1
         )
         assert pr.branch_name == "new"
+        overrides = list(pr.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].tag_name == "env"
+        assert overrides[0].tag_value == "prod"
+        assert overrides[0].branch_name == "release"
 
     def test_returns_created_ids(self):
         created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])

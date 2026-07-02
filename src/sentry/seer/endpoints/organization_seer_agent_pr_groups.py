@@ -18,6 +18,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,14 @@ class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
             if not runs:
                 return {"data": []}
 
+            uuid_by_state_id = {
+                seer_run_state_id: str(run_uuid)
+                for seer_run_state_id, run_uuid in SeerRun.objects.filter(
+                    organization=organization,
+                    seer_run_state_id__in=[run.run_id for run in runs],
+                ).values_list("seer_run_state_id", "uuid")
+            }
+
             group_ids = [run.group_id for run in runs if run.group_id is not None]
             groups_by_id: dict[str, dict] = {}
 
@@ -120,6 +129,7 @@ class OrganizationSeerAgentPRGroupsEndpoint(OrganizationEndpoint):
                 results.append(
                     {
                         "runId": run.run_id,
+                        "sentryRunId": uuid_by_state_id.get(run.run_id),
                         "userId": run.user_id,
                         "createdAt": run.created_at,
                         "repoPrStates": {

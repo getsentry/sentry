@@ -72,6 +72,7 @@ type DataProviderProps = {
 
 type Props = {
   disabled?: boolean;
+  enableAISearch?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
@@ -144,6 +145,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     customMeasurements,
     dataset,
     includeTransactions = true,
+    enableAISearch: enableAISearchProp = false,
   } = props;
 
   const placeholderText = useMemo(() => {
@@ -161,12 +163,13 @@ export function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset if translate endpoint is enabled
+  // AI search is only enabled for Errors dataset if translate endpoint is enabled.
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
   const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const enableAISearch = hasTranslateEndpoint && enableAISearchProp;
 
   const searchBarProps = {
     placeholderText,
@@ -187,7 +190,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch={hasTranslateEndpoint}
+        enableAISearch={enableAISearch}
         aiSearchBadgeType="beta"
         disabled={disabled}
         fieldDefinitionGetter={undefined}

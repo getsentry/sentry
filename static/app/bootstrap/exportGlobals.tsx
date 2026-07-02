@@ -3,11 +3,7 @@ import {createRoot} from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
-import {plugins} from 'sentry/plugins';
-
 const globals: Record<string, any> = {
-  // The following globals are used in sentry-plugins webpack externals
-  // configuration.
   React,
   Sentry,
   moment,
@@ -20,18 +16,10 @@ const globals: Record<string, any> = {
 // The SentryApp global contains exported app modules for use in javascript
 // modules that are not compiled with the sentry bundle.
 const SentryApp = {
-  // The following components are used in sentry-plugins.
-  FormState: require('sentry/components/forms/state').default,
-  LoadingIndicator: require('sentry/components/loadingIndicator').default,
-  plugins: {
-    add: plugins.add,
-    addContext: plugins.addContext,
-    BasePlugin: plugins.BasePlugin,
-    DefaultIssuePlugin: plugins.DefaultIssuePlugin,
-  },
-
   // The following components are used in legacy django HTML views
   // or in the Sentry sandbox
+  FormState: require('sentry/components/forms/state').default,
+  LoadingIndicator: require('sentry/components/loadingIndicator').default,
   ConfigStore: require('sentry/stores/configStore').default,
   GuideActionCreator: require('sentry/actionCreators/guides'),
   Modal: require('sentry/actionCreators/modal'),

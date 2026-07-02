@@ -143,7 +143,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve an Issue Event",
+        operation_id="getOrganizationIssueEvent",
+        summary="Retrieve an Issue Event",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

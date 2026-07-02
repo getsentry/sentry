@@ -10,10 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import * as RegionUtils from 'sentry/utils/regions';
+import * as RegionUtils from 'sentry/utils/cells';
 import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/utils/regions');
+jest.mock('sentry/utils/cells');
 
 describe('OrganizationSettingsForm', () => {
   const organization = OrganizationFixture();
@@ -21,10 +21,10 @@ describe('OrganizationSettingsForm', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
-    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
+    jest.mocked(RegionUtils.getLocalities).mockReturnValue([]);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(organization, {replace: true});
-    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
+    jest.mocked(RegionUtils.getLocalities).mockReturnValue([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -246,7 +246,7 @@ describe('OrganizationSettingsForm', () => {
 
   it('shows hideAiFeatures toggle for DE region', () => {
     // Mock the region util to return DE region
-    jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+    jest.mocked(RegionUtils.getLocalityDataFromOrganization).mockImplementation(() => ({
       name: 'de',
       displayName: 'Europe (Frankfurt)',
       url: 'https://sentry.de.example.com',

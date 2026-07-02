@@ -1053,6 +1053,78 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
+    def test_save_dashboard_with_existing_tracemetrics_table_widget(self) -> None:
+        # Tracemetrics tables can't be created in the UI, but some existing
+        # widgets predate display-type validation. Saving a dashboard that
+        # contains one (without changing its display type) must still succeed.
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=2,
+            title="Metrics Table",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRACEMETRICS,
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=widget,
+            fields=["sum(value)"],
+            columns=[],
+            aggregates=["sum(value)"],
+            conditions="metric.name:foo",
+            order=0,
+        )
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Metrics Table",
+                    "displayType": "table",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["sum(value)"],
+                            "columns": [],
+                            "aggregates": ["sum(value)"],
+                            "conditions": "metric.name:foo",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+    def test_put_tracemetrics_line_chart_rejects_equation_with_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Metrics Equation",
+                    "displayType": "line",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data["widgets"][0], response.data
+
     def test_add_widget_with_field_aliases(self) -> None:
         data: dict[str, Any] = {
             "title": "First dashboard",

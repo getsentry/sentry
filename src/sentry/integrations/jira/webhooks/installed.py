@@ -1,6 +1,12 @@
 import sentry_sdk
 from django.db import router, transaction
-from jwt import DecodeError, ExpiredSignatureError, InvalidKeyError, InvalidSignatureError
+from jwt import (
+    DecodeError,
+    ExpiredSignatureError,
+    InvalidAlgorithmError,
+    InvalidKeyError,
+    InvalidSignatureError,
+)
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -84,6 +90,11 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 return self.respond(
                     {"detail": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
                 )
+            except InvalidAlgorithmError:
+                lifecycle.record_halt(halt_reason="JWT signed with unexpected algorithm")
+                return self.respond(
+                    {"detail": "Invalid algorithm"}, status=status.HTTP_400_BAD_REQUEST
+                )
             except DecodeError:
                 lifecycle.record_halt(halt_reason="Could not decode JWT token")
                 return self.respond(
@@ -114,6 +125,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             # here, because at this point the integration hasn't yet been bound to an organization. The
             # best we can do at this point is to record the integration's id.
             sentry_sdk.set_tag("integration_id", integration.id)
+            sentry_sdk.set_attribute("integration_id", integration.id)
 
             # Sync integration metadata from Jira. This must be executed *after*
             # the integration has been installed on Jira as the access tokens will

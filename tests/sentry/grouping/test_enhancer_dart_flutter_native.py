@@ -253,14 +253,27 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     def test_dart_bootstrap_stub_frames_not_in_app(self) -> None:
         """Dart VM bootstrap/invoke stub frames (no abs_path) are out-of-app.
 
-        Native frames carry `raw_function`, which makes the grouping matcher use
-        the untrimmed `function` value. Without it, `trim_native_function_name`
-        would strip the leading `stub ` token and the rule wouldn't match.
+        On real symbolicated native frames the `stub ` prefix is kept in
+        `raw_function`/`symbol` while `function` already holds the trimmed name
+        (e.g. `InvokeDartCode`). Because `raw_function` is set, the grouping
+        matcher uses `function` unchanged, so the rule must match the trimmed
+        name rather than the `stub ...` form.
         """
-        for stub_function in ("stub InvokeDartCode", "stub CallBootstrapNative"):
-            frame = {"function": stub_function, "raw_function": stub_function}
+        for function, raw_function in (
+            ("InvokeDartCode", "stub InvokeDartCode"),
+            ("CallBootstrapNative", "stub CallBootstrapNative"),
+        ):
+            frame = {
+                "function": function,
+                "raw_function": raw_function,
+                "symbol": raw_function,
+                "package": (
+                    "/data/app/~~HnUUEj6l01Oer6sOVEGsCQ==/"
+                    "io.sentry.flutter.sample-iQnuDrBoh7jPXpeiiy-THw==/lib/arm64/libapp.so"
+                ),
+            }
             result = self.apply_rules(frame)
-            assert result["in_app"] is False, f"{stub_function} should be out-of-app"
+            assert result["in_app"] is False, f"{function} should be out-of-app"
 
     def test_user_dart_frames_stay_in_app(self) -> None:
         """User application Dart frames must remain in-app (regression guard).

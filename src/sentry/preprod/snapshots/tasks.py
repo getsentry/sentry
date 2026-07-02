@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
+from datetime import datetime
 from difflib import SequenceMatcher
 from typing import NamedTuple
 
@@ -16,8 +17,15 @@ from objectstore_client import RequestError, Session
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
+from sentry import analytics
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.snapshots.categorize import categorize_image_sets
+from sentry.preprod.snapshots.constants import (
+    MISSING_BASE_GRACE_PERIOD_SECONDS,
+    RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
+)
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
@@ -34,6 +42,7 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -186,21 +195,7 @@ def categorize_image_diff(
     head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
     base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
 
-    all_image_file_names = head_manifest.all_image_file_names
-
-    matched = head_by_name.keys() & base_by_name.keys()
-    added = head_by_name.keys() - base_by_name.keys()
-
-    if all_image_file_names is not None:
-        all_names_set = set(all_image_file_names)
-        removed = base_by_name.keys() - all_names_set
-        skipped = (all_names_set - head_by_name.keys()) & base_by_name.keys()
-    elif head_manifest.selective:
-        removed = set()
-        skipped = base_by_name.keys() - head_by_name.keys()
-    else:
-        removed = base_by_name.keys() - head_by_name.keys()
-        skipped = set()
+    matched, added, removed, skipped = categorize_image_sets(head_manifest, base_manifest)
 
     added_hash_to_names: dict[str, list[str]] = {}
     for name in added:
@@ -419,6 +414,16 @@ def _try_auto_approve_snapshot(
         },
     )
 
+    analytics.record(
+        PreprodStatusCheckApprovalCreatedEvent(
+            organization_id=head_artifact.project.organization_id,
+            project_id=head_artifact.project_id,
+            artifact_id=head_artifact.id,
+            product="snapshots",
+            source="auto",
+        )
+    )
+
     logger.info(
         "auto_approve: snapshot auto-approved",
         extra={
@@ -628,7 +633,7 @@ def _process_chunk(
                 logger.info(
                     "preprod.snapshots.odiff.unchanged_with_diff_hash",
                     extra={
-                        "name": name,
+                        "image_name": name,
                         "org_id": org_id,
                         "head_artifact_id": head_artifact_id,
                         "base_artifact_id": base_artifact_id,
@@ -689,14 +694,19 @@ def process_snapshot_comparison_chunk(
                 org_id, project_id, head_artifact_id, base_artifact_id, chunk_index
             )
             _put_json(session, result_key, ChunkResult(chunk_index=chunk_index, images=images))
-    except Exception:
+    except Exception as e:
         # Record the chunk as terminally failed so the comparison can still
         # complete: finalize degrades a done chunk with no result blob to errored.
         # Processing-deadline timeouts raise BaseException and propagate past this
         # handler, so the broker can still retry them.
         logger.exception(
             "compare_snapshots: chunk failed",
-            extra={"comparison_id": comparison_id, "chunk_index": chunk_index},
+            extra={
+                "comparison_id": comparison_id,
+                "chunk_index": chunk_index,
+                "error_type": type(e).__name__,
+                "error": str(e),
+            },
         )
 
     _mark_chunk_done(comparison_id, chunk_index)
@@ -719,6 +729,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -793,6 +804,7 @@ def compare_snapshots(
             return
         created = False
 
+    prior_state = None if created else comparison.state
     if not created:
         logger.info(
             "compare_snapshots: existing comparison found (id=%d, state=%s)",
@@ -834,11 +846,31 @@ def compare_snapshots(
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
-    update_preprod_snapshot_vcs(
-        preprod_artifact_id=head_artifact_id,
-        caller="compare_start",
-        update_pr_comment=False,
-    )
+    # Skip re-posting the start status when resuming a self-parked PENDING comparison: the
+    # deferral loop reschedules every 60s for up to the grace window, and the start was
+    # already posted on the first attempt. Re-running the full status recompute (~6 queries)
+    # and re-posting IN_PROGRESS on each cycle would burn GitHub rate limits for no change.
+    if prior_state != PreprodSnapshotComparison.State.PENDING:
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_start",
+            update_pr_comment=False,
+        )
+
+    def _fail_comparison(error_code: PreprodSnapshotComparison.ErrorCode, message: str) -> None:
+        failed = PreprodSnapshotComparison.objects.filter(
+            id=comparison.id,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+        ).update(
+            state=PreprodSnapshotComparison.State.FAILED,
+            error_code=error_code,
+            error_message=message,
+            date_updated=timezone.now(),
+        )
+        if failed:
+            update_preprod_snapshot_vcs(
+                preprod_artifact_id=head_artifact_id, caller="compare_failure"
+            )
 
     try:
         session = get_preprod_session(org_id, project_id)
@@ -870,20 +902,84 @@ def compare_snapshots(
                     "base_artifact_id": base_artifact_id,
                 },
             )
-            failed = PreprodSnapshotComparison.objects.filter(
-                id=comparison.id,
-                state=PreprodSnapshotComparison.State.PROCESSING,
-            ).update(
-                state=PreprodSnapshotComparison.State.FAILED,
-                error_code=PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                date_updated=timezone.now(),
+            _fail_comparison(
+                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+                "Failed to load or parse snapshot manifest.",
             )
-            if failed:
-                update_preprod_snapshot_vcs(
-                    preprod_artifact_id=head_artifact_id,
-                    caller="compare_failure",
-                )
             return
+
+        # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
+        # truth (reconstruct_base_manifest distrusts the DB flag because it can drift). If the
+        # DB flag drifts to False while the manifest is selective, the DB gate would skip
+        # reconstruction and silently diff against the partial base. This mirrors the
+        # completeness check in reconstruct_base_manifest.
+        if base_manifest.selective or base_manifest.all_image_file_names is not None:
+            reconstruction = reconstruct_base_manifest(base_artifact, session)
+            if reconstruction.manifest is not None:
+                base_manifest = reconstruction.manifest
+            elif reconstruction.incomplete:
+                # Anchor the grace window to the comparison, not the head build. The head can
+                # be arbitrarily old by the time the comparison is dispatched (out-of-order
+                # fan-out, staff recompare, janitor-resurrected retries) — anchoring to its
+                # age would burn the entire retry budget before the first attempt runs.
+                # comparison.date_added is set once at creation and never reset (deferral only
+                # bumps date_updated), so this measures "how long this comparison has been
+                # waiting for the chain to complete."
+                comparison_age = (timezone.now() - comparison.date_added).total_seconds()
+                if comparison_age <= MISSING_BASE_GRACE_PERIOD_SECONDS:
+                    logger.info(
+                        "compare_snapshots: base chain incomplete, deferring",
+                        extra={
+                            "head_artifact_id": head_artifact_id,
+                            "base_artifact_id": base_artifact_id,
+                            "comparison_id": comparison.id,
+                        },
+                    )
+                    PreprodSnapshotComparison.objects.filter(
+                        id=comparison.id,
+                        state=PreprodSnapshotComparison.State.PROCESSING,
+                    ).update(
+                        state=PreprodSnapshotComparison.State.PENDING,
+                        date_updated=timezone.now(),
+                    )
+                    compare_snapshots.apply_async(
+                        kwargs={
+                            "project_id": project_id,
+                            "org_id": org_id,
+                            "head_artifact_id": head_artifact_id,
+                            "base_artifact_id": base_artifact_id,
+                        },
+                        countdown=RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
+                    )
+                    return
+                logger.warning(
+                    "compare_snapshots: base chain incomplete past grace window, failing",
+                    extra={
+                        "head_artifact_id": head_artifact_id,
+                        "base_artifact_id": base_artifact_id,
+                        "comparison_id": comparison.id,
+                    },
+                )
+                _fail_comparison(
+                    PreprodSnapshotComparison.ErrorCode.TIMEOUT,
+                    "Base snapshot chain incomplete (missing ancestor build).",
+                )
+                return
+            elif reconstruction.unresolvable:
+                logger.warning(
+                    "compare_snapshots: base chain unresolvable, failing",
+                    extra={
+                        "head_artifact_id": head_artifact_id,
+                        "base_artifact_id": base_artifact_id,
+                        "comparison_id": comparison.id,
+                    },
+                )
+                _fail_comparison(
+                    PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+                    reconstruction.error_message
+                    or "No complete base snapshot exists in the ancestry chain.",
+                )
+                return
 
         plan = _build_comparison_plan(
             head_manifest, base_manifest, head_artifact_id, base_artifact_id
@@ -904,8 +1000,12 @@ def compare_snapshots(
                 }
             )
 
+        comparison.extras = {
+            **(comparison.extras or {}),
+            "diff_processing_started_at": task_start_time.isoformat(),
+        }
         comparison.chunks_total = len(plan.chunks)
-        comparison.save(update_fields=["chunks_total", "date_updated"])
+        comparison.save(update_fields=["chunks_total", "extras", "date_updated"])
 
         logger.info(
             "compare_snapshots: orchestration dispatched",
@@ -1104,25 +1204,11 @@ def finalize_snapshot_comparison(
         images_removed=counts["removed"],
         images_renamed=counts["renamed"],
         images_skipped=counts["skipped"],
+        images_errored=counts["errored"],
         extras=extras,
         date_updated=timezone.now(),
     )
     if updated:
-        logger.debug(
-            "compare_snapshots: finalized",
-            extra={
-                "comparison_id": comparison.id,
-                "done": len(done_set),
-                "chunks_total": comparison.chunks_total,
-                "images_changed": counts["changed"],
-                "images_added": counts["added"],
-                "images_removed": counts["removed"],
-                "images_unchanged": counts["unchanged"],
-                "images_renamed": counts["renamed"],
-                "images_skipped": counts["skipped"],
-                "images_errored": counts["errored"],
-            },
-        )
         try:
             head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
                 id=head_artifact_id,
@@ -1136,6 +1222,25 @@ def finalize_snapshot_comparison(
             )
             return
 
+        logger.info(
+            "compare_snapshots: finalized",
+            extra={
+                "comparison_id": comparison.id,
+                "organization_id": org_id,
+                "organization_slug": head_artifact.project.organization.slug,
+                "project_id": project_id,
+                "done": len(done_set),
+                "chunks_total": comparison.chunks_total,
+                "images_changed": counts["changed"],
+                "images_added": counts["added"],
+                "images_removed": counts["removed"],
+                "images_unchanged": counts["unchanged"],
+                "images_renamed": counts["renamed"],
+                "images_skipped": counts["skipped"],
+                "images_errored": counts["errored"],
+            },
+        )
+
         metric_tags = {
             "app_id_temp": head_artifact.app_id or "",
         }
@@ -1147,6 +1252,25 @@ def finalize_snapshot_comparison(
             sample_rate=1.0,
             tags=metric_tags,
         )
+
+        started_raw = (comparison.extras or {}).get("diff_processing_started_at")
+        if started_raw:
+            try:
+                diff_duration_s = (
+                    timezone.now() - datetime.fromisoformat(started_raw)
+                ).total_seconds()
+            except (ValueError, TypeError):
+                logger.warning(
+                    "finalize: unparseable diff_processing_started_at, skipping metric",
+                    extra={"comparison_id": comparison.id},
+                )
+            else:
+                metrics.distribution(
+                    "preprod.snapshots.diff.duration_s",
+                    diff_duration_s,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
 
         if (
             counts["changed"] == 0

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict, overload
+from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
-from django.http.request import HttpRequest
-from rest_framework.exceptions import ParseError, PermissionDenied
+from django.db.models import Q
+from django.http.request import HttpRequest, QueryDict
+from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -15,6 +16,11 @@ from rest_framework.views import APIView
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.projects import (
+    ParsedProjectIdOrSlugParams,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
@@ -39,10 +45,32 @@ from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 
 class NoProjects(Exception):
     pass
+
+
+class UnknownEnvironments(ResourceDoesNotExist):
+    pass
+
+
+class SingleProjectIdOrSlug(NamedTuple):
+    project_id: int | None
+    project_slug: str | None
+
+    @property
+    def project_ids(self) -> set[int] | None:
+        if self.project_id is None:
+            return None
+        return {self.project_id}
+
+    @property
+    def project_slugs(self) -> set[str] | None:
+        if self.project_slug is None:
+            return None
+        return {self.project_slug}
 
 
 class OrganizationPermission(DemoSafePermission):
@@ -300,7 +328,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with start_span(
+            op="check_object_permissions_on_organization",
+            name="check_object_permissions_on_organization",
+        ):
             self.check_object_permissions(request, organization_context)
 
         bind_organization_context(organization_context.organization)
@@ -349,8 +380,11 @@ def _validate_fetched_projects(
     """
     Validates that user has access to the specific projects they are requesting.
     """
-    missing_project_ids = ids and ids != {p.id for p in filtered_projects}
-    missing_project_slugs = slugs and slugs != {p.slug for p in filtered_projects}
+    fetched_ids = {p.id for p in filtered_projects}
+    fetched_slugs = {p.slug for p in filtered_projects}
+
+    missing_project_ids = ids and not ids.issubset(fetched_ids)
+    missing_project_slugs = slugs and not slugs.issubset(fetched_slugs)
 
     if missing_project_ids or missing_project_slugs:
         raise PermissionDenied
@@ -389,36 +423,32 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied. When project_ids or project_slugs
         are explicitly provided, the returned list is guaranteed non-empty (or PermissionDenied is raised).
 
-        NOTE: If both project_ids and project_slugs are passed, we will default
-        to fetching projects via project_id list.
         """
         qs = Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
-        if project_slugs and project_ids:
-            raise ParseError(detail="Cannot query for both ids and slugs")
-
-        slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
-        ids = project_ids or self.get_requested_project_ids_unchecked(request)
-
-        if project_ids is None and slugs:
-            # If we're querying for project slugs specifically
-            if ALL_ACCESS_PROJECTS_SLUG in slugs:
-                # All projects I have access to
-                include_all_accessible = True
-            else:
-                qs = qs.filter(slug__in=slugs)
+        if project_ids or project_slugs:
+            requested_projects = ParsedProjectIdOrSlugParams(
+                ids=project_ids or set(), slugs=set(project_slugs or ())
+            )
         else:
-            # If we are explicitly querying for projects via id
-            # Or we're querying for an empty set of ids
-            if ALL_ACCESS_PROJECT_ID in ids:
-                # All projects i have access to
-                include_all_accessible = True
-            elif ids:
-                qs = qs.filter(id__in=ids)
-            # No project ids === `all projects I am a member of`
+            requested_projects = self.get_requested_project_params_unchecked(request)
+        ids = requested_projects.ids
+        slugs = requested_projects.slugs
 
-        with sentry_sdk.start_span(op="fetch_organization_projects") as span:
+        if requested_projects.has_all_projects_sentinel:
+            include_all_accessible = True
+        elif ids and slugs:
+            qs = qs.filter(Q(id__in=ids) | Q(slug__in=slugs))
+        elif slugs:
+            qs = qs.filter(slug__in=slugs)
+        elif ids:
+            qs = qs.filter(id__in=ids)
+        # No project ids or slugs === `all projects I am a member of`
+
+        with start_span(
+            op="fetch_organization_projects", name="fetch_organization_projects"
+        ) as span:
             projects = list(qs)
-            span.set_data("Project Count", len(projects))
+            set_span_data(span, "Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -443,10 +473,10 @@ class OrganizationEndpoint(Endpoint):
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        with sentry_sdk.start_span(op="apply_project_permissions") as span:
-            span.set_data("Project Count", len(projects))
+        with start_span(op="apply_project_permissions", name="apply_project_permissions") as span:
+            set_span_data(span, "Project Count", len(projects))
             if force_global_perms:
-                span.set_tag("mode", "force_global_perms")
+                set_span_tag(span, "mode", "force_global_perms")
                 return projects
 
             # There is a special case for staff, where we want to fetch a single project (OrganizationStatsEndpointV2)
@@ -455,34 +485,132 @@ class OrganizationEndpoint(Endpoint):
             # mimics checking for active projects like has_project_access without further validation.
             # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
             if is_active_staff(request):
-                span.set_tag("mode", "staff_fetch_all")
+                set_span_tag(span, "mode", "staff_fetch_all")
                 proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
             # Superuser should fetch all projects.
             # Also fetch all accessible projects if requesting $all
             elif is_active_superuser(request) or include_all_accessible:
-                span.set_tag("mode", "has_project_access")
+                set_span_tag(span, "mode", "has_project_access")
                 proj_filter = request.access.has_project_access
             # Check if explicitly requesting specific projects
             elif not filter_by_membership:
-                span.set_tag("mode", "has_project_access")
+                set_span_tag(span, "mode", "has_project_access")
                 proj_filter = request.access.has_project_access
             else:
-                span.set_tag("mode", "has_project_membership")
+                set_span_tag(span, "mode", "has_project_membership")
                 proj_filter = request.access.has_project_membership
 
             return [p for p in projects if proj_filter(p)]
 
     def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
-        Returns the project ids that were requested by the request.
+        Returns the numeric project ids that were requested by the request.
+        Non-numeric values (slugs) are silently ignored.
 
         To determine the projects to filter this endpoint by with full
         permission checking, use ``get_projects``, instead.
         """
+        return self.get_requested_project_ids_and_slugs_unchecked(request).ids
+
+    def get_requested_project_ids_and_slugs_unchecked(
+        self, request: HttpRequest
+    ) -> ParsedProjectIdOrSlugParams:
+        """
+        Returns the project ids and slugs requested via the project query param.
+
+        To determine the projects to filter this endpoint by with full
+        permission checking, use ``get_projects``, instead.
+        """
+        return parse_id_or_slug_params(request.GET.getlist("project"))
+
+    def get_requested_project_params_unchecked(
+        self, request: HttpRequest
+    ) -> ParsedProjectIdOrSlugParams:
+        """
+        Returns requested project ids and slugs from projectSlug or project query params.
+
+        To determine the projects to filter this endpoint by with full
+        permission checking, use ``get_projects``, instead.
+        """
+        project_slugs = set(filter(None, request.GET.getlist("projectSlug")))
+        if project_slugs:
+            return ParsedProjectIdOrSlugParams(ids=set(), slugs=project_slugs)
+        return self.get_requested_project_ids_and_slugs_unchecked(request)
+
+    def get_query_params_without_empty_project_params(self, request: HttpRequest) -> QueryDict:
+        """
+        Return query params with blank project filters treated as absent.
+        """
+        query_params = request.GET.copy()
+        if "project" in query_params:
+            query_params.setlist(
+                "project", [project for project in query_params.getlist("project") if project]
+            )
+        return query_params
+
+    def get_query_params_with_project_slug_precedence(self, request: HttpRequest) -> QueryDict:
+        """
+        Return query params for serializers that accept project and projectSlug.
+
+        This mirrors get_projects() precedence: non-empty legacy projectSlug
+        filters win over project filters, and blank project filters are treated
+        as absent.
+        """
+        query_params = self.get_query_params_without_empty_project_params(request)
+        project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
+        if "projectSlug" in query_params:
+            query_params.setlist("projectSlug", project_slug_params)
+        if project_slug_params:
+            query_params.pop("project", None)
+        return query_params
+
+    def get_single_project_id_or_slug(
+        self,
+        project_id_or_slug: object,
+        *,
+        error_detail: str = "Invalid project",
+    ) -> SingleProjectIdOrSlug | None:
+        """
+        Parse one project ID-or-slug value for single-project endpoints.
+
+        Unlike get_projects(), this rejects all-project sentinels because callers
+        use the result to scope a lookup to exactly one project.
+        """
+        if project_id_or_slug is None or project_id_or_slug == "":
+            return None
+
         try:
-            return set(map(int, request.GET.getlist("project")))
-        except ValueError:
-            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
+            project = ProjectIdOrSlugField().run_validation(project_id_or_slug)
+        except ValidationError:
+            raise ParseError(detail=error_detail)
+
+        if project in (ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG):
+            raise ParseError(detail=error_detail)
+        if isinstance(project, int):
+            return SingleProjectIdOrSlug(project_id=project, project_slug=None)
+        return SingleProjectIdOrSlug(project_id=None, project_slug=project)
+
+    def get_single_project_id_or_slug_from_request(
+        self,
+        request: HttpRequest,
+        *,
+        error_detail: str = "Invalid project",
+    ) -> SingleProjectIdOrSlug | None:
+        """
+        Parse single-project filters from projectSlug or project query params.
+
+        projectSlug keeps its legacy precedence over project. Empty filters are
+        treated as absent, matching get_query_params_with_project_slug_precedence().
+        """
+        project_slug = request.GET.get("projectSlug")
+        if project_slug:
+            if project_slug in (str(ALL_ACCESS_PROJECT_ID), ALL_ACCESS_PROJECTS_SLUG):
+                raise ParseError(detail=error_detail)
+            return SingleProjectIdOrSlug(project_id=None, project_slug=project_slug)
+
+        return self.get_single_project_id_or_slug(
+            request.GET.get("project"), error_detail=error_detail
+        )
 
     def get_environments(
         self, request: Request, organization: Organization | RpcOrganization
@@ -548,6 +676,7 @@ class OrganizationEndpoint(Endpoint):
             if start and end:
                 total_seconds = (end - start).total_seconds()
                 sentry_sdk.set_tag("query.period", total_seconds)
+                sentry_sdk.set_attribute("query.period", total_seconds)
                 one_day = 86400
                 grouped_period = ">30d"
                 if total_seconds <= one_day:
@@ -559,6 +688,7 @@ class OrganizationEndpoint(Endpoint):
                 elif total_seconds <= one_day * 30:
                     grouped_period = "<=30d"
                 sentry_sdk.set_tag("query.period.grouped", grouped_period)
+                sentry_sdk.set_attribute("query.period.grouped", grouped_period)
         except InvalidParams as e:
             raise ParseError(detail=f"Invalid date range: {e}")
 
@@ -578,7 +708,9 @@ class OrganizationEndpoint(Endpoint):
 
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
+        sentry_sdk.set_attribute("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
+        sentry_sdk.set_attribute("query.num_projects.grouped", format_grouped_length(len_projects))
         set_span_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
@@ -589,7 +721,11 @@ class OrganizationEndpoint(Endpoint):
             "organization_id": organization.id,
         }
 
-        environments = self.get_environments(request, organization)
+        try:
+            environments = self.get_environments(request, organization)
+        except ResourceDoesNotExist:
+            raise UnknownEnvironments("Unknown environments selected")
+
         if environments:
             params["environment"] = [env.name for env in environments]
             params["environment_objects"] = environments
@@ -633,7 +769,10 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with start_span(
+            op="check_object_permissions_on_organization",
+            name="check_object_permissions_on_organization",
+        ):
             self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)
@@ -723,7 +862,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         they cannot access. The all-projects check respects Open Membership
         via has_global_access.
 
-        Results are cached for 60s per actor/org/release/project-ids/mode.
+        Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         """
         actor_id = None
         has_perms = None
@@ -733,9 +872,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         elif request.auth is not None:
             actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
-            requested_project_ids = project_ids
-            if requested_project_ids is None:
-                requested_project_ids = self.get_requested_project_ids_unchecked(request)
+            if project_ids:
+                requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
+            else:
+                requested_projects = self.get_requested_project_params_unchecked(request)
             key = "release_perms:1:%s" % hash_values(
                 [
                     actor_id,
@@ -743,7 +883,8 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                     release.id if release is not None else 0,
                     int(require_all_projects),
                 ]
-                + sorted(requested_project_ids)
+                + sorted(requested_projects.ids)
+                + sorted(requested_projects.slugs)
             )
             has_perms = cache.get(key)
         if has_perms is None:

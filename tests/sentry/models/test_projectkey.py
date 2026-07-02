@@ -20,22 +20,25 @@ class ProjectKeyTest(TestCase):
 
     def test_get_dsn_custom_prefix(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.options(
-            {"system.url-prefix": "http://example.com", "system.region-api-url-template": ""}
+        with (
+            self.options({"system.url-prefix": "http://example.com"}),
+            override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
             self.assertEqual(key.get_dsn(), f"http://public:secret@example.com/{self.project.id}")
 
     def test_get_dsn_with_ssl(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.options(
-            {"system.url-prefix": "https://example.com", "system.region-api-url-template": ""}
+        with (
+            self.options({"system.url-prefix": "https://example.com"}),
+            override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
             self.assertEqual(key.get_dsn(), f"https://public:secret@example.com/{self.project.id}")
 
     def test_get_dsn_with_port(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.options(
-            {"system.url-prefix": "http://example.com:81", "system.region-api-url-template": ""}
+        with (
+            self.options({"system.url-prefix": "http://example.com:81"}),
+            override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
             self.assertEqual(
                 key.get_dsn(), f"http://public:secret@example.com:81/{self.project.id}"
@@ -91,7 +94,7 @@ class ProjectKeyTest(TestCase):
 
     @override_settings(JS_SDK_LOADER_CDN_URL="")
     def test_get_dsn(self) -> None:
-        with self.options({"system.region-api-url-template": ""}):
+        with override_settings(SENTRY_REGION_API_URL_TEMPLATE=""):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             assert key.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
             assert key.dsn_public == f"http://abc@testserver/{self.project.id}"
@@ -113,7 +116,7 @@ class ProjectKeyTest(TestCase):
     def test_get_dsn_org_subdomain(self) -> None:
         with (
             self.feature("organizations:org-ingest-subdomains"),
-            self.options({"system.region-api-url-template": ""}),
+            override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest.testserver"

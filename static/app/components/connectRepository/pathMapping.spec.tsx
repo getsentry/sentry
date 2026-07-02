@@ -39,8 +39,15 @@ describe('PathMapping', () => {
       expect(screen.getByText('main')).toBeInTheDocument();
 
       expect(
-        screen.queryByRole('textbox', {name: 'Stack trace root'})
+        screen.queryByRole('textbox', {name: 'Stack trace prefix'})
       ).not.toBeInTheDocument();
+    });
+
+    it('normalizes paths to a trailing slash in the summary', () => {
+      renderPathMapping({stackRoot: 'app', sourceRoot: 'static/app'});
+
+      expect(screen.getByText('app/')).toBeInTheDocument();
+      expect(screen.getByText('static/app/')).toBeInTheDocument();
     });
 
     it('shows an [empty] placeholder for an unset path', () => {
@@ -78,8 +85,10 @@ describe('PathMapping', () => {
     it('shows the form pre-filled and keeps the summary for existing mappings', () => {
       renderPathMapping({editing: true, isNew: false});
 
-      expect(screen.getByRole('textbox', {name: 'Stack trace root'})).toHaveValue('app/');
-      expect(screen.getByRole('textbox', {name: 'Source code root'})).toHaveValue(
+      expect(screen.getByRole('textbox', {name: 'Stack trace prefix'})).toHaveValue(
+        'app/'
+      );
+      expect(screen.getByRole('textbox', {name: 'Source code replacement'})).toHaveValue(
         'static/app/'
       );
       expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
@@ -92,7 +101,9 @@ describe('PathMapping', () => {
     it('hides the summary while editing a new mapping', () => {
       renderPathMapping({editing: true, isNew: true});
 
-      expect(screen.getByRole('textbox', {name: 'Stack trace root'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('textbox', {name: 'Stack trace prefix'})
+      ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Collapse path mapping'})
       ).not.toBeInTheDocument();
@@ -105,13 +116,39 @@ describe('PathMapping', () => {
       const onChange = jest.fn();
       renderPathMapping({editing: true, onChange});
 
-      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace root'});
+      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace prefix'});
       await userEvent.clear(stackTraceRoot);
       await userEvent.type(stackTraceRoot, 'lib/');
 
       expect(onChange).toHaveBeenLastCalledWith(
         expect.objectContaining({stackRoot: 'lib/'})
       );
+    });
+
+    it('adds a trailing slash to a path on blur', async () => {
+      const onChange = jest.fn();
+      renderPathMapping({editing: true, isNew: true, stackRoot: '', onChange});
+
+      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace prefix'});
+      await userEvent.type(stackTraceRoot, 'lib');
+      await userEvent.tab();
+
+      expect(stackTraceRoot).toHaveValue('lib/');
+      expect(onChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({stackRoot: 'lib/'})
+      );
+    });
+
+    it('shows the trailing-slash-normalized path in the preview while typing', async () => {
+      renderPathMapping({editing: true, isNew: true, stackRoot: '', sourceRoot: ''});
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Stack trace prefix'}),
+        'lib'
+      );
+
+      // The preview reflects the transformed path even before the field blurs.
+      expect(screen.getByText('lib/')).toBeInTheDocument();
     });
 
     it('sanitizes invalid characters in the branch but keeps valid ones', async () => {
@@ -146,7 +183,7 @@ describe('PathMapping', () => {
       const onChange = jest.fn();
       renderPathMapping({editing: true, branch: 'feature/foo_bar.1', onChange});
 
-      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace root'});
+      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace prefix'});
       await userEvent.type(stackTraceRoot, 'x');
 
       expect(onChange).toHaveBeenLastCalledWith(

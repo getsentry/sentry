@@ -24,11 +24,13 @@ import {
   IconNext,
   IconPlay,
   IconPrevious,
+  IconPullRequestClosed,
   IconRefresh,
   IconSeer,
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {
   GroupActivity,
   GroupActivityCreateIssue,
@@ -37,14 +39,14 @@ import type {
 import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
-  Component: React.ComponentType<any> | null;
+  Component: React.ComponentType<SVGIconProps> | null;
   defaultProps: {locked?: boolean; type?: string};
   componentFunction?: (props: {
     data: GroupActivity['data'];
     sentry_app: GroupActivity['sentry_app'];
     user: GroupActivity['user'];
-  }) => React.ComponentType<any>;
-  propsFunction?: (props: any) => any;
+  }) => React.ComponentType<SVGIconProps>;
+  propsFunction?: (data: GroupActivity['data']) => Record<string, unknown>;
 }
 
 export const groupActivityTypeIconMapping: Record<
@@ -79,6 +81,10 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST]: {
     Component: IconCommit,
+    defaultProps: {},
+  },
+  [GroupActivityType.PULL_REQUEST_CLOSED]: {
+    Component: IconPullRequestClosed,
     defaultProps: {},
   },
   [GroupActivityType.SET_UNRESOLVED]: {Component: IconClose, defaultProps: {}},
@@ -169,6 +175,16 @@ export const groupActivityTypeIconMapping: Record<
     propsFunction: () => ({variant: 'success'}),
   },
   [GroupActivityType.SEER_PR_CREATED]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({variant: 'success'}),
+  },
+  [GroupActivityType.SEER_ITERATION_STARTED]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({animation: 'waiting'}),
+  },
+  [GroupActivityType.SEER_ITERATION_COMPLETED]: {
     Component: IconSeer,
     defaultProps: {},
     propsFunction: () => ({variant: 'success'}),

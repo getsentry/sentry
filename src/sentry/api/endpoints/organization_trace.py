@@ -1,5 +1,4 @@
 import sentry_sdk
-from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -126,7 +125,8 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         )
 
     @extend_schema(
-        operation_id="Retrieve a Trace",
+        operation_id="getOrganizationTrace",
+        summary="Retrieve a Trace",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             TRACE_ID_PATH_PARAM,
@@ -149,7 +149,9 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         },
         examples=TraceExamples.TRACE,
     )
-    def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+    def get(
+        self, request: Request, organization: Organization, trace_id: str
+    ) -> Response[list[SerializedSpan | SerializedIssue | SerializedUptimeCheck]] | Response[None]:
         """
         Retrieve the spans, errors, and (optionally) uptime checks that make up a single trace.
 

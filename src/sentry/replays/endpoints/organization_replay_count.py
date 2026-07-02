@@ -73,7 +73,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
 
     @extend_schema(
         examples=ReplayExamples.GET_REPLAY_COUNTS,
-        operation_id="Retrieve a Count of Replays for a Given Issue or Transaction",
+        operation_id="getOrganizationReplayCount",
+        summary="Retrieve a Count of Replays for a Given Issue or Transaction",
         parameters=[
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,

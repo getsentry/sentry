@@ -8,7 +8,6 @@ from urllib.parse import urlencode
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import analytics, features
@@ -37,6 +36,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
+from sentry.utils.dates import format_duration
 from sentry.utils.email import MessageBuilder
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -124,27 +124,6 @@ class SentryAppActionHandler(DefaultActionHandler):
     @property
     def provider(self) -> str:
         return "sentry_app"
-
-
-def format_duration(minutes: int | float) -> str:
-    """
-    Format minutes into a duration string
-    """
-
-    if minutes >= 1440:
-        days = int(minutes // 1440)
-        return f"{days:d} day{pluralize(days)}"
-
-    if minutes >= 60:
-        hours = int(minutes // 60)
-        return f"{hours:d} hour{pluralize(hours)}"
-
-    if minutes >= 1:
-        minutes = int(minutes)
-        return f"{minutes:d} minute{pluralize(minutes)}"
-
-    seconds = int(minutes // 60)
-    return f"{seconds:d} second{pluralize(seconds)}"
 
 
 def generate_incident_trigger_email_context(

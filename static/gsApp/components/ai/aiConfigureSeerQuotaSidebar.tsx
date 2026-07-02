@@ -6,11 +6,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  AutofixContent,
-  type AutofixContentProps,
-} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import {AutofixContent} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
@@ -19,19 +18,20 @@ export function AiConfigureSeerQuotaSidebar({
   aiConfig,
   group,
   project,
-  event,
 }: AutofixContentProps) {
   const organization = useOrganization();
   const subscription = useSubscription();
+
+  useRouteAnalyticsParams({
+    seerNeedQuota: aiConfig.isAutofixSetupLoading ? undefined : !aiConfig.hasAutofixQuota,
+  });
 
   if (aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
   }
 
   if (aiConfig.hasAutofixQuota) {
-    return (
-      <AutofixContent aiConfig={aiConfig} group={group} project={project} event={event} />
-    );
+    return <AutofixContent aiConfig={aiConfig} group={group} project={project} />;
   }
 
   const hasBillingPerms = hasAccessToSubscriptionOverview(subscription, organization);

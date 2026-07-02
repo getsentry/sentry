@@ -24,11 +24,18 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 
 class SCIMApiError(APIException):
-    def __init__(self, detail, status_code=400):
+    def __init__(self, detail, status_code=400, scim_type=None):
         transaction = sentry_sdk.get_current_scope().transaction
         if transaction is not None:
             transaction.set_tag("http.status_code", status_code)
-        super().__init__({"schemas": [SCIM_API_ERROR], "detail": detail})
+        error_body = {
+            "schemas": [SCIM_API_ERROR],
+            "status": str(status_code),
+            "detail": detail,
+        }
+        if scim_type is not None:
+            error_body["scimType"] = scim_type
+        super().__init__(error_body)
         self.status_code = status_code
 
 

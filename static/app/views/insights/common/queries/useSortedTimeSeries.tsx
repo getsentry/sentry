@@ -144,6 +144,8 @@ export const useSortedTimeSeries = <
   };
 };
 
+export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;
+
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[],

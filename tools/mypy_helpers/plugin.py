@@ -192,6 +192,63 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
+_SEER_RPC_MARKER_FULLNAME = "sentry.seer.endpoints.registry.seer_rpc"
+
+
+def _return_type_contains_any(t: Type) -> bool:
+    """Walk a function's return type and report whether any node is a real `Any`.
+
+    Skips `TypeOfAny.special_form` (e.g. `Any` from `Optional[Any]` placeholder
+    resolution) and `TypeOfAny.from_error` (already-flagged errors) so we don't
+    double-report. Recurses through unions and into the type arguments of
+    generic Instances so leaks like `BaseModel | Any | None` or
+    `list[Any]` / `dict[str, Any]` are caught.
+    """
+    seen: set[int] = set()
+
+    def _walk(node: Type) -> bool:
+        node = get_proper_type(node)
+        if id(node) in seen:
+            return False
+        seen.add(id(node))
+        if isinstance(node, AnyType):
+            return node.type_of_any not in (TypeOfAny.special_form, TypeOfAny.from_error)
+        if isinstance(node, UnionType):
+            return any(_walk(item) for item in node.items)
+        if isinstance(node, Instance):
+            return any(_walk(arg) for arg in node.args)
+        return False
+
+    return _walk(t)
+
+
+def _check_seer_rpc_handler_not_any(ctx: FunctionContext) -> Type:
+    """Enforce that the function passed to `seer_rpc(...)` has a return type
+    free of `Any`. The wrapped function is what gets registered into one of
+    the three seer RPC registries; an `Any` return there silently breaks the
+    seer-side codegen that consumes these methods — the JSON-schema manifest
+    built from each registered function's return annotation degenerates to
+    "unknown" for the entry, so the typed `RpcClient.call` overloads on the
+    seer side lose their specific return type for that method.
+    """
+    if not ctx.arg_types or not ctx.arg_types[0]:
+        return ctx.default_return_type
+    fn_type = get_proper_type(ctx.arg_types[0][0])
+    if not isinstance(fn_type, CallableType):
+        return ctx.default_return_type
+    if _return_type_contains_any(fn_type.ret_type):
+        ctx.api.fail(
+            "Seer RPC handler return type must not contain `Any`: the seer-side "
+            "codegen derives its typed `RpcClient.call` overloads from this "
+            "annotation, and `Any` collapses the consumer's typed contract for "
+            "this method. Define a Pydantic response model in "
+            "`sentry.seer.sentry_data_models` and annotate the handler's "
+            "return type with it.",
+            ctx.context,
+        )
+    return ctx.default_return_type
+
+
 _RESPONSE_FULLNAME = "rest_framework.response.Response"
 _ASYNC_WRAPPERS = frozenset(
     {
@@ -428,6 +485,8 @@ class SentryMypyPlugin(Plugin):
     def get_function_hook(self, fullname: str) -> Callable[[FunctionContext], Type] | None:
         if fullname == _RESPONSE_FULLNAME:
             return _dispatch_response_hook
+        if fullname == _SEER_RPC_MARKER_FULLNAME:
+            return _check_seer_rpc_handler_not_any
         return None
 
     def get_function_signature_hook(

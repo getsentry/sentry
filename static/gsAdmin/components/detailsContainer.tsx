@@ -6,6 +6,10 @@ export const DetailsContainer = styled('div')`
   grid-template-columns: 1fr 1fr;
   align-items: start;
 
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
   h6 {
     margin-top: ${p => p.theme.space['2xl']};
     margin-bottom: ${p => p.theme.space.xl};

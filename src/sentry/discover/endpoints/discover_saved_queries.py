@@ -51,7 +51,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
-        operation_id="List an Organization's Discover Saved Queries",
+        operation_id="listOrganizationDiscoverSavedQueries",
+        summary="List an Organization's Discover Saved Queries",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             VisibilityParams.PER_PAGE,
@@ -160,7 +161,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Saved Query",
+        operation_id="createOrganizationDiscoverSavedQuery",
+        summary="Create a New Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=DiscoverSavedQuerySerializer,
         responses={

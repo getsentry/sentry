@@ -71,7 +71,11 @@ def get_team_transactions(
     # NOTE: this raw count is not 100% accurate because if it exceeds
     # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
     sentry_sdk.set_tag("team_key_txns.count", count)
+    sentry_sdk.set_attribute("team_key_txns.count", count)
     sentry_sdk.set_tag(
+        "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
+    )
+    sentry_sdk.set_attribute(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
     return team_key_transactions

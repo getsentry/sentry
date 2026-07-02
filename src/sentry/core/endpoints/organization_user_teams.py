@@ -29,7 +29,8 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a User's Teams for an Organization",
+        operation_id="listOrganizationUserTeams",
+        summary="List a User's Teams for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={

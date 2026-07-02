@@ -49,7 +49,6 @@ interface Props {
   period: ProjectionSamplePeriod;
   rateHeader: React.ReactNode;
   canEdit?: boolean;
-  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }
 
@@ -58,7 +57,6 @@ const MAX_SCROLL_HEIGHT = 400;
 
 export function ProjectsTable({
   items,
-  inputTooltip,
   canEdit,
   rateHeader,
   onChange,
@@ -170,7 +168,6 @@ export function ProjectsTable({
                   <TableRow
                     canEdit={canEdit}
                     onChange={onChange}
-                    inputTooltip={inputTooltip}
                     toggleExpanded={handleToggleItemExpanded}
                     hasAccess={hasAccess}
                     {...item}
@@ -293,7 +290,6 @@ const TableRow = memo(function TableRow({
   toggleExpanded,
   subProjects,
   error,
-  inputTooltip: inputTooltipProp,
   onChange,
 }: {
   count: number;
@@ -307,7 +303,6 @@ const TableRow = memo(function TableRow({
   toggleExpanded: (id: string) => void;
   canEdit?: boolean;
   error?: string;
-  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }) {
   const organization = useOrganization();
@@ -318,10 +313,9 @@ const TableRow = memo(function TableRow({
   const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
   const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
 
-  let inputTooltip = inputTooltipProp;
-  if (!hasAccess) {
-    inputTooltip = t('You do not have permission to change the sample rate.');
-  }
+  const permissionTooltip = hasAccess
+    ? undefined
+    : t('You do not have permission to change the sample rate.');
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,7 +381,7 @@ const TableRow = memo(function TableRow({
       </Cell>
       <Flex direction="column" padding="xl xl md xl" gap="xs" style={{minWidth: 0}}>
         <FirstCellLine align="center" height="32px">
-          <Tooltip disabled={!inputTooltip} title={inputTooltip}>
+          <Tooltip disabled={!permissionTooltip} title={permissionTooltip}>
             <PercentInput
               type="number"
               disabled={!canEdit || !hasAccess}

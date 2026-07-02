@@ -12,16 +12,20 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.projects import parse_id_or_slug_params
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.organization import Organization
 from sentry.notifications.api.serializers.notification_action_request import (
     NotificationActionSerializer,
 )
 from sentry.notifications.api.serializers.notification_action_response import (
+    OutgoingNotificationActionResponse,
     OutgoingNotificationActionSerializer,
 )
 from sentry.notifications.models.notificationaction import NotificationAction
@@ -56,7 +60,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     permission_classes = (NotificationActionsPermission,)
 
     @extend_schema(
-        operation_id="List Spike Protection Notifications",
+        operation_id="listOrganizationNotificationsActions",
+        summary="List Spike Protection Notifications",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -70,21 +75,28 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         },
         examples=NotificationActionExamples.CREATE_NOTIFICATION_ACTION,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OutgoingNotificationActionResponse]]:
         """
         Returns all Spike Protection Notification Actions for an organization.
 
         Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
         For example, organization owners and managers can receive an email when a spike occurs.
 
-        You can use either the `project` or `projectSlug` query parameter to filter for certain projects. Note that if both are present, `projectSlug` takes priority.
+        You can use the `project` query parameter with project IDs or slugs to filter for certain projects.
+        A legacy project slug query parameter is also supported and takes priority if both are present.
         """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
         # otherwise, include them but still ensure project permissions are enforced
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        all_access_filter = (
+            requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
+        ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
         project_query = (
             Q(projects__in=self.get_projects(request, organization))
-            if self.get_requested_project_ids_unchecked(request)
+            if requested_projects.has_values and not all_access_filter
             else Q(projects=None) | Q(projects__in=self.get_projects(request, organization))
         )
         queryset = queryset.filter(project_query).distinct()
@@ -98,7 +110,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "trigger_type_query": trigger_type_query,
-                "project_query": self.get_requested_project_ids_unchecked(request),
+                "project_query": requested_projects.ids,
+                "project_slug_query": requested_projects.slugs,
             },
         )
         return self.paginate(
@@ -109,7 +122,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Spike Protection Notification Action",
+        operation_id="createOrganizationNotificationsAction",
+        summary="Create a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -121,7 +135,9 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         },
         examples=NotificationActionExamples.CREATE_NOTIFICATION_ACTION,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[OutgoingNotificationActionResponse] | Response[ValidationErrorResponse]:
         """
         Creates a new Notification Action for Spike Protection.
 
@@ -131,10 +147,13 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
             # check if user has access to create notification actions for all requested projects
-            requested_projects = request.data.get("projects", [])
+            requested_projects = parse_id_or_slug_params(request.data.get("projects") or [])
             projects = self.get_projects(request, organization)
-            project_slugs = [project.slug for project in projects]
-            missing_access_projects = set(requested_projects).difference(set(project_slugs))
+            project_ids = {project.id for project in projects}
+            project_slugs = {project.slug for project in projects}
+            missing_access_projects = requested_projects.ids.difference(
+                project_ids
+            ) | requested_projects.slugs.difference(project_slugs)
 
             if missing_access_projects:
                 raise PermissionDenied(
@@ -154,7 +173,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             data=request.data,
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
         action = serializer.save()
         logger.info(
             "notification_action.create",
@@ -167,4 +186,5 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("NOTIFICATION_ACTION_ADD"),
             data=action.get_audit_log_data(),
         )
-        return Response(serialize(action, request.user), status=status.HTTP_201_CREATED)
+        body: OutgoingNotificationActionResponse = serialize(action, request.user)
+        return Response(body, status=status.HTTP_201_CREATED)

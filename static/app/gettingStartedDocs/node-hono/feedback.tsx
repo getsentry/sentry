@@ -50,6 +50,12 @@ export const feedback: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSnippet('@sentry/hono/bun'),
             },
+            {
+              label: 'Deno',
+              value: 'deno',
+              language: 'javascript',
+              code: getFeedbackSnippet('@sentry/hono/deno'),
+            },
           ],
         },
       ],

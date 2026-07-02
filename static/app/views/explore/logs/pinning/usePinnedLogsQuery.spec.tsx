@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -55,6 +56,10 @@ describe('usePinnedLogsQuery', () => {
     });
   });
 
+  afterEach(() => {
+    resetMockDate();
+  });
+
   it('returns empty fetchedRows when all pinned ids are in allRows', () => {
     const logRow = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-1',
@@ -82,7 +87,7 @@ describe('usePinnedLogsQuery', () => {
     expect(result.current.isPending).toBe(false);
   });
 
-  it('fetches missing pinned rows from the API', async () => {
+  it('fetches missing pinned rows from the selected range', async () => {
     const missingLog = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-missing',
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
@@ -117,40 +122,152 @@ describe('usePinnedLogsQuery', () => {
           query: 'id:[log-missing]',
           dataset: 'ourlogs',
           sampling: 'HIGHEST_ACCURACY',
+          statsPeriod: '14d',
         }),
       })
     );
     expect(result.current.fetchedRows[0]?.[OurLogKnownFieldKey.ID]).toBe('log-missing');
   });
 
-  it('includes the utc flag when fetching with an absolute date range', async () => {
-    PageFiltersStore.onInitializeUrlState({
-      projects: [parseInt(project.id, 10)],
-      environments: [],
-      datetime: {
-        period: null,
-        start: '2024-01-01T00:00:00',
-        end: '2024-01-02T00:00:00',
-        utc: true,
-      },
-    });
-
-    const missingLog = LogFixture({
-      [OurLogKnownFieldKey.ID]: 'log-missing',
+  it('does not escalate to the wide window when the selected range resolves every pin', async () => {
+    const inRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-in-range',
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     });
 
-    const eventsRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [missingLog],
-        meta: {fields: {id: 'string'}, units: {}},
-      },
+      body: {data: [inRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    const wideRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
     });
 
-    const logsPinning = makeLogsPinning(['log-missing']);
+    const logsPinning = makeLogsPinning(['log-in-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.fetchedRows).toHaveLength(1);
+    });
+
+    expect(wideRequest).not.toHaveBeenCalled();
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
+  });
+
+  it('escalates only the unresolved ids to the wide window', async () => {
+    const inRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-in-range',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+    const outOfRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-out-of-range',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [inRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    const wideRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [outOfRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-in-range', 'log-out-of-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.fetchedRows).toHaveLength(2);
+    });
+
+    expect(wideRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'id:[log-out-of-range]'}),
+      })
+    );
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
+  });
+
+  it('queries the wide window with a narrow range derived from the pin id when the id is a valid v7 timestamp', async () => {
+    setMockDate(new Date('2026-06-18T05:00:00Z'));
+    const v7Id = '019ed8e2be157592b89c4bd51c7bd1e7';
+    const outOfRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: v7Id,
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    const wideRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [outOfRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({start: '2026-06-18T03:54:58'})],
+    });
+
+    const logsPinning = makeLogsPinning([v7Id]);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.fetchedRows).toHaveLength(1);
+    });
+
+    expect(wideRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: '2026-06-18T03:54:58',
+          end: '2026-06-18T04:04:58',
+        }),
+      })
+    );
+  });
+
+  it('falls back to the 9999d wide window when a missing pin id is not a decodable timestamp', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    const wideRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['not-a-v7-id']);
 
     renderHookWithProviders(() => usePinnedLogsQuery({allRows: [], logsPinning}), {
       organization,
@@ -158,17 +275,138 @@ describe('usePinnedLogsQuery', () => {
     });
 
     await waitFor(() => {
-      expect(eventsRequest).toHaveBeenCalledWith(
+      expect(wideRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: expect.objectContaining({
-            utc: true,
-            start: '2024-01-01T00:00:00',
-            end: '2024-01-02T00:00:00',
-          }),
+          query: expect.objectContaining({statsPeriod: '9999d'}),
         })
       );
     });
+  });
+
+  it('falls back to the wide window when the in-range query fails', async () => {
+    const outOfRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-out-of-range',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    const wideRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [outOfRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-out-of-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.fetchedRows).toHaveLength(1);
+    });
+
+    expect(wideRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'id:[log-out-of-range]'}),
+      })
+    );
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
+  });
+
+  it('reports isError when the pinned logs query fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    const logsPinning = makeLogsPinning(['missing-log']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+  });
+
+  it('does not unpin when both the in-range and wide queries fail', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-out-of-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
+  });
+
+  it('does not unpin a pin found only in the wide window', async () => {
+    const outOfRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-out-of-range',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [outOfRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-out-of-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.fetchedRows).toHaveLength(1);
+    });
+
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
   });
 
   it('does not call removePinnedRows when the scan was only partial', async () => {

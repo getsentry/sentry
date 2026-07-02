@@ -13,9 +13,6 @@ class GithubCopilotIntegrationProviderTest(TestCase):
     def test_requires_feature_flag_false(self):
         assert self.provider.requires_feature_flag is False
 
-    def test_no_pipeline_views(self):
-        assert self.provider.get_pipeline_views() == []
-
     def test_build_integration(self):
         data = self.provider.build_integration({})
         assert data["name"] == "GitHub Copilot"

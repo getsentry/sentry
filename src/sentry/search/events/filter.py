@@ -772,6 +772,8 @@ def format_search_filter(
                 groups = Group.objects.by_qualified_short_id_bulk(
                     params["organization_id"],
                     group_short_ids,
+                    # org-wide: the Snuba query is already scoped to the requested projects.
+                    project_ids=None,
                 )
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")

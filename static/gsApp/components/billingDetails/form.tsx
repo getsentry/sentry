@@ -270,12 +270,8 @@ export function BillingDetailsForm({
       data.taxNumber = null;
     }
 
-    // Clear the region if not applicable to country code.
-    if (
-      countryHasRegionChoices(data.countryCode) &&
-      !getRegionChoiceCode(data.countryCode, data.region)
-    ) {
-      data.region = undefined;
+    if (!getRegionChoiceCode(data.countryCode, data.region)) {
+      data.region = null;
     }
 
     return data;

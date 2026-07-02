@@ -1,7 +1,51 @@
 import {t} from 'sentry/locale';
+import type {EventOccurrence} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
 import type {LowValueSpanEvidenceData} from './types';
+
+type LowValueSpanEvidencePayload = Partial<{
+  analysisEnd: unknown;
+  analysisStart: unknown;
+  avgDurationMs: unknown;
+  count: unknown;
+  description: unknown;
+  estimatedCostUsd: unknown;
+  extrapolatedCount: unknown;
+  op: unknown;
+  spanOrigin: unknown;
+  valueScore: unknown;
+}>;
+
+function getStringValue(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length === 0) {
+    return null;
+  }
+  return value;
+}
+
+function getNumberValue(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+  return value;
+}
+
+export function getLowValueSpanEvidenceData(
+  evidenceData: EventOccurrence['evidenceData'] | null | undefined
+): LowValueSpanEvidenceData {
+  const data = evidenceData as LowValueSpanEvidencePayload | null | undefined;
+
+  return {
+    op: getStringValue(data?.op),
+    description: getStringValue(data?.description),
+    count: getNumberValue(data?.count),
+    extrapolatedCount: getNumberValue(data?.extrapolatedCount),
+    avgDurationMs: getNumberValue(data?.avgDurationMs),
+    estimatedCostUsd: getNumberValue(data?.estimatedCostUsd),
+    spanOrigin: getStringValue(data?.spanOrigin),
+  };
+}
 
 const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/javascript/configuration/options/#ignoreSpans';
@@ -98,21 +142,27 @@ export function getCustomInstrumentationDocsUrl(): string {
   return CUSTOM_INSTRUMENTATION_DOCS_URL;
 }
 
-function toCodeString(value: string | null, fallback: string): string {
-  return JSON.stringify(value ?? fallback);
-}
-
 export function getJavaScriptSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const spanOp = toCodeString(evidenceData.op, '<span.op>');
-  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+  const matcherLines: string[] = [];
+  if (evidenceData.description === null && evidenceData.op !== null) {
+    matcherLines.push(`      // NOTE: This span has no description, so it can only be`);
+    matcherLines.push(
+      `      // targeted by op. This will also drop other spans with this op.`
+    );
+  }
+  if (evidenceData.op !== null) {
+    matcherLines.push(`      op: ${JSON.stringify(evidenceData.op)},`);
+  }
+  if (evidenceData.description !== null) {
+    matcherLines.push(`      name: ${JSON.stringify(evidenceData.description)},`);
+  }
 
   return `Sentry.init({
   ignoreSpans: [
     {
-      op: ${spanOp},
-      name: ${spanDescription},
+${matcherLines.join('\n')}
     },
   ],
 });`;
@@ -121,8 +171,19 @@ export function getJavaScriptSpanFilterSnippet(
 export function getPythonSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const spanOp = toCodeString(evidenceData.op, '<span.op>');
-  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+  const conditions: string[] = [];
+  if (evidenceData.op === null) {
+    conditions.push(`            span.get("op") is None`);
+  } else {
+    conditions.push(`            span.get("op") == ${JSON.stringify(evidenceData.op)}`);
+  }
+  if (evidenceData.description === null) {
+    conditions.push(`            and span.get("description") is None`);
+  } else {
+    conditions.push(
+      `            and span.get("description") == ${JSON.stringify(evidenceData.description)}`
+    );
+  }
 
   return `import sentry_sdk
 
@@ -131,8 +192,7 @@ def before_send_transaction(event, hint):
     event["spans"] = [
         span for span in event.get("spans", [])
         if not (
-            span.get("op") == ${spanOp}
-            and span.get("description") == ${spanDescription}
+${conditions.join('\n')}
         )
     ]
     return event

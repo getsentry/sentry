@@ -18,7 +18,10 @@ import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/t
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
-import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  getInitialFilterText,
+  resolveFilterKey,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   ParseResultToken,
   Token,
@@ -47,7 +50,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     inputValue,
     includeSuggestions: false,
   });
-  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilderConfig();
+  const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
+    useSearchQueryBuilderConfig();
   const {dispatch} = useSearchQueryBuilderState();
   const {setDisplayAskSeer, setAutoSubmitSeer} = useSearchQueryBuilderAI();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
@@ -156,9 +160,16 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         return;
       }
 
-      handleSelectKey(getSuggestedFilterKey(trimmedKeyName) ?? trimmedKeyName);
+      handleSelectKey(
+        resolveFilterKey({
+          key: trimmedKeyName,
+          filterKeys,
+          getSuggestedFilterKey,
+          loadedItems: sortedFilterKeys,
+        })
+      );
     },
-    [handleSelectKey, getSuggestedFilterKey, onCommit]
+    [filterKeys, getSuggestedFilterKey, handleSelectKey, onCommit, sortedFilterKeys]
   );
 
   const onCustomValueBlurred = useCallback(() => {

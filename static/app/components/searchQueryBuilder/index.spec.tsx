@@ -29,6 +29,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import * as analytics from 'sentry/utils/analytics';
 import {
   FieldKey,
   FieldKind,
@@ -143,6 +144,15 @@ function getLastInput() {
   expect(input).toBeInTheDocument();
 
   return input!;
+}
+
+function makeDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(next => {
+    resolve = next;
+  });
+
+  return {promise, resolve};
 }
 
 describe('SearchQueryBuilder', () => {
@@ -266,8 +276,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('does not display footer when disallowWildcard is true', async () => {
@@ -283,7 +294,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -297,7 +308,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'me'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -336,8 +347,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: nullable_string'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('renders swap to is for * when using a wildcard operator', async () => {
@@ -351,9 +363,9 @@ describe('SearchQueryBuilder', () => {
           })
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
         await userEvent.keyboard('{escape}');
 
         await userEvent.click(
@@ -2387,6 +2399,27 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows value counts in the dropdown when the response includes them', async () => {
+      const mockGetTagValues = jest
+        .fn()
+        .mockResolvedValue([{value: 'tag_value_one', count: 1234}]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+
+      const option = await screen.findByRole('option', {name: /tag_value_one/});
+
+      expect(within(option).getByText('1.2K')).toBeInTheDocument();
+    });
+
     it('unescapes asterisks before fetching tag value suggestions', async () => {
       const mockGetTagValues = jest.fn().mockResolvedValue([]);
       render(
@@ -2718,10 +2751,20 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
-      it('renders escaped asterisks as a bare asterisk in the filter chip', async () => {
+      it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
         );
+
+        expect(
+          await within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).findByText('foo\\*')
+        ).toBeInTheDocument();
+      });
+
+      it('renders a wildcard asterisk without an escape in the filter chip', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo*" />);
 
         expect(
           await within(
@@ -3257,6 +3300,64 @@ describe('SearchQueryBuilder', () => {
           .getAllByRole('option')
           .map(option => option.textContent);
         expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('tracks an analytics event when selecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: true,
+            selected_count: 2,
+          })
+        );
+      });
+
+      it('tracks an analytics event when deselecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:[firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: false,
+            selected_count: 1,
+          })
+        );
       });
 
       it('sorts value suggestions by fuzzy match relevance', async () => {
@@ -5215,6 +5316,62 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
     });
 
+    it('uses the explicit string tag key when selecting a pretty tag option', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo');
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('normalizes typed pretty tag keys to the explicit string tag key', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo:');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('normalizes edited pretty tag keys to the explicit string tag key', async () => {
+      render(
+        <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+      await userEvent.clear(input);
+      await userEvent.keyboard('foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('row', {name: 'tags[foo,string]:firefox'})
+      ).toBeInTheDocument();
+    });
+
+    it('uses the explicit string tag key when selecting a pretty has value', async () => {
+      render(<SearchQueryBuilder {...builderProps} initialQuery="has:custom_tag_name" />);
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      await userEvent.keyboard('foo');
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      expect(screen.getByRole('row', {name: 'has:tags[foo,string]'})).toBeInTheDocument();
+    });
+
     it('renders explicit number tag filter', async () => {
       render(
         <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
@@ -5535,7 +5692,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('escapes * for is op but not contains op', async () => {
+    it('renders the escaped asterisk for the contains suggestion but a wildcard for the is suggestion', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -5549,7 +5706,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test*');
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 
@@ -6592,6 +6749,98 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
 
       expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
+    });
+
+    it('uses async key metadata to create measurement filters', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {
+          key: 'app.vitals.start.warm.value',
+          name: 'app.vitals.start.warm.value',
+          kind: FieldKind.MEASUREMENT,
+        },
+      ]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          getTagKeys={mockGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('app.vitals');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'app.vitals.start.warm.value'})
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>100'})
+      ).toBeInTheDocument();
+    });
+
+    it('scopes in-flight async key responses to the active registry query key', async () => {
+      const staleRequest = makeDeferred<typeof asyncTags>();
+      const staleGetTagKeys = jest.fn(() => staleRequest.promise);
+      const currentGetTagKeys = jest.fn().mockResolvedValue([]);
+
+      const {rerender} = render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          asyncFilterKeyRegistryQueryKey={['filter-key-registry', 'old-scope']}
+          getTagKeys={staleGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      await waitFor(() => {
+        expect(staleGetTagKeys).toHaveBeenCalledWith('async');
+      });
+
+      rerender(
+        <SearchQueryBuilder
+          {...defaultProps}
+          asyncFilterKeyRegistryQueryKey={['filter-key-registry', 'new-scope']}
+          getTagKeys={currentGetTagKeys}
+        />
+      );
+
+      await waitFor(() => {
+        expect(currentGetTagKeys).toHaveBeenCalledWith('async');
+      });
+
+      await act(async () => {
+        staleRequest.resolve(asyncTags);
+        await staleRequest.promise;
+      });
+
+      expect(
+        screen.queryByRole('option', {name: 'async_tag_one'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'async_tag_two'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('normalizes typed pretty tag keys using loaded async explicit keys', async () => {
+      const mockGetTagKeys = jest
+        .fn()
+        .mockResolvedValue([{key: 'tags[foo,string]', name: 'foo', kind: FieldKind.TAG}]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo');
+      expect(await screen.findByRole('option', {name: 'foo'})).toBeInTheDocument();
+      await userEvent.keyboard(':');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('shows async keys when editing an existing filter key', async () => {

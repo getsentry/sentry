@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -78,7 +79,12 @@ export function CodingAgentsCard({section}: CodingAgentsCardProps) {
               </Flex>
               <Tag variant={statusVariant}>{codingAgent.status}</Tag>
             </Flex>
-            <Flex direction="row" gap="md">
+            {codingAgent.results?.map((result, index) =>
+              result.description ? (
+                <Markdown key={index} raw={result.description} />
+              ) : null
+            )}
+            <Flex direction="row" gap="md" wrap="wrap">
               {codingAgent.agent_url ? (
                 <LinkButton href={codingAgent.agent_url} external icon={<IconOpen />}>
                   {t('Open in %s', agentName)}

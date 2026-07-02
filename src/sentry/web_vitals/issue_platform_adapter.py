@@ -22,7 +22,9 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
 def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
     project = data["project"]
     sentry_sdk.set_tag("project_id", project.id)
+    sentry_sdk.set_attribute("project_id", project.id)
     sentry_sdk.set_tag("organization_id", project.organization_id)
+    sentry_sdk.set_attribute("organization_id", project.organization_id)
 
     # Do not create a new web vital issue if an open issue already exists
     if check_unresolved_web_vitals_issue_exists(data):

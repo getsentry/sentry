@@ -122,7 +122,7 @@ export function DropdownMenuList({
     // logically follows from the tree-like structure and single-selection
     // nature of menus.
     const isLeafSubmenu = !stateCollection.some(node => {
-      const isSection = node.hasChildNodes && !node.value?.isSubmenu;
+      const isSection = node.hasChildNodes && !node.value?.submenu;
       // A submenu with key [key] is expanded if
       // state.selectionManager.isSelected([key]) = true
       return isSection
@@ -166,6 +166,9 @@ export function DropdownMenuList({
       return null;
     }
 
+    const submenuConfig = node.value.submenu;
+    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
+
     const trigger = (triggerProps: any) => (
       <DropdownMenuItem
         renderAs="div"
@@ -192,11 +195,11 @@ export function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         disableTextSelection={disableTextSelection}
-        menuTitle={node.value.submenuTitle}
+        menuTitle={submenuOptions.title}
         shouldCloseOnBlur={false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
-        position="right-start"
+        position={submenuOptions.position ?? 'right-start'}
         offset={-4}
         size={size}
       />
@@ -219,7 +222,7 @@ export function DropdownMenuList({
           </DropdownMenuSection>
         );
       } else {
-        itemToRender = node.value?.isSubmenu
+        itemToRender = node.value?.submenu
           ? renderItemWithSubmenu(node)
           : renderItem(node);
       }

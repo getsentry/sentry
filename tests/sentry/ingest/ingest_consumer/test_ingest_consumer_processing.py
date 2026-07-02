@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import patch
 
+import msgpack
 import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -24,6 +25,11 @@ from sentry.ingest.consumer.processors import (
     process_individual_attachment,
     process_userreport,
 )
+from sentry.ingest.consumer.simple_event import (
+    INLINE_SAVE_EVENT_OPTION,
+    INLINE_SAVE_EVENT_TRANSACTION_OPTION,
+    process_event_from_kafka,
+)
 from sentry.ingest.types import ConsumerType
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
@@ -35,6 +41,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_objectstore, requires_snuba, requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -112,6 +119,177 @@ def test_deduplication_works(default_project, task_runner, preprocess_event) -> 
         "start_time": start_time,
         "has_attachments": False,
     }
+
+
+@django_db_all
+def test_process_event_from_kafka(default_project, preprocess_event) -> None:
+    payload = get_normalized_event({"message": "hello world"}, default_project)
+    event_id = payload["event_id"]
+    project_id = default_project.id
+    start_time = time.time() - 3600
+
+    message = msgpack.packb(
+        {
+            "payload": orjson.dumps(payload).decode(),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+            "type": "event",
+        }
+    )
+
+    process_event_from_kafka(message)
+
+    (kwargs,) = preprocess_event
+    assert kwargs == {
+        "cache_key": f"e:{event_id}:{project_id}",
+        "data": payload,
+        "event_id": event_id,
+        "project": default_project,
+        "start_time": start_time,
+        "has_attachments": False,
+    }
+
+
+@django_db_all
+def test_process_event_from_kafka_inlines_preprocess_save_event_with_option(
+    default_project, preprocess_event
+) -> None:
+    payload = get_normalized_event({"message": "hello world"}, default_project)
+    event_id = payload["event_id"]
+    project_id = default_project.id
+    start_time = time.time() - 3600
+
+    message = msgpack.packb(
+        {
+            "payload": orjson.dumps(payload).decode(),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+            "type": "event",
+        }
+    )
+
+    with override_options({INLINE_SAVE_EVENT_OPTION: True}):
+        process_event_from_kafka(message)
+
+    (kwargs,) = preprocess_event
+    assert kwargs == {
+        "cache_key": f"e:{event_id}:{project_id}",
+        "data": payload,
+        "event_id": event_id,
+        "project": default_project,
+        "start_time": start_time,
+        "has_attachments": False,
+        "inline_save_event": True,
+    }
+
+
+@django_db_all
+def test_process_event_from_kafka_transaction_spawns_save_event_transaction_by_default(
+    default_project,
+    preprocess_event,
+    save_event_transaction,
+) -> None:
+    project_id = default_project.id
+    now = datetime.datetime.now()
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 3600
+    message = msgpack.packb(
+        {
+            "payload": orjson.dumps(payload).decode(),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+            "type": "event",
+        }
+    )
+
+    process_event_from_kafka(message)
+
+    assert not len(preprocess_event)
+    assert save_event_transaction.call_count == 0
+    assert save_event_transaction.delay.call_args[0] == ()
+    assert save_event_transaction.delay.call_args[1] == dict(
+        cache_key=f"e:{event_id}:{project_id}",
+        data=None,
+        start_time=start_time,
+        event_id=event_id,
+        project_id=project_id,
+    )
+
+
+@django_db_all
+def test_process_event_from_kafka_transaction_saves_inline_with_option(
+    default_project,
+    preprocess_event,
+    save_event_transaction,
+) -> None:
+    project_id = default_project.id
+    now = datetime.datetime.now()
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 3600
+    message = msgpack.packb(
+        {
+            "payload": orjson.dumps(payload).decode(),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+            "type": "event",
+        }
+    )
+
+    with override_options({INLINE_SAVE_EVENT_TRANSACTION_OPTION: True}):
+        process_event_from_kafka(message)
+
+    assert not len(preprocess_event)
+    assert save_event_transaction.call_args[0] == ()
+    assert save_event_transaction.call_args[1] == dict(
+        cache_key=f"e:{event_id}:{project_id}",
+        data=None,
+        start_time=start_time,
+        event_id=event_id,
+        project_id=project_id,
+    )
+    assert save_event_transaction.delay.call_count == 0
 
 
 @django_db_all
@@ -339,24 +517,27 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
         assert not persisted_attachments
 
 
-@django_db_all
-@requires_symbolicator
-@thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -> None:
-    with override_options({"system.url-prefix": live_server.url}):
-        do_process_view_hierarchy(default_project, task_runner)
+@debug_files_test_both_backends
+class TestDeobfuscateViewHierarchy:
+    @django_db_all
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_deobfuscate_view_hierarchy(self, default_project, task_runner, live_server) -> None:
+        with override_options({"system.url-prefix": live_server.url}):
+            do_process_view_hierarchy(default_project, task_runner)
 
-
-@django_db_all
-@requires_objectstore
-@requires_symbolicator
-@thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
-    with override_options({"system.url-prefix": live_server.url}):
-        # this stores the attachment during processing in objectstore:
-        do_process_view_hierarchy(default_project, task_runner)
-        # this passes an already stored attachment to the ingest consumer:
-        do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
+    @django_db_all
+    @requires_objectstore
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_deobfuscate_view_hierarchy_with_objectstore_attachment(
+        self, default_project, task_runner, live_server
+    ) -> None:
+        with override_options({"system.url-prefix": live_server.url}):
+            # this stores the attachment during processing in objectstore:
+            do_process_view_hierarchy(default_project, task_runner)
+            # this passes an already stored attachment to the ingest consumer:
+            do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
 
 
 def do_process_view_hierarchy(project, task_runner, use_objectstore=False):

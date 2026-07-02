@@ -12,6 +12,8 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
@@ -45,16 +47,24 @@ import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 import {WidgetWrapper} from './styles';
 
-export function getMetricsChartTypeOptions(organization: Organization) {
+export function getMetricsChartTypeOptions(
+  organization: Organization,
+  isEquation: boolean,
+  metric?: TraceMetric
+) {
   if (canUseMetricsHeatMap(organization)) {
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
-      {value: ChartType.HEATMAP, label: t('Heat Map')},
+      {
+        value: ChartType.HEATMAP,
+        label: t('Heat Map'),
+        disabled: isEquation || !metric || !doesMetricSupportHeatMapVisualization(metric),
+      },
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;
@@ -62,7 +72,7 @@ export function getMetricsChartTypeOptions(organization: Organization) {
 
 interface MetricsGraphProps {
   actions: React.ReactNode;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -97,7 +107,7 @@ export function MetricsGraph({
 
 interface GraphProps {
   actions: React.ReactNode;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
   isMetricOptionsEmpty?: boolean;
@@ -209,7 +219,7 @@ function Graph({
               )}
             />
           ) : showChart ? (
-            <ChartVisualization chartInfo={chartInfo} />
+            <ChartVisualization chartInfo={chartInfo} notMerge={false} />
           ) : undefined
         }
         Footer={

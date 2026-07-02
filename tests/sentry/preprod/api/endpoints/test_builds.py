@@ -862,7 +862,7 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="test.app")
         assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
 
-    @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
+    @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
         mock_cutoff.return_value = before_now(days=30)
         self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))

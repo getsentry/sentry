@@ -224,7 +224,10 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
     <Fragment>
       {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
-        <RecentFiltersPane>
+        <RecentFiltersPane
+          // PanelBody applies legacy textStyles to plain ul elements; opt this layout row out.
+          data-panel-body-text-styles="ignore"
+        >
           {recentFilters.map(filter => (
             <RecentSearchFilterOption
               key={getKeyName(filter.key)}

@@ -5,12 +5,12 @@ from collections.abc import Callable, Sequence
 from functools import cached_property
 
 from django.contrib import messages
+from django.db import router, transaction
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.base import Provider
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -20,7 +20,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 from sentry.utils import metrics
 
 from . import default_manager
@@ -53,6 +53,8 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
         return self.provider.get_pipeline_views()
 
     def finish_pipeline(self) -> HttpResponseBase:
+        from sentry.integrations.base import IntegrationDomain
+
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,
@@ -63,18 +65,37 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
             identity = self.provider.build_identity(self.state.data)
 
             assert self.request.user.is_authenticated
-            assert self.provider_model is not None
 
-            Identity.objects.link_identity(
-                user=self.request.user,
-                idp=self.provider_model,
-                external_id=identity["id"],
-                should_reattach=False,
-                defaults={
-                    "scopes": identity.get("scopes", []),
-                    "data": identity.get("data", {}),
-                },
-            )
+            with transaction.atomic(router.db_for_write(Identity)):
+                if self.provider_model is None and self.provider.auto_create_provider_model:
+                    self.provider_model, _ = IdentityProvider.objects.get_or_create(
+                        type=identity["type"],
+                        external_id=identity["idp_external_id"],
+                        defaults={"config": identity.get("idp_config", {})},
+                    )
+
+                assert self.provider_model is not None
+
+                linked_identity = Identity.objects.link_identity(
+                    user=self.request.user,
+                    idp=self.provider_model,
+                    external_id=identity["id"],
+                    should_reattach=False,
+                    defaults={
+                        "scopes": identity.get("scopes", []),
+                        "data": identity.get("data", {}),
+                    },
+                )
+
+                if (
+                    self.provider.create_organization_identity
+                    and self.organization
+                    and linked_identity is not None
+                ):
+                    OrganizationIdentity.objects.get_or_create(
+                        organization_id=self.organization.id,
+                        identity=linked_identity,
+                    )
 
             # Let providers react to a freshly linked identity (e.g. backfilling
             # derived mappings). Best-effort: never let it break the link flow.
