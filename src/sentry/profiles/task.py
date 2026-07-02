@@ -1488,7 +1488,12 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
             with sentry_sdk.start_span(op="json.unmarshal"):
-                chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
+                # platform is only used as a fallback for legacy android trace
+                # chunks which don't carry a version; drop it together with the
+                # fallback in is_android_trace_format once all chunks have one
+                chunk = vroomrs.profile_chunk_from_json_str(
+                    json_profile, profile["platform"], profile.get("version")
+                )
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
