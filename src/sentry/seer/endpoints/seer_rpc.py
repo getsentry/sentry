@@ -367,9 +367,16 @@ class SeerRpcServiceEndpoint(Endpoint):
         if arg_org_id is None:
             return
 
+        # ``arg_org_id`` is caller-supplied and only validated to live under a
+        # dict; coerce defensively so malformed input is a 400, not a 500.
+        try:
+            arg_org_id = int(arg_org_id)
+        except (TypeError, ValueError):
+            raise ParseError("Invalid organization id")
+
         vc = getattr(request, "_seer_rpc_viewer_context", None)
         vc_org_id = vc.organization_id if vc is not None else None
-        if vc_org_id is None or int(arg_org_id) != int(vc_org_id):
+        if vc_org_id is None or arg_org_id != int(vc_org_id):
             metrics.incr(
                 "seer.rpc.viewer_context_org_binding",
                 tags={"outcome": "mismatch"},

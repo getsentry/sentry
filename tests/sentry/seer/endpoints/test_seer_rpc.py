@@ -2119,6 +2119,19 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         response = self.client.post(path, data=data)
         assert response.status_code == 403
 
+    def test_malformed_org_id_arg_is_bad_request_not_server_error(self) -> None:
+        # A non-numeric org_id on the viewer-context path must 400, not 500 —
+        # the org-binding guard coerces caller-supplied input defensively.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": "not-a-number"}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 400
+
     def test_hmac_only_still_authenticates(self) -> None:
         org = self.create_organization()
         path = self._get_path("get_organization_features")
