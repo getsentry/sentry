@@ -28,8 +28,8 @@ export function sortByScmProviderOrder<T>(items: T[], getKey: (item: T) => strin
 /**
  * Splits SCM providers into the primary set (in PRIMARY_PROVIDER_KEYS order)
  * and the rest (in their original order), for ScmProviderPills' pills vs.
- * "More" dropdown grouping. Concatenating the two yields the same order as
- * {@link sortByScmProviderOrder}.
+ * "More" dropdown grouping. Provider configs are unique by key, so
+ * concatenating the two yields the same order as {@link sortByScmProviderOrder}.
  */
 export function partitionScmProviders(providers: IntegrationProvider[]) {
   const primaryProviders = PRIMARY_PROVIDER_KEYS.map(key =>
