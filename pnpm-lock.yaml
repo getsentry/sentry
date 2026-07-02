@@ -573,8 +573,8 @@ importers:
         specifier: ^0.7.3
         version: 0.7.3
       '@sentry-internal/rrweb-types':
-        specifier: 2.41.0
-        version: 2.41.0
+        specifier: 2.43.0
+        version: 2.43.0
       '@sentry/jest-environment':
         specifier: 6.1.0
         version: 6.1.0(@sentry/node@10.63.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1)))(@sentry/profiling-node@10.63.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1)))(jest@30.4.2(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.33)(@types/node@24.13.2)(typescript@6.0.3)))
@@ -3119,8 +3119,14 @@ packages:
   '@sentry-internal/rrweb-snapshot@2.41.0':
     resolution: {integrity: sha512-2NPQmwfbVONnyLOOwQ4WP+PIJx+qB5mEIFUq2bpgWglDSPSkr6yxnMB2kT+lE8P3OC/N3I/IrV0vEyFEReVgBA==}
 
+  '@sentry-internal/rrweb-snapshot@2.43.0':
+    resolution: {integrity: sha512-DF6HOwkOTpxCYZWCLZ32Sl27f6iXi4jSyonhjkie44Wr9nMe6Zvey/V0glm8xI1XkGqZaFGUVzVRReezwwkeHg==}
+
   '@sentry-internal/rrweb-types@2.41.0':
     resolution: {integrity: sha512-9+sfBcblve5i6uZpeu9s/tCUhhwg3wb8Ywe4RjVI4jNywVYsCJscpswbM8mdNUNvJpaaZud0QLS50HwQycCEZA==}
+
+  '@sentry-internal/rrweb-types@2.43.0':
+    resolution: {integrity: sha512-T98inxcRWi+GhZIPBOdAE0xaKxnm6am3h+9mbkN+rDqdFz/TsGF+bTvjTHuZ/nE7dzCGCxGnwQCNnJk9Z14x4A==}
 
   '@sentry-internal/rrweb@2.41.0':
     resolution: {integrity: sha512-Pq5Ng/NhXza40lIXAjBCclvuC+QFwAktWwl2Sa/oMH//GxtDc/mcWV7CIHdsiSbTkd3jFQZcuutByFq2hlCSug==}
@@ -5226,8 +5232,8 @@ packages:
     resolution: {integrity: sha512-ZCkIjSYNDyGn0R6ewHDtXgns/Zre/NT6Agvq1/WobF7JXgFff4SeDroKiCO3fNJreU9YG429Sc81o4w5ok/W5g==}
     engines: {node: '>=10.2.0'}
 
-  enhanced-resolve@5.24.0:
-    resolution: {integrity: sha512-SkE2t82KlkkxQRVMVLAGKxLfORGQfrkx5dkj+vlgXRVNEdPc4eZcR+J/Fvj8C+yKSFH5L0q3NFlyufOVQnCcYQ==}
+  enhanced-resolve@5.24.1:
+    resolution: {integrity: sha512-7DdUaTjmNwMcH2gLr1qycesKII3BK4RLy/mdAb7x10Lq7bR4aNKHt1BR1ZALSv0rPM/hF5wYF0PhGop/rJm8vw==}
     engines: {node: '>=10.13.0'}
 
   entities@2.0.0:
@@ -11826,9 +11832,16 @@ snapshots:
 
   '@sentry-internal/rrweb-snapshot@2.41.0': {}
 
+  '@sentry-internal/rrweb-snapshot@2.43.0': {}
+
   '@sentry-internal/rrweb-types@2.41.0':
     dependencies:
       '@sentry-internal/rrweb-snapshot': 2.41.0
+      '@types/css-font-loading-module': 0.0.7
+
+  '@sentry-internal/rrweb-types@2.43.0':
+    dependencies:
+      '@sentry-internal/rrweb-snapshot': 2.43.0
       '@types/css-font-loading-module': 0.0.7
 
   '@sentry-internal/rrweb@2.41.0':
@@ -14063,7 +14076,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  enhanced-resolve@5.24.0:
+  enhanced-resolve@5.24.1:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -18883,7 +18896,7 @@ snapshots:
       acorn: 8.17.0
       browserslist: 4.28.1
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.24.0
+      enhanced-resolve: 5.24.1
       es-module-lexer: 1.7.0
       eslint-scope: 5.1.1
       events: 3.3.0
