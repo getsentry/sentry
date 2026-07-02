@@ -227,8 +227,10 @@ export function NotificationSettingsByEntity({
         ]
       : entityOptions;
 
+  const Wrapper = entityType === 'project' ? MinHeight : Fragment;
+
   return (
-    <MinHeight>
+    <Wrapper>
       <Panel>
         <StyledPanelHeader>
           {entityType === 'project' ? (
@@ -297,7 +299,7 @@ export function NotificationSettingsByEntity({
           </Fragment>
         )}
       </Panel>
-    </MinHeight>
+    </Wrapper>
   );
 }
 
