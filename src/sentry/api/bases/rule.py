@@ -65,6 +65,7 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
                     rule_id=rule_id,
                     workflow__organization=project.organization,
                     workflow__status=ObjectStatus.ACTIVE,
+                    workflow__detectorworkflow__detector__project=project,
                 )
                 kwargs["rule"] = arw.workflow
             except AlertRuleWorkflow.DoesNotExist:
@@ -75,6 +76,7 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
                         id=workflow_id,
                         organization=project.organization,
                         status=ObjectStatus.ACTIVE,
+                        detectorworkflow__detector__project=project,
                     )
                 except (AlertRuleWorkflow.DoesNotExist, Workflow.DoesNotExist):
                     raise ResourceDoesNotExist
