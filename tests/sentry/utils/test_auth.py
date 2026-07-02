@@ -237,7 +237,12 @@ def test_construct_link_with_query() -> None:
         ("//myorg.sentry.io/foo", False),  # protocol-relative sentry subdomain
         ("/\\evil.com", False),  # backslash trick
         ("javascript:alert(1)", False),  # scheme
+        # non-string JSON values
+        (None, False),
+        (123, False),
+        (["/x"], False),
+        ({"/x": 1}, False),
     ],
 )
-def test_is_valid_relative_redirect(url: str, expected: bool) -> None:
+def test_is_valid_relative_redirect(url: object, expected: bool) -> None:
     assert is_valid_relative_redirect(url) is expected

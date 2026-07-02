@@ -234,9 +234,9 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
     return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
 
 
-def is_valid_relative_redirect(url: str) -> bool:
+def is_valid_relative_redirect(url: object) -> bool:
     return (
-        bool(url)
+        isinstance(url, str)
         and url.startswith("/")
         and url_has_allowed_host_and_scheme(url, allowed_hosts=set())
     )
