@@ -119,6 +119,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path, set_path
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -182,13 +183,13 @@ class ReprocessableEvent:
 def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
-    with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
+    with start_span(op="reprocess_events.eventstore.get", name="reprocess_events.eventstore.get"):
         event = eventstore.backend.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")
 
-    with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
+    with start_span(op="reprocess_events.nodestore.get", name="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.backend.get(node_id, subkey="unprocessed")
 
@@ -231,8 +232,11 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     cache_key = cache_key_for_event(data)
     attachment_objects = []
     for attachment_id, attachment in enumerate(attachments):
-        with sentry_sdk.start_span(op="reprocess_event._maybe_copy_attachment_into_cache") as span:
-            span.set_data("attachment_id", attachment.id)
+        with start_span(
+            op="reprocess_event._maybe_copy_attachment_into_cache",
+            name="reprocess_event._maybe_copy_attachment_into_cache",
+        ) as span:
+            set_span_data(span, "attachment_id", attachment.id)
             attachment_objects.append(
                 _maybe_copy_attachment_into_cache(
                     project=project,
@@ -400,8 +404,9 @@ def buffered_delete_old_primary_hash(
     if old_primary_hash is not None:
         sentry_sdk.set_attribute("old_primary_hash", old_primary_hash)
 
-    with sentry_sdk.start_span(
-        op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+    with start_span(
+        op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events",
+        name="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events",
     ):
         _send_delete_old_primary_hash_messages(
             project_id, group_id, old_primary_hashes, force_flush_batch
@@ -595,8 +600,10 @@ def start_group_reprocessing(
             raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
 
         # TODO: Replace this with a special group.status rather than using data.
-        # Check the marker to avoid reprocessing B if there is a reprocessing A -> B going on at the moment
-        if "_reprocessing_old_group_id" in (group.data or {}):
+        # Check the marker to avoid reprocessing B if there is a reprocessing A -> B going on at the moment.
+        # Since the marker can be stale check if the reprocessing is actually still active.
+        old_group_id = (group.data or {}).get("_reprocessing_old_group_id")
+        if old_group_id is not None and is_reprocessing_active(old_group_id):
             raise RuntimeError("Cannot reprocess group that is being reprocessed to")
 
         original_short_id = group.short_id
@@ -725,19 +732,37 @@ def get_progress(group_id: int, project_id: int | None = None) -> tuple[int, Any
         logger.error("reprocessing2.missing_info")
         return 0, None
 
-    # We expect reprocessing to make progress every now and then, by bumping the
-    # TTL of the "counter" key. If that TTL wasn't bumped in a while, we just
-    # assume that reprocessing is stuck, and will just call finish on it.
-    if project_id is not None and ttl is not None and ttl > 0:
-        default_ttl = settings.SENTRY_REPROCESSING_SYNC_TTL
-        age = default_ttl - ttl
-        if age > REPROCESSING_TIMEOUT:
-            from sentry.tasks.reprocessing2 import finish_reprocessing
+    if (
+        project_id is not None
+        and ttl is not None
+        and ttl > 0
+        and not _reprocessing_recently_active(ttl)
+    ):
+        # Reprocessing is likely stuck, so call finish on it.
+        from sentry.tasks.reprocessing2 import finish_reprocessing
 
-            finish_reprocessing.delay(project_id=project_id, group_id=group_id)
+        finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 
     # Our internal sync counters are counting over *all* events, but the
     # progressbar in the frontend goes until max_events. Advance progressbar
     # proportionally.
     _pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount") or 1))
     return _pending, info
+
+
+def _reprocessing_recently_active(ttl: int | None) -> bool:
+    """
+    We expect reprocessing to make progress every now and then, by bumping the
+    TTL of the "counter" key. If that TTL wasn't bumped in a while, we just
+    assume that reprocessing is stuck.
+    """
+    if ttl is None or ttl <= 0:
+        return False
+    default_ttl = settings.SENTRY_REPROCESSING_SYNC_TTL
+    age = default_ttl - ttl
+    return age <= REPROCESSING_TIMEOUT
+
+
+def is_reprocessing_active(group_id: int) -> bool:
+    pending, ttl = reprocessing_store.get_pending(group_id)
+    return pending is not None and _reprocessing_recently_active(ttl)

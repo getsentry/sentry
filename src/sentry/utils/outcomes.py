@@ -11,7 +11,7 @@ from threading import Lock
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
-from django.conf import settings
+from taskbroker_client.state import current_task
 from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
@@ -232,16 +232,12 @@ def track_outcome(
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
     if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
-        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-            "tasks.producer.track_outcome.rollout"
-        ):
+        if current_task() is not None and in_random_rollout("tasks.producer.track_outcome.rollout"):
             producer: SingletonProducer | TaskProducer = billing_task_producer
         else:
             producer = billing_producer
     else:
-        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-            "tasks.producer.track_outcome.rollout"
-        ):
+        if current_task() is not None and in_random_rollout("tasks.producer.track_outcome.rollout"):
             producer = outcomes_task_producer
         else:
             producer = outcomes_producer

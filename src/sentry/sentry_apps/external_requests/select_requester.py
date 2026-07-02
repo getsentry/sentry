@@ -8,6 +8,7 @@ from django.utils.functional import cached_property
 from requests import RequestException
 
 from sentry.http import safe_urlread
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.external_requests.utils import (
     integrator_error_message,
     send_and_save_sentry_app_request,
@@ -15,7 +16,6 @@ from sentry.sentry_apps.external_requests.utils import (
     validate_outbound_url,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,

@@ -5,12 +5,12 @@ import responses
 from requests import HTTPError
 
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.external_requests.select_requester import (
     FAILURE_REASON_BASE,
     SelectRequester,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
 )

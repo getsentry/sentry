@@ -26,6 +26,8 @@ from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
     Pipeline,
+    State,
+    StateUpdate,
     StateView,
     aggregator,
 )
@@ -162,7 +164,8 @@ class ProcessGroupLogTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "open"
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[STATUS] == IssueStatus.OPEN
 
     def test_resolve_closes(self) -> None:
         group = self.create_group()
@@ -196,7 +199,8 @@ class ProcessGroupLogTest(TestCase):
 
         _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id))
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "open"
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[STATUS] == IssueStatus.OPEN
 
     def test_status_toggle(self) -> None:
         group = self.create_group()
@@ -286,6 +290,37 @@ def test_mutation_checking_catches_in_place_mutation() -> None:
         p.step(state, FakeEntry())
 
 
+def test_state_updated_tracks_merged_features() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+    state = State({A: 0, B: 0})
+
+    assert state.updated == frozenset()
+
+    state.merge(StateUpdate({A: 1}))
+    assert state.updated == frozenset({A})
+    assert state[A] == 1
+    assert state[B] == 0
+
+
+def test_build_update_json_blob_includes_all_json_features() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A, B))
+    def compute(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    pipeline = Pipeline([compute], version=1)
+    state = pipeline.initial_state()
+
+    # Update only A — blob should still contain both A and B
+    state.merge(StateUpdate({A: 1}))
+    update = GroupDerivedDataStore.build_update(pipeline, state)
+
+    assert update["data"] == {"a": 1, "b": 0}
+
+
 def test_store_apply_to_instance() -> None:
     derived = GroupDerivedData()
     derived.data = {}
@@ -343,15 +378,50 @@ class GroupDerivedDataStoreTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
+        first = process_group_log(group.id)
 
-        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        first_data = first.data.copy()
+        first_view_count = first.view_count
+        first_progress = first.progress
+        first_last_progressed_at = first.last_progressed_at
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+
+        assert second.data == first_data
+        assert second.view_count == first_view_count
+        assert second.progress == first_progress
+        assert second.last_progressed_at == first_last_progressed_at
+
+    def test_build_update_only_includes_updated_features(self) -> None:
+        state = PIPELINE.initial_state()
+
+        # Update only STATUS (lives in JSON) — column features stay clean
+        state.merge(StateUpdate({STATUS: IssueStatus.CLOSED}))
+
         update = GroupDerivedDataStore.build_update(PIPELINE, state)
 
-        assert update["data"] == derived.data
-        assert update["view_count"] == derived.view_count
-        assert update["progress"] == derived.progress
-        assert update["last_progressed_at"] == derived.last_progressed_at
+        assert "view_count" not in update
+        assert "progress" not in update
+        assert "last_progressed_at" not in update
+        assert "data" in update
+        assert update["data"]["status"] == "closed"
+
+        # Update a column-mapped feature — it should appear in the update
+        state.merge(StateUpdate({VIEW_COUNT: 5}))
+        update = GroupDerivedDataStore.build_update(PIPELINE, state)
+        assert update["view_count"] == 5
+
+    def test_build_update_excludes_json_blob_when_no_json_features_updated(self) -> None:
+        state = PIPELINE.initial_state()
+
+        # Update only a column-mapped feature — JSON blob should be excluded
+        state.merge(StateUpdate({VIEW_COUNT: 3}))
+
+        update = GroupDerivedDataStore.build_update(PIPELINE, state)
+
+        assert update["view_count"] == 3
+        assert "data" not in update
 
     def test_progress_round_trip(self) -> None:
         group = self.create_group()

@@ -10,8 +10,8 @@ from requests.models import Response
 from rest_framework import serializers
 
 from sentry.http import safe_urlopen
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppInteractionEvent,
     SentryAppInteractionType,

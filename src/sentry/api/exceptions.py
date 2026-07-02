@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http.request import HttpRequest
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied
 
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -15,6 +17,26 @@ from sentry.utils.http import is_using_customer_domain
 class ResourceDoesNotExist(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = "The requested resource does not exist"
+
+
+class InsufficientScope(PermissionDenied):
+    """A token-authorized request denied for lacking the required scope.
+
+    Renders as an ordinary ``403`` (DRF's default ``PermissionDenied`` body is unchanged),
+    but advertises the required scopes via the RFC 6750 ``insufficient_scope`` challenge.
+    ``custom_exception_handler`` copies ``auth_header`` onto the ``WWW-Authenticate`` header.
+    """
+
+    def __init__(self, required_scopes: Iterable[str]) -> None:
+        super().__init__()
+        scope = " ".join(sorted(required_scopes))
+        self.auth_header = f'Bearer error="insufficient_scope", scope="{scope}"'
+
+
+# Set on the request by the scope check when a token is denied for insufficient scope, and
+# read by Endpoint.permission_denied to raise InsufficientScope. Lets has_permission stay a
+# plain bool while the view still emits the RFC 6750 challenge.
+INSUFFICIENT_SCOPE_ATTR = "_insufficient_scope_required"
 
 
 class SentryAPIException(APIException):

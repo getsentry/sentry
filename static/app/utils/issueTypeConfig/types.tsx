@@ -31,6 +31,18 @@ export type IssueTypeConfig = {
    */
   autofix: boolean;
   /**
+   * Shows the Problem section in the configuration issue details
+   */
+  configurationProblem: DisabledWithReasonConfig;
+  /**
+   * Shows the Troubleshooting section in the configuration issue details
+   */
+  configurationTroubleshooting: DisabledWithReasonConfig;
+  /**
+   * Shows the event Contexts section (browser, OS, runtime, etc.)
+   */
+  contexts: DisabledWithReasonConfig;
+  /**
    * Custom copy for actions and other UI elements
    */
   customCopy: {
@@ -193,6 +205,10 @@ export type IssueTypeConfig = {
    * Are event tags or highlights shown for this issue
    */
   tags: DisabledWithReasonConfig;
+  /**
+   * Shows the Trace Preview section
+   */
+  trace: DisabledWithReasonConfig;
   /**
    * Whether to use open periods for the last checked date
    */
