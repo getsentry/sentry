@@ -82,13 +82,7 @@ QUESTIONS: tuple[Question, ...] = (
 
 
 def question_hash(question: str) -> str:
-    """Stable short digest of a question's text.
-
-    Used both as the Redis cache key suffix and as the ``hash`` echoed back on
-    each output so the frontend can correlate an answer with the question it
-    sent regardless of the (possibly synthetic) ``key``.
-    """
-    return hashlib.sha1(question.encode("utf-8")).hexdigest()[:8]
+    return hashlib.sha1(question.encode("utf-8")).hexdigest()
 
 
 def build_user_questions(questions: Sequence[str]) -> list[Question]:
