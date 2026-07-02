@@ -59,9 +59,11 @@ class Papertrail[T]:
     def _current_hour(self) -> int:
         return int(self._time_fn() // 3600)
 
-    def _shard_and_positions(self, item_id: T) -> tuple[int, list[int]]:
+    def _shard_and_positions(self, item_id: T, hour_ts: int) -> tuple[int, list[int]]:
+        # Seed with the hour so that false positive probabilities are
+        # independent across windows.
         # Double hashing, a la Kirsch and Mitzenmacher.
-        digest = md5(str(item_id).encode(), usedforsecurity=False).digest()
+        digest = md5(f"{hour_ts}:{item_id}".encode(), usedforsecurity=False).digest()
         h1 = int.from_bytes(digest[:8], "big")
         # If h2 shares a common factor with _bits_per_shard, positions cluster.
         # Forcing h2 odd avoids the most common case (shared factor of 2).
@@ -71,8 +73,9 @@ class Papertrail[T]:
         return shard, positions
 
     def observe(self, item_id: T) -> None:
-        shard, positions = self._shard_and_positions(item_id)
-        key = self._hour_key(shard, self._current_hour())
+        hour_ts = self._current_hour()
+        shard, positions = self._shard_and_positions(item_id, hour_ts)
+        key = self._hour_key(shard, hour_ts)
         with self._client.pipeline(transaction=False) as p:
             for pos in positions:
                 p.setbit(key, pos, 1)
@@ -82,8 +85,8 @@ class Papertrail[T]:
     def was_observed(self, item_id: T, hours_ago: int = 0) -> bool:
         if hours_ago < 0:
             raise ValueError("hours_ago must be non-negative")
-        shard, positions = self._shard_and_positions(item_id)
         hour_ts = self._current_hour() - hours_ago
+        shard, positions = self._shard_and_positions(item_id, hour_ts)
         key = self._hour_key(shard, hour_ts)
         with self._client.pipeline(transaction=False) as p:
             for pos in positions:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import itertools
 import time
+import uuid
 
 import pytest
 
@@ -11,13 +11,11 @@ from sentry.utils import redis
 from sentry.workflow_engine.papertrail import Papertrail
 from sentry.workflow_engine.papertrail.papertrail import _RedisClient
 
-_prefix_counter = itertools.count()
-
 CLUSTER_ID = "papertrail-test"
 
 
 def _get_test_prefix() -> str:
-    return f"test-pt-{next(_prefix_counter)}"
+    return f"test-pt-{uuid.uuid4().hex[:8]}"
 
 
 class PapertrailTestMixin:
@@ -29,6 +27,7 @@ class PapertrailTestMixin:
         ctx.__enter__()
         self.addCleanup(ctx.__exit__, None, None, None)  # type: ignore[attr-defined]
         self.redis_client = redis.redis_clusters.get_binary(CLUSTER_ID)
+        self.redis_client.flushdb()
         self.addCleanup(redis.redis_clusters._clusters_bytes.pop, CLUSTER_ID, None)  # type: ignore[attr-defined]
 
 
