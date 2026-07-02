@@ -11,10 +11,13 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.ai_conversations import (
     AI_CONVERSATION_AGGREGATION_COLUMNS,
     AI_CONVERSATION_ENRICHMENT_COLUMNS,
+    AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS,
+    AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY,
+    AI_CONVERSATION_TOOL_SPANS_FILTER,
     ConversationSummary,
-    build_tool_summaries,
     extract_conversation_enrichment,
     parse_conversation_aggregates,
+    parse_tool_breakdown,
     resolve_conversation_time_window,
     retention_window_error,
 )
@@ -87,6 +90,17 @@ class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
             config=SearchResolverConfig(auto_fields=True),
             sampling_mode="HIGHEST_ACCURACY",
         )
+        tool_breakdown = Spans.run_table_query(
+            params=snuba_params,
+            query_string=f"{conversation_filter} {AI_CONVERSATION_TOOL_SPANS_FILTER}",
+            selected_columns=AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS,
+            orderby=AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY,
+            offset=0,
+            limit=50,
+            referrer=Referrer.API_AI_CONVERSATION_SUMMARY.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="NORMAL",
+        )
 
         aggregation_rows = aggregation.get("data", [])
         aggregates = parse_conversation_aggregates(aggregation_rows[0] if aggregation_rows else {})
@@ -101,5 +115,6 @@ class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
             "outputTokens": aggregates["outputTokens"],
             "totalCost": aggregates["totalCost"],
             "user": extracted["user"],
-            "tools": build_tool_summaries(extracted),
+            "tools": parse_tool_breakdown(tool_breakdown.get("data", [])),
+            "traceIds": extracted["traceIds"],
         }

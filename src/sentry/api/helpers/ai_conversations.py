@@ -111,7 +111,6 @@ AI_CONVERSATION_ENRICHMENT_COLUMNS = [
 class ConversationEnrichment(TypedDict):
     user: UserResponse | None
     toolNames: list[str]
-    erroredToolNames: list[str]
     toolErrors: int
     flow: list[str]
     traceIds: list[str]
@@ -122,7 +121,6 @@ def extract_conversation_enrichment(rows: Iterable[dict[str, Any]]) -> Conversat
     flow: list[str] = []
     trace_ids: set[str] = set()
     tool_names: set[str] = set()
-    errored_tool_names: set[str] = set()
     tool_errors = 0
     user: UserResponse | None = None
 
@@ -144,8 +142,6 @@ def extract_conversation_enrichment(rows: Iterable[dict[str, Any]]) -> Conversat
             status = row.get("span.status", "ok")
             if status and status not in NON_FAILURE_STATUS:
                 tool_errors += 1
-                if tool_name:
-                    errored_tool_names.add(tool_name)
 
         # Capture the user from the first span (earliest timestamp) that carries one.
         if user is None:
@@ -159,27 +155,66 @@ def extract_conversation_enrichment(rows: Iterable[dict[str, Any]]) -> Conversat
     return {
         "user": user,
         "toolNames": sorted(tool_names),
-        "erroredToolNames": sorted(errored_tool_names),
         "toolErrors": tool_errors,
         "flow": flow,
         "traceIds": list(trace_ids),
     }
 
 
+# Per-tool breakdown, grouped by tool name. Mirrors the frontend Tool Calls hover card
+# (``useConversationToolBreakdown``) so the header and the table never disagree: call
+# count, total duration (ms), and error detection use the same expressions.
+_TOOL_NAME = "gen_ai.tool.name"
+_TOOL_CALL_COUNT = "count(span.duration)"
+_TOOL_DURATION = "sum(span.duration)"
+_TOOL_INTERNAL_ERRORS = "count_if(span.status,equals,internal_error)"
+_TOOL_STATUS_ERRORS = "count_if(span.status,equals,error)"
+
+AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS = [
+    _TOOL_NAME,
+    _TOOL_CALL_COUNT,
+    _TOOL_DURATION,
+    _TOOL_INTERNAL_ERRORS,
+    _TOOL_STATUS_ERRORS,
+]
+
+# Filter selecting only tool-execution spans; combine with the conversation filter.
+AI_CONVERSATION_TOOL_SPANS_FILTER = "gen_ai.operation.type:tool"
+
+# Order most-called tools first, matching the frontend hover card.
+AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY = [f"-{_TOOL_CALL_COUNT}"]
+
+
 class ToolSummary(TypedDict):
     name: str
+    calls: int
+    duration: float
     hasError: bool
 
 
-def build_tool_summaries(enrichment: ConversationEnrichment) -> list[ToolSummary]:
-    """Pair each distinct tool name with whether any of its spans errored."""
-    errored = set(enrichment["erroredToolNames"])
-    return [{"name": name, "hasError": name in errored} for name in enrichment["toolNames"]]
+def parse_tool_breakdown(rows: Iterable[dict[str, Any]]) -> list[ToolSummary]:
+    """Parse per-tool aggregation rows (see ``AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS``)."""
+    summaries: list[ToolSummary] = []
+    for row in rows:
+        name = row.get(_TOOL_NAME)
+        if not name:
+            continue
+        errors = int(row.get(_TOOL_INTERNAL_ERRORS) or 0) + int(row.get(_TOOL_STATUS_ERRORS) or 0)
+        summaries.append(
+            {
+                "name": name,
+                "calls": int(row.get(_TOOL_CALL_COUNT) or 0),
+                "duration": float(row.get(_TOOL_DURATION) or 0),
+                "hasError": errors > 0,
+            }
+        )
+    return summaries
 
 
 class ConversationSummary(ConversationAggregates):
     user: UserResponse | None
     tools: list[ToolSummary]
+    traceIds: list[str]
 
 
 def retention_window_error(snuba_params: SnubaParams, now: datetime) -> str | None:
