@@ -390,6 +390,7 @@ class SeerAgentClient:
         request: Request | None = None,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
+        referrer: str | None = None,
     ) -> SeerRun:
         """
         Start a new Seer Agent session.
@@ -516,6 +517,7 @@ class SeerAgentClient:
             on_run_created=_create_agent_run,
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=referrer,
             flush=True,
         )
 
@@ -556,6 +558,7 @@ class SeerAgentClient:
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=feature_id,
             flush=flush,
         )
 
