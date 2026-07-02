@@ -232,6 +232,8 @@ class OptionsStore:
 
     def get_store_many(self, keys: list[Key], silent: bool = False) -> dict[str, Any]:
         """Bulk version of `get_store`. One database query for many keys."""
+        assert len(keys) > 0, "At least one key is required"
+
         try:
             # NOTE: To greatly reduce test bugs due to cache leakage, we don't enforce cross db constraints
             # because in practice the option query is consistent with the process level silo mode.
