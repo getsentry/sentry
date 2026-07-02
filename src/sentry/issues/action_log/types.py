@@ -145,7 +145,7 @@ class ResolveAction(GroupAction):
 
 
 class UnresolveAction(GroupAction):
-    event_id: Optional[str]
+    event_id: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -159,12 +159,12 @@ class ArchiveAction(GroupAction):
 
 
 class AssignAction(GroupAction):
-    assignee: Optional[str]
-    assignee_email: Optional[str]
-    assignee_name: Optional[str]
-    assignee_type: Optional[str]
-    integration: Optional[str]
-    rule: Optional[str]
+    assignee: Optional[str] = None
+    assignee_email: Optional[str] = None
+    assignee_name: Optional[str] = None
+    assignee_type: Optional[str] = None
+    integration: Optional[str] = None
+    rule: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -179,7 +179,7 @@ class UnassignAction(GroupAction):
 
 class SetPriorityAction(GroupAction):
     priority: str
-    reason: Optional[str]
+    reason: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -222,8 +222,8 @@ class SentryActorRef(BaseModel):
 
 class CommentAction(GroupAction):
     comment_id: int
-    text: Optional[str]
-    mentions: Optional[list[SentryActorRef]]
+    text: Optional[str] = None
+    mentions: Optional[list[SentryActorRef]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -366,8 +366,8 @@ class AutofixCodingCompleteAction(GroupAction):
 
 
 class SetRegressedAction(GroupAction):
-    event_id: Optional[str]
-    version: Optional[str]
+    event_id: Optional[str] = None
+    version: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -383,13 +383,13 @@ class PullRequestClosedAction(GroupAction):
 
 
 class SetIgnoredAction(GroupAction):
-    ignore_count: Optional[int]
-    ignore_duration: Optional[int]
-    ignore_until: Optional[str]
-    ignore_user_count: Optional[int]
-    ignore_user_window: Optional[int]
-    ignore_window: Optional[int]
-    ignore_until_escalating: Optional[bool]
+    ignore_count: Optional[int] = None
+    ignore_duration: Optional[int] = None
+    ignore_until: Optional[str] = None
+    ignore_user_count: Optional[int] = None
+    ignore_user_window: Optional[int] = None
+    ignore_window: Optional[int] = None
+    ignore_until_escalating: Optional[bool] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -417,7 +417,7 @@ class CreateIssueAction(GroupAction):
     provider: str
     location: str
     label: str
-    new: Optional[bool]
+    new: Optional[bool] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -505,7 +505,7 @@ class ReprocessAction(GroupAction):
 
 
 class AutoSetOngoingAction(GroupAction):
-    after_days: Optional[int]
+    after_days: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -514,8 +514,8 @@ class AutoSetOngoingAction(GroupAction):
 
 class SetEscalatingAction(GroupAction):
     event_id: str
-    forecast: Optional[int]
-    expired_snooze: Optional[dict[str, int | str]]
+    forecast: Optional[int] = None
+    expired_snooze: Optional[dict[str, int | str]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -548,9 +548,9 @@ class SeerRCAStartedAction(GroupAction):
 
 class SeerRCACompletedAction(GroupAction):
     run_id: int
-    summary: Optional[str]
+    summary: Optional[str] = None
     # TODO Break out as separate model?
-    root_cause: Optional[dict[str, str | list[str]]]
+    root_cause: Optional[dict[str, str | list[str]]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -568,8 +568,8 @@ class SeerSolutionStartedAction(GroupAction):
 class SeerSolutionCompletedAction(GroupAction):
     run_id: int
     # TODO Break out as separate model?
-    solution: Optional[dict[str, str | list[dict[str, str]]]]
-    summary: Optional[str]
+    solution: Optional[dict[str, str | list[dict[str, str]]]] = None
+    summary: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -586,7 +586,7 @@ class SeerCodingStartedAction(GroupAction):
 
 class SeerCodingCompletedAction(GroupAction):
     run_id: int
-    changes: Optional[list[dict[str, str | int]]]
+    changes: Optional[list[dict[str, str | int]]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -596,7 +596,7 @@ class SeerCodingCompletedAction(GroupAction):
 class SeerPRCreatedAction(GroupAction):
     run_id: int
     # TODO Break out as separate model?
-    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]]
+    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

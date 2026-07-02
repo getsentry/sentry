@@ -1,4 +1,5 @@
 import logging
+from typing import Mapping
 
 from pydantic.error_wrappers import ValidationError
 
@@ -43,8 +44,16 @@ from sentry.issues.action_log.types import (
 )
 from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
+from sentry.utils.env import in_test_environment
 
-ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: dict[int, type[GroupAction]] = {
+ACTIVITY_TYPES_WITH_NO_ACTION: frozenset[int] = frozenset(
+    (
+        ActivityType.FIRST_SEEN.value,
+        ActivityType.RELEASE.value,
+    )
+)
+
+ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: Mapping[int, type[GroupAction]] = {
     ActivityType.SET_RESOLVED.value: ResolveAction,
     ActivityType.SET_UNRESOLVED.value: UnresolveAction,
     ActivityType.SET_IGNORED.value: SetIgnoredAction,
@@ -83,7 +92,7 @@ ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: dict[int, type[GroupAction]] = {
     ActivityType.PULL_REQUEST_CLOSED.value: RelatedPullRequestClosedAction,
 }
 
-ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: dict[int, dict[str, str]] = {
+ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
     ActivityType.SET_IGNORED.value: {
         "ignoreCount": "ignore_count",
         "ignoreDuration": "ignore_duration",
@@ -104,8 +113,8 @@ ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: dict[int, dict[str, str]] = {
         "oldGroupId": "old_group_id",
         "newGroupId": "new_group_id",
     },
-    ActivityType.NOTE.value: {},
 }
+
 
 logger = logging.getLogger(__name__)
 
@@ -117,23 +126,17 @@ def activity_to_action(activity: Activity) -> GroupAction | None:
     """
 
     # Ignore certain Activities that don't make sense to translate to GroupActions.
-    if activity.type in {
-        ActivityType.FIRST_SEEN.value,
-        ActivityType.RELEASE.value,
-    }:
+    if activity.type in ACTIVITY_TYPES_WITH_NO_ACTION:
         return None
-
-    # Pydantic lets you pass in whatever kwargs you want. If a kwarg matches some field,
-    # Pydantic will set it - else Pydantic just ignores it.
-    # The only risk is missing a required field, which throws a ValidationError.
 
     # Get the related type[GroupAction]
     group_action_type = ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.get(activity.type)
 
     if group_action_type is None:
-        logger.info(
-            "Failed to find group action type equivalent of activity type %s", activity.type
-        )
+        message = f"Failed to find group action type equivalent of activity type {activity.type}"
+        if in_test_environment():
+            raise Exception(message)
+        logger.warning(message)
         return None
 
     # Instantiate & return
@@ -152,6 +155,9 @@ def activity_to_action(activity: Activity) -> GroupAction | None:
     if activity.type == ActivityType.NOTE.value:
         kwargs["comment_id"] = activity.id
 
+    # Pydantic lets you pass in whatever kwargs you want. If a kwarg matches some field,
+    # Pydantic will set it - else Pydantic just ignores it.
+    # The only risk is missing a required field, which throws a ValidationError.
     try:
         return group_action_type(**kwargs)
     except ValidationError:
@@ -159,4 +165,6 @@ def activity_to_action(activity: Activity) -> GroupAction | None:
             "Failed to create group action in activity_translator.",
             extra={"group_action_type": group_action_type, "activity_type": activity.type},
         )
+        if in_test_environment():
+            raise
         return None
