@@ -74,3 +74,15 @@ kafka_topics:
       application: sentry
       taskname: sentry.snuba.query_subscriptions.run.process_eap_subscription_from_kafka
       processing_deadline_duration: 60
+
+  # ingest-replay-recordings raw mode (STREAM-1287). Raw Kafka messages on the
+  # recordings topic are turned into activations for the recording task, so no
+  # dedicated Kafka consumer is needed.
+  ingest-replay-recordings:
+    cluster: default
+    consumer_group: sentry-consumer
+    raw:
+      namespace: replays.raw
+      application: sentry
+      taskname: sentry.replays.tasks.process_replay_recording
+      processing_deadline_duration: 90

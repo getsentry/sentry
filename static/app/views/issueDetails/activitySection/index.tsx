@@ -323,35 +323,38 @@ export function ActivitySection({
   );
 
   const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
-  const sidebarActivityItems =
-    filteredActivities.length < 5 ? (
-      filteredActivities.map(renderActivityItem)
-    ) : (
-      <Fragment>
-        {filteredActivities.slice(0, 3).map(renderActivityItem)}
-        <MoreActivityRow>
-          <MoreActivityIcon>
-            <RotatedEllipsisIcon direction="up" />
-          </MoreActivityIcon>
-          <Container marginTop="xs">
-            <LinkButton
-              aria-label={t('View all activity')}
-              to={activityLink}
-              size="xs"
-              replace
-              preventScrollReset
-              analyticsEventKey="issue_details.activity_expanded"
-              analyticsEventName="Issue Details: Activity Expanded"
-              analyticsParams={{
-                num_activities_hidden: filteredActivities.length - 3,
-              }}
-            >
-              {t('View %s more', filteredActivities.length - 3)}
-            </LinkButton>
-          </Container>
-        </MoreActivityRow>
-      </Fragment>
-    );
+  const hiddenActivityCount =
+    filteredActivities.length >= 5 ? filteredActivities.length - 3 : 0;
+  const sidebarVisibleActivities =
+    hiddenActivityCount > 0 ? filteredActivities.slice(0, 3) : filteredActivities;
+  const sidebarActivityItems = (
+    <Fragment>
+      {sidebarVisibleActivities.map(renderActivityItem)}
+      <MoreActivityRow>
+        <MoreActivityIcon>
+          <RotatedEllipsisIcon direction="up" />
+        </MoreActivityIcon>
+        <Container marginTop="xs">
+          <LinkButton
+            aria-label={t('View all activity')}
+            to={activityLink}
+            size="xs"
+            replace
+            preventScrollReset
+            analyticsEventKey="issue_details.activity_expanded"
+            analyticsEventName="Issue Details: Activity Expanded"
+            analyticsParams={{
+              num_activities_hidden: hiddenActivityCount,
+            }}
+          >
+            {hiddenActivityCount > 0
+              ? t('View %s more', hiddenActivityCount)
+              : t('Expand')}
+          </LinkButton>
+        </Container>
+      </MoreActivityRow>
+    </Fragment>
+  );
 
   if (variant === 'standalone') {
     return (

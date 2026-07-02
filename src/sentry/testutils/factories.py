@@ -129,6 +129,7 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -2193,6 +2194,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_weekly_report_project_exclusion(**kwargs):
+        return WeeklyReportProjectExclusion.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
