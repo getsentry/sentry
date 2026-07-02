@@ -267,7 +267,7 @@ export function FiltersBar({
     <Wrapper>
       <FiltersRow>
         <PageFilterBarWrapper>
-          <StyledPageFilterBar condensed>
+          <StyledPageFilterBar>
             <ProjectPageFilter
               disabled={isEditingDashboard}
               storageNamespace={storageNamespace}
@@ -456,6 +456,8 @@ const PageFilterBarWrapper = styled('div')`
     min-width: 0;
     overflow: hidden;
     box-sizing: border-box;
+    contain: layout style;
+    isolation: isolate;
   }
 `;
 
@@ -507,26 +509,22 @@ const FiltersRow = styled('div')`
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    /* Override max-content width from condensed prop with !important */
-    max-width: 100% !important;
-    width: 100% !important;
+    max-width: 100%;
+    width: 100%;
     flex-wrap: wrap;
 
     /* Ensure child filters can shrink and wrap properly on mobile */
     & > div {
       flex: 1 1 auto;
-      min-width: 0;
+      min-width: 0 !important;
       max-width: 100%;
       box-sizing: border-box;
 
-      /* Remove the min-width constraint on last child */
+      /* Override any fixed widths on mobile */
+      &:first-child,
       &:last-child {
-        min-width: 0;
-      }
-
-      /* Allow first child to shrink on mobile */
-      &:first-child {
-        flex-shrink: 1;
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
       }
     }
 
@@ -536,6 +534,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
       box-sizing: border-box;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 `;
