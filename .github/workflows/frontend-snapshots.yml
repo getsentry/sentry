@@ -60,6 +60,11 @@ jobs:
       - name: Compute merge base SHA
         if: github.event_name == 'pull_request' && !cancelled()
         id: merge-base
+        # A transient gh-api failure here must not fail the build and thereby
+        # skip the upload workflow (gated on conclusion == success). On failure
+        # base_sha is empty and the upload proceeds without --base-sha, matching
+        # the old inline behavior.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
