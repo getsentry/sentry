@@ -276,7 +276,7 @@ class WorkflowEvaluation:
             "event_id": data_snapshot["event_id"],
             "group_id": group_id,
             "detection_type": detection_type,
-            "workflow_ids": data_snapshot["workflow_ids"],
+            "workflow_ids": list(data_snapshot["workflow_ids"]),
             "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
             "delayed_conditions": data_snapshot["delayed_conditions"],
             "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
