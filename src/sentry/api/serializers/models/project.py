@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Final, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
@@ -54,7 +54,9 @@ from sentry.utils.tracing import set_span_data, start_span
 if TYPE_CHECKING:
     from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
 
-STATUS_LABELS = {
+ProjectStatusStr = Literal["active", "deleted", "unknown"]
+
+STATUS_LABELS: dict[int, ProjectStatusStr] = {
     ObjectStatus.ACTIVE: "active",
     ObjectStatus.DISABLED: "deleted",
     ObjectStatus.PENDING_DELETION: "deleted",
@@ -273,9 +275,11 @@ def get_has_trace_metrics(project: Project) -> bool:
 
 
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
-    stats: Any
-    transactionStats: Any
-    sessionStats: Any
+    # The project details endpoint reuses this key for issue counts when
+    # `include=stats` is passed, e.g. `{"unresolved": 12}`.
+    stats: list[tuple[int, int]] | dict[str, int]
+    transactionStats: list[tuple[int, int]]
+    sessionStats: CrashFreeRatesWithHealthData
 
 
 class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
@@ -318,7 +322,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isPublic: bool
     avatar: SerializedAvatarFields
     color: str
-    status: str  # TODO: enum/literal
+    status: ProjectStatusStr
 
 
 @register(Project)
@@ -903,34 +907,6 @@ def _get_project_to_release_version_mapping(
         release.actual_project_id: {"version": release.version}
         for release in bulk_fetch_project_latest_releases(item_list)
     }
-
-
-class Plugin(TypedDict):
-    id: str
-    name: str
-    slug: str
-    shortName: str
-    type: str
-    canDisable: bool
-    isTestable: bool
-    hasConfiguration: bool
-    metadata: dict
-    contexts: list[str]
-    status: str
-    assets: list
-    doc: str
-    firstPartyAlternative: Any
-    deprecationDate: Any
-    altIsSentryApp: Any
-    enabled: bool
-    version: str
-    author: dict[str, str]
-    isDeprecated: bool
-    isHidden: bool
-    description: str
-    features: list[str]
-    featureDescriptions: list[dict[str, str]]
-    resourceLinks: list[dict[str, str]]
 
 
 class DetailedProjectResponse(ProjectWithTeamResponseDict):
