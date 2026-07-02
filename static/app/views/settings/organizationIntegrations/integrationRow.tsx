@@ -1,15 +1,15 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
+import {IconWarning} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {
   IntegrationInstallationStatus,
   SentryApp,
@@ -21,7 +21,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 
-import {AlertContainer} from './integrationAlertContainer';
 import {IntegrationStatus} from './integrationStatus';
 
 type Props = {
@@ -32,18 +31,14 @@ type Props = {
   publishStatus: SentryAppStatus;
   slug: string;
   type: 'firstParty' | 'sentryApp' | 'docIntegration';
-  /**
-   * If provided, render an alert message with this text.
-   */
-  alertText?: string;
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
   disabledConfigurations?: number;
   /**
-   * If `alertText` was provided, this text overrides the "Resolve now" message
-   * in the alert.
+   * When true, surface a warning icon next to the name whose tooltip prompts the
+   * user to update their outdated Slack workspace.
    */
-  resolveText?: string;
+  needsUpgrade?: boolean;
   status?: IntegrationInstallationStatus;
 };
 
@@ -63,8 +58,7 @@ export function IntegrationRow(props: Props) {
     publishStatus,
     configurations,
     categories,
-    alertText,
-    resolveText,
+    needsUpgrade,
     customAlert,
     customIcon,
     disabledConfigurations,
@@ -118,7 +112,25 @@ export function IntegrationRow(props: Props) {
       <Flex align="center" padding="xl">
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
-          <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+          <Flex gap="xs" align="center">
+            <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+            {needsUpgrade && (
+              <Tooltip
+                isHoverable
+                title={
+                  <IntegrationUpgradeTooltipTitle
+                    displayName={displayName}
+                    resolveNowHref={resolveNowHref}
+                    type={type}
+                    slug={slug}
+                    organization={organization}
+                  />
+                }
+              >
+                <IconWarning variant="warning" aria-label={t('Integration alert')} />
+              </Tooltip>
+            )}
+          </Flex>
           <IntegrationDetails>
             {renderStatus()}
             {renderDetails()}
@@ -132,35 +144,42 @@ export function IntegrationRow(props: Props) {
           ))}
         </Flex>
       </Flex>
-      {alertText && (
-        <AlertContainer>
-          <Alert.Container>
-            <Alert
-              variant="warning"
-              trailingItems={
-                <LinkButton
-                  href={resolveNowHref}
-                  variant="primary"
-                  size="xs"
-                  onClick={() =>
-                    trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-                      integration_type: convertIntegrationTypeToSnakeCase(type),
-                      integration: slug,
-                      organization,
-                    })
-                  }
-                >
-                  {resolveText || t('Resolve Now')}
-                </LinkButton>
-              }
-            >
-              {alertText}
-            </Alert>
-          </Alert.Container>
-        </AlertContainer>
-      )}
       {customAlert}
     </PanelRow>
+  );
+}
+
+type IntegrationUpgradeTooltipTitleProps = Pick<
+  Props,
+  'displayName' | 'type' | 'slug' | 'organization'
+> & {
+  resolveNowHref: string;
+};
+
+function IntegrationUpgradeTooltipTitle({
+  displayName,
+  resolveNowHref,
+  type,
+  slug,
+  organization,
+}: IntegrationUpgradeTooltipTitleProps) {
+  return tct(
+    'Your [displayName] integration is out of date. [link:Click here] to update your workspace.',
+    {
+      displayName,
+      link: (
+        <Link
+          to={resolveNowHref}
+          onClick={() =>
+            trackIntegrationAnalytics('integrations.resolve_now_clicked', {
+              integration_type: convertIntegrationTypeToSnakeCase(type),
+              integration: slug,
+              organization,
+            })
+          }
+        />
+      ),
+    }
   );
 }
 
