@@ -1,24 +1,30 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {Redirect} from 'sentry/components/redirect';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-type MonitoringProvider = {
+import {ConnectorRow} from 'getsentry/views/seerAutomation/components/connectorRow';
+
+export type MonitoringProvider = {
   connected: boolean;
   name: string;
   provider: string;
@@ -40,7 +46,21 @@ function monitoringProvidersQueryOptions(orgSlug: string) {
   );
 }
 
-export function MonitoringProvidersSection() {
+export default function SeerConnectors() {
+  const organization = useOrganization();
+
+  if (!showNewSeer(organization)) {
+    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
+  }
+
+  if (!organization.features.includes('seat-based-seer-enabled')) {
+    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
+  }
+
+  return <SeerConnectorsContent />;
+}
+
+function SeerConnectorsContent() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -118,7 +138,6 @@ export function MonitoringProvidersSection() {
 
     const params: {provider: string; site?: string} = {provider: provider.provider};
     if (provider.provider === 'datadog') {
-      // TODO(CW-1501): v0 only supports datadoghq.com; add site selection when per-site connections are supported
       params.site = 'datadoghq.com';
     }
     connectMutation.mutate(params);
@@ -131,61 +150,42 @@ export function MonitoringProvidersSection() {
     });
   }
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
   const providers = data?.providers ?? [];
 
   return (
-    <Container padding="xl" border="primary" radius="md">
-      <Flex direction="column" gap="lg">
-        <Heading as="h3">{t('Monitoring Providers')}</Heading>
-        <Text variant="muted" size="lg">
-          {t(
-            'Connect your monitoring providers to let Seer access infrastructure telemetry when investigating issues.'
-          )}
-        </Text>
-        {providers.map(provider => (
-          <Flex key={provider.provider} align="center" justify="between">
-            <Flex direction="column" gap="xs">
-              <Text size="lg">{provider.name}</Text>
-              <Text variant="muted">
-                {provider.connected ? t('Connected') : t('Not connected')}
-              </Text>
-            </Flex>
-            {provider.connected ? (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => handleDisconnect(provider)}
-                busy={
-                  disconnectMutation.isPending &&
-                  disconnectMutation.variables === provider.provider
-                }
-              >
-                {t('Disconnect')}
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleConnect(provider)}
-                busy={
+    <SentryDocumentTitle title={t('Connectors')}>
+      <SettingsPageHeader
+        title={t('Connectors')}
+        subtitle={t(
+          'Connect external monitoring tools to let Seer access infrastructure telemetry when investigating issues.'
+        )}
+      />
+      <Stack gap="lg">
+        {isPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError onRetry={refetch} />
+        ) : (
+          <Panel>
+            {providers.map(provider => (
+              <ConnectorRow
+                key={provider.provider}
+                provider={provider}
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+                isConnecting={
                   connectMutation.isPending &&
                   connectMutation.variables.provider === provider.provider
                 }
-              >
-                {t('Connect')}
-              </Button>
-            )}
-          </Flex>
-        ))}
-      </Flex>
-    </Container>
+                isDisconnecting={
+                  disconnectMutation.isPending &&
+                  disconnectMutation.variables === provider.provider
+                }
+              />
+            ))}
+          </Panel>
+        )}
+      </Stack>
+    </SentryDocumentTitle>
   );
 }
