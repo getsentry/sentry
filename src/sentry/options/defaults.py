@@ -1129,14 +1129,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Fraction of grouping requests to route to the CPU (summarization) backend instead of GPU
-register(
-    "seer.similarity.cpu-backend-sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
