@@ -265,6 +265,42 @@ For background on the underlying CSS, see MDN's <a href="https://developer.mozil
 The two can be combined on one prop — e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}`
 is a column until its container reaches `xs`, then a row once the viewport reaches `lg`.
 
+#### Custom pixel breakpoints (escape hatch)
+
+Breakpoint keys are normally the named scale (`xs` = 500px, `sm` = 800px, …),
+which has nothing between `2xs` (0px) and `xs` (500px). When a design needs a
+one-off threshold the scale doesn't cover, a raw `<number>px` key works on either
+axis — bare for the container, `screen:`-prefixed for the viewport:
+
+<Storybook.SizingWindow display="block">
+  <Container
+    containerType="inline-size"
+    padding="md"
+    background="secondary"
+    radius="md"
+    border="primary"
+  >
+    <Container
+      display={{'2xs': 'none', '380px': 'block'}}
+      padding="sm"
+      background="primary"
+      border="primary"
+      radius="md"
+    >
+      Hidden until the container reaches 380px. Drag narrower to hide it.
+    </Container>
+  </Container>
+</Storybook.SizingWindow>
+```jsx // @container (min-width: 380px)
+<Flex display={{'2xs': 'none', '380px': 'flex'}}>…</Flex>
+// @media (min-width: 380px)
+<Flex display={{'2xs': 'none', 'screen:380px': 'flex'}}>…</Flex>
+```
+
+> [!TIP]
+> Prefer a named breakpoint when one fits — reach for a `<number>px` key only for
+> thresholds the scale genuinely lacks, so the shared scale stays the norm.
+
 > [!TIP]
 > Prefer `containerType="inline-size"` — it only contains the inline
 > (width) axis, so height still flows from content. `size` also contains the
