@@ -16,16 +16,15 @@ export const documentation = import('!!type-loader!@sentry/scraps/layout/contain
 
 import {SIZES} from './__stories__/consts';
 
-function ContainerBreakpointLabel() {
-const breakpoint = useContainerBreakpoint();
-const isCompact = breakpoint === '2xs';
-return (
-
-<span>
-Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
-{isCompact ? 'showing a compact label.' : 'showing the full, descriptive label.'}
-</span>
-);
+export function ContainerBreakpointLabel() {
+  const breakpoint = useContainerBreakpoint();
+  const isCompact = breakpoint === '2xs';
+  return (
+    <span>
+      Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
+      {isCompact ? 'showing a compact label.' : 'showing the full, descriptive label.'}
+    </span>
+  );
 }
 
 export function ContainerBreakpointExample() {
