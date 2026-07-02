@@ -479,7 +479,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 100%;
     width: 100% !important;
-    
+
     /* Ensure child filters can shrink properly on mobile */
     & > div {
       flex-shrink: 1;
