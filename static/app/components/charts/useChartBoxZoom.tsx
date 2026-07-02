@@ -100,14 +100,17 @@ export function useChartBoxZoom({
         return;
       }
 
-      const range = pickBoxZoomRange(evt.areas[0]);
+      const area = evt.areas[0];
+      const range = pickBoxZoomRange(area);
 
       // Restore the tooltip and clear the drawn box: the zoom applies once. The
       // resulting render re-arms brush mode via `onFinished`.
       chartInstance.setOption({tooltip: {show: true}}, {silent: true});
       chartInstance.dispatchAction({type: 'brush', areas: []});
 
-      if (range) {
+      // Ignore selections too small to be an intentional drag (a stray click or
+      // tiny nudge) — they'd resolve to an empty range on the collapsed axis.
+      if (range && isIntentionalDrag(area?.range)) {
         onZoom(range);
       }
     },
@@ -141,4 +144,32 @@ export function useChartBoxZoom({
     onFinished,
     toolBox,
   };
+}
+
+/**
+ * A drag smaller than this on either axis (in pixels) is treated as a stray
+ * click or nudge rather than a zoom.
+ */
+const MIN_BRUSH_SIZE_PX = 5;
+
+/**
+ * Whether the brush's pixel `range` (`[[x0, x1], [y0, y1]]`) is large enough on
+ * both axes to count as an intentional drag. Unmeasurable shapes pass through so
+ * we never block a real zoom.
+ */
+function isIntentionalDrag(range: number[] | number[][] | undefined): boolean {
+  if (!Array.isArray(range) || !Array.isArray(range[0]) || !Array.isArray(range[1])) {
+    return true;
+  }
+  const [x0, x1] = range[0];
+  const [y0, y1] = range[1];
+  if (
+    typeof x0 !== 'number' ||
+    typeof x1 !== 'number' ||
+    typeof y0 !== 'number' ||
+    typeof y1 !== 'number'
+  ) {
+    return true;
+  }
+  return Math.abs(x1 - x0) >= MIN_BRUSH_SIZE_PX && Math.abs(y1 - y0) >= MIN_BRUSH_SIZE_PX;
 }
