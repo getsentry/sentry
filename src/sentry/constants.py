@@ -521,6 +521,9 @@ def get_integration_id_for_event(
     return None
 
 
+ObjectStatusStr = Literal["active", "disabled", "pending_deletion", "deletion_in_progress"]
+
+
 class ObjectStatus:
     ACTIVE = 0
     HIDDEN = 1
@@ -529,18 +532,23 @@ class ObjectStatus:
 
     DISABLED = 1
 
-    _CHOICES = (
+    _CHOICES: tuple[tuple[int, ObjectStatusStr], ...] = (
         (ACTIVE, "active"),
         (DISABLED, "disabled"),
         (PENDING_DELETION, "pending_deletion"),
         (DELETION_IN_PROGRESS, "deletion_in_progress"),
     )
 
-    _STR_TO_STATUS = {v: k for k, v in _CHOICES}
+    _STR_TO_STATUS: dict[str, int] = {v: k for k, v in _CHOICES}
+    _STATUS_TO_STR = dict(_CHOICES)
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
         return cls._CHOICES
+
+    @classmethod
+    def to_str(cls, status: int) -> ObjectStatusStr:
+        return cls._STATUS_TO_STR.get(status, "disabled")
 
     @classmethod
     def as_str_to_status_choices(cls) -> Sequence[tuple[str, int]]:

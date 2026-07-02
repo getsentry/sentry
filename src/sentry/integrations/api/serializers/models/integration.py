@@ -7,7 +7,7 @@ from typing import Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, ObjectStatusStr
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -30,13 +30,13 @@ class OrganizationIntegrationResponse(TypedDict):
     domainName: str | None
     accountType: str | None
     scopes: list[str] | None
-    status: str
+    status: ObjectStatusStr
     provider: Any
     configOrganization: Any
     configData: Any
     externalId: str
     organizationId: int
-    organizationIntegrationStatus: str
+    organizationIntegrationStatus: ObjectStatusStr
     gracePeriodEnd: str | None
 
 
@@ -70,7 +70,7 @@ class IntegrationSerializerResponse(TypedDict):
     domainName: str | None
     accountType: str | None
     scopes: list[str] | None
-    status: str
+    status: ObjectStatusStr
     provider: IntegrationProviderInfo
 
 
@@ -91,7 +91,7 @@ class IntegrationSerializer(Serializer):
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
             "scopes": obj.metadata.get("scopes"),
-            "status": obj.get_status_display(),
+            "status": ObjectStatus.to_str(obj.status),
             "provider": serialize_provider(provider),
         }
 

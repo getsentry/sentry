@@ -86,6 +86,10 @@ describe('IssueDetailsSidebar', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
@@ -131,10 +135,8 @@ describe('IssueDetailsSidebar', () => {
     expect(screen.getByText('Last seen')).toBeInTheDocument();
     expect(mockFirstLastRelease).toHaveBeenCalled();
 
-    expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', {name: issueTrackingKey})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: issueTrackingKey})).toBeInTheDocument();
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();

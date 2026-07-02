@@ -5,7 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -83,6 +83,11 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
+MonitorStatusStr = Literal[
+    "active", "disabled", "pending_deletion", "deletion_in_progress", "ok", "error"
+]
+
+
 class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
@@ -111,7 +116,7 @@ class MonitorStatus:
     """
 
     @classmethod
-    def as_choices(cls) -> Sequence[tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, MonitorStatusStr]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -125,6 +130,13 @@ class MonitorStatus:
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
         )
+
+    @classmethod
+    def to_str(cls, status: int) -> MonitorStatusStr:
+        return dict(cls.as_choices()).get(status, "disabled")
+
+
+CheckInStatusStr = Literal["unknown", "ok", "error", "in_progress", "missed", "timeout"]
 
 
 class CheckInStatus:
@@ -171,7 +183,7 @@ class CheckInStatus:
     """
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[tuple[int, CheckInStatusStr]]:
         return (
             (cls.UNKNOWN, "unknown"),
             (cls.OK, "ok"),
@@ -180,6 +192,10 @@ class CheckInStatus:
             (cls.MISSED, "missed"),
             (cls.TIMEOUT, "timeout"),
         )
+
+    @classmethod
+    def to_str(cls, status: int) -> CheckInStatusStr:
+        return dict(cls.as_choices()).get(status, "unknown")
 
 
 DEFAULT_STATUS_ORDER = [

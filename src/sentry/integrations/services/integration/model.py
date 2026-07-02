@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import Field
 
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, ObjectStatusStr
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.identity.services.identity.model import RpcIdentity, RpcIdentityProvider
 from sentry.integrations.base import (
@@ -30,11 +30,8 @@ class RpcIntegration(RpcModel):
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def get_status_display(self) -> str:
-        for status_id, display in ObjectStatus.as_choices():
-            if status_id == self.status:
-                return display
-        return "disabled"
+    def get_status_display(self) -> ObjectStatusStr:
+        return ObjectStatus.to_str(self.status)
 
     def get_provider(self) -> IntegrationProvider:
         from sentry.integrations.models.utils import get_provider
@@ -65,11 +62,8 @@ class RpcOrganizationIntegration(RpcModel):
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def get_status_display(self) -> str:
-        for status_id, display in ObjectStatus.as_choices():
-            if status_id == self.status:
-                return display
-        return "disabled"
+    def get_status_display(self) -> ObjectStatusStr:
+        return ObjectStatus.to_str(self.status)
 
 
 class RpcIntegrationExternalProject(RpcModel):

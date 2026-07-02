@@ -30,8 +30,8 @@ from sentry.organizations.services.organization.model import (
     RpcOrganization,
 )
 from sentry.organizations.services.organization.service import organization_service
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppWebhookFailureReason,
     SentryAppWebhookHaltReason,
 )

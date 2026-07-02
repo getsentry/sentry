@@ -9,16 +9,20 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.constants import ObjectStatus, ObjectStatusStr
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
     MONITOR_ENVIRONMENT_ORDERING,
+    CheckInStatus,
+    CheckInStatusStr,
     Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
+    MonitorStatusStr,
     ScheduleType,
 )
 from sentry.monitors.processing_errors.errors import (
@@ -77,7 +81,7 @@ class MonitorIncidentSerializer(Serializer[MonitorIncidentSerializerResponse]):
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
     name: str
-    status: str
+    status: MonitorStatusStr
     isMuted: bool
     dateCreated: datetime
     lastCheckIn: datetime
@@ -140,7 +144,7 @@ class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerRespon
         environment = attrs["environment"]
         return {
             "name": environment.name if environment else "[removed]",
-            "status": obj.get_status_display(),
+            "status": MonitorStatus.to_str(obj.status),
             "isMuted": obj.is_muted,
             "dateCreated": attrs["date_added"],
             "lastCheckIn": obj.last_checkin,
@@ -179,7 +183,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     id: str
     name: str
     slug: str
-    status: str
+    status: ObjectStatusStr
     isMuted: bool
     isUpserting: bool
     config: MonitorConfigSerializerResponse
@@ -300,7 +304,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
 
         result: MonitorSerializerResponse = {
             "id": str(obj.guid),
-            "status": obj.get_status_display(),
+            "status": ObjectStatus.to_str(obj.status),
             "isMuted": attrs["is_muted"],
             "isUpserting": obj.is_upserting,
             "name": obj.name,
@@ -331,7 +335,7 @@ class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
 class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
     id: str
     environment: str
-    status: str
+    status: CheckInStatusStr
     duration: int | None
     dateCreated: datetime
     dateAdded: datetime
@@ -402,7 +406,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
-            "status": obj.get_status_display(),
+            "status": CheckInStatus.to_str(obj.status),
             "duration": obj.duration,
             "dateCreated": obj.date_created,
             "dateAdded": obj.date_added,

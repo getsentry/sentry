@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.constants import ObjectStatus, ObjectStatusStr
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 
@@ -15,7 +16,7 @@ class RepositorySettingsSerializerResponse(TypedDict):
 class RepositorySerializerResponseOptional(TypedDict, total=False):
     url: str | None
     provider: dict[str, str]
-    status: str
+    status: ObjectStatusStr
     integrationId: str | None
     externalSlug: str | None
     externalId: str | None
@@ -83,7 +84,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
             "name": obj.config.get("pending_deletion_name", obj.name),
             "url": obj.url,
             "provider": provider,
-            "status": obj.get_status_display(),
+            "status": ObjectStatus.to_str(obj.status),
             "dateCreated": obj.date_added,
             "integrationId": integration_id,
             "externalSlug": external_slug,
