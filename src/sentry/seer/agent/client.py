@@ -524,16 +524,26 @@ class SeerAgentClient:
         self,
         feature_id: str,
         payload: dict[str, Any],
+        title: str,
         flush: bool = True,
+        extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
         `payload`; the result is pushed back via deliver_feature_result.
 
+        Creates a SeerAgentRun mirror row (source=feature_id) alongside the
+        SeerRun, same as start_run does, so feature runs show up in the
+        Explorer session-history listing. `title` is required so that
+        listing stays human-scannable — pass something that distinguishes
+        this run from other runs of the same feature (e.g. counts, a
+        shard/batch index, or the primary subject of the run).
+
         on_run_created(run), if given, runs in the same transaction as the
-        SeerRun + outbox — use it to link associated rows atomically (e.g. a
-        caller's record that the result delivery correlates back to).
+        SeerRun + outbox, after the SeerAgentRun is created — use it to link
+        associated rows atomically (e.g. a caller's record that the result
+        delivery correlates back to).
 
         flush=True (default): drain inline; dispatch failure surfaces
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
@@ -546,10 +556,23 @@ class SeerAgentClient:
             if self.user and hasattr(self.user, "id") and self.user.id is not None
             else None
         )
+
+        def _create_agent_run(run: SeerRun) -> None:
+            SeerAgentRun.objects.create(
+                run=run,
+                title=title,
+                source=feature_id,
+                project=self.project,
+                group=self.group,
+                extras=extras or {},
+            )
+            if on_run_created is not None:
+                on_run_created(run)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
-            on_run_created=on_run_created,
+            on_run_created=_create_agent_run,
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,

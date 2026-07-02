@@ -579,11 +579,17 @@ def _dispatch_to_seer_feature(
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
         payload = _build_triage_payload(chunk, resolved_options, repos_by_project)
+        num_candidates = len(payload.candidates)
+        title = f"Agentic triage ({num_candidates} candidate{'s' if num_candidates != 1 else ''})"
+        if len(shards) > 1:
+            title += f" — shard {shard_index + 1}/{len(shards)}"
         try:
             client.start_feature_run(
                 feature_id="night_shift",
                 payload=payload.dict(),
+                title=title,
                 flush=False,
+                extras={"shard_index": shard_index, "num_shards": len(shards)},
                 on_run_created=_link_shard,
             )
         except Exception:
