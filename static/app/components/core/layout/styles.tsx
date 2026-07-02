@@ -250,9 +250,16 @@ export function getMargin(
 }
 
 /**
- * Hook that resolves responsive values to their current breakpoint value.
- * Mirrors the behavior of the rc() function but returns the resolved value
- * instead of generating CSS media queries.
+ * Resolves a `Responsive<T>` prop to its current value in JS, across both the
+ * container and viewport axes — the JS mirror of what `rc()` emits as CSS.
+ *
+ * This is a low-level building block for **component authors** who accept a
+ * `Responsive<T>` prop and must resolve it in JS rather than via CSS (e.g.
+ * `Stack`'s `direction`, `SplitPanel`'s `orientation`). Most code shouldn't need
+ * it: use plain responsive props (resolved in CSS) for styling, or
+ * {@link useContainerBreakpoint} when you need the container's active breakpoint
+ * to branch logic. Prefer those unless you're building a responsive prop of your
+ * own.
  */
 type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
@@ -381,8 +388,13 @@ function findLargestBreakpoint(
 /**
  * Holds the active breakpoint of the nearest ancestor query container, or null
  * when there is no container ancestor. Provided by container elements (those
- * with a `containerType`) so that JS-resolved responsive props (e.g. Stack's
- * orientation) can resolve against the container instead of the viewport.
+ * with a `containerType`) so JS-resolved container queries
+ * (`useResponsivePropValue`, `useContainerBreakpoint`) can resolve against the
+ * container instead of the viewport.
+ *
+ * We broadcast the already-resolved breakpoint (not the raw inline-size) so the
+ * context value only changes when a breakpoint boundary is crossed — consumers
+ * aren't re-rendered on every pixel of a resize.
  *
  * CSS-only responsive props don't need this — they resolve natively via
  * `@container` queries. This context exists purely for the JS resolution path.
@@ -390,22 +402,58 @@ function findLargestBreakpoint(
 const ContainerQueryContext = createContext<BreakpointSize | null>(null);
 
 /**
- * ResizeObserver-backed equivalent of useActiveBreakpoint, scoped to a single
- * element rather than the viewport. Returns the largest breakpoint whose
- * min-width threshold is satisfied by the element's inline-size, mirroring the
- * mobile-first behavior of rc()/useActiveBreakpoint.
+ * The JS equivalent of a CSS container query: returns the active breakpoint of
+ * the nearest ancestor query container (read from `ContainerQueryContext`),
+ * mirroring the mobile-first behavior of `rc()`/`@container`. Must be called
+ * inside a query container (a `Container`/`Flex`/… with `containerType`); with
+ * no container ancestor it resolves to `2xs` (the base, matching CSS's plain
+ * base declaration).
  *
  * Prefer CSS responsive props (bare breakpoint keys like `{xs: …}`) when
  * possible; reach for this hook only when you genuinely need the resolved
  * breakpoint in JS (e.g. to branch rendering). It replaces width-based
  * `useMedia` usage.
+ *
+ * Returns the active breakpoint *key* so you can branch on it. To resolve a
+ * `Responsive<T>` prop to its current *value* in JS (when building a responsive
+ * prop of your own), use {@link useResponsivePropValue} instead.
+ * @public
  */
-export function useContainerBreakpoint(ref: RefObject<Element | null>): BreakpointSize {
+export function useContainerBreakpoint(): BreakpointSize {
+  return useContext(ContainerQueryContext) ?? '2xs';
+}
+
+/**
+ * The content-box inline size — the box CSS `@container` resolves against. We
+ * avoid `clientWidth` (padding-box) so the JS breakpoint can't disagree with the
+ * CSS reflow at boundaries on padded containers. `clientWidth` already excludes
+ * the border and scrollbar (like `@container`), so subtracting padding yields
+ * the content box.
+ */
+function getContentBoxInlineSize(element: Element): number {
+  const style = window.getComputedStyle(element);
+  const padding =
+    (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+  return Math.max(0, element.clientWidth - padding);
+}
+
+/**
+ * Measures the given element, resolves its active breakpoint, and broadcasts it
+ * through ContainerQueryContext. Rendered by container elements so descendants
+ * can resolve container-mode responsive props in JS.
+ */
+export function ContainerQueryProvider({
+  elementRef,
+  children,
+}: {
+  children: ReactNode;
+  elementRef: RefObject<Element | null>;
+}) {
   const theme = useTheme();
   const [inlineSize, setInlineSize] = useState(0);
 
   useLayoutEffect(() => {
-    const element = ref.current;
+    const element = elementRef.current;
     if (!element) {
       return;
     }
@@ -426,52 +474,23 @@ export function useContainerBreakpoint(ref: RefObject<Element | null>): Breakpoi
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [elementRef]);
 
-  return useMemo(() => {
-    // Iterate from largest to smallest and return the first breakpoint whose
-    // min-width threshold the element satisfies.
+  // Resolve to the active breakpoint here (not the raw size) so the broadcast
+  // context value only changes on a breakpoint boundary — descendants aren't
+  // re-rendered on every pixel of a resize.
+  const breakpoint = useMemo(() => {
     for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
-      const breakpoint = BREAKPOINT_ORDER[i];
-      if (breakpoint === undefined) {
+      const bp = BREAKPOINT_ORDER[i];
+      if (bp === undefined) {
         continue;
       }
-
-      if (inlineSize >= parseInt(theme.breakpoints[breakpoint], 10)) {
-        return breakpoint;
+      if (inlineSize >= parseInt(theme.breakpoints[bp], 10)) {
+        return bp;
       }
     }
-
     return '2xs';
   }, [inlineSize, theme.breakpoints]);
-}
 
-/**
- * The content-box inline size — the box CSS `@container` resolves against. We
- * avoid `clientWidth` (padding-box) so the JS breakpoint can't disagree with the
- * CSS reflow at boundaries on padded containers. `clientWidth` already excludes
- * the border and scrollbar (like `@container`), so subtracting padding yields
- * the content box.
- */
-function getContentBoxInlineSize(element: Element): number {
-  const style = window.getComputedStyle(element);
-  const padding =
-    (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-  return Math.max(0, element.clientWidth - padding);
-}
-
-/**
- * Measures the given element and broadcasts its active breakpoint through
- * ContainerQueryContext. Rendered by container elements so descendants can
- * resolve container-mode responsive props in JS. Renders no DOM of its own.
- */
-export function ContainerQueryProvider({
-  elementRef,
-  children,
-}: {
-  children: ReactNode;
-  elementRef: RefObject<Element | null>;
-}) {
-  const breakpoint = useContainerBreakpoint(elementRef);
   return <ContainerQueryContext value={breakpoint}>{children}</ContainerQueryContext>;
 }
