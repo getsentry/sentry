@@ -308,8 +308,7 @@ def run_night_shift_execution(
         return None
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
-    # Stamped on the run so zero-shard runs are distinguishable in analysis:
-    # no eligible projects vs. eligible projects but no scored candidates.
+    # Stamped so zero-shard runs are distinguishable: no eligible projects vs. no candidates.
     run.update(extras={**(run.extras or {}), "num_eligible_projects": len(eligible)})
 
     if not eligible:

@@ -53,9 +53,7 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    # The night shift result table is small (rows only exist for autofix
-    # verdicts to date), so this is safe to run during the deploy, keeping the
-    # constraint in 0027 from racing ahead of the dedupe.
+    # Small table: run in-deploy so 0027's constraint can't race ahead of the dedupe.
     is_post_deployment = False
 
     dependencies = [

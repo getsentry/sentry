@@ -126,7 +126,8 @@ class TestDeliverNightShiftResult(TestCase):
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_skip_verdict_marks_group_skipped(self) -> None:
-        """SKIP verdicts should mark the group in skip cache."""
+        """SKIP verdicts mark the group in the skip cache and persist a result
+        row without a seer run."""
         org = self.create_organization()
         project = self.create_project(organization=org)
         group = self.create_group(project=project)
@@ -156,7 +157,6 @@ class TestDeliverNightShiftResult(TestCase):
         finally:
             redis.delete(skip_cache_key(group.id))
 
-        # SKIP verdicts persist a result row without a seer run.
         skip_result = SeerNightShiftRunResult.objects.get(run=run)
         assert skip_result.group_id == group.id
         assert skip_result.seer_run_id is None
@@ -239,7 +239,6 @@ class TestDeliverNightShiftResult(TestCase):
         finally:
             redis.delete(skip_cache_key(group.id))
 
-        # ROOT_CAUSE_ONLY verdicts persist a result row without a seer run.
         result = SeerNightShiftRunResult.objects.get(run=run)
         assert result.group_id == group.id
         assert result.seer_run_id is None
@@ -326,7 +325,6 @@ class TestDeliverNightShiftResult(TestCase):
         assert set(results) == {failing_group.id, ok_group.id}
         assert results[ok_group.id].seer_run_id == "7"
         assert "trigger_error" not in results[ok_group.id].extras
-        # The failed trigger still gets a verdict row, marked as a trigger error.
         assert results[failing_group.id].seer_run_id is None
         assert results[failing_group.id].extras["action"] == TriageAction.AUTOFIX.value
         assert results[failing_group.id].extras["trigger_error"] is True

@@ -217,8 +217,7 @@ def _process_verdicts(
                 extras=extras,
             )
         )
-    # ignore_conflicts + the unique (run, group) constraint make concurrent
-    # redeliveries of the same shard result a no-op instead of duplicate rows.
+    # ignore_conflicts: concurrent redeliveries can race past the recorded-rows check.
     SeerNightShiftRunResult.objects.bulk_create(rows, ignore_conflicts=True)
 
     logger.info(
