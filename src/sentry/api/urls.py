@@ -7,8 +7,8 @@ from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
 from sentry.api.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
-from sentry.api.endpoints.organization_ai_conversation_summary import (
-    OrganizationAIConversationSummaryEndpoint,
+from sentry.api.endpoints.organization_ai_conversation_meta import (
+    OrganizationAIConversationMetaEndpoint,
 )
 from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
@@ -1733,9 +1733,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-ai-conversation-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/summary/$",
-        OrganizationAIConversationSummaryEndpoint.as_view(),
-        name="sentry-api-0-organization-ai-conversation-summary",
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/meta/$",
+        OrganizationAIConversationMetaEndpoint.as_view(),
+        name="sentry-api-0-organization-ai-conversation-meta",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",

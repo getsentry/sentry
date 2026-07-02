@@ -13,7 +13,7 @@ from sentry.api.helpers.ai_conversations import (
     AI_CONVERSATION_ENRICHMENT_COLUMNS,
     AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS,
     AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY,
-    ConversationSummary,
+    ConversationMeta,
     extract_conversation_enrichment,
     parse_conversation_aggregates,
     parse_tool_breakdown,
@@ -31,7 +31,7 @@ from sentry.snuba.spans_rpc import Spans
 
 
 @cell_silo_endpoint
-class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
+class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
@@ -60,12 +60,10 @@ class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
                     snuba_params, request.GET.get("statsPeriod"), now, conversation_id
                 )
 
-            return Response(self._fetch_summary(resolved_params, conversation_id))
+            return Response(self._fetch_meta(resolved_params, conversation_id))
 
     @sentry_sdk.trace
-    def _fetch_summary(
-        self, snuba_params: SnubaParams, conversation_id: str
-    ) -> ConversationSummary:
+    def _fetch_meta(self, snuba_params: SnubaParams, conversation_id: str) -> ConversationMeta:
         conversation_filter = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
         resolver = Spans.get_resolver(snuba_params, SearchResolverConfig(auto_fields=True))
 
@@ -82,7 +80,7 @@ class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
                     orderby=None,
                     offset=0,
                     limit=1,
-                    referrer=Referrer.API_AI_CONVERSATION_SUMMARY.value,
+                    referrer=Referrer.API_AI_CONVERSATION_META.value,
                     sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
                 ),
@@ -93,7 +91,7 @@ class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
                     orderby=["timestamp"],
                     offset=0,
                     limit=10000,
-                    referrer=Referrer.API_AI_CONVERSATION_SUMMARY.value,
+                    referrer=Referrer.API_AI_CONVERSATION_META.value,
                     sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
                 ),
@@ -104,7 +102,7 @@ class OrganizationAIConversationSummaryEndpoint(OrganizationEventsEndpointBase):
                     orderby=AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY,
                     offset=0,
                     limit=50,
-                    referrer=Referrer.API_AI_CONVERSATION_SUMMARY.value,
+                    referrer=Referrer.API_AI_CONVERSATION_META.value,
                     sampling_mode="NORMAL",
                     resolver=resolver,
                 ),

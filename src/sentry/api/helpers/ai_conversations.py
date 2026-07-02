@@ -207,7 +207,7 @@ def parse_tool_breakdown(rows: Iterable[dict[str, Any]]) -> list[ToolSummary]:
     return summaries
 
 
-class ConversationSummary(ConversationAggregates):
+class ConversationMeta(ConversationAggregates):
     user: UserResponse | None
     tools: list[ToolSummary]
     traceIds: list[str]

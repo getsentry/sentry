@@ -16,8 +16,8 @@ from .test_organization_ai_conversations_base import (
 )
 
 
-class OrganizationAIConversationSummaryEndpointTest(BaseAIConversationsTestCase):
-    view = "sentry-api-0-organization-ai-conversation-summary"
+class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
+    view = "sentry-api-0-organization-ai-conversation-meta"
 
     def do_request(
         self,
