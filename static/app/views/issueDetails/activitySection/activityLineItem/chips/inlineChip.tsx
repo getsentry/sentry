@@ -68,6 +68,7 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   border-radius: ${p.theme.radius.xs};
   background: ${p.theme.colors.gray100};
   color: ${p.theme.tokens.content.secondary};
+  font-weight: ${p.theme.font.weight.sans.regular};
   vertical-align: middle;
   white-space: nowrap;
 

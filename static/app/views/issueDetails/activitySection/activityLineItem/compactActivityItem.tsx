@@ -237,11 +237,8 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Issue resolved'),
         details: integrationLink
-          ? tct('by [author] via [integration]', {
-              author,
-              integration: integrationLink,
-            })
-          : tct('by [author]', {author}),
+          ? tct('via [integration]', {integration: integrationLink})
+          : undefined,
       };
     }
     case GroupActivityType.SET_RESOLVED_BY_AGE: {
@@ -377,10 +374,7 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Unresolved'),
         details: integrationLink
-          ? tct('by [author] via [integration]', {
-              author,
-              integration: integrationLink,
-            })
+          ? tct('via [integration]', {integration: integrationLink})
           : null,
       };
     }
@@ -395,12 +389,10 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SET_PUBLIC:
       return {
         title: t('Made public'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.SET_PRIVATE:
       return {
         title: t('Made private'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.SET_REGRESSION: {
       const {data} = activity;
@@ -437,7 +429,7 @@ export function getCompactGroupActivityItem({
                 />
               ),
             })
-          : tct('by [author]', {author}),
+          : undefined,
         subtext: comparison,
       };
     }
@@ -459,20 +451,18 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Merged'),
         details: tn(
-          '%1$s issue into this issue by %2$s',
-          '%1$s issues into this issue by %2$s',
-          activity.data.issues.length,
-          author
+          '%s issue into this issue',
+          '%s issues into this issue',
+          activity.data.issues.length
         ),
       };
     case GroupActivityType.UNMERGE_SOURCE:
       return {
         title: t('Unmerged'),
         details: tn(
-          '%1$s fingerprint to %3$s by %2$s',
-          '%1$s fingerprints to %3$s by %2$s',
+          '%1$s fingerprint to %2$s',
+          '%1$s fingerprints to %2$s',
           activity.data.fingerprints.length,
-          author,
           activity.data.destination ? (
             <Link
               to={`${issuesLink}${activity.data.destination.id}?referrer=group-activity-unmerged-source`}
@@ -488,10 +478,9 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Unmerged'),
         details: tn(
-          '%1$s fingerprint from %3$s by %2$s',
-          '%1$s fingerprints from %3$s by %2$s',
+          '%1$s fingerprint from %2$s',
+          '%1$s fingerprints from %2$s',
           activity.data.fingerprints.length,
-          author,
           activity.data.source ? (
             <Link
               to={`${issuesLink}${activity.data.source.id}?referrer=group-activity-unmerged-destination`}
@@ -517,26 +506,21 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.UNASSIGNED:
       return {
         title: t('Unassigned'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.REPROCESS:
       return {
         title: t('Reprocessed events'),
-        details: tct('by [author]. [newEvents]', {
-          author,
-          newEvents: (
-            <Link
-              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
-            >
-              {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
-            </Link>
-          ),
-        }),
+        details: (
+          <Link
+            to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
+          >
+            {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
+          </Link>
+        ),
       };
     case GroupActivityType.MARK_REVIEWED:
       return {
         title: t('Issue reviewed'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.AUTO_SET_ONGOING:
       return {
@@ -558,7 +542,6 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.DELETED_ATTACHMENT:
       return {
         title: t('Attachment deleted'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.SEER_RCA_STARTED:
       return {
