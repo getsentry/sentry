@@ -80,7 +80,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
     Can also be given a list of event types (e.g. ['issue.created', 'issue.resolved'])
     """
 
-    expanded_events = []
+    expanded_events: list[str] = []
     for event in rolled_up_events:
         if event in EVENT_EXPANSION:
             expanded_events.extend(EVENT_EXPANSION.get(SentryAppResourceType(event), [event]))

@@ -121,6 +121,7 @@ export const PairCard = memo(function PairCard({
   copyUrl,
   diffMode,
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
   snapshotKey,
   status = DiffStatus.CHANGED,
@@ -142,6 +143,7 @@ export const PairCard = memo(function PairCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
   status?: DiffStatus;
 }) {
   const {isDark, toggleIsDark} = useCanvasTheme(pair.head_image.canvas_theme);
@@ -171,6 +173,7 @@ export const PairCard = memo(function PairCard({
           headLabel={headBranch ?? t('Head')}
           altPrefix={getImageName(image)}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffImageKey={pair.diff_image_key}
           diffImageBaseUrl={diffImageBaseUrl}
         />

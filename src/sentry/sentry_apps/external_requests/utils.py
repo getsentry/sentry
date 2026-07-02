@@ -1,23 +1,60 @@
 import logging
+import re
 from typing import Any
+from urllib.parse import urlparse
 
 from jsonschema import Draft7Validator
 from requests import RequestException
 from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
+from rest_framework import serializers
 
 from sentry.http import safe_urlopen
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
+    SentryAppExternalRequestFailureReason,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.model import RpcSentryApp
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 logger = logging.getLogger(__name__)
+
+VALID_SENTRY_APP_URI_RE = re.compile(r"^/(?!/)[^@]*$")
+
+
+def validate_sentry_app_uri(uri: str) -> None:
+    if not VALID_SENTRY_APP_URI_RE.match(uri):
+        raise serializers.ValidationError("Invalid URI: must be a relative path starting with '/'.")
+
+
+def validate_outbound_url(url: str, expected_netloc: str, uri: str = "") -> None:
+    error_type = SentryAppExternalRequestFailureReason.INVALID_URI
+    if uri and not VALID_SENTRY_APP_URI_RE.match(uri):
+        raise SentryAppIntegratorError(
+            message="URI must not alter the webhook host",
+            webhook_context={
+                "error_type": error_type,
+                "url": url,
+                "expected_netloc": expected_netloc,
+            },
+            status_code=400,
+        )
+    parsed = urlparse(url)
+    if parsed.netloc != expected_netloc:
+        raise SentryAppIntegratorError(
+            message="URI must not alter the webhook host",
+            webhook_context={
+                "error_type": error_type,
+                "url": url,
+                "expected_netloc": expected_netloc,
+            },
+            status_code=400,
+        )
 
 
 def integrator_error_message(response: Response | None, fallback: str) -> str:

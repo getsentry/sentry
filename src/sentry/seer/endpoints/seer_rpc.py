@@ -1020,14 +1020,13 @@ def refresh_monitoring_provider_token(
     try:
         provider.refresh_identity(identity)
     except IdentityNotValid:
-        logger.warning(
+        logger.exception(
             "monitoring_provider.refresh.identity_not_valid",
             extra={
                 "identity_id": identity_id,
                 "provider": idp.type,
                 "has_refresh_token": "refresh_token" in identity.data,
             },
-            exc_info=True,
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
     except (ApiError, KeyError, RequestException):
