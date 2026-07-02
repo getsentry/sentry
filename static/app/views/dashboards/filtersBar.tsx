@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -28,6 +29,7 @@ import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -136,6 +138,8 @@ export function FiltersBar({
   storageNamespace,
   widgetLimitReached = false,
 }: FiltersBarProps) {
+  const theme = useTheme();
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
@@ -263,43 +267,51 @@ export function FiltersBar({
     defined(dashboard?.id) &&
     defined(onAddWidget);
 
+  const pageFilterElements = (
+    <>
+      <ProjectPageFilter
+        disabled={isEditingDashboard}
+        storageNamespace={storageNamespace}
+        onChange={() => {
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'project',
+          });
+        }}
+      />
+      <EnvironmentPageFilter
+        disabled={isEditingDashboard}
+        storageNamespace={storageNamespace}
+        onChange={() => {
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'environment',
+          });
+        }}
+      />
+      <DatePageFilter
+        disabled={isEditingDashboard}
+        maxPickableDays={maxPickableDaysOptions.maxPickableDays}
+        onChange={() => {
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'date',
+          });
+        }}
+      />
+    </>
+  );
+
   return (
     <Wrapper>
       <FiltersRow>
-        <PageFilterBarWrapper>
-          <StyledPageFilterBar>
-            <ProjectPageFilter
-              disabled={isEditingDashboard}
-              storageNamespace={storageNamespace}
-              onChange={() => {
-                trackAnalytics('dashboards2.filter.change', {
-                  organization,
-                  filter_type: 'project',
-                });
-              }}
-            />
-            <EnvironmentPageFilter
-              disabled={isEditingDashboard}
-              storageNamespace={storageNamespace}
-              onChange={() => {
-                trackAnalytics('dashboards2.filter.change', {
-                  organization,
-                  filter_type: 'environment',
-                });
-              }}
-            />
-            <DatePageFilter
-              disabled={isEditingDashboard}
-              maxPickableDays={maxPickableDaysOptions.maxPickableDays}
-              onChange={() => {
-                trackAnalytics('dashboards2.filter.change', {
-                  organization,
-                  filter_type: 'date',
-                });
-              }}
-            />
-          </StyledPageFilterBar>
-        </PageFilterBarWrapper>
+        {isMobile ? (
+          <MobileFiltersStack>{pageFilterElements}</MobileFiltersStack>
+        ) : (
+          <PageFilterBarWrapper>
+            <StyledPageFilterBar>{pageFilterElements}</StyledPageFilterBar>
+          </PageFilterBarWrapper>
+        )}
         <SortableReleasesSelect
           sortBy={releaseSort}
           selectedReleases={selectedReleases}
@@ -446,19 +458,28 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
-const PageFilterBarWrapper = styled('div')`
-  display: contents;
+const MobileFiltersStack = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
+  /* Each filter takes full width on mobile */
+  & > * {
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow: hidden;
-    box-sizing: border-box;
-    contain: layout style;
-    isolation: isolate;
+
+    /* Ensure buttons inside take full width */
+    & button[aria-haspopup] {
+      width: 100%;
+      max-width: 100%;
+    }
   }
+`;
+
+const PageFilterBarWrapper = styled('div')`
+  display: contents;
 `;
 
 const Wrapper = styled('div')`
@@ -467,13 +488,10 @@ const Wrapper = styled('div')`
   gap: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.xl};
   align-items: flex-start;
-  min-width: 0;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     gap: ${p => p.theme.space.md};
-    width: 100%;
-    max-width: 100%;
   }
 `;
 
@@ -483,7 +501,6 @@ const FiltersRow = styled('div')`
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
   flex: 1;
-  min-width: 0;
 
   & button[aria-haspopup] {
     height: 100%;
@@ -494,47 +511,9 @@ const FiltersRow = styled('div')`
     flex-direction: column;
     gap: ${p => p.theme.space.md};
     width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-
-    /* Ensure all children take full width on mobile */
-    & > * {
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-    }
   }
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    max-width: 100%;
-    width: 100%;
-    flex-wrap: wrap;
-
-    /* Ensure child filters can shrink and wrap properly on mobile */
-    & > div {
-      flex: 1 1 auto;
-      min-width: 0 !important;
-      max-width: 100%;
-      box-sizing: border-box;
-
-      /* Override any fixed widths on mobile */
-      &:first-child,
-      &:last-child {
-        min-width: 0 !important;
-        flex-shrink: 1 !important;
-      }
-    }
-
-    /* Ensure buttons inside also respect width */
-    & button[aria-haspopup] {
-      max-width: 100%;
-      box-sizing: border-box;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
+  /* No mobile overrides needed since we use MobileFiltersStack on mobile */
 `;
