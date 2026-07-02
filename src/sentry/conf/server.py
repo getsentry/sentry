@@ -1146,7 +1146,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
-        "schedule": crontab("*", "*", "*", "*", "*"),
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
