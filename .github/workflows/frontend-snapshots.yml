@@ -105,3 +105,6 @@ jobs:
           path: .artifacts
           retention-days: 1
           if-no-files-found: error
+          # .artifacts is a dot-directory; without this upload-artifact treats
+          # its contents as hidden and uploads nothing.
+          include-hidden-files: true
