@@ -3,7 +3,6 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
 import type {FieldObject, JsonFormObject} from './types';
 
@@ -172,7 +171,15 @@ describe('JsonForm', () => {
   });
 
   describe('fields prop', () => {
-    const jsonFormFields = [fields.slug, fields.platform] as FieldObject[];
+    const jsonFormFields: FieldObject[] = [
+      {name: 'slug', type: 'string', label: 'Slug'},
+      {
+        name: 'platform',
+        type: 'select',
+        label: 'Platform',
+        options: [{value: 'javascript', label: 'JavaScript'}],
+      },
+    ];
 
     it('default', () => {
       render(<JsonForm fields={jsonFormFields} />);

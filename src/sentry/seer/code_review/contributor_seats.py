@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.db import router, transaction
+from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
@@ -97,11 +98,7 @@ def track_contributor_seat(
     provider: str,
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
-    """
-    Track a contributor for seat billing. Creates or retrieves the contributor
-    record, checks eligibility, atomically increments the action count, and
-    queues seat assignment when the activation threshold is reached.
-    """
+    """Informational logging for the legacy seat-charging path."""
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration_id,
@@ -113,46 +110,22 @@ def track_contributor_seat(
         return
 
     logger.info(
-        "scm.webhook.organization_contributor.should_create",
+        "scm.webhook.organization_contributor.num_actions_should_increment",
         extra={
             "provider": provider,
             "organization_id": organization.id,
+            "integration_id": integration_id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
+            "contributor_id": contributor.id,
             **(logs_extra or {}),
         },
     )
-
-    locked_contributor = None
-    with transaction.atomic(router.db_for_write(OrganizationContributors)):
-        try:
-            locked_contributor = OrganizationContributors.objects.select_for_update().get(
-                id=contributor.id,
-            )
-            locked_contributor.num_actions += 1
-            locked_contributor.save(update_fields=["num_actions", "date_updated"])
-
-            metrics.incr(
-                "scm.webhook.organization_contributor.num_actions_incremented",
-                sample_rate=1.0,
-                tags={"provider": provider},
-            )
-        except OrganizationContributors.DoesNotExist:
-            logger.warning(
-                "scm.webhook.organization_contributor.not_found",
-                extra={
-                    "provider": provider,
-                    "organization_id": organization.id,
-                    "integration_id": integration_id,
-                    "external_identifier": str(user_id),
-                },
-            )
-
-    if (
-        locked_contributor
-        and locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
-    ):
-        assign_seat_to_organization_contributor.delay(locked_contributor.id)
+    metrics.incr(
+        "scm.webhook.organization_contributor.num_actions_should_increment",
+        sample_rate=1.0,
+        tags={"provider": provider},
+    )
 
 
 def record_contributor_action(
@@ -165,12 +138,10 @@ def record_contributor_action(
     provider: str,
     pr_number: str | int,
     is_opened: bool,
+    logs_extra: Mapping[str, Any] | None = None,
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
-    if not features.has("organizations:dual-write-contributor-actions", organization):
-        return
-
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration_id,
@@ -178,26 +149,46 @@ def record_contributor_action(
         defaults={"alias": user_username},
     )
 
-    if is_opened and should_increment_contributor_seat(organization, repo, contributor):
+    if (
+        not is_opened
+        or features.has("organizations:seat-based-seer-skip-record-action", organization)
+        or not should_increment_contributor_seat(organization, repo, contributor)
+    ):
+        return
+
+    with transaction.atomic(router.db_for_write(OrganizationContributors)):
         _, created = OrganizationContributorAction.objects.get_or_create(
             repository_id=repo.id,
             pr_number=str(pr_number),
             defaults={"organization_contributor": contributor},
         )
-        if created:
-            logger.info(
-                "scm.webhook.organization_contributor.action_recorded",
-                extra={
-                    "provider": provider,
-                    "organization_id": organization.id,
-                    "pr_author_id": str(user_id),
-                    "pr_author_login": user_username,
-                    "pr_number": str(pr_number),
-                    **(tags or {}),
-                },
-            )
-            metrics.incr(
-                "scm.webhook.organization_contributor.action_recorded",
-                sample_rate=1.0,
-                tags={"provider": provider, **(tags or {})},
-            )
+        if not created:
+            return
+
+        OrganizationContributors.objects.filter(id=contributor.id).update(
+            num_actions=F("num_actions") + 1
+        )
+
+    logger.info(
+        "scm.webhook.organization_contributor.action_recorded",
+        extra={
+            "provider": provider,
+            "organization_id": organization.id,
+            "integration_id": integration_id,
+            "pr_author_id": str(user_id),
+            "pr_author_login": user_username,
+            "contributor_id": contributor.id,
+            "pr_number": str(pr_number),
+            **(logs_extra or {}),
+            **(tags or {}),
+        },
+    )
+    metrics.incr(
+        "scm.webhook.organization_contributor.action_recorded",
+        sample_rate=1.0,
+        tags={"provider": provider, **(tags or {})},
+    )
+
+    contributor.refresh_from_db(fields=["num_actions"])
+    if contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD:
+        assign_seat_to_organization_contributor.delay(contributor.id)

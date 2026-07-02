@@ -189,6 +189,7 @@ def _track_contributor_action_processor(
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
         provider="github",
+        logs_extra={"github_event_action": event.get("action")},
         tags={"is_private": is_private},
     )
 
@@ -1023,8 +1024,11 @@ class PullRequestEventWebhook(GitHubWebhook):
         pr_metrics_handle_attribution,
         # Persist counters before emission reads them off the PullRequestMetrics row.
         pr_metrics_handle_metrics,
-        pr_metrics_handle_emission,
+        # Activity must be written before emission so the verdict check in
+        # handle_activity sees no verdict yet on the open/sync events, and so the
+        # SYNCHRONIZED rows are present when select_verdict runs on the close event.
         pr_metrics_handle_activity,
+        pr_metrics_handle_emission,
     )
 
     def _handle(

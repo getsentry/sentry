@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,18 +18,31 @@ export function ActivityLineActor({item}: {item: GroupActivity}) {
 
 function ActivityLineActorAvatar({item}: {item: GroupActivity}) {
   if (item.sentry_app) {
-    return <SentryAppAvatar sentryApp={item.sentry_app} size={22} />;
+    return (
+      <Tooltip title={item.sentry_app.name}>
+        <SentryAppAvatar sentryApp={item.sentry_app} size={22} />
+      </Tooltip>
+    );
   }
 
   if (item.user) {
-    return <UserAvatar data-test-id="user-activity-actor" user={item.user} size={22} />;
+    return (
+      <UserAvatar
+        data-test-id="user-activity-actor"
+        hasTooltip
+        user={item.user}
+        size={22}
+      />
+    );
   }
 
   if (SEER_ACTIVITY_TYPES.has(item.type)) {
     return (
-      <SeerActor aria-label={t('Seer activity')} role="img">
-        <IconSeer aria-hidden size="xs" />
-      </SeerActor>
+      <Tooltip title={t('Seer')} skipWrapper>
+        <SeerActor aria-label={t('Seer activity')} role="img">
+          <IconSeer aria-hidden size="xs" />
+        </SeerActor>
+      </Tooltip>
     );
   }
 

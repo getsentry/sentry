@@ -300,6 +300,15 @@ export function ScmPlatformFeaturesCore({
     setPlatform(detectedPlatformKey);
     onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
+    // Leaving a manual pick for the detected platform is itself a platform
+    // selection, so record it as the detected source (mirrors the auto-adopt
+    // path and handleSelectDetectedPlatform, which were the only detected-source
+    // emitters before).
+    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
+      organization,
+      platform: detectedPlatformKey,
+      source: 'detected',
+    });
   }
 
   // Shared by both manual-picker variants. A null option is the clear action,
