@@ -179,17 +179,15 @@ function getDefaultDisplay(p: {
   return undefined;
 }
 
-/** The browser's default display for the rendered element. */
 function getNativeDisplay(as: TextPrimitive | undefined): DisplayValue {
   return as === 'p' || as === 'div' || as === 'legend' ? 'block' : 'inline';
 }
 
 /**
- * Resolves the `display` CSS. When no explicit `display` prop is set, the derived
- * default is applied. An explicit prop takes precedence; for a responsive prop we
- * seed the base (`2xs`) slot when the consumer left it unset — with the derived
- * default, or the element's native display when there is none — so unspecified
- * small breakpoints keep the sensible default instead of inheriting the value of
+ * When no explicit `display` prop is set, the derived default is applied.
+ * For a responsive prop we seed the base (`2xs`) slot when the consumer left it unset
+ * (with the derived default, or the element's native display when there is none)
+ * so unspecified small breakpoints keep the sensible default instead of inheriting the value of
  * the smallest specified breakpoint (which `rc` would otherwise make the base).
  */
 function resolveDisplay(p: {
