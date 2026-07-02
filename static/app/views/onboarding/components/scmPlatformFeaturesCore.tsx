@@ -378,11 +378,9 @@ export function ScmPlatformFeaturesCore({
           </Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
-          <Text ellipsis variant="inherit">
-            {isDetecting
-              ? t('Skip detection and select manually')
-              : t("Doesn't look right? Change platform")}
-          </Text>
+          {isDetecting
+            ? t('Skip detection and select manually')
+            : t("Doesn't look right? Change platform")}
         </Button>
       </Flex>
       <Stack gap="lg" width="100%">
