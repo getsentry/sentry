@@ -19,8 +19,8 @@ export function useSeerExplorerSessionsQuery({
   const isEnabled = enabled && isSeerExplorerEnabled(organization);
 
   return useQuery({
-    ...apiOptions.as<{data: ExplorerSession[]}>()(
-      '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
+    ...apiOptions.as<ExplorerSession[]>()(
+      '/organizations/$organizationIdOrSlug/seer/runs/',
       {
         path:
           isEnabled && organization
@@ -28,7 +28,11 @@ export function useSeerExplorerSessionsQuery({
             : skipToken,
         query: {
           per_page: limit,
-          ...(searchQuery ? {query: searchQuery} : {}),
+          // Scope the shared runs endpoint to the current user's Explorer
+          // sessions; free-text search is appended as a title filter.
+          query: ['is:mine', 'type:explorer', searchQuery?.trim()]
+            .filter(Boolean)
+            .join(' '),
         },
         staleTime: 0,
       }
