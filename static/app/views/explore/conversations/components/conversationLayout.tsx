@@ -77,7 +77,7 @@ function MeasuredSplitPanel({
 
 export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   return (
-    <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+    <Flex direction="column" flex={1} minWidth="0" minHeight="0" overflow="hidden">
       {children}
     </Flex>
   );

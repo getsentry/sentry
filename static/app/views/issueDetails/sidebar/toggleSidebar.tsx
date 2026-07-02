@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -13,7 +14,7 @@ export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
   const {isSidebarOpen, dispatch} = useIssueDetails();
 
   return (
-    <ToggleContainer>
+    <Container position="relative" display={{'2xs': 'none', lg: 'block'}}>
       <ToggleButton
         expanded={isSidebarOpen}
         onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}
@@ -29,24 +30,16 @@ export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
           <IconChevron direction={isSidebarOpen ? 'right' : 'left'} isDouble size="xs" />
         }
       />
-    </ToggleContainer>
+    </Container>
   );
 }
-
-const ToggleContainer = styled('div')`
-  position: relative;
-  margin-right: -${p => p.theme.space['2xl']};
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: none;
-  }
-`;
 
 // The extra 1px on width is to display above the sidebar border
 const ToggleButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded &&
     css`
-      margin-right: -1px;
+      margin-right: calc(-${p.theme.space.xl} - 1px);
       &::after {
         border-right-color: transparent;
         border-top-right-radius: 0px;
