@@ -44,12 +44,13 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
               to={to}
               variant="primary"
               size="xs"
-              onClick={() =>
+              onClick={() => {
                 trackAnalytics('seer.explorer.update_slack_clicked', {
                   organization,
                   num_configurations,
-                })
-              }
+                });
+                setIsDismissed(true);
+              }}
             >
               {t('Update Now')}
             </LinkButton>
