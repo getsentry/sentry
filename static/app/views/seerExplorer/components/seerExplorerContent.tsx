@@ -225,17 +225,13 @@ export function SeerExplorerContent({
       }
     )
   );
-  const hasSlackIntegration = slackIntegrations.some(
+  const activeSlackIntegrations = slackIntegrations.filter(
     integration =>
       integration.status === 'active' &&
       integration.organizationIntegrationStatus === 'active'
   );
-  const needsSlackUpgrade = slackIntegrations.some(
-    integration =>
-      integration.status === 'active' &&
-      integration.organizationIntegrationStatus === 'active' &&
-      integrationRequiresUpgrade(integration)
-  );
+  const hasSlackIntegration = activeSlackIntegrations.length > 0;
+  const needsSlackUpgrade = activeSlackIntegrations.some(integrationRequiresUpgrade);
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). The ref dedupes
@@ -557,7 +553,7 @@ export function SeerExplorerContent({
       )}
       {menu}
       {needsSlackUpgrade && (
-        <UpdateSlackAlert num_configurations={slackIntegrations.length} />
+        <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
       )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
