@@ -5,6 +5,7 @@ Utilities related to proxying a request to a cell
 from __future__ import annotations
 
 import logging
+import random
 from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
@@ -22,10 +23,10 @@ from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
+    PRESERVE_CONTENT_ENCODING_URL_NAMES,
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
@@ -54,7 +55,6 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-project-preprod-artifact-download": 90.0,
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
-    "sentry-api-0-organization-preprod-snapshots-download": 90.0,
     "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
@@ -130,7 +130,12 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     """Take a django request object and proxy it to a cell silo"""
 
     host = cell.address
-    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+    rollout_option = options.get("apigateway.proxy.cell-rollout")
+    if (
+        cell.api_gateway_address
+        and isinstance(rollout_option, dict)
+        and random.random() < rollout_option.get(cell.name, 0.0)
+    ):
         host = cell.api_gateway_address
 
     metric_tags = {
@@ -153,7 +158,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 ),
             )
         except Exception as e:
-            logger.warning("apigateway.invalid-breaker-config", extra={"message": str(e)})
+            logger.warning("apigateway.invalid-breaker-config", extra={"error": str(e)})
 
     if circuit_breaker is not None:
         if not circuit_breaker.should_allow_request():
@@ -187,10 +192,11 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
+    if content_encoding and url_name in PRESERVE_CONTENT_ENCODING_URL_NAMES:
+        header_dict["Content-Encoding"] = content_encoding
+
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
-        if content_encoding:
-            header_dict["Content-Encoding"] = content_encoding
         data = get_raw_body(request)
     else:
         data = BodyWithLength(request)
@@ -220,14 +226,19 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        # remote silo timeout. Use DRF timeout instead
-        raise RequestTimeout()
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Proxied request timed out"},
+            status=500,
+        )
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        raise
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Downstream service unavailable"},
+            status=500,
+        )
 
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)

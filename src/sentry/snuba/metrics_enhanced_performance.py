@@ -85,6 +85,7 @@ def query(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
             dataset_reason = str(error)
             metrics_compatible = False
 
@@ -94,8 +95,10 @@ def query(
         if fallback_to_transactions:
             dataset_query = transactions.query
             sentry_sdk.set_tag("performance.dataset", "transactions")
+            sentry_sdk.set_attribute("performance.dataset", "transactions")
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
+            sentry_sdk.set_attribute("performance.dataset", "discover")
         results = dataset_query(
             selected_columns,
             query,
@@ -173,6 +176,7 @@ def timeseries_query(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics
@@ -181,8 +185,10 @@ def timeseries_query(
         if fallback_to_transactions:
             dataset = transactions
             sentry_sdk.set_tag("performance.dataset", "transactions")
+            sentry_sdk.set_attribute("performance.dataset", "transactions")
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
+            sentry_sdk.set_attribute("performance.dataset", "discover")
         return dataset.timeseries_query(
             selected_columns,
             query,
@@ -269,6 +275,7 @@ def top_events_timeseries(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics
@@ -277,8 +284,10 @@ def top_events_timeseries(
         if fallback_to_transactions:
             dataset = transactions
             sentry_sdk.set_tag("performance.dataset", "transactions")
+            sentry_sdk.set_attribute("performance.dataset", "transactions")
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
+            sentry_sdk.set_attribute("performance.dataset", "discover")
         return dataset.top_events_timeseries(
             timeseries_columns,
             selected_columns,
@@ -367,11 +376,13 @@ def histogram_query(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
         sentry_sdk.set_tag("performance.dataset", "discover")
+        sentry_sdk.set_attribute("performance.dataset", "discover")
         return discover.histogram_query(
             fields,
             user_query,

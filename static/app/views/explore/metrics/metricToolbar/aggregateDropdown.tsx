@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
 import {
@@ -28,8 +28,10 @@ export function AggregateDropdown({
   traceMetric,
   singleSelect = false,
   disabledReason,
+  disabledAggregates,
 }: {
   traceMetric: TraceMetric;
+  disabledAggregates?: Record<string, string>;
   disabledReason?: string;
   singleSelect?: boolean;
 }) {
@@ -38,7 +40,24 @@ export function AggregateDropdown({
   const setMetricVisualizes = useSetMetricVisualizes();
   const isDisabled = disabledReason !== undefined;
 
-  const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
+  const groups = useMemo(() => {
+    const allGroups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
+    if (!disabledAggregates) {
+      return allGroups;
+    }
+    return allGroups.map(group => ({
+      ...group,
+      options: group.options.map(opt =>
+        disabledAggregates[opt.value]
+          ? {
+              ...opt,
+              disabled: true,
+              tooltip: disabledAggregates[opt.value],
+            }
+          : opt
+      ),
+    }));
+  }, [traceMetric.type, disabledAggregates]);
   const selectedNames = new Set(
     visualizes.map(v => (isVisualizeFunction(v) ? (v.parsedFunction?.name ?? '') : ''))
   );

@@ -11,7 +11,6 @@ import {Broadcasts} from 'admin/views/broadcasts';
 import {CustomerContractDetails} from 'admin/views/customerContractDetails';
 import {CustomerDetails} from 'admin/views/customerDetails';
 import {Customers} from 'admin/views/customers';
-import {CustomerUpgradeRequest} from 'admin/views/customerUpgradeRequest';
 import {DataRequests} from 'admin/views/dataRequests';
 import {DebuggingTools} from 'admin/views/debuggingTools';
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
@@ -91,10 +90,6 @@ function buildRoutes() {
               {
                 index: true,
                 component: CustomerDetails,
-              },
-              {
-                path: 'upgrade-request/',
-                component: CustomerUpgradeRequest,
               },
               {
                 path: 'contract/',

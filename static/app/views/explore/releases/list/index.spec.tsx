@@ -97,11 +97,6 @@ describe('ReleasesList', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/builds/`,
       body: [],
     });
@@ -629,6 +624,18 @@ describe('ReleasesList', () => {
 
     expect(router.location.query.display).toBe(PreprodBuildsDisplay.SIZE);
     expect(router.location.query.query).toBeFalsy();
+  });
+
+  it('shows the Download CSV button on the distribution display', async () => {
+    renderMobileBuildsTab({display: 'distribution'});
+    expect(await screen.findByRole('button', {name: 'Download CSV'})).toBeInTheDocument();
+  });
+
+  it('hides the Download CSV button on the size display', async () => {
+    renderMobileBuildsTab();
+    // Wait for the controls to render before asserting the button is absent.
+    expect(await screen.findByRole('button', {name: 'Display Size'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Download CSV'})).not.toBeInTheDocument();
   });
 
   it('allows searching within the mobile-builds tab', async () => {

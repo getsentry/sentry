@@ -18,7 +18,7 @@ from sentry.spans.consumers.process_segments.types import (
 SHARED_SENTRY_ATTRIBUTES = (
     ATTRIBUTE_NAMES.SENTRY_RELEASE,
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT,
-    ATTRIBUTE_NAMES.SENTRY_TRANSACTION,
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
     "sentry.transaction.method",
     "sentry.transaction.op",
     "sentry.trace.status",

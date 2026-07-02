@@ -3,9 +3,9 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality, RegionCategory
 
-us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
-st = Cell("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
+us = Cell("us", 1, "https://us.testserver")
+de = Cell("de", 2, "https://de.testserver")
+st = Cell("acme", 3, "https://acme.testserver")
 cell_config = (us, de, st)
 
 us_locality = Locality(

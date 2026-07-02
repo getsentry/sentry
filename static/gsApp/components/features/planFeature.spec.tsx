@@ -3,11 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 
 describe('PlanFeature', () => {
   const organization = OrganizationFixture();
@@ -16,7 +16,7 @@ describe('PlanFeature', () => {
     SubscriptionStore.init();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am2'},
+      query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM2),
     });
   });
@@ -24,7 +24,7 @@ describe('PlanFeature', () => {
   it('provides the plan required for a feature', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -36,7 +36,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_team'),
-        tierChange: 'am2',
       });
     });
   });
@@ -44,7 +43,7 @@ describe('PlanFeature', () => {
   it('provides the business plan', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -56,7 +55,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: 'am2',
       });
     });
   });
@@ -64,7 +62,7 @@ describe('PlanFeature', () => {
   it('provides no plan if the feature is not on a plan', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -74,17 +72,16 @@ describe('PlanFeature', () => {
     );
 
     await waitFor(() => {
-      expect(mockFn).toHaveBeenCalledWith({plan: null, tierChange: null});
+      expect(mockFn).toHaveBeenCalledWith({plan: null});
     });
   });
 
-  it('provides a plan when the tiers mismatch', async () => {
+  it('provides the annual plan when the billing interval is annual', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({
       organization,
-      contractInterval: 'annual',
-      planTier: PlanTier.MM2,
+      billingInterval: 'annual',
     });
     SubscriptionStore.set(organization.slug, sub);
 
@@ -96,28 +93,7 @@ describe('PlanFeature', () => {
 
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
-        plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: 'am2',
-      });
-    });
-  });
-
-  it('reports tier change as null when no tier change is required', async () => {
-    const mockFn = jest.fn(() => null);
-
-    const sub = SubscriptionFixture({organization, planTier: 'am2'});
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <PlanFeature organization={organization} features={['discard-groups']}>
-        {mockFn}
-      </PlanFeature>
-    );
-
-    await waitFor(() => {
-      expect(mockFn).toHaveBeenCalledWith({
-        plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: null,
+        plan: PlanDetailsLookupFixture('am2_business_auf'),
       });
     });
   });
@@ -126,7 +102,7 @@ describe('PlanFeature', () => {
     const mockFn = jest.fn(() => null);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am3'},
+      query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM3),
     });
 
@@ -142,7 +118,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am3_business'),
-        tierChange: 'am3',
       });
     });
   });
@@ -166,7 +141,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: 'am2',
       });
     });
   });

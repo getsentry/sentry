@@ -1,0 +1,77 @@
+name: no-callback-api-request
+severity: error
+tags: [migration, api, async]
+
+why: |
+  api.request() uses callback-based error handling (success/error/complete
+  options) which leads to inconsistent error handling, deeply nested code,
+  and makes it impossible to use async/await. All call sites should use
+  api.requestPromise() with try/catch/finally instead.
+
+detect: |
+  Look for calls to api.request() or this.api.request() that use the
+  callback-based pattern with success, error, or complete options.
+
+  Also flag any remaining calls to api.requestPromise() that still pass
+  success/error/complete callbacks instead of using await with try/catch.
+
+  Do NOT flag:
+    - Calls to api.requestPromise() that are properly awaited or .then()-chained
+      without success/error/complete callback options
+    - The definition of request() or requestPromise() methods themselves
+    - References in comments, documentation, or test mocks
+
+fix: |
+  Convert callback-based api.request() to await api.requestPromise():
+    - success callback → try block (await the promise, handle result)
+    - error callback → catch block
+    - complete callback → finally block (requestPromise does NOT forward complete)
+
+  Example before:
+    this.api.request('/endpoint/', {
+      success: (data) => { this.setState({data}); },
+      error: (err) => { addErrorMessage('Failed'); },
+    });
+
+  Example after:
+    try {
+      const [data] = await this.api.requestPromise('/endpoint/', {
+        includeAllArgs: true,
+      });
+      this.setState({data});
+    } catch {
+      addErrorMessage('Failed');
+    }
+
+  Gotchas:
+    1. Always use includeAllArgs: true — resolves with [data, statusText, responseMeta]
+    2. Error shape differs: catch receives RequestError (wraps ResponseMeta),
+       not the raw ResponseMeta that request()'s error callback gets
+    3. Suppressed errors (401 redirect) cause the promise to never settle —
+       finally won't run (unlike complete). Use allowAuthError: true if you
+       need cleanup in those cases
+    4. Fire-and-forget calls need explicit .catch() or empty catch block to
+       avoid unhandled promise rejections
+    5. request() error callback receives (resp, textStatus, errorThrown) —
+       requestPromise collapses these into a single RequestError
+
+examples:
+  bad:
+    - "this.api.request('/endpoint/', { success: (data) => {} });"
+    - 'api.request(url, { error: (err) => handleError(err) });'
+    - "this.api.request('/foo/', { success: cb, complete: () => {} });"
+  good:
+    - "const data = await api.requestPromise('/endpoint/');"
+    - "await this.api.requestPromise('/endpoint/', { method: 'POST', data });"
+
+include:
+  - 'static/app/**/*.tsx'
+  - 'static/app/**/*.ts'
+exclude:
+  - '**/__fixtures__/**'
+  - '**/__mocks__/**'
+  - '**/*.spec.*'
+  - '**/*.test.*'
+  - '**/test/**'
+
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/"

@@ -9,6 +9,7 @@ import {
   type Dispatch,
 } from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery, type QueryKey} from '@tanstack/react-query';
 
 import type {
   GetTagKeys,
@@ -16,12 +17,14 @@ import type {
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
   type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
+  FieldDefinitionGetter,
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
@@ -29,8 +32,8 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -53,9 +56,10 @@ interface SearchQueryBuilderConfigContextData {
   disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
   filterKeyAliases: TagCollection | undefined;
+  filterKeyRegistryQueryKey: QueryKey;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
-  getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
+  getFieldDefinition: FieldDefinitionGetter;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagKeys: GetTagKeys | undefined;
   getTagValues: GetTagValues;
@@ -137,6 +141,9 @@ export function useHasSearchQueryBuilderProvider() {
   return useContext(SearchQueryBuilderProviderContext);
 }
 
+const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
+  defaultGetFieldDefinition(key);
+
 const SearchQueryBuilderStateContext =
   createContext<SearchQueryBuilderStateContextData | null>(null);
 const SearchQueryBuilderConfigContext =
@@ -161,7 +168,7 @@ export function SearchQueryBuilderProvider({
   enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
-  fieldDefinitionGetter = getFieldDefinition,
+  fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys,
   filterKeyMenuWidth = 460,
   filterKeySections,
@@ -181,6 +188,7 @@ export function SearchQueryBuilderProvider({
   caseInsensitive,
   onCaseInsensitiveClick,
   invalidFilterKeys,
+  asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -201,30 +209,66 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
-  const stableFieldDefinitionGetter = useMemo(
-    () => fieldDefinitionGetter,
-    [fieldDefinitionGetter]
+  const {filterKeyRegistryQueryOptions, registerFilterKeys} = useFilterKeyRegistry({
+    asyncFilterKeyRegistryQueryKey,
+  });
+
+  const {data: asyncFilterKeys = {}} = useQuery(filterKeyRegistryQueryOptions);
+
+  const registeredGetTagKeys = useCallback<GetTagKeys>(
+    async searchQuery => {
+      if (!getTagKeys) {
+        return [];
+      }
+
+      const registryQueryKey = filterKeyRegistryQueryOptions.queryKey;
+      const tags = await getTagKeys(searchQuery);
+      registerFilterKeys(tags, registryQueryKey);
+      return tags;
+    },
+    [filterKeyRegistryQueryOptions.queryKey, getTagKeys, registerFilterKeys]
   );
 
-  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
+  const mergedFilterKeys = useMemo(() => {
+    if (isEmptyObject(asyncFilterKeys)) {
+      return filterKeys;
+    }
+
+    return {...asyncFilterKeys, ...filterKeys};
+  }, [asyncFilterKeys, filterKeys]);
+
+  const getFieldDefinitionWithTagMetadata = useCallback<FieldDefinitionGetter>(
+    (key, options) =>
+      fieldDefinitionGetter(key, {
+        ...options,
+        kind: options?.kind ?? mergedFilterKeys[key]?.kind,
+      }),
+    [mergedFilterKeys, fieldDefinitionGetter]
+  );
 
   const stableGetSuggestedFilterKey = useCallback(
     (key: string) => {
-      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : null;
     },
     [getSuggestedFilterKey]
   );
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const parseQuery = useCallback(
     (query: string) =>
-      parseQueryBuilderValue(query, stableFieldDefinitionGetter, {
+      parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
         disallowWildcard,
-        filterKeys: stableFilterKeys,
+        filterKeys: mergedFilterKeys,
         invalidMessages,
+        invalidFilterKeys: stableInvalidFilterKeys,
         filterKeyAliases,
       }),
     [
@@ -232,30 +276,27 @@ export function SearchQueryBuilderProvider({
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
-      stableFieldDefinitionGetter,
-      stableFilterKeys,
+      getFieldDefinitionWithTagMetadata,
+      mergedFilterKeys,
       getFilterTokenWarning,
       invalidMessages,
+      stableInvalidFilterKeys,
       filterKeyAliases,
     ]
   );
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
-    getFieldDefinition: fieldDefinitionGetter,
+    getFieldDefinition: getFieldDefinitionWithTagMetadata,
     disabled,
     displayAskSeerFeedback,
     setDisplayAskSeerFeedback,
     replaceRawSearchKeys,
     parseQuery,
+    searchSource,
   });
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
-
-  const stableInvalidFilterKeys = useMemo(
-    () => invalidFilterKeys ?? [],
-    [invalidFilterKeys]
-  );
 
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
@@ -345,11 +386,12 @@ export function SearchQueryBuilderProvider({
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
       filterKeyAliases,
+      filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
       filterKeySections: filterKeySections ?? [],
-      filterKeys: stableFilterKeys,
-      getFieldDefinition: stableFieldDefinitionGetter,
+      filterKeys: mergedFilterKeys,
+      getFieldDefinition: getFieldDefinitionWithTagMetadata,
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
-      getTagKeys,
+      getTagKeys: getTagKeys ? registeredGetTagKeys : undefined,
       getTagValues,
       invalidFilterKeys: stableInvalidFilterKeys,
       matchKeySuggestions,
@@ -367,8 +409,10 @@ export function SearchQueryBuilderProvider({
     disallowLogicalOperators,
     disallowWildcard,
     filterKeyAliases,
+    filterKeyRegistryQueryOptions.queryKey,
     filterKeySections,
     getTagKeys,
+    registeredGetTagKeys,
     getTagValues,
     stableInvalidFilterKeys,
     matchKeySuggestions,
@@ -378,8 +422,8 @@ export function SearchQueryBuilderProvider({
     recentSearches,
     replaceRawSearchKeys,
     searchSource,
-    stableFieldDefinitionGetter,
-    stableFilterKeys,
+    mergedFilterKeys,
+    getFieldDefinitionWithTagMetadata,
     stableGetSuggestedFilterKey,
   ]);
 

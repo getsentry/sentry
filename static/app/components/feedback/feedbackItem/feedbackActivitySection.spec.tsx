@@ -13,6 +13,7 @@ import {
 import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {GroupActivityType, IssueCategory} from 'sentry/types/group';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 describe('FeedbackActivitySection', () => {
   const organization = OrganizationFixture();
@@ -43,9 +44,11 @@ describe('FeedbackActivitySection', () => {
     });
 
     render(
-      <FeedbackApiOptions organization={organization}>
-        <FeedbackActivitySection feedbackItem={feedbackItem} />
-      </FeedbackApiOptions>,
+      <GroupIdProvider groupId={feedbackItem.id}>
+        <FeedbackApiOptions organization={organization}>
+          <FeedbackActivitySection feedbackItem={feedbackItem} />
+        </FeedbackApiOptions>
+      </GroupIdProvider>,
       {organization}
     );
 
@@ -86,9 +89,11 @@ describe('FeedbackActivitySection', () => {
     });
 
     render(
-      <FeedbackApiOptions organization={organization}>
-        <FeedbackActivitySection feedbackItem={feedbackItem} />
-      </FeedbackApiOptions>,
+      <GroupIdProvider groupId={feedbackItem.id}>
+        <FeedbackApiOptions organization={organization}>
+          <FeedbackActivitySection feedbackItem={feedbackItem} />
+        </FeedbackApiOptions>
+      </GroupIdProvider>,
       {organization}
     );
 
@@ -123,9 +128,11 @@ describe('FeedbackActivitySection', () => {
     });
 
     render(
-      <FeedbackApiOptions organization={organization}>
-        <FeedbackActivitySection feedbackItem={feedbackItem} />
-      </FeedbackApiOptions>,
+      <GroupIdProvider groupId={feedbackItem.id}>
+        <FeedbackApiOptions organization={organization}>
+          <FeedbackActivitySection feedbackItem={feedbackItem} />
+        </FeedbackApiOptions>
+      </GroupIdProvider>,
       {organization}
     );
     renderGlobalModal();
@@ -159,9 +166,11 @@ describe('FeedbackActivitySection', () => {
     });
 
     render(
-      <FeedbackApiOptions organization={organization}>
-        <FeedbackActivitySection feedbackItem={feedbackItem} />
-      </FeedbackApiOptions>,
+      <GroupIdProvider groupId={feedbackItem.id}>
+        <FeedbackApiOptions organization={organization}>
+          <FeedbackActivitySection feedbackItem={feedbackItem} />
+        </FeedbackApiOptions>
+      </GroupIdProvider>,
       {organization}
     );
 

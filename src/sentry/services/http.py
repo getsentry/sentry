@@ -21,6 +21,7 @@ def _run_server(options: dict[str, Any]):
         blocking_threads=options["threads"],
         respawn_failed_workers=True,
         reload=options["reload"],
+        reload_ignore_dirs=options.get("reload-ignore-dirs"),
         reload_ignore_worker_failure=options["reload-ignore-worker-failure"],
         process_name=options["proc-name"],
         workers_lifetime=options["max-worker-lifetime"],
@@ -67,6 +68,7 @@ class SentryHTTPServer(Service):
         options.setdefault("log-enabled", True)
         options.setdefault("proc-name", "sentry")
         options.setdefault("reload", reload)
+        options.setdefault("reload-ignore-dirs", [".artifacts"])
         options.setdefault("reload-ignore-worker-failure", reload)
         options.setdefault("workers-kill-timeout", 3 if reload else 30)
         options.setdefault("max-worker-lifetime", None)

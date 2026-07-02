@@ -99,6 +99,7 @@ function isMetricDetectorEvidenceData(
 interface RelatedIssuesProps {
   aggregate: string;
   end: string;
+  environment: string | undefined;
   eventDateCreated: string | undefined;
   projectId: string | number;
   query: string;
@@ -235,6 +236,7 @@ function ContributingIssues({
   eventDateCreated,
   aggregate,
   end,
+  environment,
   start,
 }: RelatedIssuesProps) {
   const organization = useOrganization();
@@ -262,6 +264,7 @@ function ContributingIssues({
     query: `issue.type:error ${query}`,
     start,
     end,
+    ...(environment ? {environment} : {}),
     limit: 5,
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
     groupStatsPeriod: 'auto',
@@ -277,6 +280,7 @@ function ContributingIssues({
       dataset: SavedQueryDatasets.ERRORS,
       start,
       end,
+      ...(environment ? {environment} : {}),
     },
   };
 
@@ -445,6 +449,15 @@ function TriggeredConditionDetails({
               value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
               subject: t('Aggregate'),
             },
+            ...(snubaQuery.environment
+              ? [
+                  {
+                    key: 'environment',
+                    value: snubaQuery.environment,
+                    subject: t('Environment'),
+                  },
+                ]
+              : []),
             ...(snubaQuery.query
               ? [
                   {
@@ -509,6 +522,7 @@ function TriggeredConditionDetails({
             query={issueSearchQuery}
             eventDateCreated={eventDateCreated}
             aggregate={snubaQuery.aggregate}
+            environment={snubaQuery.environment}
             start={startDate}
             end={endDate}
           />

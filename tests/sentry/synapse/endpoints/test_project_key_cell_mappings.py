@@ -10,10 +10,10 @@ from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 
-us_cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de_cell = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+us_cell = Cell("us", 1, "https://us.testserver")
+de_cell = Cell("de", 2, "https://de.testserver")
 cell_config = (us_cell, de_cell)
 
 

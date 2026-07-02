@@ -22,7 +22,6 @@ type IntegrationContextProps = {
   installStatus: string;
   provider: IntegrationProvider;
   type: IntegrationType;
-  modalParams?: Record<string, string>;
   onAddIntegration?: () => void;
   /**
    * When true, the "%s added" success toast is not shown on install.

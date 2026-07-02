@@ -41,6 +41,44 @@ describe('EventsSearchBar', () => {
     });
   });
 
+  it('hides Ask Seer for errors widgets', async () => {
+    organization = OrganizationFixture({
+      features: ['gen-ai-features', 'gen-ai-search-agent-translate'],
+    });
+
+    render(
+      <EventsSearchBar
+        onClose={jest.fn()}
+        dataset={DiscoverDatasets.ERRORS}
+        pageFilters={PageFiltersFixture()}
+        widgetQuery={{
+          aggregates: ['count_unique(browser.name)'],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+          fieldAliases: undefined,
+          fields: undefined,
+          isHidden: undefined,
+          onDemand: undefined,
+          selectedAggregate: undefined,
+        }}
+      />,
+      {
+        organization,
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await screen.findByRole('listbox');
+
+    expect(
+      screen.queryByRole('option', {name: /Ask AI to build your query/})
+    ).not.toBeInTheDocument();
+  });
+
   it('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar

@@ -1237,7 +1237,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             <SetConditionsListItem>
               <StepHeader>{t('Set conditions')}</StepHeader>{' '}
               <SetupMessagingIntegrationButton
-                projectId={project.id}
                 refetchConfigs={this.refetchConfigs}
                 analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
               />

@@ -1,0 +1,64 @@
+name: no-derived-state
+severity: warning
+tags: [react, performance, hooks]
+
+why: |
+  Using useState + useEffect to derive state from props or other state causes
+  unnecessary re-renders: React renders with stale derived values first, then
+  the Effect fires and triggers a second render with the correct values. This
+  is wasteful, harder to follow, and error-prone.
+
+  See: https://react.dev/learn/you-might-not-need-an-effect
+
+detect: |
+  Detected by eslint rule: react-you-might-not-need-an-effect/no-derived-state.
+  The detect_command runs eslint directly — no LLM needed.
+
+fix: |
+  Replace useState + useEffect derived state with one of:
+
+  1. Direct calculation during render (cheapest):
+       // Before:
+       const [fullName, setFullName] = useState('');
+       useEffect(() => { setFullName(first + ' ' + last); }, [first, last]);
+       // After:
+       const fullName = first + ' ' + last;
+
+  2. useMemo for expensive computations:
+       // Before:
+       const [filtered, setFiltered] = useState([]);
+       useEffect(() => { setFiltered(items.filter(expensivePredicate)); }, [items]);
+       // After:
+       const filtered = useMemo(() => items.filter(expensivePredicate), [items]);
+
+  3. Key prop to reset component state on prop change:
+       // Before:
+       useEffect(() => { setComment(''); }, [userId]);
+       // After: <Profile userId={userId} key={userId} />
+
+  To verify the fix, run eslint against the changed file:
+    pnpm eslint --rule '{"react-you-might-not-need-an-effect/no-derived-state": "error"}' <file>
+
+examples:
+  bad:
+    - |
+      const [fullName, setFullName] = useState('');
+      useEffect(() => {
+        setFullName(firstName + ' ' + lastName);
+      }, [firstName, lastName]);
+    - |
+      const [visibleTodos, setVisibleTodos] = useState([]);
+      useEffect(() => {
+        setVisibleTodos(getFilteredTodos(todos, filter));
+      }, [todos, filter]);
+    - |
+      const [selection, setSelection] = useState(null);
+      useEffect(() => {
+        setSelection(items.find(i => i.id === selectedId) ?? null);
+      }, [items, selectedId]);
+  good:
+    - "const fullName = firstName + ' ' + lastName;"
+    - 'const visibleTodos = useMemo(() => getFilteredTodos(todos, filter), [todos, filter]);'
+    - 'const selection = useMemo(() => items.find(i => i.id === selectedId) ?? null, [items, selectedId]);'
+
+detect_command: 'bash {convention_dir}/no-derived-state.detect.sh {repo_path}'

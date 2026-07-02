@@ -11,7 +11,7 @@ import {
   type UseScmFeatureMetaResult,
 } from 'sentry/views/onboarding/components/useScmFeatureMeta';
 
-import {DEFAULT_TIER} from 'getsentry/constants';
+import {BillingConfigTier} from 'getsentry/constants';
 import type {BillingConfig, Plan} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 
@@ -103,7 +103,7 @@ export function useScmFeatureMeta(): UseScmFeatureMetaResult {
       '/customers/$organizationIdOrSlug/billing-config/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {tier: DEFAULT_TIER},
+        query: {tier: BillingConfigTier.DEFAULT},
         staleTime: Infinity,
       }
     ),

@@ -14,13 +14,13 @@ from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, Dat
 
 
 class DataConditionGroupInput(TypedDict):
-    id: NotRequired[str]
+    id: NotRequired[int]
     logicType: str
     conditions: NotRequired[list[DataConditionInput]]
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
-    id = serializers.CharField(required=False)
+    id = serializers.IntegerField(required=False)
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)
 

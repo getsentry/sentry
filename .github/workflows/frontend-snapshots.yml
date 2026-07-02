@@ -5,6 +5,7 @@ on:
     branches:
       - master
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -14,26 +15,11 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
 jobs:
-  files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    outputs:
-      frontend_all: ${{ steps.changes.outputs.frontend_all }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Check for frontend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
   snapshots:
-    if: github.event_name != 'pull_request' || needs.files-changed.outputs.frontend_all == 'true'
-    needs: files-changed
     name: snapshot tests
+    # Skip 'edited' events that aren't a base branch change (e.g. title/body edits).
+    # When the base branch changes, the diff target changes so we need a fresh run.
+    if: github.event.action != 'edited' || github.event.changes.base != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -65,6 +51,10 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run snapshot tests
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
         run: pnpm run snapshots
 
       - name: Compute merge base SHA

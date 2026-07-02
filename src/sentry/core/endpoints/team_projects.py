@@ -152,7 +152,8 @@ class TeamProjectsEndpoint(TeamEndpoint):
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List a Team's Projects",
+        operation_id="listTeamProjects",
+        summary="List a Team's Projects",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -211,7 +212,8 @@ class TeamProjectsEndpoint(TeamEndpoint):
     @extend_schema(
         # Ensure POST is in the projects tab
         tags=["Projects"],
-        operation_id="Create a New Project",
+        operation_id="createTeamProject",
+        summary="Create a New Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,

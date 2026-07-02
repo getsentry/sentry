@@ -64,13 +64,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -90,13 +88,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,
-                "identity": {
-                    "data": {
-                        "access_token": "new_access_token",
-                        "expires_in": "3600",
-                        "refresh_token": "new_refresh_token",
-                        "token_type": "bearer",
-                    }
+                "oauth_data": {
+                    "access_token": "new_access_token",
+                    "expires_in": "3600",
+                    "refresh_token": "new_refresh_token",
+                    "token_type": "bearer",
                 },
             }
         )
@@ -125,13 +121,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
             "integration_migration_version": 1,
             "subscription": {
@@ -160,13 +154,11 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,
-                "identity": {
-                    "data": {
-                        "access_token": "new_access_token",
-                        "expires_in": "3600",
-                        "refresh_token": "new_refresh_token",
-                        "token_type": "bearer",
-                    }
+                "oauth_data": {
+                    "access_token": "new_access_token",
+                    "expires_in": "3600",
+                    "refresh_token": "new_refresh_token",
+                    "token_type": "bearer",
                 },
                 "subscription": {
                     "id": "123",
@@ -246,16 +238,24 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             status=403,
             json={"$id": 1, "message": "Your account is not good"},
         )
-        resp = self.make_init_request()
-        assert resp.status_code < 400, resp.content
+        pipeline_url = self._pipeline_url()
 
-        redirect = urlparse(resp["Location"])
-        query = parse_qs(redirect.query)
-
-        # OAuth redirect back to Sentry (identity_pipeline_view)
-        resp = self.make_oauth_redirect_request(query["state"][0])
+        resp: Any = self.client.post(
+            pipeline_url, data={"action": "initialize", "provider": "vsts"}, format="json"
+        )
         assert resp.status_code == 200, resp.content
-        assert b"No accounts found" in resp.content
+        state = parse_qs(urlparse(resp.data["data"]["oauthUrl"]).query)["state"][0]
+
+        # Advancing to the account selection step surfaces no accounts and
+        # records a single halt. The advance response already carries the step
+        # data, so we assert on it directly rather than re-fetching (a second
+        # GET would invoke get_step_data again and record a duplicate halt).
+        resp = self.client.post(
+            pipeline_url, data={"code": "oauth-code", "state": state}, format="json"
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp.data["step"] == "account_selection"
+        assert resp.data["data"]["accounts"] == []
 
         assert_halt_metric(mock_record, "no_accounts")
 
@@ -269,13 +269,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -307,13 +305,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
                 "base_url": self.vsts_base_url,
-                "identity": {
-                    "data": {
-                        "access_token": self.access_token,
-                        "expires_in": "3600",
-                        "refresh_token": self.refresh_token,
-                        "token_type": "jwt-bearer",
-                    }
+                "oauth_data": {
+                    "access_token": self.access_token,
+                    "expires_in": "3600",
+                    "refresh_token": self.refresh_token,
+                    "token_type": "jwt-bearer",
                 },
             }
         )
@@ -641,13 +637,11 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -687,13 +681,11 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 
@@ -725,13 +717,11 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
-            "identity": {
-                "data": {
-                    "access_token": self.access_token,
-                    "expires_in": "3600",
-                    "refresh_token": self.refresh_token,
-                    "token_type": "jwt-bearer",
-                }
+            "oauth_data": {
+                "access_token": self.access_token,
+                "expires_in": "3600",
+                "refresh_token": self.refresh_token,
+                "token_type": "jwt-bearer",
             },
         }
 

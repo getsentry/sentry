@@ -23,11 +23,6 @@ export function OpsgenieIntegrationProviderFixture(
     canAdd: true,
     canDisable: false,
     features: ['alert-rule', 'incident-management'],
-    setupDialog: {
-      url: '/organizations/sentry/integrations/opsgenie/setup/',
-      width: 600,
-      height: 600,
-    },
     ...params,
   };
 }

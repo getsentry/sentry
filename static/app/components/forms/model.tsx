@@ -422,15 +422,10 @@ export class FormModel {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
 
-    return new Promise((resolve, reject) =>
-      this.api.request(endpoint, {
-        method,
-        data,
-        success: response => resolve(response),
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-        error: error => reject(error),
-      })
-    );
+    return this.api.requestPromise(endpoint, {
+      method,
+      data,
+    });
   }
 
   /**

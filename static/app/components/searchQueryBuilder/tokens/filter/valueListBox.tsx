@@ -100,7 +100,6 @@ function Footer({
       {isMultiSelect ? (
         <Label>{t('Hold %s to select multiple', isMac() ? '⌘' : 'Ctrl')}</Label>
       ) : null}
-      <Label>{t('Type to search suggestions')}</Label>
       <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
     </FooterContainer>
   );

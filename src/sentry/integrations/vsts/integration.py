@@ -7,9 +7,7 @@ from time import time
 from typing import Any, TypedDict
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
-from django import forms
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.fields import CharField
@@ -20,7 +18,6 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import VSTSNewIdentityProvider, get_user_info
 from sentry.integrations.base import (
@@ -54,8 +51,7 @@ from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -64,7 +60,6 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient, VstsSetupApiClient
 from .repository import VstsRepositoryProvider
@@ -576,8 +571,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    setup_dialog_config = {"width": 600, "height": 800}
-
     VSTS_ACCOUNT_LOOKUP_URL = "https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1"
 
     def post_install(
@@ -610,22 +603,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
         return VstsIntegrationProvider.NEW_SCOPES
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        identity_pipeline_config = {
-            "redirect_url": absolute_uri(self.oauth_redirect_url),
-            "oauth_scopes": self.get_scopes(),
-        }
-
-        return [
-            NestedPipelineView(
-                bind_key="identity",
-                provider_key=self.key,
-                pipeline_cls=IdentityPipeline,
-                config=identity_pipeline_config,
-            ),
-            AccountConfigView(),
-        ]
-
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [
             self._make_oauth_api_step(),
@@ -650,13 +627,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        # TODO: legacy views write token data to state["identity"]["data"] via
-        # NestedPipelineView. API steps write directly to state["oauth_data"].
-        # Remove the legacy path once the old views are retired.
-        if "oauth_data" in state:
-            data = state["oauth_data"]
-        else:
-            data = state["identity"]["data"]
+        data = state["oauth_data"]
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
         user = get_user_info(data["access_token"])
@@ -833,58 +804,4 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         bindings.add(
             "integration-repository.provider", VstsRepositoryProvider, id="integrations:vsts"
-        )
-
-
-class AccountConfigView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with IntegrationPipelineViewEvent(
-            IntegrationPipelineViewType.ACCOUNT_CONFIG,
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            VstsIntegrationProvider.key,
-        ).capture() as lifecycle:
-            account_id = request.POST.get("account")
-            if account_id is not None:
-                state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
-                    key="accounts"
-                )
-                account = get_account_from_id(account_id, state_accounts or [])
-                if account is not None:
-                    pipeline.bind_state("account", account)
-                    return pipeline.next_step()
-
-            state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
-            access_token = (state or {}).get("data", {}).get("access_token")
-            user = get_user_info(access_token)
-
-            accounts = get_accounts(access_token, user["uuid"])
-            extra = {
-                "organization_id": pipeline.organization.id if pipeline.organization else None,
-                "user_id": request.user.id,
-                "accounts": accounts,
-            }
-            if not accounts or not accounts.get("value"):
-                lifecycle.record_halt(IntegrationPipelineHaltReason.NO_ACCOUNTS, extra=extra)
-                return render_to_response(
-                    template="sentry/integrations/vsts-config.html",
-                    context={"no_accounts": True},
-                    request=request,
-                )
-            accounts = accounts["value"]
-            pipeline.bind_state("accounts", accounts)
-            account_form = AccountForm(accounts)
-            return render_to_response(
-                template="sentry/integrations/vsts-config.html",
-                context={"form": account_form, "no_accounts": False},
-                request=request,
-            )
-
-
-class AccountForm(forms.Form):
-    def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.fields["account"] = forms.ChoiceField(
-            choices=[(acct["accountId"], acct["accountName"]) for acct in accounts],
-            label="Account",
-            help_text="Azure DevOps organization.",
         )

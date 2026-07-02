@@ -89,6 +89,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -98,9 +100,30 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      - name: eslint
+      # Decide whether to lint just the PR's impacted files or everything (see
+      # frontend-changed-scope.sh): we scope to impacted files only when a merge base
+      # resolves and every changed file lives under static/, otherwise we lint everything —
+      # global config or dependency changes can't be traced from source files.
+      - name: Compute lint strategy
+        id: strategy
+        run: ./.github/workflows/scripts/frontend-changed-scope.sh >> "$GITHUB_OUTPUT"
+
+      - name: eslint (all files)
         id: eslint
+        if: steps.strategy.outputs.scope == 'full'
         run: pnpm run lint:js
+
+      # Lint just the files transitively impacted by the PR. Diff the merge base against
+      # HEAD^2 (the PR head) so we only seed on the PR's own changes. Diffing against the
+      # working tree (the merge commit) would also pull in everything that landed on master
+      # since the fork point.
+      - name: eslint (impacted files)
+        id: eslint-impacted
+        if: steps.strategy.outputs.scope == 'scoped'
+        run: pnpm exec run-on-changed --since "$MERGE_BASE..HEAD^2" -- eslint --concurrency=3 --no-warn-ignored
+        env:
+          MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
+          DEBUG: 'run-on-changed:*'
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'

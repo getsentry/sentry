@@ -96,7 +96,6 @@ class PostProcessForwarderTest(TestCase):
             topic=self.events_topic,
             synchronize_commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
-            cluster=None,
             group_id=consumer_group,
             auto_offset_reset="earliest",
             strict_offset_reset=False,

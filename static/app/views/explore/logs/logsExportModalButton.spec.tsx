@@ -9,8 +9,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockTrackAnalytics = jest.fn();
@@ -21,14 +22,6 @@ jest.mock('sentry/utils/analytics', () => ({
 
 describe('LogsExportModalButton', () => {
   const organization = OrganizationFixture({features: ['discover-query']});
-
-  const queryInfo: LogsQueryInfo = {
-    dataset: 'logs',
-    field: [OurLogKnownFieldKey.MESSAGE],
-    project: [1],
-    query: 'level:error',
-    sort: ['-timestamp'],
-  };
 
   const tableData = [
     LogFixture({
@@ -51,12 +44,12 @@ describe('LogsExportModalButton', () => {
 
   async function renderAndOpen() {
     render(
-      <LogsExportModalButton
-        error={null}
-        isLoading={false}
-        queryInfo={queryInfo}
-        tableData={tableData}
-      />,
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsExportModalButton error={null} isLoading={false} tableData={tableData} />
+      </LogsQueryParamsProvider>,
       {organization}
     );
     renderGlobalModal();

@@ -40,7 +40,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     )
 
     @extend_schema(
-        operation_id="List an Organization's Repositories",
+        operation_id="listOrganizationRepos",
+        summary="List an Organization's Repositories",
         description="Return a list of version control repositories for a given organization.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
@@ -135,18 +136,12 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             return Response(status=401)
         provider_id = request.data.get("provider")
 
-        if provider_id is not None and provider_id.startswith("integrations:"):
-            try:
-                provider_cls = bindings.get("integration-repository.provider").get(provider_id)
-            except KeyError:
-                return Response({"error_type": "validation"}, status=400)
-            provider = provider_cls(id=provider_id)
-            return provider.dispatch(request, organization)
-
-        try:
-            provider_cls = bindings.get("repository.provider").get(provider_id)
-        except KeyError:
+        if provider_id is None or not provider_id.startswith("integrations:"):
             return Response({"error_type": "validation"}, status=400)
 
+        try:
+            provider_cls = bindings.get("integration-repository.provider").get(provider_id)
+        except KeyError:
+            return Response({"error_type": "validation"}, status=400)
         provider = provider_cls(id=provider_id)
         return provider.dispatch(request, organization)

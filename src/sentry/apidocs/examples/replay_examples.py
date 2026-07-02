@@ -164,28 +164,14 @@ class ReplayExamples:
     GET_REPLAY_SEGMENT = [
         OpenApiExample(
             "Retrieve a replay segment",
-            value=[
-                {
-                    "type": 5,
-                    "timestamp": 1658770772.902,
-                    "data": {
-                        "tag": "performanceSpan",
-                        "payload": {
-                            "op": "memory",
-                            "description": "",
-                            "startTimestamp": 1658770772.902,
-                            "endTimestamp": 1658770772.902,
-                            "data": {
-                                "memory": {
-                                    "jsHeapSizeLimit": 4294705152,
-                                    "totalJSHeapSize": 10204109,
-                                    "usedJSHeapSize": 9131621,
-                                }
-                            },
-                        },
-                    },
-                }
-            ],
+            value={
+                "data": {
+                    "replayId": "7e07485f6c25420c87f5a0ec3a8db3a3",
+                    "segmentId": 0,
+                    "projectId": "4505321021243392",
+                    "dateAdded": "2024-01-15T22:23:15+00:00",
+                },
+            },
             status_codes=["200"],
             response_only=True,
         )

@@ -137,6 +137,7 @@ runs:
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
         DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
         DEVSERVICES_MODE: ${{ inputs.mode }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         sentry init
 

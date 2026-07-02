@@ -55,6 +55,43 @@ S018_msg = (
 S018_fqn = "django.core.cache.backends.memcached.PyMemcacheCache"  # noqa: S018
 S018_module = "django.core.cache.backends.memcached"
 
+S019_fmt = (
+    "S019 {!r} is a reserved LogRecord attribute; using it as a key in "
+    "logging extra= raises KeyError at runtime"
+)
+S019_logging_methods = frozenset(
+    ("debug", "info", "warning", "warn", "error", "exception", "critical", "fatal", "log")
+)
+# Keys rejected by logging.Logger.makeRecord: the attributes set in
+# LogRecord.__init__ plus the explicit "message"/"asctime" guard.
+S019_logrecord_attrs = frozenset(
+    (
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "taskName",
+        "message",
+        "asctime",
+    )
+)
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -299,6 +336,19 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
+            for keyword in node.keywords:
+                if keyword.arg == "extra" and isinstance(keyword.value, ast.Dict):
+                    for key in keyword.value.keys:
+                        if (
+                            isinstance(key, ast.Constant)
+                            and isinstance(key.value, str)
+                            and key.value in S019_logrecord_attrs
+                        ):
+                            self.errors.append(
+                                (key.lineno, key.col_offset, S019_fmt.format(key.value))
+                            )
 
         self.generic_visit(node)
 

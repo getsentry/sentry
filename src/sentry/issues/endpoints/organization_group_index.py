@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import analytics, search
+from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -23,7 +23,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
-    get_by_short_id,
+    get_by_short_ids,
     schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
@@ -52,9 +52,9 @@ from sentry.apidocs.parameters import (
     IssueParams,
     OrganizationParams,
 )
-from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
@@ -183,6 +183,10 @@ def search_issues(
         query_kwargs["environments"] = environments if environments else None
 
         query_kwargs["actor"] = request.user
+        if query_kwargs["sort_by"] == "progress" and not features.has(
+            "organizations:issue-stream-progress-sort", organization, actor=request.user
+        ):
+            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
         if query_kwargs["sort_by"] == "inbox":
             query_kwargs.pop("sort_by")
             query_kwargs.pop("referrer")
@@ -277,7 +281,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return search_issues(request, organization, projects, environments, extra_query_kwargs)
 
     @extend_schema(
-        operation_id="List an Organization's Issues",
+        operation_id="listOrganizationIssues",
+        summary="List an Organization's Issues",
         description=(
             "Return a list of issues for an organization. "
             "All parameters are supplied as query string parameters. "
@@ -401,16 +406,23 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                     return Response(by_event)
 
-            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
-            if group is not None:
-                # check all projects user has access to
-                if request.access.has_project_access(group.project):
-                    by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
-                        [group], request.user, serializer(), request=request
-                    )
-                    response = Response(by_short_id)
+            short_id_groups = get_by_short_ids(
+                organization.id,
+                request.GET.get("shortIdLookup") or "0",
+                query,
+                project_ids=None,
+            )
+            accessible = [
+                g for g in short_id_groups if request.access.has_project_access(g.project)
+            ]
+            if accessible:
+                by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                    accessible, request.user, serializer(), request=request
+                )
+                response = Response(by_short_id)
+                if len(accessible) == 1:
                     response["X-Sentry-Direct-Hit"] = "1"
-                    return response
+                return response
 
         # If group ids specified, just ignore any query components
         try:
@@ -465,7 +477,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Bulk Mutate an Organization's Issues",
+        operation_id="updateOrganizationIssues",
+        summary="Bulk Mutate an Organization's Issues",
         description=(
             "Bulk mutate various attributes on a maxmimum of 1000 issues. \n"
             "- For non-status updates, the `id` query parameter is required. \n"
@@ -512,7 +525,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(
-        operation_id="Bulk Remove an Organization's Issues",
+        operation_id="deleteOrganizationIssues",
+        summary="Bulk Remove an Organization's Issues",
         description=(
             "Permanently remove the given issues. "
             "If IDs are provided, queries and filtering will be ignored. "
@@ -538,7 +552,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         },
     )
     @track_slo_response("workflow")
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(

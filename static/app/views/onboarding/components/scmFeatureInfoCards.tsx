@@ -14,6 +14,7 @@ interface ScmFeatureInfoCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
+  isOnboarding: boolean;
   isVolumeLoading?: boolean;
   platformName?: string;
 }
@@ -29,28 +30,32 @@ export function ScmFeatureInfoCards({
   featureMeta,
   platformName,
   isVolumeLoading,
+  isOnboarding,
 }: ScmFeatureInfoCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
-      <Stack gap="md">
-        {platformName ? (
-          <Heading as="h3" size="xl">
-            {tct('Available with [platformName]', {
-              platformName: (
-                <Text as="span" bold variant="accent">
-                  {platformName}
-                </Text>
-              ),
-            })}
-          </Heading>
-        ) : null}
-        <Text size="lg" variant="secondary" density="comfortable">
-          {t('In the next step, run our setup wizard to choose what to instrument')}
-        </Text>
-      </Stack>
+      {isOnboarding ? (
+        <Stack gap="md">
+          {platformName ? (
+            <Heading as="h4">
+              {tct('Available with [platformName]', {
+                platformName: (
+                  <Text as="span" bold variant="accent">
+                    {platformName}
+                  </Text>
+                ),
+              })}
+            </Heading>
+          ) : null}
+          <Text size="md" variant="secondary" density="comfortable">
+            {t('In the next step, run our setup wizard to choose what to instrument')}
+          </Text>
+        </Stack>
+      ) : null}
+
       <Grid
         gap="2xl"
-        columns={{xs: '1fr', sm: '1fr 1fr'}}
+        columns={{'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}}
         border="secondary"
         radius="lg"
         padding="2xl"
@@ -101,26 +106,28 @@ export function ScmFeatureInfoCards({
                   >
                     {meta.description}
                   </Text>
-                  <Container>
-                    {isVolumeLoading ? (
-                      <Placeholder height="20px" width="100px" />
-                    ) : (
-                      <Tooltip
-                        title={meta.volumeTooltip}
-                        delay={100}
-                        disabled={isDisabled}
-                      >
-                        <Text
-                          variant="muted"
-                          underline="dotted"
-                          size="sm"
-                          density="comfortable"
+                  {isOnboarding ? (
+                    <Container>
+                      {isVolumeLoading ? (
+                        <Placeholder height="20px" width="100px" />
+                      ) : (
+                        <Tooltip
+                          title={meta.volumeTooltip}
+                          delay={100}
+                          disabled={isDisabled}
                         >
-                          {meta.volume}
-                        </Text>
-                      </Tooltip>
-                    )}
-                  </Container>
+                          <Text
+                            variant="muted"
+                            underline="dotted"
+                            size="sm"
+                            density="comfortable"
+                          >
+                            {meta.volume}
+                          </Text>
+                        </Tooltip>
+                      )}
+                    </Container>
+                  ) : null}
                 </Stack>
               </Grid>
             </Tooltip>

@@ -147,10 +147,6 @@ const TagValueContent = styled('div')`
   grid-template-columns: 4fr auto ${progressBarWidth};
   color: ${p => p.theme.tokens.content.secondary};
   grid-column-gap: ${p => p.theme.space.md};
-
-  & > :nth-child(2n) {
-    background-color: ${p => p.theme.tokens.background.secondary};
-  }
 `;
 
 const TagValueRow = styled('div')`
@@ -158,6 +154,13 @@ const TagValueRow = styled('div')`
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   align-items: center;
+  padding: 0 ${p => p.theme.space.sm};
+  margin: 0 -${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+
+  &:hover {
+    background-color: ${p => p.theme.tokens.background.tertiary};
+  }
 `;
 
 const TagValue = styled('div')`

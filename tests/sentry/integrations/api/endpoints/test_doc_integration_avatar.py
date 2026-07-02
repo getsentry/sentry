@@ -3,10 +3,10 @@ from __future__ import annotations
 from base64 import b64encode
 from typing import Any
 
+from django.conf import settings
 from django.test import override_settings
 from rest_framework import status
 
-from sentry import options as options_store
 from sentry.api.serializers.base import serialize
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -89,11 +89,9 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         """
         Tests that superusers can upload avatars
         """
-        with self.options(
-            {
-                "filestore.control.backend": options_store.get("filestore.backend"),
-                "filestore.control.options": options_store.get("filestore.options"),
-            }
+        with override_settings(
+            SENTRY_CONTROL_FILE_STORAGE_BACKEND=settings.SENTRY_FILE_STORAGE_BACKEND,
+            SENTRY_CONTROL_FILE_STORAGE_CONFIG=settings.SENTRY_FILE_STORAGE_CONFIG,
         ):
             self.login_as(user=self.superuser, superuser=True)
 
@@ -115,11 +113,9 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         """
         Tests that superusers can upload avatars
         """
-        with self.options(
-            {
-                "filestore.control.backend": options_store.get("filestore.backend"),
-                "filestore.control.options": options_store.get("filestore.options"),
-            }
+        with override_settings(
+            SENTRY_CONTROL_FILE_STORAGE_BACKEND=settings.SENTRY_FILE_STORAGE_BACKEND,
+            SENTRY_CONTROL_FILE_STORAGE_CONFIG=settings.SENTRY_FILE_STORAGE_CONFIG,
         ):
             self.login_as(user=self.staff_user, staff=True)
 

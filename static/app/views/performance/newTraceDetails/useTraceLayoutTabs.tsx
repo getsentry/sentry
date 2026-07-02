@@ -3,7 +3,9 @@ import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getTraceMetaLogsCount,
   getTraceMetaMetricsCount,
@@ -154,6 +156,7 @@ export function useTraceLayoutTabs({
   metricsEnabled,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
+  const organization = useOrganization();
   const sections = useTraceContextSections({
     tree,
     logs,
@@ -180,6 +183,9 @@ export function useTraceLayoutTabs({
 
   const onTabChange = useCallback(
     (slug: Tab['slug']) => {
+      if (slug === TraceLayoutTabKeys.AI_SPANS) {
+        traceAnalytics.trackAITabClicked(organization);
+      }
       navigate(
         {
           pathname: location.pathname,
@@ -192,7 +198,7 @@ export function useTraceLayoutTabs({
       );
       setCurrentTab(slug);
     },
-    [navigate, queryParams]
+    [navigate, queryParams, organization]
   );
 
   // Update the tab when the tabOptions change

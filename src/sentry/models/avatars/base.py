@@ -84,8 +84,7 @@ class AvatarBase(Model):
         cache_key = self.get_cache_key(size)
         photo = cache.get(cache_key)
         if photo is None:
-            photo_file = file.getfile()
-            with Image.open(photo_file) as image:
+            with file.getfile() as photo_file, Image.open(photo_file) as image:
                 image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()
                 image.save(image_file, "PNG")

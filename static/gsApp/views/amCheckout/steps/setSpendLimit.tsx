@@ -21,7 +21,6 @@ export function SetSpendLimit({
   onUpdate,
   organization,
   subscription,
-  checkoutTier,
 }: StepProps) {
   const handleBudgetChange = ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
     const totalBudget = getTotalBudget(onDemandBudgets);
@@ -64,7 +63,6 @@ export function SetSpendLimit({
             onUpdate={onUpdate}
             organization={organization}
             subscription={subscription}
-            checkoutTier={checkoutTier}
           />
         }
       />
