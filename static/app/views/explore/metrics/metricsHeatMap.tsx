@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
-import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,17 +14,16 @@ import {
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
+import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricLabel,
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {
-  useQueryParamsQuery,
-  useSetQueryParamsQuery,
-} from 'sentry/views/explore/queryParams/context';
+import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
 
@@ -40,8 +38,8 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const visualizes = useMetricVisualizes();
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
-  const userQuery = useQueryParamsQuery();
-  const setMetricQuery = useSetQueryParamsQuery();
+  const queryParams = useQueryParams();
+  const metricQueries = useMultiMetricsQueryParams();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -53,23 +51,39 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
 
-  // Drag-to-zoom: the X span narrows the global page time range, the Y span
-  // replaces the `value` filter so zooming in repeatedly keeps narrowing
-  // instead of stacking contradictory bounds.
+  // Drag-to-zoom: the X span narrows the page time range, the Y span replaces
+  // this metric's `value` filter (so repeated zooms keep narrowing instead of
+  // stacking bounds). Both go in a single `navigate` — separate navigations
+  // would each compute from the same stale location and clobber each other,
+  // dropping the datetime from the URL.
   const handleZoom = useCallback(
     ({timestampStart, timestampEnd, valueMin, valueMax}: HeatMapZoomContext) => {
-      updateDateTime(
+      const newQueryParams = queryParams.replace({
+        query: setExploreAttributeBounds(queryParams.query, 'value', valueMin, valueMax),
+      });
+      const metric = metricQueries
+        .map(metricQuery =>
+          metricQuery.queryParams === queryParams
+            ? encodeMetricQueryParams({...metricQuery, queryParams: newQueryParams})
+            : encodeMetricQueryParams(metricQuery)
+        )
+        .filter(Boolean);
+
+      navigate(
         {
-          start: getUtcDateString(Math.floor(timestampStart / 60_000) * 60_000),
-          end: getUtcDateString(Math.ceil(timestampEnd / 60_000) * 60_000),
-          period: null,
+          ...location,
+          query: {
+            ...location.query,
+            metric,
+            start: getUtcDateString(Math.floor(timestampStart / 60_000) * 60_000),
+            end: getUtcDateString(Math.ceil(timestampEnd / 60_000) * 60_000),
+            statsPeriod: undefined,
+          },
         },
-        location,
-        navigate
+        {preventScrollReset: true}
       );
-      setMetricQuery(setExploreAttributeBounds(userQuery, 'value', valueMin, valueMax));
     },
-    [location, navigate, setMetricQuery, userQuery]
+    [queryParams, metricQueries, location, navigate]
   );
 
   return (
