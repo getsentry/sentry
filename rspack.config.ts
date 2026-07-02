@@ -241,9 +241,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
       tsx: true,
     },
     transform: {
-      reactCompiler: {
-        compilationMode: 'annotation',
-      },
+      reactCompiler: true,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
