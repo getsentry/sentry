@@ -548,7 +548,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         else:
             reinstall_url = org.absolute_url(
                 f"/settings/{org.slug}/integrations/slack/",
-                query="showInstallModal=1",
+                query="showInstallModal=1&referrer=slack_alert_nudge",
             )
             nudge_text = f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."
             nudge_type = "reinstall"

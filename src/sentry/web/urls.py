@@ -156,6 +156,13 @@ urlpatterns += [
         generic.static_media,
         name="sentry-media",
     ),
+    # Service worker, proxied from the frontend app dist so it can be served
+    # from our own origin and register with a root scope.
+    re_path(
+        r"^service-worker\.js$",
+        generic.service_worker,
+        name="sentry-service-worker",
+    ),
     # Javascript SDK Loader
     re_path(
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
@@ -1384,10 +1391,6 @@ urlpatterns += [
                 ),
             ]
         ),
-    ),
-    re_path(
-        r"^plugins/",
-        include("sentry.plugins.base.urls"),
     ),
     # Generic API
     re_path(

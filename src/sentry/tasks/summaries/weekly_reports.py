@@ -25,6 +25,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -241,11 +242,10 @@ def prepare_organization_report(
         try:
             project_metrics: dict[int, dict[str, int]] = {}
             for project_id, project_ctx in ctx.projects_context_map.items():
-                if not project_ctx.check_if_project_is_empty():
-                    project_metrics[project_id] = {
-                        "e": project_ctx.accepted_error_count,
-                        "t": project_ctx.accepted_transaction_count,
-                    }
+                project_metrics[project_id] = {
+                    "e": project_ctx.accepted_error_count,
+                    "t": project_ctx.accepted_transaction_count,
+                }
             if project_metrics:
                 cache_project_metrics(organization_id, project_metrics)
         except Exception:
@@ -579,7 +579,11 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
-def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
+def render_template_context(
+    ctx,
+    user_id: int | None,
+    excluded_project_ids: set[int] | None = None,
+) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
@@ -588,6 +592,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             project_ctx
             for project_ctx in ctx.projects_context_map.values()
             if project_ctx.project.id in ctx.project_ownership[user_id]
+            and (excluded_project_ids is None or project_ctx.project.id not in excluded_project_ids)
         ]
         if len(user_projects) == 0:
             return None
@@ -740,26 +745,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
 
-    def key_transactions():
-        def all_key_transactions():
-            for project_ctx in user_projects:
-                for (
-                    transaction_name,
-                    count_this_week,
-                    p95_this_week,
-                    count_last_week,
-                    p95_last_week,
-                ) in project_ctx.key_transactions:
-                    yield {
-                        "name": transaction_name,
-                        "count": count_this_week,
-                        "p95": p95_this_week,
-                        "p95_prev_week": p95_last_week,
-                        "project": project_ctx.project,
-                    }
-
-        return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
-
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
@@ -835,7 +820,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "end": date_format(local_end),
         "trends": trends(),
         "key_errors": key_errors(),
-        "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,
@@ -852,9 +836,21 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
+    exclusions_by_user: dict[int, set[int]] = {}
+    valid_user_ids = [uid for uid in user_ids if uid is not None]
+    if valid_user_ids and features.has(
+        "organizations:weekly-report-project-exclusions", ctx.organization
+    ):
+        for exc_user_id, exc_project_id in WeeklyReportProjectExclusion.objects.filter(
+            user_id__in=valid_user_ids,
+            project__organization_id=ctx.organization.id,
+        ).values_list("user_id", "project_id"):
+            exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
+
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
-        template_ctx = render_template_context(ctx, user_id)
+        excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
+        template_ctx = render_template_context(ctx, user_id, excluded_project_ids=excluded)
         if not template_ctx:
             logger.debug(
                 "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",

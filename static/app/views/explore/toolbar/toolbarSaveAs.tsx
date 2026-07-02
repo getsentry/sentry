@@ -169,7 +169,7 @@ export function ToolbarSaveAs() {
     textValue: newAlertLabel,
     children: alertsUrls ?? [],
     disabled: !alertsUrls || alertsUrls.length === 0,
-    isSubmenu: true,
+    submenu: true,
   });
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
@@ -204,7 +204,7 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
-    isSubmenu: chartOptions.length > 1 ? true : false,
+    submenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature
         overrideName="feature-disabled:dashboards-edit"

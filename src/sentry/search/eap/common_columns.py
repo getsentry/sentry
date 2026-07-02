@@ -1,5 +1,6 @@
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AttributeContext,
     ResolvedAttribute,
     VirtualColumnDefinition,
     datetime_processor,
@@ -36,11 +37,13 @@ COMMON_COLUMNS = [
         internal_name="sentry.project_id",
         internal_type=constants.INT,
         search_type="string",
+        context=AttributeContext(brief="The id of the project."),
     ),
     ResolvedAttribute(
         public_alias="project_id",
         internal_name="sentry.project_id",
         search_type="integer",
+        context=AttributeContext(brief="The id of the project."),
     ),
     ResolvedAttribute(
         public_alias="sentry.item_type",
@@ -60,5 +63,6 @@ COMMON_COLUMNS = [
         internal_type=constants.DOUBLE,
         search_type="string",
         processor=datetime_processor,
+        context=AttributeContext(brief="The timestamp of the item."),
     ),
 ]
