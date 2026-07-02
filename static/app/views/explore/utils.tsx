@@ -702,7 +702,10 @@ function getConversationsUrlFromSavedQueryUrl({
     title: savedQuery.name,
   };
 
-  const queryString = qs.stringify(queryParams, {skipNull: true});
+  let queryString = qs.stringify(queryParams, {skipNull: true});
+  if (savedQuery.agent?.length) {
+    queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
+  }
   const basePath = normalizeUrl(
     `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
   );

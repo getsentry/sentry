@@ -122,6 +122,7 @@ export type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  agent?: string[];
   caseInsensitive?: CaseInsensitive;
   changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
@@ -145,6 +146,7 @@ export class SavedQuery {
   query: [SavedQueryQuery, ...SavedQueryQuery[]];
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
+  agent?: string[];
   changedReason?: ExploreQueryChangedReason | null;
   crossEvents?: CrossEvent[];
   createdBy?: User;
@@ -155,6 +157,7 @@ export class SavedQuery {
   start?: string | DateString;
 
   constructor(savedQuery: ReadableSavedQuery) {
+    this.agent = savedQuery.agent;
     this.changedReason = savedQuery.changedReason;
     this.crossEvents = savedQuery.crossEvents;
     this.dateAdded = savedQuery.dateAdded;
