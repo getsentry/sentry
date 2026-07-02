@@ -174,7 +174,7 @@ export function mapSeerResponseItem(
   defaultMode = 'samples'
 ): AskSeerSearchQuery {
   const interval = getRawSeerInterval(item);
-  const crossEvents = buildCrossEvents(item);
+  const crossEvents = defaultMode === 'spans' ? buildCrossEvents(item) : [];
   return {
     visualizations:
       item.visualization
