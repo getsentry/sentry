@@ -2,8 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
@@ -34,44 +32,25 @@ function defaultProps(overrides = {}) {
   };
 }
 
-// The header resolves its layout from its query container's width (via
-// `useContainerBreakpoint`), so wrap it in a container and fake `clientWidth`.
-const originalClientWidth = Object.getOwnPropertyDescriptor(
-  HTMLElement.prototype,
-  'clientWidth'
-);
-
-function setContainerWidth(width: number) {
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-    configurable: true,
-    get: () => width,
-  });
-}
-
 describe('SeerExplorerHeader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/seer/explorer-runs/`,
+      url: `/organizations/org-slug/seer/runs/`,
       method: 'GET',
-      body: {data: []},
+      body: [],
     });
-    // Wide enough for the expanded (inline) layout by default.
-    setContainerWidth(800);
   });
 
-  afterEach(() => {
-    if (originalClientWidth) {
-      Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
-    }
-  });
-
+  // The header selects between its inline and compact variants purely with CSS
+  // container queries, which jsdom doesn't evaluate — so both variants (and both
+  // New Chat buttons) are always in the DOM here. These tests assert presence and
+  // behavior; which variant is actually visible at a given width is a CSS concern
+  // verified visually.
   async function renderHeader(props = {}, org = orgWith()) {
     const result = render(
       <SeerExplorerSessionsProvider>
-        <Flex containerType="inline-size">
-          <SeerExplorerHeader {...defaultProps(props)} />
-        </Flex>
+        <SeerExplorerHeader {...defaultProps(props)} />
       </SeerExplorerSessionsProvider>,
       {organization: org}
     );
@@ -116,18 +95,27 @@ describe('SeerExplorerHeader', () => {
   });
 
   describe('New chat', () => {
+    // The labelled button and the icon-only fallback are both rendered; a
+    // container query hides one. They carry distinct accessible names.
+    it('renders both a labelled and an icon-only variant', async () => {
+      await renderHeader();
+      expect(screen.getByRole('button', {name: 'New chat'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Start a new chat (/new)'})
+      ).toBeInTheDocument();
+    });
+
     it('fires onNewChatClick', async () => {
       const onNewChatClick = jest.fn();
       await renderHeader({onNewChatClick});
 
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Start a new chat (/new)'})
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'New chat'}));
       expect(onNewChatClick).toHaveBeenCalled();
     });
 
-    it('is disabled when disableNewChatButton is set', async () => {
+    it('disables both variants when disableNewChatButton is set', async () => {
       await renderHeader({disableNewChatButton: true});
+      expect(screen.getByRole('button', {name: 'New chat'})).toBeDisabled();
       expect(
         screen.getByRole('button', {name: 'Start a new chat (/new)'})
       ).toBeDisabled();
@@ -135,32 +123,16 @@ describe('SeerExplorerHeader', () => {
   });
 
   describe('Middle actions', () => {
-    it('renders inline actions when the container is wide', async () => {
-      setContainerWidth(800);
+    it('renders both the inline actions and the overflow menu', async () => {
       await renderHeader();
 
       expect(
         screen.getByRole('button', {name: 'Copy conversation to clipboard'})
       ).toBeInTheDocument();
-      // Not collapsed, so no overflow menu.
-      expect(
-        screen.queryByRole('button', {name: 'More actions'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('collapses into the overflow menu when the container is narrow', async () => {
-      setContainerWidth(320);
-      await renderHeader();
-
       expect(screen.getByRole('button', {name: 'More actions'})).toBeInTheDocument();
-      // Collapsed, so the inline copy button is not rendered.
-      expect(
-        screen.queryByRole('button', {name: 'Copy conversation to clipboard'})
-      ).not.toBeInTheDocument();
     });
 
-    it('fires the copy handlers from the inline buttons', async () => {
-      setContainerWidth(800);
+    it('fires the copy handler from the inline button', async () => {
       const onCopySessionClick = jest.fn();
       await renderHeader({onCopySessionClick});
 
@@ -171,7 +143,6 @@ describe('SeerExplorerHeader', () => {
     });
 
     it('exposes link and copy in the overflow menu', async () => {
-      setContainerWidth(320);
       await renderHeader();
 
       await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
@@ -187,7 +158,9 @@ describe('SeerExplorerHeader', () => {
     it('opens a searchable chat history dropdown', async () => {
       await renderHeader();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Chat history'}));
+      // Both the inline and overflow variants mount a chat history trigger.
+      const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
+      await userEvent.click(chatHistory!);
       expect(await screen.findByPlaceholderText('Search chats…')).toBeInTheDocument();
     });
   });
