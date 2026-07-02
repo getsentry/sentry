@@ -8,13 +8,35 @@ resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
 ---
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {useRef} from 'react';
 
+import {Container, Flex, useContainerBreakpoint} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/layout/container');
 
 import {SIZES} from './__stories__/consts';
+
+export function ContainerBreakpointExample() {
+  const ref = useRef(null);
+  const breakpoint = useContainerBreakpoint(ref);
+  const isCompact = breakpoint === '2xs';
+
+return (
+
+<Container
+      ref={ref}
+      padding="md"
+      background="secondary"
+      border="primary"
+      radius="md"
+    >
+Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
+{isCompact ? 'showing a compact label.' : 'showing the full, descriptive label.'}
+</Container>
+);
+}
 
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 
@@ -175,7 +197,7 @@ Set positioning for absolute/relative layouts:
 </Container>
 ```
 
-#### 2xs breakpoint
+### 2xs breakpoint
 
 The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
 
@@ -188,6 +210,89 @@ The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined
 <Container display={{'screen:2xs': 'none', 'screen:sm': 'block'}}>
   This content is hidden below the sm breakpoint
 </Container>
+```
+
+### Container Queries
+
+Responsive props come in two flavors, keyed by breakpoint:
+
+- **bare keys** (`{xs: …}`) resolve against the nearest **query container** —
+  the available space a component sits in. Container queries are the default, so
+  they need no prefix.
+- **`screen:`-prefixed keys** (`{'screen:xs': …}`) resolve against the
+  **viewport** (`@media`).
+
+This matters because a panel in a narrow sidebar and the same panel full-width
+have the same viewport but very different available widths. An element can never
+query its own size, so declare a parent as a container with
+`containerType="inline-size"`, then use bare breakpoint keys on its descendants:
+
+For background on the underlying CSS, see MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries">container queries guide</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/container-type">container-type</a>, and the <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@container">@container</a> at-rule.
+
+<Storybook.SizingWindow display="block">
+  <Container
+    containerType="inline-size"
+    padding="md"
+    background="secondary"
+    radius="md"
+    border="primary"
+  >
+    <Flex direction={{'2xs': 'column', xs: 'row'}} gap="md">
+      <Container padding="sm" background="primary" border="primary" radius="md">
+        In the 2xs range (container narrower than 500px) these stack...
+      </Container>
+      <Container padding="sm" background="primary" border="primary" radius="md">
+        ...and switch to a row at xs and up (500px+). Drag the box narrower (handle at the
+        bottom-right) to flip it — independent of the viewport width.
+      </Container>
+    </Flex>
+  </Container>
+</Storybook.SizingWindow>
+```jsx
+{/* The parent declares itself a query container... */}
+<Container containerType="inline-size">
+  {/* ...and bare breakpoint keys on descendants resolve against it. */}
+  <Flex direction={{'2xs': 'column', xs: 'row'}}>
+    <div>Reflows based on the container's width, not the viewport's.</div>
+    <div>Resize the container above to see it switch.</div>
+  </Flex>
+</Container>
+```
+
+The two can be combined on one prop — e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}`
+is a column until its container reaches `xs`, then a row once the viewport reaches `lg`.
+
+> [!TIP]
+> Prefer `containerType="inline-size"` — it only contains the inline
+> (width) axis, so height still flows from content. `size` also contains the
+> block axis, so the element then needs an explicit height or its content
+> collapses; only use it when you need height-based container queries.
+
+### Reading the breakpoint in JS
+
+When you need the resolved breakpoint in JS rather than just CSS, use
+`useContainerBreakpoint(ref)` — the `ResizeObserver`-backed, container-scoped
+replacement for width-based `useMedia`. Point its `ref` at the element you want
+to measure and it returns the active breakpoint, updating as that element
+resizes. Drag the box below across the `xs` breakpoint (500px) to see the label
+swap — independent of the viewport width.
+
+<Storybook.SizingWindow display="block">
+  <ContainerBreakpointExample />
+</Storybook.SizingWindow>
+```jsx
+function MyComponent() {
+  const ref = useRef(null);
+  const breakpoint = useContainerBreakpoint(ref);
+  const isCompact = breakpoint === '2xs';
+
+return (
+
+<Container ref={ref} width="100%">
+{isCompact ? 'Compact label' : 'Full, descriptive label'}
+</Container>
+);
+}
 ```
 
 ### Grid Integration

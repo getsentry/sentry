@@ -189,6 +189,7 @@ def _track_contributor_action_processor(
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
         provider="github",
+        logs_extra={"github_event_action": event.get("action")},
         tags={"is_private": is_private},
     )
 

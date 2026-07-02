@@ -173,7 +173,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         textValue: newAlertLabel,
         children: alertsUrls,
         disabled: alertsUrls.length === 0,
-        isSubmenu: true,
+        submenu: true,
       },
     ];
   }, [metricQueries, organization, project, pageFilters, options.interval]);
@@ -184,7 +184,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         key: 'add-to-dashboard',
         label: t('Dashboard widget'),
         textValue: t('Dashboard widget'),
-        isSubmenu: true,
+        submenu: true,
         children: [
           ...(metricQueries.length > 1
             ? [

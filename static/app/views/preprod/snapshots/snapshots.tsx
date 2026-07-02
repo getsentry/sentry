@@ -172,7 +172,6 @@ export default function SnapshotsPage() {
     });
   }, [isPending, data, organization]);
 
-  const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
   // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
@@ -194,6 +193,10 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const replaceHistory = {history: 'replace' as const};
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'search',
+    parseAsString.withDefault('').withOptions(replaceHistory)
+  );
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
     parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus)))

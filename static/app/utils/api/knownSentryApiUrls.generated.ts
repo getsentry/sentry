@@ -398,6 +398,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/user-teams/'
   | '/organizations/$organizationIdOrSlug/users/'
   | '/organizations/$organizationIdOrSlug/users/$userId/'
+  | '/organizations/$organizationIdOrSlug/weekly-report-project-exclusions/'
+  | '/organizations/$organizationIdOrSlug/weekly-report-project-exclusions/$projectIdOrSlug/'
   | '/organizations/$organizationIdOrSlug/workflows/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/'
