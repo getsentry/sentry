@@ -43,6 +43,30 @@ export function QueryTokens({
     );
   }
 
+  if (crossEvents && crossEvents.length > 0) {
+    tokens.push(
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="crossEvents"
+      >
+        <ExploreParamTitle>{t('Cross-event filters')}</ExploreParamTitle>
+        {crossEvents.map((crossEvent, idx) => {
+          const label =
+            crossEvent.type === 'metrics'
+              ? `${crossEvent.type}: ${crossEvent.metric.name}${crossEvent.query ? ` ${crossEvent.query}` : ''}`
+              : `${crossEvent.type}: ${crossEvent.query}`;
+          return (
+            <ExploreGroupBys key={`${crossEvent.type}-${idx}`}>{label}</ExploreGroupBys>
+          );
+        })}
+      </Flex>
+    );
+  }
+
   if (visualizations && visualizations.length > 0) {
     tokens.push(
       <Flex
@@ -142,30 +166,6 @@ export function QueryTokens({
         {overflowCount > 0 ? (
           <ExploreGroupBys>{t('+%s more', overflowCount)}</ExploreGroupBys>
         ) : null}
-      </Flex>
-    );
-  }
-
-  if (crossEvents && crossEvents.length > 0) {
-    tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="crossEvents"
-      >
-        <ExploreParamTitle>{t('Cross-event')}</ExploreParamTitle>
-        {crossEvents.map((crossEvent, idx) => {
-          const label =
-            crossEvent.type === 'metrics'
-              ? `${crossEvent.type}: ${crossEvent.metric.name}${crossEvent.query ? ` ${crossEvent.query}` : ''}`
-              : `${crossEvent.type}: ${crossEvent.query}`;
-          return (
-            <ExploreGroupBys key={`${crossEvent.type}-${idx}`}>{label}</ExploreGroupBys>
-          );
-        })}
       </Flex>
     );
   }
