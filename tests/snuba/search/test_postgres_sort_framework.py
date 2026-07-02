@@ -580,6 +580,13 @@ class TestDefaultPostgresSortStrategies(TestCase):
         assert strategy.exclude_null_postgres is False
         assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit", "agent"}
 
+    def test_recommended_v2_zero_weight_drops_signal_resolver(self):
+        # A zeroed weight can't affect the score, so the strategy must not pay for that
+        # signal's query.
+        with self.options({"snuba.search.recommended.agent-weight": 0.0}):
+            strategy = PostgresSnubaQueryExecutor().postgres_sort_strategies["recommended_v2"]
+        assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit"}
+
     def test_progress_registered(self):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
         strategy = strategies["progress"]

@@ -2,6 +2,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
+from sentry.integrations.claude_code.integration import PROVIDER_KEY as claude_provider_key
+from sentry.integrations.github_copilot.integration import GithubCopilotIntegrationProvider
+
+copilot_provider_key = GithubCopilotIntegrationProvider.key
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestAttribution,
@@ -11,7 +16,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
-from sentry.pr_metrics.utils import is_activity_tracking_enabled
+from sentry.pr_metrics.utils import is_activity_tracking_enabled, org_has_coding_agent_for_provider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -132,3 +137,36 @@ class IsActivityTrackingEnabledTest(TestCase):
             pr.save()
             with self.feature("organizations:pr-metrics-activity"):
                 assert is_activity_tracking_enabled(self.organization, pr=pr)
+
+
+class OrgHasCodingAgentForProviderTest(TestCase):
+    def test_returns_true_when_active_integration_exists(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=claude_provider_key,
+            name="Claude Code",
+            external_id="claude_code:1",
+        )
+        assert org_has_coding_agent_for_provider(self.organization, claude_provider_key) is True
+
+    def test_returns_false_when_no_integration_exists(self) -> None:
+        assert org_has_coding_agent_for_provider(self.organization, claude_provider_key) is False
+
+    def test_returns_false_for_different_provider(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=claude_provider_key,
+            name="Claude Code",
+            external_id="claude_code:1",
+        )
+        assert org_has_coding_agent_for_provider(self.organization, copilot_provider_key) is False
+
+    def test_returns_false_when_org_integration_is_disabled(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider=claude_provider_key,
+            name="Claude Code",
+            external_id="claude_code:1",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+        assert org_has_coding_agent_for_provider(self.organization, claude_provider_key) is False

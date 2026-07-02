@@ -1,4 +1,9 @@
+from collections.abc import Mapping
+from typing import Any
+from unittest.mock import patch
+
 from sentry.seer.models.run import SeerRunType
+from sentry.seer.run_questions import QUESTIONS
 from sentry.seer.runs_query import filtered_runs_queryset
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -230,6 +235,56 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         )
         assert [r["id"] for r in response.data] == [str(without_project.uuid)]
 
+    def test_group_filter(self) -> None:
+        project = self.create_project(organization=self.organization)
+        group = self.create_group(project=project)
+        run = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=run, project=project, group=group)
+        other = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=other, project=project)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"group:{group.id}"}
+        )
+        assert [r["id"] for r in response.data] == [str(run.uuid)]
+
+    def test_group_in_filter(self) -> None:
+        project = self.create_project(organization=self.organization)
+        group_a = self.create_group(project=project)
+        group_b = self.create_group(project=project)
+        run_a = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=run_a, project=project, group=group_a)
+        run_b = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=run_b, project=project, group=group_b)
+        other = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=other, project=project)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"group:[{group_a.id}, {group_b.id}]"},
+        )
+        assert {r["id"] for r in response.data} == {str(run_a.uuid), str(run_b.uuid)}
+
+    def test_has_group_filter(self) -> None:
+        # has:group / !has:group filter on whether a group is set rather than
+        # 400ing on the empty (non-numeric) value.
+        project = self.create_project(organization=self.organization)
+        group = self.create_group(project=project)
+        with_group = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=with_group, project=project, group=group)
+        without_group = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=without_group, project=project, group=None)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has:group"}
+        )
+        assert [r["id"] for r in response.data] == [str(with_group.uuid)]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!has:group"}
+        )
+        assert [r["id"] for r in response.data] == [str(without_group.uuid)]
+
     def test_free_text_query_matches_title(self) -> None:
         run = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=run, title="Fix login bug")
@@ -255,6 +310,12 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             self.organization.slug, qs_params={"query": "project:abc"}, status_code=400
         )
 
+    def test_non_numeric_group_returns_400(self) -> None:
+        # A non-integer group value must 400, not 500 during SQL compilation.
+        self.get_error_response(
+            self.organization.slug, qs_params={"query": "group:abc"}, status_code=400
+        )
+
     def test_pagination(self) -> None:
         runs = [
             self.create_seer_run(
@@ -271,6 +332,34 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert [r["id"] for r in response.data] == expected
         assert 'rel="next"; results="true"' in response.headers["Link"]
 
+    @with_feature("organizations:seer-run-questions")
+    def test_default_page_size_is_10_with_outputs(self) -> None:
+        for i in range(1, 12):
+            self.create_seer_run(
+                organization=self.organization,
+                user_id=self.user.id,
+                last_triggered_at=before_now(minutes=i),
+            )
+
+        response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+
+        assert len(response.data) == 10
+        assert 'rel="next"; results="true"' in response.headers["Link"]
+
+    def test_default_page_size_without_outputs(self) -> None:
+        for i in range(1, 12):
+            self.create_seer_run(
+                organization=self.organization,
+                user_id=self.user.id,
+                last_triggered_at=before_now(minutes=i),
+            )
+
+        # Without ?outputs the small default doesn't apply, so all runs fit on
+        # the first page.
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 11
+
     def test_ids_serialized_as_strings(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, user_id=self.user.id, seer_run_state_id=42
@@ -280,6 +369,80 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         data = response.data[0]
         assert data["id"] == str(run.uuid)
         assert data["userId"] == str(self.user.id)
+
+    def test_outputs_absent_without_flag(self) -> None:
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=1
+        )
+
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(self.organization.slug)
+
+        assert "outputs" not in response.data[0]
+        assert mock_run.call_count == 0
+
+    def test_outputs_requires_feature(self) -> None:
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=1
+        )
+
+        # Feature off: the flag is ignored, no one-shot calls, no outputs field.
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+
+        assert "outputs" not in response.data[0]
+        assert mock_run.call_count == 0
+
+    @with_feature("organizations:seer-run-questions")
+    def test_outputs(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+
+        def fake_oneshot(
+            oneshot_id: str, payload: Mapping[str, Any], organization: Any, **kwargs: Any
+        ) -> dict[str, str]:
+            return {"answer": f"answer to: {payload['question']}"}
+
+        with patch("sentry.seer.run_questions.run_oneshot", side_effect=fake_oneshot) as mock_run:
+            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        assert [q["key"] for q in row["outputs"]] == [q.key for q in QUESTIONS]
+        assert [q["answer"] for q in row["outputs"]] == [
+            f"answer to: {q.question}" for q in QUESTIONS
+        ]
+        assert mock_run.call_count == len(QUESTIONS)
+
+    @with_feature("organizations:seer-run-questions")
+    def test_outputs_skips_non_explorer_runs(self) -> None:
+        pr_review = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            seer_run_state_id=7,
+            type=SeerRunType.PR_REVIEW,
+        )
+
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+
+        row = next(r for r in response.data if r["id"] == str(pr_review.uuid))
+        # Non-explorer runs carry an empty list and trigger no one-shot calls.
+        assert row["outputs"] == []
+        assert mock_run.call_count == 0
+
+    @with_feature("organizations:seer-run-questions")
+    def test_outputs_skips_runs_without_state_id(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=None
+        )
+
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        assert row["outputs"] == []
+        assert mock_run.call_count == 0
 
 
 class OrganizationSeerRunsEndpointAccessTest(APITestCase):

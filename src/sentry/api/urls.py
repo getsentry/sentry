@@ -801,6 +801,12 @@ from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_trace_logs import OrganizationTraceLogsEndpoint
 from .endpoints.organization_trace_meta import OrganizationTraceMetaEndpoint
 from .endpoints.organization_traces import OrganizationTracesEndpoint
+from .endpoints.organization_weekly_report_project_exclusion_details import (
+    OrganizationWeeklyReportProjectExclusionDetailsEndpoint,
+)
+from .endpoints.organization_weekly_report_project_exclusions import (
+    OrganizationWeeklyReportProjectExclusionsEndpoint,
+)
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
@@ -1702,6 +1708,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/weekly-report-project-exclusions/$",
+        OrganizationWeeklyReportProjectExclusionsEndpoint.as_view(),
+        name="sentry-api-0-organization-weekly-report-project-exclusions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/weekly-report-project-exclusions/(?P<project_id_or_slug>[^/]+)/$",
+        OrganizationWeeklyReportProjectExclusionDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-weekly-report-project-exclusion-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/$",

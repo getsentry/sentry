@@ -63,9 +63,11 @@ interface SnapshotMainContentProps {
   onDiffModeChange: (mode: DiffMode) => void;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onOverlayColorChange: (color: string) => void;
+  onOverlayOpacityChange: (opacity: number) => void;
   onToggleSoloView: () => void;
   onViewModeChange: (mode: ViewMode) => void;
   overlayColor: string;
+  overlayOpacity: number;
   selectedItem: SidebarItem | null;
   variantIndex: number;
   viewMode: ViewMode;
@@ -85,6 +87,8 @@ export function SnapshotMainContent({
   diffImageBaseUrl,
   overlayColor,
   onOverlayColorChange,
+  overlayOpacity,
+  onOverlayOpacityChange,
   diffMode,
   onDiffModeChange,
   viewMode,
@@ -198,7 +202,12 @@ export function SnapshotMainContent({
   const diffControls = hasChangedInList ? (
     <Fragment>
       {diffMode === 'split' && (
-        <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
+        <ColorPickerButton
+          color={overlayColor}
+          onChange={onOverlayColorChange}
+          opacity={overlayOpacity}
+          onOpacityChange={onOverlayOpacityChange}
+        />
       )}
       <DiffModeToggle
         diffMode={diffMode}
@@ -239,6 +248,7 @@ export function SnapshotMainContent({
           onScrollProgress={handleListScrollProgress}
           diffMode={diffMode}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
         />
@@ -312,6 +322,7 @@ export function SnapshotMainContent({
             imageBaseUrl={imageBaseUrl}
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
+            overlayOpacity={overlayOpacity}
             diffMode={isChanged ? diffMode : 'split'}
             headLabel={headBranch ?? t('Head')}
           />
