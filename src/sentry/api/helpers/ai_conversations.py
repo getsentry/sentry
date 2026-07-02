@@ -178,9 +178,6 @@ AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS = [
     _TOOL_STATUS_ERRORS,
 ]
 
-# Filter selecting only tool-execution spans; combine with the conversation filter.
-AI_CONVERSATION_TOOL_SPANS_FILTER = "gen_ai.operation.type:tool"
-
 # Order most-called tools first, matching the frontend hover card.
 AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY = [f"-{_TOOL_CALL_COUNT}"]
 
@@ -199,13 +196,12 @@ def parse_tool_breakdown(rows: Iterable[dict[str, Any]]) -> list[ToolSummary]:
         name = row.get(_TOOL_NAME)
         if not name:
             continue
-        errors = int(row.get(_TOOL_INTERNAL_ERRORS) or 0) + int(row.get(_TOOL_STATUS_ERRORS) or 0)
         summaries.append(
             {
                 "name": name,
                 "calls": int(row.get(_TOOL_CALL_COUNT) or 0),
                 "duration": float(row.get(_TOOL_DURATION) or 0),
-                "hasError": errors > 0,
+                "hasError": bool(row.get(_TOOL_INTERNAL_ERRORS) or row.get(_TOOL_STATUS_ERRORS)),
             }
         )
     return summaries
