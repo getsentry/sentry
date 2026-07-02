@@ -383,7 +383,13 @@ export function ScmPlatformFeaturesCore({
           <Grid
             columns={{
               'screen:xs': '1fr',
-              'screen:md': `repeat(${resolvedPlatforms.length}, .5fr)`,
+              // Below 3 detections there's enough space to keep the original
+              // .5fr-per-card sizing; at 3+ switch to a fixed 3-column grid
+              // so extra cards wrap to new rows instead of cramming into one.
+              'screen:md':
+                resolvedPlatforms.length < 3
+                  ? `repeat(${resolvedPlatforms.length}, .5fr)`
+                  : 'repeat(3, minmax(0, 1fr))',
             }}
             width="100%"
             justify="start"
