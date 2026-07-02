@@ -29,9 +29,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {
+  CellContent,
   getConversationDetailUrl,
   getUserDisplayName,
-  InputOutputTooltipCell,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
@@ -310,13 +310,13 @@ const BodyCell = memo(function BodyCell({
       );
     case 'input':
       return dataRow.firstInput ? (
-        <InputOutputTooltipCell text={dataRow.firstInput} />
+        <CellContent text={dataRow.firstInput} />
       ) : (
         <Text>&mdash;</Text>
       );
     case 'output':
       return dataRow.lastOutput ? (
-        <InputOutputTooltipCell text={dataRow.lastOutput} />
+        <CellContent text={dataRow.lastOutput} />
       ) : (
         <Text>&mdash;</Text>
       );
