@@ -26,13 +26,6 @@ type HighlightDefinition = {
   key: string;
 };
 
-function getParsedAttributeValue(value: string | undefined) {
-  const parts = value?.split(' ') ?? [];
-  const version = parts.pop();
-  const name = parts.join(' ');
-  return {name, version};
-}
-
 function AttributesHighlights({
   traceItemDetail,
   organization,
@@ -49,13 +42,8 @@ function AttributesHighlights({
     {
       key: 'runtime',
       getSummary: () => {
-        const runtime = findSpanAttributeValue(attributes, 'runtime');
-
-        if (!runtime) {
-          return null;
-        }
-
-        const {name, version} = getParsedAttributeValue(runtime);
+        const name = findSpanAttributeValue(attributes, 'runtime.name');
+        const version = findSpanAttributeValue(attributes, 'runtime.version');
 
         if (!name) {
           return null;
@@ -124,13 +112,8 @@ function AttributesHighlights({
     {
       key: 'browser',
       getSummary: () => {
-        const browser = findSpanAttributeValue(attributes, 'browser');
-
-        if (!browser) {
-          return null;
-        }
-
-        const {name, version} = getParsedAttributeValue(browser);
+        const name = findSpanAttributeValue(attributes, 'browser.name');
+        const version = findSpanAttributeValue(attributes, 'browser.version');
 
         if (!name) {
           return null;
@@ -165,13 +148,8 @@ function AttributesHighlights({
     {
       key: 'os',
       getSummary: () => {
-        const os = findSpanAttributeValue(attributes, 'os');
-
-        if (!os) {
-          return null;
-        }
-
-        const {name, version} = getParsedAttributeValue(os);
+        const name = findSpanAttributeValue(attributes, 'os.name');
+        const version = findSpanAttributeValue(attributes, 'os.version');
 
         if (!name) {
           return null;
