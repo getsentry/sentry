@@ -71,11 +71,6 @@ type BaseDiscoverQueryProps = {
    */
   cursor?: string;
   /**
-   * Appends a raw string to query to be able to sidestep the tokenizer.
-   * @deprecated
-   */
-  forceAppendRawQueryString?: string;
-  /**
    * Record limit to get.
    */
   limit?: number;
@@ -374,11 +369,10 @@ function getPayload<T, P>(props: Props<T, P>) {
     getRequestPayload,
     eventView,
     location,
-    forceAppendRawQueryString,
   } = props;
   const payload = getRequestPayload
     ? getRequestPayload(props)
-    : eventView.getEventsAPIPayload(location, forceAppendRawQueryString);
+    : eventView.getEventsAPIPayload(location);
 
   if (cursor !== undefined) {
     payload.cursor = cursor;
