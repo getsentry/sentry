@@ -25,6 +25,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -578,7 +579,11 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
-def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
+def render_template_context(
+    ctx,
+    user_id: int | None,
+    excluded_project_ids: set[int] | None = None,
+) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
@@ -587,6 +592,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             project_ctx
             for project_ctx in ctx.projects_context_map.values()
             if project_ctx.project.id in ctx.project_ownership[user_id]
+            and (excluded_project_ids is None or project_ctx.project.id not in excluded_project_ids)
         ]
         if len(user_projects) == 0:
             return None
@@ -830,9 +836,21 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
+    exclusions_by_user: dict[int, set[int]] = {}
+    valid_user_ids = [uid for uid in user_ids if uid is not None]
+    if valid_user_ids and features.has(
+        "organizations:weekly-report-project-exclusions", ctx.organization
+    ):
+        for exc_user_id, exc_project_id in WeeklyReportProjectExclusion.objects.filter(
+            user_id__in=valid_user_ids,
+            project__organization_id=ctx.organization.id,
+        ).values_list("user_id", "project_id"):
+            exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
+
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
-        template_ctx = render_template_context(ctx, user_id)
+        excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
+        template_ctx = render_template_context(ctx, user_id, excluded_project_ids=excluded)
         if not template_ctx:
             logger.debug(
                 "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",

@@ -373,18 +373,24 @@ function MetadataInfoButton({
   );
 
   return (
-    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
-      <InfoIconButton
-        type="button"
-        aria-label={t('Copy metadata as JSON')}
-        onClick={() => {
-          copy(json, {successMessage: t('Copied metadata as JSON')});
-          onCopy?.();
-        }}
-      >
-        <IconInfo size="sm" />
-      </InfoIconButton>
-    </Tooltip>
+    <Flex
+      align="center"
+      onDoubleClick={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
+      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
+        <InfoIconButton
+          type="button"
+          aria-label={t('Copy metadata as JSON')}
+          onClick={() => {
+            copy(json, {successMessage: t('Copied metadata as JSON')});
+            onCopy?.();
+          }}
+        >
+          <IconInfo size="sm" />
+        </InfoIconButton>
+      </Tooltip>
+    </Flex>
   );
 }
 

@@ -168,6 +168,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @click.option("--concurrency", help="Number of child processes to create.", default=1)
 @click.option(
+    "--min-concurrency", help="Minimum number of children that should always be active.", default=0
+)
+@click.option(
     "--namespace", help="The dedicated task namespace that this worker processes", default=None
 )
 @click.option(
@@ -244,6 +247,7 @@ def run_taskworker(
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
+    min_concurrency: int,
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
@@ -271,6 +275,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -291,6 +296,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -313,6 +319,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
