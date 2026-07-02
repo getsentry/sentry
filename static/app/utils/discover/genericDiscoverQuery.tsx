@@ -361,15 +361,8 @@ export async function doDiscoverQuery<T>(
 }
 
 function getPayload<T, P>(props: Props<T, P>) {
-  const {
-    cursor,
-    limit,
-    noPagination,
-    referrer,
-    getRequestPayload,
-    eventView,
-    location,
-  } = props;
+  const {cursor, limit, noPagination, referrer, getRequestPayload, eventView, location} =
+    props;
   const payload = getRequestPayload
     ? getRequestPayload(props)
     : eventView.getEventsAPIPayload(location);
