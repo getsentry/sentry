@@ -453,7 +453,9 @@ const PageFilterBarWrapper = styled('div')`
     display: block;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     overflow: hidden;
+    box-sizing: border-box;
   }
 `;
 
@@ -463,10 +465,13 @@ const Wrapper = styled('div')`
   gap: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.xl};
   align-items: flex-start;
+  min-width: 0;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     gap: ${p => p.theme.space.md};
+    width: 100%;
+    max-width: 100%;
   }
 `;
 
@@ -476,6 +481,7 @@ const FiltersRow = styled('div')`
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
   flex: 1;
+  min-width: 0;
 
   & button[aria-haspopup] {
     height: 100%;
@@ -486,20 +492,24 @@ const FiltersRow = styled('div')`
     flex-direction: column;
     gap: ${p => p.theme.space.md};
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 
     /* Ensure all children take full width on mobile */
     & > * {
       width: 100%;
       max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
   }
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    /* Override max-content width from condensed prop */
-    max-width: 100%;
-    width: 100%;
+    /* Override max-content width from condensed prop with !important */
+    max-width: 100% !important;
+    width: 100% !important;
     flex-wrap: wrap;
 
     /* Ensure child filters can shrink and wrap properly on mobile */
@@ -507,6 +517,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
       flex: 1 1 auto;
       min-width: 0;
       max-width: 100%;
+      box-sizing: border-box;
 
       /* Remove the min-width constraint on last child */
       &:last-child {
@@ -522,6 +533,9 @@ const StyledPageFilterBar = styled(PageFilterBar)`
     /* Ensure buttons inside also respect width */
     & button[aria-haspopup] {
       max-width: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 `;
