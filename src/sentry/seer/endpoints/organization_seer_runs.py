@@ -23,14 +23,24 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.models.run import SeerRun, SeerRunType
-from sentry.seer.run_questions import get_run_questions
+from sentry.seer.run_questions import (
+    QUESTIONS,
+    Question,
+    RunQuestion,
+    build_user_questions,
+    get_run_questions,
+)
 from sentry.seer.runs_query import filtered_runs_queryset
+
+MAX_USER_QUESTIONS = 5
+MAX_QUESTION_LENGTH = 4096
 
 
 def _fetch_run_outputs(
     runs: Sequence[SeerRun],
     organization: Organization,
     *,
+    questions: Sequence[Question],
     user_id: int | None,
 ) -> dict[int, list[RunQuestionOutput]]:
     qualifying = [
@@ -44,13 +54,19 @@ def _fetch_run_outputs(
     answers_by_state_id = get_run_questions(
         [run.seer_run_state_id for run in qualifying],
         organization,
+        questions=questions,
         user_id=user_id,
     )
+
+    def to_output(q: RunQuestion) -> RunQuestionOutput:
+        output: RunQuestionOutput = {"key": q["key"], "hash": q["hash"], "answer": q["answer"]}
+        # Echo the prompt back only for user questions; built-in prompts are internal.
+        if q["user_supplied"]:
+            output["question"] = q["question"]
+        return output
+
     return {
-        run.id: [
-            {"key": q["key"], "answer": q["answer"]}
-            for q in answers_by_state_id.get(run.seer_run_state_id, [])
-        ]
+        run.id: [to_output(q) for q in answers_by_state_id.get(run.seer_run_state_id, [])]
         for run in qualifying
     }
 
@@ -83,16 +99,51 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
             query: Optional structured search string. Supports ``source``, ``type``,
                 ``project``, ``is:agent``/``!is:agent``, ``is:mine``/``!is:mine``,
                 and free-text title search.
-            outputs: Optional boolean flag. When present, include one-shot outputs
-                per run (requires the ``seer-run-questions`` feature).
+            expand: Optional repeatable flag. Pass ``expand=questions`` to include
+                one-shot outputs for the built-in question set on each run
+                (requires the ``seer-run-questions`` feature).
+            question: Optional repeatable free-text question (also requires the
+                feature). At most ``MAX_CUSTOM_QUESTIONS`` may be passed.
+
+        ``expand=questions`` and ``question`` are additive: you may request the
+        built-in set, user questions, both, or neither. Each run's ``outputs``
+        list is returned in question order — the built-in set first (when
+        expanded), then the ``question`` params in the order supplied — so
+        correlate answers positionally. The per-output ``key`` and ``hash`` are
+        supplementary metadata, not the primary correlation key.
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
 
-        include_outputs = "outputs" in request.GET and features.has(
+        feature_enabled = features.has(
             "organizations:seer-run-questions", organization, actor=request.user
         )
+
+        user_questions: list[str] = []
+        include_builtin = False
+        if feature_enabled:
+            include_builtin = "questions" in request.GET.getlist("expand")
+            user_questions = [q.strip() for q in request.GET.getlist("question") if q.strip()]
+            if len(user_questions) > MAX_USER_QUESTIONS:
+                return Response(
+                    {"detail": f"At most {MAX_USER_QUESTIONS} questions may be supplied."},
+                    status=400,
+                )
+            if any(len(q) > MAX_QUESTION_LENGTH for q in user_questions):
+                return Response(
+                    {"detail": f"Questions may be at most {MAX_QUESTION_LENGTH} characters."},
+                    status=400,
+                )
+
+        # The built-in set (expand=questions) and user questions are additive.
+        # Built-ins come first so outputs stay ordered.
+        questions: list[Question] = []
+        if include_builtin:
+            questions.extend(QUESTIONS)
+        if user_questions:
+            questions.extend(build_user_questions(user_questions))
+        include_outputs = bool(questions)
 
         query = request.GET.get("query", "").strip()
         accessible_project_ids = [
@@ -120,7 +171,12 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         def on_results(runs: Sequence[SeerRun]) -> list[SeerRunResponse]:
             serialized: list[SeerRunResponse] = serialize(runs, request.user, SeerRunSerializer())
             if include_outputs:
-                outputs_by_run_id = _fetch_run_outputs(runs, organization, user_id=request.user.id)
+                outputs_by_run_id = _fetch_run_outputs(
+                    runs,
+                    organization,
+                    questions=questions,
+                    user_id=request.user.id,
+                )
                 for run, data in zip(runs, serialized):
                     data["outputs"] = outputs_by_run_id.get(run.id, [])
             return serialized
