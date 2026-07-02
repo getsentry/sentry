@@ -36,9 +36,7 @@ EVENT_DATA_ALLOWLIST = {
     "sdk": {
         "name": Allow.SIMPLE_TYPE,
         "version": Allow.SIMPLE_TYPE,
-        "integrations": Allow.NEVER.with_explanation(
-            "Users can add their own integrations."
-        ),
+        "integrations": Allow.NEVER.with_explanation("Users can add their own integrations."),
     },
     "exception": {
         "values": {
@@ -65,9 +63,7 @@ EVENT_DATA_ALLOWLIST = {
                     "Registers contain memory addresses, which isn't PII."
                 ),
             },
-            "value": Allow.NEVER.with_explanation(
-                "The exception value could contain PII."
-            ),
+            "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
             "type": Allow.SIMPLE_TYPE,
             "mechanism": {
                 "handled": Allow.SIMPLE_TYPE,
@@ -169,9 +165,7 @@ def strip_event_data(
     # to support multiple exceptions.
     event_data_copy["exception"]["values"] = [last_exception]
 
-    stripped_event_data = _strip_event_data_with_allowlist(
-        event_data_copy, EVENT_DATA_ALLOWLIST
-    )
+    stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
 
     if not stripped_event_data:
         return {}
@@ -197,9 +191,7 @@ def _strip_event_data_with_allowlist(
         if isinstance(allowlist_for_data, Allow):
             allowed = allowlist_for_data
 
-            if allowed is Allow.SIMPLE_TYPE and isinstance(
-                data_value, (str, int, float, bool)
-            ):
+            if allowed is Allow.SIMPLE_TYPE and isinstance(data_value, (str, int, float, bool)):
                 stripped_data[data_key] = data_value
             elif allowed is Allow.MAP_WITH_STRINGS and isinstance(data_value, Mapping):
                 map_with_hex_values = {}
@@ -220,8 +212,7 @@ def _strip_event_data_with_allowlist(
             )
         elif isinstance(data_value, Sequence):
             stripped_data[data_key] = [
-                _strip_event_data_with_allowlist(item, allowlist_for_data)
-                for item in data_value
+                _strip_event_data_with_allowlist(item, allowlist_for_data) for item in data_value
             ]
 
     return stripped_data
