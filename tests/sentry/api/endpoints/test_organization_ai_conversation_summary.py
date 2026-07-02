@@ -1,7 +1,9 @@
 from datetime import timedelta
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.helpers.datetime import before_now
 
@@ -17,7 +19,13 @@ from .test_organization_ai_conversations_base import (
 class OrganizationAIConversationSummaryEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversation-summary"
 
-    def do_request(self, conversation_id, query=None, features=None, **kwargs):
+    def do_request(
+        self,
+        conversation_id: str,
+        query: dict[str, Any] | None = None,
+        features: list[str] | None = None,
+        **kwargs: Any,
+    ) -> Response:
         if features is None:
             features = ["organizations:gen-ai-conversations"]
 
