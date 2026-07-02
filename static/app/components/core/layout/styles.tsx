@@ -487,6 +487,7 @@ const ContainerQueryContext = createContext<number | null>(null);
  * This returns the active breakpoint *key* so you can branch on it. To resolve a
  * `Responsive<T>` prop to its current *value* in JS (when building a responsive
  * prop of your own), use {@link useResponsivePropValue} instead.
+ * @public
  */
 export function useContainerBreakpoint(): BreakpointSize;
 export function useContainerBreakpoint<
