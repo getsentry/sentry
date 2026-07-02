@@ -72,6 +72,14 @@ describe('resolveSeerProjectSelection', () => {
     });
   });
 
+  it('leaves the whole filter untouched when only some project values resolve', () => {
+    // `seer` resolves but `unknown` does not; don't partially apply and drop
+    // the unresolvable constraint.
+    expect(
+      resolveSeerProjectSelection('project:[seer,unknown] span.op:db', projects)
+    ).toEqual({projectIds: undefined, query: 'project:[seer,unknown] span.op:db'});
+  });
+
   it('falls back to expandedProjectIds when the query has no project filter', () => {
     expect(resolveSeerProjectSelection('span.op:db', projects, [5, 6])).toEqual({
       projectIds: [5, 6],
@@ -88,19 +96,30 @@ describe('resolveSeerProjectSelection', () => {
 });
 
 describe('generateQueryTokensString', () => {
-  it('omits the projects clause when there is no expansion', () => {
-    expect(generateQueryTokensString({query: 'is:unresolved'})).not.toContain('expanded');
+  const projects = [
+    ProjectFixture({id: '11', slug: 'seer'}),
+    ProjectFixture({id: '22', slug: 'sentry'}),
+  ];
+
+  it('omits the projects clause when there is no project scope', () => {
+    expect(generateQueryTokensString({query: 'is:unresolved'})).not.toContain('projects');
+  });
+
+  it('moves a resolved project filter out of the filter text and announces it', () => {
+    const readable = generateQueryTokensString(
+      {query: 'project:seer is:unresolved'},
+      projects
+    );
+    expect(readable).not.toContain('project is seer');
+    expect(readable).toContain("projects are 'seer'");
   });
 
   it('announces the expanded project scope for screen readers', () => {
     expect(
-      generateQueryTokensString({query: 'is:unresolved', expandedProjectIds: [1, 2, 3]})
-    ).toContain('search expanded to 3 projects');
-  });
-
-  it('uses the singular form for a single expanded project', () => {
-    expect(generateQueryTokensString({expandedProjectIds: [1]})).toBe(
-      'search expanded to 1 project'
-    );
+      generateQueryTokensString(
+        {query: 'is:unresolved', expandedProjectIds: [11, 22]},
+        projects
+      )
+    ).toContain("projects are 'seer, sentry'");
   });
 });

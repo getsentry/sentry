@@ -110,11 +110,12 @@ export interface SeerProjectSelection {
  * to apply to the selector instead of leaving them duplicated in the search bar.
  *
  * `project:` values are resolved by slug (falling back to a numeric id);
- * `project.id:` values are taken as ids directly. Falls back to
- * `expandedProjectIds` (the scope Seer broadened to) when the query has no
- * project filter. Returns `projectIds: undefined` when neither is present, so the
- * current selection is left untouched. Slugs that don't resolve to a known
- * project are left in the query rather than silently dropped.
+ * `project.id:` values are taken as ids directly. This is all-or-nothing: if any
+ * project value can't be resolved to a known project, the whole filter is left in
+ * the query untouched and the selection is unchanged, rather than partially
+ * applying it and silently dropping a constraint. Falls back to
+ * `expandedProjectIds` (the scope Seer broadened to) only when the query has no
+ * project filter at all. Returns `projectIds: undefined` when neither is present.
  */
 export function resolveSeerProjectSelection(
   query: string,
@@ -124,26 +125,41 @@ export function resolveSeerProjectSelection(
   const search = new MutableSearch(query);
   const slugToId = new Map(projects.map(project => [project.slug, project.id]));
 
+  const projectValues = search.getFilterValues('project');
+  const projectIdValues = search.getFilterValues('project.id');
+
   const resolvedIds: number[] = [];
-  for (const value of search.getFilterValues('project')) {
+  let allResolved = true;
+  for (const value of projectValues) {
     const id = slugToId.get(value) ?? (/^\d+$/.test(value) ? value : undefined);
-    if (id !== undefined) {
+    if (id === undefined) {
+      allResolved = false;
+    } else {
       resolvedIds.push(Number(id));
     }
   }
-  for (const value of search.getFilterValues('project.id')) {
+  for (const value of projectIdValues) {
     if (/^\d+$/.test(value)) {
       resolvedIds.push(Number(value));
+    } else {
+      allResolved = false;
     }
   }
 
-  if (resolvedIds.length > 0) {
-    search.removeFilter('project');
-    search.removeFilter('project.id');
-    return {
-      projectIds: Array.from(new Set(resolvedIds)),
-      query: search.formatString(),
-    };
+  if (projectValues.length > 0 || projectIdValues.length > 0) {
+    // Only move the filter to the selector when every project value resolves.
+    // If any is unresolvable, leave the whole filter in the query untouched
+    // rather than partially applying it and silently dropping a constraint Seer
+    // intended (removeFilter drops every value for the key, not just resolved ones).
+    if (allResolved) {
+      search.removeFilter('project');
+      search.removeFilter('project.id');
+      return {
+        projectIds: Array.from(new Set(resolvedIds)),
+        query: search.formatString(),
+      };
+    }
+    return {projectIds: undefined, query};
   }
 
   return {
@@ -261,11 +277,23 @@ export function formatDateRange(start: string, end: string, separator = ' to '):
   return `${startFormatted}${separator}${endFormatted}`;
 }
 
-export function generateQueryTokensString(args: QueryTokensProps): string {
+export function generateQueryTokensString(
+  args: QueryTokensProps,
+  projects: Project[] = []
+): string {
   const parts = [];
 
-  if (args?.query) {
-    const formattedFilter = formatQueryToNaturalLanguage(args.query.trim());
+  // Mirror the visual QueryTokens: pull the project out of the filter text and
+  // announce it as a separate projects clause so screen readers don't read a
+  // `project:` filter that isn't shown in the Filter chips.
+  const {query: displayQuery, projectIds} = resolveSeerProjectSelection(
+    args?.query ?? '',
+    projects,
+    args?.expandedProjectIds
+  );
+
+  if (displayQuery) {
+    const formattedFilter = formatQueryToNaturalLanguage(displayQuery.trim());
     parts.push(`Filter is '${formattedFilter}'`);
   }
 
@@ -302,9 +330,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     parts.push(`sort is '${sortText}'`);
   }
 
-  if (args?.expandedProjectIds && args.expandedProjectIds.length > 0) {
-    const count = args.expandedProjectIds.length;
-    parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);
+  if (projectIds && projectIds.length > 0) {
+    const idToSlug = new Map(projects.map(project => [project.id, project.slug]));
+    const slugs = projectIds.map(id => idToSlug.get(String(id)) ?? String(id));
+    parts.push(`projects are '${slugs.join(', ')}'`);
   }
 
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';
