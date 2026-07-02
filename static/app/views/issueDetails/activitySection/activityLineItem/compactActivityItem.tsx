@@ -320,7 +320,7 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.REFERENCED_IN_COMMIT:
       return {
-        title: t('Commit created'),
+        title: t('Referenced in commit'),
         details: activity.data.commit
           ? tct('on [provider] [commit]', {
               commit: <CommitChip commit={activity.data.commit} />,
@@ -329,7 +329,7 @@ export function getCompactGroupActivityItem({
                   activity.data.commit.repository?.provider?.id
               ),
             })
-          : t('in a commit'),
+          : undefined,
       };
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
@@ -385,11 +385,11 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.SET_PUBLIC:
       return {
-        title: t('Made public'),
+        title: t('Issue made public'),
       };
     case GroupActivityType.SET_PRIVATE:
       return {
-        title: t('Made private'),
+        title: t('Issue made private'),
       };
     case GroupActivityType.SET_REGRESSION: {
       const {data} = activity;
@@ -432,7 +432,10 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.CREATE_ISSUE:
       return {
-        title: activity.data.new === false ? t('Linked issue') : t('Created issue'),
+        title:
+          activity.data.new === false
+            ? t('External issue linked')
+            : t('External issue created'),
         details: tct('on [provider] [title]', {
           provider: activity.data.provider,
           title: (
@@ -502,11 +505,11 @@ export function getCompactGroupActivityItem({
       return getAssignedActivityItem({activity, author});
     case GroupActivityType.UNASSIGNED:
       return {
-        title: t('Unassigned'),
+        title: t('Issue unassigned'),
       };
     case GroupActivityType.REPROCESS:
       return {
-        title: t('Reprocessed events'),
+        title: t('Events reprocessed'),
         details: (
           <Link
             to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}

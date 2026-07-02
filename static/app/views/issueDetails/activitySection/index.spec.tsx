@@ -448,7 +448,7 @@ describe('ActivitySection', () => {
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
-    expect(timeline).toHaveTextContent('Assigned');
+    expect(timeline).toHaveTextContent('Issue assigned');
     expect(timeline).toHaveTextContent('#frontend');
     expect(timeline).not.toHaveTextContent('themselves');
   });

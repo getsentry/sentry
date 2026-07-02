@@ -135,7 +135,7 @@ export function getAssignedActivityItem({
   const integrationName = getAssignmentIntegrationName(activity.data.integration);
 
   return {
-    title: t('Assigned'),
+    title: t('Issue assigned'),
     details: <AssignedActivityDetails activity={activity} />,
     subtext:
       integrationName && activity.data.rule ? (
