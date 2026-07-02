@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import uuid
@@ -19,7 +20,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.project_trace_item_details import (
     convert_rpc_attribute_to_json,
     serialize_item_id,
@@ -60,20 +61,14 @@ class _TraceItemsByIdSerializer(serializers.Serializer[Never]):
     referrer = serializers.CharField(required=False)
 
 
-class OrganizationTraceItemsByIdPermission(OrganizationPermission):
-    # POST here is a read; only org:read is required, not the default org:write.
-    scope_map = {"POST": ["org:read", "org:write", "org:admin"]}
-
-
 @cell_silo_endpoint
 class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
-    permission_classes = (OrganizationTraceItemsByIdPermission,)
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """Fetch specific trace items by id as exact point lookups.
 
         Unlike a filtered table query, each id is resolved directly so a result
@@ -81,8 +76,25 @@ class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
         returned in `notFoundIds`, and ids whose lookup errored are returned in
         `errorIds`, rather than omitted silently. A single failed lookup never
         fails the whole batch.
+
+        The `items` list is passed as a JSON-encoded query parameter since it
+        holds objects that don't flatten cleanly into a query string.
         """
-        serializer = _TraceItemsByIdSerializer(data=request.data)
+        try:
+            items = json.loads(request.GET.get("items", "null"))
+        except ValueError:
+            return Response({"detail": "items must be a JSON-encoded array"}, status=400)
+
+        serializer_data = {
+            "itemType": request.GET.get("itemType"),
+            "columns": request.GET.getlist("columns"),
+            "items": items,
+        }
+        referrer = request.GET.get("referrer")
+        if referrer is not None:
+            serializer_data["referrer"] = referrer
+
+        serializer = _TraceItemsByIdSerializer(data=serializer_data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -225,5 +237,7 @@ class OrganizationTraceItemsByIdEndpoint(OrganizationEndpoint):
             include_arrays=include_arrays,
         )
         values_by_name = {attribute["name"]: attribute["value"] for attribute in attributes}
-        values_by_name.setdefault("id", serialize_item_id(response["itemId"], item_type))
+        item_id = response.get("itemId")
+        if item_id is not None:
+            values_by_name.setdefault("id", serialize_item_id(item_id, item_type))
         return {field: values_by_name.get(field) for field in fields}

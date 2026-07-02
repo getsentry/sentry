@@ -1,3 +1,4 @@
+import json
 import uuid
 from unittest import mock
 
@@ -40,8 +41,9 @@ class OrganizationTraceItemsByIdEndpointTest(APITestCase, SnubaTestCase, OurLogT
         return result
 
     def do_request(self, data: dict):
+        query = {**data, "items": json.dumps(data["items"])}
         with self.feature({"organizations:discover-basic": True}):
-            return self.client.post(self.url, data, format="json")
+            return self.client.get(self.url, query)
 
     def test_returns_requested_columns_when_id_resolves(self) -> None:
         item_id = self.store_log("foo")
@@ -180,7 +182,7 @@ class OrganizationTraceItemsByIdEndpointTest(APITestCase, SnubaTestCase, OurLogT
         assert response.data["data"] == []
         assert response.data["errorIds"] == [item_id]
 
-    def test_allows_org_read_member_since_post_is_a_read(self) -> None:
+    def test_allows_org_read_member_since_get_is_a_read(self) -> None:
         member = self.create_user()
         self.create_member(
             user=member, organization=self.organization, role="member", teams=[self.team]
