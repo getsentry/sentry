@@ -2,7 +2,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -57,7 +57,7 @@ describe('spansWidgetQueries', () => {
     expect(await screen.findByText('low:partial')).toBeInTheDocument();
   });
 
-  it.isKnownFlake('calculates the confidence for a multi series', async () => {
+  it('calculates the confidence for a multi series', async () => {
     widget = WidgetFixture({
       queries: [
         {
@@ -70,7 +70,7 @@ describe('spansWidgetQueries', () => {
         },
       ],
     });
-    MockApiClient.addMockResponse({
+    const statsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
         a: {
@@ -115,6 +115,7 @@ describe('spansWidgetQueries', () => {
       {organization}
     );
 
+    await waitFor(() => expect(statsMock).toHaveBeenCalled());
     expect(await screen.findByText('high')).toBeInTheDocument();
   });
 
