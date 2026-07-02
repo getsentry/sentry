@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {type ReactNode, useRef} from 'react';
 import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -13,6 +13,7 @@ import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
 import {
+  ContainerQueryProvider,
   getBorder,
   rc,
   useActiveBreakpoint,
@@ -177,6 +178,32 @@ describe('rc', () => {
       'container-type: inline-size;'
     );
     expect(rc('container-type', undefined, theme)).toBeUndefined();
+  });
+
+  it('supports raw `<number>px` container breakpoints as an escape hatch', () => {
+    // `380px` has no named equivalent; it should emit a @container min-width rule.
+    const output = rc('display', {'2xs': 'none', '380px': 'flex'}, theme);
+    assert(output);
+    // 2xs (the base) is a plain declaration.
+    expect(output).toContain('display: none;');
+    expect(output).toContain('@container (min-width: 380px)');
+    expect(output).not.toContain('@media');
+  });
+
+  it('supports `screen:<number>px` viewport breakpoints as an escape hatch', () => {
+    const output = rc('display', {'2xs': 'none', 'screen:380px': 'flex'}, theme);
+    assert(output);
+    expect(output).toContain('@media (min-width: 380px)');
+    expect(output).not.toContain('@container');
+  });
+
+  it('interleaves custom px and named breakpoints mobile-first', () => {
+    // Ordering by width: 2xs (0) base, then 380px, then xs (500px).
+    const output = rc('display', {'2xs': 'none', '380px': 'flex', xs: 'grid'}, theme);
+    assert(output);
+    expect(output.indexOf('min-width: 380px')).toBeLessThan(
+      output.indexOf(`min-width: ${theme.breakpoints.xs}`)
+    );
   });
 });
 
@@ -553,22 +580,66 @@ describe('useContainerBreakpoint', () => {
     });
   };
 
+  // The hook reads the nearest query container's size from context, so render
+  // the probe inside a ContainerQueryProvider whose measured element reports the
+  // faked width.
   function BreakpointProbe() {
-    const ref = useRef<HTMLDivElement>(null);
-    const breakpoint = useContainerBreakpoint(ref);
-    return <div ref={ref}>breakpoint:{breakpoint}</div>;
+    const breakpoint = useContainerBreakpoint();
+    return <div>breakpoint:{breakpoint}</div>;
   }
 
-  it('resolves the largest breakpoint the element width satisfies', () => {
+  function CustomBreakpointProbe() {
+    const breakpoint = useContainerBreakpoint(['0px', '380px']);
+    return <div>breakpoint:{breakpoint}</div>;
+  }
+
+  function Container({children}: {children: ReactNode}) {
+    const ref = useRef<HTMLDivElement>(null);
+    return (
+      <ContainerQueryProvider elementRef={ref}>
+        <div ref={ref}>{children}</div>
+      </ContainerQueryProvider>
+    );
+  }
+
+  it('resolves the largest breakpoint the container width satisfies', () => {
     // md = 992px, lg = 1200px -> 1000px resolves to md.
     setClientWidth(1000);
-    render(<BreakpointProbe />);
+    render(
+      <Container>
+        <BreakpointProbe />
+      </Container>
+    );
     expect(screen.getByText('breakpoint:md')).toBeInTheDocument();
   });
 
-  it('falls back to 2xs when the element is narrower than the smallest breakpoint', () => {
+  it('falls back to 2xs when the container is narrower than the smallest breakpoint', () => {
     setClientWidth(0);
-    render(<BreakpointProbe />);
+    render(
+      <Container>
+        <BreakpointProbe />
+      </Container>
+    );
     expect(screen.getByText('breakpoint:2xs')).toBeInTheDocument();
+  });
+
+  it('resolves against a custom `<number>px` token list', () => {
+    setClientWidth(400);
+    render(
+      <Container>
+        <CustomBreakpointProbe />
+      </Container>
+    );
+    expect(screen.getByText('breakpoint:380px')).toBeInTheDocument();
+  });
+
+  it('returns the smallest token when below every threshold', () => {
+    setClientWidth(300);
+    render(
+      <Container>
+        <CustomBreakpointProbe />
+      </Container>
+    );
+    expect(screen.getByText('breakpoint:0px')).toBeInTheDocument();
   });
 });
