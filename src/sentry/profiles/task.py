@@ -1492,7 +1492,7 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                 # chunks which don't carry a version; drop it together with the
                 # fallback in is_android_trace_format once all chunks have one
                 chunk = vroomrs.profile_chunk_from_json_str(
-                    json_profile, profile["platform"], profile.get("version")
+                    json_profile, platform=profile["platform"], version=profile.get("version")
                 )
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
