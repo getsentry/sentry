@@ -235,6 +235,56 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         )
         assert [r["id"] for r in response.data] == [str(without_project.uuid)]
 
+    def test_group_filter(self) -> None:
+        project = self.create_project(organization=self.organization)
+        group = self.create_group(project=project)
+        run = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=run, project=project, group=group)
+        other = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=other, project=project)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"group:{group.id}"}
+        )
+        assert [r["id"] for r in response.data] == [str(run.uuid)]
+
+    def test_group_in_filter(self) -> None:
+        project = self.create_project(organization=self.organization)
+        group_a = self.create_group(project=project)
+        group_b = self.create_group(project=project)
+        run_a = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=run_a, project=project, group=group_a)
+        run_b = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=run_b, project=project, group=group_b)
+        other = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=other, project=project)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"group:[{group_a.id}, {group_b.id}]"},
+        )
+        assert {r["id"] for r in response.data} == {str(run_a.uuid), str(run_b.uuid)}
+
+    def test_has_group_filter(self) -> None:
+        # has:group / !has:group filter on whether a group is set rather than
+        # 400ing on the empty (non-numeric) value.
+        project = self.create_project(organization=self.organization)
+        group = self.create_group(project=project)
+        with_group = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=with_group, project=project, group=group)
+        without_group = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=without_group, project=project, group=None)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "has:group"}
+        )
+        assert [r["id"] for r in response.data] == [str(with_group.uuid)]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!has:group"}
+        )
+        assert [r["id"] for r in response.data] == [str(without_group.uuid)]
+
     def test_free_text_query_matches_title(self) -> None:
         run = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=run, title="Fix login bug")
@@ -258,6 +308,12 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         # A non-integer project value must 400, not 500 during SQL compilation.
         self.get_error_response(
             self.organization.slug, qs_params={"query": "project:abc"}, status_code=400
+        )
+
+    def test_non_numeric_group_returns_400(self) -> None:
+        # A non-integer group value must 400, not 500 during SQL compilation.
+        self.get_error_response(
+            self.organization.slug, qs_params={"query": "group:abc"}, status_code=400
         )
 
     def test_pagination(self) -> None:

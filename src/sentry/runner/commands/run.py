@@ -108,14 +108,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
     from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    from sentry.taskworker.adapters import SentryMetricsBackend
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
 
     app.load_modules()
-    run_storage = RunStorage(
-        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
-    )
+    run_storage = RunStorage(metrics=app.metrics, redis=redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(app, run_storage)
