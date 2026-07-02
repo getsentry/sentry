@@ -309,7 +309,7 @@ export function FiltersBar({
           <MobileFiltersStack>{pageFilterElements}</MobileFiltersStack>
         ) : (
           <PageFilterBarWrapper>
-            <StyledPageFilterBar>{pageFilterElements}</StyledPageFilterBar>
+            <PageFilterBar>{pageFilterElements}</PageFilterBar>
           </PageFilterBarWrapper>
         )}
         <SortableReleasesSelect
@@ -512,8 +512,4 @@ const FiltersRow = styled('div')`
     gap: ${p => p.theme.space.md};
     width: 100%;
   }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  /* No mobile overrides needed since we use MobileFiltersStack on mobile */
 `;
