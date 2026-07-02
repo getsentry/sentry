@@ -2173,6 +2173,35 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         )
         assert response.status_code == 200
 
+    def test_hmac_works_with_empty_viewer_context_header(self) -> None:
+        # Invariant: an HMAC-authenticated request behaves as it does today no
+        # matter the X-Viewer-Context header. An empty header is inert — once
+        # HMAC succeeds the VC authenticator is never consulted.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT="",
+        )
+        assert response.status_code == 200
+
+    def test_hmac_works_with_malformed_viewer_context_header(self) -> None:
+        # Same invariant: a malformed/garbage VC header does not affect an
+        # HMAC-authenticated request.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT="not-a-valid-jwt",
+        )
+        assert response.status_code == 200
+
     def test_viewer_context_org_binding_matches(self) -> None:
         org = self.create_organization()
         path = self._get_path("get_organization_features")
