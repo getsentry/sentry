@@ -109,7 +109,10 @@ _ACTION_TO_MIN_PROGRESS: dict[int, IssueProgressState] = {
 )
 def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     if entry.type == GroupActionType.RECONCILE_FEATURES:
-        result = reconcile_features(state, entry, PROGRESS, LAST_PROGRESSED_AT)
+        # Reconciliation corrects a value, it doesn't represent a real
+        # progression event — so we intentionally don't auto-update
+        # LAST_PROGRESSED_AT when PROGRESS is reconciled.
+        result = reconcile_features(state, entry, PROGRESS)
         if result is not None:
             return result
         # Fall through: a reconciliation of another feature (e.g. STATUS)
