@@ -532,18 +532,12 @@ class SeerAgentClient:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
         `payload`; the result is pushed back via deliver_feature_result.
-
-        Creates a SeerAgentRun mirror row (source=feature_id) alongside the
-        SeerRun, same as start_run does, so feature runs show up in the
-        Explorer session-history listing. `title` is required so that
-        listing stays human-scannable — pass something that distinguishes
-        this run from other runs of the same feature (e.g. counts, a
-        shard/batch index, or the primary subject of the run).
+        Also creates a SeerAgentRun mirror (source=feature_id, title=title)
+        so the run shows up in the Explorer session-history listing.
 
         on_run_created(run), if given, runs in the same transaction as the
-        SeerRun + outbox, after the SeerAgentRun is created — use it to link
-        associated rows atomically (e.g. a caller's record that the result
-        delivery correlates back to).
+        SeerRun + outbox — use it to link associated rows atomically (e.g. a
+        caller's record that the result delivery correlates back to).
 
         flush=True (default): drain inline; dispatch failure surfaces
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
