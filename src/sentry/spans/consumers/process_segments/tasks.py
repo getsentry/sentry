@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 
 from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaProducer
 from taskbroker_client.constants import CompressionType
 
 from sentry.conf.types.kafka_definition import Topic
@@ -14,10 +15,10 @@ from sentry.taskworker.producer import get_task_producer
 from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
-PROCESS_SEGMENT_TASK_NAME = "sentry.spans.process_segments.process_segment"
 
-
-def _get_snuba_items_producer(name: str = "sentry.spans.process_segments.snuba_items"):
+def _get_snuba_items_producer(
+    name: str = "sentry.spans.process_segments.snuba_items",
+) -> KafkaProducer:
     return get_arroyo_producer(
         name,
         Topic.SNUBA_ITEMS,
@@ -33,7 +34,7 @@ _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_t
 
 
 @instrumented_task(
-    name=PROCESS_SEGMENT_TASK_NAME,
+    name="sentry.spans.process_segments.process_segment",
     namespace=spans_process_segments_tasks,
     at_most_once=True,
     compression_type=CompressionType.ZSTD,

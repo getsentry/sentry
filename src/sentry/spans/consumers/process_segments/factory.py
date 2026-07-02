@@ -156,9 +156,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
 
 
 def _process_segment_bytes(segment_bytes: bytes, skip_produce: bool = False) -> list[KafkaPayload]:
-    if not options.get("spans.process-segments.consumer.enable"):
-        return []
-
     segment = orjson.loads(segment_bytes)
     skip_enrichment = segment.get("skip_enrichment", False)
     processed = process_segment(

@@ -172,22 +172,6 @@ def test_process_segment_task_matches_consumer_output(
     assert headers["project_id"] == b"1"
 
 
-@override_options({"spans.process-segments.consumer.enable": False})
-@mock.patch("sentry.spans.consumers.process_segments.factory.process_segment")
-def test_process_segment_task_respects_consumer_enable_option(
-    mock_process_segment: mock.MagicMock,
-) -> None:
-    segment_data = {"spans": [build_mock_span(project_id=1, is_segment=True)]}
-
-    with mock.patch(
-        "sentry.spans.consumers.process_segments.tasks._snuba_items_task_producer"
-    ) as mock_producer:
-        process_segment_task(json.dumps(segment_data).encode("utf-8"))
-
-    mock_process_segment.assert_not_called()
-    mock_producer.produce.assert_not_called()
-
-
 class TestCheckSpanDuplicates:
     @override_options({"spans.process-segments.dedupe-ttl": 0})
     def test_disabled_when_ttl_is_zero(self):
