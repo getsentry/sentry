@@ -394,7 +394,7 @@ describe('WeeklyReportProjectExclusions', () => {
       });
     });
 
-    it('shows first 20 projects and pagination controls', async () => {
+    it('shows first 15 projects and pagination controls', async () => {
       render(
         <WeeklyReportProjectExclusions
           organizations={[organization]}
@@ -407,9 +407,9 @@ describe('WeeklyReportProjectExclusions', () => {
       });
 
       const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes).toHaveLength(20);
+      expect(checkboxes).toHaveLength(15);
 
-      expect(screen.getByText('1-20 of 25')).toBeInTheDocument();
+      expect(screen.getByText('1-15 of 25')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
     });
@@ -429,17 +429,17 @@ describe('WeeklyReportProjectExclusions', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       const checkboxes = screen.getAllByRole('checkbox');
-      expect(checkboxes).toHaveLength(5);
+      expect(checkboxes).toHaveLength(10);
 
-      expect(screen.getByText('21-25 of 25')).toBeInTheDocument();
+      expect(screen.getByText('16-25 of 25')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
     });
 
-    it('does not show pagination for 20 or fewer projects', async () => {
+    it('does not show pagination for 15 or fewer projects', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/`,
-        body: manyProjects.slice(0, 20),
+        body: manyProjects.slice(0, 15),
       });
 
       render(
