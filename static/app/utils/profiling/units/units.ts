@@ -127,7 +127,7 @@ export function makeFormatter(
       if (value === 0) {
         return '0B';
       }
-      const byteUnits = ['B', 'KB', 'MB', 'GB'];
+      const byteUnits = ['B', 'kB', 'MB', 'GB'];
       const i = Math.floor(Math.log(value) / Math.log(1000));
       if (i < 0) {
         return value.toFixed(precision) + byteUnits[0];

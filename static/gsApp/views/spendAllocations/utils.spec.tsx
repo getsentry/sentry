@@ -11,7 +11,7 @@ describe('Big Number Formatter', () => {
     expect(bigNumFormatter(1000)).toBe('1K');
     expect(bigNumFormatter(1500)).toBe('1.5K');
     expect(bigNumFormatter(1520)).toBe('1.5K');
-    expect(bigNumFormatter(1000, undefined, BigNumUnits.KILO_BYTES)).toBe('1KB');
+    expect(bigNumFormatter(1000, undefined, BigNumUnits.KILO_BYTES)).toBe('1kB');
   });
   it('formats millions', () => {
     expect(bigNumFormatter(1000000)).toBe('1M');
