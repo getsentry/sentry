@@ -634,7 +634,8 @@ class OnboardingTasksSerializer(Serializer[OnboardingTasksSerializerResponse]):
 
 
 class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse, total=False):
-    role: Any  # TODO: replace with enum/literal
+    # Role ids are org-configurable (SENTRY_ROLES), so role fields are str, not a Literal.
+    role: str | None  # Deprecated: use orgRole
     orgRole: str
     targetSampleRate: float
     samplingMode: str
@@ -650,8 +651,8 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
 class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     experiments: dict[str, str]
     isDefault: bool
-    defaultRole: str  # TODO: replace with enum/literal
-    availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
+    defaultRole: str
+    availableRoles: list[dict[str, str]]  # Deprecated: use orgRoleList
     orgRoleList: list[OrganizationRoleSerializerResponse]
     teamRoleList: list[TeamRoleSerializerResponse]
     openMembership: bool
@@ -662,8 +663,8 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     sensitiveFields: list[str]
     safeFields: list[str]
     storeCrashReports: int
-    attachmentsRole: str  # TODO: replace with enum/literal
-    debugFilesRole: str  # TODO: replace with enum/literal
+    attachmentsRole: str
+    debugFilesRole: str
     eventsMemberAdmin: bool
     alertsMemberWrite: bool
     scrubIPAddresses: bool
