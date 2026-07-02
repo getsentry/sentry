@@ -7,7 +7,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum
-from typing import Any, TypedDict, Literal, Optional
+from typing import Any, Literal, Optional, TypedDict
 
 from pydantic import BaseModel
 
@@ -399,6 +399,8 @@ class GroupActionLogPayload(TypedDict):
     source: str
     data: dict[str, Any]
     force_async_derived: bool
+
+
 class SetPublicAction(GroupAction):
     # No activity data.
 
