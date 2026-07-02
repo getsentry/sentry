@@ -240,7 +240,7 @@ export function SeerExplorerHeaderActionsMenu({
           leadingItems: (
             <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />
           ),
-          isSubmenu: true,
+          submenu: {position: 'left-start'},
           children: [
             {
               key: 'auto',
@@ -292,7 +292,7 @@ export function SeerExplorerHeaderActionsMenu({
       key: 'chat-history',
       label: t('Chat History'),
       leadingItems: <IconClock />,
-      isSubmenu: true,
+      submenu: {position: 'left-start'},
       children:
         sessionOptions.length > 0
           ? sessionOptions.map(option => ({
