@@ -339,6 +339,7 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
     derived data processing."""
     try:
         group_id = payload["group_id"]
+        force_async_derived = payload["force_async_derived"]
 
         GroupActionLogEntry.objects.create(
             group_id=group_id,
@@ -353,11 +354,7 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.
         # Defer to on_commit so the GALE is visible to readers on other connections.
-        strategy = (
-            ProcessingStrategy.ASYNC
-            if payload["force_async_derived"]
-            else ProcessingStrategy.INLINE
-        )
+        strategy = ProcessingStrategy.ASYNC if force_async_derived else ProcessingStrategy.INLINE
         using = router.db_for_write(GroupActionLogEntry)
         transaction.on_commit(
             lambda: trigger_group_log_processing(group_id, strategy=strategy), using=using
