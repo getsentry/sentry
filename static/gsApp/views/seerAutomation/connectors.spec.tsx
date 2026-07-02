@@ -15,7 +15,7 @@ import SeerConnectors from 'getsentry/views/seerAutomation/connectors';
 
 describe('SeerConnectors', () => {
   const organization = OrganizationFixture({
-    features: ['seer-infra-telemetry', 'seat-based-seer-enabled'],
+    features: ['seer-infra-telemetry'],
   });
 
   beforeEach(() => {

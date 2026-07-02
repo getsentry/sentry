@@ -8,7 +8,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {Redirect} from 'sentry/components/redirect';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -16,9 +15,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
-import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -47,20 +44,6 @@ function monitoringProvidersQueryOptions(orgSlug: string) {
 }
 
 export default function SeerConnectors() {
-  const organization = useOrganization();
-
-  if (!showNewSeer(organization)) {
-    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
-  }
-
-  if (!organization.features.includes('seat-based-seer-enabled')) {
-    return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
-  }
-
-  return <SeerConnectorsContent />;
-}
-
-function SeerConnectorsContent() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -138,6 +121,7 @@ function SeerConnectorsContent() {
 
     const params: {provider: string; site?: string} = {provider: provider.provider};
     if (provider.provider === 'datadog') {
+      // TODO(CW-1501): v0 only supports datadoghq.com; add site selection when per-site connections are supported
       params.site = 'datadoghq.com';
     }
     connectMutation.mutate(params);
