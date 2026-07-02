@@ -1,8 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -10,7 +9,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -21,11 +20,10 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -84,15 +82,25 @@ export function WeeklyReportProjectExclusions({
     (location.query?.organizationId as string | undefined) ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
-  let organization = organizations.find(({id}) => id === orgId);
-
-  if (!organization && organizations.length === 1) {
-    organization = organizations[0];
-  }
+  const organization = organizations.find(({id}) => id === orgId);
 
   useEffect(() => {
     setCurrentPage(0);
   }, [organization?.id]);
+
+  const {data: orgDetails, isPending: orgDetailsPending} = useQuery({
+    ...apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+      path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
+      host: organization?.links?.regionUrl,
+      query: {include_feature_flags: 1},
+      staleTime: 30_000,
+    }),
+  });
+
+  const featureEnabled = orgDetails?.features.includes(
+    'weekly-report-project-exclusions'
+  );
+  const featureDisabled = orgDetails !== undefined && !featureEnabled;
 
   const {
     data: projects,
@@ -112,7 +120,7 @@ export function WeeklyReportProjectExclusions({
   });
 
   const exclusionsOpts = exclusionsApiOptions(
-    organization?.slug ?? skipToken,
+    featureEnabled ? (organization?.slug ?? skipToken) : skipToken,
     organization?.links?.regionUrl
   );
 
@@ -120,22 +128,10 @@ export function WeeklyReportProjectExclusions({
     data: exclusions,
     isPending: exclusionsPending,
     isError: exclusionsError,
-    error: exclusionsErrorObj,
     refetch: refetchExclusions,
   } = useQuery({
     ...exclusionsOpts,
-    retry: (failureCount, error) => {
-      if (error instanceof RequestError && error.status === 404) {
-        return false;
-      }
-      return failureCount < 3;
-    },
   });
-
-  const featureDisabled =
-    exclusionsError &&
-    exclusionsErrorObj instanceof RequestError &&
-    exclusionsErrorObj.status === 404;
 
   const excludedProjectIds = new Set((exclusions ?? []).map(exc => exc.projectId));
 
@@ -149,17 +145,19 @@ export function WeeklyReportProjectExclusions({
       }),
     onMutate: (newExcludedIds: string[]) => {
       const previousExclusions = queryClient.getQueryData(exclusionsOpts.queryKey);
-      setApiQueryData(
-        queryClient,
-        exclusionsOpts.queryKey,
-        newExcludedIds.map(id => ({
+      queryClient.setQueryData(exclusionsOpts.queryKey, {
+        json: newExcludedIds.map(id => ({
           id,
           projectId: id,
           projectSlug: '',
           dateAdded: '',
-        }))
-      );
+        })),
+        headers: {},
+      });
       return {previousExclusions};
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Updated weekly report project exclusions'));
     },
     onError: (_error, _variables, context) => {
       if (context?.previousExclusions) {
@@ -227,8 +225,9 @@ export function WeeklyReportProjectExclusions({
     }
   };
 
-  const isPending = !featureDisabled && (projectsPending || exclusionsPending);
-  const isError = !featureDisabled && (projectsError || exclusionsError);
+  const isPending =
+    orgDetailsPending || projectsPending || (!featureDisabled && exclusionsPending);
+  const isError = projectsError || (!featureDisabled && exclusionsError);
 
   const sortedProjects = [...(projects ?? [])]
     .filter(project => project.isMember)

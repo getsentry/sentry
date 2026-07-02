@@ -24,6 +24,13 @@ describe('WeeklyReportProjectExclusions', () => {
       ...ConfigStore.get('customerDomain')!,
       subdomain: organization.slug,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: OrganizationFixture({
+        ...organization,
+        features: ['weekly-report-project-exclusions'],
+      }),
+    });
   });
 
   afterEach(() => {
@@ -347,15 +354,14 @@ describe('WeeklyReportProjectExclusions', () => {
     expect(handleRemove).toHaveBeenCalledWith('42');
   });
 
-  it('does not show project toggles when exclusions endpoint returns 404', async () => {
+  it('does not show project toggles when feature flag is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: OrganizationFixture({...organization, features: []}),
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [projectA],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/weekly-report-project-exclusions/`,
-      statusCode: 404,
-      body: {},
     });
 
     render(
