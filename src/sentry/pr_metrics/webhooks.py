@@ -373,9 +373,9 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; only
-    the webhook-sourced columns are written, leaving the Seer-derived ones
-    (verdict, participants_count, reviews_count) untouched.
+    reflects the final counts. Gated by the emit flag, the sole consumer; it
+    writes only the webhook-sourced counters, leaving the other columns to their
+    own producers.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
