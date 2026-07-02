@@ -67,4 +67,16 @@ const StyledPageFilterBar = styled(PageFilterBar)`
       min-width: 0;
     }
   }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    max-width: 100%;
+    width: 100%;
+    flex-wrap: wrap;
+
+    & > * {
+      flex-shrink: 1;
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
 `;

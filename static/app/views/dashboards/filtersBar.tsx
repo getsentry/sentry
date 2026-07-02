@@ -470,8 +470,15 @@ const FiltersRow = styled('div')`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
     gap: ${p => p.theme.space.md};
     width: 100%;
+
+    /* Ensure all children take full width on mobile */
+    & > * {
+      width: 100%;
+      max-width: 100%;
+    }
   }
 `;
 
@@ -479,11 +486,14 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 100%;
     width: 100% !important;
+    flex-wrap: wrap;
 
-    /* Ensure child filters can shrink properly on mobile */
+    /* Ensure child filters can shrink and wrap properly on mobile */
     & > div {
       flex-shrink: 1;
+      flex-basis: auto;
       min-width: 0;
+      max-width: 100%;
     }
   }
 `;
