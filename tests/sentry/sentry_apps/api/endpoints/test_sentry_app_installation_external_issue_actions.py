@@ -132,6 +132,68 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert "uri" in response.data
 
+    def _set_up_token(self, scopes: list[str]):
+        scoped_app = self.create_sentry_app(
+            name="Scoped", organization=self.org, webhook_url="https://example.com", scopes=scopes
+        )
+        scoped_install = self.create_sentry_app_installation(
+            organization=self.org, slug=scoped_app.slug, user=self.user
+        )
+        token = self.create_internal_integration_token(install=scoped_install, user=self.user)
+        url = reverse(
+            "sentry-api-0-sentry-app-installation-external-issue-actions",
+            args=[scoped_install.uuid],
+        )
+        return token, url
+
+    def test_rejects_token_without_event_scope(self) -> None:
+        token, url = self._set_up_token(["org:integrations"])
+        response = self.client.post(
+            url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "/create-issues",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 403
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(group_id=self.group.id).exists()
+
+    @responses.activate
+    def test_creates_external_issue_with_event_scope(self) -> None:
+        token, url = self._set_up_token(["event:write"])
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/create-issues",
+            json={
+                "project": "ProjectName",
+                "webUrl": "https://example.com/project/issue-id",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "/create-issues",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert response.status_code == 200
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(group_id=self.group.id).exists()
+
     def test_rejects_group_from_inaccessible_project(self) -> None:
         with assume_test_silo_mode_of(Organization):
             self.org.flags.allow_joinleave = False
