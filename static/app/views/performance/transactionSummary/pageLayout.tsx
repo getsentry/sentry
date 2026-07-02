@@ -21,21 +21,20 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
-import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -66,7 +65,6 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
-    shouldUseEAP: boolean;
     theme: Theme;
     transactionName: string;
   }) => EventView;
@@ -179,8 +177,6 @@ export function PageLayout(props: Props) {
     navigate(normalizeUrl(getNewRoute(newTab)));
   };
 
-  const shouldUseEAP = useTransactionSummaryEAP();
-
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location, navigate);
     return null;
@@ -190,7 +186,6 @@ export function PageLayout(props: Props) {
     location,
     organization,
     transactionName,
-    shouldUseEAP,
     theme,
   });
 
@@ -272,7 +267,7 @@ export function PageLayout(props: Props) {
         renderDisabled={NoAccess}
       >
         <MetricsCardinalityProvider location={location} organization={organization}>
-          <PerformanceEventViewProvider value={{eventView}}>
+          <PerformanceEventViewContext value={{eventView}}>
             <PageFiltersContainer
               shouldForceProject={defined(project)}
               forceProject={project}
@@ -329,7 +324,7 @@ export function PageLayout(props: Props) {
                 </Stack>
               </Tabs>
             </PageFiltersContainer>
-          </PerformanceEventViewProvider>
+          </PerformanceEventViewContext>
         </MetricsCardinalityProvider>
       </Feature>
     </SentryDocumentTitle>

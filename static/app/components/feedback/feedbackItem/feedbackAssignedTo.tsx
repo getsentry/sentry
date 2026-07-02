@@ -8,8 +8,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {EventOwners} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
-import {getOwnerList} from 'sentry/views/issueDetails/streamline/header/getOwnerList';
+import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
+import {getOwnerList} from 'sentry/views/issueDetails/header/getOwnerList';
 
 interface Props {
   feedbackEvent: FeedbackEvent;

@@ -19,9 +19,7 @@ export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
 };
 
 export const canUseMetricsAlertsUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) && organization.features.includes('tracemetrics-alerts')
-  );
+  return canUseMetricsUI(organization);
 };
 
 export const canUseMetricsStatsBytesUI = (organization: Organization) => {
@@ -45,9 +43,23 @@ export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
   );
 };
 
+export const canUseMetricsEquationsInDashboards = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-equations-in-dashboards')
+  );
+};
+
 export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
     organization.features.includes('tracemetrics-pii-scrubbing-ui')
+  );
+};
+
+export const canUseMetricsHeatMap = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('data-browsing-heat-map-widget')
   );
 };

@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -36,11 +36,11 @@ export function Step({
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
-    <ContentWrapper>
+    <Container marginTop="xl">
       <StepIndexProvider index={stepIndex}>
         <ContentBlocksRenderer contentBlocks={content} />
       </StepIndexProvider>
-    </ContentWrapper>
+    </Container>
   );
 
   const stepTitle = <StepTitle>{title ?? StepTitles[type]}</StepTitle>;
@@ -88,10 +88,6 @@ export function Step({
 // NOTE: We intentionally avoid using flex or grid here
 // as it leads to weird text selection behavior in Safari
 // see https://github.com/getsentry/sentry/issues/79958
-const ContentWrapper = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-`;
-
 const StepTitle = styled('h4')`
   margin-bottom: 0 !important;
 `;

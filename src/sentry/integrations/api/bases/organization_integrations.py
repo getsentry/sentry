@@ -6,6 +6,7 @@ from django.http import Http404
 from rest_framework.request import Request
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
+from sentry.api.utils import to_valid_int_id
 from sentry.integrations.api.bases.integration import CellIntegrationEndpoint, IntegrationEndpoint
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -14,7 +15,6 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):

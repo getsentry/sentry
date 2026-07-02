@@ -1,24 +1,18 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
 
 function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
-  const {organization, router, project} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: OrganizationFixture(),
     projects: [{platform}],
-    router: {
-      params: {orgId: 'org-slug', projectId: 'project-slug'},
-      location: {
-        pathname: '/organizations/org-slug/projects/project-slug/',
-        query: {chart1: chartDisplay ?? 'crash_free'},
-      },
-    },
-  } as Parameters<typeof initializeOrg>[0]);
+  });
 
   return render(
     <ProjectCharts
@@ -26,7 +20,10 @@ function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
       chartIndex={0}
       hasSessions
       hasTransactions
-      location={router.location}
+      location={LocationFixture({
+        pathname: '/organizations/org-slug/projects/project-slug/',
+        query: {chart1: chartDisplay ?? 'crash_free'},
+      })}
       organization={organization}
       visibleCharts={['chart1', 'chart2']}
       project={project}

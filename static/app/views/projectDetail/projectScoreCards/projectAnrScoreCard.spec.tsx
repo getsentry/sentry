@@ -1,3 +1,5 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,12 +10,9 @@ describe('ProjectDetail > ProjectAnr', () => {
   let endpointMock: jest.Mock;
   let endpointMockPreviousPeriod: jest.Mock;
 
-  const {organization, router} = initializeOrg({
-    router: {
-      location: {
-        query: {project: '1', statsPeriod: '7d'},
-      },
-    },
+  const {organization} = initializeOrg();
+  const location = LocationFixture({
+    query: {project: '1', statsPeriod: '7d'},
   });
 
   const selection = {
@@ -72,7 +71,7 @@ describe('ProjectDetail > ProjectAnr', () => {
         selection={selection}
         isProjectStabilized
         query="release:abc"
-        location={router.location}
+        location={location}
       />
     );
 
@@ -121,7 +120,7 @@ describe('ProjectDetail > ProjectAnr', () => {
         selection={selection}
         isProjectStabilized
         query="release:abc"
-        location={router.location}
+        location={location}
       />
     );
 

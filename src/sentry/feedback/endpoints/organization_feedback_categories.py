@@ -152,7 +152,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         )
 
         if len(recent_feedbacks) < MIN_FEEDBACKS_CONTEXT:
-            logger.error("Too few feedbacks to generate categories")
+            logger.info("Too few feedbacks to generate categories")
             return Response(
                 {
                     "categories": None,

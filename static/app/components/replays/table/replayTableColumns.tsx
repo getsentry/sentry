@@ -8,6 +8,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -37,6 +38,7 @@ import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIco
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {
@@ -96,13 +98,14 @@ export interface ReplayTableColumn {
 
 export const ReplayActivityColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
+    <InfoText
+      variant="inherit"
       title={t(
         'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
       )}
     >
       {t('Activity')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'activity',
@@ -178,8 +181,8 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 
 export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
-      isHoverable
+    <InfoText
+      variant="inherit"
       title={tct(
         'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -189,7 +192,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
       )}
     >
       {t('Dead clicks')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'count_dead_clicks',
@@ -222,8 +225,8 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
 
 export const ReplayCountErrorsColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
-      isHoverable
+    <InfoText
+      variant="inherit"
       title={tct(
         'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
         {
@@ -240,7 +243,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       )}
     >
       {t('Errors')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'count_errors',
@@ -273,8 +276,8 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
 
 export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
-      isHoverable
+    <InfoText
+      variant="inherit"
       title={tct(
         'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -284,7 +287,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
       )}
     >
       {t('Rage clicks')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'count_rage_clicks',
@@ -496,9 +499,9 @@ export const ReplaySelectColumn: ReplayTableColumn = {
 
 export const ReplaySessionColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip title={t('By default, replays are sorted by time sent.')}>
+    <InfoText variant="inherit" title={t('By default, replays are sorted by time sent.')}>
       {t('Replay')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: true,
   sortKey: 'started_at',
@@ -542,6 +545,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   sortKey: undefined,
   Component: ({replay}) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const organization = useOrganization();
     const theme = useTheme();
 
@@ -558,7 +562,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location, theme},
+          {navigate, organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>

@@ -53,6 +53,16 @@ const mapCronDetectorFormErrors = (error: unknown) => {
       if ('slug' in error.dataSources) {
         return {...error, name: error.dataSources.slug};
       }
+      if ('config' in error.dataSources) {
+        const {schedule, ...rest} = error.dataSources.config as Record<string, unknown>;
+        return {
+          ...error,
+          ...rest,
+          ...(schedule
+            ? {scheduleCrontab: schedule, scheduleIntervalValue: schedule}
+            : {}),
+        };
+      }
       return {...error, ...error.dataSources};
     }
   }

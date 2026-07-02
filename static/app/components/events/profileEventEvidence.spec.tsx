@@ -51,7 +51,7 @@ describe('ProfileEventEvidence', () => {
 
     expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/profiling/profile/project-slug/profile-id/flamegraph/?frameName=some_func&framePackage=something.dll&referrer=issue'
+      '/organizations/org-slug/explore/profiles/profile/project-slug/profile-id/flamegraph/?frameName=some_func&framePackage=something.dll&referrer=issue'
     );
   });
 

@@ -6,13 +6,15 @@ import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
@@ -213,6 +215,9 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   const needle = query[key];
   const collection = decodeList(needle);
   return collection.reduce((acc: string[], item: string) => {
+    if (typeof item !== 'string') {
+      return acc;
+    }
     item = item.trim();
 
     if (item.length > 0) {

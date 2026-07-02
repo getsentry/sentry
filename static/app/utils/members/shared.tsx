@@ -43,20 +43,22 @@ export function selectUsersFromMembers(members: Member[]): User[] {
     .map(member => member.user);
 }
 
-export type IndexedMembersByProject = Record<string, User[]>;
+export type IndexedMembersByProject = Map<string, User[]>;
 
 /**
- * Convert a list of members with user & project data into an object that maps
+ * Convert a list of members with user & project data into a Map that maps
  * project slugs to users in that project.
  */
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  const result: IndexedMembersByProject = {};
+  const result: IndexedMembersByProject = new Map();
   for (const member of members) {
     if (!member.user) {
       continue;
     }
     for (const project of member.projects) {
-      (result[project] ??= []).push(member.user);
+      const projectMembers = result.get(project) ?? [];
+      projectMembers.push(member.user);
+      result.set(project, projectMembers);
     }
   }
   return result;

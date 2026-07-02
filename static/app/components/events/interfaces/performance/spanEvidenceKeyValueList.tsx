@@ -4,17 +4,22 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
-import mapValues from 'lodash/mapValues';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {
+  extractSpanURLString,
+  formatChangingQueryParameters,
+  getSpanDuration,
+  getSpanFieldBytes,
+} from 'sentry/components/events/interfaces/performance/spanMetrics';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
@@ -38,13 +43,15 @@ import {
   isTransactionBased,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
-import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {
@@ -140,8 +147,8 @@ function LargeHTTPPayloadSpanEvidence({
         makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
         makeRow(
           t('Payload Size'),
-          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
       ].filter(Boolean)}
     />
@@ -505,12 +512,27 @@ function SlowDBQueryEvidence({
 
   const queryValue = (
     <QueryCard>
-      <NoPaddingClippedBox clipHeight={200}>
-        <StyledCodeSnippet language="sql">
-          {formatter.toString(span.description ?? '')}
-        </StyledCodeSnippet>
-      </NoPaddingClippedBox>
-      <Flex gap="md" padding="sm lg" borderTop="muted">
+      <Stack minWidth={0}>
+        <NoPaddingClippedBox clipHeight={200}>
+          <StyledCodeSnippet language="sql">
+            {formatter.toString(span.description ?? '')}
+          </StyledCodeSnippet>
+        </NoPaddingClippedBox>
+        {span.data?.['code.filepath'] ? (
+          <StackTraceMiniFrame
+            projectId={event.projectID}
+            event={event}
+            frame={{
+              filename: span.data['code.filepath'],
+              lineNo: span.data['code.lineno'],
+              function: span.data['code.function'],
+            }}
+          />
+        ) : (
+          <MissingFrame source="span" />
+        )}
+      </Stack>
+      <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
           category={sentryTags?.category}
@@ -567,10 +589,7 @@ function RenderBlockingAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpan!)),
         makeRow(
           t('FCP Delay'),
-          formatDelay(
-            getSpanDuration(offendingSpan!),
-            event.measurements?.fcp?.value ?? 0
-          )
+          formatDelay(getSpanDuration(offendingSpan), event.measurements?.fcp?.value ?? 0)
         ),
         makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, offendingSpan!)),
       ]}
@@ -592,8 +611,8 @@ function UncompressedAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0]!)),
         makeRow(
           t('Asset Size'),
-          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
         makeRow(
           t('Duration Impact'),
@@ -777,10 +796,6 @@ const sumSpanDurations = (spans: Span[]) => {
   return totalDuration;
 };
 
-const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
-  return ((timestamp ?? 0) - (start_timestamp ?? 0)) * 1000;
-};
-
 function getDurationImpact(event: EventTransaction, durationAdded: number) {
   const transactionTime = (event.endTimestamp - event.startTimestamp) * 1000;
   if (!transactionTime) {
@@ -810,92 +825,6 @@ function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
   return getDurationImpact(event, getSpanDuration(span));
 }
 
-function getSpanDataField(span: Span, field: string) {
-  return span.data?.[field];
-}
-
-function getSpanFieldBytes(span: Span, field: string) {
-  const bytes = getSpanDataField(span, field);
-  if (!bytes) {
-    return null;
-  }
-  return `${formatBytesBase2(bytes)} (${bytes} B)`;
-}
-
-type ParameterLookup = Record<string, string[]>;
-
-/**
- * Extracts changing URL query parameters from a list of `http.client` spans.
- * e.g.,
- *
- * https://service.io/r?id=1&filter=none
- * https://service.io/r?id=2&filter=none
- * https://service.io/r?id=3&filter=none
- *
- * @returns A condensed string describing the query parameters changing
- * between the URLs of the given span. e.g., "id:{1,2,3}"
- */
-function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
-  const URLs = spans
-    .map(span => extractSpanURLString(span, baseURL))
-    .filter((url): url is URL => url instanceof URL);
-
-  const allQueryParameters = extractQueryParameters(URLs);
-
-  const pairs: string[] = [];
-  for (const key in allQueryParameters) {
-    const values = allQueryParameters[key]!;
-
-    // By definition, if the parameter only has one value that means it's not
-    // changing between calls, so omit it!
-    if (values.length > 1) {
-      pairs.push(`${key}:{${values.join(',')}}`);
-    }
-  }
-
-  return pairs;
-}
-
-/**
- * Parses the span data and pulls out the URL. Accounts for different SDKs and
- * different versions of SDKs formatting and parsing the URL contents
- * differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
- * and instead it should use the data provided by the backend
- */
-export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
-  let url = span?.data?.url;
-  if (url) {
-    const query = span.data['http.query'];
-    if (query) {
-      url += `?${query}`;
-    }
-
-    const parsedURL = safeURL(url, baseURL);
-    if (parsedURL) {
-      return parsedURL;
-    }
-  }
-
-  const [_method, _url] = (span?.description ?? '').split(' ', 2) as [string, string];
-
-  return safeURL(_url, baseURL) ?? null;
-};
-
-export function extractQueryParameters(URLs: URL[]): ParameterLookup {
-  const parameterValuesByKey: ParameterLookup = {};
-
-  URLs.forEach(url => {
-    for (const [key, value] of url.searchParams) {
-      parameterValuesByKey[key] ??= [];
-      parameterValuesByKey[key].push(value);
-    }
-  });
-
-  return mapValues(parameterValuesByKey, parameterList => {
-    return Array.from(new Set(parameterList));
-  });
-}
-
 function formatBasePath(span: Span, baseURL?: string): string {
   const spanURL = extractSpanURLString(span, baseURL);
 
@@ -912,5 +841,6 @@ const QueryCard = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   pre {
     margin: 0 !important;
+    padding-top: ${p => p.theme.space.md} !important;
   }
 `;

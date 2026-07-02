@@ -1,27 +1,28 @@
 import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
-import type {Query} from 'history';
+import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
@@ -72,11 +73,13 @@ const getOrganizationReleasesMemoized = memoize(
       .join('-')
 );
 
-export interface ReleaseSeriesProps extends WithRouterProps {
+export interface ReleaseSeriesProps {
   api: Client;
   children: (s: State) => React.ReactNode;
   end: DateString;
   environments: readonly string[];
+  location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: readonly number[];
   start: DateString;
@@ -228,7 +231,8 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   getReleaseSeries = (releases: any, lineStyle = {}) => {
     const {
       organization,
-      router,
+      location,
+      navigate,
       tooltip,
       environments,
       start,
@@ -240,7 +244,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     } = this.props;
 
     const query = {...queryExtra};
-    query.project = router.location.query.project;
+    query.project = location.query.project;
     if (preserveQueryParams) {
       query.environment = [...environments];
       query.start = start ? getUtcDateString(start) : undefined;
@@ -265,7 +269,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         value: formatVersion(release.version, true),
 
         onClick: () => {
-          router.push({
+          navigate({
             pathname: makeReleasesPathname({
               organization,
               path: `/${encodeURIComponent(release.version)}/`,
@@ -330,7 +334,13 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   }
 }
 
+function WithRouter(props: Omit<ReleaseSeriesProps, 'location' | 'navigate'>) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <ReleaseSeries {...props} location={location} navigate={navigate} />;
+}
+
 /**
  * @deprecated use useReleaseBubbles instead
  */
-export default withSentryRouter(withOrganization(withApi(withTheme(ReleaseSeries))));
+export default withOrganization(withApi(withTheme(WithRouter)));

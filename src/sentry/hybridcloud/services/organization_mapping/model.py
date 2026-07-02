@@ -33,13 +33,13 @@ class RpcOrganizationMappingUpdate(RpcModel):
     status: int = 0
     slug: str = ""
     cell_name: str = ""
+    date_created: datetime = Field(default_factory=timezone.now)
 
     # When not set, no change to customer id performed,
     # when set with a CustomerId, the customer_id set to either None or string
     customer_id: CustomerId | None = None
     requires_2fa: bool = False
     early_adopter: bool = False
-    codecov_access: bool = False
     disable_shared_issues: bool = False
     allow_joinleave: bool = False
     disable_new_visibility_features: bool = False

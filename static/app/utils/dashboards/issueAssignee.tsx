@@ -1,5 +1,4 @@
-import {useCallback} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   AssigneeSelector,
@@ -7,43 +6,58 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface IssueAssigneeProps {
   groupId: string;
+  projectId: string;
+  projectSlug: string;
+  assignedTo?: Group['assignedTo'];
+  owners?: Group['owners'];
 }
 
-export function IssueAssignee({groupId}: IssueAssigneeProps) {
+export function IssueAssignee({
+  groupId,
+  projectId,
+  projectSlug,
+  assignedTo,
+  owners,
+}: IssueAssigneeProps) {
   const organization = useOrganization();
-  const environments = useEnvironmentsFromUrl();
-  const queryClient = useQueryClient();
-  const {data: group} = useGroup({groupId});
+  const [assignedToOverride, setAssignedToOverride] = useState<{
+    assignedTo: Group['assignedTo'];
+    groupId: IssueAssigneeProps['groupId'];
+  } | null>(null);
 
-  // Update useGroup() query cache
+  const currentAssignedTo =
+    assignedToOverride?.groupId === groupId
+      ? assignedToOverride.assignedTo
+      : (assignedTo ?? null);
+
+  const group = useMemo(
+    () => ({
+      id: groupId,
+      assignedTo: currentAssignedTo,
+      owners,
+      project: {
+        id: projectId,
+        slug: projectSlug,
+      },
+    }),
+    [currentAssignedTo, groupId, owners, projectId, projectSlug]
+  );
+
   const onSuccess = useCallback(
-    (assignedTo: Group['assignedTo']) => {
-      queryClient.setQueryData(
-        groupApiOptions({
-          organizationSlug: organization.slug,
-          groupId,
-          environments,
-        }).queryKey,
-        prev => (prev ? {...prev, json: {...prev.json, assignedTo}} : prev)
-      );
+    (nextAssignedTo: Group['assignedTo']) => {
+      setAssignedToOverride({groupId, assignedTo: nextAssignedTo});
     },
-    [queryClient, organization.slug, groupId, environments]
+    [groupId]
   );
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    group: group!,
+    group,
     organization,
     onSuccess,
   });
-
-  if (!group) {
-    return null;
-  }
 
   return (
     <AssigneeSelector

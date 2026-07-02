@@ -1,4 +1,4 @@
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,7 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('renders default values when the project has no preprod options', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: project,
@@ -48,7 +48,7 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('reflects project values from explicit fields', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotStatusChecksEnabled: true,
       preprodSnapshotStatusChecksFailOnAdded: true,
@@ -81,7 +81,7 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('saves fail_on_changed when toggled off', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
     MockApiClient.addMockResponse({
       url: projectEndpoint,
@@ -115,7 +115,7 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('saves fail_on_renamed when toggled on', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
     MockApiClient.addMockResponse({
       url: projectEndpoint,
@@ -149,7 +149,7 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('immediately hides failure condition toggles when status checks are disabled', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
     MockApiClient.addMockResponse({
       url: projectEndpoint,
@@ -197,7 +197,7 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('hides per-category toggles and shows a hint when status checks are disabled', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotStatusChecksEnabled: false,
     });

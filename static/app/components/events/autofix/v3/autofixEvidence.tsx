@@ -3,9 +3,9 @@ import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {IconCompass} from 'sentry/icons/iconCompass';
 import {IconFile} from 'sentry/icons/iconFile';
-import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconIssues} from 'sentry/icons/iconIssues';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
@@ -13,8 +13,8 @@ import {IconSpan} from 'sentry/icons/iconSpan';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -111,7 +111,7 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -157,7 +157,7 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -192,7 +192,7 @@ function getIssueDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -219,7 +219,7 @@ function getReplayDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -246,7 +246,7 @@ function getProfileFlamegraphEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization.slug, projects);
+  const target = buildToolLinkUrl(toolLink, organization, projects);
   if (!defined(target)) {
     return null;
   }
@@ -275,17 +275,34 @@ function getCodeSearchEvidenceProps({
       return null;
     }
     const filename = extractFileName(path);
-    const {code_url} = toolLink?.params ?? {};
+    const {code_url, start_line, end_line} = toolLink?.params ?? {};
 
     if (!defined(filename) || !defined(code_url)) {
       return null;
     }
 
+    const lines =
+      start_line && end_line
+        ? start_line === end_line
+          ? `L${start_line}`
+          : `L${start_line}-L${end_line}`
+        : undefined;
+
     return {
-      href: code_url,
+      href: lines ? `${code_url}#${lines}` : code_url,
       icon: <IconFile />,
-      label: t('File: %s', truncateText(filename)),
-      tooltip: path,
+      label: t('File: %s%s', truncateText(filename), lines ? ` ${lines}` : ''),
+      tooltip: (
+        <Fragment>
+          {path}
+          {lines && (
+            <Fragment>
+              <br />
+              {lines}
+            </Fragment>
+          )}
+        </Fragment>
+      ),
     };
   }
 
@@ -295,13 +312,21 @@ function getCodeSearchEvidenceProps({
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path} =
-    toolLink?.params ?? {};
+  const {
+    repo_name,
+    commit_url,
+    sha,
+    commits_url,
+    start_date,
+    end_date,
+    file_path,
+    provider,
+  } = toolLink?.params ?? {};
 
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
       href: commit_url,
-      icon: <IconGithub />, // TODO: support other SCMs
+      icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
       label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
       tooltip: sha,
     };
@@ -317,7 +342,7 @@ function getGitSearchEvidenceProps({
       typeof file_path === 'string' ? extractFileName(file_path) : undefined;
     return {
       href: commits_url,
-      icon: <IconGithub />, // TODO: support other SCMs
+      icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
       label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
       tooltip: (
         <Fragment>

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
@@ -26,6 +26,11 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
         <LargeWidget>
           <HeatMapWidgetVisualization plottables={[new HeatMap(sampleLatencyHeatMap)]} />
         </LargeWidget>
+
+        <p>
+          <strong>Hint:</strong> clicking on the chart will display the X-, Y-, and Z-axis
+          values in the tooltip.
+        </p>
       </Fragment>
     );
   });
@@ -97,6 +102,81 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
         </CodeBlock>
       </Fragment>
     );
+  });
+
+  story('Tooltip Actions', () => {
+    function TooltipActionsStory() {
+      const [localFilterQuery, setLocalFilterQuery] = useState<string | undefined>(
+        undefined
+      );
+
+      return (
+        <Fragment>
+          <p>
+            By default a cell's tooltip shows its Y-axis bucket range and Z-axis count.
+            Click a cell to open the tooltip.
+          </p>
+          <p>
+            Pass <code>renderTooltipActions</code> to add action rows (e.g., an Explore
+            link). It receives the hovered cell's raw bounds — <code>valueMin</code>/
+            <code>valueMax</code> (Y-axis) and <code>timestampStart</code>/
+            <code>timestampEnd</code> (X-axis). It should return a React fragment that
+            will be rendered in the tooltip.
+          </p>
+          <p>
+            Because ECharts renders the tooltip to an HTML string, React click handlers
+            don't work in that context. Instead, the visualization routes clicks for you.
+            Annotate your links with <code>data-traces-link</code> for navigations, and{' '}
+            <code>data-tooltip-action</code> with <code>data-tooltip-action-value</code>{' '}
+            for actions. These will be dispatched to the matching{' '}
+            <code>tooltipActionHandlers</code> entry.
+          </p>
+          <p>
+            <CodeBlock language="jsx">
+              {`<HeatMapWidgetVisualization
+  plottables={[new HeatMap(heatMapData)]}
+  tooltipActionHandlers={{'add-to-filter': query => setLocalFilterQuery(query)}}
+  renderTooltipActions={({valueMin, valueMax, timestampStart, timestampEnd}) => {
+    const valueQuery = \`value:>=\${valueMin} value:<\${valueMax}\`;
+    return (
+      <Fragment>
+        <a data-traces-link={getExploreUrl({organization, selection, crossEvents: [...]})}>
+          View connected spans
+        </a>
+        <a data-tooltip-action="add-to-filter" data-tooltip-action-value={valueQuery}>
+          Add to filter
+        </a>
+      </Fragment>
+    );
+  }}
+/>`}
+            </CodeBlock>
+          </p>
+          <LargeWidget>
+            <p>{`Local Filter Query: ${localFilterQuery}`}</p>
+            <HeatMapWidgetVisualization
+              plottables={[new HeatMap(sampleLatencyHeatMap)]}
+              tooltipActionHandlers={{
+                'add-to-filter': query => setLocalFilterQuery(query),
+              }}
+              renderTooltipActions={({valueMin, valueMax}) => (
+                <div>
+                  <span className="tooltip-label tooltip-label-centered">
+                    <a
+                      data-tooltip-action="add-to-filter"
+                      data-tooltip-action-value={`value:>=${valueMin} value:<${valueMax}`}
+                    >
+                      Add to filter
+                    </a>
+                  </span>
+                </div>
+              )}
+            />
+          </LargeWidget>
+        </Fragment>
+      );
+    }
+    return <TooltipActionsStory />;
   });
 });
 

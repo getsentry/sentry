@@ -7,7 +7,7 @@ import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
@@ -39,7 +39,7 @@ export function DeletableToken({
   invalid,
 }: DeletableTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
   const {shiftFocusProps} = useShiftFocusToChild(item, state);
 

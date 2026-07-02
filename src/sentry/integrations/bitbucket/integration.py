@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from itertools import chain
 from typing import Any
 
@@ -35,7 +35,7 @@ from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
@@ -175,16 +175,6 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
             return False
         return True
 
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        repos = repository_service.get_repositories(
-            organization_id=self.organization_id,
-            providers=[IntegrationProviderSlug.BITBUCKET.value],
-        )
-
-        accessible_repos = [r["identifier"] for r in self.get_repositories()]
-
-        return [repo for repo in repos if repo.name not in accessible_repos]
-
     def source_url_matches(self, url: str) -> bool:
         return url.startswith(f"https://{self.model.metadata['domain_name']}") or url.startswith(
             "https://bitbucket.org",
@@ -269,9 +259,6 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
-
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [BitbucketAuthorizeApiStep()]

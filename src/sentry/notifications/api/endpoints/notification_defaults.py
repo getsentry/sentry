@@ -15,7 +15,7 @@ class NotificationDefaultsEndpoints(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.NOTIFICATIONS
     permission_classes = ()
 
     def get(self, request: Request) -> Response:

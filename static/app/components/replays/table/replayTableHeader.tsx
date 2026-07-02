@@ -12,8 +12,8 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
@@ -33,19 +33,11 @@ export function ReplayTableHeader({
   stickyHeader,
 }: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    deselectAll,
-    isAllSelected,
-    isAnySelected,
-    queryKeyRef,
-    selectAll,
-    selectedIds,
-  } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const {countSelected, deselectAll, endpointOptionsRef, selectAll, selectedIds} =
+    listItemCheckboxState;
+  const endpointOptions = endpointOptionsRef.current;
+  const rawQuery = endpointOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
     ? {position: 'sticky', top: 0}
@@ -69,7 +61,7 @@ export function ReplayTableHeader({
         ))}
       </TableHeader>
 
-      {isAnySelected ? (
+      <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader>
           <TableCellFirst>
             <ReplaySelectColumn.Header
@@ -89,21 +81,21 @@ export function ReplayTableHeader({
             {selectedIds !== 'all' && (
               <ReplayBulkViewedActions
                 deselectAll={deselectAll}
-                queryKeyRef={queryKeyRef}
+                endpointOptionsRef={endpointOptionsRef}
                 replays={replays}
                 selectedIds={selectedIds}
               />
             )}
             <DeleteReplays
-              queryOptions={queryOptions}
+              queryOptions={endpointOptionsRef.current}
               replays={replays}
               selectedIds={selectedIds}
             />
           </Flex>
         </TableHeader>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === 'indeterminate' ? (
+      <ListItemSelectedState selected="indeterminate">
         <FullGridAlert variant="info" system>
           <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn(
@@ -120,9 +112,9 @@ export function ReplayTableHeader({
             </a>
           </Flex>
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === true ? (
+      <ListItemSelectedState selected="all">
         <FullGridAlert variant="info" system>
           {queryString
             ? tct('Selected all replays matching: [queryString].', {
@@ -132,7 +124,7 @@ export function ReplayTableHeader({
               ? t('Selected all %s+ replays.', replays.length)
               : tn('Selected all %s replay.', 'Selected all %s replays.', countSelected)}
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
     </Fragment>
   );
 }

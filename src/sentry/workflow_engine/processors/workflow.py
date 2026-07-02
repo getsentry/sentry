@@ -7,14 +7,14 @@ from enum import StrEnum
 import sentry_sdk
 from django.db.models import Q
 
-from sentry import features
+from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
-from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -93,6 +93,7 @@ def enqueue_workflows(
     project_to_workflow: dict[int, list[int]] = {}
     if not items_by_project_id:
         sentry_sdk.set_tag("delayed_workflow_items", items)
+        sentry_sdk.set_attribute("delayed_workflow_items", items)
         return
 
     for project_id, queue_items in items_by_project_id.items():
@@ -104,6 +105,7 @@ def enqueue_workflows(
         project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
+    sentry_sdk.set_attribute("delayed_workflow_items", items)
 
     client.add_project_ids(list(items_by_project_id.keys()))
 
@@ -156,20 +158,21 @@ def evaluate_workflow_triggers(
     # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
     data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
 
-    project = event_data.event.project  # expected to be already cached
-    dual_processing_logs_enabled = features.has(
-        "organizations:workflow-engine-metric-alert-dual-processing-logs",
-        project.organization,
-    )
+    # Retrieve data condition groups as a batch to avoid a query/cache-lookup per DCG.
+    data_condition_groups_by_id: dict[int, DataConditionGroup] = {
+        dcg.id: dcg for dcg in DataConditionGroup.objects.get_many_from_cache(dcg_ids)
+    }
 
     tainted_untriggered, untainted_untriggered = 0, 0
     for workflow in workflows:
         when_data_conditions = None
+        when_condition_group = None
         if dcg_id := workflow.when_condition_group_id:
             when_data_conditions = data_conditions_by_dcg_id.get(dcg_id)
+            when_condition_group = data_condition_groups_by_id.get(dcg_id)
 
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(
-            event_data, when_data_conditions
+            event_data, when_data_conditions, when_condition_group
         )
 
         if remaining_conditions:
@@ -196,22 +199,6 @@ def evaluate_workflow_triggers(
         else:
             if evaluation.triggered:
                 triggered_workflows[workflow] = evaluation
-                if dual_processing_logs_enabled:
-                    try:
-                        detector = WorkflowEventContext.get().detector
-                        detector_id = detector.id if detector else None
-                        logger.info(
-                            "workflow_engine.process_workflows.workflow_triggered",
-                            extra={
-                                "workflow_id": workflow.id,
-                                "detector_id": detector_id,
-                                "organization_id": project.organization.id,
-                                "project_id": project.id,
-                                "group_type": event_data.group.type,
-                            },
-                        )
-                    except DetectorWorkflow.DoesNotExist:
-                        continue
             else:
                 if evaluation.is_tainted():
                     tainted_untriggered += 1
@@ -498,6 +485,20 @@ def process_workflows(
         log_context.set_verbose(True)
 
     workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    wrong_org_workflows = {wf for wf in workflows if wf.organization_id != organization.id}
+    if wrong_org_workflows:
+        logger.warning(
+            "workflow_engine.process_workflows.wrong_organization",
+            extra={
+                "organization_id": organization.id,
+                "wrong_org_workflow_ids": sorted(wf.id for wf in wrong_org_workflows),
+                "wrong_org_organization_ids": sorted(
+                    wf.organization_id for wf in wrong_org_workflows
+                ),
+            },
+        )
+        if options.get("workflow_engine.filter_cross_org_workflows"):
+            workflows = workflows - wrong_org_workflows
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))
@@ -564,6 +565,9 @@ def process_workflows(
     workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     sentry_sdk.set_tag(
+        "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
+    )
+    sentry_sdk.set_attribute(
         "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
     )
 

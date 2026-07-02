@@ -15,7 +15,6 @@ export function shouldShowOnDemandMetricAlertUI(organization: Organization) {
 export function hasOnDemandMetricWidgetFeature(organization: Organization) {
   return (
     organization.features.includes('on-demand-metrics-extraction') &&
-    (organization.features.includes('on-demand-metrics-extraction-experimental') ||
-      organization.features.includes('on-demand-metrics-ui-widgets'))
+    organization.features.includes('on-demand-metrics-ui-widgets')
   );
 }

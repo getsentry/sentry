@@ -60,10 +60,15 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     @mock.patch(
+        "sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler.logger"
+    )
+    @mock.patch(
         "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
     )
-    def test_handle_workflow_action_no_handler(self, mock_registry_get: mock.MagicMock) -> None:
-        """Test that handle_workflow_action raises NoRegistrationExistsError when no handler exists"""
+    def test_handle_workflow_action_no_handler(
+        self, mock_registry_get: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that handle_workflow_action re-raises NoRegistrationExistsError without logging it as an exception"""
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
@@ -77,6 +82,8 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
                 workflow_id=self.workflow.id,
             )
             MetricAlertRegistryHandler.handle_workflow_action(invocation)
+
+        mock_logger.exception.assert_not_called()
 
     def test_handle_activity_update(self) -> None:
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)

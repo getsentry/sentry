@@ -45,7 +45,9 @@ describe('useReplayData', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
   });
 
@@ -160,6 +162,8 @@ describe('useReplayData', () => {
       },
     });
 
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
@@ -230,6 +234,8 @@ describe('useReplayData', () => {
         errorsPerPage: 1,
       },
     });
+
+    await act(() => jest.advanceTimersByTimeAsync(0));
 
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
     expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
@@ -364,10 +370,14 @@ describe('useReplayData', () => {
       },
     });
 
-    await waitFor(() => expect(mockedErrorEventsMetaCall1).toHaveBeenCalledTimes(1));
-    expect(mockedErrorEventsMetaCall2).toHaveBeenCalledTimes(1);
-    expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
-    expect(mockedIssuePlatformEventsMetaCall2).toHaveBeenCalledTimes(1);
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
+    await waitFor(() => {
+      expect(mockedErrorEventsMetaCall1).toHaveBeenCalledTimes(1);
+      expect(mockedErrorEventsMetaCall2).toHaveBeenCalledTimes(1);
+      expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
+      expect(mockedIssuePlatformEventsMetaCall2).toHaveBeenCalledTimes(1);
+    });
 
     await waitFor(() => {
       expect(result.current).toStrictEqual(
@@ -442,16 +452,17 @@ describe('useReplayData', () => {
     });
 
     const expectedReplayData = {
+      attachmentError: undefined,
       attachments: [],
       errors: [],
       feedbackEvents: [],
       fetchError: undefined,
-      isError: true,
+      isError: false,
       isPending: true,
       onRetry: expect.any(Function),
       projectSlug: null,
       replayRecord: undefined,
-      status: 'error',
+      status: 'pending',
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made
@@ -547,7 +558,8 @@ describe('useReplayData', () => {
       },
     });
 
-    // We need this 'await waitFor()' for the following assertions to pass:
+    await act(() => jest.advanceTimersByTimeAsync(0));
+
     await waitFor(() => {
       expect(result.current).toBeTruthy();
     });
@@ -559,13 +571,16 @@ describe('useReplayData', () => {
       expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(2);
     });
 
-    result.current.onRetry();
+    await act(async () => {
+      result.current.onRetry();
+      await jest.runAllTimersAsync();
+    });
 
     await waitFor(() => {
       expect(mockedReplayCall).toHaveBeenCalledTimes(2);
     });
     await waitFor(() => {
-      expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(2);
+      expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(4);
     });
   });
 });

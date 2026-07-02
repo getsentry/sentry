@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {StyledForm} from './form';
 import {FormField, type FormFieldProps} from './formField';
 
 // Combined interface for SelectField props
-export interface SelectFieldProps extends FormFieldProps {
+interface SelectFieldProps extends FormFieldProps {
   // Modified to accept various choice formats
   choices?: Array<[value: any, label: string | number]> | string[][] | string[];
   clearable?: boolean;
@@ -31,7 +31,7 @@ export interface SelectFieldProps extends FormFieldProps {
 
 // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-export class SelectField extends FormField<SelectFieldProps> {
+class SelectField extends FormField<SelectFieldProps> {
   static defaultProps = {
     ...FormField.defaultProps,
     clearable: true,

@@ -1,9 +1,9 @@
 import {useMemo, type ReactNode} from 'react';
 
+import {FORM_FIELD_REGISTRY} from '@sentry/scraps/form';
+
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import type {FormSearchField} from 'sentry/components/search/sources/formSource';
-import {getSearchMap} from 'sentry/components/search/sources/formSource';
 import {IconLock, IconMail, IconSettings, IconSubscribed, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
@@ -37,7 +37,9 @@ function titleFromRoute(route: string): string {
     .replace(/^account\//, '')
     .split('/')[0];
 
-  if (!segment) return 'Settings';
+  if (!segment) {
+    return 'Settings';
+  }
 
   return segment
     .split('-')
@@ -46,15 +48,23 @@ function titleFromRoute(route: string): string {
 }
 
 function isSettingsRoute(route: string): boolean {
-  if (!route.startsWith('/settings/')) return false;
-  if (route.includes(':projectId')) return false;
-  if (route.includes(':teamId')) return false;
-  if (route.includes(':appId')) return false;
+  if (!route.startsWith('/settings/')) {
+    return false;
+  }
+  if (route.includes(':projectId')) {
+    return false;
+  }
+  if (route.includes(':teamId')) {
+    return false;
+  }
+  if (route.includes(':appId')) {
+    return false;
+  }
   return true;
 }
 
 type SettingsFieldEntry = {
-  display: {label: string};
+  display: {label: string; details?: string};
   key: string;
   keywords: string[];
   to: {hash: string; pathname: string};
@@ -67,9 +77,9 @@ type SettingsFieldSection = {
   icon?: ReactNode;
 };
 
-function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
-  const allFields = getSearchMap();
+type FormFieldDefinition = (typeof FORM_FIELD_REGISTRY)[string];
 
+function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
   const routeTitleMap = new Map<string, string>();
   for (const section of getUserOrgNavigationConfiguration()) {
     for (const item of section.items) {
@@ -77,10 +87,14 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
     }
   }
 
-  const groups = new Map<string, Map<string, FormSearchField>>();
-  for (const field of allFields) {
-    if (!isSettingsRoute(field.route)) continue;
-    if (typeof field.title !== 'string' || !field.title) continue;
+  const groups = new Map<string, Map<string, FormFieldDefinition>>();
+  for (const field of Object.values(FORM_FIELD_REGISTRY)) {
+    if (!isSettingsRoute(field.route)) {
+      continue;
+    }
+    if (typeof field.label !== 'string' || !field.label) {
+      continue;
+    }
 
     const normalizedRoute = normalizeRouteForLookup(field.route);
     let routeFields = groups.get(normalizedRoute);
@@ -88,7 +102,7 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
       routeFields = new Map();
       groups.set(normalizedRoute, routeFields);
     }
-    routeFields.set(field.field.name, field);
+    routeFields.set(field.name, field);
   }
 
   return Array.from(groups.entries())
@@ -102,18 +116,19 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
         icon: ROUTE_ICONS[route],
         fields: Array.from(fieldMap.values())
           .filter(
-            (f): f is FormSearchField & {title: string} =>
-              typeof f.title === 'string' && f.title.length > 0
+            (f): f is FormFieldDefinition & {label: string} =>
+              typeof f.label === 'string' && f.label.length > 0
           )
           .map(f => ({
-            key: `${route}#${f.field.name}`,
+            key: `${route}#${f.name}`,
             display: {
-              label: f.title,
+              label: f.label,
+              details: f.hintText,
             },
-            keywords: ['settings', title, f.field.name],
+            keywords: ['settings', title, f.name],
             to: {
               pathname: resolvedPath,
-              hash: `#${encodeURIComponent(f.field.name)}`,
+              hash: `#${encodeURIComponent(f.name)}`,
             },
           }))
           .sort((a, b) => a.display.label.localeCompare(b.display.label)),

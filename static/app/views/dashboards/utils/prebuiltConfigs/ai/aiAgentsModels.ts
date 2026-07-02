@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {AI_AGENTS_MODELS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -97,7 +100,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const MODELS_TABLE = {
+const MODELS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-models-table',
   title: t('Models'),
   displayType: DisplayType.TABLE,
@@ -110,7 +113,7 @@ const MODELS_TABLE = {
       fields: [
         SpanFields.GEN_AI_RESPONSE_MODEL,
         'count()',
-        'equation|count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -121,7 +124,7 @@ const MODELS_TABLE = {
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,

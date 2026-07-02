@@ -5,10 +5,6 @@ import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersIn
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-export type FilterFields = {
-  f_t_search: string;
-};
-
 type Options = {
   tags: ReplayRecord['tags'];
 };
@@ -27,7 +23,7 @@ const FILTERS = {
 };
 
 export function useTagFilters({tags}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const {setFilter, query} = useFiltersInLocationQuery();
 
   const searchTerm = decodeScalar(query.f_t_search, '').toLowerCase();
 

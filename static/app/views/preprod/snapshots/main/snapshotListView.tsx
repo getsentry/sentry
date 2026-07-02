@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -17,6 +18,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -60,10 +62,11 @@ type GroupCard =
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
+      status: DiffStatus;
       type: 'pair-card';
     }
   | {
-      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged';
+      cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
       estimatedHeight: number;
       id: string;
       image: SnapshotImage;
@@ -83,20 +86,20 @@ interface GroupRow {
 // Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
 const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
+const ERRORED_BANNER_HEIGHT = 56;
 const CARD_GAP = 0;
 const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
-const LIST_CONTENT_WIDTH_ASSUMPTION = 900;
+const DEFAULT_CONTENT_WIDTH = 900;
 const SNAPSHOT_FRAME_BORDER_WIDTH = 1;
 const STICKY_HEADER_BOTTOM_OVERLAP = SNAPSHOT_FRAME_BORDER_WIDTH * 2;
 
-function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
-  const columnWidth = splitColumns
-    ? LIST_CONTENT_WIDTH_ASSUMPTION / 2
-    : LIST_CONTENT_WIDTH_ASSUMPTION;
-  // The <img> uses width: auto + max-width: 100%, so it never scales up past
-  // its natural size. Mirror that here: only scale down when natural width
-  // exceeds the column.
+function estimateCardHeight(
+  image: SnapshotImage,
+  splitColumns: boolean,
+  contentWidth: number
+) {
+  const columnWidth = splitColumns ? contentWidth / 2 : contentWidth;
   const aspectHeight =
     image.width > 0 && image.height > 0
       ? image.width <= columnWidth
@@ -108,47 +111,51 @@ function estimateCardHeight(image: SnapshotImage, splitColumns: boolean) {
 }
 
 export function isItemUngrouped(item: SidebarItem): boolean {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return !item.pairs[0]?.head_image.group;
   }
   return !item.images[0]?.group;
 }
 
-function buildGroups(items: SidebarItem[]): GroupRow[] {
+function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed') {
+    if (item.type === 'changed' || item.type === 'errored') {
+      const status = item.type === 'errored' ? DiffStatus.ERRORED : DiffStatus.CHANGED;
+      const bannerHeight = status === DiffStatus.ERRORED ? ERRORED_BANNER_HEIGHT : 0;
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
-          id: `c:${item.key}:${pair.head_image.key}`,
+          id: `c:${item.key}:${pair.head_image.image_file_name}`,
           pair,
-          estimatedHeight: Math.max(
-            estimateCardHeight(pair.head_image, true),
-            estimateCardHeight(pair.base_image, true)
-          ),
+          status,
+          estimatedHeight:
+            Math.max(
+              estimateCardHeight(pair.head_image, true, contentWidth),
+              estimateCardHeight(pair.base_image, true, contentWidth)
+            ) + bannerHeight,
         });
       }
     } else if (item.type === 'renamed') {
       for (const pair of item.pairs) {
         cards.push({
           type: 'image-card',
-          id: `c:${item.key}:${pair.head_image.key}`,
+          id: `c:${item.key}:${pair.head_image.image_file_name}`,
           image: pair.head_image,
           copyData: pair,
           cardType: item.type,
-          estimatedHeight: estimateCardHeight(pair.head_image, false),
+          estimatedHeight: estimateCardHeight(pair.head_image, false, contentWidth),
         });
       }
     } else {
       for (const image of item.images) {
         cards.push({
           type: 'image-card',
-          id: `c:${item.key}:${image.key}`,
+          id: `c:${item.key}:${image.image_file_name}`,
           image,
           cardType: item.type,
-          estimatedHeight: estimateCardHeight(image, false),
+          estimatedHeight: estimateCardHeight(image, false, contentWidth),
         });
       }
     }
@@ -192,9 +199,39 @@ export const SnapshotListView = memo(function SnapshotListView({
   onVisibleGroupChange,
 }: SnapshotListViewProps) {
   const theme = useTheme();
-  const groups = useMemo(() => buildGroups(items), [items]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
+
+  const [contentWidth, setContentWidth] = useState(DEFAULT_CONTENT_WIDTH);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const style = getComputedStyle(el);
+    setContentWidth(
+      el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContentWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const groups = useMemo(() => buildGroups(items, contentWidth), [items, contentWidth]);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
@@ -204,7 +241,6 @@ export const SnapshotListView = memo(function SnapshotListView({
     overscan: 5,
     scrollPaddingEnd: 8,
   });
-  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => false;
 
   // Flat (snapshotKey -> groupIdx / position) index for keyboard nav and scroll; O(1) lookups
   const flatIndex = useMemo(() => {
@@ -339,22 +375,27 @@ export const SnapshotListView = memo(function SnapshotListView({
     }
     didInitialScroll.current = true;
     virtualizer.scrollToIndex(targetIdx, {align: 'start'});
-    requestAnimationFrame(() => {
+
+    const isUngrouped =
+      groups[flatIndex.groupIdxByKey.get(initialSnapshotKey) ?? -1]?.isUngrouped ?? true;
+
+    let retries = 3;
+    const adjustScroll = () => {
       const el = scrollRef.current?.querySelector<HTMLElement>(
         `[data-snapshot-key="${CSS.escape(initialSnapshotKey)}"]`
       );
-      if (el) {
-        el.scrollIntoView({block: 'start'});
-        const groupIdx = flatIndex.groupIdxByKey.get(initialSnapshotKey);
-        if (
-          groupIdx !== undefined &&
-          !groups[groupIdx]?.isUngrouped &&
-          scrollRef.current
-        ) {
-          scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+      if (!el || !scrollRef.current) {
+        if (retries-- > 0) {
+          requestAnimationFrame(adjustScroll);
         }
+        return;
       }
-    });
+      el.scrollIntoView({block: 'start'});
+      if (!isUngrouped) {
+        scrollRef.current.scrollTop -= SNAPSHOT_GROUP_HEADER_HEIGHT;
+      }
+    };
+    requestAnimationFrame(adjustScroll);
   }, [groups, initialSnapshotKey, flatIndex, virtualizer]);
 
   const keyNavRef = useRef({
@@ -598,7 +639,7 @@ const GroupContainer = memo(function GroupContainer({
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
-    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
     const onCopyLink = () =>
       trackAnalytics('preprod.snapshots.details.image_link_copied', {
         organization,
@@ -613,6 +654,7 @@ const GroupContainer = memo(function GroupContainer({
       <PairCard
         key={card.id}
         pair={card.pair}
+        status={card.status}
         imageBaseUrl={imageBaseUrl}
         headBranch={headBranch}
         isSelected={isSelected}

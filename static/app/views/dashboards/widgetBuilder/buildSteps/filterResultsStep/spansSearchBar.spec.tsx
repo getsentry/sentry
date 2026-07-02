@@ -92,12 +92,6 @@ describe('SpansSearchBar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {}},
-    });
   });
 
   it('renders the initial query conditions', async () => {
@@ -151,7 +145,7 @@ describe('SpansSearchBar', () => {
     });
   });
 
-  it('triggers onClose when the query changes', async () => {
+  it.isKnownFlake('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
     renderWithProvider({

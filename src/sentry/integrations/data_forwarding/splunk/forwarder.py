@@ -7,12 +7,36 @@ from sentry import tagstore
 from sentry.integrations.data_forwarding.base import BaseDataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
+from sentry.utils.anonymizeip import anonymize_ip
 from sentry.utils.hashlib import md5_text
-from sentry_plugins.anonymizeip import anonymize_ip
-from sentry_plugins.splunk.client import SplunkApiClient
 
 logger = logging.getLogger(__name__)
+
+
+class SplunkApiClient(BaseApiClient):
+    integration_type = "plugin"
+    metrics_prefix = "integrations.splunk"
+    plugin_name = "splunk"
+    allow_redirects = False
+
+    def __init__(self, endpoint, token):
+        self.endpoint = endpoint
+        self.token = token
+        super().__init__(verify_ssl=False)
+
+    def request(self, data):
+        headers = {"Authorization": f"Splunk {self.token}"}
+        return self._request(
+            path=self.endpoint,
+            method="post",
+            data=data,
+            headers=headers,
+            json=True,
+            timeout=5,
+            allow_text=True,
+        )
 
 
 class SplunkForwarder(BaseDataForwarder):
@@ -68,7 +92,7 @@ class SplunkForwarder(BaseDataForwarder):
             if key == "request":
                 headers = value.headers
                 if not isinstance(headers, dict):
-                    headers = dict(headers or ())
+                    headers = dict(h for h in (headers or ()) if h is not None)
 
                 props.update(
                     {
@@ -149,3 +173,30 @@ class SplunkForwarder(BaseDataForwarder):
                 return False
             raise
         return True
+
+    def get_task_payload(self, event: Event | GroupEvent, config: dict[str, Any]) -> dict[str, Any]:
+        return {"host": self.host}
+
+    @staticmethod
+    def forward_event_from_task(
+        *,
+        config: dict[str, Any],
+        event_payload: dict[str, Any],
+        task_payload: dict[str, Any],
+    ) -> None:
+        token = config.get("token")
+        index = config.get("index")
+        instance = config.get("instance_url")
+
+        if not token or not index or not instance:
+            return
+
+        if not instance.endswith("/services/collector"):
+            instance = instance.rstrip("/") + "/services/collector"
+
+        host = task_payload.get("host")
+        if host:
+            event_payload["host"] = host
+
+        client = SplunkApiClient(instance, token)
+        client.request(event_payload)

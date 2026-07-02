@@ -26,7 +26,7 @@ class TimeSeriesValueResponse(TypedDict):
     count: int
 
 
-class TimeSeriesValueSerializer(Serializer):
+class TimeSeriesValueSerializer(Serializer[TimeSeriesValueResponse]):
     def serialize(
         self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> TimeSeriesValueResponse:
@@ -39,9 +39,6 @@ class TimeSeriesValueSerializer(Serializer):
 @extend_schema(tags=["issue_alerts"])
 @cell_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
-    }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

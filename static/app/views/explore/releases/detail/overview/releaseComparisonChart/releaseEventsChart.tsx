@@ -9,7 +9,6 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -19,7 +18,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   generateReleaseMarkLines,
   releaseComparisonChartTitles,
@@ -30,7 +29,6 @@ import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 type Props = {
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
-  organization: Organization;
   project: ReleaseProject;
   release: ReleaseWithHealth;
   value: React.ReactNode;
@@ -40,18 +38,18 @@ type Props = {
   utc?: boolean;
 };
 
-function ReleaseEventsChart({
+export function ReleaseEventsChart({
   release,
   project,
   chartType,
   value,
   diff,
-  organization,
   period,
   start,
   end,
   utc,
 }: Props) {
+  const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
@@ -232,5 +230,3 @@ function ReleaseEventsChart({
     </EventsRequest>
   );
 }
-
-export default withOrganization(ReleaseEventsChart);

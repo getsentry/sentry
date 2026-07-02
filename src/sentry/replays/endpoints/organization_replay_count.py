@@ -14,7 +14,13 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    GlobalParams,
+    OrganizationParams,
+    ReplayParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -22,6 +28,7 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -34,6 +41,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
             Dataset.Events.value,
             Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
+            SupportedTraceItemType.SPANS.value,
         ),
         default=Dataset.Discover.value,
     )
@@ -65,15 +73,19 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
 
     @extend_schema(
         examples=ReplayExamples.GET_REPLAY_COUNTS,
-        operation_id="Retrieve a Count of Replays for a Given Issue or Transaction",
+        operation_id="getOrganizationReplayCount",
+        summary="Retrieve a Count of Replays for a Given Issue or Transaction",
         parameters=[
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            OrganizationParams.PROJECT,
             OrganizationParams.PROJECT_ID_OR_SLUG,
             VisibilityParams.QUERY,
+            ReplayParams.DATA_SOURCE,
+            ReplayParams.RETURN_IDS,
         ],
         responses={
             200: inline_sentry_response_serializer("ReplayCounts", dict[int, int]),
@@ -81,7 +93,9 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             403: RESPONSE_FORBIDDEN,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[dict[int, int]] | Response[DetailResponse]:
         """Return a count of replays for a list of issue or transaction IDs.
 
         The `query` parameter is required. It is a search query that includes exactly one of `issue.id`, `transaction`, or `replay_id` (string or list of strings).

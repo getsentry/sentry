@@ -121,7 +121,9 @@ function CMDKActionWithResource<TData = unknown>({
       ? data.map((item, i) => {
           // CommandPaletteActionGroup has an `actions` prop that CMDKAction doesn't
           // accept, so we skip groups here — they can't be auto-rendered as leaf nodes.
-          if ('actions' in item) return null;
+          if ('actions' in item) {
+            return null;
+          }
           return <CMDKAction key={i} {...item} />;
         })
       : null;

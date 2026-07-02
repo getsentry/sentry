@@ -12,6 +12,7 @@ interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
+  isOnboarding: boolean;
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
@@ -24,17 +25,21 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
   featureMeta,
   isVolumeLoading,
+  isOnboarding,
 }: ScmFeatureSelectionCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
-      <Flex justify="between" align="center">
-        <Heading as="h3" size="xl">
-          {t('What do you want to instrument?')}
-        </Heading>
-        <Text size="sm" variant="secondary">
-          {t('Choose one or more')}
-        </Text>
-      </Flex>
+      {isOnboarding ? (
+        <Flex justify="between" align="center">
+          <Heading as="h4">{t('What do you want to instrument?')}</Heading>
+          {availableFeatures.length > 1 ? (
+            <Text size="sm" variant="secondary">
+              {t('Choose one or more')}
+            </Text>
+          ) : null}
+        </Flex>
+      ) : null}
+
       <Stack gap="md">
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
@@ -55,6 +60,7 @@ export function ScmFeatureSelectionCards({
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
               isVolumeLoading={isVolumeLoading}
+              showVolume={isOnboarding}
             />
           );
         })}

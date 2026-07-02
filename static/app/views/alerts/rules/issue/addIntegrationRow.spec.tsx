@@ -1,9 +1,9 @@
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -11,8 +11,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('AddIntegrationRow', () => {
   let org: any;
-  const project = ProjectFixture();
-  const provider = IntegrationProviderFixture();
+  const provider = IntegrationProviderFixture({key: 'github', slug: 'github'});
 
   beforeEach(() => {
     org = OrganizationFixture();
@@ -29,7 +28,6 @@ describe('AddIntegrationRow', () => {
           view: 'onboarding',
           already_installed: false,
         },
-        modalParams: {project: project.id},
       }}
     >
       <AddIntegrationRow onClick={jest.fn()} />
@@ -43,20 +41,18 @@ describe('AddIntegrationRow', () => {
     expect(button).toBeInTheDocument();
   });
 
-  it('opens the setup dialog on click', async () => {
-    const focus = jest.fn();
-    const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
-    // any is needed here because getSentry has different types for global
-    (global as any).open = open;
+  it('opens the pipeline modal on click', async () => {
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
 
     render(getComponent(), {organization: org});
 
     const button = await screen.findByRole('button', {name: /add integration/i});
     await userEvent.click(button);
-    expect(open.mock.calls).toHaveLength(1);
-    expect(focus.mock.calls).toHaveLength(1);
-    expect(open.mock.calls[0][2]).toBe(
-      'scrollbars=yes,width=100,height=100,top=334,left=462'
+
+    expect(openPipelineModalSpy).toHaveBeenCalledWith(
+      expect.objectContaining({type: 'integration', provider: 'github'})
     );
   });
 

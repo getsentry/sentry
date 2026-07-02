@@ -32,6 +32,7 @@
         <div class="auth-form-column">
           <form class="form-stacked" action="" method="post" autocomplete="off">
             {% csrf_token %}
+            {% if tx_id %}<input type="hidden" name="tx_id" value="{{ tx_id }}">{% endif %}
 
             <input type="hidden" name="op" value="login" />
 
@@ -81,6 +82,7 @@
         <div class="auth-form-column">
           <form class="form-stacked" action="" method="post" autocomplete="off">
             {% csrf_token %}
+            {% if tx_id %}<input type="hidden" name="tx_id" value="{{ tx_id }}">{% endif %}
 
             <input type="hidden" name="op" value="register" />
 
@@ -124,6 +126,7 @@
         <div class="auth-form-column">
           <form class="form-stacked" method="post">
             {% csrf_token %}
+            {% if tx_id %}<input type="hidden" name="tx_id" value="{{ tx_id }}">{% endif %}
 
             <input type="hidden" name="op" value="sso" />
 

@@ -11,8 +11,10 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   openAM2UpsellModal,
@@ -22,10 +24,8 @@ import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {hasPerformance} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-
-import {redirectToManage} from './upgradeNowModal/utils';
 
 type ReplayOnboardingCTAUpsellProps = {
   organization: Organization;
@@ -39,6 +39,7 @@ function ReplayOnboardingCTAUpsell({
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const api = useApi();
+  const navigate = useNavigate();
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${organization.id}:dismiss-replay-update-plan-button`,
     expirationDays: 14,
@@ -48,7 +49,6 @@ function ReplayOnboardingCTAUpsell({
     trackGetsentryAnalytics('replay.list_page.viewed', {
       organization,
       surface: 'replay_onboarding_banner',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
@@ -66,7 +66,6 @@ function ReplayOnboardingCTAUpsell({
         trackGetsentryAnalytics('replay.list_page.sent_email', {
           organization,
           surface: 'replay_onboarding_banner',
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),
@@ -94,9 +93,13 @@ function ReplayOnboardingCTAUpsell({
 
     if (previewData.error) {
       if (hasBillingAccess) {
-        // Redirect the user to the subscriptions page, where they will find important information.
-        // If they wish to update their plan, we ask them to contact our sales/support team.
-        redirectToManage(organization);
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_onboarding_cta-preview_error'},
+          }),
+          {replace: true}
+        );
       }
       return;
     }
@@ -107,7 +110,6 @@ function ReplayOnboardingCTAUpsell({
       trackGetsentryAnalytics('replay.list_page.open_modal', {
         organization,
         surface: 'replay_onboarding_banner',
-        planTier: subscription.planTier,
         canSelfServe: subscription.canSelfServe,
         channel: subscription.channel,
         has_billing_scope: hasBillingAccess,
@@ -141,6 +143,7 @@ function ReplayOnboardingCTAUpsell({
     didClickOpenModal,
     hasBillingAccess,
     isDismissed,
+    navigate,
     organization,
     previewData,
     subscription,
@@ -150,7 +153,6 @@ function ReplayOnboardingCTAUpsell({
     trackGetsentryAnalytics('replay.list_page.manage_sub', {
       organization,
       surface: 'replay_onboarding_banner',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
@@ -190,8 +192,9 @@ function ReplayOnboardingCTAUpsell({
     );
   }
 
-  if ([PlanTier.MM1, PlanTier.MM2].includes(subscription.planTier as PlanTier)) {
-    // MM1 & MM2 plans have no direct update path into AM2, prices could be wildly different
+  if (!hasPerformance(subscription.planDetails)) {
+    // Legacy MM1 & MM2 plans predate performance/tracing and have no direct update
+    // path into AM2, prices could be wildly different.
     // Members get an email, owners get to Manage Subscription
     return (
       <Fragment>

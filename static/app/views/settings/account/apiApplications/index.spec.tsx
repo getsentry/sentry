@@ -71,7 +71,7 @@ describe('ApiApplications', () => {
   });
 
   it('renders empty in demo mode even if there are applications', async () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    jest.mocked(isDemoModeActive).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
       url: '/api-applications/',
@@ -84,7 +84,7 @@ describe('ApiApplications', () => {
       await screen.findByText("You haven't created any applications yet.")
     ).toBeInTheDocument();
 
-    (isDemoModeActive as jest.Mock).mockReset();
+    jest.mocked(isDemoModeActive).mockReset();
   });
 
   it('creates confidential application via modal', async () => {

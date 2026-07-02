@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {parseAsBoolean, useQueryState} from 'nuqs';
+import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -16,7 +16,6 @@ import {t} from 'sentry/locale';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
@@ -73,31 +72,23 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.
 
-  const [selectedContentParam, setSelectedContentParam] = useQueryParamState<
-    'treemap' | 'categories'
-  >({
-    fieldName: 'view',
-  });
-  const selectedContent =
-    selectedContentParam === 'treemap' || selectedContentParam === 'categories'
-      ? selectedContentParam
-      : 'treemap';
+  const [selectedContent, setSelectedContent] = useQueryState(
+    'view',
+    parseAsStringLiteral(['treemap', 'categories'] as const).withDefault('treemap')
+  );
 
   const handleContentChange = (value: 'treemap' | 'categories') => {
-    setSelectedContentParam(value === 'treemap' ? undefined : value);
+    setSelectedContent(value === 'treemap' ? null : value);
   };
-  const [searchQuery, setSearchQuery] = useQueryParamState({
-    fieldName: 'search',
-  });
+  const [searchQuery, setSearchQuery] = useQueryState('search');
 
   const [highlightInsights, setHighlightInsights] = useQueryState(
     'highlightInsights',
     parseAsBoolean.withDefault(true)
   );
 
-  const [selectedCategoriesParam, setSelectedCategoriesParam] = useQueryParamState({
-    fieldName: 'categories',
-  });
+  const [selectedCategoriesParam, setSelectedCategoriesParam] =
+    useQueryState('categories');
 
   const selectedCategories = selectedCategoriesParam
     ? new Set(
@@ -117,7 +108,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     } else {
       next.add(category);
     }
-    setSelectedCategoriesParam(next.size > 0 ? Array.from(next).join(',') : undefined);
+    setSelectedCategoriesParam(next.size > 0 ? Array.from(next).join(',') : null);
   };
 
   const sizeInfo = buildDetailsData?.size_info;
@@ -336,7 +327,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                 ? handleAlertClick
                 : undefined
             }
-            onSearchChange={value => setSearchQuery(value || undefined)}
+            onSearchChange={value => setSearchQuery(value || null)}
             highlightInsights={highlightInsights}
             onHighlightInsightsChange={setHighlightInsights}
             insightsAvailable={insightsAvailable}
@@ -359,7 +350,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             ? handleAlertClick
             : undefined
         }
-        onSearchChange={value => setSearchQuery(value || undefined)}
+        onSearchChange={value => setSearchQuery(value || null)}
         highlightInsights={highlightInsights}
         onHighlightInsightsChange={setHighlightInsights}
         insightsAvailable={insightsAvailable}
@@ -399,12 +390,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
               <InputGroup.Input
                 placeholder="Search files"
                 value={searchQuery || ''}
-                onChange={e => setSearchQuery(e.target.value || undefined)}
+                onChange={e => setSearchQuery(e.target.value || null)}
               />
               {searchQuery && (
                 <InputGroup.TrailingItems>
                   <Button
-                    onClick={() => setSearchQuery(undefined)}
+                    onClick={() => setSearchQuery(null)}
                     aria-label="Clear search"
                     variant="transparent"
                     size="zero"

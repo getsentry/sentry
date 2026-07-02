@@ -118,11 +118,7 @@ describe('mobile navigation', () => {
         navigationContext()
       );
 
-      // Mobile nav opens to secondary by default; navigate back to see primary
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Back to primary navigation'})
-      );
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
       const links = within(primaryNav).getAllByRole('link');
@@ -159,6 +155,36 @@ describe('mobile navigation', () => {
     });
   });
 
+  it('keeps nav open when interacting with org dropdown overlay', async () => {
+    const pageFrameContext = navigationContext({
+      organization: {features: ALL_AVAILABLE_FEATURES},
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      pageFrameContext
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    // The org dropdown menu is portaled to document.body, so clicking it
+    // triggers click-outside on the nav panel. The nav should stay open.
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Organization Settings'})
+    );
+
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
+  });
+
   describe('secondary nav route inference', () => {
     it('opens secondary navigation by default when on a sub-view', async () => {
       render(
@@ -173,32 +199,6 @@ describe('mobile navigation', () => {
       expect(
         screen.getByRole('navigation', {name: 'Secondary Navigation'})
       ).toBeInTheDocument();
-    });
-
-    it('clicking back navigates to primary navigation', async () => {
-      render(
-        <PrimaryNavigationContextProvider>
-          <Navigation />
-        </PrimaryNavigationContextProvider>,
-        navigationContext()
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
-
-      expect(
-        screen.getByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Back to primary navigation'})
-      );
-
-      expect(
-        screen.getByRole('navigation', {name: 'Primary Navigation'})
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('navigation', {name: 'Secondary Navigation'})
-      ).not.toBeInTheDocument();
     });
   });
 });

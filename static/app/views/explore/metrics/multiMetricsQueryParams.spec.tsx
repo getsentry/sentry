@@ -18,6 +18,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function TestableMetricComponent() {
   const metricQueries = useMultiMetricsQueryParams();
@@ -82,7 +83,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'foo', type: 'counter'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
         }),
       }),
     ]);
@@ -92,7 +93,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'bar', type: 'gauge'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('avg(value,bar,gauge,-)')],
+          aggregateFields: [new VisualizeFunction('avg(value,bar,gauge,none)')],
         }),
       }),
     ]);
@@ -102,7 +103,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'qux', type: 'distribution'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('avg(value,qux,distribution,-)')],
+          aggregateFields: [new VisualizeFunction('avg(value,qux,distribution,none)')],
         }),
       }),
     ]);
@@ -117,7 +118,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     act(() =>
       result.current[0]!.setQueryParams(
         result.current[0]!.queryParams.replace({
-          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
         })
       )
     );
@@ -125,7 +126,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'foo', type: 'counter'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
         }),
       }),
     ]);
@@ -135,7 +136,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'qux', type: 'gauge'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('avg(value,qux,gauge,-)')],
+          aggregateFields: [new VisualizeFunction('avg(value,qux,gauge,none)')],
         }),
       }),
     ]);
@@ -143,7 +144,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     act(() =>
       result.current[0]!.setQueryParams(
         result.current[0]!.queryParams.replace({
-          aggregateFields: [new VisualizeFunction('last(value,qux,gauge,-)')],
+          aggregateFields: [new VisualizeFunction('last(value,qux,gauge,none)')],
         })
       )
     );
@@ -151,7 +152,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'qux', type: 'gauge'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('last(value,qux,gauge,-)')],
+          aggregateFields: [new VisualizeFunction('last(value,qux,gauge,none)')],
         }),
       }),
     ]);
@@ -161,7 +162,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'bar', type: 'distribution'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('sum(value,bar,distribution,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,bar,distribution,none)')],
         }),
       }),
     ]);
@@ -169,7 +170,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
     act(() =>
       result.current[0]!.setQueryParams(
         result.current[0]!.queryParams.replace({
-          aggregateFields: [new VisualizeFunction('p99(value,bar,distribution,-)')],
+          aggregateFields: [new VisualizeFunction('p99(value,bar,distribution,none)')],
         })
       )
     );
@@ -177,7 +178,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'bar', type: 'distribution'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('p99(value,bar,distribution,-)')],
+          aggregateFields: [new VisualizeFunction('p99(value,bar,distribution,none)')],
         }),
       }),
     ]);
@@ -187,10 +188,46 @@ describe('MultiMetricsQueryParamsProvider', () => {
       expect.objectContaining({
         metric: {name: 'foo', type: 'counter'},
         queryParams: expect.objectContaining({
-          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,-)')],
+          aggregateFields: [new VisualizeFunction('sum(value,foo,counter,none)')],
         }),
       }),
     ]);
+  });
+
+  it('falls back from heat map when changing to a non-distribution metric', () => {
+    const metricQuery = JSON.stringify({
+      metric: {name: 'test_metric', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {
+          yAxes: ['count(value,test_metric,distribution,none)'],
+          chartType: ChartType.HEATMAP,
+        },
+      ],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: [metricQuery]},
+        },
+      },
+    });
+
+    expect(result.current[0]!.queryParams.aggregateFields[0]).toEqual(
+      expect.objectContaining({chartType: ChartType.HEATMAP})
+    );
+
+    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'counter'}));
+
+    // The counter can't be a heat map, so the chart type falls back.
+    const counterVisualize = result.current[0]!.queryParams
+      .aggregateFields[0] as VisualizeFunction;
+    expect(counterVisualize.chartType).not.toBe(ChartType.HEATMAP);
   });
 
   it('parses multiple visualizes from URL params', () => {
@@ -198,9 +235,9 @@ describe('MultiMetricsQueryParamsProvider', () => {
       metric: {name: 'test_metric', type: 'distribution'},
       query: '',
       aggregateFields: [
-        {yAxes: ['p50(value,test_metric,distribution,-)']},
-        {yAxes: ['p75(value,test_metric,distribution,-)']},
-        {yAxes: ['p99(value,test_metric,distribution,-)']},
+        {yAxes: ['p50(value,test_metric,distribution,none)']},
+        {yAxes: ['p75(value,test_metric,distribution,none)']},
+        {yAxes: ['p99(value,test_metric,distribution,none)']},
       ],
       aggregateSortBys: [],
       mode: 'samples',
@@ -223,9 +260,9 @@ describe('MultiMetricsQueryParamsProvider', () => {
         metric: {name: 'test_metric', type: 'distribution'},
         queryParams: expect.objectContaining({
           aggregateFields: [
-            new VisualizeFunction('p50(value,test_metric,distribution,-)'),
-            new VisualizeFunction('p75(value,test_metric,distribution,-)'),
-            new VisualizeFunction('p99(value,test_metric,distribution,-)'),
+            new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+            new VisualizeFunction('p75(value,test_metric,distribution,none)'),
+            new VisualizeFunction('p99(value,test_metric,distribution,none)'),
           ],
         }),
       }),
@@ -242,9 +279,9 @@ describe('MultiMetricsQueryParamsProvider', () => {
       result.current[0]!.setQueryParams(
         result.current[0]!.queryParams.replace({
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)'),
-            new VisualizeFunction('p75(value,foo,distribution,-)'),
-            new VisualizeFunction('p99(value,foo,distribution,-)'),
+            new VisualizeFunction('p50(value,foo,distribution,none)'),
+            new VisualizeFunction('p75(value,foo,distribution,none)'),
+            new VisualizeFunction('p99(value,foo,distribution,none)'),
           ],
         })
       )
@@ -255,9 +292,9 @@ describe('MultiMetricsQueryParamsProvider', () => {
         metric: {name: 'foo', type: 'distribution'},
         queryParams: expect.objectContaining({
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)'),
-            new VisualizeFunction('p75(value,foo,distribution,-)'),
-            new VisualizeFunction('p99(value,foo,distribution,-)'),
+            new VisualizeFunction('p50(value,foo,distribution,none)'),
+            new VisualizeFunction('p75(value,foo,distribution,none)'),
+            new VisualizeFunction('p99(value,foo,distribution,none)'),
           ],
         }),
       }),
@@ -274,8 +311,8 @@ describe('MultiMetricsQueryParamsProvider', () => {
       result.current[0]!.setQueryParams(
         result.current[0]!.queryParams.replace({
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)'),
-            new VisualizeFunction('p75(value,foo,distribution,-)'),
+            new VisualizeFunction('p50(value,foo,distribution,none)'),
+            new VisualizeFunction('p75(value,foo,distribution,none)'),
           ],
         })
       )
@@ -285,7 +322,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     // Only the first visualize is updated when changing metric type
     expect(result.current[0]!.queryParams.aggregateFields).toEqual([
-      new VisualizeFunction('p50(value,bar,distribution,-)'),
+      new VisualizeFunction('p50(value,bar,distribution,none)'),
     ]);
   });
 
@@ -391,7 +428,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -400,7 +437,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'bar', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,bar,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -434,7 +471,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -475,7 +512,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                     metric: {name: 'foo', type: 'counter'},
                     query: '',
                     aggregateFields: [
-                      new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                      new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                     ],
                     aggregateSortBys: [],
                     mode: 'samples',
@@ -484,7 +521,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                     metric: {name: 'bar', type: 'counter'},
                     query: '',
                     aggregateFields: [
-                      new VisualizeFunction('sum(value,bar,counter,-)').serialize(),
+                      new VisualizeFunction('sum(value,bar,counter,none)').serialize(),
                     ],
                     aggregateSortBys: [],
                     mode: 'samples',
@@ -533,7 +570,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'distribution'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                    new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -553,7 +590,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
           metric: {name: 'foo', type: 'distribution'},
           query: '',
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+            new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
           ],
         })
       );
@@ -564,7 +601,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
           metric: {name: 'foo', type: 'distribution'},
           query: '',
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+            new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
           ],
         })
       );
@@ -585,7 +622,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'distribution'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                    new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -612,7 +649,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
           metric: {name: 'foo', type: 'distribution'},
           query: '',
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+            new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
           ],
         })
       );
@@ -623,7 +660,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
           metric: {name: 'foo', type: 'distribution'},
           query: '',
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+            new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
           ],
         })
       );
@@ -652,7 +689,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'distribution'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+                    new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -662,7 +699,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   query: '',
                   aggregateFields: [
                     new VisualizeEquation(
-                      `${EQUATION_PREFIX}p50(value,foo,distribution,-)`
+                      `${EQUATION_PREFIX}p50(value,foo,distribution,none)`
                     ).serialize(),
                   ],
                   aggregateSortBys: [],
@@ -686,7 +723,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
           metric: {name: 'foo', type: 'distribution'},
           query: '',
           aggregateFields: [
-            new VisualizeFunction('p50(value,foo,distribution,-)').serialize(),
+            new VisualizeFunction('p50(value,foo,distribution,none)').serialize(),
           ],
         })
       );
@@ -698,7 +735,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
           query: '',
           aggregateFields: [
             new VisualizeEquation(
-              `${EQUATION_PREFIX}p50(value,foo,distribution,-)`
+              `${EQUATION_PREFIX}p50(value,foo,distribution,none)`
             ).serialize(),
           ],
         })
@@ -728,7 +765,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',
@@ -769,7 +806,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
                   metric: {name: 'foo', type: 'counter'},
                   query: '',
                   aggregateFields: [
-                    new VisualizeFunction('sum(value,foo,counter,-)').serialize(),
+                    new VisualizeFunction('sum(value,foo,counter,none)').serialize(),
                   ],
                   aggregateSortBys: [],
                   mode: 'samples',

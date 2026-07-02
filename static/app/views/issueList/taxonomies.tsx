@@ -1,7 +1,14 @@
 import type {ReactNode} from 'react';
 
+import type {FeatureBadgeProps} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types/group';
+
+const SENTRY_CONFIGURATION_FEATURE_FLAGS = [
+  'issue-sourcemap-configuration-visible',
+  'issue-low-value-span-configuration-visible',
+];
 
 export enum IssueTaxonomy {
   ERRORS_AND_OUTAGES = 'errors-outages',
@@ -17,7 +24,8 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     description: ReactNode;
     key: string;
     label: string;
-    featureFlag?: string;
+    badge?: FeatureBadgeProps['type'];
+    featureFlags?: string[];
   }
 > = {
   [IssueTaxonomy.ERRORS_AND_OUTAGES]: {
@@ -53,9 +61,10 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     categories: [IssueCategory.CONFIGURATION],
     label: t('Sentry Configuration'),
     key: 'sentry-configuration',
+    badge: 'beta',
     description: t(
       'Issues detected from SDK or tooling configuration problems that degrade your ability to debug telemetry using Sentry.'
     ),
-    featureFlag: 'issue-sourcemap-configuration-visible',
+    featureFlags: SENTRY_CONFIGURATION_FEATURE_FLAGS,
   },
 };

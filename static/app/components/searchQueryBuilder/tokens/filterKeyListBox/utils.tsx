@@ -31,7 +31,7 @@ import {
 } from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -120,6 +120,7 @@ export function createItem(
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
+    tag,
     hideCheck: true,
     showDetailsInOverlay: true,
     details: () => <KeyDescription tag={tag} />,

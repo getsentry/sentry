@@ -13,8 +13,9 @@ import {
   TWELVE_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -26,6 +27,8 @@ export enum ChartIntervalUnspecifiedStrategy {
   USE_SECOND_BIGGEST = 'use_second_biggest',
   /** Use the smallest possible interval (e.g., the smallest possible buckets) */
   USE_SMALLEST = 'use_smallest',
+  /** Use the biggest possible interval (e.g., the biggest possible buckets) */
+  USE_BIGGEST = 'use_biggest',
 }
 
 interface Options {
@@ -66,31 +69,83 @@ function useChartIntervalImpl({
 ] {
   const {datetime} = pagefilters.selection;
 
-  const {intervalOptions, defaultInterval} = useMemo(() => {
-    const diffInMinutes = getDiffInMinutes(datetime);
-    const options = getIntervalOptionsForPageFilter(datetime);
+  const {baseIntervalOptions, defaultInterval, minimumIntervalInHours, timeRangeInHours} =
+    useMemo(() => {
+      const diffInMinutes = getDiffInMinutes(datetime);
+      const options = getIntervalOptionsForPageFilter(datetime);
 
-    // Compute the default from the ladder-derived options, before appending extras
-    const fallback =
-      unspecifiedStrategy === ChartIntervalUnspecifiedStrategy.USE_SMALLEST
-        ? options[0]!.value
-        : (options[options.length - 2]?.value ?? options[options.length - 1]!.value);
+      // Compute the default from the ladder-derived options, before appending extras
+      let fallback: string;
+      switch (unspecifiedStrategy) {
+        case ChartIntervalUnspecifiedStrategy.USE_SMALLEST:
+          fallback = options[0]!.value;
+          break;
+        case ChartIntervalUnspecifiedStrategy.USE_BIGGEST:
+          fallback = options[options.length - 1]!.value;
+          break;
+        case ChartIntervalUnspecifiedStrategy.USE_SECOND_BIGGEST:
+        default:
+          fallback =
+            options[options.length - 2]?.value ?? options[options.length - 1]!.value;
+          break;
+      }
 
-    if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
-      options.push(ONE_DAY_OPTION);
-    }
+      if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
+        options.push(ONE_DAY_OPTION);
+      }
 
-    return {intervalOptions: options, defaultInterval: fallback};
-  }, [datetime, unspecifiedStrategy]);
+      return {
+        baseIntervalOptions: options,
+        defaultInterval: fallback,
+        // The smallest interval allowed for the current time range. Anything more
+        // granular than this would produce too many buckets.
+        minimumIntervalInHours: parsePeriodToHours(
+          MINIMUM_INTERVAL.getInterval(diffInMinutes)
+        ),
+        // The full duration of the selected time range. An interval larger than
+        // this would produce a single (incomplete) bucket.
+        timeRangeInHours: diffInMinutes / 60,
+      };
+    }, [datetime, unspecifiedStrategy]);
 
-  const interval = useMemo(() => {
+  const [interval, intervalOptions] = useMemo((): [
+    string,
+    Array<{label: string; value: string}>,
+  ] => {
     const decodedInterval = decodeScalar(location.query.interval);
 
-    return decodedInterval &&
-      intervalOptions.some(option => option.value === decodedInterval)
-      ? decodedInterval
-      : defaultInterval;
-  }, [location.query.interval, intervalOptions, defaultInterval]);
+    if (!decodedInterval) {
+      return [defaultInterval, baseIntervalOptions];
+    }
+
+    // The interval is one of the standard options for this time range.
+    if (baseIntervalOptions.some(option => option.value === decodedInterval)) {
+      return [decodedInterval, baseIntervalOptions];
+    }
+
+    // The interval isn't a standard option (e.g. it was selected by the agent).
+    // Keep it as long as it it's valid (not to granular, not too coarse).
+    const decodedIntervalInHours = parsePeriodToHours(decodedInterval);
+    if (
+      decodedIntervalInHours >= minimumIntervalInHours &&
+      decodedIntervalInHours <= timeRangeInHours
+    ) {
+      const options = [
+        ...baseIntervalOptions,
+        {value: decodedInterval, label: getIntervalLabel(decodedInterval)},
+      ].sort((a, b) => parsePeriodToHours(a.value) - parsePeriodToHours(b.value));
+
+      return [decodedInterval, options];
+    }
+
+    return [defaultInterval, baseIntervalOptions];
+  }, [
+    location.query.interval,
+    baseIntervalOptions,
+    defaultInterval,
+    minimumIntervalInHours,
+    timeRangeInHours,
+  ]);
 
   const setInterval = useCallback(
     (newInterval: string) => {
@@ -122,6 +177,7 @@ const ALL_INTERVAL_OPTIONS = [
 /**
  * The minimum interval is chosen in such a way that there will be
  * at most 1000 data points per series for the chosen period.
+ * NOTE: if you update this make sure to update the _DEFAULT_INTERVAL_LADDER in src/sentry/integrations/slack/unfurl/explore.py
  */
 const MINIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '3h'],
@@ -133,6 +189,8 @@ const MINIMUM_INTERVAL = new GranularityLadder([
   [0, '1m'],
 ]);
 
+// if you update this make sure to update the _DEFAULT_MAX_INTERVAL_LADDER in
+// src/sentry/integrations/slack/unfurl/explore.py
 const MAXIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '12h'],
   [TWO_WEEKS, '6h'],
@@ -147,6 +205,35 @@ const MAXIMUM_INTERVAL = new GranularityLadder([
 
 const ONE_DAY_OPTION = {value: '1d', label: t('1 day')};
 const MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL = TWO_WEEKS;
+
+/**
+ * Builds a human readable label for an arbitrary interval shorthand (e.g. `1d`),
+ * preserving the unit chosen rather than normalizing it.
+ */
+function getIntervalLabel(interval: string): string {
+  const parsed = parseStatsPeriod(interval);
+
+  if (!parsed?.period || !parsed.periodLength) {
+    return interval;
+  }
+
+  const value = parseInt(parsed.period, 10);
+
+  switch (parsed.periodLength) {
+    case 's':
+      return tn('%s second', '%s seconds', value);
+    case 'm':
+      return tn('%s minute', '%s minutes', value);
+    case 'h':
+      return tn('%s hour', '%s hours', value);
+    case 'd':
+      return tn('%s day', '%s days', value);
+    case 'w':
+      return tn('%s week', '%s weeks', value);
+    default:
+      return interval;
+  }
+}
 
 export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime']) {
   const diffInMinutes = getDiffInMinutes(datetime);

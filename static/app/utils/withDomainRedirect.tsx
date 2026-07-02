@@ -5,12 +5,11 @@ import trimStart from 'lodash/trimStart';
 
 import {Redirect} from 'sentry/components/redirect';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {RouteComponent} from 'sentry/types/legacyReactRouter';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useOrganization} from './useOrganization';
 
@@ -33,14 +32,14 @@ import {useOrganization} from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-export function withDomainRedirect(WrappedComponent: RouteComponent) {
+export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
   // eslint-disable-next-line @typescript-eslint/no-restricted-types
   return function WithDomainRedirectWrapper(props: object) {
     const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
     const params = useParams();
-    const router = useRouter();
+    const routes = useRoutes();
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -64,7 +63,7 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
       Object.keys(params).forEach(param => {
         newParams[param] = `:${param}`;
       });
-      const fullRoute = recreateRoute('', {routes: router.routes, params: newParams});
+      const fullRoute = recreateRoute('', {routes, params: newParams});
       const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {
@@ -78,7 +77,7 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
       }${window.location.hash}`;
 
       // Redirect to a route path with :orgId omitted.
-      return <Redirect to={redirectOrgURL} router={router} />;
+      return <Redirect to={redirectOrgURL} />;
     }
 
     return <WrappedComponent {...props} />;

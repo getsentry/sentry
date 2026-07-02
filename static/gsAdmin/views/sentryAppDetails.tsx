@@ -3,6 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
@@ -10,7 +11,6 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -26,6 +26,8 @@ import {DetailsPage} from 'admin/components/detailsPage';
 import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
 
 export function SentryAppDetails() {
+  const {openModal} = useModal();
+
   const {sentryAppSlug} = useParams<{sentryAppSlug: string}>();
   const ENDPOINT = getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
     path: {sentryAppIdOrSlug: sentryAppSlug},

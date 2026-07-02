@@ -13,6 +13,9 @@ jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => 
 jest
   .spyOn(window.HTMLMediaElement.prototype, 'play')
   .mockImplementation(() => Promise.resolve());
+// jsdom doesn't implement load(); destroyVideo calls it to release the media
+// resource on eviction.
+jest.spyOn(window.HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
   beforeEach(() => {
@@ -485,5 +488,149 @@ describe('VideoReplayer - with ending gap', () => {
     expect(inst.getCurrentTime()).toBeLessThan(50100);
     // @ts-expect-error accessing a private field
     expect(inst._isPlaying).toBe(false);
+  });
+});
+
+describe('VideoReplayer - maxVideoElements eviction', () => {
+  beforeEach(() => {
+    jest.clearAllTimers();
+  });
+
+  const makeAttachments = (count: number) =>
+    Array.from({length: count}, (_, i) => ({
+      id: i,
+      timestamp: i * 5000,
+      duration: 5000,
+    }));
+
+  it('caps _videos at maxVideoElements when seeking forward', async () => {
+    const attachments = makeAttachments(50);
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50 * 5000,
+      config: {skipInactive: false, speed: 1},
+      maxVideoElements: 8,
+    });
+
+    // Seek through many distant segments so preloadVideos keeps wanting to add
+    // new entries.
+    for (const offset of [0, 25_000, 50_000, 100_000, 150_000, 200_000, 230_000]) {
+      const p = inst.play(offset);
+      jest.advanceTimersByTime(100);
+      await p;
+      // @ts-expect-error accessing a private field
+      expect(inst._videos.size).toBeLessThanOrEqual(8);
+      // Pool size must equal the number of <video> children we left in the DOM.
+      // @ts-expect-error accessing a private field
+      expect(inst.wrapper.querySelectorAll('video')).toHaveLength(inst._videos.size);
+    }
+  });
+
+  it('never evicts the current segment or its preload window', async () => {
+    const attachments = makeAttachments(50);
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50 * 5000,
+      config: {skipInactive: false, speed: 1},
+      maxVideoElements: 8,
+    });
+
+    for (const offset of [0, 30_000, 80_000, 130_000, 180_000]) {
+      const p = inst.play(offset);
+      jest.advanceTimersByTime(100);
+      await p;
+
+      // @ts-expect-error accessing a private field
+      const currentIndex = inst._currentIndex!;
+      // @ts-expect-error accessing a private field
+      const videos = inst._videos as Map<number, HTMLVideoElement>;
+
+      // Current segment is alive.
+      expect(videos.has(currentIndex)).toBe(true);
+      // Forward preload window is alive (loadSegment preloads [index, index+3)).
+      expect(videos.has(currentIndex + 1)).toBe(true);
+      expect(videos.has(currentIndex + 2)).toBe(true);
+    }
+  });
+
+  it('re-creates an evicted segment when seeked back to', async () => {
+    const attachments = makeAttachments(50);
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50 * 5000,
+      config: {skipInactive: false, speed: 1},
+      maxVideoElements: 8,
+    });
+
+    // Step through many distant segments to force segment 0 out of the pool.
+    for (const offset of [50_000, 100_000, 150_000, 200_000, 230_000]) {
+      const p = inst.play(offset);
+      jest.advanceTimersByTime(100);
+      await p;
+    }
+    // @ts-expect-error accessing a private field
+    expect(inst._videos.has(0)).toBe(false);
+
+    const seekBack = inst.play(0);
+    jest.advanceTimersByTime(100);
+    await seekBack;
+    // @ts-expect-error accessing a private field
+    expect(inst._videos.has(0)).toBe(true);
+    // @ts-expect-error accessing a private field
+    expect(inst._currentIndex).toBe(0);
+  });
+
+  it('tears down every live video on destroy() mid-playback', async () => {
+    const attachments = makeAttachments(50);
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50 * 5000,
+      config: {skipInactive: false, speed: 1},
+      maxVideoElements: 8,
+    });
+
+    // Build up a pool by scrubbing through a few positions.
+    for (const offset of [0, 25_000, 50_000, 100_000]) {
+      const p = inst.play(offset);
+      jest.advanceTimersByTime(100);
+      await p;
+    }
+    // @ts-expect-error accessing a private field
+    expect(inst._videos.size).toBeGreaterThan(0);
+
+    inst.destroy();
+
+    // @ts-expect-error accessing a private field
+    expect(inst._videos.size).toBe(0);
+    // @ts-expect-error accessing a private field
+    expect(inst._videoListeners.size).toBe(0);
+    // Wrapper has been removed from the root.
+    expect(root.contains(inst.wrapper)).toBe(false);
+    // No <video> elements remain inside the (now-detached) wrapper either.
+    expect(inst.wrapper.querySelectorAll('video')).toHaveLength(0);
   });
 });

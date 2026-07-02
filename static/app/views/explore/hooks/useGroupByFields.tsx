@@ -43,7 +43,9 @@ export function useGroupByFields({
       extraColumnKind: FieldKind.TAG,
     })
       .filter(option => {
-        if (seen.has(option.value)) return false;
+        if (seen.has(option.value)) {
+          return false;
+        }
         seen.add(option.value);
         return true;
       })

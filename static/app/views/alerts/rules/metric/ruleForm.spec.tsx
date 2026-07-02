@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,7 +18,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {FormModel} from 'sentry/components/forms/model';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
-import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {RuleForm as RuleFormContainer} from 'sentry/views/alerts/rules/metric/ruleForm';
 import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
@@ -67,7 +68,7 @@ describe('Incident Rules Form', () => {
     });
     organization = initialData.organization;
     project = initialData.project;
-    location = initialData.router.location;
+    location = LocationFixture();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -203,6 +204,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
@@ -237,6 +241,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
@@ -501,7 +508,6 @@ describe('Incident Rules Form', () => {
         'performance-view',
         'visibility-explore-view',
         'tracemetrics-enabled',
-        'tracemetrics-alerts',
       ];
       const rule = MetricRuleFixture();
       createWrapper({
@@ -509,12 +515,15 @@ describe('Incident Rules Form', () => {
           ...rule,
           id: undefined,
           eventTypes: [EventTypes.TRACE_ITEM_METRIC],
-          aggregate: 'sum(value,my_metric,counter,-)',
+          aggregate: 'sum(value,my_metric,counter,none)',
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         },
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
@@ -629,7 +638,6 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'tracemetrics-enabled',
-        'tracemetrics-alerts',
         'tracemetrics-equations-in-explore',
         'tracemetrics-equations-in-alerts',
       ];
@@ -697,6 +705,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'new name');

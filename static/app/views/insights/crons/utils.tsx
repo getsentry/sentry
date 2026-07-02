@@ -1,6 +1,7 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -76,30 +77,30 @@ export const statusToText: Record<CheckInStatus, string> = {
 
 export const tickStyle: TickStyle<CheckInStatus> = theme => ({
   [CheckInStatus.ERROR]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
+    labelColor: theme.tokens.content.danger,
+    tickColor: theme.tokens.dataviz.semantic.bad,
   },
   [CheckInStatus.TIMEOUT]: {
-    labelColor: theme.colors.red500,
-    tickColor: theme.colors.red400,
-    hatchTick: theme.colors.red200,
+    labelColor: theme.tokens.content.danger,
+    tickColor: theme.tokens.dataviz.semantic.bad,
+    hatchTick: theme.tokens.border.danger.muted,
   },
   [CheckInStatus.OK]: {
-    labelColor: theme.colors.green500,
-    tickColor: theme.colors.green400,
+    labelColor: theme.tokens.content.success,
+    tickColor: theme.tokens.dataviz.semantic.good,
   },
   [CheckInStatus.MISSED]: {
-    labelColor: theme.colors.yellow500,
-    tickColor: theme.colors.yellow400,
+    labelColor: theme.tokens.content.warning,
+    tickColor: theme.tokens.dataviz.semantic.meh,
   },
   [CheckInStatus.IN_PROGRESS]: {
     labelColor: theme.tokens.content.disabled,
     tickColor: theme.tokens.content.disabled,
   },
   [CheckInStatus.UNKNOWN]: {
-    labelColor: theme.colors.gray500,
-    tickColor: theme.colors.gray400,
-    hatchTick: theme.colors.gray200,
+    labelColor: theme.tokens.content.secondary,
+    tickColor: theme.tokens.dataviz.semantic.neutral,
+    hatchTick: theme.tokens.border.neutral.muted,
   },
 });
 

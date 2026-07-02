@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import type {PlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 

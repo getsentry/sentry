@@ -16,8 +16,8 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -59,6 +59,8 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
+import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -74,11 +76,11 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {type GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type TableComponentProps = Pick<
   GenericWidgetQueriesResult,
-  'errorMessage' | 'loading' | 'tableResults'
+  'errorMessage' | 'loading' | 'tableResults' | 'heatmapResults'
 > & {
   selection: PageFilters;
   widget: Widget;
@@ -182,6 +184,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.HEATMAP) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <HeatmapSeriesComponent {...props} />
       </TransitionChart>
     );
   }
@@ -308,6 +319,7 @@ function TableComponent({
 
             return {
               location,
+              navigate,
               organization,
               projects,
               theme,
@@ -449,6 +461,28 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   );
 }
 
+function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
+  const {heatmapResults, loading} = props;
+
+  if (loading || !heatmapResults) {
+    return <LoadingPlaceholder />;
+  }
+
+  if (heatmapResults.values.length === 0) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
+
+  return (
+    <ChartWrapper autoHeightResize>
+      <HeatMapWidgetVisualization plottables={[new HeatMap(heatmapResults)]} />
+    </ChartWrapper>
+  );
+}
+
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
   const {tableResults, loading} = props;
 
@@ -490,12 +524,6 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {
-  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
-
-  if (!hasTextWidgets) {
-    return null;
-  }
-
   return <TextWidgetVisualization text={props.widget.description} />;
 }
 

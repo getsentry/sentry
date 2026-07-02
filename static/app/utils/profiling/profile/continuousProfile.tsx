@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
@@ -46,13 +46,15 @@ export class ContinuousProfile extends Profile {
     }
 
     const weightedSamples: WeightedSample[] = chunk.samples.map((sample, i) => {
-      // falling back to the current sample timestamp has the effect
-      // of giving the last sample a weight of 0
       const nextSample = chunk.samples[i + 1] ?? sample;
+      const weight = (nextSample.timestamp - sample.timestamp) * 1e3;
       return {
         ...sample,
-        // Chunk timestamps are in seconds, convert them to ms
-        weight: (nextSample.timestamp - sample.timestamp) * 1e3,
+        // Chunk timestamps are in seconds, convert them to ms.
+        // For a single-sample chunk every sample diffs against itself (weight=0),
+        // which would cause the sample to be discarded. Use a 10ms default (100Hz)
+        // so the stack is still visible.
+        weight: weight === 0 && chunk.samples.length === 1 ? 10 : weight,
       };
     });
 

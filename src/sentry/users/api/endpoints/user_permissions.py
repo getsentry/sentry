@@ -15,7 +15,7 @@ class UserPermissionsEndpoint(UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request, user: User) -> Response:

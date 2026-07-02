@@ -322,7 +322,7 @@ export default function IncidentsListContainer() {
   return (
     <Feature
       features="incidents"
-      hookName="feature-disabled:alerts-page"
+      overrideName="feature-disabled:alerts-page"
       renderDisabled={renderDisabled}
     >
       <IncidentsList

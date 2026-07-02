@@ -64,6 +64,7 @@ def query_replays_collection_paginated(
     preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
     actor: Any | None = None,
+    referrer: str | None = None,
 ):
     """Query aggregated replay collection."""
     paginators = Paginators(limit, offset)
@@ -80,6 +81,7 @@ def query_replays_collection_paginated(
         period_stop=end,
         request_user_id=actor.id if actor else None,
         preferred_source=preferred_source,
+        referrer=referrer,
     )
 
 

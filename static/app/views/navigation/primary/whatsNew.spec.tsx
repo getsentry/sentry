@@ -22,7 +22,7 @@ describe('WhatsNew', () => {
     jest.useRealTimers();
   });
 
-  it.isKnownFlake('renders empty state when API returns no broadcasts', async () => {
+  it('renders empty state when API returns no broadcasts', async () => {
     render(<PrimaryNavigationWhatsNew />);
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
@@ -349,6 +349,7 @@ describe('WhatsNew', () => {
         BroadcastFixture({id: '3', title: 'Broadcast 3', category: 'blog'}),
         BroadcastFixture({id: '4', title: 'Broadcast 4', category: 'event'}),
         BroadcastFixture({id: '5', title: 'Broadcast 5', category: 'video'}),
+        BroadcastFixture({id: '6', title: 'Broadcast 6', category: 'sdk_update'}),
       ],
     });
 
@@ -361,5 +362,6 @@ describe('WhatsNew', () => {
     expect(screen.getByText('Blog Post')).toBeInTheDocument();
     expect(screen.getByText('Event')).toBeInTheDocument();
     expect(screen.getByText('Video')).toBeInTheDocument();
+    expect(screen.getByText('SDK Update')).toBeInTheDocument();
   });
 });

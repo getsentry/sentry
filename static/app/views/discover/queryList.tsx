@@ -17,11 +17,12 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -44,6 +45,7 @@ import {
 type Props = {
   api: Client;
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   pageLinks: string;
   refetchSavedQueries: () => void;
@@ -62,12 +64,13 @@ class QueryList extends Component<Props> {
   }
 
   handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, location, savedQueries, refetchSavedQueries} = this.props;
+    const {api, navigate, organization, location, savedQueries, refetchSavedQueries} =
+      this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       refetchSavedQueries();
       if (savedQueries.length === 1 && location.query.cursor) {
-        browserHistory.push({
+        navigate({
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
         });
@@ -76,14 +79,14 @@ class QueryList extends Component<Props> {
   };
 
   handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization, refetchSavedQueries} = this.props;
+    const {api, navigate, location, organization, refetchSavedQueries} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
       refetchSavedQueries();
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {},
       });
@@ -372,7 +375,7 @@ class QueryList extends Component<Props> {
               delete newQuery.cursor;
             }
 
-            browserHistory.push({
+            this.props.navigate({
               pathname: path,
               query: newQuery,
             });
@@ -409,4 +412,9 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
 `;
 
-export default withApi(QueryList);
+function QueryListWithNavigate(props: Omit<Props, 'navigate'>) {
+  const navigate = useNavigate();
+  return <QueryList {...props} navigate={navigate} />;
+}
+
+export default withApi(QueryListWithNavigate);

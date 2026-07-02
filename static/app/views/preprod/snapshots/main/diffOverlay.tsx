@@ -12,11 +12,11 @@ export const DiffOverlay = styled('span')<{
   height: 100%;
   pointer-events: none;
   background-color: ${p => p.$overlayColor};
-  mask-image: url(${p => p.$maskUrl});
+  mask-image: url('${p => p.$maskUrl}');
   mask-size: ${p => p.$maskSize};
   mask-position: top left;
   mask-mode: luminance;
-  -webkit-mask-image: url(${p => p.$maskUrl});
+  -webkit-mask-image: url('${p => p.$maskUrl}');
   -webkit-mask-size: ${p => p.$maskSize};
   -webkit-mask-position: top left;
 `;

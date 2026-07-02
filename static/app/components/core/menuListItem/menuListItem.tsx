@@ -154,7 +154,11 @@ const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
   line-height: 1.4;
   margin-bottom: 0;
 
-  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
+  ${p =>
+    p.priority !== 'default' &&
+    css`
+      color: ${getTextColor(p)};
+    `}
 `;
 
 /**
@@ -249,7 +253,7 @@ function BaseMenuListItem({
   detailsProps = {},
   showDetailsInOverlay = false,
   tooltip,
-  tooltipOptions = {delay: 500},
+  tooltipOptions,
   ref,
   ...props
 }: Props) {
@@ -273,6 +277,7 @@ function BaseMenuListItem({
             ? tooltip({disabled, isFocused, isSelected})
             : tooltip
         }
+        delay={500}
         {...tooltipOptions}
       >
         <StyledInnerWrap

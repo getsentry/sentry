@@ -10,6 +10,8 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,6 +24,7 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
@@ -39,13 +42,15 @@ import {
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
   datePageFilterProps: DatePageFilterProps;
 };
 
-export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
+function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
 
   return (
@@ -71,7 +76,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
     metricQueries.length >= MAX_METRICS_ALLOWED ||
-    metricQueries.some(q => q.label === 'Z');
+    metricQueries.some(q => q.label === MAX_METRIC_ALLOWED_LABEL_VALUE);
 
   return (
     <ExploreBodySearch>
@@ -119,8 +124,21 @@ function MetricsTabBodySection({
 }: SectionProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
+  const pageFilters = usePageFilters();
   const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
     enabled: true,
+  });
+
+  useLLMContext({
+    contextHint:
+      'Sentry metrics explorer page. Users search and visualize application metrics (counters, gauges, distributions) with filters, grouping, and aggregation functions. You can search live telemetry for metrics, discover metric names via the telemetry index, and query metric data with specific filters and time ranges.',
+    metricQueries: metricQueries.map(q => ({
+      metric: q.metric?.name,
+      label: q.label,
+      query: q.queryParams.search.formatString(),
+    })),
+    interval,
+    currentSelectedDateRange: pageFilters.selection.datetime,
   });
 
   useMetricsAnalytics({
@@ -222,17 +240,19 @@ function SortableMetricPanelSection({
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
               >
-                <SortableMetricPanel
-                  referencedMetricLabels={referencedMetricLabels}
-                  onEquationLabelsChange={onEquationLabelsChange}
-                  sortableId={id}
-                  traceMetric={metricQuery.metric}
-                  queryIndex={index}
-                  queryLabel={metricQuery.label ?? ''}
-                  referenceMap={referenceMap}
-                  isAnyDragging={isAnyDragging}
-                  canDrag={sortableItems.length > 1}
-                />
+                <AiQueryProvider>
+                  <SortableMetricPanel
+                    referencedMetricLabels={referencedMetricLabels}
+                    onEquationLabelsChange={onEquationLabelsChange}
+                    sortableId={id}
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    queryLabel={metricQuery.label ?? ''}
+                    referenceMap={referenceMap}
+                    isAnyDragging={isAnyDragging}
+                    canDrag={sortableItems.length > 1}
+                  />
+                </AiQueryProvider>
               </MetricsQueryParamsProvider>
             );
           })}
@@ -241,3 +261,8 @@ function SortableMetricPanelSection({
     </Stack>
   );
 }
+
+export const MetricsTabContent = registerLLMContext(
+  'metrics-explorer',
+  MetricsTabContentInner
+);

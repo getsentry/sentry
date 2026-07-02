@@ -34,13 +34,8 @@ class OrganizationDashboardRevisionDetailsTestCase(APITestCase):
 
 
 class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionDetailsTestCase):
-    def test_returns_404_without_feature_flag(self) -> None:
-        response = self.client.get(self.url)
-        assert response.status_code == 404
-
     def test_returns_snapshot_with_expected_fields(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.dashboard.id)
@@ -64,8 +59,7 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
                 "revision_id": old_revision.id,
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 422
 
@@ -78,8 +72,7 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
                 "revision_id": "abc",
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
 
@@ -92,8 +85,7 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
                 "revision_id": 99999,
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
 
@@ -106,8 +98,7 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
                 "revision_id": self.revision.id,
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
 
@@ -133,8 +124,7 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
                 "revision_id": other_revision.id,
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404
 
@@ -161,7 +151,6 @@ class GetOrganizationDashboardRevisionDetailsTest(OrganizationDashboardRevisionD
                 "revision_id": other_revision.id,
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 404

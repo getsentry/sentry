@@ -58,7 +58,6 @@ class OrganizationMapping(Model):
     disable_new_visibility_features = models.BooleanField(default=False, db_default=False)
     # Deprecated: the require_email_verification feature has been removed.
     require_email_verification = models.BooleanField(default=False, db_default=False)
-    codecov_access = models.BooleanField(default=False, db_default=False)
     disable_member_project_creation = models.BooleanField(default=False, db_default=False)
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)

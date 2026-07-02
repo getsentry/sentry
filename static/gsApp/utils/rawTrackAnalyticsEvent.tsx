@@ -2,8 +2,8 @@ import * as qs from 'query-string';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import type {Overrides} from 'sentry/types/overrides';
 import type {User} from 'sentry/types/user';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
@@ -66,8 +66,7 @@ const startAnalyticsSession = () => {
 
 const getAnalyticsSessionId = () => sessionStorageWrapper.getItem(ANALYTICS_SESSION);
 
-const hasAnalyticsDebug = () =>
-  localStorageWrapper.getItem('DEBUG_ANALYTICS_GETSENTRY') === '1';
+const hasAnalyticsDebug = () => localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1';
 
 const getCustomReferrer = () => {
   try {
@@ -130,7 +129,7 @@ const getOrganizationAge = (
 const getUserAge = (user: User): number => {
   return getDaysSinceDate(user.dateJoined);
 };
-type RawTrackEventHook = Hooks['analytics:raw-track-event'];
+type RawTrackEventHook = Overrides['analytics:raw-track-event'];
 type Params = Parameters<RawTrackEventHook>[0] & {
   subscription?: Subscription;
 };

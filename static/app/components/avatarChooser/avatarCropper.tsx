@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 export function getDiffNW(yDiff: number, xDiff: number) {
@@ -475,7 +476,13 @@ const ResizeHandle = styled('div')<{position: Position}>`
   position: absolute;
   background-color: ${p => p.theme.colors.gray400};
   cursor: ${p => `${p.position}-resize`};
-  ${p => RESIZER_POSITIONS[p.position].map(pos => `${pos}: -5px;`)}
+  ${p =>
+    RESIZER_POSITIONS[p.position].map(
+      pos =>
+        css`
+          ${pos}: -5px;
+        `
+    )}
 `;
 
 const HiddenCanvas = styled('canvas')`

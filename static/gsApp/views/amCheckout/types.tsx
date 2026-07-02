@@ -8,7 +8,6 @@ import type {
   CheckoutAddOns,
   OnDemandBudgets,
   Plan,
-  PlanTier,
   Subscription,
 } from 'getsentry/types';
 
@@ -39,7 +38,6 @@ export type StepProps = {
   organization: Organization;
   stepNumber: number;
   subscription: Subscription;
-  checkoutTier?: PlanTier;
   referrer?: string;
 };
 

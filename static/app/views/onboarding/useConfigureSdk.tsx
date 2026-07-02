@@ -1,12 +1,14 @@
 import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
@@ -27,6 +29,8 @@ export function useConfigureSdk({
 }: {
   onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
 }) {
+  const {openModal} = useModal();
+
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
@@ -147,7 +151,7 @@ export function useConfigureSdk({
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization, createProject]
+    [createPlatformProject, onboardingContext, organization, createProject, openModal]
   );
 
   return {

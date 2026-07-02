@@ -125,7 +125,7 @@ describe('ApiTokenDetails', () => {
     expect(indicators.addSuccessMessage).toHaveBeenCalled();
   });
 
-  it.isKnownFlake('does not accept long name', async () => {
+  it('does not accept long name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addErrorMessage');
 

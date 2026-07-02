@@ -18,6 +18,7 @@ from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 PROGUARD_SOURCE = b"""\
 # compiler: R8
@@ -35,6 +36,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 @pytest.mark.django_db
+@debug_files_test_both_backends
 class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -60,7 +62,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = FileIOMainThreadDetector(settings[FileIOMainThreadDetector.settings_key], event)
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -71,7 +73,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = FileIOMainThreadDetector(settings[FileIOMainThreadDetector.settings_key], event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_detects_file_io_main_thread(self) -> None:
         event = get_event("file-io-on-main-thread/file-io-on-main-thread")
@@ -110,6 +112,11 @@ class FileIOMainThreadDetectorTest(TestCase):
     def test_ignores_keyboard_files(self) -> None:
         event = get_event("file-io-on-main-thread/file-io-on-main-thread")
         event["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayout_iPhone.dat"
+        assert self.find_problems(event) == []
+
+    def test_ignores_keyboard_files_plural(self) -> None:
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "somethins/stuff/blah/yup/KBLayouts_iPhone.dat"
         assert self.find_problems(event) == []
 
     def test_gives_problem_correct_title(self) -> None:

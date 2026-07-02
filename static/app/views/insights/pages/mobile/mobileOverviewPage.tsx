@@ -20,7 +20,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -287,7 +287,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
                   organization={organization}
                 />
               ) : (
-                <PerformanceDisplayProvider
+                <PerformanceDisplayContext
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
                   <DoubleChartRow
@@ -297,7 +297,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
                   />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <MobileOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayProvider>
+                </PerformanceDisplayContext>
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

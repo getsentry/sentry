@@ -372,7 +372,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/traces/`, 'Explore', 'Traces'],
           [`${ORG}/explore/logs/`, 'Explore', 'Logs'],
           [`${ORG}/explore/discover/homepage/`, 'Explore', 'Discover'],
-          [`${ORG}/explore/profiling/`, 'Explore', 'Profiles'],
+          [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
           [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],

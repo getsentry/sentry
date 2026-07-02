@@ -1,4 +1,6 @@
-from sentry import options as options_store
+from django.conf import settings
+from django.test import override_settings
+
 from sentry.models.files.control_file import ControlFile
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -8,11 +10,9 @@ from sentry.users.models.user_avatar import UserAvatar
 @control_silo_test
 class UserAvatarTestCase(TestCase):
     def test_set_null(self) -> None:
-        with self.options(
-            {
-                "filestore.control.backend": options_store.get("filestore.backend"),
-                "filestore.control.options": options_store.get("filestore.options"),
-            }
+        with override_settings(
+            SENTRY_CONTROL_FILE_STORAGE_BACKEND=settings.SENTRY_FILE_STORAGE_BACKEND,
+            SENTRY_CONTROL_FILE_STORAGE_CONFIG=settings.SENTRY_FILE_STORAGE_CONFIG,
         ):
             user = self.create_user("foo@example.com")
             afile = ControlFile.objects.create(name="avatar.png", type=UserAvatar.FILE_TYPE)

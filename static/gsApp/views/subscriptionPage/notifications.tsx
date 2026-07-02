@@ -73,7 +73,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   }
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle
         title={t('Manage Spend Notifications')}
         orgSlug={organization.slug}

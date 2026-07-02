@@ -1,12 +1,8 @@
-import styled from '@emotion/styled';
-import type {UseQueryResult} from '@tanstack/react-query';
-
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -19,7 +15,6 @@ type FilterSelectorTriggerProps = {
   globalFilter: GlobalFilter;
   operator: TermOperator;
   options: Array<SelectOption<string>>;
-  queryResult: UseQueryResult<string[]>;
 };
 
 export function FilterSelectorTrigger({
@@ -27,12 +22,10 @@ export function FilterSelectorTrigger({
   activeFilterValues,
   operator,
   options,
-  queryResult,
 }: FilterSelectorTriggerProps) {
-  const {isFetching} = queryResult;
   const {tag} = globalFilter;
 
-  const shouldShowBadge = !isFetching && activeFilterValues.length > 1;
+  const shouldShowBadge = activeFilterValues.length > 1;
 
   // "All" means no filter is applied (empty selection). We intentionally avoid
   // comparing against options.length because when tag values fail to load,
@@ -64,20 +57,17 @@ export function FilterSelectorTrigger({
         {opLabel}
       </Text>
 
-      {!isFetching &&
-        (isAllSelected ? (
-          <Text variant="primary" bold={false}>
-            {t('All')}
+      {isAllSelected ? (
+        <Text variant="primary" bold={false}>
+          {t('All')}
+        </Text>
+      ) : (
+        <Container minWidth={0} flexShrink={1} flexGrow={0} overflow="hidden">
+          <Text variant="primary" bold={false} ellipsis>
+            {label}
           </Text>
-        ) : (
-          <Container minWidth={0} flexShrink={1} flexGrow={0} overflow="hidden">
-            <Text variant="primary" bold={false} ellipsis>
-              {label}
-            </Text>
-          </Container>
-        ))}
-
-      {isFetching && <InlineLoadingIndicator size={14} />}
+        </Container>
+      )}
 
       {shouldShowBadge && (
         <Container>
@@ -87,10 +77,3 @@ export function FilterSelectorTrigger({
     </Flex>
   );
 }
-
-const InlineLoadingIndicator = styled(LoadingIndicator)`
-  && {
-    margin: 0;
-    margin-left: ${p => p.theme.space.xs};
-  }
-`;

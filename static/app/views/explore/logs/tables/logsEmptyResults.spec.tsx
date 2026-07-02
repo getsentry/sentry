@@ -61,6 +61,55 @@ describe('LogsEmptyResults', () => {
     expect(screen.getByRole('button', {name: /continue scanning/i})).toBeInTheDocument();
   });
 
+  it('shows total payload bytes when provided and above 1 TiB threshold', () => {
+    const TiB = 1_099_511_627_776;
+    render(
+      <LogsEmptyResults
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        bytesScanned={TiB * 0.03}
+        totalPayloadBytes={TiB * 100}
+        canResumeAutoFetch
+        resumeAutoFetch={jest.fn()}
+      />,
+      {organization, additionalWrapper: TableBodyWrapper}
+    );
+
+    const emptyState = screen.getByTestId('empty-state');
+    expect(emptyState).toHaveTextContent('of ~');
+  });
+
+  it('does not show total payload bytes when provided and below 1 TiB threshold', () => {
+    const TiB = 1_099_511_627_776;
+    render(
+      <LogsEmptyResults
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        bytesScanned={TiB * 0.03}
+        totalPayloadBytes={TiB * 0.5}
+        canResumeAutoFetch
+        resumeAutoFetch={jest.fn()}
+      />,
+      {organization, additionalWrapper: TableBodyWrapper}
+    );
+
+    const emptyState = screen.getByTestId('empty-state');
+    expect(emptyState).not.toHaveTextContent('of ~');
+  });
+
+  it('does not show total payload bytes when not provided', () => {
+    render(
+      <LogsEmptyResults
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        bytesScanned={4096}
+        canResumeAutoFetch
+        resumeAutoFetch={jest.fn()}
+      />,
+      {organization, additionalWrapper: TableBodyWrapper}
+    );
+
+    const emptyState = screen.getByTestId('empty-state');
+    expect(emptyState).not.toHaveTextContent('of ~');
+  });
+
   it('tracks analytics and calls resumeAutoFetch when Continue Scanning is clicked', async () => {
     const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
     const resumeAutoFetch = jest.fn();

@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment, useEffect} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -25,6 +25,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {showIntercom} from 'sentry/utils/intercom';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
@@ -43,7 +44,6 @@ import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialA
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import ZendeskLink from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -71,9 +71,7 @@ import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   USAGE_EXCEEDED = 'usage-exceeded',
-  GRACE_PERIOD = 'grace-period',
   PAST_DUE = 'past-due',
-  MEMBER_LIMIT = 'member-limit',
 }
 
 /**
@@ -96,10 +94,39 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
 const ALERTS_OFF = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
+  organization: Organization;
   subscription: Subscription;
 };
 
-function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalProps) {
+function SuspensionModal({
+  Header,
+  Body,
+  Footer,
+  organization,
+  subscription,
+}: SuspensionModalProps) {
+  useEffect(() => {
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'account-suspension',
+    });
+  }, [organization]);
+
+  async function handleIntercomClick() {
+    trackGetsentryAnalytics('intercom_link.clicked', {
+      organization,
+      source: 'account-suspension',
+    });
+    try {
+      await showIntercom(organization.slug);
+    } catch {
+      const supportEmail = ConfigStore.get('supportEmail');
+      if (supportEmail) {
+        window.location.href = `mailto:${supportEmail}?subject=${window.encodeURIComponent('Account Suspension')}`;
+      }
+    }
+  }
+
   return (
     <Fragment>
       <Header>{'Action Required'}</Header>
@@ -120,13 +147,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
         </p>
       </Body>
       <Footer>
-        <ZendeskLink
-          subject="Account Suspension"
-          Component={props => <LinkButton {...props} href={props.href ?? ''} />}
-          source="account-suspension"
-        >
-          {t('Contact Support')}
-        </ZendeskLink>
+        <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
       </Footer>
     </Fragment>
   );
@@ -188,17 +209,6 @@ function NoticeModal({
   let primaryButtonMessage: React.ReactNode;
 
   switch (whichModal) {
-    case ModalType.GRACE_PERIOD:
-      title = t('Grace period started');
-      body = tct(
-        `Your organization has depleted its error capacity for the current usage period.
-          We've put your account into a one time grace period, which will continue to accept errors at a limited rate.
-          This grace period ends on [gracePeriodEnd].`,
-        {gracePeriodEnd: moment(subscription.gracePeriodEnd).format('ll')}
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     case ModalType.USAGE_EXCEEDED:
       title = t('Usage exceeded');
       body = t(
@@ -225,20 +235,10 @@ function NoticeModal({
         ? t('Update Billing Details')
         : t('See Who Can Update');
       break;
-    case ModalType.MEMBER_LIMIT:
-      title = t('Member limit exceeded');
-      body = t(
-        `You organization has more members than your current subscription
-          allows. You will need to upgrade your subscription to ensure everyone
-          has access to Sentry.`
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     default:
   }
 
-  if (subscription.usageExceeded || subscription.isGracePeriod) {
+  if (subscription.usageExceeded) {
     if (subscription.isFree) {
       subText = subscription.canTrial
         ? t(
@@ -445,7 +445,7 @@ class GSBanner extends Component<Props, State> {
     const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
     const hasPendingUpgrade =
       subscription.pendingChanges !== null &&
-      subscription.pendingChanges?.planDetails.price > 0;
+      subscription.pendingChanges?.planDetails.totalPrice > 0;
     const daysLeft = getContractDaysLeft(subscription);
 
     const showPartnerPlanEndingNotice =
@@ -482,25 +482,29 @@ class GSBanner extends Component<Props, State> {
   }
 
   tryTriggerSuspendedModal() {
-    const {subscription} = this.props;
+    const {organization, subscription} = this.props;
 
     if (!subscription.isSuspended) {
       return;
     }
 
-    openModal(props => <SuspensionModal {...props} subscription={subscription} />);
+    openModal(props => (
+      <SuspensionModal
+        {...props}
+        organization={organization}
+        subscription={subscription}
+      />
+    ));
   }
 
   tryTriggerNoticeModal() {
     const {organization, subscription} = this.props;
 
-    const whichModal = subscription.isGracePeriod
-      ? ModalType.GRACE_PERIOD
-      : subscription.usageExceeded
-        ? ModalType.USAGE_EXCEEDED
-        : subscription.isPastDue && subscription.canSelfServe
-          ? ModalType.PAST_DUE
-          : null;
+    const whichModal = subscription.usageExceeded
+      ? ModalType.USAGE_EXCEEDED
+      : subscription.isPastDue && subscription.canSelfServe
+        ? ModalType.PAST_DUE
+        : null;
 
     if (whichModal === null) {
       return;
@@ -521,7 +525,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const modalAnalytics = {
-      [ModalType.GRACE_PERIOD]: 'grace_period_modal.seen',
       [ModalType.USAGE_EXCEEDED]: 'usage_exceeded_modal.seen',
       [ModalType.PAST_DUE]: 'past_due_modal.seen',
     } as const;
@@ -710,9 +713,6 @@ class GSBanner extends Component<Props, State> {
 
   get overageAlertActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
-    if (subscription.hasOverageNotificationsDisabled) {
-      return ALERTS_OFF;
-    }
     return objectFromBilledCategories(
       c =>
         !this.state.overageAlertDismissed[c.singular as EventType] &&
@@ -723,10 +723,7 @@ class GSBanner extends Component<Props, State> {
   get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     // disable warnings if org has PAYG
-    if (
-      subscription.hasOverageNotificationsDisabled ||
-      subscription.onDemandMaxSpend > 0
-    ) {
+    if (subscription.onDemandMaxSpend > 0) {
       return ALERTS_OFF;
     }
     return objectFromBilledCategories(
@@ -996,9 +993,9 @@ class GSBanner extends Component<Props, State> {
     const overageAlertType = this.overageAlertType;
     if (overageAlertType !== null) {
       return (
-        <React.Fragment>
+        <Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
@@ -1012,7 +1009,7 @@ class GSBanner extends Component<Props, State> {
       const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
       // only disabling members if the plan allows exactly one member
       return (
-        <React.Fragment>
+        <Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
           <Alert.Container>
             <InvertedAlert
@@ -1062,7 +1059,7 @@ class GSBanner extends Component<Props, State> {
               )}
             </InvertedAlert>
           </Alert.Container>
-        </React.Fragment>
+        </Fragment>
       );
     }
 

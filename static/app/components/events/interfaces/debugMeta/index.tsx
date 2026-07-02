@@ -21,19 +21,19 @@ import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
-import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {EntryDebugMeta, Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
@@ -115,9 +115,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [filterSelections, setFilterSelections] = useState<FilterSelections>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [lockHeight, setLockHeight] = useState(false);
+  const {searchTerm, setSearchTerm} = useDebugMetaSearch();
 
   const {allImages, filterOptions} = useMemo(() => {
     const relevant = data.images?.filter((image): image is Image => {
@@ -172,13 +172,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     setFiltersInitialized(true);
   }, [filterOptions, filtersInitialized]);
 
-  useEffect(() => {
-    const unsubscribe = DebugMetaStore.listen((store: {filter: string}) => {
-      setSearchTerm(store.filter);
-    }, undefined);
-    return () => unsubscribe();
-  }, []);
-
   const filteredImages = useMemo(
     () => filterImages(allImages, filterSelections, searchTerm),
     [allImages, filterSelections, searchTerm]
@@ -228,18 +221,15 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const showFilters = filterOptions.some(s => 'options' in s && s.options.length > 1);
 
   return (
-    <InterimSection
-      type={SectionKey.DEBUGMETA}
+    <FoldSection
+      sectionKey={SectionKey.DEBUGMETA}
       title={t('Images Loaded')}
-      help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash.'
-      )}
       initialCollapse
     >
       <Fragment>
         <SearchBarAction
           placeholder={t('Search images')}
-          onChange={v => DebugMetaStore.updateFilter(v)}
+          onChange={setSearchTerm}
           query={searchTerm}
           filterOptions={showFilters ? filterOptions : undefined}
           onFilterChange={setFilterSelections}
@@ -248,9 +238,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Header
             columns={{
-              '2xs': '0.6fr 1.5fr 0.6fr',
-              xs: '0.6fr 2fr 0.6fr',
-              sm: '0.6fr 2fr 1fr 0.4fr',
+              'screen:2xs': '0.6fr 1.5fr 0.6fr',
+              'screen:xs': '0.6fr 2fr 0.6fr',
+              'screen:sm': '0.6fr 2fr 1fr 0.4fr',
             }}
             background="secondary"
             borderBottom="primary"
@@ -263,7 +253,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             </Flex>
             <Flex
               align="center"
-              display={{'2xs': 'none', xs: 'none'}}
+              display={{'screen:2xs': 'none', 'screen:xs': 'none'}}
               minWidth="0"
               paddingTop="md"
               paddingBottom="md"
@@ -328,7 +318,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           )}
         </Container>
       </Fragment>
-    </InterimSection>
+    </FoldSection>
   );
 }
 

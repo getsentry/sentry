@@ -81,8 +81,12 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
         throw new Error(`Invalid field: ${field}`);
     }
 
-    if (aValue < bValue) return kind === 'asc' ? -1 : 1;
-    if (aValue > bValue) return kind === 'asc' ? 1 : -1;
+    if (aValue < bValue) {
+      return kind === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return kind === 'asc' ? 1 : -1;
+    }
     return 0;
   });
 

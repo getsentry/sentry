@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -12,7 +11,6 @@ import {
   hasDynamicSamplingFeature,
 } from 'sentry/utils/dynamicSampling/features';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
@@ -22,8 +20,6 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
   const hasReadAccess = useHasDynamicSamplingReadAccess();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   if (
     hasDynamicSamplingFeature(organization) &&
     !hasDynamicSamplingCustomFeature(organization)
@@ -69,19 +65,7 @@ export default function DynamicSamplingSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
-        title={
-          hasPageFrameFeature ? (
-            t('Dynamic Sampling')
-          ) : (
-            <Fragment>
-              {t('Dynamic Sampling')}
-              <FeatureBadge type="alpha" />
-            </Fragment>
-          )
-        }
-        subtitle={t(
-          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
-        )}
+        title={t('Dynamic Sampling')}
         action={
           <LinkButton
             external
@@ -90,6 +74,9 @@ export default function DynamicSamplingSettings() {
             {t('Read the docs')}
           </LinkButton>
         }
+        subtitle={t(
+          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
+        )}
       />
       <OrganizationPermissionAlert />
       {hasReadAccess ? (

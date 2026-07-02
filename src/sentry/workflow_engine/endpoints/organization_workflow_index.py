@@ -33,6 +33,7 @@ from sentry.api.event_search import parse_search_query as base_parse_search_quer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -43,6 +44,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -57,7 +59,6 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -65,6 +66,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.types import DetectorId
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -217,7 +219,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch Alerts",
+        operation_id="listOrganizationWorkflows",
+        summary="Fetch Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
@@ -236,10 +239,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[WorkflowSerializerResponse]] | Response[DetailResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Returns a list of alerts for a given organization
         """
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
@@ -247,7 +250,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_workflows(request, organization)
 
         # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
-        priority_detector_id: int | None = None
+        priority_detector_id: DetectorId | None = None
         if raw_priority := request.GET.get("priorityDetector"):
             priority_detector_id = to_valid_int_id("priorityDetector", raw_priority)
 
@@ -305,7 +308,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an Alert for an Organization",
+        operation_id="createOrganizationWorkflow",
+        summary="Create an Alert for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
@@ -319,10 +323,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[WorkflowSerializerResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Creates an alert for an organization
         """
         validator = WorkflowValidator(
@@ -331,10 +335,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
         validator.is_valid(raise_exception=True)
         workflow = validator.create(validator.validated_data)
-        return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
+        return Response(
+            serialize(workflow, request.user, WorkflowSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
     @extend_schema(
-        operation_id="Mutate an Organization's Alerts",
+        operation_id="updateOrganizationWorkflows",
+        summary="Mutate an Organization's Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.QUERY,
@@ -360,10 +368,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         ),
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[WorkflowSerializerResponse]] | Response[DetailResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Bulk enable or disable alerts for a given Organization
         """
         if not (
@@ -405,7 +413,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Bulk Delete Alerts",
+        operation_id="deleteOrganizationWorkflows",
+        summary="Bulk Delete Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.QUERY,
@@ -421,10 +430,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Bulk delete alerts for a given organization
         """
         if not (

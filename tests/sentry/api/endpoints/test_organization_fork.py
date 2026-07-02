@@ -1,5 +1,4 @@
 from unittest.mock import Mock, patch
-from uuid import UUID
 
 from sentry.analytics.events.relocation_forked import RelocationForkedEvent
 from sentry.api.endpoints.organization_fork import (
@@ -80,7 +79,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -121,7 +120,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -161,7 +160,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -201,7 +200,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -251,7 +250,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -299,7 +298,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -481,7 +480,7 @@ class OrganizationForkTest(APITestCase):
 
             assert uploading_start_mock.call_count == 1
             uploading_start_mock.assert_called_with(
-                args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+                args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
             )
 
             assert analytics_record_mock.call_count == 1
@@ -566,7 +565,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1
@@ -617,7 +616,7 @@ class OrganizationForkTest(APITestCase):
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(
-            args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
+            args=[response.data["uuid"], EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
         assert analytics_record_mock.call_count == 1

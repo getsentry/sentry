@@ -2,6 +2,7 @@ import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useExpandedState} from 'sentry/components/structuredEventData/useExpandedState';
@@ -83,7 +84,7 @@ export function CollapsibleValue({
         </NumItemsButton>
       ) : null}
       {shouldShowToggleButton && isExpanded ? (
-        <IndentedValues>{children}</IndentedValues>
+        <Container paddingLeft="lg">{children}</Container>
       ) : null}
       <span>{closeTag}</span>
       {isExpanded && hiddenCount > 0 ? (
@@ -103,10 +104,6 @@ const CollapsibleDataContainer = styled('span')`
     display: block;
     padding-left: ${p => p.theme.space['2xl']};
   }
-`;
-
-const IndentedValues = styled('div')`
-  padding-left: ${p => p.theme.space.lg};
 `;
 
 const NumItemsButton = styled(Button)`

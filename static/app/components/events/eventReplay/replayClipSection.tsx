@@ -16,8 +16,8 @@ import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -103,25 +103,20 @@ export function ReplayClipSection({event, group, replayId}: Props) {
 
   return (
     <ReplayAccess>
-      <ReplaySectionMinHeight
+      <FoldSection
         title={t('Session Replay')}
         actions={allReplaysButton}
-        type={SectionKey.REPLAY}
+        sectionKey={SectionKey.REPLAY}
       >
         <ErrorBoundary mini>
           <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
             {lazyReplay}
           </ReplayGroupContextProvider>
         </ErrorBoundary>
-      </ReplaySectionMinHeight>
+      </FoldSection>
     </ReplayAccess>
   );
 }
-
-// The min-height here is due to max-height that is set in replayPreview.tsx
-const ReplaySectionMinHeight = styled(InterimSection)`
-  min-height: 557px;
-`;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;

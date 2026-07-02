@@ -25,10 +25,11 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
+import {percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -36,7 +37,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 type TagSort = 'date' | 'count';
@@ -256,7 +257,7 @@ function TagDetailsValue({
   return (
     <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
-      {isUrl(tagValue.value) && (
+      {isValidUrl(tagValue.value) && (
         <ExternalLinkbutton
           variant="link"
           icon={<IconOpen />}
@@ -394,10 +395,10 @@ const Header = styled(Body)`
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
   }
   align-items: center;
-  border-radius: 4px;
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {

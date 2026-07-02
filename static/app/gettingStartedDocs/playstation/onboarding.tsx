@@ -116,6 +116,7 @@ const onboardingRetail: OnboardingConfig = {
         {
           type: 'custom',
           content: (
+            // @ts-expect-error TODO: Onboarding is passing a ProjectSummary but this form is expecting a DetailedProject.
             <ConfigForm organization={params.organization} project={params.project} />
           ),
         },

@@ -56,7 +56,7 @@ describe('HighlightsDataSection', () => {
     render(<HighlightsDataSection event={event} project={project} />, {organization});
     renderGlobalModal();
     expect(screen.getByText('Highlights')).toBeInTheDocument();
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('highlights-loading')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add Highlights'})).toBeInTheDocument();
     const editButton = screen.getByRole('button', {name: 'Edit'});

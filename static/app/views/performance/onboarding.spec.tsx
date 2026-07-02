@@ -59,6 +59,7 @@ describe('Testing new onboarding ui', () => {
   it('Renders updated ui', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
+      access: ['project:read', 'event:write'],
     });
 
     MockApiClient.addMockResponse({
@@ -101,10 +102,6 @@ describe('Testing new onboarding ui', () => {
 
     expect(
       await screen.findByText("Waiting for this project's first trace")
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole('button', {name: 'Take me to an example'})
     ).toBeInTheDocument();
   });
 

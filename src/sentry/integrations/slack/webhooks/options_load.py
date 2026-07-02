@@ -30,7 +30,7 @@ class OptionGroup(TypedDict):
 
 @cell_silo_endpoint
 class SlackOptionsLoadEndpoint(Endpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.MESSAGING_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

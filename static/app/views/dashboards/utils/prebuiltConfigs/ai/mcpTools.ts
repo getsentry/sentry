@@ -1,13 +1,16 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {MCP_TOOLS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-const MCP_TOOL_FILTER = `${SpanFields.NAME}:mcp.server has:${SpanFields.MCP_TOOL_NAME}`;
+const MCP_TOOL_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.MCP_TOOL_NAME}`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -76,7 +79,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const TOOLS_TABLE = {
+const TOOLS_TABLE: PrebuiltWidget = {
   id: 'mcp-tools-table',
   title: t('Tools'),
   displayType: DisplayType.TABLE,
@@ -90,14 +93,14 @@ const TOOLS_TABLE = {
         SpanFields.MCP_TOOL_NAME,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],

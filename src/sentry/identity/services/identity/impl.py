@@ -15,7 +15,7 @@ from sentry.identity.services.identity.model import (
 from sentry.identity.services.identity.serial import serialize_identity, serialize_identity_provider
 from sentry.identity.services.identity.service import IdentityService
 from sentry.models.authidentity import AuthIdentity
-from sentry.users.models.identity import Identity
+from sentry.users.models.identity import Identity, OrganizationIdentity
 
 
 class DatabaseBackedIdentityService(IdentityService):
@@ -68,6 +68,20 @@ class DatabaseBackedIdentityService(IdentityService):
             identities = identities.exclude(external_id=F("idp__external_id"))
 
         return [serialize_identity(identity) for identity in identities]
+
+    def get_org_user_identities_by_provider_type(
+        self,
+        *,
+        organization_id: int,
+        user_id: int,
+        provider_type: str,
+    ) -> list[RpcIdentity]:
+        org_identities = OrganizationIdentity.objects.filter(
+            organization_id=organization_id,
+            identity__user_id=user_id,
+            identity__idp__type=provider_type,
+        ).select_related("identity")
+        return [serialize_identity(oi.identity) for oi in org_identities]
 
     def delete_identities(self, user_id: int, organization_id: int) -> None:
         """

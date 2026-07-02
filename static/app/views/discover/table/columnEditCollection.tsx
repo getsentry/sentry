@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
-  generateFieldAsString,
+  generateEquationFieldAsString,
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
@@ -178,8 +178,8 @@ class ColumnEditCollection extends Component<Props, State> {
 
   updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
     const oldColumn = newColumns[index]!;
-    const existingColumn = generateFieldAsString(newColumns[index]!);
-    const updatedColumnString = generateFieldAsString(updatedColumn);
+    const existingColumn = generateEquationFieldAsString(newColumns[index]!);
+    const updatedColumnString = generateEquationFieldAsString(updatedColumn);
     if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
       return;
     }
@@ -712,7 +712,7 @@ const RowContainer = styled('div')<{
           ? `1fr calc(200px + ${p.theme.space.md})`
           : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`};
       }
-    `};
+    `}
 `;
 
 const Ghost = styled('div')`

@@ -68,6 +68,9 @@ register(key="filters:react-hydration-errors", epoch_defaults={1: "1"})
 # Default NextJS chunk load error filter
 register(key="filters:chunk-load-error", epoch_defaults={1: "1"})
 
+# Default custom error filter (enabled for all projects)
+register(key="filters:custom-error", epoch_defaults={1: "1"})
+
 # Default breakdowns config
 register(
     key="sentry:breakdowns",
@@ -208,6 +211,7 @@ SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automation_handoff_integration_id",
     "sentry:seer_automation_handoff_auto_create_pr",
     "sentry:autofix_automation_tuning",
+    "sentry:seer_scanner_automation",
 ]
 
 # Boolean to enable/disable preprod size analysis for this project.

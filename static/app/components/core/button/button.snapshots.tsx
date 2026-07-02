@@ -46,6 +46,7 @@ describe('Button', () => {
           {
             group: `${themeName} – without icon`,
             display_name: `${themeName} / ${variant} / ${size} / without icon`,
+            tags: {variant: String(variant), size: String(size), area: 'core'},
           }
         );
 
@@ -61,6 +62,7 @@ describe('Button', () => {
           {
             group: `${themeName} – with icon`,
             display_name: `${themeName} / ${variant} / ${size} / with icon`,
+            tags: {variant: String(variant), size: String(size), area: 'core'},
           }
         );
 
@@ -79,6 +81,7 @@ describe('Button', () => {
           {
             group: `${themeName} – icon-only`,
             display_name: `${themeName} / ${variant} / ${size} / icon-only`,
+            tags: {variant: String(variant), size: String(size), area: 'core'},
           }
         );
       });

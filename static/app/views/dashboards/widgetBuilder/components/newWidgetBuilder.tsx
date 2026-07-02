@@ -94,7 +94,9 @@ export function WidgetBuilderV2({
   const navigationElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (navigationElementRef.current) return;
+    if (navigationElementRef.current) {
+      return;
+    }
 
     const navigationElement = document.querySelector(
       'nav[aria-label="Primary Navigation"]'
@@ -193,7 +195,7 @@ export function WidgetBuilderV2({
                       dashboard={dashboard}
                       dashboardFilters={dashboardFilters}
                       setIsPreviewDraggable={setIsPreviewDraggable}
-                      isWidgetInvalid={!queryConditionsValid}
+                      isQueryConditionInvalid={!queryConditionsValid}
                       openWidgetTemplates={openWidgetTemplates}
                       setOpenWidgetTemplates={setOpenWidgetTemplates}
                       onDataFetched={handleWidgetDataFetched}
@@ -212,7 +214,7 @@ export function WidgetBuilderV2({
                           dashboard={dashboard}
                           dragPosition={translate}
                           isDraggable={isPreviewDraggable}
-                          isWidgetInvalid={!queryConditionsValid}
+                          isQueryConditionInvalid={!queryConditionsValid}
                           onDataFetched={handleWidgetDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
                         />
@@ -232,7 +234,7 @@ export function WidgetBuilderV2({
 export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
-  isWidgetInvalid,
+  isQueryConditionInvalid,
   dragPosition,
   isDraggable,
   onDataFetched,
@@ -240,9 +242,9 @@ export function WidgetPreviewContainer({
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
+  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   openWidgetTemplates?: boolean;
 }) {
@@ -363,7 +365,7 @@ export function WidgetPreviewContainer({
                     <WidgetPreview
                       dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
-                      isWidgetInvalid={isWidgetInvalid}
+                      isQueryConditionInvalid={isQueryConditionInvalid}
                       onDataFetched={onDataFetched}
                       shouldForceDescriptionTooltip={!isSmallScreen}
                     />

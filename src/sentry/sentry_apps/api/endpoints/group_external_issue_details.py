@@ -7,13 +7,20 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
 
 @cell_silo_endpoint
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
@@ -26,6 +33,22 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
             )
         except PlatformExternalIssue.DoesNotExist:
             return Response(status=404)
+
+        publish_action(
+            UnlinkPlatformExternalIssueAction(
+                service_type=external_issue.service_type,
+                display_name=external_issue.display_name,
+                web_url=external_issue.web_url,
+            ),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            project=group.project,
+            actor=(
+                GroupActionActor.user(request.user.id)
+                if request.user.is_authenticated
+                else SYSTEM_ACTOR
+            ),
+        )
 
         deletions.exec_sync(external_issue)
 

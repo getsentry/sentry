@@ -12,28 +12,31 @@ import {
   SectionWrap,
   SelectFilterContext,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
-interface GridListSectionProps {
-  listState: ListState<any>;
-  node: Node<any>;
-  size: GridListOptionProps['size'];
-  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
+interface GridListSectionProps<T extends ListItemBase> {
+  listState: ListState<T>;
+  node: Node<T>;
+  size: GridListOptionProps<T>['size'];
 }
 
 /**
  * A <li /> element that functions as a grid list section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListSection({node, listState, onToggle, size}: GridListSectionProps) {
+export function GridListSection<T extends ListItemBase>({
+  node,
+  listState,
+  size,
+}: GridListSectionProps<T>) {
   const titleId = useId();
   const {separatorProps} = useSeparator({elementType: 'li'});
 
   const showToggleAllButton =
     listState.selectionManager.selectionMode === 'multiple' &&
-    node.value.showToggleAllButton;
+    node.value?.showToggleAllButton;
 
   const hiddenOptions = useContext(SelectFilterContext);
   const childNodes = useMemo(
@@ -57,9 +60,7 @@ export function GridListSection({node, listState, onToggle, size}: GridListSecti
                 {node.rendered}
               </SectionTitle>
             )}
-            {showToggleAllButton && (
-              <SectionToggle item={node} listState={listState} onToggle={onToggle} />
-            )}
+            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
         <SectionGroup role="presentation">

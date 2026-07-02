@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -24,6 +25,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
@@ -33,8 +35,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializer,
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
@@ -67,7 +71,9 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         raise ResourceDoesNotExist
 
 
-def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
+def remove_detector(
+    request: Request, organization: Organization, detector: Detector
+) -> Response[None]:
     """
     Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
     for backwards compatibility and can be moved back under DELETE after API deprecation.
@@ -152,11 +158,12 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
-        operation_id="Fetch a Monitor",
+        operation_id="getOrganizationDetector",
+        summary="Fetch a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -170,10 +177,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.GET_DETECTOR,
     )
-    def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def get(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[DetectorSerializerResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Return details on an individual monitor
         """
         _check_metric_detector_allowed(detector, organization)
@@ -186,7 +193,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(serialized_detector)
 
     @extend_schema(
-        operation_id="Update a Monitor by ID",
+        operation_id="updateOrganizationDetector",
+        summary="Update a Monitor by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -201,10 +209,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_DETECTOR,
     )
-    def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def put(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[DetectorSerializerResponse] | Response[ValidationErrorResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Update an existing monitor
         """
         _check_metric_detector_allowed(detector, organization)
@@ -218,14 +226,16 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         )
 
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
 
         updated_detector = validator.save()
 
-        return Response(serialize(updated_detector, request.user), status=status.HTTP_200_OK)
+        body: DetectorSerializerResponse = serialize(updated_detector, request.user)
+        return Response(body, status=status.HTTP_200_OK)
 
     @extend_schema(
-        operation_id="Delete a Monitor",
+        operation_id="deleteOrganizationDetector",
+        summary="Delete a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -236,10 +246,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[None]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Delete a monitor
         """
         # Intentionally no _check_metric_detector_allowed gate here:

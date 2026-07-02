@@ -1,6 +1,8 @@
 import {useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -35,7 +37,13 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
 
   return (
     <OverflowVisibleContainer>
-      <Positioned style={{minHeight}} ref={positionedRef}>
+      <Container
+        width="100%"
+        height="100%"
+        position="relative"
+        minHeight={typeof minHeight === 'number' ? `${minHeight}px` : minHeight}
+        ref={positionedRef}
+      >
         {viewDimensions.width ? (
           <Sides
             viewDimensions={viewDimensions}
@@ -46,7 +54,7 @@ function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) 
         ) : (
           <div />
         )}
-      </Positioned>
+      </Container>
     </OverflowVisibleContainer>
   );
 }
@@ -155,12 +163,6 @@ const FullHeightContainer = styled(NegativeSpaceContainer)`
 
 const OverflowVisibleContainer = styled(FullHeightContainer)`
   overflow: visible;
-`;
-
-const Positioned = styled('div')`
-  height: 100%;
-  position: relative;
-  width: 100%;
 `;
 
 const SidesContainer = styled('div')`

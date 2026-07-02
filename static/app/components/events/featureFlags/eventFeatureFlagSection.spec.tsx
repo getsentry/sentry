@@ -18,6 +18,7 @@ import {
   NO_FLAG_CONTEXT_SECTION_PROPS,
   NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS,
 } from 'sentry/components/events/featureFlags/testUtils';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 // Needed to mock useVirtualizer lists.
 jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
@@ -57,7 +58,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('renders a list of feature flags with a button to view more flags', async () => {
-    render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
+    render(
+      <GroupDataContextProvider
+        group={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group}
+        project={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group.project}
+      >
+        <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />
+      </GroupDataContextProvider>
+    );
 
     for (const {flag, result} of MOCK_FLAGS) {
       if (result) {
@@ -78,7 +86,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('toggles the drawer when `view n flags` is clicked', async () => {
-    render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_MANY_FLAGS} />);
+    render(
+      <GroupDataContextProvider
+        group={MOCK_DATA_SECTION_PROPS_MANY_FLAGS.group}
+        project={MOCK_DATA_SECTION_PROPS_MANY_FLAGS.group.project}
+      >
+        <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_MANY_FLAGS} />
+      </GroupDataContextProvider>
+    );
     const viewAllButton = screen.getByRole('button', {name: 'View 3 More Flags'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'Feature flags drawer'});
@@ -89,7 +104,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('opens the drawer and focuses search when the search button is pressed', async () => {
-    render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
+    render(
+      <GroupDataContextProvider
+        group={MOCK_DATA_SECTION_PROPS.group}
+        project={MOCK_DATA_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />
+      </GroupDataContextProvider>
+    );
 
     const control = screen.getByRole('button', {name: 'Open Feature Flag Search'});
     expect(control).toBeInTheDocument();
@@ -105,7 +127,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('renders a sort dropdown with Evaluation Order as the default', async () => {
-    render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
+    render(
+      <GroupDataContextProvider
+        group={MOCK_DATA_SECTION_PROPS.group}
+        project={MOCK_DATA_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />
+      </GroupDataContextProvider>
+    );
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
     expect(control).toBeInTheDocument();
@@ -120,7 +149,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('renders a sort dropdown which affects the granular sort dropdown', async () => {
-    render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
+    render(
+      <GroupDataContextProvider
+        group={MOCK_DATA_SECTION_PROPS.group}
+        project={MOCK_DATA_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />
+      </GroupDataContextProvider>
+    );
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
     expect(control).toBeInTheDocument();
@@ -133,7 +169,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('allows sort dropdown to affect displayed flags', async () => {
-    render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />);
+    render(
+      <GroupDataContextProvider
+        group={MOCK_DATA_SECTION_PROPS.group}
+        project={MOCK_DATA_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS} />
+      </GroupDataContextProvider>
+    );
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
 
@@ -183,7 +226,14 @@ describe('EventFeatureFlagList', () => {
   });
 
   it('renders empty state if project has flags', () => {
-    render(<EventFeatureFlagSection {...EMPTY_STATE_SECTION_PROPS} />);
+    render(
+      <GroupDataContextProvider
+        group={EMPTY_STATE_SECTION_PROPS.group}
+        project={EMPTY_STATE_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...EMPTY_STATE_SECTION_PROPS} />
+      </GroupDataContextProvider>
+    );
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();
@@ -200,9 +250,17 @@ describe('EventFeatureFlagList', () => {
   it('renders empty state if event.contexts.flags is not set - flags already sent', () => {
     const org = OrganizationFixture({features: []});
 
-    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS} />, {
-      organization: org,
-    });
+    render(
+      <GroupDataContextProvider
+        group={NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS.group}
+        project={NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS} />
+      </GroupDataContextProvider>,
+      {
+        organization: org,
+      }
+    );
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();
@@ -219,9 +277,17 @@ describe('EventFeatureFlagList', () => {
   it('renders nothing if event.contexts.flags is not set - wrong platform', () => {
     const org = OrganizationFixture({features: []});
 
-    render(<EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS} />, {
-      organization: org,
-    });
+    render(
+      <GroupDataContextProvider
+        group={NO_FLAG_CONTEXT_SECTION_PROPS.group}
+        project={NO_FLAG_CONTEXT_SECTION_PROPS.group.project}
+      >
+        <EventFeatureFlagSection {...NO_FLAG_CONTEXT_SECTION_PROPS} />
+      </GroupDataContextProvider>,
+      {
+        organization: org,
+      }
+    );
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();

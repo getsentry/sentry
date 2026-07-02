@@ -1,9 +1,5 @@
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 
-export const ProfilingBetaAlertBanner = HookOrDefault({
-  hookName: 'component:profiling-billing-banner',
-});
-
-export const ContinuousProfilingBillingRequirementBanner = HookOrDefault({
-  hookName: 'component:continuous-profiling-billing-requirement-banner',
+export const ContinuousProfilingBillingRequirementBanner = OverrideOrDefault({
+  overrideName: 'component:continuous-profiling-billing-requirement-banner',
 });

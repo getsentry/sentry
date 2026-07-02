@@ -162,4 +162,63 @@ describe('getHighlightedSpanAttributes', () => {
 
     expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
   });
+
+  it('should include cost attribute when cost is negative', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.cost.total_tokens': '-0.05',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Cost')).toBeDefined();
+  });
+
+  it('should include reasoning effort when attribute is present', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.request.reasoning_effort': 'high',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    const reasoningEffort = result.find(attr => attr.name === 'Reasoning Effort');
+    expect(reasoningEffort).toBeDefined();
+    expect(reasoningEffort?.value).toBe('high');
+  });
+
+  it('should not include reasoning effort when attribute is absent', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Reasoning Effort')).toBeUndefined();
+  });
+
+  it('should include tokens attribute when values are present', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.usage.input_tokens': '100',
+      'gen_ai.usage.output_tokens': '50',
+      'gen_ai.usage.total_tokens': '150',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Tokens')).toBeDefined();
+  });
 });

@@ -84,6 +84,68 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def test_validation_error_when_missing_params(self) -> None:
         self.get_error_response(*self.get_url_args(), status_code=400)
 
+    def test_group_id_returns_400_when_user_lacks_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        restricted_team = self.create_team(organization=self.organization)
+        restricted_project = self.create_project(
+            organization=self.organization, teams=[restricted_team]
+        )
+        restricted_group = self.create_group(
+            project=restricted_project,
+            type=MetricIssue.type_id,
+            priority=PriorityLevel.LOW,
+        )
+
+        other_team = self.create_team(organization=self.organization)
+        outsider = self.create_user()
+        self.create_member(
+            user=outsider,
+            organization=self.organization,
+            role="member",
+            teams=[other_team],
+        )
+        self.login_as(user=outsider)
+
+        self.get_error_response(
+            *self.get_url_args(),
+            qs_params={"groupId": restricted_group.id},
+            status_code=400,
+        )
+
+    def test_detector_id_returns_400_when_user_lacks_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        restricted_team = self.create_team(organization=self.organization)
+        restricted_project = self.create_project(
+            organization=self.organization, teams=[restricted_team]
+        )
+        restricted_detector = self.create_detector(project=restricted_project)
+        restricted_group = self.create_group(
+            project=restricted_project,
+            type=MetricIssue.type_id,
+            priority=PriorityLevel.LOW,
+        )
+        DetectorGroup.objects.create(detector=restricted_detector, group=restricted_group)
+
+        other_team = self.create_team(organization=self.organization)
+        outsider = self.create_user()
+        self.create_member(
+            user=outsider,
+            organization=self.organization,
+            role="member",
+            teams=[other_team],
+        )
+        self.login_as(user=outsider)
+
+        self.get_error_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": restricted_detector.id},
+            status_code=400,
+        )
+
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.save()

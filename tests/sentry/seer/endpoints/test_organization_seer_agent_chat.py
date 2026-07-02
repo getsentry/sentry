@@ -1,9 +1,18 @@
+import uuid
 from typing import Any
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 
+from sentry.seer.agent.client_models import (
+    MemoryBlock,
+    Message,
+    SeerRunState,
+    Usage,
+    UsageAccumulator,
+)
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -28,8 +37,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_run_id_calls_client(self, mock_client_class: MagicMock) -> None:
-        from sentry.seer.agent.client_models import SeerRunState
-
         # Mock client response
         mock_state = SeerRunState(
             run_id=123,
@@ -46,18 +53,12 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["session"]["run_id"] == 123
         assert response.data["session"]["status"] == "completed"
+        # No mirror row exists for this numeric run id, so there's no UUID to surface.
+        assert response.data["sentry_run_id"] is None
         mock_client.get_run.assert_called_once_with(run_id=123)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
-        from sentry.seer.agent.client_models import (
-            MemoryBlock,
-            Message,
-            SeerRunState,
-            Usage,
-            UsageAccumulator,
-        )
-
         mock_state = SeerRunState(
             run_id=123,
             blocks=[
@@ -102,15 +103,16 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
+        run_uuid = uuid.uuid4()
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=run_uuid)
         mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 456}
+        assert response.data == {"run_id": 456, "sentry_run_id": str(run_uuid)}
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -135,7 +137,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         ):
             self.organization.update_option("sentry:enable_seer_coding", option_enabled)
             mock_client = MagicMock()
-            mock_client.start_run.return_value = 456
+            mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
             mock_client_class.return_value = mock_client
 
             data = {"query": "What is this error about?"}
@@ -171,7 +173,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(f"{self.url}789/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789}
+        assert response.data == {"run_id": 789, "sentry_run_id": None}
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -189,6 +191,90 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             ui_tools=None,
             request=ANY,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_with_uuid_resolves_to_seer_run_state_id(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = SeerRunState(
+            run_id=555,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{run.uuid}/")
+
+        assert response.status_code == 200
+        assert response.data["sentry_run_id"] == str(run.uuid)
+        mock_client.get_run.assert_called_once_with(run_id=555)
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_with_unknown_uuid_returns_null_session(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{uuid.uuid4()}/")
+
+        assert response.status_code == 404
+        assert response.data == {"session": None}
+        mock_client.get_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_with_uuid_from_other_org_is_not_resolved(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        other_org = self.create_organization()
+        run = self.create_seer_run(organization=other_org, seer_run_state_id=555)
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{run.uuid}/")
+
+        assert response.status_code == 404
+        assert response.data == {"session": None}
+        mock_client.get_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_uuid_resolves(self, mock_client_class: MagicMock) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 555
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(f"{self.url}{run.uuid}/", {"query": "More"}, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
+        assert mock_client.continue_run.call_args.kwargs["run_id"] == 555
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_unknown_uuid_returns_404(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(f"{self.url}{uuid.uuid4()}/", {"query": "More"}, format="json")
+
+        assert response.status_code == 404
+        assert response.data == {"session": None}
+        mock_client.continue_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_garbage_run_id_returns_400(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(f"{self.url}not-a-real-id/", {"query": "More"}, format="json")
+
+        assert response.status_code == 400
+        mock_client.continue_run.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
@@ -220,8 +306,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         """GET with run_id should succeed with dashboards-ai-generate flag even without seer-explorer."""
-        from sentry.seer.agent.client_models import SeerRunState
-
         mock_state = SeerRunState(
             run_id=123,
             blocks=[],
@@ -262,7 +346,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             response = self.client.post(f"{self.url}789/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789}
+        assert response.data == {"run_id": 789, "sentry_run_id": None}
 
     def test_new_run_denied_without_seer_explorer_flag(self) -> None:
         """POST without run_id should be denied with only dashboards-ai-generate flag."""
@@ -294,7 +378,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         snapshot = {
@@ -319,7 +403,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_ascii_on_page_context_passed_through(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         ascii_screenshot = "+--------+\n| chart  |\n+--------+"
@@ -329,6 +413,74 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         call_kwargs = mock_client.start_run.call_args[1]
         assert call_kwargs["on_page_context"] == ascii_screenshot
+
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_outbox_path_creates_run_and_returns_run_id(
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_request: Mock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 99}))
+
+        from sentry.seer.agent.client import SeerAgentClient
+
+        client = SeerAgentClient(
+            self.organization, self.user, is_interactive=True, reasoning_effort="medium"
+        )
+
+        run_id = client.start_run(
+            prompt="What happened?",
+        ).seer_run_state_id
+
+        assert run_id == 99
+
+        run = SeerRun.objects.get(organization_id=self.organization.id)
+        assert run.type == SeerRunType.EXPLORER
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert run.seer_run_state_id == 99
+        assert run.user_id == self.user.id
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.title == "What happened?"
+        assert agent_run.source == ""
+        assert agent_run.project is None
+        assert agent_run.extras == {}
+
+        sent_body = mock_request.call_args[0][0]
+        assert sent_body["query"] == "What happened?"
+        assert sent_body["organization_id"] == self.organization.id
+        assert "external_idempotency_key" in sent_body
+        assert sent_body["external_idempotency_key"] == str(run.uuid)
+
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_outbox_path_flush_error_marks_failed_and_raises(
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_request: Mock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_request.side_effect = Exception("Seer exploded")
+
+        from sentry.seer.agent.client import SeerAgentClient
+        from sentry.seer.models import SeerApiError
+
+        client = SeerAgentClient(
+            self.organization, self.user, is_interactive=True, reasoning_effort="medium"
+        )
+
+        with pytest.raises(SeerApiError, match="Outbox flush failed"):
+            client.start_run(
+                prompt="What happened?",
+            )
+
+        run = SeerRun.objects.get(organization_id=self.organization.id)
+        assert run.mirror_status == SeerRunMirrorStatus.FAILED
+        # SeerAgentRun commits with SeerRun before the outbox drain runs, so
+        # it persists even when the drain fails.
+        assert SeerAgentRun.objects.filter(run=run).exists()
 
 
 @with_feature("organizations:seer-explorer")
@@ -342,7 +494,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_false_sets_context_engine_disabled(
@@ -361,9 +513,9 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body["is_context_engine_enabled"] is False
+        assert body["agent_run_options"]["is_context_engine_enabled"] is False
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_true_sets_context_engine_enabled(
@@ -382,9 +534,9 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body["is_context_engine_enabled"] is True
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_ignored_without_feature_flag(
@@ -402,7 +554,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body.get("is_context_engine_enabled") is not False
+        assert body.get("agent_run_options", {}).get("is_context_engine_enabled") is not False
 
 
 class TestCodeModeSerializerField:

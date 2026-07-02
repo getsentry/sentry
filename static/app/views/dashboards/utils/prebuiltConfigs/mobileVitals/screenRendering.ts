@@ -1,13 +1,13 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
 import {SCREEN_RENDERING_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const SPAN_OPERATIONS_TABLE: Widget = {
+const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
   id: 'span-operations-table',
   title: t('Span Operations'),
   description: '',

@@ -104,6 +104,23 @@ class TestAccounts(TestCase):
         assert resp.has_header(header_name)
         assert resp[header_name] == "strict-origin-when-cross-origin"
 
+    def test_recover_verifies_primary_email(self) -> None:
+        user = self.create_user()
+        user_email = UserEmail.objects.get(email=user.email)
+        user_email.is_verified = False
+        user_email.save()
+
+        lost_password = LostPasswordHash.objects.create(user=user)
+
+        resp = self.client.post(
+            self.password_recover_path(lost_password.user_id, lost_password.hash),
+            {"password": "test_password"},
+        )
+        assert resp.status_code == 302
+
+        user_email.refresh_from_db()
+        assert user_email.is_verified
+
     @override_settings(
         AUTH_PASSWORD_VALIDATORS=[
             {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}

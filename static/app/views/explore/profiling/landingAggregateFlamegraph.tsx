@@ -6,6 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
@@ -26,6 +27,7 @@ import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -177,6 +179,7 @@ export function LandingAggregateFlamegraph({
 
   const {
     data,
+    error,
     isPending: isLoading,
     isError,
     status,
@@ -303,15 +306,24 @@ export function LandingAggregateFlamegraph({
                   <RequestStateMessageContainer>
                     <LoadingIndicator />
                   </RequestStateMessageContainer>
-                ) : status === 'error' ? (
+                ) : status === 'error' && visualization !== 'flamegraph' ? (
                   <RequestStateMessageContainer>
-                    {t('There was an error loading the flamegraph.')}
+                    <Stack align="center" gap="md" role="alert">
+                      <Text bold>{t('Error loading flamegraph')}</Text>
+                      <Text>
+                        {getRequestErrorUserMessage(
+                          error,
+                          t('There was an error loading the flamegraph.')
+                        )}
+                      </Text>
+                    </Stack>
                   </RequestStateMessageContainer>
                 ) : null}
                 {visualization === 'flamegraph' ? (
                   <AggregateFlamegraph
                     filter={frameFilter}
                     status={status}
+                    queryError={status === 'error' ? error : null}
                     onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}

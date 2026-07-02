@@ -13,7 +13,6 @@ import {Text, Heading} from '@sentry/scraps/text';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {NoAccess} from 'sentry/components/noAccess';
 import {Redirect} from 'sentry/components/redirect';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
@@ -28,7 +27,6 @@ export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const isSeerSupportedProvider = useIsSeerSupportedProvider();
@@ -55,10 +53,6 @@ export default function SeerAutomationSCMRequired() {
         })
       ) ?? [],
   });
-
-  if (!hasSeatBasedSeer && !hasLegacySeer && !hasCodeReviewBeta) {
-    return <NoAccess />;
-  }
 
   if (!showNewSeer(organization) && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;

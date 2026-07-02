@@ -424,6 +424,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.insights.mcp.traffic-by-client-widget"
     API_INSIGHTS_MCP_TRAFFIC_WIDGET = "api.insights.mcp.traffic-widget"
     API_INSIGHTS_MCP_TRANSPORT_WIDGET = "api.insights.mcp.transport-widget"
+    API_MCP_SEARCH_EVENTS = "api.mcp.search-events"
 
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
@@ -500,6 +501,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
+    API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -603,6 +605,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
     API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
     API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
+    API_TRACE_VIEW_TRACE_METRICS_META = "api.trace-view.trace-metrics-meta"
     API_TRACE_VIEW_LOGS = "api.trace-view.logs"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
@@ -639,6 +642,12 @@ class Referrer(StrEnum):
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
+        "dynamic_sampling.per_org.get_eap_project_volumes"
+    )
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
+        "dynamic_sampling.per_org.get_eap_transaction_volumes"
+    )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
@@ -657,6 +666,7 @@ class Referrer(StrEnum):
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
+    GETSENTRY_QUOTAS_OVER_USAGE_SHADOW = "getsentry.quotas.over_usage_shadow"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
@@ -669,6 +679,7 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+    ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
     ISSUES_SUSPECT_FLAGS_QUERY_BASELINE_SET = "issues.suspect_flags.query_baseline_set"
     ISSUES_SUSPECT_FLAGS_QUERY_SELECTION_SET = "issues.suspect_flags.query_selection_set"
     ISSUES_SUSPECT_FLAGS_QUERY_ERROR_COUNTS = "issues.suspect_flags.query_error_counts"
@@ -682,8 +693,7 @@ class Referrer(StrEnum):
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
-    # TODO(telex-team): temporary referrer, remove once low value spans job is no longer needed
-    LOW_VALUE_SPANS_JOB = "autopilot.low_value_spans_job"
+    LOW_VALUE_TELEMETRY_DETECTOR = "configuration.low_value_telemetry_detector"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
@@ -778,9 +788,9 @@ class Referrer(StrEnum):
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
+    REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
-    REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
-    REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
+    REPORTS_PAST_RESOLVED_ISSUES = "reports.past_resolved_issues"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
@@ -797,6 +807,7 @@ class Referrer(StrEnum):
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SEER_AUTOFIX_GET_TRACE_EVENTS = "seer.autofix.trace.get-events"
+    SEER_AGENT_IN_CHAT_LINK = "seer.agent.in-chat-link"
     SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
         "supergroups_backfill_lightweight.get_latest_events"
     )
@@ -931,9 +942,6 @@ class Referrer(StrEnum):
 
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
-    WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
 
     # Referrers used in the migration script for alerts
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"

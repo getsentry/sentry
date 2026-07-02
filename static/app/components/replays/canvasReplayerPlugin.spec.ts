@@ -22,16 +22,22 @@ jest.mock('lodash/debounce', () =>
   jest.fn().mockImplementation((callback, timeout) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const debounced = jest.fn((...args) => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       timeoutId = setTimeout(() => callback(...args), timeout);
     });
 
     const cancel = jest.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     });
 
     const flush = jest.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       callback();
     });
 
@@ -96,7 +102,7 @@ function createReplayer(getNodeImpl: (id: number) => Node | null) {
 describe('canvasReplayerPlugin', () => {
   beforeEach(() => {
     jest.clearAllTimers();
-    (canvasMutation as jest.Mock).mockClear();
+    jest.mocked(canvasMutation).mockClear();
   });
 
   it('does not clear current canvas snapshot when flushing queued sync events before processing a canvas event', async () => {
@@ -143,7 +149,7 @@ describe('canvasReplayerPlugin', () => {
     await Promise.resolve();
 
     // We should have processed the queued latest sync event and the realtime event
-    expect((canvasMutation as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(jest.mocked(canvasMutation).mock.calls.length).toBeGreaterThanOrEqual(2);
 
     // Critically, the current canvas snapshot should not be cleared
     expect(img.src).toContain('data:image/png;base64');
@@ -197,8 +203,12 @@ describe('canvasReplayerPlugin', () => {
     const canvas2 = createCanvasNode();
 
     const replayer = createReplayer(requestedId => {
-      if (requestedId === id1) return canvas1;
-      if (requestedId === id2) return canvas2;
+      if (requestedId === id1) {
+        return canvas1;
+      }
+      if (requestedId === id2) {
+        return canvas2;
+      }
       return null;
     });
 

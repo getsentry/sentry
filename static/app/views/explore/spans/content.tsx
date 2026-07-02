@@ -1,19 +1,27 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,
@@ -47,12 +55,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
-  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
-  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
-  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
-};
-
 function useHasCrossEvents() {
   const crossEvents = useQueryParamsCrossEvents();
   return defined(crossEvents) && crossEvents.length > 0;
@@ -69,12 +71,45 @@ export function ExploreContent() {
 }
 
 function ExploreContentInner() {
-  const organization = useOrganization();
   const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
   const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const organization = useOrganization();
+  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
+  const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
+    useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
+
+  // The bootstrap query returns raw API org data, while useOrganization reads
+  // the OrganizationStore value after FeatureFlagOverrides.loadOrg mutates it.
+  // Apply stored toolbar overrides here before comparing these two sources.
+  const bootstrappedOrganizationHasHighRange = bootstrapOrganization
+    ? FeatureFlagOverrides.singleton()
+        .getEnabledFeatureFlagList(bootstrapOrganization)
+        .includes('visibility-explore-range-high')
+    : undefined;
+  const organizationHasHighRange = organization.features.includes(
+    'visibility-explore-range-high'
+  );
+
+  // PageFiltersContainer normalizes URL date params on mount. Wait until the
+  // bootstrapped org and OrganizationContext agree on the spans range feature.
+  // Compare effective bootstrap flags so stored toolbar overrides do not keep
+  // the bootstrapped org and OrganizationContext permanently out of sync.
+  const organizationRangeLoading =
+    organizationLoading ||
+    isBootstrapOrganizationPending ||
+    (defined(bootstrappedOrganizationHasHighRange) &&
+      bootstrappedOrganizationHasHighRange !== organizationHasHighRange);
+
+  const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+    defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
+    maxPickableDays: dataCategoryMaxPickableDays.maxPickableDays,
+    maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+    maxDateRange: MAX_DAYS_FOR_CROSS_EVENTS,
+  };
 
   const maxPickableDays = hasCrossEvents
     ? CROSS_EVENTS_DATE_OVERRIDE
@@ -82,25 +117,40 @@ function ExploreContentInner() {
 
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
+  if (organizationRangeLoading) {
+    return (
+      <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+        <Stack flex={1} padding="2xl 3xl">
+          <LoadingIndicator />
+        </Stack>
+      </SentryDocumentTitle>
+    );
+  }
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <SpansCommandPaletteActions />
-      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
+      <PageFiltersContainer
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        maxDateRange={datePageFilterProps.maxDateRange}
+      >
         <AnalyticsArea name="explore.spans">
-          <Stack flex={1}>
-            <SpansTabWrapper>
-              <SpansTabHeader />
-              {defined(onboardingProject) ? (
-                <SpansTabOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                  datePageFilterProps={datePageFilterProps}
-                />
-              ) : (
-                <SpansTabContent datePageFilterProps={datePageFilterProps} />
-              )}
-            </SpansTabWrapper>
-          </Stack>
+          <AiQueryProvider>
+            <Stack flex={1}>
+              <SpansTabWrapper>
+                <SpansTabHeader />
+                {defined(onboardingProject) ? (
+                  <SpansTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    datePageFilterProps={datePageFilterProps}
+                  />
+                ) : (
+                  <SpansTabContent datePageFilterProps={datePageFilterProps} />
+                )}
+              </SpansTabWrapper>
+            </Stack>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -153,6 +203,19 @@ function SpansTabHeader() {
   const title = useQueryParamsTitle();
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
+
+  useEffect(() => {
+    if (defined(id) && defined(savedQuery)) {
+      trackAnalytics('trace_explorer.open_saved_query', {
+        organization,
+        query_name: savedQuery.name,
+        is_prebuilt: savedQuery.isPrebuilt ?? false,
+        dataset: savedQuery.dataset,
+      });
+    }
+    // Only fire once per saved query load, keyed by id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, savedQuery?.id]);
 
   const hasSavedQueryTitle =
     defined(id) && defined(savedQuery) && savedQuery.name.length > 0;

@@ -24,7 +24,7 @@ describe('Alert', () => {
           </div>
         </ThemeProvider>
       ),
-      variant => ({theme: themeName, variant: String(variant)})
+      variant => ({tags: {variant: String(variant), area: 'core'}})
     );
 
     it.snapshot.each<AlertProps['variant']>([
@@ -44,7 +44,7 @@ describe('Alert', () => {
           </div>
         </ThemeProvider>
       ),
-      variant => ({theme: themeName, variant: String(variant), showIcon: 'false'})
+      variant => ({tags: {variant: String(variant), showIcon: 'false', area: 'core'}})
     );
 
     it.snapshot.each<AlertProps['variant']>([
@@ -64,7 +64,7 @@ describe('Alert', () => {
           </div>
         </ThemeProvider>
       ),
-      variant => ({theme: themeName, variant: String(variant), system: 'true'})
+      variant => ({tags: {variant: String(variant), system: 'true', area: 'core'}})
     );
   });
 });

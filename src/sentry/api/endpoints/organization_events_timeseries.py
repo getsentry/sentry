@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -56,6 +56,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.tracing import set_span_data, start_span
 
 TOP_EVENTS_DATASETS = {
     discover,
@@ -129,7 +130,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             return None
 
     @extend_schema(
-        operation_id="Query Explore Events in Timeseries Format",
+        operation_id="listOrganizationEventsTimeseries",
+        summary="Query Explore Events in Timeseries Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -158,15 +160,20 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """
         Retrieves explore data for a given organization as a timeseries.
 
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
+
+        **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
+        sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
+        fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
+        estimation only.
         """
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with start_span(op="discover.endpoint", name="filter_params") as span:
+            set_span_data(span, "organization", organization)
 
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
@@ -184,6 +191,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
                     request,
@@ -215,13 +223,20 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 status=200,
             )
 
-    def get_rpc_config(self, dataset: Any, request: Request) -> SearchResolverConfig:
+    def get_rpc_config(
+        self, dataset: Any, request: Request, organization: Organization
+    ) -> SearchResolverConfig:
         if dataset not in RPC_DATASETS:
             raise NotImplementedError
 
         extrapolation_mode = self.get_extrapolation_mode(request)
         disable_aggregate_extrapolation = (
             request.GET.get("disableAggregateExtrapolation", "0") == "1"
+        )
+        disable_array_attributes = not features.has(
+            "organizations:trace-item-details-array-fields",
+            organization,
+            actor=request.user,
         )
 
         if dataset == TraceMetrics:
@@ -232,6 +247,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
+                disable_array_attributes=disable_array_attributes,
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
@@ -239,6 +255,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
+                disable_array_attributes=disable_array_attributes,
             )
         else:
             return SearchResolverConfig(
@@ -246,6 +263,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 use_aggregate_conditions=True,
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
+                disable_array_attributes=disable_array_attributes,
             )
 
     def get_event_stats(
@@ -295,7 +313,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     limit=top_events,
                     include_other=include_other,
                     referrer=referrer,
-                    config=self.get_rpc_config(dataset, request),
+                    config=self.get_rpc_config(dataset, request, organization),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
@@ -325,7 +343,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 query_string=query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=self.get_rpc_config(dataset, request),
+                config=self.get_rpc_config(dataset, request, organization),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,
@@ -356,12 +374,24 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
+        stats_meta = StatsMeta(
+            dataset=DATASET_LABELS[dataset],
+            start=snuba_params.start_date.timestamp() * 1000,
+            end=snuba_params.end_date.timestamp() * 1000,
+        )
+        if snuba_params.debug:
+            debug_info = None
+            if isinstance(result, SnubaTSResult) and "debug_info" in result.data["meta"]:
+                debug_info = result.data["meta"]["debug_info"]
+            elif isinstance(result, dict):
+                debug_info = {}
+                for key, keyed_result in result.items():
+                    if "debug_info" in keyed_result.data["meta"]:
+                        debug_info[key] = keyed_result.data["meta"]["debug_info"]
+            # ignore typing here cause we don't want the openapi docs to include debug_info
+            stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
         response = StatsResponse(
-            meta=StatsMeta(
-                dataset=DATASET_LABELS[dataset],
-                start=snuba_params.start_date.timestamp() * 1000,
-                end=snuba_params.end_date.timestamp() * 1000,
-            ),
+            meta=stats_meta,
             timeSeries=self.serialize_result(result, axes, rollup, now),
         )
         return response

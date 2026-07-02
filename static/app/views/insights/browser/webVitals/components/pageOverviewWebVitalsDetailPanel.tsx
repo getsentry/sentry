@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
@@ -13,7 +14,7 @@ import type {
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
@@ -37,6 +38,7 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
@@ -204,8 +206,7 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (col.key === 'webVital') {
-      // @ts-expect-error TS(2551): Property 'measurements.cls' does not exist on type... Remove this comment to see the full error message
-      const value = row[`measurements.${webVital}`];
+      const value = webVital ? row[WEB_VITAL_TO_FIELD[webVital]] : undefined;
       if (value === undefined) {
         return (
           <AlignRight>
@@ -267,9 +268,9 @@ export function PageOverviewWebVitalsDetailPanel({
     if (key === SpanFields.SPAN_DESCRIPTION) {
       const description =
         webVital === 'lcp' && row[SpanFields.SPAN_OP] === 'pageload'
-          ? row[SpanFields.LCP_ELEMENT]
+          ? row[SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT]
           : webVital === 'cls' && row[SpanFields.SPAN_OP] === 'pageload'
-            ? row[SpanFields.CLS_SOURCE]
+            ? row[SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1]
             : row[key];
 
       if (description) {
@@ -310,7 +311,7 @@ export function PageOverviewWebVitalsDetailPanel({
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = webVital
-    ? projectData?.[0]?.[`p75(measurements.${webVital})`]
+    ? projectData?.[0]?.[`p75(${WEB_VITAL_TO_FIELD[webVital]})`]
     : undefined;
 
   return (
@@ -370,7 +371,12 @@ const NoOverflow = styled('span')`
 const AlignRight = styled('span')<{color?: string}>`
   text-align: right;
   width: 100%;
-  ${p => (p.color ? `color: ${p.color};` : '')}
+  ${p =>
+    p.color
+      ? css`
+          color: ${p.color};
+        `
+      : ''}
 `;
 
 const AlignCenter = styled('span')`

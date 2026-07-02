@@ -6,13 +6,13 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import Hook from 'sentry/components/hook';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
+import {Override} from 'sentry/components/override';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
@@ -20,9 +20,9 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformKey} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useExperiment} from 'sentry/utils/useExperiment';
@@ -45,6 +45,11 @@ import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import {TargetedOnboardingWelcome} from './welcome';
+
+// Genuine new-org onboarding happens shortly after org creation. Existing orgs
+// only reach /onboarding via stale links + login replay and are far older than
+// this window, so gating exposure on org age keeps them out of the experiment.
+const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -69,6 +74,87 @@ const legacyOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
+// Adapters bridge the SCM step components — which accept all flow state via
+// props — to the onboarding flow's OnboardingContext. They let the same step
+// components be reused by other flows (e.g. project creation) that source
+// state from somewhere other than session storage.
+
+function ScmConnectAdapter({onComplete, genBackButton}: StepProps) {
+  const {
+    selectedIntegration,
+    setSelectedIntegration,
+    selectedRepository,
+    setSelectedRepository,
+    clearDerivedState,
+  } = useOnboardingContext();
+
+  return (
+    <ScmConnect
+      selectedIntegration={selectedIntegration}
+      selectedRepository={selectedRepository}
+      onIntegrationChange={setSelectedIntegration}
+      onRepositoryChange={setSelectedRepository}
+      onClearDerivedState={clearDerivedState}
+      onComplete={onComplete}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
+function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
+  const {
+    selectedRepository,
+    selectedPlatform,
+    setSelectedPlatform,
+    selectedFeatures,
+    setSelectedFeatures,
+    setProjectDetailsForm,
+    createdProjectSlug,
+    setCreatedProjectSlug,
+  } = useOnboardingContext();
+
+  return (
+    <ScmPlatformFeatures
+      selectedRepository={selectedRepository}
+      selectedPlatform={selectedPlatform}
+      selectedFeatures={selectedFeatures}
+      createdProjectSlug={createdProjectSlug}
+      onPlatformChange={setSelectedPlatform}
+      onFeaturesChange={setSelectedFeatures}
+      onClearProjectDetailsForm={() => setProjectDetailsForm(undefined)}
+      onProjectCreated={setCreatedProjectSlug}
+      onComplete={onComplete}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
+function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
+  const {
+    selectedPlatform,
+    selectedFeatures,
+    selectedRepository,
+    createdProjectSlug,
+    setCreatedProjectSlug,
+    projectDetailsForm,
+    setProjectDetailsForm,
+  } = useOnboardingContext();
+
+  return (
+    <ScmProjectDetails
+      selectedPlatform={selectedPlatform}
+      selectedFeatures={selectedFeatures}
+      selectedRepository={selectedRepository}
+      createdProjectSlug={createdProjectSlug}
+      projectDetailsForm={projectDetailsForm}
+      onProjectCreated={setCreatedProjectSlug}
+      onProjectDetailsFormChange={setProjectDetailsForm}
+      onComplete={onComplete}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
 const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
@@ -79,19 +165,19 @@ const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
-    Component: ScmConnect,
+    Component: ScmConnectAdapter,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
-    Component: ScmPlatformFeatures,
+    Component: ScmPlatformFeaturesAdapter,
     cornerVariant: 'top-left',
   },
   {
     id: OnboardingStepId.SCM_PROJECT_DETAILS,
     title: t('Project details'),
-    Component: ScmProjectDetails,
+    Component: ScmProjectDetailsAdapter,
     hasFooter: true,
     cornerVariant: 'top-left',
   },
@@ -107,7 +193,9 @@ const scmOnboardingSteps: StepDescriptor[] = [
 function WelcomeVariable(props: StepProps) {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
 
-  if (hasNewWelcomeUI) return <NewWelcomeUI {...props} />;
+  if (hasNewWelcomeUI) {
+    return <NewWelcomeUI {...props} />;
+  }
 
   return <TargetedOnboardingWelcome {...props} />;
 }
@@ -180,16 +268,26 @@ export function OnboardingWithoutContext() {
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
+
+  // Only report experiment exposure for genuine new-org onboarding. Existing
+  // orgs can land on /onboarding via stale links, which would
+  // otherwise contaminate the experiment population. reportExposure does not
+  // affect the returned `inExperiment` assignment, so step selection below still
+  // works for everyone.
+  const isNewOrgOnboarding =
+    Date.now() - new Date(organization.dateCreated).getTime() <
+    NEW_ORG_ONBOARDING_WINDOW_MS;
+
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
-    reportExposure: true,
+    reportExposure: isNewOrgOnboarding,
   });
 
   // Only report exposure for users who are actually in SCM onboarding —
   // the assignment is irrelevant for legacy onboarding.
   const {inExperiment: hasProjectDetailsStep} = useExperiment({
     feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding,
+    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
   });
 
   const scmSteps = hasProjectDetailsStep
@@ -201,7 +299,7 @@ export function OnboardingWithoutContext() {
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
     enabled: hasScmOnboarding,
-    sampleRate: 0.3,
+    sampleRate: 0.5,
   });
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
@@ -364,16 +462,19 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header columns={{'2xs': 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} as="header">
+      <Header
+        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
+        as="header"
+      >
         <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
           <Flex
             justify="center"
             display={{
-              '2xs': 'none',
-              xs: 'none',
-              sm: 'none',
-              md: 'flex',
+              'screen:2xs': 'none',
+              'screen:xs': 'none',
+              'screen:sm': 'none',
+              'screen:md': 'flex',
             }}
           >
             <Stepper
@@ -391,7 +492,7 @@ export function OnboardingWithoutContext() {
           </Flex>
         )}
         <Flex align="center" justify="end" gap="md">
-          <Hook
+          <Override
             name="onboarding:targeted-onboarding-header"
             source="targeted-onboarding"
           />

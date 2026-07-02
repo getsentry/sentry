@@ -75,7 +75,7 @@ function SelectionInitializer() {
 describe('IssueListBulkCommandPaletteActions', () => {
   beforeEach(() => {
     GroupStore.reset();
-    (addLoadingMessage as jest.Mock).mockClear();
+    jest.mocked(addLoadingMessage).mockClear();
     ConfigStore.loadInitialData({
       user: UserFixture({id: '1', name: 'Test User'}),
     } as any);

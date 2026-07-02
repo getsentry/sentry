@@ -96,7 +96,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   return (
     <OnboardingPanel
       data-test-id="user-feedback-empty"
-      image={<img src={emptyStateImg} />}
+      image={<img src={emptyStateImg} alt="" />}
     >
       <h3>{t('What do users think?')}</h3>
       <p>

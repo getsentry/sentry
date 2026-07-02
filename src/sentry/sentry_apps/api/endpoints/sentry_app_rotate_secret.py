@@ -77,7 +77,7 @@ class SentryAppRotateSecretEndpoint(SentryAppBaseEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.INTEGRATION_PLATFORM
     permission_classes = (SentryAppRotateSecretPermission,)
 
     def post(self, request: Request, sentry_app: SentryApp) -> Response:

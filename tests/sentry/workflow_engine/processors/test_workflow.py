@@ -18,10 +18,6 @@ from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, De
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
-from sentry.workflow_engine.processors.contexts.workflow_event_context import (
-    WorkflowEventContext,
-    WorkflowEventContextData,
-)
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     TriggerResult,
@@ -94,6 +90,32 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.data.triggered_workflows == {self.error_workflow}
+
+    def test_filters_cross_org_workflows(self) -> None:
+        other_org = self.create_organization()
+        cross_org_triggers = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=cross_org_triggers,
+            type=Condition.EVENT_SEEN_COUNT,
+            comparison=1,
+            condition_result=True,
+        )
+        cross_org_workflow = self.create_workflow(
+            name="cross_org_workflow",
+            organization=other_org,
+            when_condition_group=cross_org_triggers,
+        )
+        # Stale DetectorWorkflow left behind after project transfer
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=cross_org_workflow,
+        )
+
+        with self.options({"workflow_engine.filter_cross_org_workflows": True}):
+            result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow}
+        assert result.data.workflows is not None
+        assert cross_org_workflow not in result.data.workflows
 
     def test_error_event(self) -> None:
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
@@ -484,28 +506,6 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             {self.workflow}, self.event_data, self.event_start_time
         )
         assert set(triggered_workflows.keys()) == {self.workflow}
-
-    @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
-    @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
-        ctx_token = WorkflowEventContext.set(
-            WorkflowEventContextData(
-                detector=self.detector,
-            )
-        )
-        evaluate_workflow_triggers({self.workflow}, self.event_data, self.event_start_time)
-        mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.workflow_triggered",
-            extra={
-                "workflow_id": self.workflow.id,
-                "detector_id": self.detector.id,
-                "organization_id": self.workflow.organization.id,
-                "project_id": self.event_data.group.project.id,
-                "group_type": self.event_data.group.type,
-            },
-        )
-
-        WorkflowEventContext.reset(ctx_token)
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group

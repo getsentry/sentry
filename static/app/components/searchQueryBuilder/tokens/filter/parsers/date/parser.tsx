@@ -1,10 +1,9 @@
+import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 import {
   TokenConverter,
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-
-import {parse} from './grammar.pegjs';
 
 /**
  * This parser is specifically meant for parsing the value of a date filter.
@@ -16,7 +15,11 @@ export function parseFilterValueDate(
   query: string
 ): TokenResult<Token.VALUE_ISO_8601_DATE | Token.VALUE_RELATIVE_DATE> | null {
   try {
-    return parse(query, {TokenConverter, config: {parse: true}});
+    return parse(query, {
+      TokenConverter,
+      config: {parse: true},
+      startRule: 'date',
+    });
   } catch (e) {
     return null;
   }

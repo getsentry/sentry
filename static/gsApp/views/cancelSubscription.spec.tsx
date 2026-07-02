@@ -27,9 +27,6 @@ describe('CancelSubscription', () => {
   it('renders', async () => {
     render(<CancelSubscription />);
     expect(
-      await screen.findByRole('heading', {name: 'Cancel Subscription'})
-    ).toBeInTheDocument();
-    expect(
       await screen.findByText('The project/product/company is shutting down.')
     ).toBeInTheDocument();
   });

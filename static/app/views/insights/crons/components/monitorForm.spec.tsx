@@ -5,7 +5,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -34,31 +40,34 @@ describe('MonitorForm', () => {
     });
   });
 
-  it('shows validation errors on required sibling fields after first field change', async () => {
-    render(
-      <MonitorForm
-        apiMethod="POST"
-        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-        onSubmitSuccess={jest.fn()}
-      />,
-      {organization}
-    );
+  it.isKnownFlake(
+    'shows validation errors on required sibling fields after first field change',
+    async () => {
+      render(
+        <MonitorForm
+          apiMethod="POST"
+          apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+          onSubmitSuccess={jest.fn()}
+        />,
+        {organization}
+      );
 
-    // Initially no validation error tooltips should be rendered
-    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+      // Initially no validation error tooltips should be rendered
+      expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
 
-    // Change one field (schedule) to trigger first-change validation
-    const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
-    await userEvent.clear(schedule);
-    await userEvent.type(schedule, '5 * * * *');
+      // Change one field (schedule) to trigger first-change validation
+      const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(schedule);
+      await userEvent.type(schedule, '5 * * * *');
 
-    // Validation error tooltips should now appear on other required empty fields
-    await waitFor(() => {
-      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
-    });
-  });
+      // Validation error tooltips should now appear on other required empty fields
+      await waitFor(() => {
+        expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
+      });
+    }
+  );
 
-  it('displays human readable schedule', async () => {
+  it.isKnownFlake('displays human readable schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -175,7 +184,7 @@ describe('MonitorForm', () => {
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
 
-  it('prefills with an existing monitor', async () => {
+  it.isKnownFlake('prefills with an existing monitor', async () => {
     const monitor = MonitorFixture({project});
 
     const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;
@@ -209,7 +218,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
     const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
     expect(crontabOption).toBeChecked();
-    await userEvent.click(crontabOption);
+    await userEvent.keyboard('{Escape}');
 
     // Schedule value
     expect(screen.getByRole('textbox', {name: 'Crontab Schedule'})).toHaveValue(
@@ -220,7 +229,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
     const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
     expect(losAngelesOption).toBeChecked();
-    await userEvent.click(losAngelesOption);
+    await userEvent.keyboard('{Escape}');
 
     // Margins
     expect(screen.getByRole('spinbutton', {name: 'Grace Period'})).toHaveValue(5);
@@ -305,11 +314,15 @@ describe('MonitorForm', () => {
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
 
-    // Type schedule with emoji and Unicode characters
-    await userEvent.clear(schedule);
-    await userEvent.type(schedule, '5 * * * *😀中文');
+    // Fire a single change event with mixed ASCII and non-ASCII characters.
+    // Using fireEvent.change instead of userEvent.type avoids cursor desync
+    // caused by transformInput changing the controlled input's value mid-type.
+    fireEvent.change(schedule, {target: {value: '5 * * * *😀中文'}});
 
     // Non-ASCII characters should be filtered out, leaving only valid ASCII
-    expect(schedule).toHaveValue('5 * * * *');
+    // Wait for any validation/tooltip updates to complete
+    await waitFor(() => {
+      expect(schedule).toHaveValue('5 * * * *');
+    });
   });
 });

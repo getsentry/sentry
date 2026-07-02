@@ -62,6 +62,12 @@ export function CreateBroadcastModal({
         category: data.category || undefined,
         mediaUrl: data.mediaUrl || undefined,
         region: data.region || undefined,
+        organizations: data.organizations
+          ? String(data.organizations)
+              .split(',')
+              .map(s => Number(s.trim()))
+              .filter(n => n > 0)
+          : undefined,
       };
 
       updateBroadcast(newData);

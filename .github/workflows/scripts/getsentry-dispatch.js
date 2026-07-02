@@ -17,6 +17,33 @@ const DISPATCHES = [
   },
 ];
 
+const RETRY_DELAYS_MS = [5000, 15000, 30000, 60000];
+
+async function dispatchWithRetry({github, core, workflow, inputs}) {
+  const maxAttempts = RETRY_DELAYS_MS.length + 1;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await github.rest.actions.createWorkflowDispatch({
+        owner: 'getsentry',
+        repo: 'getsentry',
+        workflow_id: workflow,
+        ref: 'master',
+        inputs,
+      });
+      return;
+    } catch (err) {
+      if (attempt === maxAttempts) {
+        throw err;
+      }
+      const delay = RETRY_DELAYS_MS[attempt - 1];
+      core.warning(
+        `Dispatch for '${workflow}' failed (attempt ${attempt}/${maxAttempts}): ${err.message}. Retrying in ${delay / 1000}s...`
+      );
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 export async function dispatch({
   github,
   context,
@@ -61,13 +88,7 @@ export async function dispatch({
         `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
       );
 
-      return github.rest.actions.createWorkflowDispatch({
-        owner: 'getsentry',
-        repo: 'getsentry',
-        workflow_id: workflow,
-        ref: 'master',
-        inputs,
-      });
+      return dispatchWithRetry({github, core, workflow, inputs});
     })
   );
 

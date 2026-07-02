@@ -11,8 +11,6 @@ team_allowlist:
   - getsentry/alerts-notifications
   - getsentry/app-backend
   - getsentry/app-frontend
-  - getsentry/codecov
-  - getsentry/codecov-merge
   - getsentry/coding-workflows
   - getsentry/coding-workflows-sentry-backend
   - getsentry/coding-workflows-sentry-frontend

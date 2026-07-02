@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
+  createTraceMetricEventsFilter,
   getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
@@ -58,8 +59,8 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '-value',
-            aggregateOrderby: '-sum(value,test_metric,counter,-)',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateOrderby: '-sum(value,test_metric,counter,none)',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -90,8 +91,8 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '-timestamp',
-            aggregateOrderby: '-sum(value,test_metric,counter,-)',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateOrderby: '-sum(value,test_metric,counter,none)',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -101,7 +102,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
-      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+      {field: 'sum(value,test_metric,counter,none)', kind: 'desc'},
     ]);
   });
 
@@ -124,8 +125,8 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             mode: Mode.SAMPLES,
             query: '',
             fields: ['id', 'timestamp'],
-            orderby: '-sum(value,test_metric,counter,-)',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            orderby: '-sum(value,test_metric,counter,none)',
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -135,7 +136,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
-      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+      {field: 'sum(value,test_metric,counter,none)', kind: 'desc'},
     ]);
   });
 
@@ -160,7 +161,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             fields: ['id', 'timestamp'],
             orderby: 'timestamp',
             aggregateField: [
-              {yAxes: ['sum(value,test_metric,counter,-)']},
+              {yAxes: ['sum(value,test_metric,counter,none)']},
               {groupBy: 'timestamp'},
             ],
             metric: {name: 'test_metric', type: 'counter'},
@@ -197,7 +198,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             fields: ['id', 'timestamp'],
             orderby: '-value',
             aggregateOrderby: '',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -207,7 +208,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'value', kind: 'desc'}]);
     expect(decoded?.queryParams.aggregateSortBys).toEqual([
-      {field: 'sum(value,test_metric,counter,-)', kind: 'desc'},
+      {field: 'sum(value,test_metric,counter,none)', kind: 'desc'},
     ]);
   });
 
@@ -231,7 +232,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
             query: '',
             fields: ['id', 'timestamp'],
             orderby: '',
-            aggregateField: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+            aggregateField: [{yAxes: ['sum(value,test_metric,counter,none)']}],
             metric: {name: 'test_metric', type: 'counter'},
           },
         ],
@@ -265,6 +266,28 @@ describe('getEquationMetricsTotalFilter', () => {
     const result = getEquationMetricsTotalFilter(equation);
     expect(result).toBe(
       '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+});
+
+describe('createTraceMetricEventsFilter', () => {
+  it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+
+  it('treats the legacy dash unit sentinel as no unit', () => {
+    const result = createTraceMetricEventsFilter([
+      {name: 'chat.message_sent', type: 'counter', unit: '-'},
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
     );
   });
 });

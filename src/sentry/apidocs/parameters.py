@@ -3,12 +3,17 @@ from typing import Any
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
-from rest_framework import serializers
 
 from sentry import constants
+from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
+
+# Some Sentry IDs are 32-char hex, rather than the UUID dashed form.
+# Those cases match this pattern with OpenApiTypes.STR
+SENTRY_HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
 
 
 def build_typed_list(type: Any):
@@ -40,7 +45,7 @@ class GlobalParams:
     )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
-        description="The ID or slug of the project the resource belongs to.",
+        description="The ID or slug of the project the resource belongs to. Project slugs are unique within each organization.",
         required=True,
         type=str,
         location="path",
@@ -139,7 +144,18 @@ class OrganizationParams:
         required=False,
         many=True,
         type=str,
-        description="""The project slugs to filter by. Use `$all` to include all available projects. For example, the following are valid parameters:
+        description="""The legacy project slug filter. Prefer `project`, which accepts project IDs or slugs. Use `$all` to include all available projects. For example, the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
+    )
+    PROJECT_SLUG = OpenApiParameter(
+        name="projectSlug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""The project slugs to filter by. This legacy parameter takes precedence over `project` if both are provided. Prefer `project`, which accepts project IDs or slugs. Use `$all` to include all available projects. For example, the following are valid parameters:
 - `/?projectSlug=$all`
 - `/?projectSlug=android&projectSlug=javascript-react`
 """,
@@ -148,11 +164,11 @@ class OrganizationParams:
         name="project",
         location="query",
         required=False,
-        many=True,
-        type=int,
-        description="""The IDs of projects to filter by. `-1` means all available projects.
+        type={"type": "array", "items": PROJECT_ID_OR_SLUG_SCHEMA},
+        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
+- `/?project=android&project=javascript-react`
 - `/?project=-1`
 """,
     )
@@ -202,6 +218,14 @@ Valid fields include:
 """,
     )
 
+    PROJECT_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter projects by name or slug.",
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
@@ -226,6 +250,20 @@ class ReleaseParams:
         required=True,
         type=str,
         description="The version identifier of the release",
+    )
+    FILE_ID = OpenApiParameter(
+        name="file_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the release file.",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        description="Case-insensitive substring match against the release version.",
     )
     PROJECT_ID = OpenApiParameter(
         name="project_id",
@@ -302,7 +340,7 @@ class IssueParams:
         name="issue_id",
         location="path",
         required=True,
-        type=int,
+        type=str,
         description="The ID of the issue you'd like to query.",
     )
 
@@ -376,8 +414,6 @@ class IssueParams:
             "inbox",
             "owners",
             "sessions",
-            "pluginActions",
-            "pluginIssues",
             "integrationIssues",
             "sentryAppIssues",
             "latestEventHasAttachments",
@@ -392,6 +428,33 @@ class IssueParams:
         name="collapse",
         description="Fields to remove from the response to improve query performance.",
         enum=["stats", "lifetime", "base", "unhandled", "filtered"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
+    GROUP_DETAILS_EXPAND = OpenApiParameter(
+        name="expand",
+        description="Additional data to include in the response.",
+        enum=[
+            "inbox",
+            "owners",
+            "forecast",
+            "integrationIssues",
+            "sentryAppIssues",
+            "latestEventHasAttachments",
+        ],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
+    GROUP_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description="Fields to remove from the response to improve query performance.",
+        enum=["release", "tags", "stats"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -541,16 +604,6 @@ class IssueAlertParams:
     )
 
 
-class MetricAlertParams:
-    METRIC_RULE_ID = OpenApiParameter(
-        name="alert_rule_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the rule you'd like to query.",
-    )
-
-
 class DataForwarderParams:
     DATA_FORWARDER_ID = OpenApiParameter(
         name="data_forwarder_id",
@@ -570,6 +623,13 @@ class SentryAppParams:
         type=str,
         description="The ID or slug of the custom integration.",
     )
+    INSTALLATION_UUID = OpenApiParameter(
+        name="uuid",
+        location="path",
+        required=True,
+        type=str,
+        description="The UUID of the Sentry App installation.",
+    )
 
 
 class SentryAppStatusParams:
@@ -585,6 +645,13 @@ class SentryAppStatusParams:
 
 
 class VisibilityParams:
+    ALLOW_AGGREGATE_CONDITIONS = OpenApiParameter(
+        name="allowAggregateConditions",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If false, aggregate conditions in the query string are disallowed. Defaults to true.",
+    )
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -658,7 +725,7 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         ],
         # Not every key in DATASET_OPTIONS is listed here — internal,
         # metrics-layer, and deprecated aliases (e.g. "ourlogs",
-        # "metricsEnhanced", "spansIndexed") are intentionally omitted so
+        # "metricsEnhanced") are intentionally omitted so
         # the public API surface stays stable as backends migrate to EAP.
         description="""Which dataset to query. The chosen dataset determines which fields are queryable.
 - `errors` - Error events.
@@ -691,7 +758,22 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="The aggregate field to create the timeseries for, defaults to `count()` when not included",
+        description="""The aggregate field to create the timeseries for, defaults to `count()` when
+        not included.
+- `count()` - Total count of events over the period.
+- `avg(field)` - Average value of the field over the period.
+- `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
+- `sum(field)` - Sum of all values for the field over the period.
+- `min(field)` - Lowest value observed for the field over the period.
+- `max(field)` - Highest value observed for the field over the period.
+- `count_unique(field)` - Count of unique values observed for the field over the period. See *Note:* regarding accuracy on sampled data.
+- `epm` - Average number of events received per minute.
+- `eps` - Average number of events received per second.
+- `failure_rate()` - Percentage of events whose `status` indicates failure.
+- `failure_count()` - Total count of events with an error `status` over period.
+- `performance_score(field)` - Web Vitals performance score for the selected measurement.
+- `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
+""",
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
@@ -721,11 +803,15 @@ events that aren't in the top groups.""",
     )
 
 
-class CursorQueryParam(serializers.Serializer):
-    cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
-        required=False,
-    )
+CursorQueryParam = OpenApiParameter(
+    name="cursor",
+    location="query",
+    required=False,
+    type=str,
+    allow_blank=False,
+    description="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
+    extensions={"x-learn-more": "https://docs.sentry.io/api/pagination/"},
+)
 
 
 class MonitorParams:
@@ -761,8 +847,9 @@ class MonitorParams:
         name="processing_error_id",
         location="path",
         required=False,
-        type=OpenApiTypes.UUID,
-        description="The ID of the processing error.",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="The ID of the processing error. It is a 32-character hexadecimal string.",
     )
 
 
@@ -788,8 +875,9 @@ class EventParams:
         name="event_id",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="The ID of the event.",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="The ID of the event. It is a 32-character hexadecimal string as reported by the client.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -900,6 +988,13 @@ keys if not specified.
 
 
 class TeamParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter teams by name or slug.",
+    )
     DETAILED = OpenApiParameter(
         name="detailed",
         location="query",
@@ -935,8 +1030,9 @@ class ReplayParams:
         name="replay_id",
         location="path",
         required=True,
-        type=OpenApiTypes.UUID,
-        description="""The ID of the replay you'd like to retrieve.""",
+        type=OpenApiTypes.STR,
+        pattern=SENTRY_HEX_ID_PATTERN,
+        description="""The ID of the replay you'd like to retrieve. It is a 32-character hexadecimal string.""",
     )
 
     SEGMENT_ID = OpenApiParameter(
@@ -953,6 +1049,28 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the replay deletion job you'd like to retrieve.""",
+    )
+
+    DATA_SOURCE = OpenApiParameter(
+        name="data_source",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        enum=[
+            Dataset.Discover.value,
+            Dataset.Events.value,
+            Dataset.Transactions.value,
+            Dataset.IssuePlatform.value,
+        ],
+        description="The data source to query replays from. Defaults to 'discover'.",
+    )
+
+    RETURN_IDS = OpenApiParameter(
+        name="returnIds",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If true, return issue IDs rather than counts.",
     )
 
 
@@ -1159,137 +1277,5 @@ Available fields are:
 - `mostPopular`
 - `recentlyViewed`
 - `myqueries`
-        """,
-    )
-
-
-class PreventParams:
-    OWNER = OpenApiParameter(
-        name="owner",
-        location="path",
-        required=True,
-        type=str,
-        description="The owner of the repository.",
-    )
-    REPOSITORY = OpenApiParameter(
-        name="repository",
-        location="path",
-        required=True,
-        type=str,
-        description="The name of the repository.",
-    )
-    INTERVAL = OpenApiParameter(
-        name="interval",
-        location="query",
-        required=False,
-        type=str,
-        description="""The time interval to search for results by.
-
-Available fields are:
-- `INTERVAL_30_DAY`
-- `INTERVAL_7_DAY`
-- `INTERVAL_1_DAY`
-""",
-    )
-    BRANCH = OpenApiParameter(
-        name="branch",
-        location="query",
-        required=False,
-        type=str,
-        description="""The branch to search for results by. If not specified, the default is all branches.
-        """,
-    )
-    TEST_RESULTS_FILTER_BY = OpenApiParameter(
-        name="filterBy",
-        location="query",
-        required=False,
-        type=str,
-        description="""An optional field to filter by, which will constrain the results to only include tests that match the filter.
-
-Available fields are:
-- `FLAKY_TESTS`
-- `FAILED_TESTS`
-- `SLOWEST_TESTS`
-- `SKIPPED_TESTS`
-        """,
-    )
-    TEST_RESULTS_SORT_BY = OpenApiParameter(
-        name="sortBy",
-        location="query",
-        required=False,
-        type=str,
-        description="""The property to sort results by. If not specified, the default is `TOTAL_FAIL_COUNT` in descending order. Use `-`
-        for descending order.
-
-Available fields are:
-- `AVG_DURATION`
-- `FLAKE_RATE`
-- `FAILURE_RATE`
-- `TOTAL_FAIL_COUNT`
-- `UPDATED_AT`
-        """,
-    )
-    LIMIT = OpenApiParameter(
-        name="limit",
-        location="query",
-        required=False,
-        type=int,
-        description="""The number of results to return. If not specified, defaults to 20.""",
-    )
-    FIRST = OpenApiParameter(
-        name="first",
-        location="query",
-        required=False,
-        type=int,
-        default=20,
-        description="""The number of results to return from the start of the list.""",
-    )
-    LAST = OpenApiParameter(
-        name="last",
-        location="query",
-        required=False,
-        type=int,
-        description="""The number of results to return from the end of the list.""",
-    )
-    CURSOR = OpenApiParameter(
-        name="cursor",
-        location="query",
-        required=False,
-        type=str,
-        description="""The cursor pointing to a specific position in the result set to start the query from. Results after the cursor will be returned if used with `next` or before the cursor if used with `prev` for `navigation`.""",
-    )
-    TERM = OpenApiParameter(
-        name="term",
-        location="query",
-        required=False,
-        type=str,
-        description="""The term substring to filter name strings by using the `contains` operator.""",
-    )
-    NAVIGATION = OpenApiParameter(
-        name="navigation",
-        location="query",
-        required=False,
-        type=str,
-        description="""Whether to get the previous or next page from paginated results. Use `next` for forward pagination after the cursor or `prev` for backward pagination before the cursor. If not specified, defaults to `next`. If no cursor is provided, the cursor is the beginning of the result set.""",
-    )
-    TEST_SUITES = OpenApiParameter(
-        name="testSuites",
-        location="query",
-        required=False,
-        type=str,
-        many=True,
-        description="""A list of test suites belonging to a repository's test results.""",
-    )
-    TOKENS_SORT_BY = OpenApiParameter(
-        name="sortBy",
-        location="query",
-        required=False,
-        type=str,
-        description="""The property to sort results by. If not specified, the default is `COMMIT_DATE` in descending order. Use `-`
-        for descending order.
-
-Available fields are:
-- `NAME`
-- `COMMIT_DATE`
         """,
     )

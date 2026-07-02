@@ -1,8 +1,8 @@
+import {isValidElement} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
-  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -27,7 +27,7 @@ function getField(role: string, name: string) {
 
 describe('projectGeneralSettings', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({
+  const project = DetailedProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
     allowedDomains: ['example.com', 'https://example.com'],
@@ -99,7 +99,7 @@ describe('projectGeneralSettings', () => {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
-  it('allows undoing an Allowed Domains change from the toast', async () => {
+  it('saves an Allowed Domains change on blur', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
@@ -127,33 +127,6 @@ describe('projectGeneralSettings', () => {
         method: 'PUT',
         data: {allowedDomains: ['changed.com']},
       })
-    );
-
-    const addSuccessMessageMock = addSuccessMessage as jest.MockedFunction<
-      typeof addSuccessMessage
-    >;
-    const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
-
-    expect(undo).toBeInstanceOf(Function);
-
-    act(() => {
-      undo?.();
-    });
-
-    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(2));
-
-    expect(putMock).toHaveBeenLastCalledWith(
-      `/projects/${organization.slug}/${project.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {allowedDomains: ['example.com', 'https://example.com']},
-      })
-    );
-
-    await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Allowed Domains'})).toHaveValue(
-        'example.com,https://example.com'
-      )
     );
   });
 
@@ -264,7 +237,11 @@ describe('projectGeneralSettings', () => {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const errorMessage = jest.mocked(addErrorMessage).mock.calls[0]![0];
+    if (!isValidElement(errorMessage)) {
+      throw new Error('Expected addErrorMessage to be called with a React element');
+    }
+    const {container} = render(errorMessage);
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
@@ -280,11 +257,10 @@ describe('projectGeneralSettings', () => {
       initialRouterConfig,
     });
 
-    // Wait for the component to load
-    await screen.findByRole('heading', {name: 'Project Settings'});
-
     expect(
-      screen.getByText('You do not have the required permission to remove this project.')
+      await screen.findByText(
+        'You do not have the required permission to remove this project.'
+      )
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -484,7 +460,7 @@ describe('projectGeneralSettings', () => {
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
       });
 
-      const projectWithPlatform = ProjectFixture();
+      const projectWithPlatform = DetailedProjectFixture();
 
       // Add project API mock for this specific org
       MockApiClient.addMockResponse({
@@ -527,7 +503,7 @@ describe('projectGeneralSettings', () => {
       const orgWithoutGamingFeature = OrganizationFixture({
         enabledConsolePlatforms: ['nintendo-switch'], // only has nintendo access
       });
-      const baseProject = ProjectFixture();
+      const baseProject = DetailedProjectFixture();
 
       MockApiClient.addMockResponse({
         url: `/projects/${orgWithoutGamingFeature.slug}/${baseProject.slug}/`,

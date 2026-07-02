@@ -20,9 +20,9 @@ import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -31,16 +31,16 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
@@ -53,8 +53,8 @@ const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
 
-const DisabledMemberTooltip = HookOrDefault({
-  hookName: 'component:disabled-member-tooltip',
+const DisabledMemberTooltip = OverrideOrDefault({
+  overrideName: 'component:disabled-member-tooltip',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -92,8 +92,6 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
@@ -259,18 +257,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('%s Member Settings', member.name || member.email)} />
-      <SettingsPageHeader
-        title={
-          hasPageFrameFeature ? (
-            member.name || t('Member Settings')
-          ) : (
-            <Fragment>
-              <div>{member.name}</div>
-              <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
-            </Fragment>
-          )
-        }
-      />
+      <SettingsPageHeader title={member.name || t('Member Settings')} />
 
       <Panel>
         <PanelHeader hasButtons={showResendButton}>
@@ -425,12 +412,6 @@ function OrganizationMemberDetail() {
 }
 
 export default OrganizationMemberDetail;
-
-const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  font-size: ${p => p.theme.font.size.lg};
-`;
 
 const Details = styled('div')`
   display: grid;

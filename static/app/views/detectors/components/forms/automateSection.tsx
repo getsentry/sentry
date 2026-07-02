@@ -1,22 +1,27 @@
 import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {withFieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-import {ConnectedAlertsEmptyState} from 'sentry/views/detectors/components/connectedAutomationsEmptyState';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 
 /**
@@ -81,6 +86,10 @@ function AutomateSectionInner({
 }: AutomateSectionInnerProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const canEditAutomation = useCanEditAutomation();
+  const permissionTooltipText = canEditAutomation
+    ? undefined
+    : getNoAlertWritePermissionTooltip();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -139,10 +148,22 @@ function AutomateSectionInner({
           />
         </FormSection>
         <ButtonWrapper justify="between">
-          <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+          <Button
+            size="sm"
+            icon={<IconAdd />}
+            onClick={openCreateDrawer}
+            disabled={!canEditAutomation}
+            tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          >
             {t('Create New Alert')}
           </Button>
-          <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
+          <Button
+            size="sm"
+            icon={<IconEdit />}
+            onClick={toggleDrawer}
+            disabled={!canEditAutomation}
+            tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          >
             {t('Edit Alerts')}
           </Button>
         </ButtonWrapper>
@@ -162,19 +183,41 @@ function AutomateSectionInner({
           cursor={undefined}
           onCursor={() => {}}
           emptyMessage={
-            <ConnectedAlertsEmptyState project={project}>
-              <Button
-                ref={ref}
-                size="sm"
-                style={{width: 'min-content'}}
-                onClick={toggleDrawer}
-              >
-                {t('Connect Existing Alerts')}
-              </Button>
-              <Button size="sm" onClick={openCreateDrawer}>
-                {t('Create New Alert')}
-              </Button>
-            </ConnectedAlertsEmptyState>
+            <Stack gap="lg" align="center" maxWidth="300px">
+              <Stack gap="md" align="center">
+                <Button
+                  ref={ref}
+                  size="sm"
+                  style={{width: 'min-content'}}
+                  onClick={toggleDrawer}
+                  disabled={!canEditAutomation}
+                  tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                >
+                  {t('Connect Existing Alerts')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={openCreateDrawer}
+                  disabled={!canEditAutomation}
+                  tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                >
+                  {t('Create New Alert')}
+                </Button>
+                <Text variant="muted" align="center" density="comfortable">
+                  {tct(
+                    'Alerts configured for all Issues in the project [project] will also apply to this Monitor.',
+                    {
+                      project: (
+                        <InlineProjectName display="inline-flex" align="center" gap="xs">
+                          <ProjectAvatar project={project} size={16} />
+                          <strong>{project.slug}</strong>
+                        </InlineProjectName>
+                      ),
+                    }
+                  )}
+                </Text>
+              </Stack>
+            </Stack>
           }
         />
       </FormSection>
@@ -186,4 +229,8 @@ const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.xl};
   margin: -${p => p.theme.space.lg};
+`;
+
+const InlineProjectName = styled(Flex)`
+  vertical-align: bottom;
 `;

@@ -1,23 +1,22 @@
 import {memo, useMemo} from 'react';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {t} from 'sentry/locale';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsMode,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
+import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface SpansTabCrossEventSearchBarProps {
@@ -31,10 +30,6 @@ export const SpansTabCrossEventSearchBar = memo(
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
-    const organization = useOrganization();
-    const hasRawSearchReplacement = organization.features.includes(
-      'search-query-builder-raw-search-replacement'
-    );
 
     const traceItemType =
       type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
@@ -50,11 +45,15 @@ export const SpansTabCrossEventSearchBar = memo(
       () => ({
         initialQuery: query,
         onSearch: (newQuery: string) => {
-          if (!crossEvents) return;
+          if (!crossEvents) {
+            return;
+          }
 
           setCrossEvents?.(
             crossEvents.map((c, i) => {
-              if (i === index) return {query: newQuery, type};
+              if (i === index) {
+                return {query: newQuery, type};
+              }
               return c;
             })
           );
@@ -66,9 +65,7 @@ export const SpansTabCrossEventSearchBar = memo(
                 if (
                   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
                 ) {
-                  return t(
-                    "This key won't affect the results because samples mode does not support aggregate functions"
-                  );
+                  return <SamplesModeAggregateFilterWarning />;
                 }
                 return;
               }
@@ -85,17 +82,12 @@ export const SpansTabCrossEventSearchBar = memo(
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
-        replaceRawSearchKeys: hasRawSearchReplacement
-          ? type === 'logs'
-            ? ['message']
-            : ['span.description']
-          : undefined,
+        replaceRawSearchKeys: type === 'logs' ? ['message'] : ['span.description'],
       }),
       [
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
-        hasRawSearchReplacement,
         index,
         mode,
         numberSecondaryAliases,

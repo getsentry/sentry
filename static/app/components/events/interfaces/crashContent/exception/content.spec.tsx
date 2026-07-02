@@ -7,7 +7,7 @@ import {
 import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -22,7 +22,7 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
+  const project = DetailedProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
@@ -40,7 +40,7 @@ describe('Exception Content', () => {
   });
 
   it('display redacted values from exception entry', async () => {
-    const projectDetails = ProjectFixture({
+    const projectDetails = DetailedProjectFixture({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });

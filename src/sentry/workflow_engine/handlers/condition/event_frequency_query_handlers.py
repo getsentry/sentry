@@ -1,4 +1,5 @@
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
@@ -23,11 +24,17 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
 )
 from sentry.rules.match import MatchType
+from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tsdb.base import SnubaCondition, TSDBKey, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
+
+logger = logging.getLogger(__name__)
+
+_HANDLED_TRUE_VALUES = (True, 1, "true", "1", "yes")
+_HANDLED_FALSE_VALUES = (False, 0, "false", "0", "no")
 
 QueryFilter = dict[str, Any]
 QueryResult = dict[int, int | float]
@@ -72,7 +79,7 @@ class BaseEventFrequencyQueryHandler(ABC):
     label_template = ""
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
@@ -209,7 +216,16 @@ class BaseEventFrequencyQueryHandler(ABC):
 
         lhs: str | None = None
         if key:
-            lhs = f"tags[{condition['key']}]"
+            if not TAG_KEY_RE.fullmatch(key):
+                # Invalid tag keys should have been rejected by schema validation.
+                # Raise so callers return 0 results rather than building an
+                # invalid snuba column from persisted bad data.
+                logger.warning(
+                    "workflow_engine.invalid_tag_filter_key",
+                    extra={"key": key},
+                )
+                raise InvalidFilter
+            lhs = f"tags[{key}]"
         elif attribute:
             column = ATTR_CHOICES.get(attribute)
             if column is None:
@@ -227,9 +243,28 @@ class BaseEventFrequencyQueryHandler(ABC):
             if condition["match"] not in (MatchType.IS_SET, MatchType.NOT_SET)
             else None
         )
-        if attribute == "error.unhandled":
-            # flip values, since the queried column is "error.handled"
-            rhs = not condition["value"]
+        if attribute in ("error.handled", "error.unhandled") and condition["match"] in (
+            MatchType.EQUAL,
+            MatchType.NOT_EQUAL,
+        ):
+            # The stored value may be a string ("true"/"false"), bool, or int.
+            # Normalize to 1/0 for the Snuba condition (UInt8 column).
+            # We can get stricter here once we clean existing data and validate within the API.
+            comparable = rhs.lower() if isinstance(rhs, str) else rhs
+            if comparable in _HANDLED_TRUE_VALUES:
+                int_value = 1
+            elif comparable in _HANDLED_FALSE_VALUES:
+                int_value = 0
+            else:
+                logger.error(
+                    "workflow_engine.unrecognized_handled_filter_value",
+                    extra={"attribute": attribute, "value": rhs},
+                )
+                return None
+            if attribute == "error.unhandled":
+                # flip, since the queried column is "error.handled"
+                int_value = 1 - int_value
+            rhs = int_value
 
         match condition["match"]:
             case MatchType.EQUAL:
@@ -385,7 +420,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     )
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         from sentry.rules.conditions.event_frequency import (
             EventUniqueUserFrequencyConditionWithConditions,
         )
@@ -440,7 +475,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
     label_template = "The issue affects more than {value} percent of sessions in {interval}"
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         data = dict(condition_data)
         value = data.get("value")
         if isinstance(value, float) and value.is_integer():
@@ -507,19 +542,23 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 continue
 
             model = get_issue_tsdb_group_model(category)
-            # InvalidFilter should not be raised for errors
-            results = self.get_chunked_result(
-                tsdb_function=tsdb.backend.get_sums,
-                model=model,
-                group_ids=issue_ids,
-                organization_id=organization_id,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-                referrer_suffix="wf_batch_alert_event_frequency_percent",
-                filters=filters,
-                group_on_time=False,
-            )
+            try:
+                results = self.get_chunked_result(
+                    tsdb_function=tsdb.backend.get_sums,
+                    model=model,
+                    group_ids=issue_ids,
+                    organization_id=organization_id,
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                    referrer_suffix="wf_batch_alert_event_frequency_percent",
+                    filters=filters,
+                    group_on_time=False,
+                )
+            except InvalidFilter:
+                # Filter is not supported for this issue type
+                # no events meet the query criteria
+                results = {issue_id: 0 for issue_id in issue_ids}
             for group_id, count in results.items():
                 percent: float = 100 * round(count / avg_sessions_in_interval, 4)
                 batch_percents[group_id] = percent

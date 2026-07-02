@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,19 +9,45 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();
+  const enabledProject = DetailedProjectFixture({
+    ...project,
+    seerScannerAutomation: true,
+    autofixAutomationTuning: 'medium',
+  });
   const organization = OrganizationFixture();
+
+  // The CTA reads handoff state from the project's seer setting. Only fires
+  // once an integration exists, so the install-stage tests don't need it.
+  const mockSeerSettings = (
+    overrides: Partial<{
+      agent: string;
+      integrationId: string | null;
+    }> = {}
+  ) =>
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'GET',
+      body: {
+        projectId: project.id,
+        projectSlug: project.slug,
+        agent: 'seer',
+        integrationId: null,
+        stoppingPoint: 'root_cause',
+        autoCreatePr: null,
+        automationTuning: 'medium',
+        scannerAutomation: true,
+        reposCount: 0,
+        ...overrides,
+      },
+    });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     localStorage.clear();
 
-    // Default mock for seer preferences
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      body: {
-        code_mapping_repos: [],
-        preference: null,
-      },
+      url: `/projects/${organization.slug}/${enabledProject.slug}/`,
+      body: enabledProject,
     });
 
     // Default mock for coding agent integrations
@@ -108,6 +134,9 @@ describe('CursorIntegrationCta', () => {
           ],
         },
       });
+
+      // Setting still points at Seer — handoff not configured for this agent.
+      mockSeerSettings();
     });
 
     it('shows configure stage when integration installed but not configured', async () => {
@@ -124,19 +153,11 @@ describe('CursorIntegrationCta', () => {
       ).toBeInTheDocument();
     });
 
-    it('configures handoff when setup button is clicked', async () => {
+    it('configures handoff through the seer/settings/ endpoint when setup button is clicked', async () => {
       const updateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
+        url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       render(<CursorIntegrationCta project={project} />, {
@@ -150,17 +171,15 @@ describe('CursorIntegrationCta', () => {
 
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+          `/projects/${organization.slug}/${project.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
             data: {
-              repositories: [],
-              automated_run_stopping_point: 'root_cause',
-              automation_handoff: {
-                handoff_point: 'root_cause',
-                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                integration_id: 123,
-              },
+              agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integrationId: '123',
+              stoppingPoint: 'root_cause',
+              autoCreatePr: false,
+              automationTuning: 'medium',
             },
           })
         );
@@ -183,9 +202,13 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('enables automation when setup button is clicked and automation is disabled', async () => {
-      const projectWithoutAutomation = ProjectFixture({
+      const projectWithoutAutomation = DetailedProjectFixture({
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
+        body: projectWithoutAutomation,
       });
 
       const updatedProject = {
@@ -200,18 +223,10 @@ describe('CursorIntegrationCta', () => {
         body: updatedProject,
       });
 
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
+      const settingsUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
@@ -244,20 +259,18 @@ describe('CursorIntegrationCta', () => {
         expect(onUpdateSuccessSpy).toHaveBeenCalledWith(updatedProject);
       });
 
-      // Then configure handoff
+      // Then configure handoff through the settings endpoint
       await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
+        expect(settingsUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
             data: {
-              repositories: [],
-              automated_run_stopping_point: 'root_cause',
-              automation_handoff: {
-                handoff_point: 'root_cause',
-                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                integration_id: 123,
-              },
+              agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integrationId: '123',
+              stoppingPoint: 'root_cause',
+              autoCreatePr: false,
+              automationTuning: 'medium',
             },
           })
         );
@@ -267,9 +280,13 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('does not enable automation when already enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
       });
 
       const projectUpdateMock = MockApiClient.addMockResponse({
@@ -278,18 +295,10 @@ describe('CursorIntegrationCta', () => {
         body: {},
       });
 
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
+      const settingsUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
@@ -306,10 +315,10 @@ describe('CursorIntegrationCta', () => {
 
       // Should only configure handoff
       await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
+        expect(settingsUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
           })
         );
       });
@@ -331,27 +340,21 @@ describe('CursorIntegrationCta', () => {
         },
       });
 
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        body: {
-          code_mapping_repos: [],
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integration_id: 123,
-            },
-          },
-        },
+      // Handoff is set to Cursor, but the project's automation is disabled.
+      mockSeerSettings({
+        agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        integrationId: '123',
       });
     });
 
     it('shows configure stage when handoff is configured but automation is disabled', async () => {
-      const projectWithoutAutomation = ProjectFixture({
+      const projectWithoutAutomation = DetailedProjectFixture({
         seerScannerAutomation: false,
         autofixAutomationTuning: 'off',
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/`,
+        body: projectWithoutAutomation,
       });
 
       render(<CursorIntegrationCta project={projectWithoutAutomation} />, {
@@ -387,27 +390,42 @@ describe('CursorIntegrationCta', () => {
         },
       });
 
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        body: {
-          code_mapping_repos: [],
-          preference: {
-            repositories: [],
-            automated_run_stopping_point: 'root_cause',
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integration_id: 123,
-            },
-          },
-        },
+      // Handoff is configured to Cursor.
+      mockSeerSettings({
+        agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        integrationId: '123',
       });
     });
 
     it('shows configured stage when handoff is set up and automation is enabled', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
+      });
+
+      render(<CursorIntegrationCta project={projectWithAutomation} />, {
+        organization,
+      });
+
+      expect(await screen.findByText('Cursor Agent Integration')).toBeInTheDocument();
+      expect(screen.getByText(/Cursor handoff is active/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set Seer to hand off to Cursor'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('treats missing scanner automation as enabled when tuning is enabled', async () => {
+      const projectWithAutomation = DetailedProjectFixture({
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: undefined,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
       });
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
@@ -422,9 +440,13 @@ describe('CursorIntegrationCta', () => {
     });
 
     it('does not show setup button in configured stage', async () => {
-      const projectWithAutomation = ProjectFixture({
+      const projectWithAutomation = DetailedProjectFixture({
         seerScannerAutomation: true,
         autofixAutomationTuning: 'medium',
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/`,
+        body: projectWithAutomation,
       });
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {

@@ -21,12 +21,13 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PlanTable} from 'getsentry/components/upgradeNowModal/planTable';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {useUpgradeNowParams} from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
-import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -41,20 +42,24 @@ function UpsellModal(props: Props) {
   const {organization, subscription} = props;
   const hasBillingAccess = organization.access?.includes('org:billing');
 
+  const navigate = useNavigate();
   const {loading, reservations, previewData, error} = usePreviewData(props);
 
   useEffect(() => {
     if (error && hasBillingAccess) {
-      // Redirect the user to the subscriptions page, where they will find important information.
-      // If they wish to update their plan, we ask them to contact our sales/support team.
-      redirectToManage(organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'profiling_upgrade_modal-preview_error'},
+        }),
+        {replace: true}
+      );
     }
-  }, [error, hasBillingAccess, organization]);
+  }, [error, hasBillingAccess, navigate, organization]);
 
   useEffect(() => {
     trackGetsentryAnalytics('upgrade_now.modal.viewed', {
       organization,
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
@@ -188,6 +193,7 @@ function ActionButtons({
   subscription,
 }: ActionButtonsProps) {
   const api = useApi();
+  const navigate = useNavigate();
   const {plan, reservations} = useUpgradeNowParams({organization, subscription});
 
   const onUpdatePlan = async () => {
@@ -212,7 +218,6 @@ function ActionButtons({
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {
           organization,
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),
@@ -222,7 +227,13 @@ function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'profiling_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
     }
   };
 
@@ -230,7 +241,6 @@ function ActionButtons({
     trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
       organization,
       surface: 'profiling',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),

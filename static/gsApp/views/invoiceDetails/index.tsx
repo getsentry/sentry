@@ -107,7 +107,7 @@ function InvoiceDetails() {
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <LoadingError
           onRetry={() => {
             billingDetailsRefetch();
@@ -119,7 +119,7 @@ function InvoiceDetails() {
   }
 
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SettingsPageHeader
         title={t('Receipt Details')}
         action={

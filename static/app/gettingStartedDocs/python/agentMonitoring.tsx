@@ -12,7 +12,7 @@ import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIn
 
 import {getPythonInstallCodeBlock} from './utils';
 
-const MIN_REQUIRED_VERSION = '2.43.0';
+const MIN_REQUIRED_VERSION = '2.64.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (

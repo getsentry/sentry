@@ -25,13 +25,17 @@ function constrainAndAlignListBox({
   referenceRef,
   refsToSync,
 }: ConstrainAndAlignListBoxArgs) {
-  if (!referenceRef.current || !popoverRef.current) return;
+  if (!referenceRef.current || !popoverRef.current) {
+    return;
+  }
 
   const referenceRect = referenceRef.current.getBoundingClientRect();
   const popoverRect = popoverRef.current.getBoundingClientRect();
 
   refsToSync.forEach(ref => {
-    if (!ref.current) return;
+    if (!ref.current) {
+      return;
+    }
     ref.current.style.maxWidth = `${referenceRect.width}px`;
   });
 
@@ -96,7 +100,6 @@ function Footer({
       {isMultiSelect ? (
         <Label>{t('Hold %s to select multiple', isMac() ? '⌘' : 'Ctrl')}</Label>
       ) : null}
-      <Label>{t('Type to search suggestions')}</Label>
       <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
     </FooterContainer>
   );
@@ -129,7 +132,9 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     (element: HTMLUListElement | null) => {
       listBoxRef.current = element;
 
-      if (!element) return;
+      if (!element) {
+        return;
+      }
 
       const refsToSync = [listBoxRef, popoverRef];
 

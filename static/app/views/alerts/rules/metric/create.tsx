@@ -16,7 +16,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/constants';
 import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
-import RuleForm from './ruleForm';
+import {RuleForm} from './ruleForm';
 
 type Props = {
   eventView: EventView | undefined;

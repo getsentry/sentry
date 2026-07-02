@@ -1,11 +1,9 @@
 import type {
-  SourceMapDebugBlueThunderResponse,
-  SourceMapDebugBlueThunderResponseFrame,
+  SourceMapDebugResponse,
+  SourceMapDebugResponseFrame,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 
-type ReleaseProcess = NonNullable<
-  SourceMapDebugBlueThunderResponseFrame['release_process']
->;
+type ReleaseProcess = NonNullable<SourceMapDebugResponseFrame['release_process']>;
 
 export function SourceMapDebugReleaseProcessFixture(
   params: Partial<ReleaseProcess> = {}
@@ -22,8 +20,8 @@ export function SourceMapDebugReleaseProcessFixture(
 }
 
 export function SourceMapDebugFrameFixture(
-  params: Partial<SourceMapDebugBlueThunderResponseFrame> = {}
-): SourceMapDebugBlueThunderResponseFrame {
+  params: Partial<SourceMapDebugResponseFrame> = {}
+): SourceMapDebugResponseFrame {
   return {
     debug_id_process: {
       debug_id: null,
@@ -37,8 +35,8 @@ export function SourceMapDebugFrameFixture(
 }
 
 export function SourceMapDebugResponseFixture(
-  params: Partial<SourceMapDebugBlueThunderResponse> = {}
-): SourceMapDebugBlueThunderResponse {
+  params: Partial<SourceMapDebugResponse> = {}
+): SourceMapDebugResponse {
   return {
     dist: null,
     release: null,

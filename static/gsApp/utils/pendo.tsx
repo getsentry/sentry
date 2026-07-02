@@ -108,7 +108,6 @@ export function getPendoAccountFields(
       'canTrial',
       'canSelfServe',
       'plan',
-      'planTier',
     ]),
     ...pick(organization, ['isEarlyAdopter']),
   };

@@ -108,7 +108,10 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   <LinkButton
                     size="xs"
                     disabled={props.actionsDisabled}
-                    onClick={actions[0]!.onAction}
+                    onClick={e => {
+                      e.stopPropagation();
+                      actions[0]!.onAction?.();
+                    }}
                     to={actions[0]!.to}
                   >
                     {actions[0]!.label}
@@ -117,7 +120,10 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   <Button
                     size="xs"
                     disabled={props.actionsDisabled}
-                    onClick={actions[0]!.onAction}
+                    onClick={e => {
+                      e.stopPropagation();
+                      actions[0]!.onAction?.();
+                    }}
                   >
                     {actions[0]!.label}
                   </Button>
@@ -148,7 +154,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 aria-label={t('Copy Widget URL')}
                 variant="transparent"
                 icon={<IconCopy />}
-                onClick={() => {
+                onClick={e => {
+                  e.stopPropagation();
                   props.onCopyUrlClick?.();
                 }}
               />
@@ -161,7 +168,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
               aria-label={t('Open Full-Screen View')}
               variant="transparent"
               icon={<IconExpand />}
-              onClick={() => {
+              onClick={e => {
+                e.stopPropagation();
                 props.onFullScreenViewClick?.();
               }}
             />

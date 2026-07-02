@@ -644,6 +644,9 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
+                # timestamp has search_type="string" for display purposes but its
+                # internal_type is DOUBLE, so max/min on it is valid.
+                field_allowlist={"timestamp"},
                 default_arg="span.duration",
             )
         ],
@@ -662,7 +665,29 @@ SPAN_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
+                # timestamp has search_type="string" for display purposes but its
+                # internal_type is DOUBLE, so max/min on it is valid.
+                field_allowlist={"timestamp"},
                 default_arg="span.duration",
+            )
+        ],
+    ),
+    "any": AggregateDefinition(
+        internal_function=Function.FUNCTION_ANY,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="trace",
             )
         ],
     ),

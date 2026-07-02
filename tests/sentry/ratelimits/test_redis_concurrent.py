@@ -1,11 +1,16 @@
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import TestCase, mock
 
-from sentry.ratelimits.concurrent import DEFAULT_MAX_TTL_SECONDS, ConcurrentRateLimiter
+from sentry.ratelimits.concurrent import (
+    DEFAULT_MAX_TTL_SECONDS,
+    ConcurrentLimitInfo,
+    ConcurrentRateLimiter,
+)
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 class ConcurrentLimiterTest(TestCase):
@@ -36,11 +41,11 @@ class ConcurrentLimiterTest(TestCase):
 
     def test_fails_open(self) -> None:
         class FakeClient:
-            def __init__(self, real_client):
+            def __init__(self, real_client: Any) -> None:
                 self._client = real_client
 
-            def __getattr__(self, name):
-                def fail(*args, **kwargs):
+            def __getattr__(self, name: str) -> Any:
+                def fail(*args: Any, **kwargs: Any) -> Any:
                     raise Exception("OH NO")
 
                 return fail
@@ -75,14 +80,14 @@ class ConcurrentLimiterTest(TestCase):
         self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
 
     def test_concurrent(self) -> None:
-        def do_request():
+        def do_request() -> ConcurrentLimitInfo:
             uid = uuid.uuid4().hex
             meta = self.backend.start_request("foo", 3, uid)
             time.sleep(0.2)
             self.backend.finish_request("foo", uid)
             return meta
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=4) as executor:
             futures = []
             for _ in range(4):
                 futures.append(executor.submit(do_request))

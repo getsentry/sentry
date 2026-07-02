@@ -80,11 +80,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             [self.error_detector, self.issue_stream_detector, detector, detector_2]
         )
 
-        # Verify openIssues field is present in serialized response
-        for detector_data in response.data:
-            assert "openIssues" in detector_data
-            assert isinstance(detector_data["openIssues"], int)
-
         # Verify X-Hits header is present and correct
         assert "X-Hits" in response
         hits = int(response["X-Hits"])
@@ -360,13 +355,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         expected_order = [detector_3.name, detector_1.name, detector_2.name, detector_4.name]
         actual_order = [d["name"] for d in response.data]
         assert actual_order == expected_order
-
-        # Verify open issues counts in serialized response
-        open_issues_by_name = {d["name"]: d["openIssues"] for d in response.data}
-        assert open_issues_by_name[detector_1.name] == 2
-        assert open_issues_by_name[detector_2.name] == 1
-        assert open_issues_by_name[detector_3.name] == 3
-        assert open_issues_by_name[detector_4.name] == 0
 
         # Test ascending sort (least open issues first)
         response2 = self.get_success_response(

@@ -7,6 +7,9 @@ import type {TableDataRow} from './discover/discoverQuery';
 export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
 const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
+const MILLISECOND_TIMESTAMP = 100_000_000_000;
+const MICROSECOND_TIMESTAMP = 100_000_000_000_000;
+const NANOSECOND_TIMESTAMP = 100_000_000_000_000_000;
 
 export function getParser(local = false): typeof moment | typeof moment.utc {
   return local ? moment : moment.utc;
@@ -56,6 +59,27 @@ export function getTimeStampFromTableDateField(
   }
 
   return timestamp / 1000;
+}
+
+export function normalizeTimestampToSeconds(timestamp: number | string): number {
+  const numericTimestamp = typeof timestamp === 'number' ? timestamp : Number(timestamp);
+
+  if (Number.isNaN(numericTimestamp)) {
+    throw new Error('Invalid timestamp: NaN');
+  }
+
+  const magnitude = Math.abs(numericTimestamp);
+  let timestampInSeconds = numericTimestamp;
+
+  if (magnitude >= NANOSECOND_TIMESTAMP) {
+    timestampInSeconds = numericTimestamp / 1_000_000_000;
+  } else if (magnitude >= MICROSECOND_TIMESTAMP) {
+    timestampInSeconds = numericTimestamp / 1_000_000;
+  } else if (magnitude >= MILLISECOND_TIMESTAMP) {
+    timestampInSeconds = numericTimestamp / 1_000;
+  }
+
+  return Math.trunc(timestampInSeconds);
 }
 
 export function getFormattedDate(

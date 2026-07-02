@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from concurrent.futures import as_completed
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -29,6 +29,7 @@ from sentry.apidocs.parameters import (
     OrganizationParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -79,11 +80,24 @@ class DiscoverDatasetSplitException(Exception):
     pass
 
 
-class EventsMeta(TypedDict):
+class EventsMeta(TypedDict, total=False):
+    """Meta envelope emitted by `handle_results_with_meta` and the
+    empty-projects short-circuit. Every key is optional because the path
+    that emits it depends on flags (`standard_meta`, debug, dataset) — the
+    no-projects path only carries `tips`, the standard path carries
+    everything below."""
+
     fields: dict[str, str]
-    datasetReason: NotRequired[str]
-    isMetricsData: NotRequired[bool]
-    isMetricsExtractedData: NotRequired[bool]
+    units: dict[str, str | None]
+    tips: dict[str, str]
+    datasetReason: str
+    isMetricsData: bool
+    isMetricsExtractedData: bool
+    dataset: str
+    discoverSplitDecision: Any
+    dataScanned: str
+    bytesScanned: int
+    debug_info: Any
 
 
 # Only used for api docs
@@ -117,7 +131,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:dynamic-sampling",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
-            "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -142,7 +155,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return all_features
 
     @extend_schema(
-        operation_id="Query Explore Events in Table Format",
+        operation_id="listOrganizationEvents",
+        summary="Query Explore Events in Table Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -155,6 +169,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
+            VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
             CursorQueryParam,
         ],
         responses={
@@ -166,7 +181,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[EventsApiResponse] | Response[DetailResponse]:
         """
         Retrieves explore data for a given organization.
 
@@ -193,16 +210,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 organization,
             )
         except NoProjects:
-            return Response(
-                {
-                    "data": [],
-                    "meta": {
-                        "tips": {
-                            "query": "Need at least one valid project to query.",
-                        },
+            empty_body: EventsApiResponse = {
+                "data": [],
+                "meta": {
+                    "tips": {
+                        "query": "Need at least one valid project to query.",
                     },
-                }
-            )
+                },
+            }
+            return Response(empty_body)
 
         batch_features = self.get_features(organization, request)
 
@@ -226,17 +242,36 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+        sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+            if referrer is not None and is_valid_referrer(referrer):
+                if referrer.startswith("seer."):
+                    sentry_sdk.set_tag("query.from_seer", True)
+                    sentry_sdk.set_attribute("query.from_seer", True)
+                elif referrer.startswith("api.mcp."):
+                    sentry_sdk.set_tag("query.from_mcp", True)
+                    sentry_sdk.set_attribute("query.from_mcp", True)
+            else:
+                referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") in ("1", "true")
+
+        max_string_length: int | None = None
+        truncate_str = request.GET.get("truncate")
+        if truncate_str is not None:
+            try:
+                max_string_length = int(truncate_str)
+                if max_string_length < 64:
+                    raise ValueError
+            except ValueError:
+                return Response({"detail": "truncate must be a positive integer >= 64"}, status=400)
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -331,6 +366,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
+                        sentry_sdk.set_attribute("third_split_query", True)
                         transaction_results = _data_fn(
                             transactions.query, offset, limit, scoped_query
                         )
@@ -385,7 +421,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
-                    scoped_query,
+                    scoped_query or "",
                 )
                 has_errors = False
                 has_transactions = False
@@ -393,8 +429,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 # See if we can infer which dataset based on selected columns and query string.
                 with handle_query_errors():
                     if (
-                        dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query)
-                    ) is not None:
+                        dataset_inferred_from_query is not None
+                        and (dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query))
+                        is not None
+                    ):
                         result = _data_fn(
                             dataset.query,
                             offset,
@@ -506,6 +544,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
 
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
@@ -513,13 +557,14 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
-                    # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -531,6 +576,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -539,6 +585,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
@@ -546,6 +593,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == ProcessingErrors:
                     return SearchResolverConfig(
@@ -553,18 +601,21 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == PreprodSize:
                     return PreprodSizeSearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
@@ -585,6 +636,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         sampling_mode=snuba_params.sampling_mode,
                         page_token=page_token,
                         additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
@@ -605,6 +657,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
                         additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
@@ -642,7 +695,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             if request.GET.get("noPagination"):
                 per_page = self.get_per_page(request)
                 result = paginator.get_result(limit=per_page, cursor=None)
-                return Response(_handle_results(result.results))
+                body: EventsApiResponse = _handle_results(result.results)
+                return Response(body)
             else:
                 return self.paginate(
                     request=request,

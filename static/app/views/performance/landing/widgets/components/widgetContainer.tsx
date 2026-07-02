@@ -19,7 +19,6 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -53,7 +52,6 @@ interface Props extends ChartRowProps {
   defaultChartSetting: PerformanceWidgetSetting;
   eventView: EventView;
   index: number;
-  organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
   withStaticFilters: boolean;
@@ -75,15 +73,9 @@ function trackChartSettingChange(
   });
 }
 
-function WidgetContainerInner(props: Props) {
-  const {
-    organization,
-    index,
-    chartHeight,
-    rowChartSettings,
-    setRowChartSettings,
-    ...rest
-  } = props;
+export function WidgetContainer(props: Props) {
+  const organization = useOrganization();
+  const {index, chartHeight, rowChartSettings, setRowChartSettings, ...rest} = props;
   const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
@@ -95,7 +87,7 @@ function WidgetContainerInner(props: Props) {
   );
   const mepSetting = useMEPSettingContext();
   const allowedCharts = filterAllowedChartsMetrics(
-    props.organization,
+    organization,
     props.allowedCharts,
     mepSetting
   );
@@ -151,13 +143,10 @@ function WidgetContainerInner(props: Props) {
         : null,
   };
 
-  const passedProps = pick(props, [
-    'eventView',
-    'location',
-    'organization',
-    'chartHeight',
-    'withStaticFilters',
-  ]);
+  const passedProps = {
+    ...pick(props, ['eventView', 'location', 'chartHeight', 'withStaticFilters']),
+    organization,
+  };
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.TRENDS:
@@ -313,5 +302,3 @@ const makeEventViewForWidget = (
 
   return widgetEventView;
 };
-
-export const WidgetContainer = withOrganization(WidgetContainerInner);

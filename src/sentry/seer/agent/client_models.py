@@ -113,6 +113,7 @@ class RepoPRState(BaseModel):
     pr_creation_error: str | None = None
     title: str | None = None
     description: str | None = None
+    integration_id: str | None = None
 
     class Config:
         extra = "ignore"
@@ -143,7 +144,7 @@ class ToolResult(BaseModel):
 
     tool_call_id: str
     tool_call_function: str
-    content: str
+    content: str | None = None
 
     class Config:
         extra = "ignore"

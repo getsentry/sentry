@@ -15,6 +15,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IntegrationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
@@ -58,14 +59,15 @@ def filter_by_features(
 @control_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Available Integrations",
+        operation_id="listOrganizationIntegrations",
+        summary="List an Organization's Available Integrations",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IntegrationParams.PROVIDER_KEY,
@@ -85,7 +87,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-    ) -> Response:
+    ) -> Response[list[OrganizationIntegrationResponse]] | Response[DetailResponse]:
         """
         Lists all the available Integrations for an Organization.
         """

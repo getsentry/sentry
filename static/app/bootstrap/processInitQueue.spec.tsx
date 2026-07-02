@@ -10,7 +10,6 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
-import {AlertStore} from 'sentry/stores/alertStore';
 import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
@@ -60,24 +59,6 @@ describe('processInitQueue', () => {
       render(<div id="indicator-container" />);
       processInitQueue();
       expect(await screen.findByText('Indicator Alert')).toBeInTheDocument();
-    });
-    it('renders system alerts', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.SYSTEM_ALERTS,
-          container: '#system-alerts-container',
-          name: 'renderReact',
-        },
-      ];
-
-      AlertStore.addAlert({
-        message: 'System Alert',
-        variant: 'success',
-      });
-
-      render(<div id="system-alerts-container" />);
-      processInitQueue();
-      expect(await screen.findByText('System Alert')).toBeInTheDocument();
     });
     it('renders setup wizard', async () => {
       window.__onSentryInit = [

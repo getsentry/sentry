@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
 import {duration, type Duration} from 'moment-timezone';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
@@ -233,6 +233,8 @@ export class ReplayReader {
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames, videoFrames} =
       hydrateFrames(attachments);
 
+    let readerReplayRecord = replayRecord;
+
     if (localStorageWrapper.getItem('REPLAY-BACKEND-TIMESTAMPS') !== '1') {
       // TODO(replays): We should get correct timestamps from the backend instead
       // of having to fix them up here.
@@ -248,19 +250,22 @@ export class ReplayReader {
         finishedAtDelta: endTimestampMs - replayRecord.finished_at.getTime(),
       };
 
-      replayRecord.started_at = new Date(startTimestampMs);
-      replayRecord.finished_at = new Date(endTimestampMs);
-      replayRecord.duration = duration(
-        replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
-      );
+      const startedAt = new Date(startTimestampMs);
+      const finishedAt = new Date(endTimestampMs);
+      readerReplayRecord = {
+        ...replayRecord,
+        started_at: startedAt,
+        finished_at: finishedAt,
+        duration: duration(finishedAt.getTime() - startedAt.getTime()),
+      };
     }
 
     // Hydrate the data we were given
-    this._replayRecord = replayRecord;
+    this._replayRecord = readerReplayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(
-      replayRecord,
+      this._replayRecord,
       errors,
       feedbackEvents
     );
@@ -271,12 +276,17 @@ export class ReplayReader {
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
-    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(replayRecord, breadcrumbFrames)
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
+      this._replayRecord,
+      breadcrumbFrames
+    )
       .concat(feedbackFrames)
       .sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
-    this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
+    this._sortedSpanFrames = hydrateSpans(this._replayRecord, spanFrames).sort(
+      sortFrames
+    );
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
@@ -286,8 +296,8 @@ export class ReplayReader {
     //
     // We fake the start time so that the timelines of these UI components and
     // the replay recording all match up
-    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
-    const startTimestampMs = replayRecord.started_at.getTime();
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(this._replayRecord));
+    const startTimestampMs = this._replayRecord.started_at.getTime();
     const firstMeta = rrwebFrames.find(frame => frame.type === EventType.Meta);
     const firstSnapshot = rrwebFrames.find(
       frame => frame.type === EventType.FullSnapshot
@@ -303,9 +313,9 @@ export class ReplayReader {
       });
     }
 
-    this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
+    this._sortedRRWebEvents.push(recordingEndFrame(this._replayRecord));
 
-    this._duration = replayRecord.duration;
+    this._duration = this._replayRecord.duration;
 
     if (clipWindow) {
       this._applyClipWindow(clipWindow, eventTimestampMs);

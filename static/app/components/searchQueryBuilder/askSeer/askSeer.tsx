@@ -11,13 +11,13 @@ import {
   AskSeerListItem,
   AskSeerPane,
 } from 'sentry/components/searchQueryBuilder/askSeer/components';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
 
-  const {displayAskSeerFeedback} = useSearchQueryBuilder();
+  const {displayAskSeerFeedback} = useSearchQueryBuilderAI();
 
   const isMutating = useIsMutating({
     mutationKey: [setupCheckQueryKey(organization.slug)],

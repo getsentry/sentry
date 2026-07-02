@@ -73,6 +73,7 @@ from sentry.utils.dates import (
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +153,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         # Feature flag the occurrence endpoint
         if (
             dataset_label == SupportedTraceItemType.OCCURRENCES.value
-            and not EAPOccurrencesComparator.should_use_experiment("api.events.endpoints")
+            and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(
@@ -163,6 +164,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         sentry_sdk.set_tag("query.dataset", dataset_label)
+        sentry_sdk.set_attribute("query.dataset", dataset_label)
         return result
 
     def get_snuba_params(
@@ -172,7 +174,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         """Returns params to make snuba queries with"""
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params(dataclass)"):
+        with start_span(op="discover.endpoint", name="filter_params(dataclass)"):
             if (
                 len(self.get_field_list(organization, request))
                 + len(self.get_equation_list(organization, request))
@@ -190,6 +192,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     raise ParseError(f"sampling mode: {sampling_mode} is not supported")
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
                 sentry_sdk.set_tag("sampling_mode", sampling_mode)
+                sentry_sdk.set_attribute("sampling_mode", sampling_mode)
 
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
@@ -289,16 +292,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if has_errors and not has_transactions_data:
             decision = DashboardWidgetTypes.ERROR_EVENTS
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         else:
             # In the case that neither side has data, or both sides have data, default to errors.
             decision = DashboardWidgetTypes.ERROR_EVENTS
             source = DashboardDatasetSourcesTypes.FORCED.value
             sentry_sdk.set_tag("discover.split_reason", "default")
+            sentry_sdk.set_attribute("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
+        sentry_sdk.set_attribute("discover.split_decision", decision)
         if decision is not None and widget.discover_widget_split != decision:
             widget.discover_widget_split = decision
             widget.dataset_source = source
@@ -322,20 +329,25 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if dataset_inferred_from_query is not None:
             decision = dataset_inferred_from_query
             sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
+            sentry_sdk.set_attribute("discover.split_reason", "inferred_from_query")
         elif has_errors and not has_transactions_data:
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DiscoverSavedQueryTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         else:
             # In the case that neither or both datasets return data,
             # default to Errors.
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
             dataset_source = DatasetSourcesTypes.FORCED.value
             sentry_sdk.set_tag("discover.split_reason", "default")
+            sentry_sdk.set_attribute("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
+        sentry_sdk.set_attribute("discover.split_decision", decision)
         if query.dataset != decision:
             query.dataset = decision
             query.dataset_source = dataset_source
@@ -406,7 +418,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         standard_meta: bool | None = False,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
-        with sentry_sdk.start_span(op="discover.endpoint", name="base.handle_results"):
+        with start_span(op="discover.endpoint", name="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             # these may get re-used by other timeseries
             meta = results.get("meta", {}).copy()
@@ -556,6 +568,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             if use_rpc:
                 raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
+            if request.GET.get("interval"):
+                sentry_sdk.set_attribute("user.invalid_interval", request.GET.get("interval"))
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
             rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
@@ -603,7 +617,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         use_rpc: bool = False,
     ) -> dict[str, Any]:
         with handle_query_errors():
-            with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query_creation"):
+            with start_span(op="discover.endpoint", name="base.stats_query_creation"):
                 _columns = [query_column]
                 # temporary change to make topN query work for multi-axes requests
                 if additional_query_columns is not None:
@@ -629,7 +643,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)
 
                 query_columns = get_query_columns(columns, rollup)
-            with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
+            with start_span(op="discover.endpoint", name="base.stats_query"):
                 result = get_event_stats(
                     query_columns,
                     query,
@@ -641,7 +655,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_serialization"):
+        with start_span(op="discover.endpoint", name="base.stats_serialization"):
             # When the request is for top_events, result can be a SnubaTSResult in the event that
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.

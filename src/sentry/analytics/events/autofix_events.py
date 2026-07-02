@@ -7,6 +7,8 @@ class AiAutofixPhaseEvent(analytics.Event):
     project_id: int
     group_id: int
     referrer: str | None
+    run_id: int | None = None
+    iteration_index: int | None = None
 
 
 @analytics.eventclass("ai.autofix.root_cause.started")
@@ -21,6 +23,11 @@ class AiAutofixSolutionStartedEvent(AiAutofixPhaseEvent):
 
 @analytics.eventclass("ai.autofix.code_changes.started")
 class AiAutofixCodeChangesStartedEvent(AiAutofixPhaseEvent):
+    pass
+
+
+@analytics.eventclass("ai.autofix.pr_iteration.started")
+class AiAutofixIterationStartedEvent(AiAutofixPhaseEvent):
     pass
 
 
@@ -39,6 +46,11 @@ class AiAutofixCodeChangesCompletedEvent(AiAutofixPhaseEvent):
     pass
 
 
+@analytics.eventclass("ai.autofix.pr_iteration.completed")
+class AiAutofixIterationCompletedEvent(AiAutofixPhaseEvent):
+    pass
+
+
 @analytics.eventclass("ai.autofix.pr_created.started")
 class AiAutofixPrCreatedStartedEvent(AiAutofixPhaseEvent):
     pass
@@ -52,15 +64,24 @@ class AiAutofixPrCreatedCompletedEvent(AiAutofixPhaseEvent):
 @analytics.eventclass("ai.autofix.agent_handoff")
 class AiAutofixAgentHandoffEvent(AiAutofixPhaseEvent):
     coding_agent: str | None
-    initiator: str | None = None
+
+
+@analytics.eventclass("ai.autofix.introspection")
+class AiAutofixIntrospectionEvent(AiAutofixPhaseEvent):
+    step: str
+    action: str
+    reached_stopping_point: bool
 
 
 analytics.register(AiAutofixRootCauseStartedEvent)
 analytics.register(AiAutofixSolutionStartedEvent)
 analytics.register(AiAutofixCodeChangesStartedEvent)
+analytics.register(AiAutofixIterationStartedEvent)
 analytics.register(AiAutofixRootCauseCompletedEvent)
 analytics.register(AiAutofixSolutionCompletedEvent)
 analytics.register(AiAutofixCodeChangesCompletedEvent)
+analytics.register(AiAutofixIterationCompletedEvent)
 analytics.register(AiAutofixPrCreatedStartedEvent)
 analytics.register(AiAutofixPrCreatedCompletedEvent)
 analytics.register(AiAutofixAgentHandoffEvent)
+analytics.register(AiAutofixIntrospectionEvent)

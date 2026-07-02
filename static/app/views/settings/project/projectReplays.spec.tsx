@@ -1,4 +1,4 @@
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +7,7 @@ import ProjectReplays from 'sentry/views/settings/project/projectReplays';
 
 describe('ProjectReplays', () => {
   const {organization} = initializeOrg();
-  const project = ProjectFixture({
+  const project = DetailedProjectFixture({
     options: {
       'sentry:replay_rage_click_issues': false,
       'sentry:replay_hydration_error_issues': false,

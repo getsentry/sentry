@@ -6,7 +6,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
@@ -47,7 +47,7 @@ function parseRules(raw: unknown): StatusCheckRule[] {
     });
 }
 
-export function useStatusCheckRules(project: Project) {
+export function useStatusCheckRules(project: DetailedProject) {
   const updateProject = useUpdateProject(project);
 
   // Check top-level field first (optimistic update), fallback to options (server response)

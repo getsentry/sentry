@@ -2,22 +2,48 @@ import type {Theme} from '@emotion/react';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {
+  getRenderableTraceIssues,
+  getTraceIconGroupWidth,
+  getTraceIssueTimestamp,
+  TRACE_ICON_WIDTH,
+} from 'sentry/views/performance/newTraceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
+import {
+  COLLAPSED_GAP_WIDTH_PX,
+  TraceTimeCompression,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
+import type {TraceTimeCompressionGap} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
+const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
+
+type TraceIconEdge = 'start' | 'end' | null;
+export type TraceTimeCompressionManagerOptions = {
+  enabled: boolean;
+  indicators: TraceTree['indicators'];
+  nodes: BaseNode[];
+  traceSpace: [start: number, duration: number];
+};
+
+interface TraceIconPlacement {
+  anchorTimestamp: number;
+  bounds: [number, number];
+  edge: TraceIconEdge;
+}
 
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
@@ -42,6 +68,7 @@ type VerticalIndicator = {
   ref: HTMLElement | null;
   timestamp: number | undefined;
 };
+type SpanTextPlacement = [inside: number, textTransform: number];
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -81,6 +108,12 @@ export class VirtualizedViewManager {
   timeline_indicators: Array<HTMLElement | undefined> = [];
   vertical_indicators: Record<string, VerticalIndicator> = {};
   vertical_indicator_labels: Record<string, HTMLElement | undefined> = {};
+  collapsed_gap_markers: Array<
+    {gap: TraceTimeCompressionGap; ref: HTMLElement} | undefined
+  > = [];
+  private _collapsed_gap_marker_positions: Array<
+    {left: number; placement: number; right: number} | undefined
+  > = [];
   span_bars: Array<
     {color: string; ref: HTMLElement; space: [number, number]} | undefined
   > = [];
@@ -109,6 +142,8 @@ export class VirtualizedViewManager {
   private readonly span_matrix: [number, number, number, number, number, number] = [
     1, 0, 0, 1, 0, 0,
   ];
+  private _compressedViewCache: {left: number; right: number; width: number} | null =
+    null;
 
   timers: {
     onFovChange: {id: number} | null;
@@ -128,8 +163,11 @@ export class VirtualizedViewManager {
 
   // Column configuration
   columns: Record<'list' | 'span_list', ViewColumn>;
+  navigate: ReactRouter3Navigate | null = null;
   scheduler: TraceScheduler;
   view: TraceView;
+  time_compression = TraceTimeCompression.Disabled();
+  timeCompressionOptions: TraceTimeCompressionManagerOptions | null = null;
 
   constructor(
     columns: {
@@ -172,6 +210,25 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
     this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
+  }
+
+  setTimeCompression(compression: TraceTimeCompression) {
+    this.time_compression = compression;
+  }
+
+  recomputeTimeCompression(options = this.timeCompressionOptions) {
+    if (!options) {
+      this.time_compression = TraceTimeCompression.Disabled([
+        this.view.to_origin,
+        this.view.trace_space.width,
+      ]);
+      return;
+    }
+
+    this.time_compression = TraceTimeCompression.FromVisibleItems({
+      ...options,
+      physicalWidth: this.view.trace_physical_space.width,
+    });
   }
 
   dividerStartVec: [number, number] | null = null;
@@ -241,6 +298,7 @@ export class VirtualizedViewManager {
 
     this.view.trace_physical_space.width =
       span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
+    this.recomputeTimeCompression();
 
     this.scheduler.dispatch('set trace view', {
       x: this.view.trace_view.x,
@@ -464,6 +522,21 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerCollapsedGapMarkerRef(
+    ref: HTMLElement | null,
+    index: number,
+    gap: TraceTimeCompressionGap
+  ) {
+    if (!ref) {
+      this.collapsed_gap_markers[index] = undefined;
+      this._collapsed_gap_marker_positions[index] = undefined;
+      return;
+    }
+
+    this.collapsed_gap_markers[index] = {ref, gap};
+    this.drawCollapsedGapMarker(this.collapsed_gap_markers[index]);
+  }
+
   registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
     if (indicator.ref) {
       this.vertical_indicators[key] = indicator;
@@ -503,23 +576,41 @@ export class VirtualizedViewManager {
 
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
-      const configSpaceCursor = this.view.getConfigSpaceCursor({
-        x,
-        y: 0,
-      });
+      let newView: [number, number, number, number];
 
-      const center = vec2.fromValues(configSpaceCursor[0], 0);
-      const centerScaleMatrix = mat3.create();
+      if (this.time_compression.enabled) {
+        const compressedView = this.getCompressedView();
+        const leftPercentage = x / this.view.trace_physical_space.width;
+        const compressedCursor =
+          compressedView.left + leftPercentage * compressedView.width;
+        const nextCompressedLeft =
+          compressedCursor + (compressedView.left - compressedCursor) * scale;
+        const nextCompressedRight =
+          compressedCursor + (compressedView.right - compressedCursor) * scale;
+        const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
+        const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
 
-      mat3.fromTranslation(centerScaleMatrix, center);
-      mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
-      mat3.translate(
-        centerScaleMatrix,
-        centerScaleMatrix,
-        vec2.fromValues(-center[0], 0)
-      );
+        newView = [
+          nextRealLeft - this.view.to_origin,
+          this.view.trace_view.y,
+          nextRealRight - nextRealLeft,
+          this.view.trace_view.height,
+        ];
+      } else {
+        const configSpaceCursor = this.getConfigSpaceCursor({x, y: 0});
+        const center = vec2.fromValues(configSpaceCursor[0], 0);
+        const centerScaleMatrix = mat3.create();
 
-      const newView = this.view.trace_view.transform(centerScaleMatrix);
+        mat3.fromTranslation(centerScaleMatrix, center);
+        mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+        mat3.translate(
+          centerScaleMatrix,
+          centerScaleMatrix,
+          vec2.fromValues(-center[0], 0)
+        );
+
+        newView = this.view.trace_view.transform(centerScaleMatrix);
+      }
 
       // When users zoom in, the matrix will compute a width value that is lower than the min,
       // which results in the value of x being incorrectly set and the view moving to the right.
@@ -549,12 +640,27 @@ export class VirtualizedViewManager {
         event.preventDefault();
       }
 
-      const physical_delta_pct = distance / this.view.trace_physical_space.width;
-      const view_delta = physical_delta_pct * this.view.trace_view.width;
+      const physicalDeltaPct = distance / this.view.trace_physical_space.width;
 
-      this.scheduler.dispatch('set trace view', {
-        x: this.view.trace_view.x + view_delta,
-      });
+      if (this.time_compression.enabled) {
+        const compressedView = this.getCompressedView();
+        const compressedDelta = physicalDeltaPct * compressedView.width;
+        const nextCompressedLeft = compressedView.left + compressedDelta;
+        const nextCompressedRight = compressedView.right + compressedDelta;
+        const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
+        const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
+
+        this.scheduler.dispatch('set trace view', {
+          x: nextRealLeft - this.view.to_origin,
+          width: nextRealRight - nextRealLeft,
+        });
+      } else {
+        const view_delta = physicalDeltaPct * this.view.trace_view.width;
+
+        this.scheduler.dispatch('set trace view', {
+          x: this.view.trace_view.x + view_delta,
+        });
+      }
     }
   }
 
@@ -602,11 +708,28 @@ export class VirtualizedViewManager {
     // to move the duration label insdie the bar and can preserve
     // some context around the star/end time of a span
     if (this.view.trace_physical_space.width > 300) {
-      const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
-      const offsetInConfigSpace = 74 * mat[0];
+      if (this.time_compression.enabled) {
+        const compressedPxRatio = this.span_to_px[0];
+        const paddingCompressedMs = 74 * compressedPxRatio;
+        const realStart = final_x + this.view.to_origin;
+        const realEnd = realStart + final_width;
+        const compressedStart = this.time_compression.toCompressedOffset(realStart);
+        const compressedEnd = this.time_compression.toCompressedOffset(realEnd);
+        const paddedStart = this.time_compression.toRealTimestamp(
+          compressedStart - paddingCompressedMs
+        );
+        const paddedEnd = this.time_compression.toRealTimestamp(
+          compressedEnd + paddingCompressedMs
+        );
+        final_x = paddedStart - this.view.to_origin;
+        final_width = paddedEnd - paddedStart;
+      } else {
+        const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
+        const offsetInConfigSpace = 74 * mat[0];
 
-      final_x -= offsetInConfigSpace;
-      final_width += offsetInConfigSpace * 2;
+        final_x -= offsetInConfigSpace;
+        final_width += offsetInConfigSpace * 2;
+      }
     }
 
     const start_x = this.view.trace_view.x;
@@ -733,13 +856,16 @@ export class VirtualizedViewManager {
     }
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...qs.parse(location.search),
-          fov: `${view.trace_view.x},${view.trace_view.width}`,
+      this.navigate?.(
+        {
+          pathname: location.pathname,
+          query: {
+            ...qs.parse(location.search),
+            fov: `${view.trace_view.x},${view.trace_view.width}`,
+          },
         },
-      });
+        {replace: true}
+      );
       this.timers.onFovChange = null;
     }, 500);
   }
@@ -920,7 +1046,46 @@ export class VirtualizedViewManager {
     return transform;
   }
 
+  getCompressedView(): {left: number; right: number; width: number} {
+    if (this._compressedViewCache) {
+      return this._compressedViewCache;
+    }
+
+    const start = this.view.to_origin + this.view.trace_view.x;
+    const end = start + this.view.trace_view.width;
+    const left = this.time_compression.toCompressedOffset(start);
+    const right = this.time_compression.toCompressedOffset(end);
+
+    return {
+      left,
+      right,
+      width: Math.max(right - left, Number.EPSILON),
+    };
+  }
+
+  getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
+    if (!this.time_compression.enabled) {
+      return this.view.getConfigSpaceCursor(cursor);
+    }
+
+    const leftPercentage = cursor.x / this.view.trace_physical_space.width;
+    const compressedView = this.getCompressedView();
+    const compressedCursor = compressedView.left + leftPercentage * compressedView.width;
+    return [
+      this.time_compression.toRealTimestamp(compressedCursor) - this.view.to_origin,
+      0,
+    ];
+  }
+
   recomputeSpanToPXMatrix() {
+    if (this.time_compression.enabled) {
+      const compressedView = this.getCompressedView();
+      this.span_to_px = mat3.identity(this.span_to_px);
+      this.span_to_px[0] =
+        compressedView.width / Math.max(this.view.trace_physical_space.width, 1);
+      return;
+    }
+
     const traceViewToSpace = this.view.trace_space.between(this.view.trace_view);
     const tracePhysicalToView = this.view.trace_physical_space.between(
       this.view.trace_space
@@ -933,24 +1098,32 @@ export class VirtualizedViewManager {
     );
   }
 
+  private getConfigSpacePerPx(): number {
+    if (this.view.trace_physical_space.width === 0) {
+      return this.span_to_px[0] || 1;
+    }
+
+    return this.view.trace_view.width / this.view.trace_physical_space.width;
+  }
+
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
-    const scale = space[1] / this.view.trace_view.width;
-    this.span_matrix[0] = Math.max(
-      scale,
-      this.span_to_px[0] / this.view.trace_view.width
-    );
-    this.span_matrix[4] =
-      (space[0] - this.view.to_origin) / this.span_to_px[0] -
-      this.view.trace_view.x / this.span_to_px[0];
+    const compressedView = this.getCompressedView();
+    const compressedStart = this.time_compression.toCompressedOffset(space[0]);
+    const compressedEnd = this.time_compression.toCompressedOffset(space[0] + space[1]);
+    const compressedDuration = Math.max(compressedEnd - compressedStart, 0);
+    const scale = compressedDuration / compressedView.width;
+    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / compressedView.width);
+    this.span_matrix[4] = (compressedStart - compressedView.left) / this.span_to_px[0];
 
     // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
+    const compressedTraceEnd = this.time_compression.toCompressedOffset(
+      this.view.to_origin + this.view.trace_space.width
+    );
     if (
       space[0] - this.view.to_origin > this.view.trace_space.width / 2 &&
-      (this.view.to_origin + this.view.trace_space.width - space[0] - space[1]) /
-        this.span_to_px[0] <=
-        1
+      (compressedTraceEnd - compressedEnd) / this.span_to_px[0] <= 1
     ) {
       // 1px for the span and 1px for the border
       this.span_matrix[4] = this.span_matrix[4] - 2;
@@ -959,8 +1132,17 @@ export class VirtualizedViewManager {
   }
 
   transformXFromTimestamp(timestamp: number): number {
+    if (!this.time_compression.enabled) {
+      const config_space_per_px = this.getConfigSpacePerPx();
+      return (
+        (timestamp - this.view.to_origin - this.view.trace_view.x) / config_space_per_px
+      );
+    }
+
     return (
-      (timestamp - this.view.to_origin - this.view.trace_view.x) / this.span_to_px[0]
+      (this.time_compression.toCompressedOffset(timestamp) -
+        this.getCompressedView().left) /
+      this.span_to_px[0]
     );
   }
 
@@ -1133,7 +1315,119 @@ export class VirtualizedViewManager {
     timestamp: number,
     entire_space: [number, number]
   ) {
-    return (timestamp - entire_space[0]) / entire_space[1];
+    const compressedStart = this.time_compression.toCompressedOffset(entire_space[0]);
+    const compressedEnd = this.time_compression.toCompressedOffset(
+      entire_space[0] + entire_space[1]
+    );
+    const compressedTimestamp = this.time_compression.toCompressedOffset(timestamp);
+    const compressedRange = compressedEnd - compressedStart;
+    if (compressedRange === 0) {
+      return 0;
+    }
+    return (compressedTimestamp - compressedStart) / compressedRange;
+  }
+
+  computeRelativeWidth(space: [number, number], entire_space: [number, number]) {
+    const compressedStart = this.time_compression.toCompressedOffset(space[0]);
+    const compressedEnd = this.time_compression.toCompressedOffset(space[0] + space[1]);
+    const compressedEntireStart = this.time_compression.toCompressedOffset(
+      entire_space[0]
+    );
+    const compressedEntireEnd = this.time_compression.toCompressedOffset(
+      entire_space[0] + entire_space[1]
+    );
+    const compressedEntireRange = compressedEntireEnd - compressedEntireStart;
+    if (compressedEntireRange === 0) {
+      return 0;
+    }
+    return (compressedEnd - compressedStart) / compressedEntireRange;
+  }
+
+  computeTraceIconPlacement(
+    timestamp: number,
+    iconWidthPx: number,
+    span_space: [number, number]
+  ): TraceIconPlacement {
+    const span_start = span_space[0];
+    const span_end = span_space[0] + span_space[1];
+    const clamped_timestamp = clamp(timestamp, span_start, span_end);
+    const edge = this.computeTraceIconEdge(clamped_timestamp, iconWidthPx);
+    const anchorTimestamp = clamp(
+      this.computeTraceIconAnchorTimestamp(clamped_timestamp, edge),
+      span_start,
+      span_end
+    );
+    const bounds = this.computeTraceIconBounds(anchorTimestamp, iconWidthPx, edge);
+
+    return {edge, anchorTimestamp, bounds};
+  }
+
+  private computeTraceIconBounds(
+    anchorTimestamp: number,
+    iconWidthPx: number,
+    edge: TraceIconEdge
+  ): [number, number] {
+    if (!this.time_compression.enabled) {
+      const iconWidth = iconWidthPx * this.getConfigSpacePerPx();
+      if (edge === 'start') {
+        return [anchorTimestamp, anchorTimestamp + iconWidth];
+      }
+      if (edge === 'end') {
+        return [anchorTimestamp - iconWidth, anchorTimestamp];
+      }
+      return [anchorTimestamp - iconWidth / 2, anchorTimestamp + iconWidth / 2];
+    }
+
+    const compressedAnchor = this.time_compression.toCompressedOffset(anchorTimestamp);
+    const iconWidthCompressed = iconWidthPx * this.span_to_px[0];
+
+    if (edge === 'start') {
+      return [
+        anchorTimestamp,
+        this.time_compression.toRealTimestamp(compressedAnchor + iconWidthCompressed),
+      ];
+    }
+    if (edge === 'end') {
+      return [
+        this.time_compression.toRealTimestamp(compressedAnchor - iconWidthCompressed),
+        anchorTimestamp,
+      ];
+    }
+    const half = iconWidthCompressed / 2;
+    return [
+      this.time_compression.toRealTimestamp(compressedAnchor - half),
+      this.time_compression.toRealTimestamp(compressedAnchor + half),
+    ];
+  }
+
+  private computeTraceIconEdge(timestamp: number, iconWidthPx: number): TraceIconEdge {
+    const halfIconWidthPx = iconWidthPx / 2;
+    const x = this.transformXFromTimestamp(timestamp);
+
+    if (x - halfIconWidthPx <= 0) {
+      return 'start';
+    }
+
+    if (x + halfIconWidthPx >= this.view.trace_physical_space.width) {
+      return 'end';
+    }
+
+    return null;
+  }
+
+  private computeTraceIconAnchorTimestamp(
+    timestamp: number,
+    edge: TraceIconEdge
+  ): number {
+    if (edge === 'start') {
+      return this.view.to_origin + this.view.trace_view.x;
+    }
+
+    if (edge === 'end') {
+      return this.view.to_origin + this.view.trace_view.x + this.view.trace_view.width;
+    }
+
+    return timestamp;
   }
 
   recomputeTimelineIntervals() {
@@ -1145,13 +1439,26 @@ export class VirtualizedViewManager {
       }
       return;
     }
-    const tracePhysicalToView = this.view.trace_physical_space.between(
-      this.view.trace_view
-    );
+
+    if (this.time_compression.enabled) {
+      const compressedView = this.getCompressedView();
+      const targetInterval =
+        (110 * window.devicePixelRatio * compressedView.width) /
+        Math.max(this.view.trace_physical_space.width, 1);
+
+      computeCompressedTimelineIntervals(
+        compressedView,
+        targetInterval,
+        this.time_compression,
+        this.view.to_origin,
+        this.intervals
+      );
+      return;
+    }
+
     const time_at_100 =
-      tracePhysicalToView[0] * (110 * window.devicePixelRatio) +
-      tracePhysicalToView[6] -
-      this.view.trace_view.x;
+      (110 * window.devicePixelRatio * this.view.trace_view.width) /
+      Math.max(this.view.trace_physical_space.width, 1);
 
     computeTimelineIntervals(this.view, time_at_100, this.intervals);
   }
@@ -1167,18 +1474,26 @@ export class VirtualizedViewManager {
     node: BaseNode,
     span_space: [number, number],
     text: string
-  ): [number, number] {
+  ): SpanTextPlacement {
     const TEXT_PADDING = 3;
 
-    const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
-      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
+      this.time_compression.toCompressedOffset(span_space[0]) >
+      this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_space.width * 0.5
+      );
     const text_width = this.text_measurer.measure(text);
     const text_width_ceil = Math.ceil(text_width);
 
-    const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
-    const text_left = Math.min(span_space[0], timestamps[0]!);
-    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
+    const timestamps = getIconTimestamps(
+      node,
+      span_space,
+      value => this.text_measurer.measure(value),
+      (timestamp, iconWidthPx) =>
+        this.computeTraceIconPlacement(timestamp, iconWidthPx, span_space)
+    );
+    const text_left = Math.min(span_space[0], timestamps[0]);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
@@ -1205,50 +1520,91 @@ export class VirtualizedViewManager {
       this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
       TEXT_PADDING;
 
+    const choosePlacement = (placements: SpanTextPlacement[]): SpanTextPlacement => {
+      return (
+        placements.find(
+          ([, text_transform]) =>
+            !this.spanTextOverlapsCollapsedGap(text_transform, text_width_ceil)
+        ) ?? placements[0]!
+      );
+    };
+
     const view_left = this.view.trace_view.x;
     const view_right = view_left + this.view.trace_view.width;
 
     const span_left = span_space[0] - this.view.to_origin;
     const span_right = span_left + span_space[1];
 
+    const compressedSpanStart = this.time_compression.toCompressedOffset(span_space[0]);
+    const compressedSpanEnd = this.time_compression.toCompressedOffset(
+      span_space[0] + span_space[1]
+    );
+    const compressedSpanDuration = compressedSpanEnd - compressedSpanStart;
+
     const space_right = view_right - span_right;
     const space_left = span_left - view_left;
 
     // Span is completely outside of the view on the left side
     if (span_right < this.view.trace_view.x) {
-      return text_anchor_left ? [1, right_inside] : [0, right_outside];
+      return text_anchor_left
+        ? choosePlacement([[1, right_inside]])
+        : choosePlacement([[0, right_outside]]);
     }
 
     // Span is completely outside of the view on the right side
     if (span_left > this.view.trace_view.right) {
-      return text_anchor_left ? [0, left_outside] : [1, left_inside];
+      return text_anchor_left
+        ? choosePlacement([[0, left_outside]])
+        : choosePlacement([[1, left_inside]]);
     }
 
     // Span "spans" the entire view
     if (span_left <= this.view.trace_view.x && span_right >= this.view.trace_view.right) {
-      return text_anchor_left ? [1, window_left] : [1, window_right];
+      return text_anchor_left
+        ? choosePlacement([
+            [1, window_left],
+            [1, window_right],
+          ])
+        : choosePlacement([
+            [1, window_right],
+            [1, window_left],
+          ]);
     }
 
-    const full_span_px_width = span_space[1] / this.span_to_px[0];
+    const full_span_px_width = compressedSpanDuration / this.span_to_px[0];
 
     if (text_anchor_left) {
       // While we have space on the left, place the text there
       if (space_left > 0) {
-        return [0, left_outside];
+        const placements: SpanTextPlacement[] = [[0, left_outside]];
+        if (full_span_px_width > text_width_ceil) {
+          placements.push([1, left_inside]);
+        }
+        placements.push([0, right_outside]);
+        return choosePlacement(placements);
       }
 
-      const distance = span_right - this.view.trace_view.left;
-      const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
+      const compressedViewLeft = this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_view.left
+      );
+      const compressedDistance = compressedSpanEnd - compressedViewLeft;
+      const visible_width = compressedDistance / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
       if (visible_width - TEXT_PADDING >= text_width_ceil) {
-        return [1, window_left];
+        return choosePlacement([
+          [1, window_left],
+          [1, right_inside],
+        ]);
       }
 
       // If the text doesnt fit inside the visible portion of the span,
       // anchor it to the inside right place in the span.
-      return [1, right_inside];
+      return choosePlacement([
+        [1, right_inside],
+        [0, left_outside],
+      ]);
     }
 
     // While we have space on the right, place the text there
@@ -1264,38 +1620,88 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < text_width_ceil
+        (this.time_compression.toCompressedOffset(this.view.to_origin + view_right) -
+          compressedSpanEnd) /
+          this.span_to_px[0] <
+          text_width_ceil
       ) {
         if (full_span_px_width > text_width_ceil) {
-          return [1, right_inside];
+          return choosePlacement([
+            [1, right_inside],
+            [0, left_outside],
+          ]);
         }
-        return [0, left_outside];
+        return choosePlacement([
+          [0, left_outside],
+          [0, right_outside],
+        ]);
       }
-      return [0, right_outside];
+      const placements: SpanTextPlacement[] = [[0, right_outside]];
+      if (full_span_px_width > text_width_ceil) {
+        placements.push([1, right_inside]);
+      }
+      placements.push([0, left_outside]);
+      return choosePlacement(placements);
     }
 
     // If text fits inside the span
     if (full_span_px_width > text_width_ceil) {
-      const distance = span_right - this.view.trace_view.right;
+      const compressedViewRight = this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_view.right
+      );
       const visible_width =
-        (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
+        (compressedViewRight - compressedSpanStart) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
       if (visible_width - TEXT_PADDING >= text_width_ceil) {
-        return [1, window_right];
+        return choosePlacement([
+          [1, window_right],
+          [1, left_inside],
+        ]);
       }
 
       // If the text doesnt fit inside the visible portion of the span,
       // anchor it to the inside left of the span
-      return [1, left_inside];
+      return choosePlacement([
+        [1, left_inside],
+        [0, right_outside],
+      ]);
     }
 
-    return [0, right_outside];
+    return choosePlacement([
+      [0, right_outside],
+      [0, left_outside],
+    ]);
+  }
+
+  spanTextOverlapsCollapsedGap(textTransform: number, textWidth: number): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    const textLeft = textTransform;
+    const textRight = textLeft + textWidth;
+
+    for (const pos of this._collapsed_gap_marker_positions) {
+      if (!pos) {
+        continue;
+      }
+
+      if (
+        textLeft < pos.right + COLLAPSED_GAP_MARKER_CLEARANCE_PX &&
+        textRight > pos.left - COLLAPSED_GAP_MARKER_CLEARANCE_PX
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
+    this._compressedViewCache = this.getCompressedView();
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPXMatrix();
 
@@ -1308,7 +1714,9 @@ export class VirtualizedViewManager {
     });
 
     // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
-    const error_margin = 60 * this.span_to_px[0];
+    const error_margin = 60 * this.getConfigSpacePerPx();
+
+    this.drawCollapsedGapMarkers();
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const span = this.span_bars[i];
@@ -1448,6 +1856,7 @@ export class VirtualizedViewManager {
     }
 
     this.drawTimelineIntervals();
+    this._compressedViewCache = null;
   }
 
   // DRAW METHODS
@@ -1555,7 +1964,19 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.transformXFromTimestamp(this.view.to_origin + interval);
+    const timestamp = this.view.to_origin + interval;
+
+    if (this.isTimestampInsideCollapsedGap(timestamp)) {
+      ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(timestamp);
+
+    if (this.timelineIndicatorOverlapsCollapsedGapMarker(ref, placement)) {
+      ref.style.opacity = '0';
+      return;
+    }
 
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
@@ -1565,6 +1986,60 @@ export class VirtualizedViewManager {
     if (label && label?.textContent !== duration) {
       label.textContent = duration;
     }
+  }
+
+  timelineIndicatorOverlapsCollapsedGapMarker(
+    ref: HTMLElement,
+    indicatorPlacement: number
+  ): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    const label = ref.children[0] as HTMLElement | undefined;
+    if (!label) {
+      return false;
+    }
+    const indicatorLeft = indicatorPlacement;
+    const indicatorRight = indicatorPlacement + label.offsetWidth;
+
+    for (const pos of this._collapsed_gap_marker_positions) {
+      if (!pos) {
+        continue;
+      }
+
+      if (
+        indicatorLeft < pos.right + COLLAPSED_GAP_MARKER_CLEARANCE_PX &&
+        indicatorRight > pos.left - COLLAPSED_GAP_MARKER_CLEARANCE_PX
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  isTimestampInsideCollapsedGap(timestamp: number): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    return this.time_compression.gaps.some(
+      gap => timestamp > gap.start && timestamp < gap.end
+    );
+  }
+
+  private getCollapsedGapWidthPx(
+    gap: TraceTimeCompressionGap,
+    placement = this.transformXFromTimestamp(gap.start)
+  ): number {
+    const gapWidth = this.transformXFromTimestamp(gap.end) - placement;
+
+    if (!Number.isFinite(gapWidth) || gapWidth < 0) {
+      return COLLAPSED_GAP_WIDTH_PX;
+    }
+
+    return gapWidth;
   }
 
   drawTimelineIntervals() {
@@ -1582,6 +2057,75 @@ export class VirtualizedViewManager {
     for (let i = 0; i < this.timeline_indicators.length; i++) {
       this.drawTimelineInterval(this.timeline_indicators[i], i);
     }
+  }
+
+  drawCollapsedGapMarkers() {
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    // Batch-read all marker widths before writing any styles to avoid layout thrashing
+    const widths: Array<number | undefined> = [];
+    for (let i = 0; i < this.collapsed_gap_markers.length; i++) {
+      const marker = this.collapsed_gap_markers[i];
+      widths[i] = marker ? marker.ref.offsetWidth : undefined;
+    }
+
+    // Now write styles and cache positions for timelineIndicatorOverlapsCollapsedGapMarker
+    for (let i = 0; i < this.collapsed_gap_markers.length; i++) {
+      const marker = this.collapsed_gap_markers[i];
+      if (!marker) {
+        this._collapsed_gap_marker_positions[i] = undefined;
+        continue;
+      }
+
+      if (
+        !this.time_compression.enabled ||
+        marker.gap.end < viewStart ||
+        marker.gap.start > viewEnd
+      ) {
+        marker.ref.style.opacity = '0';
+        this._collapsed_gap_marker_positions[i] = undefined;
+        continue;
+      }
+
+      const placement = this.transformXFromTimestamp(marker.gap.start);
+      const gapWidth = this.getCollapsedGapWidthPx(marker.gap, placement);
+      const markerWidth = widths[i] ?? 0;
+      const halfWidth = markerWidth / 2;
+      const left = placement + gapWidth / 2 - halfWidth;
+
+      marker.ref.style.opacity = '1';
+      marker.ref.style.transform = `translateX(${left}px)`;
+      this._collapsed_gap_marker_positions[i] = {
+        left,
+        right: left + markerWidth,
+        placement,
+      };
+    }
+  }
+
+  drawCollapsedGapMarker(marker: this['collapsed_gap_markers'][0]) {
+    if (!marker) {
+      return;
+    }
+
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    if (
+      !this.time_compression.enabled ||
+      marker.gap.end < viewStart ||
+      marker.gap.start > viewEnd
+    ) {
+      marker.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(marker.gap.start);
+    const gapWidth = this.getCollapsedGapWidthPx(marker.gap, placement);
+    const halfWidth = marker.ref.offsetWidth / 2;
+    marker.ref.style.opacity = '1';
+    marker.ref.style.transform = `translateX(${placement + gapWidth / 2 - halfWidth}px)`;
   }
 
   // Special case for when the timeline is empty - we want to show the first and last
@@ -1726,8 +2270,9 @@ export class VirtualizedViewManager {
 function getIconTimestamps(
   node: BaseNode,
   span_space: [number, number],
-  icon_width: number
-) {
+  measureText: (text: string) => number,
+  getTraceIconPlacement: (timestamp: number, iconWidthPx: number) => TraceIconPlacement
+): [number, number] {
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
 
@@ -1735,39 +2280,39 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const occurrence of node.occurrences) {
-    // Occurences render icons at the start timestamp
-    const start_timestamp =
-      'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
-    if (typeof start_timestamp === 'number') {
-      min_icon_timestamp = Math.min(
-        min_icon_timestamp,
-        start_timestamp * 1e3 - icon_width
-      );
-      max_icon_timestamp = Math.max(
-        max_icon_timestamp,
-        start_timestamp * 1e3 + icon_width
-      );
-    }
-  }
+  let max_icon_width_config_space = 0;
 
-  for (const err of node.errors) {
-    const timestamp = 'start_timestamp' in err ? err.start_timestamp : err.timestamp;
-    if (typeof timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
-    }
+  for (const {issue, additionalIssueCount} of getRenderableTraceIssues(
+    node,
+    node.errors,
+    node.occurrences,
+    span_space
+  )) {
+    const icon_width_px =
+      additionalIssueCount === undefined
+        ? TRACE_ICON_WIDTH
+        : getTraceIconGroupWidth(additionalIssueCount, measureText);
+    const timestamp = getTraceIssueTimestamp(issue, span_space);
+    const {bounds} = getTraceIconPlacement(timestamp, icon_width_px);
+    const [icon_left, icon_right] = bounds;
+
+    min_icon_timestamp = Math.min(min_icon_timestamp, icon_left);
+    max_icon_timestamp = Math.max(max_icon_timestamp, icon_right);
+    max_icon_width_config_space = Math.max(
+      max_icon_width_config_space,
+      icon_right - icon_left
+    );
   }
 
   min_icon_timestamp = clamp(
     min_icon_timestamp,
-    span_space[0] - icon_width,
-    span_space[0] + span_space[1] + icon_width
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
   );
   max_icon_timestamp = clamp(
     max_icon_timestamp,
-    span_space[0] - icon_width,
-    span_space[0] + span_space[1] + icon_width
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
   );
 
   return [min_icon_timestamp, max_icon_timestamp];
@@ -1797,6 +2342,42 @@ function computeTimelineIntervals(
   }
   while (x <= view.trace_view.right) {
     results[++idx] = x;
+    x += interval;
+  }
+
+  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
+    results[++idx] = undefined;
+  }
+}
+
+/**
+ * Computes timeline intervals in compressed space so ticks are visually
+ * evenly spaced, then converts each tick back to a real-time offset.
+ */
+function computeCompressedTimelineIntervals(
+  compressedView: {left: number; right: number; width: number},
+  targetInterval: number,
+  compression: TraceTimeCompression,
+  toOrigin: number,
+  results: Array<number | undefined>
+): void {
+  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
+  let interval = minInterval;
+
+  if (targetInterval / interval > 5) {
+    interval *= 5;
+  } else if (targetInterval / interval > 2) {
+    interval *= 2;
+  }
+
+  let x = Math.ceil(compressedView.left / interval) * interval;
+  let idx = -1;
+  if (x > compressedView.left) {
+    x -= interval;
+  }
+  while (x <= compressedView.right) {
+    const realTimestamp = compression.toRealTimestamp(x);
+    results[++idx] = realTimestamp - toOrigin;
     x += interval;
   }
 

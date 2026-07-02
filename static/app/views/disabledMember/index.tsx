@@ -1,9 +1,9 @@
 import {NotFound} from 'sentry/components/errors/notFound';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 
 // getsentry will add the view
-const DisabledMemberComponent = HookOrDefault({
-  hookName: 'component:disabled-member',
+const DisabledMemberComponent = OverrideOrDefault({
+  overrideName: 'component:disabled-member',
   defaultComponent: () => <NotFound />,
 });
 

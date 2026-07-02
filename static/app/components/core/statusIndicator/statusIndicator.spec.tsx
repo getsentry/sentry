@@ -28,4 +28,14 @@ describe('StatusIndicator', () => {
     expect(dot).toBeInTheDocument();
     expect(dot).not.toHaveAttribute('aria-hidden');
   });
+
+  it('accepts a finite animation iteration count without passing styling props to the DOM', () => {
+    render(
+      <StatusIndicator variant="accent" animationIterationCount={3} data-test-id="dot" />
+    );
+
+    const dot = screen.getByTestId('dot');
+    expect(dot).not.toHaveAttribute('animationIterationCount');
+    expect(dot).not.toHaveAttribute('variant');
+  });
 });

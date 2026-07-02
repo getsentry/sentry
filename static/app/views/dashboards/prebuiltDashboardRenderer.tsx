@@ -9,6 +9,7 @@ import {useDismissable} from 'sentry/components/banner';
 import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -107,7 +108,7 @@ export function PrebuiltDashboardRenderer({
   const showSeerDataBanner =
     isSentryEmployee &&
     !dismissed &&
-    pageFilters.selection.projects.includes(6178942) &&
+    pageFilters.selection.projects.includes(SEER_AGENTS_PROJECT_ID) &&
     isAiAgentsOverview;
   const showDashboardMigrationAlert = Boolean(dashboardId);
   const hasPageAlerts = showDashboardMigrationAlert || showSeerDataBanner;

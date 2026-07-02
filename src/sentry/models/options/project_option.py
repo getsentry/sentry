@@ -249,3 +249,12 @@ class ProjectOption(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+def get_option(
+    project: int | Project,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return ProjectOption.objects.get_value(project, key, default, validate)

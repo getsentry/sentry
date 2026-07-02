@@ -14,8 +14,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGrid';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
-import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
-import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
+import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 export default function GroupUptimeChecks() {

@@ -64,12 +64,6 @@ def get_processing_state(table_name: str) -> tuple[int, int]:
         if not (isinstance(lower, int) and isinstance(version, int)):
             raise TypeError("Expected processing data to be a tuple of (int, int)")
         result = lower, version
-    metrics.gauge(
-        "backfill_outboxes.low_bound",
-        result[0],
-        tags=dict(table_name=table_name, version=result[1]),
-        sample_rate=1.0,
-    )
     return result
 
 
@@ -123,6 +117,12 @@ def _chunk_processing_batch(
         .aggregate(Max("id"))["id__max"]
         or 0
     )
+    metrics.gauge(
+        "backfill_outboxes.low_bound",
+        lower,
+        tags=dict(table_name=model._meta.db_table, version=version),
+        sample_rate=1.0,
+    )
 
     return BackfillBatch(low=lower, up=upper, version=version, has_more=upper > lower)
 
@@ -159,7 +159,16 @@ def process_outbox_backfill_batch(
             if isinstance(inst, CellOutboxProducingModel):
                 inst.outbox_for_update().save()
             if isinstance(inst, ControlOutboxProducingModel) or isinstance(inst, User):
+                target_cells: list[str] | None = None
+                try:
+                    target_cells = options.get(
+                        f"outbox_replication.{inst._meta.db_table}.backfill.target_cells"
+                    )
+                except options.UnknownOption:
+                    pass
                 for outbox in inst.outboxes_for_update():
+                    if target_cells and outbox.cell_name not in target_cells:
+                        continue
                     outbox.save()
 
     if not processing_state.has_more:

@@ -282,7 +282,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             )
         return event.group
 
-    def test_platform_tag_collision_badge_disagrees_without_option(self) -> None:
+    def test_platform_tag_collision_badge_resolved_correctly(self) -> None:
         group = self._store_platform_tag_collision_events()
         self.login_as(user=self.user)
 
@@ -291,27 +291,13 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["count"] == "3"
-        assert response.data[0]["filtered"]["count"] == "0"
-
-    def test_platform_tag_collision_badge_agrees_with_option(self) -> None:
-        group = self._store_platform_tag_collision_events()
-        self.login_as(user=self.user)
-
-        with self.options({"issues.search.use-tag-aware-condition-resolver": True}):
-            response = self.get_response(query="platform:SJ1", groups=[group.id])
-
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["count"] == "3"
         assert response.data[0]["filtered"]["count"] == "3"
 
-    def test_explicit_tag_query_works_regardless_of_option(self) -> None:
+    def test_explicit_tag_query_works(self) -> None:
         group = self._store_platform_tag_collision_events()
         self.login_as(user=self.user)
 
-        for option_value in (False, True):
-            with self.options({"issues.search.use-tag-aware-condition-resolver": option_value}):
-                response = self.get_response(query="tags[platform]:SJ1", groups=[group.id])
-            assert response.status_code == 200
-            assert response.data[0]["filtered"]["count"] == "3"
-            assert response.data[0]["count"] == "3"
+        response = self.get_response(query="tags[platform]:SJ1", groups=[group.id])
+        assert response.status_code == 200
+        assert response.data[0]["filtered"]["count"] == "3"
+        assert response.data[0]["count"] == "3"

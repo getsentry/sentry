@@ -1,0 +1,328 @@
+"""
+Types for the group action log. No Django dependencies — safe to import anywhere.
+"""
+
+from __future__ import annotations
+
+import abc
+import dataclasses
+from enum import IntEnum
+
+from pydantic import BaseModel
+
+
+class GroupActorType(IntEnum):
+    SYSTEM = 0
+    USER = 1
+    # An integration (Sentry App) acting via its token; actor_id is the SentryApp id.
+    # internal vs public is derived from SentryApp.status at read time, not a separate type.
+    SENTRY_APP = 2
+    # An organization-scoped token (OrgAuthToken, or legacy ApiKey); actor_id is the org id.
+    ORG = 3
+
+
+@dataclasses.dataclass(frozen=True)
+class GroupActionActor:
+    """
+    Who initiated an action. Use the constructors: user(id) for a human, sentry_app(id) for
+    an integration token, org(id) for an org-scoped token, or SYSTEM_ACTOR for Sentry itself.
+    """
+
+    actor_type: GroupActorType
+    actor_id: int
+
+    @classmethod
+    def user(cls, user_id: int) -> GroupActionActor:
+        return cls(actor_type=GroupActorType.USER, actor_id=user_id)
+
+    @classmethod
+    def sentry_app(cls, sentry_app_id: int) -> GroupActionActor:
+        return cls(actor_type=GroupActorType.SENTRY_APP, actor_id=sentry_app_id)
+
+    @classmethod
+    def org(cls, organization_id: int) -> GroupActionActor:
+        return cls(actor_type=GroupActorType.ORG, actor_id=organization_id)
+
+
+# Default GroupActionActor for Sentry-initiated actions.
+SYSTEM_ACTOR = GroupActionActor(actor_type=GroupActorType.SYSTEM, actor_id=0)
+
+
+class GroupActionType(IntEnum):
+    """
+    Action kinds stored in GroupActionLogEntry.type.
+
+    To add a new kind: add a value here, then add a corresponding
+    GroupAction subclass below. Values need not be contiguous.
+    """
+
+    VIEW = 0
+    RESOLVE = 1
+    UNRESOLVE = 2
+    ARCHIVE = 3
+    ASSIGN = 4
+    UNASSIGN = 5
+    SET_PRIORITY = 6
+    MERGE_INTO_OTHER = 7
+    MERGE_FROM_OTHER = 8
+    DELETE = 9
+    BOOKMARK = 10
+    COMMENT = 11
+    COMMENT_EDIT = 12
+    COMMENT_DELETE = 13
+    SUBSCRIBE = 14
+    UNSUBSCRIBE = 15
+    MARK_REVIEWED = 16
+    TRIGGER_AUTOFIX = 17
+    CREATE_EXTERNAL_ISSUE = 18
+    LINK_EXTERNAL_ISSUE = 19
+    UNLINK_EXTERNAL_ISSUE = 20
+    CREATE_PLATFORM_EXTERNAL_ISSUE = 21
+    LINK_PLATFORM_EXTERNAL_ISSUE = 22
+    UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
+    AUTOFIX_PR_CREATED = 24
+    RESOLVED_IN_PULL_REQUEST = 25
+    ROOT_CAUSE_IDENTIFIED = 26
+    AUTOFIX_CODING_COMPLETE = 27
+    SET_REGRESSED = 28
+    PULL_REQUEST_CLOSED = 29
+
+
+class GroupAction(BaseModel, abc.ABC):
+    """Typed payload for a group action log entry. Frozen after construction."""
+
+    class Config:
+        frozen = True
+
+    @classmethod
+    @abc.abstractmethod
+    def get_type(cls) -> GroupActionType: ...
+
+
+class ViewAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.VIEW
+
+
+class ResolveAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.RESOLVE
+
+
+class UnresolveAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNRESOLVE
+
+
+class ArchiveAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.ARCHIVE
+
+
+class AssignAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.ASSIGN
+
+
+class UnassignAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNASSIGN
+
+
+class SetPriorityAction(GroupAction):
+    priority: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_PRIORITY
+
+
+class MergeIntoOtherAction(GroupAction):
+    counterpart_group_id: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.MERGE_INTO_OTHER
+
+
+class MergeFromOtherAction(GroupAction):
+    counterpart_group_ids: list[int]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.MERGE_FROM_OTHER
+
+
+class DeleteAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.DELETE
+
+
+class BookmarkAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.BOOKMARK
+
+
+class CommentAction(GroupAction):
+    comment_id: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.COMMENT
+
+
+class CommentEditAction(GroupAction):
+    comment_id: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.COMMENT_EDIT
+
+
+class CommentDeleteAction(GroupAction):
+    comment_id: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.COMMENT_DELETE
+
+
+class SubscribeAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SUBSCRIBE
+
+
+class UnsubscribeAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNSUBSCRIBE
+
+
+class MarkReviewedAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.MARK_REVIEWED
+
+
+class TriggerAutofixAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.TRIGGER_AUTOFIX
+
+
+class CreateExternalIssueAction(GroupAction):
+    provider: str
+    external_issue_key: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.CREATE_EXTERNAL_ISSUE
+
+
+class LinkExternalIssueAction(GroupAction):
+    provider: str
+    external_issue_key: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.LINK_EXTERNAL_ISSUE
+
+
+class UnlinkExternalIssueAction(GroupAction):
+    provider: str
+    external_issue_key: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNLINK_EXTERNAL_ISSUE
+
+
+class CreatePlatformExternalIssueAction(GroupAction):
+    service_type: str
+    display_name: str
+    web_url: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE
+
+
+class LinkPlatformExternalIssueAction(GroupAction):
+    service_type: str
+    display_name: str
+    web_url: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE
+
+
+class UnlinkPlatformExternalIssueAction(GroupAction):
+    service_type: str
+    display_name: str
+    web_url: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE
+
+
+class AutofixPrCreatedAction(GroupAction):
+    run_id: str | None = None
+    pull_requests: list[dict[str, object]]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.AUTOFIX_PR_CREATED
+
+
+class ResolvedInPullRequestAction(GroupAction):
+    pull_request: int  # PullRequest model ID
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.RESOLVED_IN_PULL_REQUEST
+
+
+class RootCauseIdentifiedAction(GroupAction):
+    """Seer (or a human) identified the root cause of an issue."""
+
+    run_id: str | None = None
+    summary: str | None = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.ROOT_CAUSE_IDENTIFIED
+
+
+class AutofixCodingCompleteAction(GroupAction):
+    """Seer finished writing a fix (code ready, PR not yet created)."""
+
+    run_id: str | None = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.AUTOFIX_CODING_COMPLETE
+
+
+class SetRegressedAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_REGRESSED
+
+
+class PullRequestClosedAction(GroupAction):
+    pull_request: int  # PullRequest model ID
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_CLOSED

@@ -22,14 +22,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("replays", "0001_init_replays"),
-        ("replays", "0002_rename_to_segment_id"),
-        ("replays", "0003_add_size_to_recording_segment"),
-        ("replays", "0004_index_together"),
-        ("replays", "0005_drop_replay_index"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

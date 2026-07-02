@@ -180,7 +180,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             with (
                 TaskRunner(),
                 patch.object(kafka_config, "get_kafka_producer_cluster_options"),
-                patch.object(kafka, "KafkaPublisher"),
+                patch.object(kafka, "ingest_replay_events_producer"),
             ):
                 response = self.client.delete(self.url)
                 assert response.status_code == 204

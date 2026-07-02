@@ -18,7 +18,7 @@ from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.snuba import discover
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
-from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded, SnubaRPCTooManySimultaneous
 
 _SCALAR_SEARCH_TYPES: list[Literal["string", "number", "boolean"]] = [
     "string",
@@ -66,6 +66,7 @@ def handle_snuba_errors(
                         snuba.QueryExecutionTimeMaximum,
                         snuba.QueryTooManySimultaneous,
                         SnubaRPCRateLimitExceeded,
+                        SnubaRPCTooManySimultaneous,
                     ),
                 ):
                     message = TIMEOUT_ERROR_MESSAGE
@@ -77,6 +78,7 @@ def handle_snuba_errors(
                             snuba.RateLimitExceeded,
                             snuba.QueryTooManySimultaneous,
                             SnubaRPCRateLimitExceeded,
+                            SnubaRPCTooManySimultaneous,
                         ),
                     ):
                         delay_retry = True

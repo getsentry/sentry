@@ -6,7 +6,6 @@ from sentry.api.serializers import serialize
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -29,7 +28,6 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
-@with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 

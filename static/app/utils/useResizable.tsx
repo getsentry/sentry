@@ -106,7 +106,9 @@ export const useResizable = ({
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDraggingRef.current) return;
+      if (!isDraggingRef.current) {
+        return;
+      }
 
       const deltaX = e.clientX - startXRef.current;
       const newWidth = Math.max(

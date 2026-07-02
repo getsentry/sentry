@@ -147,7 +147,7 @@ def build_build_distribution_summary(
             logger.warning(
                 "preprod.build_distribution.summary.both_file_and_error",
                 extra={
-                    "artifact_id": artifact.id,
+                    "preprod_artifact_id": artifact.id,
                     "error_code": error_code_value,
                 },
             )

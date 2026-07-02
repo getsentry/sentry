@@ -1,5 +1,9 @@
 import type {Project} from 'sentry/types/project';
-import {type DashboardDetails} from 'sentry/views/dashboards/types';
+import {
+  type DashboardDetails,
+  type Widget,
+  type WidgetLayout,
+} from 'sentry/views/dashboards/types';
 import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
 import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
 import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsTools';
@@ -90,7 +94,21 @@ type OnboardingConfig =
       type: 'overview';
     };
 
-export type PrebuiltDashboard = Omit<DashboardDetails, 'id'> & {
+// Narrow x/w to literal unions so the desktop-grid invariants (x in [0,5],
+// w in [1,6]) are checked at compile time for prebuilt configs. User-created
+// widgets stay on the wider `WidgetLayout` because their layouts come from
+// react-grid-layout arithmetic, not hand-written literals.
+export type PrebuiltWidgetLayout = Omit<WidgetLayout, 'x' | 'w'> & {
+  w: 1 | 2 | 3 | 4 | 5 | 6;
+  x: 0 | 1 | 2 | 3 | 4 | 5;
+};
+
+export type PrebuiltWidget = Omit<Widget, 'layout'> & {
+  layout?: PrebuiltWidgetLayout | null;
+};
+
+export type PrebuiltDashboard = Omit<DashboardDetails, 'id' | 'widgets'> & {
+  widgets: PrebuiltWidget[];
   onboarding?: OnboardingConfig;
 };
 

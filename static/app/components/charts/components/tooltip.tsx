@@ -427,18 +427,26 @@ export function computeChartTooltip(
         arrowPosition = '50%';
       }
 
+      // Prefer rendering the tooltip above the cursor.
+      let topPos = Number(pos[1]) - tipHeight - 20;
+      let arrowOnTop = false;
+      // When the tooltip is too tall to fit above the cursor (e.g. a group-by
+      // chart with many series), render it below the cursor instead of pinning
+      // it to the top edge of the window, which detaches it from the chart.
+      if (topPos + chartBoundingRect.top < CHART_TOOLTIP_VIEWPORT_OFFSET) {
+        topPos = Number(pos[1]) + 20;
+        arrowOnTop = true;
+      }
+
       const arrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;
+        arrow.classList.toggle('arrow-top', arrowOnTop);
       }
 
       return {
         left: leftPos,
-        top: Math.max(
-          Number(pos[1]) - tipHeight - 20,
-          // avoid tooltip from being cut off by the top edge of the window
-          CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
-        ),
+        top: topPos,
       };
     },
     formatter,

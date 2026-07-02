@@ -15,8 +15,8 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -75,7 +75,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
         <Flex align="center" justify="between" gap="2xl">
           <Flex direction="column" gap="sm">
             <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Edit your forwarder')}</Heading>
+              <Heading as="h2">{t('Edit your forwarder')}</Heading>
             </Flex>
             <Text variant="muted">
               {t(
@@ -99,7 +99,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
         </Flex>
         <Feature
           features={DATA_FORWARDING_FEATURES}
-          hookName="feature-disabled:data-forwarding"
+          overrideName="feature-disabled:data-forwarding"
         >
           {({hasFeature, features}) => (
             <Fragment>

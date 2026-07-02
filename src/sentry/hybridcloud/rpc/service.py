@@ -19,6 +19,7 @@ from collections.abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
+from threading import local
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
@@ -35,6 +36,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
+from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -398,6 +400,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.notifications.services",
         "sentry.organizations.services",
         "sentry.projects.services",
+        "sentry.relocation.services",
         "sentry.sentry_apps.services",
         "sentry.users.services",
     )
@@ -493,6 +496,41 @@ def dispatch_remote_call(
     return remote_silo_call.dispatch(use_test_client)
 
 
+def _create_request_session(retry_count: int) -> requests.Session:
+    retry_adapter = HTTPAdapter(
+        max_retries=Retry(
+            total=retry_count,
+            backoff_factor=0.1,
+            status_forcelist=[503],
+            allowed_methods=["POST"],
+        )
+    )
+    http = requests.Session()
+    http.mount("http://", retry_adapter)
+    http.mount("https://", retry_adapter)
+    return http
+
+
+_connections = local()
+
+
+def _get_connection(retry_count: int) -> requests.Session:
+    """
+    Get a shared requests.Session.
+
+    Because retry limits are part of the session definition,
+    each unique retry value creates a different connection pool.
+    """
+    if not hasattr(_connections, "lookup"):
+        _connections.lookup = {}
+
+    if not _connections.lookup.get(retry_count, None):
+        http = _create_request_session(retry_count)
+        _connections.lookup[retry_count] = http
+
+    return _connections.lookup[retry_count]
+
+
 @dataclass(frozen=True)
 class _RemoteSiloCall:
     cell: Cell | None
@@ -581,11 +619,17 @@ class _RemoteSiloCall:
             "meta": meta,
             "args": self.serial_arguments,
         }
+
+        origin = settings.SENTRY_LOCAL_CELL
+        if not origin:
+            origin = SiloMode.get_current_mode().name
+
         data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
         signature = generate_request_signature(self.path, data)
         headers = {
             "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
             "Authorization": f"Rpcsignature {signature}",
+            "User-Agent": f"sentry-rpc/from-{origin}",
         }
 
         with self._open_request_context():
@@ -612,7 +656,7 @@ class _RemoteSiloCall:
     @contextmanager
     def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
-        span = sentry_sdk.start_span(
+        span = start_span(
             op="hybrid_cloud.dispatch_rpc",
             name=f"rpc to {self.service_name}.{self.method_name}",
         )
@@ -624,9 +668,10 @@ class _RemoteSiloCall:
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         rpc_method = f"{self.service_name}.{self.method_name}"
-        scope = sentry_sdk.get_isolation_scope()
-        scope.set_tag("rpc_method", rpc_method)
-        scope.set_tag("rpc_status_code", response.status_code)
+        sentry_sdk.set_tag("rpc_method", rpc_method)
+        sentry_sdk.set_attribute("rpc_method", rpc_method)
+        sentry_sdk.set_tag("rpc_status_code", response.status_code)
+        sentry_sdk.set_attribute("rpc_status_code", response.status_code)
 
         if response.status_code == 422:
             # Validation/Operation errors that should be shown to end user behave the same
@@ -688,19 +733,8 @@ class _RemoteSiloCall:
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_count = self.get_method_retry_count()
-        retry_adapter = HTTPAdapter(
-            max_retries=Retry(
-                total=retry_count,
-                backoff_factor=0.1,
-                status_forcelist=[503],
-                allowed_methods=["POST"],
-            )
-        )
-        http = requests.Session()
-        http.mount("http://", retry_adapter)
-        http.mount("https://", retry_adapter)
+        http = _get_connection(retry_count)
 
-        # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
         timeout = self.get_method_timeout()

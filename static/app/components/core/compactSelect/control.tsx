@@ -10,6 +10,7 @@ import {
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -93,7 +94,7 @@ export interface ControlProps
     Omit<
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
-      | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'grid' | 'label'>
+      | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'mode' | 'label'>
       | 'defaultValue'
     >,
     Pick<
@@ -121,17 +122,6 @@ export interface ControlProps
    * Message to be displayed when all options have been filtered out (via search).
    */
   emptyMessage?: React.ReactNode;
-  /**
-   * Whether to render a grid list rather than a list box.
-   *
-   * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
-   * move between rows (options), and Arrow Left/Right to move between "columns". This
-   * is useful when the select options have smaller, interactive elements
-   * (buttons/links) inside. Grid lists allow users to focus on those child elements
-   * using the Arrow Left/Right keys and interact with them, which isn't possible with
-   * list boxes.
-   */
-  grid?: boolean;
   /**
    * If true, all select options will be hidden. This should only be used on a temporary
    * basis in conjunction with `menuBody` to display special views/states (e.g. a
@@ -173,6 +163,15 @@ export interface ControlProps
    */
   menuTitle?: React.ReactNode;
   menuWidth?: number | string;
+  /**
+   * Controls the selection widget type.
+   *
+   * - `'list'` (default) — a one-dimensional listbox navigated with Arrow Up/Down.
+   * - `'grid'` — a two-dimensional grid list where Arrow Up/Down moves between rows
+   *   and Arrow Left/Right moves between columns. Use this when options contain
+   *   interactive child elements (buttons/links) that need to be keyboard-reachable.
+   */
+  mode?: 'list' | 'grid';
   /**
    * Called when the clear button is clicked (applicable only when `clearable` is
    * true).
@@ -238,7 +237,7 @@ export function Control({
   clearable = false,
   onClear,
   loading = false,
-  grid = false,
+  mode = 'list',
   children,
   menuRef,
   ...wrapperProps
@@ -275,7 +274,9 @@ export function Control({
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
         overlayRef.current
-          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.querySelector<HTMLLIElement>(
+            `li[role="${mode === 'grid' ? 'row' : 'option'}"]`
+          )
           ?.focus();
       }
 
@@ -305,7 +306,7 @@ export function Control({
     overlayProps,
   } = useOverlay({
     disableTrigger: disabled,
-    type: grid ? 'menu' : 'listbox',
+    type: mode === 'grid' ? 'menu' : 'listbox',
     position,
     offset,
     isOpen,
@@ -338,7 +339,7 @@ export function Control({
           }
 
           const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-            `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
+            `li[role="${mode === 'grid' ? 'row' : 'option'}"][aria-selected="true"]`
           );
 
           // Focus on first selected item
@@ -349,7 +350,9 @@ export function Control({
 
           // If no item is selected, focus on first item instead
           overlayRef.current
-            ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+            ?.querySelector<HTMLLIElement>(
+              `li[role="${mode === 'grid' ? 'row' : 'option'}"]`
+            )
             ?.focus();
           return;
         }
@@ -429,7 +432,9 @@ export function Control({
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
-        if ('options' in item) return item.options;
+        if ('options' in item) {
+          return item.options;
+        }
         return item;
       })
       .filter(item => values.includes(item.value));
@@ -461,8 +466,12 @@ export function Control({
   });
 
   const hasSelection = useMemo(() => {
-    if (value === undefined) return false;
-    if (Array.isArray(value)) return value.length > 0;
+    if (value === undefined) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
     return true;
   }, [value]);
 
@@ -504,13 +513,13 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={menuMinWidth ?? overlayProps.style!.minWidth}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
                   : undefined
               }
-              maxHeight={overlayProps.style!.maxHeight}
+              maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
               data-menu-has-search={searchEnabled}
@@ -687,9 +696,21 @@ const StyledOverlay = styled(Overlay, {
   flex-direction: column;
   overflow: hidden;
 
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.height && `height: ${withUnits(p.height)};`}
-  ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
+  ${p =>
+    p.width &&
+    css`
+      width: ${withUnits(p.width)};
+    `}
+  ${p =>
+    p.height &&
+    css`
+      height: ${withUnits(p.height)};
+    `}
+  ${p =>
+    p.minWidth &&
+    css`
+      min-width: ${withUnits(p.minWidth)};
+    `}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
   max-height: ${p =>
     p.maxHeight

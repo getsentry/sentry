@@ -15,11 +15,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FieldKind} from 'sentry/utils/fields';
-import * as spanTagsModule from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -32,16 +29,6 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 
 jest.mock('sentry/utils/analytics');
-
-const mockStringTags: TagCollection = {
-  stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
-  stringTag2: {key: 'stringTag2', kind: FieldKind.TAG, name: 'stringTag2'},
-};
-
-const mockNumberTags: TagCollection = {
-  numberTag1: {key: 'numberTag1', kind: FieldKind.MEASUREMENT, name: 'numberTag1'},
-  numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
-};
 
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
@@ -57,7 +44,7 @@ const datePageFilterProps: DatePageFilterProps = {
 describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
+      features: ['gen-ai-features'],
     },
   });
 
@@ -154,21 +141,29 @@ describe('SpansTabContent', () => {
       expect.objectContaining({result_mode: 'span samples'})
     );
 
-    (trackAnalytics as jest.Mock).mockClear();
+    jest.mocked(trackAnalytics).mockClear();
     await userEvent.click(await screen.findByText('Trace Samples'));
 
     await screen.findByText(/No trace results found/);
-    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'trace.explorer.table_tab_changed',
+      expect.objectContaining({tab: 'trace'})
+    );
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'trace samples'})
     );
 
-    (trackAnalytics as jest.Mock).mockClear();
+    jest.mocked(trackAnalytics).mockClear();
     await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
 
     await screen.findByText(/No spans found/);
-    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'trace.explorer.table_tab_changed',
+      expect.objectContaining({tab: 'aggregate'})
+    );
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'aggregates'})
@@ -331,80 +326,6 @@ describe('SpansTabContent', () => {
           })
         )
       );
-    });
-  });
-
-  describe('schema hints', () => {
-    let spies: jest.SpyInstance[];
-
-    beforeEach(() => {
-      const useSpanTagsSpy = jest
-        .spyOn(spanTagsModule, 'useSpanItemAttributes')
-        .mockImplementation((_options, type) => {
-          switch (type) {
-            case 'number':
-              return {attributes: mockNumberTags, isLoading: false, secondaryAliases: {}};
-            case 'string':
-              return {attributes: mockStringTags, isLoading: false, secondaryAliases: {}};
-            default:
-              return {attributes: {}, isLoading: false, secondaryAliases: {}};
-          }
-        });
-
-      // Mock getBoundingClientRect for container
-      const getBoundingClientRectSpy = jest
-        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-        .mockImplementation(function (this: HTMLElement) {
-          // Mock individual hint items
-          if (this.hasAttribute('data-type')) {
-            return {
-              width: 200,
-              right: 200,
-              left: 0,
-              top: 0,
-              bottom: 100,
-              height: 100,
-              x: 0,
-              y: 0,
-              toJSON: () => {},
-            };
-          }
-          return {
-            width: 1000,
-            right: 1000,
-            left: 0,
-            top: 0,
-            bottom: 100,
-            height: 100,
-            x: 0,
-            y: 0,
-            toJSON: () => {},
-          };
-        });
-
-      // Mock clientWidth before rendering to display hints
-      const clientWidthGetSpy = jest
-        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
-        .mockReturnValue(1000);
-
-      spies = [useSpanTagsSpy, getBoundingClientRectSpy, clientWidthGetSpy];
-    });
-
-    afterEach(() => {
-      spies.forEach(spy => spy.mockRestore());
-    });
-
-    it('should show hints', () => {
-      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization,
-        additionalWrapper: Wrapper,
-      });
-
-      expect(screen.getByText('stringTag1')).toBeInTheDocument();
-      expect(screen.getByText('stringTag2')).toBeInTheDocument();
-      expect(screen.getByText('numberTag1')).toBeInTheDocument();
-      expect(screen.getByText('numberTag2')).toBeInTheDocument();
-      expect(screen.getByText('See full list')).toBeInTheDocument();
     });
   });
 

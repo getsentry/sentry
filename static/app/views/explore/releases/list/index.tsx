@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
@@ -55,6 +56,8 @@ import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListIn
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
@@ -119,7 +122,7 @@ const releasesFeedbackOptions = {
   },
 };
 
-export default function ReleasesList() {
+function ReleasesListInnerPage() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -247,8 +250,6 @@ export default function ReleasesList() {
       : selectedIds.map(id => `${id}`);
   }, [selection.projects]);
 
-  const hasSnapshotsFeature = organization.features?.includes('preprod-snapshots');
-
   const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
   const buildsProbeQuery = useQuery({
     ...buildDetailsApiOptions({
@@ -284,27 +285,27 @@ export default function ReleasesList() {
     !buildsProbeQuery.isPending && (buildsProbeQuery.data?.length ?? 0) > 0;
 
   const shouldShowMobileBuildsTab = hasBuildsData || hasAnyStrictlyMobileProject;
-  const shouldShowSnapshotsTab = !!hasSnapshotsFeature;
-  const shouldShowPreprodTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
 
   const selectedTab = useMemo(() => {
-    if (!shouldShowPreprodTabs) {
-      return 'releases';
-    }
     const tab = decodeScalar(location.query.tab) as ReleaseTab | undefined;
-    if (tab === 'snapshots' && !shouldShowSnapshotsTab) {
-      return 'releases';
-    }
     if (tab === 'mobile-builds' && !shouldShowMobileBuildsTab) {
       return 'releases';
     }
     return tab || 'releases';
-  }, [
-    shouldShowPreprodTabs,
-    shouldShowMobileBuildsTab,
-    shouldShowSnapshotsTab,
-    location.query.tab,
-  ]);
+  }, [shouldShowMobileBuildsTab, location.query.tab]);
+
+  useLLMContext({
+    contextHint:
+      'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
+      'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
+      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days").',
+    searchQuery: activeQuery,
+    activeSort,
+    activeDisplay,
+    activeStatus,
+    selectedTab,
+    currentSelectedDateRange: selection.datetime,
+  });
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -456,7 +457,7 @@ export default function ReleasesList() {
       <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleasesHeader />
-          <ReleasesBodySearch hasTabs={shouldShowPreprodTabs}>
+          <ReleasesBodySearch hasTabs>
             <Layout.Main width="full">
               <Stack gap="md">
                 <PageFilterBar condensed>
@@ -473,62 +474,59 @@ export default function ReleasesList() {
                     )}
                   />
                 </PageFilterBar>
-                {shouldShowPreprodTabs && (
-                  <Tabs value={selectedTab} onChange={handleTabChange}>
-                    <TabList aria-label={t('Releases tab selector')}>
-                      <TabList.Item
-                        key="releases"
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: undefined,
-                          },
-                        }}
-                        textValue={t('Releases')}
-                      >
-                        {t('Releases')}
-                      </TabList.Item>
-                      <TabList.Item
-                        key="mobile-builds"
-                        hidden={!shouldShowMobileBuildsTab}
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: 'mobile-builds',
-                          },
-                        }}
-                        textValue={t('Mobile Builds')}
-                      >
-                        <Flex align="center" gap="sm">
-                          {t('Mobile Builds')}
-                          <FeatureBadge type="new" />
-                        </Flex>
-                      </TabList.Item>
-                      <TabList.Item
-                        key="snapshots"
-                        hidden={!shouldShowSnapshotsTab}
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: 'snapshots',
-                          },
-                        }}
-                        textValue={t('Snapshots')}
-                      >
-                        <Flex align="center" gap="sm">
-                          {t('Snapshots')}
-                          <FeatureBadge type="beta" />
-                        </Flex>
-                      </TabList.Item>
-                    </TabList>
-                  </Tabs>
-                )}
+                <Tabs value={selectedTab} onChange={handleTabChange}>
+                  <TabList aria-label={t('Releases tab selector')}>
+                    <TabList.Item
+                      key="releases"
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: undefined,
+                        },
+                      }}
+                      textValue={t('Releases')}
+                    >
+                      {t('Releases')}
+                    </TabList.Item>
+                    <TabList.Item
+                      key="mobile-builds"
+                      hidden={!shouldShowMobileBuildsTab}
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'mobile-builds',
+                        },
+                      }}
+                      textValue={t('Mobile Builds')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Mobile Builds')}
+                        <FeatureBadge type="new" />
+                      </Flex>
+                    </TabList.Item>
+                    <TabList.Item
+                      key="snapshots"
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'snapshots',
+                        },
+                      }}
+                      textValue={t('Snapshots')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Snapshots')}
+                        <FeatureBadge type="beta" />
+                      </Flex>
+                    </TabList.Item>
+                  </TabList>
+                </Tabs>
               </Stack>
             </Layout.Main>
           </ReleasesBodySearch>
@@ -541,7 +539,7 @@ export default function ReleasesList() {
                 />
               )}
 
-              {selectedTab === 'snapshots' && shouldShowSnapshotsTab && (
+              {selectedTab === 'snapshots' && (
                 <MobileBuilds
                   organization={organization}
                   selectedProjectIds={selectedProjectIds}
@@ -660,7 +658,7 @@ function ReleasesHeader() {
 const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
   ${p =>
     p.hasTabs &&
-    `
+    css`
       padding-bottom: 0;
 
       @media (min-width: ${p.theme.breakpoints.md}) {
@@ -690,3 +688,5 @@ const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
     grid-column: 1 / -1;
   }
 `;
+
+export default registerLLMContext('releases-list', ReleasesListInnerPage);

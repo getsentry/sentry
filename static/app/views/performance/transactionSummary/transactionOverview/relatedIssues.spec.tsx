@@ -1,7 +1,7 @@
 import {GroupsFixture} from 'sentry-fixture/groups';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {RelatedIssues} from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
@@ -11,16 +11,11 @@ describe('RelatedIssues', () => {
   const issues = GroupsFixture();
   const transaction = 'test-transaction';
 
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location: {
-        query: {
-          transaction: 'test-transaction',
-          project: '1',
-          statsPeriod: '14d',
-        },
-      },
+  const location = LocationFixture({
+    query: {
+      transaction: 'test-transaction',
+      project: '1',
+      statsPeriod: '14d',
     },
   });
 
@@ -45,7 +40,7 @@ describe('RelatedIssues', () => {
     render(
       <RelatedIssues
         organization={organization}
-        location={initialData.router.location}
+        location={location}
         transaction={transaction}
         statsPeriod="14d"
       />
@@ -76,7 +71,7 @@ describe('RelatedIssues', () => {
     render(
       <RelatedIssues
         organization={organization}
-        location={initialData.router.location}
+        location={location}
         transaction={transaction}
         statsPeriod="14d"
       />
@@ -88,23 +83,19 @@ describe('RelatedIssues', () => {
   });
 
   it('remaps request.method to http.method', async () => {
-    const eapData = initializeOrg({
-      router: {
-        location: {
-          query: {
-            transaction: 'test-transaction',
-            project: '1',
-            statsPeriod: '14d',
-            query: 'request.method:GET',
-          },
-        },
+    const eapLocation = LocationFixture({
+      query: {
+        transaction: 'test-transaction',
+        project: '1',
+        statsPeriod: '14d',
+        query: 'request.method:GET',
       },
     });
 
     render(
       <RelatedIssues
         organization={organization}
-        location={eapData.router.location}
+        location={eapLocation}
         transaction={transaction}
         statsPeriod="14d"
       />

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
@@ -31,15 +32,16 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
 
     @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerAgentClient")
     def test_post_starts_run_and_returns_run_id(self, mock_client_class: MagicMock) -> None:
+        run_uuid = uuid.uuid4()
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 789
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=789, uuid=run_uuid)
         mock_client_class.return_value = mock_client
 
         data = {"prompt": "Show me error rates by project"}
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789}
+        assert response.data == {"run_id": 789, "sentry_run_id": str(run_uuid)}
 
         mock_client_class.assert_called_once_with(
             self.organization,
@@ -49,13 +51,9 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
             category_value=str(self.organization.id),
             reasoning_effort="medium",
         )
-        mock_client.start_run.assert_called_once_with(
-            prompt="Show me error rates by project",
-            on_page_context=ANY,
-            artifact_key="dashboard",
-            artifact_schema=ANY,
-            request=ANY,
-        )
+        call_kwargs = mock_client.start_run.call_args[1]
+        assert "Show me error rates by project" in call_kwargs["prompt"]
+        assert call_kwargs["artifact_key"] == "dashboard"
 
     @with_feature({"organizations:dashboards-ai-generate": False})
     def test_post_without_feature_flag_returns_403(self) -> None:
@@ -108,8 +106,9 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
     def test_post_with_current_dashboard_uses_edit_context(
         self, mock_client_class: MagicMock
     ) -> None:
+        run_uuid = uuid.uuid4()
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123, uuid=run_uuid)
         mock_client_class.return_value = mock_client
 
         data = {
@@ -141,7 +140,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 123}
+        assert response.data == {"run_id": 123, "sentry_run_id": str(run_uuid)}
 
         mock_client_class.assert_called_once_with(
             self.organization,

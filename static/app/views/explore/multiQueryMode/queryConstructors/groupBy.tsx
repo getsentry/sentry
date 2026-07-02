@@ -4,8 +4,8 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,

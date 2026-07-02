@@ -7,25 +7,23 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SeerProjectDetails} from 'sentry/components/seer/projectDetails';
 import {t, tct} from 'sentry/locale';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProjects} from 'sentry/utils/useProjects';
-
-import {SeerProjectDetails} from 'getsentry/views/seerAutomation/components/projectDetails';
 
 export default function SeerProjectFlyout() {
   const {query} = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {projectSlug} = useParams<{projectSlug: string}>();
-  const {fetching, projects} = useProjects({
-    slugs: projectSlug ? [projectSlug] : undefined,
-    orgId: organization.slug,
+  const {data: project, isPending: fetching} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug,
   });
-  const project = projects[0];
   const {openDrawer} = useDrawer();
 
   const queryRef = useRef(query);

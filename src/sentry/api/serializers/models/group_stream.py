@@ -9,7 +9,7 @@ from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
-from sentry import features, options, release_health, tsdb
+from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
@@ -19,11 +19,11 @@ from sentry.api.serializers.models.group import (
     GroupSerializer,
     GroupSerializerSnuba,
     GroupStatusDetailsResponseOptional,
+    GroupStatusStr,
     SeenStats,
     is_seen_stats,
     snuba_tsdb,
 )
-from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -41,48 +41,13 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
+from sentry.types.group import GroupPriorityStr, GroupSubStatusStr
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import get_snuba_column_name, resolve_column, resolve_conditions
-
-
-def get_actions(group: Group) -> list[tuple[str, str]]:
-    from sentry.plugins.base import plugins
-
-    project = group.project
-
-    action_list: list[tuple[str, str]] = []
-    for plugin in plugins.for_project(project, version=1):
-        if is_plugin_deprecated(plugin, project):
-            continue
-
-        results = safe_execute(plugin.actions, group, action_list)
-
-        if not results:
-            continue
-
-        action_list = results
-
-    return action_list
-
-
-def get_available_issue_plugins(group) -> list[dict[str, Any]]:
-    from sentry.plugins.base import plugins
-    from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-
-    project = group.project
-
-    plugin_issues: list[dict[str, Any]] = []
-    for plugin in plugins.for_project(project, version=1):
-        if isinstance(plugin, IssueTrackingPlugin2):
-            if is_plugin_deprecated(plugin, project):
-                continue
-            safe_execute(plugin.plugin_issues, group, plugin_issues)
-    return plugin_issues
 
 
 class GroupStatsQueryArgs(NamedTuple):
@@ -281,19 +246,19 @@ class _Filtered(TypedDict):
 class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
-    shareId: NotRequired[str]
+    shareId: NotRequired[str | None]
     shortId: NotRequired[str]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
     permalink: NotRequired[str]
     logger: NotRequired[str | None]
     level: NotRequired[str]
-    status: NotRequired[str]
+    status: NotRequired[GroupStatusStr]
     statusDetails: NotRequired[GroupStatusDetailsResponseOptional]
-    substatus: NotRequired[str | None]
+    substatus: NotRequired[GroupSubStatusStr | None]
     isPublic: NotRequired[bool]
     platform: NotRequired[str | None]
-    priority: NotRequired[str | None]
+    priority: NotRequired[GroupPriorityStr | None]
     priorityLockedAt: NotRequired[datetime | None]
     seerFixabilityScore: NotRequired[float | None]
     seerAutofixLastTriggered: NotRequired[datetime | None]
@@ -304,7 +269,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     numComments: NotRequired[int]
-    assignedTo: NotRequired[ActorSerializerResponse]
+    assignedTo: NotRequired[ActorSerializerResponse | None]
     isBookmarked: NotRequired[bool]
     isSubscribed: NotRequired[bool]
     subscriptionDetails: NotRequired[SubscriptionDetails | None]
@@ -324,11 +289,13 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     sessionCount: NotRequired[int]
     inbox: NotRequired[InboxDetails]
     owners: NotRequired[OwnersSerialized]
-    pluginActions: NotRequired[list[tuple[str, str]]]
-    pluginIssues: NotRequired[list[dict[str, Any]]]
     integrationIssues: NotRequired[list[dict[str, Any]]]
     sentryAppIssues: NotRequired[list[dict[str, Any]]]
     latestEventHasAttachments: NotRequired[bool]
+    # Added post-serialize at the direct-hit path in OrganizationGroupIndexEndpoint /
+    # ProjectGroupIndexEndpoint when a query resolves to a specific event.
+    matchingEventId: NotRequired[str | None]
+    matchingEventEnvironment: NotRequired[str | None]
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
@@ -460,16 +427,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 attrs[item]["owners"] = owner_details.get(item.id)
 
-        if self._expand("pluginActions"):
-            for item in item_list:
-                action_list = get_actions(item)
-                attrs[item]["pluginActions"] = action_list
-
-        if self._expand("pluginIssues"):
-            for item in item_list:
-                plugin_issue_list = get_available_issue_plugins(item)
-                attrs[item]["pluginIssues"] = plugin_issue_list
-
         if self._expand("integrationIssues"):
             for item in item_list:
                 external_issues = ExternalIssue.objects.filter(
@@ -490,8 +447,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item]["sentryAppIssues"] = sentry_app_issues
 
-        if self._expand("latestEventHasAttachments") and features.has(
-            "organizations:event-attachments", item.project.organization
+        if (
+            self._expand("latestEventHasAttachments")
+            and item_list
+            and features.has("organizations:event-attachments", item_list[0].project.organization)
         ):
             for item in item_list:
                 latest_event = item.get_latest_event()
@@ -559,12 +518,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self._expand("owners"):
             result["owners"] = attrs["owners"]
 
-        if self._expand("pluginActions"):
-            result["pluginActions"] = attrs["pluginActions"]
-
-        if self._expand("pluginIssues"):
-            result["pluginIssues"] = attrs["pluginIssues"]
-
         if self._expand("integrationIssues"):
             result["integrationIssues"] = attrs["integrationIssues"]
 
@@ -597,20 +550,10 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 generic_issue_ids.append(group.id)
 
         error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
-        # IssuePlatform's `resolve_column` mis-resolves user-typed names that
-        # collide with column event_names (e.g. tag `platform` vs the SDK
-        # `platform` column) because of the `DATASET_FIELDS` shortcut. Match
-        # the issue surfacing query, which uses `get_snuba_column_name` —
-        # that resolver correctly falls back to `tags[<name>]`. Gated for
-        # safe rollout. (Discover doesn't hit the buggy branch and stays
-        # on `resolve_column`.)
-        if options.get("issues.search.use-tag-aware-condition-resolver"):
-            issue_conditions = resolve_conditions(
-                conditions,
-                functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform),
-            )
-        else:
-            issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
+        issue_conditions = resolve_conditions(
+            conditions,
+            functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform),
+        )
 
         get_range = functools.partial(
             snuba_tsdb.get_range,

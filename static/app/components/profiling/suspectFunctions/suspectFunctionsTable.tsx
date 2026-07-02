@@ -14,8 +14,8 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -24,6 +24,7 @@ import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   Table,
@@ -115,6 +116,7 @@ export function SuspectFunctionsTable({
 }: SuspectFunctionsTableProps) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
 
   const flamegraphQuery = useAggregateFlamegraphQuery({
@@ -214,6 +216,7 @@ export function SuspectFunctionsTable({
 
   const baggage: RenderFunctionBaggage = {
     location,
+    navigate,
     organization,
     theme,
     unit: 'nanosecond',

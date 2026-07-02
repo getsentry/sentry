@@ -30,7 +30,7 @@ BASE_TEAM_1 = {
     "hasAccess": True,
     "isPending": False,
     "memberCount": 3,
-    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
 }
 
 BASE_TEAM_2 = {
@@ -54,7 +54,7 @@ BASE_TEAM_2 = {
     "hasAccess": True,
     "isPending": False,
     "memberCount": 5,
-    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
 }
 
 
@@ -99,7 +99,7 @@ class TeamExamples:
                 "hasAccess": True,
                 "isPending": False,
                 "memberCount": 1,
-                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
             },
             status_codes=["201"],
             response_only=True,
@@ -130,7 +130,7 @@ class TeamExamples:
                 "hasAccess": True,
                 "isPending": False,
                 "memberCount": 3,
-                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
             },
             status_codes=["200"],
             response_only=True,
@@ -171,7 +171,11 @@ class TeamExamples:
                     "hasAccess": True,
                     "isPending": False,
                     "memberCount": 2,
-                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "avatar": {
+                        "avatarType": "letter_avatar",
+                        "avatarUuid": None,
+                        "avatarUrl": None,
+                    },
                 },
                 {
                     "id": "100253",
@@ -194,7 +198,11 @@ class TeamExamples:
                     "hasAccess": True,
                     "isPending": False,
                     "memberCount": 5,
-                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "avatar": {
+                        "avatarType": "letter_avatar",
+                        "avatarUuid": None,
+                        "avatarUrl": None,
+                    },
                     "projects": [
                         {
                             "id": "6403534",
@@ -252,7 +260,11 @@ class TeamExamples:
                             "hasTraceMetrics": False,
                             "isInternal": False,
                             "isPublic": False,
-                            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                            "avatar": {
+                                "avatarType": "letter_avatar",
+                                "avatarUuid": None,
+                                "avatarUrl": None,
+                            },
                             "color": "#6d3fbf",
                             "status": "active",
                         },
@@ -311,7 +323,11 @@ class TeamExamples:
                             "hasTraceMetrics": False,
                             "isInternal": False,
                             "isPublic": False,
-                            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                            "avatar": {
+                                "avatarType": "letter_avatar",
+                                "avatarUuid": None,
+                                "avatarUrl": None,
+                            },
                             "color": "#6e3fbf",
                             "status": "active",
                         },
@@ -344,7 +360,7 @@ class TeamExamples:
         OpenApiExample(
             "Retrieve a Team",
             value={
-                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
                 "dateCreated": "2018-11-06T21:19:55.114Z",
                 "hasAccess": True,
                 "id": "2",
@@ -353,7 +369,11 @@ class TeamExamples:
                 "memberCount": 1,
                 "name": "Powerful Abolitionist",
                 "organization": {
-                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "avatar": {
+                        "avatarType": "letter_avatar",
+                        "avatarUuid": None,
+                        "avatarUrl": None,
+                    },
                     "dateCreated": "2018-11-06T21:19:55.101Z",
                     "id": "2",
                     "isEarlyAdopter": False,
@@ -394,7 +414,7 @@ class TeamExamples:
         OpenApiExample(
             "Update a Team",
             value={
-                "avatar": {"avatarType": "letter_avatar"},
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
                 "dateCreated": "2018-11-06T21:20:08.115Z",
                 "hasAccess": True,
                 "id": "3",

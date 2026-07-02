@@ -71,11 +71,6 @@ class OrganizationDashboardRevisionRestoreTestCase(APITestCase):
 
 
 class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevisionRestoreTestCase):
-    def test_returns_404_without_feature_flag(self) -> None:
-        revision = self._create_revision()
-        response = self.client.post(self._url(revision.id))
-        assert response.status_code == 404
-
     def test_returns_404_for_prebuilt_dashboard(self) -> None:
         revision = self._create_revision()
         url = reverse(
@@ -86,14 +81,12 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
                 "revision_id": revision.id,
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(url)
+        response = self.client.post(url)
 
         assert response.status_code == 404
 
     def test_returns_404_for_nonexistent_revision(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(99999))
+        response = self.client.post(self._url(99999))
 
         assert response.status_code == 404
 
@@ -112,8 +105,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
         )
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(other_revision.id))
+        response = self.client.post(self._url(other_revision.id))
 
         assert response.status_code == 404
 
@@ -126,8 +118,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         self.dashboard.title = "New Title"
         self.dashboard.save()
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 200
         assert response.data["title"] == "Old Title"
@@ -140,8 +131,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
 
         initial_revision_count = DashboardRevision.objects.filter(dashboard=self.dashboard).count()
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 200
 
@@ -158,8 +148,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             snapshot={"title": "Restored Title", "widgets": [], "projects": []}
         )
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 200
         assert "id" in response.data
@@ -176,8 +165,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION + 1,
         )
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 400
         assert "detail" in response.data
@@ -193,8 +181,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         self.create_member(user=other_user, organization=self.organization, role="member")
         self.login_as(other_user)
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 403
 
@@ -209,8 +196,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             title="Conflicting Title",
         )
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 409
         assert "detail" in response.data
@@ -243,8 +229,7 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             }
         )
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.post(self._url(revision.id))
+        response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 200
         assert len(response.data["widgets"]) == 1

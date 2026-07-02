@@ -1,3 +1,4 @@
+import {defined} from 'sentry/utils/defined';
 import type {
   AggregationKeyWithAlias,
   Column,
@@ -7,6 +8,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export function buildTraceMetricAggregate(
@@ -20,7 +22,9 @@ export function buildTraceMetricAggregate(
       'value',
       traceMetric.name,
       traceMetric.type,
-      traceMetric.unit ?? '-',
+      defined(traceMetric.unit) && traceMetric.unit !== '-'
+        ? traceMetric.unit
+        : NONE_UNIT,
     ],
   };
 }
@@ -35,7 +39,7 @@ export function extractTraceMetricFromColumn(column: Column): TraceMetric | unde
   if (column.kind === 'function' && column.function) {
     const [, , name, type, unit] = column.function;
     if (name && type) {
-      return {name, type, unit: unit === '-' ? undefined : unit};
+      return {name, type, unit: defined(unit) && unit !== '-' ? unit : NONE_UNIT};
     }
   }
   return undefined;
@@ -55,7 +59,9 @@ export function getTraceMetricAggregateSource(
     return yAxis;
   }
   if (displayType === DisplayType.CATEGORICAL_BAR) {
-    return fields?.filter(f => f.kind === FieldValueKind.FUNCTION);
+    return fields?.filter(
+      f => f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+    );
   }
   return fields;
 }

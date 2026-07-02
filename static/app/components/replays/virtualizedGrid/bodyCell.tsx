@@ -50,7 +50,7 @@ export const Cell = styled('div')<CellProps>`
     css`
       font-variant-numeric: tabular-nums;
       justify-content: ${p.align ?? 'flex-end'};
-    `};
+    `}
 `;
 
 export const Text = styled('div')`

@@ -21,6 +21,7 @@ from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, defau
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id_list
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -31,6 +32,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -54,7 +56,6 @@ from sentry.workflow_engine.endpoints.utils.filters import (
     apply_filter,
     exclude_disallowed_metric_detectors,
 )
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id_list
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
@@ -251,7 +252,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch an Organization's Monitors",
+        operation_id="listOrganizationDetectors",
+        summary="Fetch an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -270,10 +272,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DetectorSerializerResponse]] | Response[DetailResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         List an Organization's Monitors
         """
         if not request.user.is_authenticated:
@@ -318,7 +320,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Mutate an Organization's Monitors",
+        operation_id="updateOrganizationDetectors",
+        summary="Mutate an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -344,10 +347,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DetectorSerializerResponse]] | Response[DetailResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Bulk enable or disable an Organization's Monitors
         """
         if not request.user.is_authenticated:
@@ -406,7 +409,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Bulk Delete Monitors",
+        operation_id="deleteOrganizationDetectors",
+        summary="Bulk Delete Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -423,10 +427,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Bulk delete Monitors for a given organization
         """
         if not request.user.is_authenticated:

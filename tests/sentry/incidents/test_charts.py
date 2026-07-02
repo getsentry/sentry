@@ -4,20 +4,11 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import (
     build_metric_alert_chart,
     fetch_metric_issue_open_periods,
     incident_date_range,
-)
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
-from sentry.incidents.endpoints.serializers.incident import (
-    DetailedIncidentSerializer,
-    DetailedIncidentSerializerResponse,
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -109,24 +100,13 @@ class BuildMetricAlertChartTest(TestCase):
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
-
-        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-            alert_rule, None, AlertRuleSerializer()
-        )
-        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-            incident, None, DetailedIncidentSerializer()
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=alert_rule_serialized_response,
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
-            selected_incident_serialized=incident_serialized_response,
         )
 
         assert url == "chart-url"
@@ -137,9 +117,13 @@ class BuildMetricAlertChartTest(TestCase):
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     @patch("sentry.incidents.charts.client.get")
+    @with_feature("organizations:workflow-engine-ui")
     def test_eap_log_alert(
         self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
     ) -> None:
+        from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+            get_detector_serializer,
+        )
         from sentry.snuba.models import SnubaQueryEventType
 
         mock_client_get.return_value.data = {"data": []}
@@ -157,24 +141,17 @@ class BuildMetricAlertChartTest(TestCase):
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
-        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-            alert_rule, None, AlertRuleSerializer()
-        )
-        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-            incident, None, DetailedIncidentSerializer()
-        )
+        detector = self.create_detector(project=self.project)
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=alert_rule_serialized_response,
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
-            selected_incident_serialized=incident_serialized_response,
+            detector_serialized_response=get_detector_serializer(detector),
         )
 
         assert url == "chart-url"
@@ -204,24 +181,13 @@ class BuildMetricAlertChartTest(TestCase):
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
-
-        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-            alert_rule, None, AlertRuleSerializer()
-        )
-        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-            incident, None, DetailedIncidentSerializer()
-        )
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
             self.organization,
-            alert_rule_serialized_response=alert_rule_serialized_response,
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
             open_period_context=OpenPeriodContext.from_incident(incident),
-            selected_incident_serialized=incident_serialized_response,
         )
 
         assert url == "chart-url"
@@ -233,45 +199,47 @@ class BuildMetricAlertChartTest(TestCase):
 class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")
-    def test_get_incidents_from_detector(self) -> None:
-        self.create_detector()  # dummy so detector ID != alert rule ID
-        detector = self.create_detector(project=self.project)
-        alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
-        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
-        incident = self.create_incident(
-            date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
-            status=IncidentStatus.CRITICAL.value,
-            alert_rule=alert_rule,
+    def test_get_open_periods_from_detector(self) -> None:
+        group = self.create_group(
+            project=self.project, type=MetricIssue.type_id, priority=PriorityLevel.HIGH
         )
-        # create incident activity the same way we do in logic.py create_incident
-        detected_activity = self.create_incident_activity(
-            incident,
-            IncidentActivityType.DETECTED.value,
-            date_added=incident.date_started,
+        DetectorGroup.objects.create(detector=self.detector, group=group)
+        group_open_period = GroupOpenPeriod.objects.get(group=group)
+
+        opened_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=group_open_period.date_added,
+            group_open_period=group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=group.priority,
         )
-        created_activity = self.create_incident_activity(
-            incident,
-            IncidentActivityType.CREATED.value,
+        closed_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=group_open_period.date_added + datetime.timedelta(minutes=5),
+            group_open_period=group_open_period,
+            type=OpenPeriodActivityType.CLOSED,
         )
 
-        time_period = incident_date_range(60, incident.date_started, incident.date_closed)
+        time_period = incident_date_range(
+            60, group_open_period.date_started, group_open_period.date_ended
+        )
 
-        chart_data = fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
-        assert chart_data[0]["alertRule"]["id"] == str(alert_rule.id)
-        assert chart_data[0]["projects"] == [self.project.slug]
-        assert chart_data[0]["dateStarted"] == incident.date_started
+        chart_data = fetch_metric_issue_open_periods(
+            self.organization, self.detector.id, time_period
+        )
+        assert chart_data[0]["id"] == str(group_open_period.id)
+        assert chart_data[0]["start"] == group_open_period.date_started
 
         assert len(chart_data[0]["activities"]) == 2
-        detected_activity_resp = chart_data[0]["activities"][0]
-        created_activity_resp = chart_data[0]["activities"][1]
+        opened_activity_resp = chart_data[0]["activities"][0]
+        closed_activity_resp = chart_data[0]["activities"][1]
 
-        assert detected_activity_resp["incidentIdentifier"] == str(incident.identifier)
-        assert detected_activity_resp["type"] == IncidentActivityType.DETECTED.value
-        assert detected_activity_resp["dateCreated"] == detected_activity.date_added
+        assert opened_activity_resp["id"] == str(opened_gopa.id)
+        assert opened_activity_resp["type"] == OpenPeriodActivityType(opened_gopa.type).to_str()
+        assert opened_activity_resp["value"] == PriorityLevel(group.priority).to_str()
+        assert opened_activity_resp["dateCreated"] == opened_gopa.date_added
 
-        assert created_activity_resp["incidentIdentifier"] == str(incident.identifier)
-        assert created_activity_resp["type"] == IncidentActivityType.CREATED.value
-        assert created_activity_resp["dateCreated"] == created_activity.date_added
+        assert closed_activity_resp["id"] == str(closed_gopa.id)
+        assert closed_activity_resp["type"] == OpenPeriodActivityType(closed_gopa.type).to_str()
+        assert closed_activity_resp["dateCreated"] == closed_gopa.date_added
 
     @freeze_time(frozen_time)
     @with_feature("organizations:incidents")

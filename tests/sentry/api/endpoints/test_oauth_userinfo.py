@@ -1,9 +1,12 @@
 import datetime
+import hashlib
 
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -147,3 +150,52 @@ class OAuthUserInfoTest(APITestCase):
 
         # openid information
         assert response.data["sub"] == str(self.user.id)
+
+    def test_resolves_token_by_hash_when_plaintext_cleared(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["openid"])
+        plaintext = token.token
+        expected_hash = hashlib.sha256(plaintext.encode()).hexdigest()
+        assert token.hashed_token == expected_hash
+
+        # Scramble the plaintext column so only the hashed path can match
+        ApiToken.objects.filter(id=token.id).update(token=f"scrambled-{plaintext[:50]}")
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {plaintext}")
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["sub"] == str(self.user.id)
+
+    def test_rejects_token_for_inactive_user(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["openid"])
+        self.user.update(is_active=False)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        response = self.client.get(self.path)
+
+        assert response.status_code == 401
+        assert response.data["error"] == "invalid_token"
+
+    def test_rejects_token_for_suspended_user(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["openid"])
+        self.user.update(is_suspended=True)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        response = self.client.get(self.path)
+
+        assert response.status_code == 401
+        assert response.data["error"] == "invalid_token"
+
+    def test_rejects_token_for_inactive_application(self) -> None:
+        app = ApiApplication.objects.create(
+            name="test-app",
+            redirect_uris="https://example.com/callback",
+        )
+        token = self.create_user_auth_token(user=self.user, scope_list=["openid"], application=app)
+        app.update(status=ApiApplicationStatus.inactive)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        response = self.client.get(self.path)
+
+        assert response.status_code == 401
+        assert response.data["error"] == "invalid_token"

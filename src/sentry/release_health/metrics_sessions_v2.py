@@ -45,7 +45,10 @@ from sentry.snuba.metrics.query import (
     MetricGroupByField,
     MetricOrderByField,
 )
-from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
+from sentry.snuba.metrics.utils import (
+    MetricOperationType,
+    OrderByNotSupportedOverCompositeEntityException,
+)
 from sentry.snuba.sessions_v2 import (
     QueryDefinition,
     finite_or_none,
@@ -303,7 +306,7 @@ class CountUniqueUser(CountField):
 
 class DurationField(Field):
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
-        self.op = name[:3]  # That this works is just a lucky coincidence
+        self.op = cast(MetricOperationType, name[:3])
         super().__init__(name, raw_groupby, status_filter)
 
     def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None:

@@ -146,8 +146,8 @@ describe('Dynamic Sampling Panel', () => {
 
     const rule1 = {
       samplingValue: {
-        type: 'reservoir',
-        limit: 100,
+        type: 'minimumSampleRate',
+        value: 1,
       },
       type: 'transaction',
       id: 3005,
@@ -163,8 +163,8 @@ describe('Dynamic Sampling Panel', () => {
 
     const rule2 = {
       samplingValue: {
-        type: 'reservoir',
-        limit: 300,
+        type: 'minimumSampleRate',
+        value: 0.5,
       },
       type: 'transaction',
       id: 3001,
@@ -290,8 +290,9 @@ describe('Dynamic Sampling Panel', () => {
     expect(timeRanges[0]).toHaveTextContent('Start:Jun 19, 2024 9:03 AM');
     expect(timeRanges[0]).toHaveTextContent('End:Jun 21, 2024 9:03 AM');
 
-    // Check that the limit is displayed if available
-    const limits = screen.queryAllByTestId('limit');
-    expect(limits[0]).toHaveTextContent('Limit:100');
+    // Check that minimum sample rate values are displayed.
+    expect(screen.getAllByText('Minimum Sample Rate')).toHaveLength(2);
+    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getAllByText('100%')).toHaveLength(3);
   });
 });

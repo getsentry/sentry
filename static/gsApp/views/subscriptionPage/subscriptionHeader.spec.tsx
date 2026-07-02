@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
@@ -11,7 +12,6 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import {SubscriptionHeader} from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
 describe('SubscriptionHeader', () => {
@@ -36,12 +36,6 @@ describe('SubscriptionHeader', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: '/customers/org-slug/plan-migrations/',
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
@@ -63,7 +57,9 @@ describe('SubscriptionHeader', () => {
     organization: Organization;
   }) {
     const hasBillingPerms = organization.access?.includes('org:billing');
-    await screen.findByRole('heading', {name: 'Subscription'});
+    await screen.findByRole('heading', {
+      name: hasBillingPerms ? 'Receipts & notifications' : 'Activity log',
+    });
 
     if (hasNextBillCard) {
       await screen.findByRole('heading', {name: 'Next bill'});
@@ -375,7 +371,7 @@ describe('SubscriptionHeader', () => {
       <SubscriptionHeader organization={organization} subscription={subscription} />,
       {additionalWrapper: SecondaryNavigationContextProvider}
     );
-    await screen.findByText('Subscription');
+    await screen.findByRole('heading', {name: 'Receipts & notifications'});
     expect(
       screen.queryByText(
         'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
@@ -392,7 +388,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -405,7 +400,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -425,7 +420,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -438,7 +432,7 @@ describe('SubscriptionHeader', () => {
       },
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(50, 'days').toISOString(),
+      billingPeriodEnd: now.add(50, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -458,7 +452,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -473,12 +466,12 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_business',
         planDetails: PlanFixture({
           name: 'Business',
-          price: 100,
+          totalPrice: 100,
         }),
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);
@@ -498,7 +491,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -513,12 +505,11 @@ describe('SubscriptionHeader', () => {
         plan: 'am3_f',
         planDetails: PlanFixture({
           name: 'Developer',
-          price: 0,
         }),
       }),
       organization,
       canSelfServe: true,
-      contractPeriodEnd: now.add(30, 'days').toISOString(),
+      billingPeriodEnd: now.add(30, 'days').toISOString(),
     });
 
     SubscriptionStore.set(organization.slug, subscription);

@@ -148,7 +148,7 @@ function FeatureWrapper(props: FeatureWrapperProps) {
   );
   return (
     <Feature
-      hookName="feature-disabled:grid-editable-actions"
+      overrideName="feature-disabled:grid-editable-actions"
       renderDisabled={renderDisabled}
       features={editFeatures}
     >

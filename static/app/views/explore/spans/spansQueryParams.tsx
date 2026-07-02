@@ -1,31 +1,25 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
-import {getExtrapolateFromLocation} from 'sentry/views/explore/queryParams/extrapolate';
 import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
-import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  getIdFromLocation,
-  getTitleFromLocation,
-  ID_KEY,
-  TITLE_KEY,
-} from 'sentry/views/explore/queryParams/savedQuery';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
@@ -39,6 +33,8 @@ import {SpanFields} from 'sentry/views/insights/types';
 const SPANS_MODE_KEY = 'mode';
 const SPANS_QUERY_KEY = 'query';
 const SPANS_CURSOR_KEY = 'cursor';
+export const SPANS_BREAKDOWN_CURSOR_KEY = 'breakdownCursor';
+const SPANS_BREAKDOWN_QUERY_KEY = 'breakdownQuery';
 const SPANS_FIELD_KEY = 'field';
 const SPANS_SORT_KEY = 'sort';
 const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
@@ -62,11 +58,13 @@ export function isDefaultFields(location: Location): boolean {
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
-  const extrapolate = getExtrapolateFromLocation(location, SPANS_EXTRAPOLATE_KEY);
+  const extrapolate = decodeScalar(location.query?.[SPANS_EXTRAPOLATE_KEY], '1') === '1';
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
-  const query = getQueryFromLocation(location, SPANS_QUERY_KEY) ?? '';
+  const query = decodeScalar(location.query[SPANS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
+  const breakdownCursor = decodeScalar(location.query[SPANS_BREAKDOWN_CURSOR_KEY]);
+  const breakdownQuery = decodeScalar(location.query[SPANS_BREAKDOWN_QUERY_KEY]);
   const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);
@@ -80,8 +78,8 @@ export function getReadableQueryParamsFromLocation(
       aggregateFields
     ) ?? defaultAggregateSortBys(aggregateFields);
 
-  const id = getIdFromLocation(location, SPANS_ID_KEY);
-  const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
+  const id = decodeScalar(location.query[SPANS_ID_KEY]);
+  const title = decodeScalar(location.query[SPANS_TITLE_KEY]);
 
   const crossEvents = getCrossEventsFromLocation(location, SPANS_CROSS_EVENTS_KEY);
 
@@ -91,6 +89,8 @@ export function getReadableQueryParamsFromLocation(
     query,
 
     cursor,
+    breakdownCursor,
+    breakdownQuery,
     fields,
     sortBys,
 
@@ -122,6 +122,16 @@ export function getTargetWithReadableQueryParams(
   );
   updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
+  updateNullableLocation(
+    target,
+    SPANS_BREAKDOWN_CURSOR_KEY,
+    writableQueryParams.breakdownCursor
+  );
+  updateNullableLocation(
+    target,
+    SPANS_BREAKDOWN_QUERY_KEY,
+    writableQueryParams.breakdownQuery
+  );
 
   updateNullableLocation(
     target,

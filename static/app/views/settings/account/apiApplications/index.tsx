@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
@@ -25,7 +25,6 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {Row} from 'sentry/views/settings/account/apiApplications/row';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -35,7 +34,6 @@ export default function ApiApplications() {
   const {openModal} = useModal();
 
   const api = useApi();
-  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -112,16 +110,7 @@ export default function ApiApplications() {
 
   return (
     <SentryDocumentTitle title={t('API Applications')}>
-      <SettingsPageHeader
-        title="API Applications"
-        action={hasPageFrame ? undefined : action}
-      />
-
-      {hasPageFrame && (
-        <Flex justify="end" marginBottom="xl">
-          {action}
-        </Flex>
-      )}
+      <SettingsPageHeader title="API Applications" action={action} />
 
       <ApplicationsTable>
         <SimpleTable.Header>

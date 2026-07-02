@@ -1,6 +1,6 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
-import type {IntegrationType} from 'sentry/types/integrations';
+import type {IntegrationType, PullRequestAttribution} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
@@ -36,6 +36,14 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_type: IntegrationType;
 }
 
+interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
+  pull_request_id: string;
+  pull_request_status: string;
+  repository_id: string;
+  repository_provider: string;
+  attribution_type?: PullRequestAttribution['type'];
+}
+
 interface SetPriorityParams extends CommonGroupAnalyticsData {
   from_priority: PriorityLevel;
   to_priority: PriorityLevel;
@@ -55,9 +63,6 @@ export type IssueEventParameters = {
   };
   'device.classification.unclassified.ios.device': {
     model: string;
-  };
-  'errors.ai_query_applied': {
-    query: string;
   };
   'highlights.edit_modal.add_context_key': Record<string, unknown>;
   'highlights.edit_modal.add_tag': Record<string, unknown>;
@@ -79,31 +84,18 @@ export type IssueEventParameters = {
     issue_type: string;
     project_id: number;
   };
-  'issue.list.ai_query_applied': {
-    query: string;
-  };
   'issue.shared_publicly': Record<string, unknown>;
   'issue_details.activity_drawer.filter_changed': {
     filter: string;
   };
-  'issue_details.comment_created': {
-    org_streamline_only: boolean | undefined;
-    streamline: boolean;
-  };
-  'issue_details.comment_deleted': {
-    org_streamline_only: boolean | undefined;
-    streamline: boolean;
-  };
-  'issue_details.comment_updated': {
-    org_streamline_only: boolean | undefined;
-    streamline: boolean;
-  };
+  'issue_details.comment_created': Record<string, unknown>;
+  'issue_details.comment_deleted': Record<string, unknown>;
+  'issue_details.comment_updated': Record<string, unknown>;
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.copy_issue_details_as_markdown': {
     groupId: string;
     hasAutofix: boolean;
-    hasSummary: boolean;
     eventId?: string;
   };
   'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
@@ -116,6 +108,7 @@ export type IssueEventParameters = {
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
+  'issue_details.external_issue_pull_request_clicked': ExternalIssuePullRequestParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_content_selected': {
     content: string;
@@ -308,7 +301,6 @@ type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
-  'errors.ai_query_applied': 'Errors: AI Query Applied',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
   'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
@@ -373,7 +365,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
-  'issue.list.ai_query_applied': 'Issue List: AI Query Applied',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
@@ -411,6 +402,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
   'issue_details.external_issue_created': 'Issue Details: External Issue Created',
+  'issue_details.external_issue_pull_request_clicked':
+    'Issue Details: External Issue Pull Request Clicked',
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',

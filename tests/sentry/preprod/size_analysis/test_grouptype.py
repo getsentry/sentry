@@ -671,8 +671,8 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["tags"]["head.app_id"] == "com.example.app"
         assert event_data["tags"]["base.app_id"] == "com.example.app"
         assert event_data["tags"]["head.artifact_type"] == "apk"
-        assert event_data["tags"]["head.artifact_id"] == str(head_artifact.id)
-        assert event_data["tags"]["base.artifact_id"] == str(base_artifact.id)
+        assert event_data["tags"]["head.preprod_artifact_id"] == str(head_artifact.id)
+        assert event_data["tags"]["base.preprod_artifact_id"] == str(base_artifact.id)
         assert event_data["tags"]["git.sha"] == "a" * 40
         assert event_data["tags"]["git.branch"] == "feature/test-branch"
         assert event_data["tags"]["git.repo"] == "owner/repo"
@@ -738,7 +738,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["platform"] == "apple"
         assert event_data["tags"]["regression_kind"] == "download"
         assert event_data["tags"]["head.app_name"] == "MyApp"
-        assert event_data["tags"]["head.artifact_id"] == str(head_artifact.id)
+        assert event_data["tags"]["head.preprod_artifact_id"] == str(head_artifact.id)
         assert event_data["tags"]["git.sha"] == "c" * 40
         assert event_data["tags"]["git.branch"] == "feature/download-test"
         assert event_data["tags"]["git.repo"] == "owner/repo"
@@ -776,8 +776,8 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         event_data = result[None].event_data
         assert event_data is not None
 
-        assert event_data["tags"]["head.artifact_id"] == str(head_artifact.id)
-        assert event_data["tags"]["base.artifact_id"] == str(base_artifact.id)
+        assert event_data["tags"]["head.preprod_artifact_id"] == str(head_artifact.id)
+        assert event_data["tags"]["base.preprod_artifact_id"] == str(base_artifact.id)
         assert "git.sha" not in event_data["tags"]
         assert "git.branch" not in event_data["tags"]
         assert "git.repo" not in event_data["tags"]

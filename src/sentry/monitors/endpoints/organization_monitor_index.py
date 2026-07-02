@@ -89,7 +89,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
-        operation_id="Retrieve Monitors for an Organization",
+        operation_id="listOrganizationMonitors",
+        summary="Retrieve Monitors for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -104,7 +105,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: AuthenticatedHttpRequest, organization: Organization) -> Response:
+    def get(
+        self, request: AuthenticatedHttpRequest, organization: Organization
+    ) -> Response[list[MonitorSerializerResponse]]:
         """
         Lists monitors, including nested monitor environments. May be filtered to a project or environment.
         """
@@ -268,7 +271,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Monitor",
+        operation_id="createOrganizationMonitor",
+        summary="Create a Monitor",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorValidator,
         responses={
@@ -279,7 +283,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: AuthenticatedHttpRequest, organization) -> Response:
+    def post(
+        self, request: AuthenticatedHttpRequest, organization
+    ) -> Response[MonitorSerializerResponse]:
         """
         Create a new monitor.
         """
@@ -309,7 +315,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: AuthenticatedHttpRequest, organization) -> Response:
+    def put(
+        self, request: AuthenticatedHttpRequest, organization
+    ) -> Response[MonitorBulkEditResponse]:
         """
         Bulk edit the muted and disabled status of a list of monitors determined by slug
         """

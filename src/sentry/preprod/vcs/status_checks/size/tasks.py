@@ -125,26 +125,26 @@ def create_preprod_status_check_task(
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
         logger.error(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id, "caller": caller},
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     logger.info(
         "preprod.status_checks.create.start",
-        extra={"artifact_id": preprod_artifact.id, "caller": caller},
+        extra={"preprod_artifact_id": preprod_artifact.id, "caller": caller},
     )
 
     if not preprod_artifact.commit_comparison:
         logger.info(
             "preprod.status_checks.create.no_commit_comparison",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={"preprod_artifact_id": preprod_artifact.id},
         )
         return
 
@@ -154,7 +154,7 @@ def create_preprod_status_check_task(
         logger.error(
             "preprod.status_checks.create.missing_git_info",
             extra={
-                "artifact_id": preprod_artifact.id,
+                "preprod_artifact_id": preprod_artifact.id,
                 "commit_comparison_id": commit_comparison.id,
             },
         )
@@ -165,7 +165,7 @@ def create_preprod_status_check_task(
         logger.info(
             "preprod.status_checks.create.disabled",
             extra={
-                "artifact_id": preprod_artifact.id,
+                "preprod_artifact_id": preprod_artifact.id,
                 "project_id": preprod_artifact.project.id,
             },
         )
@@ -226,7 +226,7 @@ def create_preprod_status_check_task(
     if not all_artifacts:
         logger.info(
             "preprod.status_checks.create.all_skipped",
-            extra={"artifact_id": preprod_artifact.id},
+            extra={"preprod_artifact_id": preprod_artifact.id},
         )
         title, subtitle, summary = format_all_skipped_messages(preprod_artifact.project)
         status = StatusCheckStatus.NEUTRAL
@@ -297,7 +297,7 @@ def create_preprod_status_check_task(
         )
     except Exception as e:
         extra: dict[str, Any] = {
-            "artifact_id": preprod_artifact.id,
+            "preprod_artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
             "organization_slug": preprod_artifact.project.organization.slug,
             "error_type": type(e).__name__,
@@ -315,7 +315,7 @@ def create_preprod_status_check_task(
         logger.error(
             "preprod.status_checks.create.failed",
             extra={
-                "artifact_id": preprod_artifact.id,
+                "preprod_artifact_id": preprod_artifact.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "organization_slug": preprod_artifact.project.organization.slug,
                 "error_type": "null_check_id",
@@ -339,7 +339,7 @@ def create_preprod_status_check_task(
     logger.info(
         "preprod.status_checks.create.success",
         extra={
-            "artifact_id": preprod_artifact.id,
+            "preprod_artifact_id": preprod_artifact.id,
             "status": status.value,
             "check_id": check_id,
             "organization_id": preprod_artifact.project.organization_id,
@@ -636,7 +636,7 @@ def _compute_overall_status(
                             logger.info(
                                 "preprod.status_checks.rule_triggered",
                                 extra={
-                                    "artifact_id": artifact.id,
+                                    "preprod_artifact_id": artifact.id,
                                     "rule_id": rule.id,
                                     "metric": rule.metric,
                                     "measurement": rule.measurement,

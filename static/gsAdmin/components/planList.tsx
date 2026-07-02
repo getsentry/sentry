@@ -1,6 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {RadioField} from 'sentry/components/forms/fields/radioField';
@@ -19,7 +21,11 @@ import {
   type Plan,
   type Subscription,
 } from 'getsentry/types';
-import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  isByteCategory,
+  isCheckoutCategory,
+} from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -69,17 +75,6 @@ export function PlanList({
     return <CurrentValueText>Current: None</CurrentValueText>;
   };
 
-  // for legacy errors-only plans
-  const formattedReservedMinimum = {
-    6000000: '6M',
-    5000000: '5M',
-    4000000: '4M',
-    3000000: '3M',
-    1500000: '1.5M',
-    500000: '500k',
-    100000: '100K',
-  };
-
   const availableAddOns = useMemo(
     () =>
       Object.values(activePlan?.addOnCategories || {})
@@ -118,16 +113,10 @@ export function PlanList({
             plan.id,
             <PlanLabel key={plan.id} data-test-id={`change-plan-label-${plan.id}`}>
               <div>
-                <strong>
-                  {plan.name}{' '}
-                  {formattedReservedMinimum[
-                    plan.reservedMinimum as keyof typeof formattedReservedMinimum
-                  ] ?? ''}
-                </strong>{' '}
-                <SubText>— {plan.id}</SubText>
+                <strong>{plan.name}</strong> <SubText>— {plan.id}</SubText>
                 <br />
                 <small>
-                  {formatCurrency(plan.price)} /{' '}
+                  {formatCurrency(plan.totalPrice)} /{' '}
                   {plan.billingInterval === ANNUAL ? 'annually' : 'monthly'}
                 </small>
               </div>
@@ -150,39 +139,41 @@ export function PlanList({
         ).length > 1 && (
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
-            {activePlan.checkoutCategories.map(category => {
-              const titleCategory = getPlanCategoryName({
-                plan: activePlan,
-                category,
-              });
-              const reservedKey = `reserved${toTitleCase(category, {
-                allowInnerUpperCase: true,
-              })}`;
-              const label = isByteCategory(category)
-                ? `${titleCategory} (GB)`
-                : titleCategory;
-              const fieldValue = formModel.getValue(reservedKey);
-              const currentValueDisplay = getCurrentValueDisplay(category);
-              return (
-                <SelectFieldWrapper key={`test-${category}`}>
-                  <SelectField
-                    inline={false}
-                    stacked
-                    name={reservedKey}
-                    label={label}
-                    value={fieldValue}
-                    options={(activePlan.planCategories[category] || []).map(
-                      (level: {events: {toLocaleString: () => any}}) => ({
-                        label: level.events.toLocaleString(),
-                        value: level.events,
-                      })
-                    )}
-                    required
-                  />
-                  {currentValueDisplay}
-                </SelectFieldWrapper>
-              );
-            })}
+            {activePlan.categories
+              .filter(category => isCheckoutCategory(category, activePlan))
+              .map(category => {
+                const titleCategory = getPlanCategoryName({
+                  plan: activePlan,
+                  category,
+                });
+                const reservedKey = `reserved${toTitleCase(category, {
+                  allowInnerUpperCase: true,
+                })}`;
+                const label = isByteCategory(category)
+                  ? `${titleCategory} (GB)`
+                  : titleCategory;
+                const fieldValue = formModel.getValue(reservedKey);
+                const currentValueDisplay = getCurrentValueDisplay(category);
+                return (
+                  <Container position="relative" key={`test-${category}`}>
+                    <SelectField
+                      inline={false}
+                      stacked
+                      name={reservedKey}
+                      label={label}
+                      value={fieldValue}
+                      options={(activePlan.planCategories[category] || []).map(
+                        (level: {events: {toLocaleString: () => any}}) => ({
+                          label: level.events.toLocaleString(),
+                          value: level.events,
+                        })
+                      )}
+                      required
+                    />
+                    {currentValueDisplay}
+                  </Container>
+                );
+              })}
           </StyledFormSection>
         )}
       {availableAddOns.length > 0 && (
@@ -211,7 +202,7 @@ export function PlanList({
           })}
         </StyledFormSection>
       )}
-      <AuditFields>
+      <Container marginTop="xl">
         <InputField
           data-test-id="url-field"
           name="ticket-url"
@@ -230,7 +221,7 @@ export function PlanList({
           flexibleControlStateSize
           maxLength={500}
         />
-      </AuditFields>
+      </Container>
     </Form>
   );
 }
@@ -259,18 +250,10 @@ const SubText = styled('small')`
   color: #999;
 `;
 
-const SelectFieldWrapper = styled('div')`
-  position: relative;
-`;
-
 const CurrentValueText = styled('div')`
   color: #666;
   font-size: 0.9em;
   margin-top: -${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.lg};
   font-style: italic;
-`;
-
-const AuditFields = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;

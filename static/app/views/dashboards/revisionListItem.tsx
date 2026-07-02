@@ -36,8 +36,12 @@ interface RevisionListItemProps {
 }
 
 function formatRevisionSource(source: DashboardRevision['source']): string {
-  if (source === 'pre-restore') return t('Revert Dashboard');
-  if (source === 'edit-with-agent') return t('Edit with Seer');
+  if (source === 'pre-restore') {
+    return t('Revert Dashboard');
+  }
+  if (source === 'edit-with-agent') {
+    return t('Edit with Seer');
+  }
   return t('Edit');
 }
 
@@ -155,7 +159,9 @@ export function RevisionDiffBody({
   isLoading: boolean;
   snapshot: DashboardDetails | undefined;
 }) {
-  if (isLoading) return <LoadingIndicator />;
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
   if (isError) {
     return (
       <Text size="sm" variant="muted">
@@ -163,7 +169,9 @@ export function RevisionDiffBody({
       </Text>
     );
   }
-  if (!snapshot) return null;
+  if (!snapshot) {
+    return null;
+  }
   if (baseRevisionId === null) {
     return (
       <Text size="sm" variant="muted">

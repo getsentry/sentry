@@ -5,6 +5,7 @@ from jsonschema import ValidationError
 
 from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
+from sentry.workflow_engine.handlers.condition.assigned_to_handler import AssignedToConditionHandler
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -105,3 +106,39 @@ class TestAssignedToCondition(ConditionTestCase):
         GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)
         self.dc.update(comparison={"target_type": "Unassigned"})
         self.assert_does_not_pass(self.dc, self.event_data)
+
+    def test_render_label_team_in_org(self) -> None:
+        label = AssignedToConditionHandler.render_label(
+            {"targetType": "Team", "targetIdentifier": self.team.id},
+            organization_id=self.organization.id,
+        )
+        assert label == f"The issue is assigned to team #{self.team.slug}"
+
+    def test_render_label_team_foreign_org(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        label = AssignedToConditionHandler.render_label(
+            {"targetType": "Team", "targetIdentifier": other_team.id},
+            organization_id=self.organization.id,
+        )
+        assert other_team.slug not in label
+        assert label == "The issue is assigned to Team"
+
+    def test_render_label_member_in_org(self) -> None:
+        label = AssignedToConditionHandler.render_label(
+            {"targetType": "Member", "targetIdentifier": self.user.id},
+            organization_id=self.organization.id,
+        )
+        assert label == f"The issue is assigned to {self.user.username}"
+
+    def test_render_label_member_foreign_org(self) -> None:
+        other_org = self.create_organization()
+        other_user = self.create_user(email="foreign@example.com")
+        self.create_member(user=other_user, organization=other_org)
+        label = AssignedToConditionHandler.render_label(
+            {"targetType": "Member", "targetIdentifier": other_user.id},
+            organization_id=self.organization.id,
+        )
+        assert other_user.username not in label
+        assert other_user.email not in label
+        assert label == "The issue is assigned to Member"

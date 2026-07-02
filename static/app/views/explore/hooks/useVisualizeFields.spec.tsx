@@ -5,7 +5,7 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -45,8 +45,16 @@ describe('useVisualizeFields', () => {
     });
 
     expect(result.current.map(field => field.value)).toEqual([
+      'gen_ai.cost.input_tokens',
+      'gen_ai.cost.output_tokens',
+      'gen_ai.cost.total_tokens',
       'span.duration',
       'span.self_time',
+      'ai.total_cost',
+      'gen_ai.usage.input_tokens',
+      'gen_ai.usage.output_tokens',
+      'gen_ai.usage.total_cost',
+      'gen_ai.usage.total_tokens',
       'score.ttfb',
     ]);
   });

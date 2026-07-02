@@ -138,21 +138,21 @@ def handle_ignored(
             Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
                 substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
-            serialized_user = None
-            with in_test_hide_transaction_boundary():
-                if acting_user:
-                    serialized_user = user_service.serialize_many(
-                        filter=dict(user_ids=[acting_user.id]),
-                        as_user=serialize_generic_user(acting_user),
-                    )
-            new_status_details = IgnoredStatusDetails(
-                ignoreCount=ignore_count,
-                ignoreUntil=ignore_until,
-                ignoreUserCount=ignore_user_count,
-                ignoreUserWindow=ignore_user_window,
-                ignoreWindow=ignore_window,
-                actor=serialized_user[0] if serialized_user else None,
-            )
+        serialized_user = None
+        with in_test_hide_transaction_boundary():
+            if acting_user:
+                serialized_user = user_service.serialize_many(
+                    filter=dict(user_ids=[acting_user.id]),
+                    as_user=serialize_generic_user(acting_user),
+                )
+        new_status_details = IgnoredStatusDetails(
+            ignoreCount=ignore_count,
+            ignoreUntil=ignore_until,
+            ignoreUserCount=ignore_user_count,
+            ignoreUserWindow=ignore_user_window,
+            ignoreWindow=ignore_window,
+            actor=serialized_user[0] if serialized_user else None,
+        )
     else:
         GroupSnooze.objects.filter(group__in=group_list).delete()
 

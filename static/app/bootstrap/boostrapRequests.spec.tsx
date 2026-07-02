@@ -6,11 +6,11 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResult} from 'sentry/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {ApiResult} from 'sentry/types/api';
 import type {Organization} from 'sentry/types/organization';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -90,6 +90,7 @@ describe('useBootstrapOrganizationQuery', () => {
 
     const mockScope = {
       setTag: jest.fn(),
+      setAttributes: jest.fn(),
       setContext: jest.fn(),
     } as unknown as Scope;
     jest.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
@@ -112,6 +113,10 @@ describe('useBootstrapOrganizationQuery', () => {
     ]);
     expect(mockScope.setTag).toHaveBeenCalledWith('organization', org.id);
     expect(mockScope.setTag).toHaveBeenCalledWith('organization.slug', org.slug);
+    expect(mockScope.setAttributes).toHaveBeenCalledWith({
+      organization: org.id,
+      'organization.slug': org.slug,
+    });
     expect(mockScope.setContext).toHaveBeenCalledWith('organization', {
       id: org.id,
       slug: org.slug,
@@ -128,7 +133,7 @@ describe('useBootstrapTeamsQuery', () => {
     TeamStore.reset();
   });
 
-  it.isKnownFlake('updates team store with fetched data', async () => {
+  it('updates team store with fetched data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/teams/`,
       body: mockTeams,

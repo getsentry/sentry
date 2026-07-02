@@ -30,7 +30,7 @@ describe('loadOrganizationTags', () => {
     });
     expect(TagStore.getState().device).toBeUndefined();
 
-    await loadOrganizationTags(api, 'org-slug', selection);
+    await loadOrganizationTags(api, 'org-slug', selection, jest.fn());
 
     expect(TagStore.getState().device).toBeTruthy();
   });
@@ -42,7 +42,7 @@ describe('loadOrganizationTags', () => {
       statusCode: 403,
     });
 
-    await loadOrganizationTags(api, 'org-slug', selection);
+    await loadOrganizationTags(api, 'org-slug', selection, jest.fn());
     expect(indicators.addErrorMessage).toHaveBeenCalledWith('Unable to load tags');
   });
 });

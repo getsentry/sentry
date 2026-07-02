@@ -212,7 +212,9 @@ const CONSTANTS: Record<string, string> = {
 function resolveTemplate(expr: string): string {
   return expr.replace(/\$\{([^}]+)\}/g, (_, inner: string) => {
     const key = inner.trim();
-    if (CONSTANTS[key] !== undefined) return CONSTANTS[key];
+    if (CONSTANTS[key] !== undefined) {
+      return CONSTANTS[key];
+    }
     const hint = (key.split(/[.[(\s]/)[0] ?? key).trim();
     return `<${hint}>`;
   });
@@ -268,7 +270,9 @@ const ACCOUNT_SETTINGS_ROOTS = [
 
 function remapFragment(fragmentPath: string): string | null {
   // :orgId/ is from experimentalSpaChildRoutes under /auth/login/
-  if (fragmentPath === ':orgId/') return '/auth/login/:orgId/';
+  if (fragmentPath === ':orgId/') {
+    return '/auth/login/:orgId/';
+  }
 
   // accountSettingsChildren: bare paths like details/, security/mfa/:authId/, …
   if (
@@ -278,7 +282,9 @@ function remapFragment(fragmentPath: string): string | null {
   }
 
   // accountSettingsRoutes root (the variable's own path: 'account/')
-  if (fragmentPath === 'account/') return '/settings/account/';
+  if (fragmentPath === 'account/') {
+    return '/settings/account/';
+  }
 
   // projectSettingsChildren: incorrectly parented under account/
   if (fragmentPath.startsWith('account/')) {
@@ -296,19 +302,25 @@ function remapFragment(fragmentPath: string): string | null {
   }
 
   // transactionSummaryRoute root
-  if (fragmentPath === 'summary/') return '/performance/summary/';
+  if (fragmentPath === 'summary/') {
+    return '/performance/summary/';
+  }
 
   // Transaction summary tab children
   if (fragmentPath.startsWith('summary/')) {
     const suffix = fragmentPath.slice('summary/'.length);
     const topSegment = suffix.split('/')[0] + '/';
-    if (SUMMARY_TABS.has(topSegment)) return `/performance/summary/${suffix}`;
+    if (SUMMARY_TABS.has(topSegment)) {
+      return `/performance/summary/${suffix}`;
+    }
     // Everything else under summary/ is a domainViewChildRoute
     return `/insights/${suffix}`;
   }
 
   // traceView root — assembled into /performance/ (and /dashboards/, /traces/)
-  if (fragmentPath === 'trace/:traceSlug/') return '/performance/trace/:traceSlug/';
+  if (fragmentPath === 'trace/:traceSlug/') {
+    return '/performance/trace/:traceSlug/';
+  }
 
   // alertChildRoutes entries: incorrectly parented under trace/:traceSlug/
   if (fragmentPath.startsWith('trace/:traceSlug/')) {
@@ -391,7 +403,9 @@ const seen = new Set<string>();
 
 for (const line of lines) {
   const indent = line.search(/\S/);
-  if (indent === -1) continue;
+  if (indent === -1) {
+    continue;
+  }
 
   let pathValue: string | null = null;
   let hasUnknown = false;
@@ -409,7 +423,9 @@ for (const line of lines) {
     hasUnknown = pathValue.includes('<');
   }
 
-  if (pathValue === null) continue;
+  if (pathValue === null) {
+    continue;
+  }
 
   while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
     stack.pop();
@@ -439,7 +455,9 @@ type MappedPath = RawPath & {wasFragment: boolean};
 const allPaths: MappedPath[] = rawPaths.map(({fullPath, hasUnknown}) => {
   if (!fullPath.startsWith('/')) {
     const remapped = remapFragment(fullPath);
-    if (remapped) return {fullPath: remapped, hasUnknown, wasFragment: true};
+    if (remapped) {
+      return {fullPath: remapped, hasUnknown, wasFragment: true};
+    }
     return {fullPath, hasUnknown, wasFragment: true};
   }
   return {fullPath, hasUnknown, wasFragment: false};
@@ -469,7 +487,9 @@ for (const {fullPath, hasUnknown} of deduped) {
 
   if (!showAll) {
     const providedInRoute = required.filter(p => effectiveParams[p] !== undefined);
-    if (required.length > 0 && providedInRoute.length === 0) continue;
+    if (required.length > 0 && providedInRoute.length === 0) {
+      continue;
+    }
   }
 
   let resolved = fullPath;

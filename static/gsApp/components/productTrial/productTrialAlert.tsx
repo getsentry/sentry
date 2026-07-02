@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -60,7 +60,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
     return null;
   }
 
-  const isPaid = subscription.planDetails?.price > 0;
+  const isPaid = subscription.planDetails?.totalPrice > 0;
   const hasBillingRole = organization.access?.includes('org:billing');
   const categoryUsesOnDemand = shouldUseOnDemandCta(trial.category);
 
@@ -243,7 +243,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
 
   return (
     <TrialAlert system variant="muted" trailingItems={actions}>
-      <React.Fragment>
+      <Fragment>
         {alertHeader && (
           <Heading>
             <h4>{alertHeader}</h4>
@@ -251,7 +251,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           </Heading>
         )}
         {alertText && <div>{alertText}</div>}
-      </React.Fragment>
+      </Fragment>
     </TrialAlert>
   );
 }

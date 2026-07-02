@@ -17,11 +17,10 @@ import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
-import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -48,7 +47,7 @@ interface EventTagTreeRowConfig {
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
-  project: Project;
+  project: DetailedProject;
   tagKey: string;
   config?: EventTagTreeRowConfig;
   isLast?: boolean;
@@ -68,7 +67,7 @@ export function EventTagsTreeRow({
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
-  const hasStem = !isLast && isEmptyObject(content.subtree);
+  const hasStem = !isLast && content.subtree.size === 0;
 
   if (!originalTag) {
     return (
@@ -303,7 +302,7 @@ function EventTagsTreeRowDropdown({
     {
       key: 'external-link',
       label: t('Visit this external link'),
-      hidden: !isUrl(content.value),
+      hidden: !isValidUrl(content.value),
       onAction: () => {
         openNavigateToExternalLinkModal({linkText: content.value});
       },
@@ -418,7 +417,7 @@ function EventTagsTreeValue({
       tagValue = defaultValue;
   }
 
-  return isUrl(content.value) ? (
+  return isValidUrl(content.value) ? (
     <TagLinkText>
       <ExternalLink
         onClick={e => {

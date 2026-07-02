@@ -1,6 +1,12 @@
 import sentry_sdk
 from django.db import router, transaction
-from jwt import DecodeError, ExpiredSignatureError, InvalidKeyError, InvalidSignatureError
+from jwt import (
+    DecodeError,
+    ExpiredSignatureError,
+    InvalidAlgorithmError,
+    InvalidKeyError,
+    InvalidSignatureError,
+)
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -24,7 +30,7 @@ from sentry.utils import jwt
 
 @control_silo_endpoint
 class JiraSentryInstalledWebhook(JiraWebhookBase):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -84,10 +90,32 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 return self.respond(
                     {"detail": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
                 )
+            except InvalidAlgorithmError:
+                lifecycle.record_halt(halt_reason="JWT signed with unexpected algorithm")
+                return self.respond(
+                    {"detail": "Invalid algorithm"}, status=status.HTTP_400_BAD_REQUEST
+                )
             except DecodeError:
                 lifecycle.record_halt(halt_reason="Could not decode JWT token")
                 return self.respond(
                     {"detail": "Could not decode JWT token"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Bind iss to whichever value build_integration will persist as
+            # Integration.external_id, mirroring its branch order exactly. The
+            # request body is attacker-controlled and not covered by the JWT, so
+            # the issuer must be validated against the same external_id we store;
+            # otherwise a valid token for one tenant could install an integration
+            # keyed to another tenant.
+            if "external_id" in state and "metadata" in state:
+                expected_external_id = state.get("external_id")
+            else:
+                expected_external_id = state.get("clientKey")
+            if decoded_claims.get("iss") != expected_external_id:
+                lifecycle.record_halt(halt_reason="JWT iss does not match clientKey")
+                return self.respond(
+                    {"detail": "Token issuer does not match clientKey"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             data = JiraIntegrationProvider().build_integration(state)
@@ -97,6 +125,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             # here, because at this point the integration hasn't yet been bound to an organization. The
             # best we can do at this point is to record the integration's id.
             sentry_sdk.set_tag("integration_id", integration.id)
+            sentry_sdk.set_attribute("integration_id", integration.id)
 
             # Sync integration metadata from Jira. This must be executed *after*
             # the integration has been installed on Jira as the access tokens will

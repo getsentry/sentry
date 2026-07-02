@@ -190,6 +190,29 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
+    def test_sort_by_progress_requires_feature_flag(self) -> None:
+        # group_1 has the newer event (wins last_seen / default sort); group_2 is older but
+        # diagnosed, so it wins the progress sort once the flag is on.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        self.create_group_activity(group=group_2, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.login_as(user=self.user)
+
+        # Without the flag, the sort falls back to the default (date) order.
+        response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
+        # With the flag, the diagnosed group is promoted above the more recently seen one.
+        with self.feature("organizations:issue-stream-progress-sort"):
+            response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
     def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
             data={
@@ -531,7 +554,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(perf_group.id)
 
     def test_has_seer_last_run(self) -> None:
-        """Test filtering issues by whether they have seer_autofix_last_triggered set."""
+        """Test filtering issues by whether they have seer_explorer_autofix_last_triggered set."""
         event1 = self.store_event(
             data={
                 "fingerprint": ["no-seer-group"],
@@ -561,30 +584,34 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_with_explorer_seer = event3.group
         group_with_explorer_seer.update(seer_explorer_autofix_last_triggered=timezone.now())
 
+        event4 = self.store_event(
+            data={
+                "fingerprint": ["stale-explorer-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_stale_explorer_seer = event4.group
+        group_with_stale_explorer_seer.update(
+            seer_explorer_autofix_last_triggered=before_now(days=31)
+        )
+
         self.login_as(user=self.user)
 
-        # Query for issues that have seer_autofix_last_triggered set
+        # Query for issues Seer ran on within the recency window. The stale group
+        # (run >30 days ago) is excluded.
         response = self.get_success_response(query="has:issue.seer_last_run")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group_with_legacy_seer.id)
-
-        # Query for issues that do NOT have seer_autofix_last_triggered set
-        response = self.get_success_response(query="!has:issue.seer_last_run")
-        assert len(response.data) == 2
         assert response.data[0]["id"] == str(group_with_explorer_seer.id)
-        assert response.data[1]["id"] == str(group_without_seer.id)
 
-        # Query for issues that have seer_explorer_autofix_last_triggered set
-        with self.feature("organizations:autofix-on-explorer"):
-            response = self.get_success_response(query="has:issue.seer_last_run")
-            assert len(response.data) == 1
-            assert response.data[0]["id"] == str(group_with_explorer_seer.id)
-
-            # Query for issues that do NOT have seer_explorer_autofix_last_triggered set
-            response = self.get_success_response(query="!has:issue.seer_last_run")
-            assert len(response.data) == 2
-            assert response.data[0]["id"] == str(group_with_legacy_seer.id)
-            assert response.data[1]["id"] == str(group_without_seer.id)
+        # The complement: issues Seer never ran on, plus the stale group whose run
+        # is older than the window.
+        response = self.get_success_response(query="!has:issue.seer_last_run")
+        assert {row["id"] for row in response.data} == {
+            str(group_with_stale_explorer_seer.id),
+            str(group_with_legacy_seer.id),
+            str(group_without_seer.id),
+        }
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project
@@ -730,6 +757,40 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_success_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+
+    def test_lookup_by_short_id_with_filter(self) -> None:
+        group = self.group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {short_id}", shortIdLookup=1)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
+    def test_lookup_by_short_id_with_filter_resolved(self) -> None:
+        group = self.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {short_id}", shortIdLookup=1)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(group.id)
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
+    def test_lookup_by_multiple_short_ids(self) -> None:
+        group = self.group
+        group2 = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            query=f"{group.qualified_short_id} {group2.qualified_short_id}", shortIdLookup=1
+        )
+        assert {r["id"] for r in response.data} == {str(group.id), str(group2.id)}
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_group_id(self) -> None:
@@ -1902,30 +1963,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"] is not None
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
-
-    def test_expand_plugin_actions_and_issues(self) -> None:
-        event = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        query = "status:unresolved"
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query=query, expand=["pluginActions", "pluginIssues"]
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert response.data[0]["pluginActions"] is not None
-        assert response.data[0]["pluginIssues"] is not None
-
-        # Test with no expand
-        response = self.get_response(sort_by="date", limit=10, query=query)
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert "pluginActions" not in response.data[0]
-        assert "pluginIssues" not in response.data[0]
 
     def test_expand_integration_issues(self) -> None:
         event = self.store_event(
@@ -4485,6 +4522,11 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert response.status_code == 204
 
         self.assert_deleted_groups([group1, group2])
+
+    def test_delete_with_invalid_group_ids(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_response(qs_params={"id": ["not_an_int", "123"]})
+        assert response.status_code == 400
 
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2

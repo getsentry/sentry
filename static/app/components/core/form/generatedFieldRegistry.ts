@@ -13,6 +13,13 @@ interface FormFieldDefinition {
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
@@ -73,13 +80,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
-  },
-  'account-emails.email': {
-    name: 'email',
-    formId: 'account-emails',
-    route: '/settings/account/emails/',
-    label: t('Additional Email'),
-    hintText: t('Designate an alternative email for this account'),
   },
   'notification-settings.personalActivityNotifications': {
     name: 'personalActivityNotifications',
@@ -156,6 +156,110 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Authorized JavaScript Origins'),
     hintText: t('Separate multiple entries with a newline.'),
   },
+  'project-general-settings.slug': {
+    name: 'slug',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Slug'),
+    hintText: t('A unique ID used to identify this project'),
+  },
+  'project-general-settings.resolveAge': {
+    name: 'resolveAge',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Auto Resolve'),
+    hintText: t(
+      "Automatically resolve an issue if it hasn't been seen for this amount of time"
+    ),
+  },
+  'project-general-settings.securityToken': {
+    name: 'securityToken',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Security Token'),
+    hintText: '',
+  },
+  'project-general-settings.securityTokenHeader': {
+    name: 'securityTokenHeader',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Security Token Header'),
+    hintText: '',
+  },
+  'project-general-settings.platform': {
+    name: 'platform',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Platform'),
+    hintText: t('The primary platform for this project'),
+  },
+  'project-general-settings.subjectPrefix': {
+    name: 'subjectPrefix',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Subject Prefix'),
+    hintText: t('Choose a custom prefix for emails from this project'),
+  },
+  'project-general-settings.debugFilesRole': {
+    name: 'debugFilesRole',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Debug Files Access'),
+    hintText: '',
+  },
+  'project-general-settings.allowedDomains': {
+    name: 'allowedDomains',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Allowed Domains'),
+    hintText: '',
+  },
+  'project-general-settings.scrapeJavaScript': {
+    name: 'scrapeJavaScript',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable JavaScript source fetching'),
+    hintText: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  'project-general-settings.scmSourceContextEnabled': {
+    name: 'scmSourceContextEnabled',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable SCM Source Context'),
+    hintText: t(
+      "Fetch source code from your connected SCM integration (e.g. GitHub, GitLab) to display in stack traces. When enabled, any project member can view source code for files matched by this project's code mappings."
+    ),
+  },
+  'project-general-settings.verifySSL': {
+    name: 'verifySSL',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Verify TLS/SSL'),
+    hintText: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
+  },
+  'settings.subjectTemplate': {
+    name: 'subjectTemplate',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Subject Template'),
+    hintText: t(
+      'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $title, $shortID, $projectID, $orgID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
+    ),
+  },
+  'settings.digestsMinDelay': {
+    name: 'digestsMinDelay',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Minimum delivery interval'),
+    hintText: t('Notifications will be delivered at most this often.'),
+  },
+  'settings.digestsMaxDelay': {
+    name: 'digestsMaxDelay',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Maximum delivery interval'),
+    hintText: t('Notifications will be delivered at least this often.'),
+  },
   'project-ownership.autoAssignment': {
     name: 'autoAssignment',
     formId: 'project-ownership',
@@ -201,6 +305,124 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/:orgId/projects/:projectId/toolbar/',
     label: t('Allowed Origins'),
     hintText: '',
+  },
+  'project-filters-settings.filters:blacklisted_ips': {
+    name: 'filters:blacklisted_ips',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('IP Addresses'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:releases': {
+    name: 'filters:releases',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Releases'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:error_messages': {
+    name: 'filters:error_messages',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Error Message'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:log_messages': {
+    name: 'filters:log_messages',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Log Message'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:trace_metric_names': {
+    name: 'filters:trace_metric_names',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Application Metrics'),
+    hintText: '',
+  },
+  'project-filters-settings.legacy-browsers': {
+    name: 'legacy-browsers',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out legacy browsers'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:react-hydration-errors': {
+    name: 'filters:react-hydration-errors',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out hydration errors'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:chunk-load-error': {
+    name: 'filters:chunk-load-error',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out ChunkLoadError(s)'),
+    hintText: t(
+      "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+    ),
+  },
+  'project-security-and-privacy.storeCrashReports': {
+    name: 'storeCrashReports',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Store Minidumps As Attachments'),
+    hintText: '',
+  },
+  'project-security-and-privacy.dataScrubber': {
+    name: 'dataScrubber',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Data Scrubber'),
+    hintText: t('Enable server-side data scrubbing'),
+  },
+  'project-security-and-privacy.dataScrubberDefaults': {
+    name: 'dataScrubberDefaults',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Use Default Scrubbers'),
+    hintText: t(
+      'Apply default scrubbers to prevent things like passwords and credit cards from being stored'
+    ),
+  },
+  'project-security-and-privacy.scrubIPAddresses': {
+    name: 'scrubIPAddresses',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Prevent Storing of IP Addresses'),
+    hintText: t('Preventing IP addresses from being stored for new events'),
+  },
+  'project-security-and-privacy.sensitiveFields': {
+    name: 'sensitiveFields',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Additional Sensitive Fields'),
+    hintText: t(
+      'Additional field names to match against when scrubbing data. Separate multiple entries with a newline'
+    ),
+  },
+  'project-security-and-privacy.safeFields': {
+    name: 'safeFields',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Safe Fields'),
+    hintText: t(
+      'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
+    ),
+  },
+  'project-issue-grouping.fingerprintingRules': {
+    name: 'fingerprintingRules',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Fingerprint Rules'),
+  },
+  'project-issue-grouping.groupingEnhancements': {
+    name: 'groupingEnhancements',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Stack Trace Rules'),
   },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
@@ -284,9 +506,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     name: 'alertsMemberWrite',
     formId: 'organization-settings-form',
     route: '/settings/organization/',
-    label: t('Let Members Create and Edit Alerts'),
+    label: t('Let Members Create and Edit Monitors and Alerts'),
     hintText: t(
-      'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+      'Allow members to create, edit, and delete monitors and alert rules by granting them the `alerts:write` scope.'
     ),
   },
   'organization-settings-form.attachmentsRole': {

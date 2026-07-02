@@ -3,6 +3,24 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
+const staticConfigurationIssueDetails = {
+  evidence: null,
+  header: {
+    filterBar: {enabled: false},
+    graph: {enabled: false},
+    eventNavigation: {enabled: false},
+    tagDistribution: {enabled: false},
+    occurrenceSummary: {enabled: false},
+  },
+};
+
+const lowValueSpanConfigurationIssueDetails = {
+  ...staticConfigurationIssueDetails,
+  autofix: true,
+  configurationProblem: {enabled: true},
+  configurationTroubleshooting: {enabled: true},
+};
+
 export const configurationIssuesConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
@@ -31,6 +49,8 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
     regression: {enabled: false},
     eventAndUserCounts: {enabled: false},
     tags: {enabled: false},
+    trace: {enabled: false},
+    contexts: {enabled: false},
     stats: {enabled: true},
     header: {
       filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
@@ -53,14 +73,6 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
     discover: {enabled: false},
     groupingInfo: {enabled: false},
   },
-  [IssueType.SOURCEMAP_CONFIGURATION]: {
-    evidence: null,
-    header: {
-      filterBar: {enabled: false},
-      graph: {enabled: false},
-      eventNavigation: {enabled: false},
-      tagDistribution: {enabled: false},
-      occurrenceSummary: {enabled: false},
-    },
-  },
+  [IssueType.SOURCEMAP_CONFIGURATION]: staticConfigurationIssueDetails,
+  [IssueType.LOW_VALUE_SPAN_CONFIGURATION]: lowValueSpanConfigurationIssueDetails,
 };

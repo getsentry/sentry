@@ -57,7 +57,6 @@ export const useTransactionsDeprecationWarning = ({
   // memoize the URL to avoid recalculating it on every render
   const exploreUrl = useMemo(() => {
     if (
-      !organization.features.includes('transaction-widget-deprecation-explore-view') ||
       widget.widgetType !== WidgetType.TRANSACTIONS ||
       !widget.exploreUrls ||
       widget.exploreUrls.length === 0
@@ -324,7 +323,7 @@ export function getMenuOptions(
       menuOptions.push({
         key: 'create-alert',
         label: newAlertLabel,
-        isSubmenu: true,
+        submenu: true,
         children: alertMenuOptions,
       });
     }

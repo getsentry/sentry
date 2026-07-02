@@ -110,9 +110,9 @@ export type ChallengeData = {
   authenticateRequests: SignRequest;
   registerRequests: RegisterRequest;
   registeredKeys: RegisteredKey[];
-  webAuthnAuthenticationData: string;
+  webAuthnAuthenticationData: string | undefined;
   // for WebAuthn register
-  webAuthnRegisterData: string;
+  webAuthnRegisterData: string | undefined;
 };
 
 type EnrolledAuthenticator = {

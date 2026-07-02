@@ -12,9 +12,9 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarGroupBy';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarGroupByProps {
@@ -112,6 +112,7 @@ function ToolbarGroupByItem({
     <ToolbarGroupByDropdown
       column={column}
       options={options}
+      groupBys={groupBys}
       loading={loading}
       onClose={() => setSearch(undefined)}
       onSearch={setSearch}

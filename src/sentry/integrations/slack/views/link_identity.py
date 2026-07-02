@@ -11,6 +11,7 @@ from sentry.middleware.integrations.tasks import route_slack_seer_event
 from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
 from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
 from sentry.seer.entrypoints.types import SeerEntrypointKey
+from sentry.utils.cache import cache
 from sentry.web.frontend.base import control_silo_view
 
 from . import build_linking_url as base_build_linking_url
@@ -20,6 +21,30 @@ _logger = logging.getLogger(__name__)
 SUCCESS_LINKED_MESSAGE = (
     "Your Slack identity has been linked to your Sentry account. You're good to go!"
 )
+
+_LINK_RESPONSE_URL_CACHE_TIMEOUT = 15 * 60  # 15 minutes
+
+
+def _link_response_url_cache_key(integration_id: int, slack_user_id: str) -> str:
+    return f"slack:link_identity_response_url:{integration_id}:{slack_user_id}"
+
+
+def stash_link_identity_response_url(
+    integration_id: int, slack_user_id: str, response_url: str
+) -> None:
+    cache.set(
+        _link_response_url_cache_key(integration_id, slack_user_id),
+        response_url,
+        timeout=_LINK_RESPONSE_URL_CACHE_TIMEOUT,
+    )
+
+
+def pop_link_identity_response_url(integration_id: int, slack_user_id: str) -> str | None:
+    key = _link_response_url_cache_key(integration_id, slack_user_id)
+    response_url = cache.get(key)
+    if response_url:
+        cache.delete(key)
+    return response_url
 
 
 def build_linking_url(
@@ -62,27 +87,36 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
-        super().notify_on_success(external_id, params, integration)
         if integration is None:
             return
+
+        stashed_response_url = pop_link_identity_response_url(
+            integration_id=integration.id, slack_user_id=external_id
+        )
 
         cached = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
             entrypoint_key=str(SeerEntrypointKey.SLACK),
             integration_id=integration.id,
             user_ext_id=external_id,
         )
-        if cached is None:
-            return
 
-        route_slack_seer_event.apply_async(
-            kwargs={
-                "payload": cached["payload"],
-                "integration_id": cached["integration_id"],
-                "slack_user_id": cached["slack_user_id"],
-                "channel_id": cached["channel_id"],
-                "thread_ts": cached["thread_ts"],
-                "message_ts": cached["message_ts"],
-                "event_type": cached["event_type"],
-                "message_text": cached["message_text"],
-            }
-        )
+        notify_params = {**params}
+        if stashed_response_url:
+            notify_params["response_url"] = stashed_response_url
+            notify_params["replace_original"] = True
+
+        super().notify_on_success(external_id, notify_params, integration)
+
+        if cached:
+            route_slack_seer_event.apply_async(
+                kwargs={
+                    "payload": cached["payload"],
+                    "integration_id": cached["integration_id"],
+                    "slack_user_id": cached["slack_user_id"],
+                    "channel_id": cached["channel_id"],
+                    "thread_ts": cached["thread_ts"],
+                    "message_ts": cached["message_ts"],
+                    "event_type": cached["event_type"],
+                    "message_text": cached["message_text"],
+                },
+            )

@@ -1,7 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 const ROOT_KEY = 'sentry root';
 const BROWSER_EXTENSION_REGEXP = /^(@moz-extension:\/\/|chrome-extension:\/\/)/;

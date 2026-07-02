@@ -214,29 +214,14 @@ export async function fetchOrganizationDetails(
 /**
  * Get all organizations for the current user.
  *
- * Will perform a fan-out across all multi-tenant regions,
- * and single-tenant regions the user has membership in.
+ * The control silo endpoint returns the full cross-cell list in one call.
  *
  * This function is challenging to type as the structure of the response
  * from /organizations can vary based on query parameters
  */
 export async function fetchOrganizations(api: Client, query?: Record<string, any>) {
-  const regions = ConfigStore.get('memberRegions');
-  const results = await Promise.all(
-    regions.map(region =>
-      api.requestPromise('/organizations/', {
-        host: region.url,
-        query,
-        // Authentication errors can happen as we span regions.
-        allowAuthError: true,
-      })
-    )
-  );
-  return results.reduce((acc, response) => {
-    // Don't append error results to the org list.
-    if (response[0]) {
-      acc = acc.concat(response);
-    }
-    return acc;
-  }, []);
+  return api.requestPromise('/organizations/', {
+    host: ConfigStore.get('links').sentryUrl,
+    query,
+  });
 }

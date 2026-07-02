@@ -68,7 +68,7 @@ matcher_type = "{URL}" / "{PATH}" / "{MODULE}" / "{CODEOWNERS}" / event_tag
 
 event_tag   = ~r"tags.[^:]+"
 
-owners       = _ owner+
+owners       = _ owner*
 owner        = _ team_prefix identifier
 team_prefix  = "#"?
 
@@ -96,6 +96,8 @@ class Rule(namedtuple("Rule", "matcher owners")):
     """
 
     def __str__(self) -> str:
+        if not self.owners:
+            return str(self.matcher)
         owners = [o.dump() for o in self.owners]
         owners_str = " ".join(
             f"#{owner['identifier']}" if owner["type"] == "team" else owner["identifier"]
@@ -347,7 +349,13 @@ def convert_schema_to_rules_text(schema: OwnershipSchema) -> str:
         return ""
 
     for rule in rules:
-        text += f"{rule.matcher.type}:{rule.matcher.pattern} {' '.join([f'{owner_prefix(owner.type)}{owner.identifier}' for owner in rule.owners])}\n"
+        owners_str = " ".join(
+            f"{owner_prefix(owner.type)}{owner.identifier}" for owner in rule.owners
+        )
+        if owners_str:
+            text += f"{rule.matcher.type}:{rule.matcher.pattern} {owners_str}\n"
+        else:
+            text += f"{rule.matcher.type}:{rule.matcher.pattern}\n"
 
     return text
 
@@ -439,21 +447,25 @@ def convert_codeowners_syntax(
                 # we skip associations
                 continue
 
-        if sentry_assignees:
-            # Replace source_root with stack_root for anchored paths
-            # /foo/dir -> anchored
-            # foo/dir -> anchored
-            # foo/dir/ -> anchored
-            # foo/ -> not anchored
-            if re.search(r"[\/].{1}", path):
-                path_with_stack_root = path.replace(
-                    code_mapping.source_root, code_mapping.stack_root, 1
-                )
-                # flatten multiple '/' if not protocol
-                formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
-                result += f"codeowners:{formatted_path} {' '.join(sentry_assignees)}\n"
-            else:
-                result += f"codeowners:{path} {' '.join(sentry_assignees)}\n"
+        # Replace source_root with stack_root for anchored paths
+        # /foo/dir -> anchored
+        # foo/dir -> anchored
+        # foo/dir/ -> anchored
+        # foo/ -> not anchored
+        if re.search(r"[\/].{1}", path):
+            path_with_stack_root = path.replace(
+                code_mapping.source_root, code_mapping.stack_root, 1
+            )
+            # flatten multiple '/' if not protocol
+            formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
+        else:
+            formatted_path = path
+
+        if not code_owners:
+            # Exclusion rule: path with no owners means "no ownership" for this path
+            result += f"codeowners:{formatted_path}\n"
+        elif sentry_assignees:
+            result += f"codeowners:{formatted_path} {' '.join(sentry_assignees)}\n"
 
     return result
 
@@ -578,6 +590,8 @@ def remove_deleted_owners_from_schema(
     valid_rules = rules
 
     for rule in rules:
+        if not rule["owners"]:
+            continue
         valid_owners = rule["owners"]
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] not in owners_id.keys():
@@ -613,6 +627,12 @@ def create_schema_from_issue_owners(
         raise ValidationError(
             {"raw": f"Parse error: {rule_name} (line {e.line()}, column {e.column()})"}
         )
+
+    for rule in rules:
+        if not rule.owners and rule.matcher.type != CODEOWNERS:
+            raise ValidationError(
+                {"raw": f"Missing owner in rule: {rule.matcher.type}:{rule.matcher.pattern}"}
+            )
 
     schema = dump_schema(rules)
 

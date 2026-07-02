@@ -15,10 +15,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
@@ -1406,6 +1406,34 @@ describe('Visualize', () => {
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
     });
 
+    it('shows the saved column in the trigger even when missing from attributes', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                // The saved column argument is not returned by the attributes call
+                field: ['p90(my.missing.field)'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      // The column dropdown should reflect the saved state instead of "None"
+      expect(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      ).toHaveTextContent('my.missing.field');
+    });
+
     it('shows the correct column options for the non-aggregate field type', async () => {
       render(
         <WidgetBuilderProvider>
@@ -1923,7 +1951,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['sum(value,alpha_metric,counter,-)'],
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },

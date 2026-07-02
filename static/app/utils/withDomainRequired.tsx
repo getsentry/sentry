@@ -2,7 +2,6 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {RouteComponent} from 'sentry/types/legacyReactRouter';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -30,7 +29,7 @@ import {useParams} from 'sentry/utils/useParams';
  *
  * Whenever https://orgslug.sentry.io/ is accessed in the browser, then both conditions above will be satisfied.
  */
-export function withDomainRequired(WrappedComponent: RouteComponent) {
+export function withDomainRequired(WrappedComponent: React.ComponentType<any>) {
   // eslint-disable-next-line @typescript-eslint/no-restricted-types
   return function WithDomainRequiredWrapper(props: object) {
     const params = useParams();

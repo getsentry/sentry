@@ -9,6 +9,9 @@ import {
   StyledSimpleTableHeaderCell,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  isEmbeddedMetricsSamplesTableSource,
+  type MetricsSamplesTableSource,
   SORTABLE_SAMPLE_COLUMNS,
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -22,12 +25,12 @@ import {
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];
-  embedded?: boolean;
+  source?: MetricsSamplesTableSource;
 }
 
 export function MetricsSamplesTableHeader({
   columns,
-  embedded,
+  source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
 }: MetricsSamplesTableHeaderProps) {
   const sorts = useQueryParamsSortBys();
   const setSorts = useSetQueryParamsSortBys();
@@ -44,7 +47,7 @@ export function MetricsSamplesTableHeader({
             index={i}
             sort={sorts.find(s => s.field === field)?.kind}
             setSorts={setSorts}
-            embedded={embedded}
+            source={source}
           >
             {label}
           </FieldHeaderCellWrapper>
@@ -60,19 +63,20 @@ function FieldHeaderCellWrapper({
   index,
   sort,
   setSorts,
-  embedded = false,
+  source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
 }: {
   children: ReactNode;
   field: SampleTableColumnKey;
   index: number;
   setSorts: (sorts: Sort[]) => void;
-  embedded?: boolean;
   sort?: 'asc' | 'desc';
+  source?: MetricsSamplesTableSource;
 }) {
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
   const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
-  const canSort = !embedded && SORTABLE_SAMPLE_COLUMNS.has(field);
+  const canSort =
+    !isEmbeddedMetricsSamplesTableSource(source) && SORTABLE_SAMPLE_COLUMNS.has(field);
 
   function handleSortClick() {
     const kind = sort === 'desc' ? 'asc' : 'desc';
@@ -89,7 +93,7 @@ function FieldHeaderCellWrapper({
           justifyContent: 'flex-end',
           paddingRight: 'calc(12px + 15px)', // 12px is the padding of the cell, 15px is the width of the scrollbar.
         }}
-        embedded={embedded}
+        source={source}
       >
         <Tooltip showOnlyOnOverflow title={label}>
           {children}
@@ -104,7 +108,7 @@ function FieldHeaderCellWrapper({
       sort={sort}
       handleSortClick={canSort ? handleSortClick : undefined}
       noPadding={!hasPadding}
-      embedded={embedded}
+      source={source}
     >
       <Tooltip showOnlyOnOverflow title={label}>
         {children}

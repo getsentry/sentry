@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -31,7 +32,7 @@ function TestComponent({
 }
 
 function getProps(props?: Parameters<typeof initializeOrg>[0]) {
-  const {organization, router, project} = initializeOrg({
+  const {organization, project} = initializeOrg({
     router: props?.router,
   });
 
@@ -39,9 +40,7 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
     api: new MockApiClient(),
     organization,
     project,
-    router,
-    isLoading: false,
-    location: router.location,
+    location: LocationFixture(props?.router?.location),
   };
 }
 

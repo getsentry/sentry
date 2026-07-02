@@ -3,7 +3,6 @@ from unittest import mock
 import pytest
 
 from sentry.seer.agent.context_engine_utils import ProjectEventCounts
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.context_engine_index import (
     get_allowed_org_ids_context_engine_indexing,
     index_org_project_knowledge,
@@ -340,8 +339,8 @@ class TestIndexRepos(TestCase):
     def test_calls_seer_with_correct_org_and_repos(
         self, mock_make_org_repo_knowledge_index_request
     ) -> None:
-        SeerProjectRepository.objects.create(project=self.project1, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project2, repository=self.repo2)
+        self.create_seer_project_repository(project=self.project1, repository=self.repo1)
+        self.create_seer_project_repository(project=self.project2, repository=self.repo2)
         mock_make_org_repo_knowledge_index_request.return_value.status = 200
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
@@ -374,8 +373,8 @@ class TestIndexRepos(TestCase):
     def test_deduplicates_repos_across_projects(
         self, mock_make_org_repo_knowledge_index_request
     ) -> None:
-        SeerProjectRepository.objects.create(project=self.project1, repository=self.repo1)
-        SeerProjectRepository.objects.create(project=self.project2, repository=self.repo1)
+        self.create_seer_project_repository(project=self.project1, repository=self.repo1)
+        self.create_seer_project_repository(project=self.project2, repository=self.repo1)
         mock_make_org_repo_knowledge_index_request.return_value.status = 200
         # Map project2 to the same repo as project1
         self.create_code_mapping(
@@ -419,7 +418,7 @@ class TestIndexRepos(TestCase):
             external_id="999",
             integration_id=self.integration.id,
         )
-        SeerProjectRepository.objects.create(project=self.project1, repository=seer_repo)
+        self.create_seer_project_repository(project=self.project1, repository=seer_repo)
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
             with self.feature({"organizations:context-engine-experiments": True}):
@@ -440,7 +439,7 @@ class TestIndexRepos(TestCase):
     ) -> None:
         mock_make_org_repo_knowledge_index_request.return_value.status = 200
 
-        SeerProjectRepository.objects.create(project=self.project1, repository=self.repo1)
+        self.create_seer_project_repository(project=self.project1, repository=self.repo1)
         # project2 has no SeerProjectRepository rows.
 
         with override_options({"explorer.context_engine_indexing.enable": True}):

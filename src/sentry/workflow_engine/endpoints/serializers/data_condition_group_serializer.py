@@ -11,7 +11,7 @@ from sentry.workflow_engine.models import (
 
 
 @register(DataConditionGroup)
-class DataConditionGroupSerializer(Serializer):
+class DataConditionGroupSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self, item_list: Sequence[DataConditionGroup], user: Any, **kwargs: Any
     ) -> MutableMapping[DataConditionGroup, dict[str, Any]]:

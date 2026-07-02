@@ -6,9 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {MobileVital, WebVital} from 'sentry/utils/fields';
+import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -22,9 +21,8 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -56,10 +54,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
     ? TRACE_VIEW_WEB_VITALS
     : TRACE_VIEW_MOBILE_VITALS;
 
-  const collectedVitals =
-    traceNode.isEAPEvent && tree.vital_types.has('mobile')
-      ? getMobileVitalsFromRootEventResults(rootEventResults.data)
-      : Array.from(tree.vitals.values()).flat();
+  const collectedVitals = Array.from(tree.vitals.values()).flat();
 
   const primaryVitalsCount = getPrimaryVitalsCount(
     vitalsToDisplay,
@@ -251,30 +246,6 @@ function getFormattedValue(
         )
       : defaultVitalValueFormatter(vitalDetails, vital.measurement.value)
     : '\u2014';
-}
-
-function getMobileVitalsFromRootEventResults(
-  data: TraceRootEventQueryResults['data']
-): TraceTree.CollectedVital[] {
-  if (!data || !isTraceItemDetailsResponse(data)) {
-    return [];
-  }
-
-  return data.attributes
-    .map(attribute => {
-      if (
-        TRACE_VIEW_MOBILE_VITALS.includes(attribute.name as MobileVital) &&
-        typeof attribute.value === 'number'
-      ) {
-        return {
-          key: attribute.name.replace('measurements.', ''),
-          measurement: {value: attribute.value},
-          score: undefined,
-        };
-      }
-      return;
-    })
-    .filter(defined);
 }
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {

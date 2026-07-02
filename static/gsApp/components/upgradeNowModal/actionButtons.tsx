@@ -11,17 +11,17 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
-import {redirectToManage} from './utils';
 
 type Props = {
   organization: Organization;
@@ -45,6 +45,7 @@ export function ActionButtons({
   surface,
 }: Props) {
   const api = useApi();
+  const navigate = useNavigate();
 
   const onUpdatePlan = async () => {
     try {
@@ -69,7 +70,6 @@ export function ActionButtons({
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {
           organization,
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),
@@ -79,32 +79,40 @@ export function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
     }
   };
 
   const onEmailOwner = async () => {
-    const currentPlanName =
-      subscription.planTier === PlanTier.AM2 ? 'am2-non-beta' : 'am1-non-beta';
-
     await sendReplayOnboardRequest({
       api,
       orgSlug: organization.slug,
-      currentPlan: currentPlanName,
+      currentPlan: 'am1-non-beta',
       onSuccess: () => {
         onComplete?.();
         closeModal();
         trackGetsentryAnalytics('upgrade_now.modal.sent_email', {
           organization,
           surface,
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),
         });
       },
       onError: () => {
-        redirectToManage(organization);
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_upgrade_modal-email_owner-error'},
+          }),
+          {replace: true}
+        );
       },
     });
   };
@@ -113,7 +121,6 @@ export function ActionButtons({
     trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
       organization,
       surface,
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),

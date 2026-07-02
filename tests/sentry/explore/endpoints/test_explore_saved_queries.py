@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.explore.endpoints.explore_saved_queries import (
+    PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
     sync_prebuilt_queries_starred,
 )
@@ -358,6 +359,117 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_get_hides_queries_when_no_project_access(self) -> None:
+        # Disable Open Membership so project-level access actually applies.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        # The "Test query" created in setUp is scoped to self.projects, which the outsider
+        # will not have access to. Add one query scoped to a project the outsider DOES
+        # have access to via a team — only this one should appear.
+        accessible_team = self.create_team(organization=self.org)
+        accessible_project = self.create_project(organization=self.org, teams=[accessible_team])
+        accessible_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Accessible query",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+        )
+        accessible_query.set_projects([accessible_project.id])
+
+        # And a "no projects" query authored by the owner — outsider must not see it.
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Owner all-projects query",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+        )
+
+        outsider = self.create_user()
+        self.create_member(
+            user=outsider, organization=self.org, role="member", teams=[accessible_team]
+        )
+        self.login_as(outsider)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        names = {item["name"] for item in response.data}
+        assert "Accessible query" in names
+        assert "Test query" not in names
+        assert "Owner all-projects query" not in names
+        # Prebuilt queries are product-level content and must remain visible to any org member.
+        prebuilt_names = {q["name"] for q in PREBUILT_SAVED_QUERIES}
+        assert prebuilt_names.issubset(names)
+
+    def test_get_prebuilt_visible_even_with_inaccessible_project(self) -> None:
+        # Prebuilts normally have no projects, but the queryset filter must mirror
+        # `has_object_permission`, which exempts prebuilts before any project check.
+        # Pin that contract: even a prebuilt that has somehow been linked to an
+        # inaccessible project must remain visible to a closed-membership member.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        restricted_team = self.create_team(organization=self.org, members=[])
+        restricted_project = self.create_project(organization=self.org, teams=[restricted_team])
+
+        # `prebuilt_id` / `prebuilt_version` must match the first entry of
+        # `PREBUILT_SAVED_QUERIES` so `sync_prebuilt_queries` doesn't update or delete
+        # the row from under us when the list endpoint runs.
+        prebuilt = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=None,
+            name="Edge-case prebuilt",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+            prebuilt_id=1,
+            prebuilt_version=1,
+        )
+        prebuilt.set_projects([restricted_project.id])
+
+        outsider = self.create_user()
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[])
+        self.login_as(outsider)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        names = {item["name"] for item in response.data}
+        assert "Edge-case prebuilt" in names
+
+    def test_get_shows_unprojected_query_to_creator_only(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        # Owner-authored "no projects" query that members shouldn't see.
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Owner all-projects query",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+        )
+
+        outsider = self.create_user()
+        team = self.create_team(organization=self.org)
+        self.create_member(user=outsider, organization=self.org, role="member", teams=[team])
+
+        # Outsider's own "no projects" query — they should still see it as the creator.
+        own_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=outsider.id,
+            name="Outsider all-projects query",
+            query={"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]},
+        )
+
+        self.login_as(outsider)
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        names = {item["name"] for item in response.data}
+        assert "Outsider all-projects query" in names
+        assert "Owner all-projects query" not in names
+        assert "Test query" not in names
+        assert str(own_query.id) in {item["id"] for item in response.data}
 
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)

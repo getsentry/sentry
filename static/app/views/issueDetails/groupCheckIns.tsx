@@ -12,8 +12,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {MonitorCheckInsGrid} from 'sentry/views/insights/crons/components/monitorCheckInsGrid';
 import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
-import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
-import {useCronIssueAlertId} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
+import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+import {useCronIssueAlertId} from 'sentry/views/issueDetails/issueCronCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 export default function GroupCheckIns() {

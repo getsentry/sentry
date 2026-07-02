@@ -2,8 +2,10 @@ import pytest
 from rest_framework import serializers
 
 from sentry.models.team import Team
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor, ActorType, parse_and_validate_actor
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -203,3 +205,16 @@ def test_parse_and_validate_actor() -> None:
     assert actor
     assert actor.id == team.id
     assert actor.actor_type == ActorType.TEAM
+
+
+@django_db_all
+def test_parse_and_validate_actor_rejects_deactivated_user() -> None:
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        user.is_active = False
+        user.save()
+
+    with pytest.raises(serializers.ValidationError, match="deactivated"):
+        parse_and_validate_actor(f"user:{user.id}", org.id)

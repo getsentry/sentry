@@ -64,7 +64,7 @@ export function PreviewTable({
         key={group.id}
         group={group}
         hasGuideAnchor={false}
-        memberList={group.project ? memberList[group.project.slug] : undefined}
+        memberList={group.project ? memberList.get(group.project.slug) : undefined}
         displayReprocessingLayout={false}
         useFilteredStats
         withChart={false}

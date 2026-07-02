@@ -144,7 +144,6 @@ export function filterAllowedChartsMetrics(
 ) {
   if (
     !canUseMetricsData(organization) ||
-    organization.features.includes('performance-mep-reintroduce-histograms') ||
     mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
   ) {
     return allowedCharts;

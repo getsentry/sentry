@@ -12,8 +12,8 @@ import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
@@ -26,12 +26,12 @@ import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
-  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useQueryParamsId} from 'sentry/views/explore/queryParams/context';
@@ -162,12 +162,13 @@ export function useSaveAsItems({
       textValue: newAlertLabel,
       children: alertsUrls ?? [],
       disabled: !alertsUrls || alertsUrls.length === 0,
-      isSubmenu: true,
+      submenu: true,
     };
   }, [aggregates, interval, organization, pageFilters, project, search]);
 
   const saveAsDashboard = useMemo(() => {
     const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
+      const visualize = visualizes[index];
       const func = parseFunction(yAxis);
       const label = func ? prettifyParsedFunction(func) : yAxis;
 
@@ -206,8 +207,9 @@ export function useSaveAsItems({
             discoverQuery,
             pageFilters.selection
           );
-          // the chart currently track the chart type internally so force bar type for now
-          eventView.display = DisplayType.BAR;
+          if (visualize) {
+            eventView.display = CHART_TYPE_TO_DISPLAY_TYPE[visualize.chartType];
+          }
 
           handleAddQueryToDashboard({
             organization,
@@ -225,7 +227,7 @@ export function useSaveAsItems({
       key: 'add-to-dashboard',
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
         >
@@ -235,9 +237,19 @@ export function useSaveAsItems({
       textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
-      isSubmenu: true,
+      submenu: true,
     };
-  }, [aggregates, groupBys, mode, organization, pageFilters, search, sortBys, location]);
+  }, [
+    aggregates,
+    groupBys,
+    mode,
+    organization,
+    pageFilters,
+    search,
+    sortBys,
+    location,
+    visualizes,
+  ]);
 
   return useMemo(() => {
     const saveAs = [];

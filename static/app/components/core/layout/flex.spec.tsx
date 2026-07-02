@@ -1,4 +1,4 @@
-import React, {createRef} from 'react';
+import {createRef, Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -108,14 +108,14 @@ describe('Flex', () => {
 
   it('reuses class names for the same props', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Flex radius="sm" padding="md">
           Padding First
         </Flex>
         <Flex radius="sm" padding="md">
           PaddingBottom First
         </Flex>
-      </React.Fragment>
+      </Fragment>
     );
 
     const paddingFirst = screen.getByText('Padding First').className;

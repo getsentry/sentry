@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -183,7 +184,13 @@ const CursorLabel = styled(Overlay)<{
   line-height: 1.2;
   position: absolute;
   ${p =>
-    p.anchor === 'top' ? `top: ${p.anchorOffset}px;` : `bottom: ${p.anchorOffset}px;`}
+    p.anchor === 'top'
+      ? css`
+          top: ${p.anchorOffset}px;
+        `
+      : css`
+          bottom: ${p.anchorOffset}px;
+        `}
   left: clamp(
     0px,
     calc(var(--cursorOffset) + ${p => p.offsets?.left ?? 0}px + ${TOOLTIP_OFFSET}px),

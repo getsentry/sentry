@@ -243,14 +243,14 @@ describe('useConversation', () => {
     });
 
     // Verify the API was called with correct timestamps (with 1-hour padding)
-    // and that project comes from page filters (empty array = my projects), not hardcoded -1
+    // and ALL_ACCESS_PROJECTS (-1) when no project is selected in page filters
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/ai-conversations/conv-timestamps/'),
       expect.objectContaining({
         query: expect.objectContaining({
           start: new Date(startTimestamp - 60 * 60 * 1000).toISOString(),
           end: new Date(endTimestamp + 60 * 60 * 1000).toISOString(),
-          project: [],
+          project: [-1],
         }),
       })
     );
@@ -403,6 +403,69 @@ describe('useConversation', () => {
     expect(queryArg).not.toHaveProperty('statsPeriod');
   });
 
+  it('falls back to ALL_ACCESS_PROJECTS with no time params when no filters are set', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [-1],
+        }),
+      })
+    );
+    // No statsPeriod sent — backend uses its 30d retention fallback
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('statsPeriod');
+    expect(queryArg).not.toHaveProperty('start');
+    expect(queryArg).not.toHaveProperty('end');
+  });
+
+  it('uses relative period from page filters when explicitly set', async () => {
+    act(() =>
+      PageFiltersStore.updateDateTime({
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: [BASE_SPAN],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '7d',
+        }),
+      })
+    );
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('start');
+    expect(queryArg).not.toHaveProperty('end');
+  });
+
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
@@ -448,5 +511,82 @@ describe('useConversation', () => {
     // Only the gen_ai span should be included
     expect(result.current.nodes).toHaveLength(1);
     expect(result.current.nodes[0]?.id).toBe('span-ai');
+  });
+
+  it('maps errors and occurrences from the response onto the node', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-issues/`,
+      body: [
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-issues',
+          span_id: 'span-issues',
+          errors: [
+            {
+              event_id: 'error-1',
+              event_type: 'error',
+              issue_id: 111,
+              level: 'error',
+              project_id: 1,
+              project_slug: 'test-project',
+              start_timestamp: 1000,
+              transaction: 'gen_ai.generate',
+            },
+          ],
+          occurrences: [
+            {
+              event_id: 'occurrence-1',
+              event_type: 'occurrence',
+              issue_id: 222,
+              issue_type: 1001,
+              level: 'info',
+              culprit: 'culprit',
+              description: 'Slow thing',
+              project_id: 1,
+              project_slug: 'test-project',
+              start_timestamp: 1000,
+              transaction: 'gen_ai.generate',
+            },
+          ],
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-issues'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const node = result.current.nodes[0];
+    expect(node?.uniqueErrorIssues.map(issue => issue.issue_id)).toEqual([111]);
+    expect(node?.uniqueOccurrenceIssues.map(issue => issue.issue_id)).toEqual([222]);
+    expect(node?.uniqueIssues.map(issue => issue.issue_id)).toEqual([111, 222]);
+  });
+
+  it('defaults to no issues when the response omits errors and occurrences', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-no-issues/`,
+      body: [
+        {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-no-issues'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const node = result.current.nodes[0];
+    expect(node?.uniqueIssues).toEqual([]);
+    expect(node?.uniqueErrorIssues).toEqual([]);
+    expect(node?.uniqueOccurrenceIssues).toEqual([]);
   });
 });

@@ -11,13 +11,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
+import {ORDER, WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {getFormattedDuration} from './webVitalMeters';
 
@@ -29,11 +30,11 @@ type Coordinates = {
 type WebVitalsLabelCoordinates = Partial<Record<WebVitals, Coordinates>>;
 
 type ProjectData = {
-  'p75(measurements.cls)': number;
-  'p75(measurements.fcp)': number;
-  'p75(measurements.inp)': number;
-  'p75(measurements.lcp)': number;
-  'p75(measurements.ttfb)': number;
+  'p75(browser.web_vital.cls.value)': number;
+  'p75(browser.web_vital.fcp.value)': number;
+  'p75(browser.web_vital.inp.value)': number;
+  'p75(browser.web_vital.lcp.value)': number;
+  'p75(browser.web_vital.ttfb.value)': number;
 };
 
 type Props = {
@@ -85,8 +86,12 @@ function WebVitalLabel({
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round(projectData?.[0]?.['p75(measurements.cls)']! * 100) / 100
-      : getFormattedDuration(projectData?.[0]?.[`p75(measurements.${webVital})`]! / 1000);
+      ? Math.round(
+          projectData?.[0]?.[`p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`]! * 100
+        ) / 100
+      : getFormattedDuration(
+          projectData?.[0]?.[`p75(${WEB_VITAL_TO_FIELD[webVital]})`]! / 1000
+        );
 
   const diffValue = differenceToPreviousPeriod?.[`${webVital}Score`];
 

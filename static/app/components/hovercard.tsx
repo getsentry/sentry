@@ -8,7 +8,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
-import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+import {HoverOverlayGroupProvider, useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
   /**
@@ -181,7 +181,10 @@ function Hovercard({
   return (
     <HovercardContext.Provider value={contextValue}>
       {wrapTrigger(children)}
-      {createPortal(hovercard, portalContainer)}
+      {createPortal(
+        <HoverOverlayGroupProvider>{hovercard}</HoverOverlayGroupProvider>,
+        portalContainer
+      )}
     </HovercardContext.Provider>
   );
 }

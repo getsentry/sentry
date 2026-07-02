@@ -18,7 +18,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -38,8 +37,6 @@ export function RelatedIssues({
   end,
   statsPeriod,
 }: Props) {
-  const isEAP = useTransactionSummaryEAP();
-
   const getIssuesEndpointQueryParams = () => {
     const queryParams = {
       start,
@@ -50,12 +47,7 @@ export function RelatedIssues({
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
-    if (isEAP) {
-      // Issues and EAP spans disagree on what to call the HTTP request method
-      // parameter, and it's commonly present in the query since the Insights
-      // landing pages add it for HTTP transactions.
-      currentFilter.renameFilter('request.method', 'http.method');
-    }
+    currentFilter.renameFilter('request.method', 'http.method');
     removeTracingKeysFromSearch(currentFilter);
     currentFilter
       .addFreeText('is:unresolved')

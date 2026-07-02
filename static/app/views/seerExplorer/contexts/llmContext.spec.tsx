@@ -26,7 +26,9 @@ function makeContextCapture() {
   }
 
   function getSnapshot(componentOnly?: boolean): LLMContextSnapshot {
-    if (!ref.current) throw new Error('ContextCapture not mounted');
+    if (!ref.current) {
+      throw new Error('ContextCapture not mounted');
+    }
     return ref.current(componentOnly);
   }
 
@@ -420,7 +422,9 @@ describe('getLLMContext — full tree vs componentOnly', () => {
     // componentOnly snapshot should contain only the dashboard + its inner widget,
     // not the sibling dashboard
     await waitFor(() => {
-      if (!innerRef.current) throw new Error('not mounted');
+      if (!innerRef.current) {
+        throw new Error('not mounted');
+      }
       const snapshot = innerRef.current(true); // componentOnly
       expect(snapshot.nodes).toHaveLength(1);
       expect(snapshot.nodes[0]?.nodeType).toBe('dashboard');

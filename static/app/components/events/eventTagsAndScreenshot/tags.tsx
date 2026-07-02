@@ -1,24 +1,20 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,
   getSentryDefaultTags,
   TagFilter,
   TagFilterData,
-  TAGS_DOCS_LINK,
 } from 'sentry/components/events/eventTags/util';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type Props = {
   event: Event;
@@ -84,20 +80,11 @@ export function EventTagsDataSection({
   );
 
   return (
-    <StyledEventDataSection
+    <FoldSection
       disableCollapsePersistence={disableCollapsePersistence}
-      title={
-        <GuideAnchor target="tags" position="top">
-          {t('Tags')}
-        </GuideAnchor>
-      }
-      help={tct('The searchable tags associated with this event. [link:Learn more]', {
-        link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
-      })}
-      isHelpHoverable
+      title={t('Tags')}
       actions={actions}
-      data-test-id="event-tags"
-      type={SectionKey.TAGS}
+      sectionKey={SectionKey.TAGS}
       ref={ref}
     >
       <EventTags
@@ -106,15 +93,6 @@ export function EventTagsDataSection({
         tagFilter={tagFilter}
         filteredTags={filteredTags ?? []}
       />
-    </StyledEventDataSection>
+    </FoldSection>
   );
 }
-
-const StyledEventDataSection = styled(InterimSection)`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl} ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']}
-      ${p => p.theme.space.lg};
-  }
-`;

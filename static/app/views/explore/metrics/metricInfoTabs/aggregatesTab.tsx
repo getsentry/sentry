@@ -177,6 +177,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     return false;
   };
 
+  const topResultsCount = topEvents ? Math.min(result.data?.length ?? 0, topEvents) : 0;
+
   const isPending = result.isPending && !isMetricOptionsEmpty;
 
   return (
@@ -220,6 +222,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
               isAggregate={
                 Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
               }
+              source="metricsPage"
               sort={direction}
               handleSortClick={canSort ? updateSort : undefined}
             >
@@ -246,13 +249,14 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
             return (
               <SimpleTable.Row key={i} style={{minHeight: '33px'}}>
                 {topEvents && i < topEvents && (
-                  <StyledTopResultsIndicator count={topEvents} index={i} />
+                  <StyledTopResultsIndicator count={topResultsCount} index={i} />
                 )}
                 {displayFields.map((field, j) => (
                   <AggregatesStyledRowCell
                     key={j}
                     isAggregate={Boolean(parseFunction(field))}
                     offset={j === 0 ? firstColumnOffset : undefined}
+                    source="metricsPage"
                   >
                     <FieldRenderer
                       column={displayColumns.find(column => column.key === field)}

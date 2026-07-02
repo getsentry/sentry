@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from django.utils import timezone
@@ -13,6 +14,8 @@ from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNoti
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -32,16 +35,16 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
 
     commit = Commit.objects.get(id=commit_id)
 
-    code_mappings = (
+    code_mappings = list(
         RepositoryProjectPathConfig.objects.filter(
-            repository_id=commit.repository_id,
-            project__organization_id=commit.organization_id,
+            project_repository__repository_id=commit.repository_id,
+            project_repository__project__organization_id=commit.organization_id,
         )
         .annotate(
             # By default, we don't create a ProjectOwnership record (bc we treat as a negative cache) when we create ProjectCodeOwners records.
             ownership_exists=Exists(
                 ProjectOwnership.objects.filter(
-                    project=OuterRef("project"),
+                    project=OuterRef("project_repository__project"),
                 )
             )
         )
@@ -52,9 +55,9 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
                 When(
                     ownership_exists=True,
                     then=Subquery(
-                        ProjectOwnership.objects.filter(project=OuterRef("project")).values_list(
-                            "codeowners_auto_sync", flat=True
-                        )[:1],
+                        ProjectOwnership.objects.filter(
+                            project=OuterRef("project_repository__project")
+                        ).values_list("codeowners_auto_sync", flat=True)[:1],
                     ),
                 ),
                 default=True,
@@ -68,27 +71,42 @@ def code_owners_auto_sync(commit_id: int, **kwargs: Any) -> None:
             )
         )
         .filter(codeowners_auto_sync=True, has_codeowners=True)
+        .select_related("project_repository__project")
     )
 
     for code_mapping in code_mappings:
         try:
             codeowner_contents = get_codeowner_contents(code_mapping)
         except (NotImplementedError, NotFound):
+            logger.warning(
+                "code_owners_auto_sync.fetch_error",
+                extra={"commit_id": commit_id, "code_mapping_id": code_mapping.id},
+            )
             codeowner_contents = None
 
         # If we fail to fetch the codeowners file, the user can manually sync. We'll send them an email on failure.
         if not codeowner_contents:
-            AutoSyncNotification(code_mapping.project).send()
+            logger.warning(
+                "code_owners_auto_sync.fetch_failed",
+                extra={"commit_id": commit_id, "code_mapping_id": code_mapping.id},
+            )
+            project = code_mapping.project_repository.project
+            AutoSyncNotification(project).send()
             return
 
-        codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
-            repository_project_path_config=code_mapping
-        )
-        organization = Organization.objects.get(id=code_mapping.organization_id)
-        codeowners.date_synced = timezone.now()
-        codeowners.update_schema(
-            organization=organization,
-            raw=codeowner_contents["raw"],
-        )
-
-        # TODO(Nisanthan): Record analytics on auto-sync success
+        try:
+            codeowners: ProjectCodeOwners = ProjectCodeOwners.objects.get(
+                repository_project_path_config=code_mapping
+            )
+            organization = Organization.objects.get(id=code_mapping.organization_id)
+            codeowners.date_synced = timezone.now()
+            codeowners.update_schema(
+                organization=organization,
+                raw=codeowner_contents["raw"],
+            )
+        except Exception:
+            logger.exception(
+                "code_owners_auto_sync.update_schema_failed",
+                extra={"commit_id": commit_id, "code_mapping_id": code_mapping.id},
+            )
+            continue

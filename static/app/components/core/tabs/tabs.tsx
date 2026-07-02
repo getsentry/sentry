@@ -110,5 +110,5 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
     css`
       height: 100%;
       align-items: stretch;
-    `};
+    `}
 `;

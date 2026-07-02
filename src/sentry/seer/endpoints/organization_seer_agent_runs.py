@@ -14,10 +14,16 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import AgentRun
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)
+
+
+class AgentRunWithUuid(AgentRun):
+    sentry_run_id: str | None
 
 
 class OrganizationSeerAgentRunsPermission(OrganizationPermission):
@@ -29,7 +35,7 @@ class OrganizationSeerAgentRunsPermission(OrganizationPermission):
 @cell_silo_endpoint
 class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -47,6 +53,7 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
                 user. If "false", return runs regardless of owner.
             category_key: Optional category key to filter by (e.g., "night_shift", "autofix")
             category_value: Optional category value to filter by (e.g., "org-123")
+            query: Optional search string to filter runs by title
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
@@ -54,6 +61,7 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
 
         category_key = request.GET.get("category_key")
         category_value = request.GET.get("category_value")
+        query = request.GET.get("query")
         only_current_user = request.GET.get("owner", "true").lower() != "false"
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
@@ -65,11 +73,26 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
                     offset=offset,
                     limit=limit,
                     only_current_user=only_current_user,
+                    query=query,
                 )
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e
 
-            return {"data": [run.dict() for run in runs]}
+            uuid_by_state_id = {
+                seer_run_state_id: str(run_uuid)
+                for seer_run_state_id, run_uuid in SeerRun.objects.filter(
+                    organization=organization,
+                    seer_run_state_id__in=[run.run_id for run in runs],
+                ).values_list("seer_run_state_id", "uuid")
+            }
+            return {
+                "data": [
+                    AgentRunWithUuid(
+                        **run.dict(), sentry_run_id=uuid_by_state_id.get(run.run_id)
+                    ).dict()
+                    for run in runs
+                ]
+            }
 
         return self.paginate(
             request=request,

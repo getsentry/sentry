@@ -4,7 +4,6 @@ from sentry.api.serializers import serialize
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
@@ -28,7 +27,6 @@ class RuleGroupHistorySerializerTest(TestCase):
 
 
 @freeze_time()
-@with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 

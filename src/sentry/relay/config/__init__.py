@@ -48,25 +48,26 @@ from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
+from sentry.utils.tracing import start_span
 
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
+    "organizations:continuous-profiling-perfetto",
     "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
+    "organizations:relay-generate-billing-outcome",
     "projects:discard-transaction",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
-    "organizations:relay-default-trace-id",
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
@@ -74,6 +75,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
+    "projects:minidump-multi-exception",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -228,8 +230,9 @@ def get_project_config(
     """
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
+        scope.set_attribute("project", project.id)
         with (
-            sentry_sdk.start_transaction(name="get_project_config"),
+            start_span(name="get_project_config", transaction=True),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
             return _get_project_config(project, project_keys=project_keys)
@@ -829,7 +832,7 @@ def _get_project_config(
 
     public_keys = get_public_key_configs(project_keys=project_keys)
 
-    with sentry_sdk.start_span(op="get_public_config"):
+    with start_span(op="get_public_config", name="get_public_config"):
         now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
@@ -854,15 +857,16 @@ def _get_project_config(
 
     config = cfg["config"]
 
-    if features.has("organizations:ingest-through-trusted-relays-only", project.organization):
-        config["trustedRelaySettings"] = {
-            "verifySignature": project.organization.get_option(
-                "sentry:ingest-through-trusted-relays-only",
-                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-            )
-        }
+    # Only write trustedRelaySettings when non-default; Relay's normalize_project_config
+    # strips it when verifySignature is "disabled", treating absent and disabled as equivalent.
+    verify_signature = project.organization.get_option(
+        "sentry:ingest-through-trusted-relays-only",
+        INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+    )
+    if verify_signature != INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT:
+        config["trustedRelaySettings"] = {"verifySignature": verify_signature}
 
-    with sentry_sdk.start_span(op="get_exposed_features"):
+    with start_span(op="get_exposed_features", name="get_exposed_features"):
         if exposed_features := get_exposed_features(project):
             config["features"] = exposed_features
 
@@ -912,24 +916,26 @@ def _get_project_config(
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}
 
-    with sentry_sdk.start_span(op="get_filter_settings"):
+    with start_span(op="get_filter_settings", name="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings
-    with sentry_sdk.start_span(op="get_grouping_config_dict_for_project"):
+    with start_span(
+        op="get_grouping_config_dict_for_project", name="get_grouping_config_dict_for_project"
+    ):
         grouping_config = get_grouping_config_dict_for_project(project)
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
-    with sentry_sdk.start_span(op="get_event_retention"):
+    with start_span(op="get_event_retention", name="get_event_retention"):
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
-    with sentry_sdk.start_span(op="get_downsampled_event_retention"):
+    with start_span(op="get_downsampled_event_retention", name="get_downsampled_event_retention"):
         downsampled_event_retention = quotas.backend.get_downsampled_event_retention(
             project.organization
         )
         if downsampled_event_retention is not None:
             config["downsampledEventRetention"] = downsampled_event_retention
-    with sentry_sdk.start_span(op="get_retentions"):
+    with start_span(op="get_retentions", name="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
         retentions_config = {
             RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
@@ -939,12 +945,12 @@ def _get_project_config(
         if retentions_config:
             config["retentions"] = retentions_config
 
-    with sentry_sdk.start_span(op="get_trimming_configs"):
+    with start_span(op="get_trimming_configs", name="get_trimming_configs"):
         trimming_configs = quotas.backend.get_trimming_configs(project.organization)
         if trimming_configs:
             config["trimming"] = trimming_configs
 
-    with sentry_sdk.start_span(op="get_all_quotas"):
+    with start_span(op="get_all_quotas", name="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 

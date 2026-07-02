@@ -1,7 +1,7 @@
 import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -12,7 +12,7 @@ interface DetailedProjectParameters {
 }
 
 type DetailedProjectOptions = Omit<
-  UseQueryOptions<ApiResponse<Project>, Error, Project, ApiQueryKey>,
+  UseQueryOptions<ApiResponse<DetailedProject>, Error, DetailedProject, ApiQueryKey>,
   'queryKey' | 'queryFn' | 'select'
 >;
 
@@ -20,7 +20,7 @@ export const makeDetailedProjectApiOptions = ({
   orgSlug,
   projectSlug,
 }: DetailedProjectParameters) =>
-  apiOptions.as<Project>()('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+  apiOptions.as<DetailedProject>()('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
     path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
     query: {
       // Skips expensive properties of organization details

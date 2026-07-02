@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {
   SessionStatusCountByProjectInPeriodFixture,
   SessionStatusCountByReleaseInPeriodFixture,
@@ -18,7 +19,8 @@ import ReleasesRequest, {
 } from 'sentry/views/explore/releases/list/releasesRequest';
 
 describe('ReleasesRequest', () => {
-  const {organization, router} = initializeOrg();
+  const {organization} = initializeOrg();
+  const location = LocationFixture();
   const projectId = 123;
   const selection = {
     projects: [projectId],
@@ -188,7 +190,7 @@ describe('ReleasesRequest', () => {
         ]}
         organization={organization}
         location={{
-          ...router.location,
+          ...location,
           query: {
             project: [`${projectId}`],
           },
@@ -418,7 +420,7 @@ describe('ReleasesRequest', () => {
         ]}
         organization={organization}
         location={{
-          ...router.location,
+          ...location,
           query: {
             project: [`${projectId}`],
           },
@@ -646,7 +648,7 @@ describe('ReleasesRequest', () => {
         ]}
         organization={organization}
         location={{
-          ...router.location,
+          ...location,
           query: {
             project: [`${projectId}`],
           },

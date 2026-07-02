@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
 
-mod = __import__("sentry.migrations.0929_no_pickle_authenticator", fromlist=["_trash"])
+from sentry.new_migrations.operations import to_jsonb
 
 
 class Migration(CheckedMigration):
@@ -29,8 +29,8 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                mod.to_jsonb("sentry_option", "value"),
-                mod.to_jsonb("sentry_controloption", "value"),
+                to_jsonb("sentry_option", "value"),
+                to_jsonb("sentry_controloption", "value"),
             ],
             state_operations=[
                 migrations.AlterField(

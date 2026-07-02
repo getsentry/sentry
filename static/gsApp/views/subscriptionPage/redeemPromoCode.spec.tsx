@@ -4,7 +4,6 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import RedeemPromoCode from 'getsentry/views/redeemPromoCode';
 
 describe('Redeem promo code', () => {
@@ -17,7 +16,6 @@ describe('Redeem promo code', () => {
   it('renders redeem promo code page', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -30,13 +28,12 @@ describe('Redeem promo code', () => {
         route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
-    expect(screen.queryAllByText('Redeem Promotional Code')).toHaveLength(2);
+    expect(screen.getByText('Redeem Promotional Code')).toBeInTheDocument();
   });
 
   it('does not render redeem promo code page for YY partnership orgs', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_business',
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'YY Org',
@@ -66,7 +63,6 @@ describe('Redeem promo code', () => {
   it('submits promo code successfully', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);

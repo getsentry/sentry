@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {ApiForm} from 'sentry/components/forms/apiForm';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -39,6 +39,8 @@ const fieldProps = {
 } as const;
 
 export function InstanceLevelOAuthDetails() {
+  const {openModal} = useModal();
+
   const api = useApi();
   const params = useParams<{clientID: string}>();
 

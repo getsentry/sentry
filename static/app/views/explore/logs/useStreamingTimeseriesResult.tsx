@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import type {
@@ -12,10 +12,10 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
@@ -24,7 +24,7 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type BufferEntry = {
   bucketIndex: number;
@@ -77,10 +77,10 @@ type BufferedTimeseriesGroup = {
  */
 
 export function useStreamingTimeseriesResult(
-  tableData: ReturnType<typeof useLogsPageDataQueryResult>,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
+  tableData: UseInfiniteLogsQueryResult,
+  timeseriesResult: SortedTimeSeries,
   timeseriesIngestDelay: bigint
-): ReturnType<typeof useSortedTimeSeries> {
+): SortedTimeSeries {
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
@@ -326,7 +326,7 @@ function getSeriesGroupValue(series: TimeSeries): string {
 
 function createMergedDataFromBuffer(
   shouldUseStreamedData: boolean,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
+  timeseriesResult: SortedTimeSeries,
   groupBuffers: Record<string, BufferedTimeseriesGroup>,
   timeseriesStartTimestamp: number | undefined,
   timeseriesIntervalDuration: number | null,

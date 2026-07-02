@@ -16,10 +16,12 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 interface SeerDrawerProps {
   group: Group;
@@ -27,11 +29,15 @@ interface SeerDrawerProps {
 }
 
 export function SeerDrawer({group, project}: SeerDrawerProps) {
+  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const aiAutofix = useExplorerAutofix(group.id);
+  const aiAutofix = useExplorerAutofix(group.id, {
+    pollPR: organization.features.includes('autofix-pr-iteration'),
+  });
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleRestart = useHandleRestart({aiAutofix});
+  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix});
 
   const referrer = useMemo(
     () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
@@ -62,6 +68,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
     >
       <SeerDrawerHeader
         onCopyMarkdown={handleCopyMarkdown}
+        onOpenSeerAgent={handleOpenSeerAgent}
         onReset={handleRestart}
         referrer={referrer}
       />
@@ -80,7 +87,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   );
 }
 
-function useHandleCopyMarkdown({
+export function useHandleCopyMarkdown({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
@@ -96,7 +103,7 @@ function useHandleCopyMarkdown({
       const markdown = getOrderedAutofixSections(aiAutofix.runState)
         .map(getAutofixArtifactFromSection)
         .filter(defined)
-        .map(artifactToMarkdown)
+        .map(artifact => artifactToMarkdown(artifact))
         .filter(defined)
         .join('\n\n');
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
@@ -104,7 +111,7 @@ function useHandleCopyMarkdown({
   }, [aiAutofix, copy]);
 }
 
-function useHandleRestart({
+export function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
@@ -114,4 +121,20 @@ function useHandleRestart({
   return useCallback(() => {
     startStep('root_cause');
   }, [startStep]);
+}
+
+function useHandleOpenSeerAgent({
+  aiAutofix,
+}: {
+  aiAutofix: ReturnType<typeof useExplorerAutofix>;
+}): (() => void) | undefined {
+  const {openSeerExplorerDrawer} = useSeerExplorerDrawer();
+  const runId = aiAutofix.runState?.run_id;
+
+  return useMemo(() => {
+    if (!defined(runId)) {
+      return;
+    }
+    return () => openSeerExplorerDrawer({runId});
+  }, [openSeerExplorerDrawer, runId]);
 }

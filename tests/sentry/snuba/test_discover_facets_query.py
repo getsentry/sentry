@@ -55,9 +55,9 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago),
             "testing.get-facets-test",
         )
-        assert len(result) == 5
-        assert {r.key for r in result} == {"color", "paying", "level"}
-        assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
+        assert len(result) == 6
+        assert {r.key for r in result} == {"color", "paying", "level", "interface_type"}
+        assert {r.value for r in result} == {"red", "blue", "1", "0", "error", "logentry"}
         assert {r.count for r in result} == {1, 2}
 
     def test_project_filter(self) -> None:
@@ -83,7 +83,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         params = SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago)
         result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
-        assert keys == {"color", "level"}
+        assert keys == {"color", "level", "interface_type"}
 
         # Query more than one project.
         params = SnubaParams(
@@ -91,7 +91,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         )
         result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
-        assert keys == {"level", "toy", "color", "project"}
+        assert keys == {"level", "toy", "color", "project", "interface_type"}
 
         projects = [f for f in result if f.key == "project"]
         assert [p.count for p in projects] == [1, 1]
@@ -113,7 +113,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             "testing.get-facets-test",
         )
         keys = {r.key for r in result}
-        assert keys == {"environment", "level"}
+        assert keys == {"environment", "level", "interface_type"}
         assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
         assert {1} == {f.count for f in result if f.key == "environment"}
 

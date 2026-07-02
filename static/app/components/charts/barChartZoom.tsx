@@ -2,6 +2,7 @@ import type {Location} from 'history';
 
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
@@ -94,16 +95,7 @@ export function BarChartZoom({
    * Chart event when *any* rendering+animation finishes
    */
   const handleChartFinished = (_props: any, chart: any) => {
-    // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
-    if (zoom && !zoom._features.dataZoom._isZoomActive) {
-      // Calling dispatchAction will re-trigger handleChartFinished
-      chart.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'dataZoomSelect',
-        dataZoomSelectActive: true,
-      });
-    }
+    activateZoomAreaSelect(chart);
   };
 
   const handleDataZoom = (evt: any, chart: any) => {

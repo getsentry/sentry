@@ -9,7 +9,7 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -157,7 +157,7 @@ export default function AccountSecurityDetails() {
           />
         }
         action={
-          <Grid flow="column" align="center" gap="md">
+          <Flex gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
@@ -181,7 +181,7 @@ export default function AccountSecurityDetails() {
                 </Button>
               </RemoveConfirm>
             )}
-          </Grid>
+          </Flex>
         }
       />
 

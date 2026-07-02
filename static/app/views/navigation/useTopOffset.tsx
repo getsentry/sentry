@@ -1,17 +1,15 @@
 import {useTheme} from '@emotion/react';
 
+import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT,
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
   SUPERUSER_MARQUEE_HEIGHT,
 } from 'sentry/views/navigation/constants';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface TopOffset {
   /** The `top` CSS value for the sticky bar itself */
@@ -22,21 +20,12 @@ interface TopOffset {
 
 export function useTopOffset(): TopOffset {
   const theme = useTheme();
-  const hasPageFrame = useHasPageFrameFeature();
   const organization = useOrganization({allowNull: true});
   const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
   const showSuperuserWarning =
-    hasPageFrame &&
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
-
-  if (!hasPageFrame) {
-    return {
-      barTop: '0px',
-      contentTop: `${isMobile ? NAVIGATION_MOBILE_TOPBAR_HEIGHT : 0}px`,
-    };
-  }
+    !getOverride('component:superuser-warning-excluded')?.(organization);
 
   const superuserOffset = showSuperuserWarning ? SUPERUSER_MARQUEE_HEIGHT : 0;
   const headerHeight = isMobile

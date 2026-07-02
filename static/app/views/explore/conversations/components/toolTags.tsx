@@ -1,9 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -19,8 +18,9 @@ export function ToolTags({toolNames}: ToolTagsProps) {
   const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const tagRefs = useRef(new Map<number, HTMLElement>());
+  const toggleButtonRef = useRef<HTMLDivElement>(null);
 
-  // Calculate how many tags are hidden (overflow beyond 2 rows)
+  // Calculate how many tags are hidden (overflow beyond 2 rows, or overlapped by the "+N more" button)
   useEffect(() => {
     const container = containerRef.current;
     if (expanded || !container) {
@@ -28,9 +28,18 @@ export function ToolTags({toolNames}: ToolTagsProps) {
     }
 
     const calculateHidden = () => {
+      const buttonWidth = toggleButtonRef.current?.offsetWidth ?? 0;
+      const containerWidth = container.offsetWidth;
+
       let hidden = 0;
       tagRefs.current.forEach(tagEl => {
         if (tagEl.offsetTop >= TWO_ROW_HEIGHT) {
+          hidden++;
+        } else if (
+          buttonWidth > 0 &&
+          tagEl.offsetLeft + tagEl.offsetWidth > containerWidth - buttonWidth
+        ) {
+          // Tag on the last visible row is partially covered by the "+N more" button
           hidden++;
         }
       });
@@ -45,10 +54,20 @@ export function ToolTags({toolNames}: ToolTagsProps) {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [toolNames, expanded]);
+    // hiddenCount is included so we re-check after the button appears (it only renders when hiddenCount > 0)
+  }, [toolNames, expanded, hiddenCount]);
 
   return (
-    <ToolTagsContainer ref={containerRef} expanded={expanded}>
+    <Flex
+      ref={containerRef}
+      align="center"
+      gap="sm"
+      wrap="wrap"
+      overflow="hidden"
+      position="relative"
+      maxHeight={expanded ? '500px' : `${TWO_ROW_HEIGHT}px`}
+      style={{transition: 'max-height 0.2s ease-in-out'}}
+    >
       {toolNames.map((toolName, index) => (
         <Tag
           key={toolName}
@@ -60,52 +79,34 @@ export function ToolTags({toolNames}: ToolTagsProps) {
             }
           }}
           variant="info"
+          style={{maxWidth: '100%', minWidth: 0}}
         >
           {toolName}
         </Tag>
       ))}
       {hiddenCount > 0 && !expanded && (
-        <ToggleButtonWrapper>
-          <ToggleButton
-            variant="link"
-            size="xs"
-            onClick={() => setExpanded(prev => !prev)}
-          >
+        <Flex
+          ref={toggleButtonRef}
+          align="center"
+          position="absolute"
+          right="0"
+          bottom="4px"
+          height="22px"
+          background="primary"
+          paddingLeft="sm"
+        >
+          <Button variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
             {t('+%s more', hiddenCount)}
-          </ToggleButton>
-        </ToggleButtonWrapper>
+          </Button>
+        </Flex>
       )}
       {expanded && (
-        <ToggleButton variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
-          {t('Show less')}
-        </ToggleButton>
+        <Container flexShrink={0}>
+          <Button variant="link" size="xs" onClick={() => setExpanded(prev => !prev)}>
+            {t('Show less')}
+          </Button>
+        </Container>
       )}
-    </ToolTagsContainer>
+    </Flex>
   );
 }
-
-const ToolTagsContainer = styled(Flex)<{expanded: boolean}>`
-  align-items: center;
-  flex-direction: row;
-  gap: ${p => p.theme.space.sm};
-  flex-wrap: wrap;
-  overflow: hidden;
-  position: relative;
-  max-height: ${p => (p.expanded ? '500px' : `${TWO_ROW_HEIGHT}px`)};
-  transition: max-height 0.2s ease-in-out;
-`;
-
-const ToggleButtonWrapper = styled('div')`
-  position: absolute;
-  right: 0;
-  bottom: 4px;
-  display: flex;
-  align-items: center;
-  height: 22px;
-  background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${p => p.theme.space.sm};
-`;
-
-const ToggleButton = styled(Button)`
-  flex-shrink: 0;
-`;

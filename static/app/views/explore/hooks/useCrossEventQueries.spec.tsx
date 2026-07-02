@@ -1,14 +1,12 @@
-import {useMemo, type ReactNode} from 'react';
+import {useMemo, useState, type ReactNode} from 'react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useResettableState} from 'sentry/utils/useResettableState';
 import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {
   defaultAggregateFields,
   defaultAggregateSortBys,
   defaultFields,
-  defaultQuery,
   defaultSortBys,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
@@ -27,7 +25,7 @@ const ALL_CROSS_EVENT_DATASETS_AVAILABLE: CrossEventDatasetAvailability = {
 
 function wrapper(crossEvents?: CrossEvent[]) {
   return function Wrapped({children}: {children: ReactNode}) {
-    const [query] = useResettableState(defaultQuery);
+    const [query] = useState('');
 
     const readableQueryParams = useMemo(
       () =>
@@ -189,7 +187,7 @@ describe('useCrossEventQueries', () => {
     });
   });
 
-  it('defaults metric.unit to none when absent on the metric', () => {
+  it('matches both !has:metric.unit and metric.unit:none when unit is absent', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {
@@ -204,7 +202,9 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: [],
       spanQuery: [],
-      metricQuery: ['( metric.name:my_metric metric.type:counter metric.unit:none )'],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:counter ( !has:metric.unit OR metric.unit:none ) )',
+      ],
     });
   });
 

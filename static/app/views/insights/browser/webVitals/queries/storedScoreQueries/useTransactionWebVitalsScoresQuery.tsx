@@ -77,11 +77,11 @@ export const useTransactionWebVitalsScoresQuery = ({
         'project.id',
         'project',
         'transaction',
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.inp)',
+        `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`,
+        `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`,
+        `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`,
+        `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`,
+        `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`,
         ...(webVital === 'total'
           ? []
           : [`performance_score(measurements.score.${webVital})` as const]),

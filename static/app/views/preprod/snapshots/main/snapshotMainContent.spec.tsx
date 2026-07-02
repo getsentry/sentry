@@ -61,25 +61,23 @@ function renderSnapshotMainContent(
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
-    content_hash: 'synthetic-content-hash',
     display_name: 'Button / light',
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
+    tags: null,
     width: 320,
     ...overrides,
   };
 }
 
 const baseImage = image({
-  content_hash: 'base-content-hash',
   display_name: 'Button / light base',
   image_file_name: 'button.light.base.png',
   key: 'base-button-light',
 });
 
 const headImage = image({
-  content_hash: 'head-content-hash',
   group: 'components',
   key: 'head-button-light',
 });
@@ -91,9 +89,24 @@ const changedPair: SnapshotDiffPair = {
   head_image: headImage,
 };
 
+const erroredPair: SnapshotDiffPair = {
+  base_image: image({
+    display_name: 'Login screen base',
+    image_file_name: 'login.base.png',
+    key: 'base-login',
+  }),
+  diff: null,
+  diff_image_key: null,
+  head_image: image({
+    display_name: 'Login screen',
+    group: 'screens',
+    image_file_name: 'login.png',
+    key: 'head-login',
+  }),
+};
+
 const renamedPair: SnapshotDiffPair = {
   base_image: image({
-    content_hash: 'base-renamed-content-hash',
     display_name: 'Button / light old',
     image_file_name: 'button.light.old.png',
     key: 'base-button-light-old',
@@ -101,7 +114,6 @@ const renamedPair: SnapshotDiffPair = {
   diff: null,
   diff_image_key: null,
   head_image: image({
-    content_hash: 'head-renamed-content-hash',
     group: 'components',
     image_file_name: 'button.light.png',
     key: 'head-button-light',
@@ -174,6 +186,34 @@ describe('SnapshotMainContent', () => {
     expect(onNavigateSingleView).toHaveBeenCalledWith('next');
   });
 
+  it('renders focused errored snapshots side-by-side with a failed badge', () => {
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      isSoloView: false,
+      selectedItem: {
+        key: 'errored-screens',
+        name: 'Screens',
+        displayName: 'Screens',
+        pairs: [erroredPair],
+        type: 'errored',
+      },
+      viewMode: 'single',
+    });
+
+    expect(screen.getByText('Screens')).toBeInTheDocument();
+    expect(screen.getByText('Login screen')).toBeInTheDocument();
+    expect(screen.getByText('Failed to compare')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Unknown error: failed to compare these images (base and head images still shown below).'
+      )
+    ).toBeInTheDocument();
+    // Side-by-side renders both base and head columns (one per diff-mode body).
+    expect(screen.getAllByText('Base').length).toBeGreaterThan(0);
+    // Errored pairs have no diff, so the diff-mode controls are not shown.
+    expect(screen.queryByRole('radio', {name: 'Split'})).not.toBeInTheDocument();
+  });
+
   it('renders focused renamed snapshots as a single image with pair metadata', async () => {
     renderSnapshotMainContent({
       comparisonType: 'diff',
@@ -203,7 +243,6 @@ describe('SnapshotMainContent', () => {
         image_file_name: 'button.light.old.png',
         width: 320,
       },
-      diff: null,
       head_image: {
         display_name: 'Button / light',
         group: 'components',

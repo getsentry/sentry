@@ -21,10 +21,15 @@ export function useTimeout({timeMs, onTimeout}: Options) {
     timeoutRef.current = timeout;
   }, []);
 
-  const start = useCallback(() => {
-    saveTimeout(null);
-    saveTimeout(window.setTimeout(() => onTimeoutRef.current(), timeMs));
-  }, [saveTimeout, timeMs]);
+  const start = useCallback(
+    (overrideTimeMs?: number) => {
+      saveTimeout(null);
+      saveTimeout(
+        window.setTimeout(() => onTimeoutRef.current(), overrideTimeMs ?? timeMs)
+      );
+    },
+    [saveTimeout, timeMs]
+  );
 
   const cancel = useCallback(() => {
     saveTimeout(null);
@@ -40,7 +45,10 @@ export function useTimeout({timeMs, onTimeout}: Options) {
 
   return {
     /**
-     * Start the timer
+     * Start the timer.
+     *
+     * Pass an optional `overrideTimeMs` to fire after a different duration
+     * than the one provided at construction.
      *
      * If there was a previous timer, then it will be cancelled.
      */

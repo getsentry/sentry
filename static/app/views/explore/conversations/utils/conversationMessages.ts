@@ -1,4 +1,6 @@
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
+  EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -31,6 +33,7 @@ export interface ConversationMessage {
   agentName?: string;
   duration?: number;
   modelName?: string;
+  reasoning?: string;
   toolCalls?: ToolCall[];
   userEmail?: string;
 }
@@ -38,6 +41,7 @@ export interface ConversationMessage {
 interface ConversationTurn {
   assistantContent: string | null;
   generation: AITraceSpanNode;
+  reasoning: string | null;
   toolCalls: ToolCall[];
   userContent: string | null;
   userEmail: string | undefined;
@@ -105,12 +109,14 @@ export function buildConversationTurns(
       })
       .filter((tc): tc is ToolCall => tc !== null);
 
+    const {content: assistantContent, reasoning} = parseAssistantContent(node);
     turns.push({
       generation: node,
       toolCalls,
       toolSpanNodes: toolCallSpans,
       userContent: parseUserContent(node),
-      assistantContent: parseAssistantContent(node),
+      assistantContent,
+      reasoning,
       userEmail,
     });
   }
@@ -144,6 +150,16 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
     }
   }
 
+  // Flush any remaining pending tool calls as a tool-call-only turn
+  const lastTurn = result.at(-1);
+  if (pendingToolCalls.length > 0 && lastTurn) {
+    result[result.length - 1] = {
+      ...lastTurn,
+      toolCalls: [...lastTurn.toolCalls, ...pendingToolCalls],
+      toolSpanNodes: [...(lastTurn.toolSpanNodes ?? []), ...pendingToolSpanNodes],
+    };
+  }
+
   return result;
 }
 
@@ -158,7 +174,9 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
     if (
       turn.userContent &&
-      (turn.userContent === FILTERED || !seenUserContent.has(turn.userContent))
+      (turn.userContent === FILTERED ||
+        turn.userContent === EMPTY_TEXT_CONTENT ||
+        !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
       messages.push({
@@ -171,12 +189,17 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       });
     }
 
-    if (
+    const hasAssistantContent =
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
-        !seenAssistantContent.has(turn.assistantContent))
-    ) {
-      seenAssistantContent.add(turn.assistantContent);
+        turn.assistantContent === EMPTY_TEXT_CONTENT ||
+        !seenAssistantContent.has(turn.assistantContent));
+    const hasToolCalls = turn.toolCalls.length > 0;
+
+    if (hasAssistantContent || hasToolCalls) {
+      if (turn.assistantContent) {
+        seenAssistantContent.add(turn.assistantContent);
+      }
 
       const toolSpanNodes = turn.toolSpanNodes ?? [];
       const lastToolEnd =
@@ -198,13 +221,14 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       messages.push({
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
-        content: turn.assistantContent,
+        content: turn.assistantContent ?? '',
         timestamp: endTs,
         nodeId: turn.generation.id,
-        toolCalls: turn.toolCalls.length > 0 ? turn.toolCalls : undefined,
+        toolCalls: hasToolCalls ? turn.toolCalls : undefined,
         duration,
         agentName: agentName || undefined,
         modelName: modelName || undefined,
+        reasoning: turn.reasoning || undefined,
       });
     }
   }
@@ -257,27 +281,54 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
  * (every supported shape, including plain strings) and falling back to
  * `gen_ai.response.text` then `gen_ai.response.object`.
  */
-export function parseAssistantContent(node: AITraceSpanNode): string | null {
+export function parseAssistantContent(node: AITraceSpanNode): {
+  content: string | null;
+  reasoning: string | null;
+} {
   const outputMessages = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
 
   if (outputMessages) {
     if (outputMessages === FILTERED) {
-      return FILTERED;
+      return {content: FILTERED, reasoning: null};
     }
     const extracted = extractAssistantOutput(outputMessages, {
       defaultRole: 'assistant',
     });
     if (extracted.responseText) {
-      return extracted.responseText;
+      return {
+        content: extracted.responseText,
+        reasoning: extracted.reasoningText,
+      };
+    }
+    // If tool calls were found but no text, don't fall through to response
+    // attributes — tool calls are rendered separately as badges
+    if (extracted.toolCalls) {
+      return {content: null, reasoning: extracted.reasoningText};
     }
   }
 
   const responseText = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_TEXT);
   if (responseText) {
-    return responseText;
+    if (isToolCallOnlyContent(responseText)) {
+      return {content: null, reasoning: null};
+    }
+    return {content: responseText, reasoning: null};
   }
 
-  return getStringAttr(node, SpanFields.GEN_AI_RESPONSE_OBJECT) ?? null;
+  return {
+    content: getStringAttr(node, SpanFields.GEN_AI_RESPONSE_OBJECT) ?? null,
+    reasoning: null,
+  };
+}
+
+/**
+ * Returns true if the string is JSON containing only tool_call parts
+ * and no actual text content (e.g. SDKs that stuff tool call output
+ * into gen_ai.response.text).
+ */
+function isToolCallOnlyContent(raw: string): boolean {
+  const extracted = extractAssistantOutput(raw, {defaultRole: 'assistant'});
+  return !extracted.responseText && extracted.toolCalls !== null;
 }
 
 export function getNodeTimestamp(node: AITraceSpanNode): number {
@@ -306,4 +357,46 @@ function getNodeEndTimestamp(node: AITraceSpanNode): number {
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
+}
+
+// Prefix every line with `> ` so multi-line content forms one blockquote.
+function toBlockquote(text: string): string {
+  return text
+    .split('\n')
+    .map(line => `> ${line}`)
+    .join('\n');
+}
+
+export function messagesToMarkdown(messages: ConversationMessage[]): string {
+  const blocks: string[] = [];
+
+  for (const message of messages) {
+    const lines: string[] = [];
+
+    if (message.role === 'user') {
+      const sender = message.userEmail || 'User';
+      lines.push(`### ${sender}`);
+    } else {
+      const sender = message.agentName || message.modelName || 'Assistant';
+      const durationStr =
+        message.duration !== undefined && message.duration > 0
+          ? ` — ${getDuration(message.duration, 1, true)}`
+          : '';
+      lines.push(`### ${sender}${durationStr}`);
+
+      if (message.toolCalls && message.toolCalls.length > 0) {
+        const toolNames = message.toolCalls.map(tc => `\`${tc.name}\``).join(', ');
+        lines.push(`> Called tools: ${toolNames}`);
+      }
+
+      if (message.reasoning) {
+        lines.push(toBlockquote(`Thinking:\n${message.reasoning}`));
+      }
+    }
+
+    lines.push(message.content);
+    blocks.push(lines.join('\n\n'));
+  }
+
+  return blocks.join('\n\n---\n\n');
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import NotRequired, TypedDict
 from urllib import parse
 
@@ -18,7 +18,6 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentProject,
     IncidentStatus,
-    IncidentTrigger,
 )
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
@@ -73,22 +72,7 @@ def logo_url() -> str:
 def get_metric_count_from_incident(incident: Incident) -> float | None:
     """Returns the current or last count of an incident aggregate."""
     # TODO(iamrajjoshi): Hoist FK lookup up
-    incident_trigger = (
-        IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
-    )
-    if incident_trigger:
-        alert_rule_trigger = incident_trigger.alert_rule_trigger
-        # TODO: If we're relying on this and expecting possible delays between a
-        # trigger fired and this function running, then this could actually be
-        # incorrect if they changed the trigger's time window in this time period.
-        # Should we store it?
-        start = incident_trigger.date_modified - timedelta(
-            seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
-        )
-        end = incident_trigger.date_modified
-    else:
-        start, end = None, None
-
+    start, end = None, None
     organization = Organization.objects.get_from_cache(id=incident.organization_id)
 
     project_ids = list(

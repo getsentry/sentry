@@ -33,12 +33,13 @@ import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {setActiveThreadId} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {defined} from 'sentry/utils/defined';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -402,15 +403,15 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={SectionKey.STACKTRACE}
       disableCollapsePersistence
     >
       <Flex direction="column" gap="xl">
         {threadComponent}
       </Flex>
-    </InterimSection>
+    </FoldSection>
   ) : (
     threadComponent
   );
