@@ -1,7 +1,13 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
+import {
+  parseAsArrayOf,
+  // parseAsJson,
+  parseAsString,
+  useQueryState,
+  // useQueryStates,
+} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -25,10 +31,17 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {FieldKind} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {
+  WidgetType,
+  type DashboardFilters,
+  type GlobalFilter,
+} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -51,9 +64,10 @@ import {
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+// import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -438,13 +452,97 @@ const BodyCell = memo(function BodyCell({
 function AgentTags({agents}: {agents: string[]}) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
-  const [agentFilters] = useQueryState(
-    'agent',
+  const navigate = useNavigate();
+  const [globalFilters, _setGlobalFilters] = useQueryState(
+    'globalFilter',
     parseAsArrayOf(parseAsString).withDefault([])
+    // parseAsArrayOf(parseAsJson<GlobalFilter>(v => v as GlobalFilter)).withDefault([])
   );
+
+  // console.log('globalFilters', globalFilters);
   const [showToggle, setShowToggle] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const parsedGlobalFilters = useMemo(() => {
+    return globalFilters.map(filter => JSON.parse(filter) as GlobalFilter);
+  }, [globalFilters]);
+
+  // console.log('parsedGlobalFilters', parsedGlobalFilters);
+
+  const agentGlobalFilter = useMemo(
+    () =>
+      parsedGlobalFilters.find(
+        filter =>
+          filter.dataset === WidgetType.SPANS &&
+          filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
+      ),
+    [parsedGlobalFilters]
+  );
+
+  const agentFilterValues = useMemo(
+    () =>
+      new MutableSearch(agentGlobalFilter?.value ?? '').getFilterValues(
+        SpanFields.GEN_AI_AGENT_NAME
+      ),
+    [agentGlobalFilter]
+  );
+
+  const handleAgentClick = (agent: string) => {
+    const isAgentInUrl = agentFilterValues.includes(agent);
+    let newFilters: GlobalFilter[];
+
+    if (agentGlobalFilter) {
+      newFilters = parsedGlobalFilters.map(filter => {
+        if (
+          filter.dataset === WidgetType.SPANS &&
+          filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
+        ) {
+          const filterQuery = new MutableSearch(filter.value);
+          if (isAgentInUrl) {
+            filterQuery.removeFilterValue(SpanFields.GEN_AI_AGENT_NAME, agent);
+          } else {
+            filterQuery.addFilterValues(SpanFields.GEN_AI_AGENT_NAME, [
+              ...agentFilterValues,
+              agent,
+            ]);
+          }
+          return {...filter, value: filterQuery.formatString()};
+        }
+        return filter;
+      });
+    } else {
+      const filterQuery = new MutableSearch('');
+      filterQuery.addFilterValues(SpanFields.GEN_AI_AGENT_NAME, [agent]);
+      newFilters = [
+        ...parsedGlobalFilters,
+        {
+          dataset: WidgetType.SPANS,
+          tag: {
+            key: SpanFields.GEN_AI_AGENT_NAME,
+            name: SpanFields.GEN_AI_AGENT_NAME,
+            kind: FieldKind.TAG,
+          },
+          value: filterQuery.formatString(),
+        },
+      ];
+    }
+
+    // console.log(
+    //   'newFilters',
+    //   newFilters.map(filter => JSON.stringify(filter))
+    // );
+
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        globalFilter: newFilters.map(filter => JSON.stringify(filter)),
+      },
+    });
+
+    // setGlobalFilters(newFilters.map(filter => JSON.stringify(filter)), {history: 'replace'});
+  };
 
   const handleShowAll = () => {
     setShowAll(!showAll);
@@ -491,7 +589,7 @@ function AgentTags({agents}: {agents: string[]}) {
       onMouseLeave={() => setShowToggle(false)}
     >
       {agents.map(agent => {
-        const isAgentInUrl = agentFilters.includes(agent);
+        const isAgentInUrl = agentFilterValues.includes(agent);
         return (
           <Tooltip
             key={agent}
@@ -499,22 +597,49 @@ function AgentTags({agents}: {agents: string[]}) {
             maxWidth={500}
             skipWrapper
           >
-            <Link
+            {/* <Link
               to={{
                 pathname: location.pathname,
                 query: {
                   ...location.query,
-                  agent: isAgentInUrl
-                    ? agentFilters.filter(urlAgent => urlAgent !== agent)
-                    : [...agentFilters, agent],
+                  globalFilter: agentGlobalFilter ?
+                  globalFilters.map(
+                    filter => {
+                      if (filter.dataset === WidgetType.SPANS && filter.tag.key === SpanFields.GEN_AI_AGENT_NAME) {
+                        const filterQuery = new MutableSearch(filter.value);
+                        if (isAgentInUrl) {
+                          filterQuery.removeFilterValue(SpanFields.GEN_AI_AGENT_NAME, agent);
+                        } else {
+                          filterQuery.addFilterValues(SpanFields.GEN_AI_AGENT_NAME, [...agentFilterValues, agent]);
+                        }
+                        return JSON.stringify({
+                          ...filter,
+                          value: filterQuery.formatString(),
+                        });
+                      }
+                      return JSON.stringify(filter);
+                    }
+                  )
+                  : [...globalFilters, {
+                    dataset: WidgetType.SPANS,
+                    tag: {
+                      key: SpanFields.GEN_AI_AGENT_NAME,
+                      name: SpanFields.GEN_AI_AGENT_NAME,
+                      kind: FieldKind.TAG,
+                    },
+                    value: new MutableSearch('').addFilterValues(SpanFields.GEN_AI_AGENT_NAME, [...agentFilterValues, agent]).formatString(),
+                  }].map(filter => JSON.stringify(filter)),
+                  // agent: isAgentInUrl
+                  //   ? agentFilters.filter(urlAgent => urlAgent !== agent)
+                  //   : [...agentFilters, agent],
                   [TableUrlParams.CURSOR]: null,
                 },
               }}
-            >
-              <Tag key={agent} variant="muted">
-                {agent}
-              </Tag>
-            </Link>
+            > */}
+            <Tag key={agent} variant="muted" onClick={() => handleAgentClick(agent)}>
+              {agent}
+            </Tag>
+            {/* </Link> */}
           </Tooltip>
         );
       })}
