@@ -42,8 +42,12 @@ function AttributesHighlights({
     {
       key: 'runtime',
       getSummary: () => {
-        const name = findSpanAttributeValue(attributes, 'runtime.name');
-        const version = findSpanAttributeValue(attributes, 'runtime.version');
+        const name =
+          findSpanAttributeValue(attributes, 'process.runtime.name') ??
+          findSpanAttributeValue(attributes, 'runtime.name');
+        const version =
+          findSpanAttributeValue(attributes, 'process.runtime.version') ??
+          findSpanAttributeValue(attributes, 'runtime.version');
 
         if (!name) {
           return null;
