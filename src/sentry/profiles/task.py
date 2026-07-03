@@ -1584,11 +1584,9 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                 version = (
                     PROFILE_FORMAT_V2_ANDROID_TRACE
                     if is_android_trace_format(profile)
-                    else profile.get("version")
+                    else profile.get("version") or ""
                 )
-                chunk = vroomrs.profile_chunk_from_json_str(
-                    json_profile, platform=profile["platform"], version=version
-                )
+                chunk = vroomrs.profile_chunk_from_json_str_and_version(json_profile, version)
             chunk.normalize()
             with start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
