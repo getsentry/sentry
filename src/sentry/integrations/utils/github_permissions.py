@@ -1,7 +1,10 @@
+import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from sentry import options
+
+logger = logging.getLogger(__name__)
 
 GITHUB_APP_REQUIRED_PERMISSIONS_OPTION = "github-app.required-permissions"
 
@@ -36,8 +39,16 @@ def get_missing_github_app_permissions(
     if not required_permissions:
         return None
 
-    expected_permissions = _quantify_github_app_permissions(required_permissions)
-    actual_permissions = _quantify_github_app_permissions(metadata.get("permissions", {}))
+    try:
+        expected_permissions = _quantify_github_app_permissions(required_permissions)
+        actual_permissions = _quantify_github_app_permissions(metadata.get("permissions", {}))
+    except KeyError:
+        # If either dict has an unknown permission level, don't enforce anything.
+        logger.error(
+            "github_permissions.malformed_permissions",
+            extra={"required": required_permissions, "actual": metadata.get("permissions")},
+        )
+        return None
 
     missing_permissions: list[MissingGithubAppPermission] = []
 
