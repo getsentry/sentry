@@ -127,28 +127,7 @@ describe('IntegrationRow', () => {
       expect(screen.queryByLabelText('Integration alert')).not.toBeInTheDocument();
     });
 
-    it('auto-opens the install modal for a single outdated workspace', async () => {
-      render(
-        <IntegrationRow
-          organization={org}
-          type="firstParty"
-          slug="slack"
-          displayName="Slack"
-          status="Installed"
-          publishStatus="published"
-          configurations={1}
-          categories={[]}
-          needsUpgrade
-        />
-      );
-      await userEvent.hover(screen.getByLabelText('Integration alert'));
-      expect(await screen.findByRole('link', {name: 'click here'})).toHaveAttribute(
-        'href',
-        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
-      );
-    });
-
-    it('sends users to the config page when multiple workspaces exist', async () => {
+    it('auto-opens the install modal when a single workspace is outdated', async () => {
       render(
         <IntegrationRow
           organization={org}
@@ -159,7 +138,28 @@ describe('IntegrationRow', () => {
           publishStatus="published"
           configurations={2}
           categories={[]}
-          needsUpgrade
+          outdatedConfigurations={1}
+        />
+      );
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      expect(await screen.findByRole('link', {name: 'click here'})).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
+      );
+    });
+
+    it('sends users to the config page when multiple workspaces are outdated', async () => {
+      render(
+        <IntegrationRow
+          organization={org}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          outdatedConfigurations={2}
         />
       );
       await userEvent.hover(screen.getByLabelText('Integration alert'));

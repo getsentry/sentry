@@ -32,7 +32,7 @@ type Props = {
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
   disabledConfigurations?: number;
-  needsUpgrade?: boolean;
+  outdatedConfigurations?: number;
   status?: IntegrationInstallationStatus;
 };
 
@@ -52,7 +52,7 @@ export function IntegrationRow(props: Props) {
     publishStatus,
     configurations,
     categories,
-    needsUpgrade,
+    outdatedConfigurations = 0,
     customAlert,
     customIcon,
     disabledConfigurations,
@@ -63,14 +63,13 @@ export function IntegrationRow(props: Props) {
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
-  // When there's exactly one installed workspace there's nothing to
-  // disambiguate, so auto-open the install/upgrade modal (via
-  // `useAutoOpenInstallModal`) instead of making the user pick on the config
-  // page. With multiple workspaces we still send them to the config tab to
-  // choose which one to update.
+  // When exactly one workspace is outdated there's nothing to disambiguate, so
+  // auto-open the install/upgrade modal instead of making the user pick on the
+  // config page. With multiple outdated workspaces we send them to the config
+  // tab to choose which one to update.
   const resolveNowHref =
     `${baseUrl}?tab=configurations&referrer=directory_resolve_now` +
-    (configurations === 1 ? '&showInstallModal=1' : '');
+    (outdatedConfigurations === 1 ? '&showInstallModal=1' : '');
 
   const renderDetails = () => {
     if (type === 'sentryApp') {
@@ -141,7 +140,7 @@ export function IntegrationRow(props: Props) {
         <TitleContainer>
           <Flex gap="xs" align="center">
             <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
-            {needsUpgrade && <UpdateAlertTooltip />}
+            {outdatedConfigurations > 0 && <UpdateAlertTooltip />}
           </Flex>
           <IntegrationDetails>
             {renderStatus()}

@@ -353,7 +353,9 @@ export default function IntegrationListDirectory() {
               .length
           }
           categories={getCategoriesForIntegration(provider)}
-          needsUpgrade={providerIntegrations.some(integrationRequiresUpgrade)}
+          outdatedConfigurations={
+            providerIntegrations.filter(integrationRequiresUpgrade).length
+          }
           customAlert={
             <FirstPartyIntegrationAlert
               integrations={providerIntegrations}
