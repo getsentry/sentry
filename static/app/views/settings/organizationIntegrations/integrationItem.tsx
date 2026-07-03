@@ -11,8 +11,8 @@ import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/in
 
 type Props = {
   integration: Integration;
-  requiresUpgrade: boolean | undefined;
   compact?: boolean;
+  requiresUpgrade?: boolean | undefined;
 };
 
 export function IntegrationItem({integration, requiresUpgrade, compact = false}: Props) {
