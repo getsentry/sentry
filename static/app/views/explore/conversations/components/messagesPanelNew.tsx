@@ -12,6 +12,7 @@ import {
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -241,6 +242,39 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         </MessageText>
       </Container>
     </CollapsibleContent>
+  );
+}
+
+/**
+ * Loading state for the transcript. Mirrors the real layout — right-aligned
+ * user bubbles and left-aligned assistant bubbles with a metadata column — so
+ * the skeleton reads as a conversation rather than a generic list.
+ */
+export function MessagesPanelSkeleton() {
+  return (
+    <PanelContainer>
+      <Stack gap="0" width="100%">
+        <UserMessageBlock>
+          <Placeholder height="14px" width="180px" />
+        </UserMessageBlock>
+        <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
+          <Flex direction="column" gap="sm">
+            <Placeholder height="12px" width="320px" />
+            <Placeholder height="12px" width="260px" />
+            <Placeholder height="12px" width="180px" />
+          </Flex>
+        </AssistantMessageBlock>
+        <UserMessageBlock>
+          <Placeholder height="14px" width="120px" />
+        </UserMessageBlock>
+        <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
+          <Flex direction="column" gap="sm">
+            <Placeholder height="12px" width="280px" />
+            <Placeholder height="12px" width="200px" />
+          </Flex>
+        </AssistantMessageBlock>
+      </Stack>
+    </PanelContainer>
   );
 }
 

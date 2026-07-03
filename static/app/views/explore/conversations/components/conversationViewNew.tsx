@@ -14,7 +14,10 @@ import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+import {
+  MessagesPanelNew,
+  MessagesPanelSkeleton,
+} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -81,7 +84,11 @@ export function ConversationViewContentNew({
     }
   }, [isLoading, error, nodes.length]);
 
-  if (isLoading) {
+  const isTranscript = activeTab === 'transcript';
+
+  // The transcript renders its own chat-shaped skeleton inside the layout below;
+  // the timeline tab keeps the legacy span-detail skeleton.
+  if (isLoading && !isTranscript) {
     return <ConversationViewSkeleton />;
   }
 
@@ -89,11 +96,9 @@ export function ConversationViewContentNew({
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (nodes.length === 0) {
+  if (!isLoading && nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
-
-  const isTranscript = activeTab === 'transcript';
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
@@ -128,12 +133,16 @@ export function ConversationViewContentNew({
                 overflowY="auto"
               >
                 {isTranscript ? (
-                  <MessagesPanelNew
-                    nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
-                    onSelectNode={handleSelectAndOpenDetail}
-                    nodeTraceMap={nodeTraceMap}
-                  />
+                  isLoading ? (
+                    <MessagesPanelSkeleton />
+                  ) : (
+                    <MessagesPanelNew
+                      nodes={nodes}
+                      selectedNodeId={selectedNode?.id ?? null}
+                      onSelectNode={handleSelectAndOpenDetail}
+                      nodeTraceMap={nodeTraceMap}
+                    />
+                  )
                 ) : (
                   <AiSpanTimeline
                     nodes={nodes}
