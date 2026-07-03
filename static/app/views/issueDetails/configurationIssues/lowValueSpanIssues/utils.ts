@@ -195,7 +195,9 @@ def before_send_transaction(event, hint):
         if (
 ${conditions.join('\n')}
         ):
-            dropped_parents[span.get("span_id")] = span.get("parent_span_id")
+            span_id = span.get("span_id")
+            if span_id is not None:
+                dropped_parents[span_id] = span.get("parent_span_id")
         else:
             kept_spans.append(span)
 
