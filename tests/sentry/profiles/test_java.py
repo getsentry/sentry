@@ -113,6 +113,9 @@ def test_convert_android_methods_to_jvm_frames_sample_v2_filters_non_jvm() -> No
                     "filename": "B.java",
                     "platform": "android",
                 },
+                # function and module are optional on sample format frames;
+                # such frames are kept so the other field is still deobfuscated
+                {"module": "com.example.C", "platform": "java"},
             ],
         },
     }
@@ -127,6 +130,7 @@ def test_convert_android_methods_to_jvm_frames_sample_v2_filters_non_jvm() -> No
             "lineno": 7,
             "filename": "B.java",
         },
+        {"function": "", "index": 3, "module": "com.example.C"},
     ]
 
 

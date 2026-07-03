@@ -142,8 +142,10 @@ def convert_android_methods_to_jvm_frames(profile: Profile) -> list[dict[str, An
         for i, f in enumerate(profile["profile"]["frames"]):
             if not is_jvm_frame(f, profile):
                 continue
+            # function and module are optional on sample format frames; keep
+            # frames missing one of them so the other still gets deobfuscated
             jvm_frame = {
-                "function": f["function"],
+                "function": f.get("function", ""),
                 "index": i,
                 "module": f.get("module", ""),
             }
