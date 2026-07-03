@@ -416,8 +416,8 @@ importers:
         specifier: 4.3.0
         version: 4.3.0
       less-loader:
-        specifier: ^12.2.0
-        version: 12.2.0(@rspack/core@2.0.4)(less@4.3.0)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.28.1)(postcss@8.5.3))
+        specifier: ^13.0.0
+        version: 13.0.0(@rspack/core@2.0.4)(less@4.3.0)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.28.1)(postcss@8.5.3))
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -3914,6 +3914,9 @@ packages:
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
 
+  '@types/less@3.0.8':
+    resolution: {integrity: sha512-Gjm4+H9noDJgu5EdT3rUw5MhPBag46fiOy27BefvWkNL8mlZnKnCaVVVTLKj6RYXed9b62CPKnPav9govyQDzA==}
+
   '@types/lodash@4.17.24':
     resolution: {integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==}
 
@@ -4543,9 +4546,6 @@ packages:
   bail@2.0.2:
     resolution: {integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==}
 
-  balanced-match@1.0.0:
-    resolution: {integrity: sha512-9Y0g0Q8rmSt+H33DfKv7FOc3v+iRI+o1lbzt8jGcIosYW37IIW/2XVYq5NPdmaD5NQ59Nk26Kl/vZbwW9Fr8vg==}
-
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
@@ -4596,9 +4596,6 @@ packages:
   boxen@5.1.1:
     resolution: {integrity: sha512-JtIQYts08AFAYGF4eSh3pUt3NQkYV/e75pRtQmAVTLNWR/1L7Bsswxlgzgk8nmLEM+gFszsIlA9BgD3XnSqp3g==}
     engines: {node: '>=10'}
-
-  brace-expansion@1.1.11:
-    resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
 
   brace-expansion@1.1.15:
     resolution: {integrity: sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg==}
@@ -6797,11 +6794,11 @@ packages:
   launch-editor@2.14.1:
     resolution: {integrity: sha512-QWBrQsMpH7gPr965dsKD/3cKWiNoTjpATQf++Xq63N6sKRGMwlVXz41O1IZTMfZQgBctD/K5Zt06+/I6pP6+HA==}
 
-  less-loader@12.2.0:
-    resolution: {integrity: sha512-MYUxjSQSBUQmowc0l5nPieOYwMzGPUaTzB6inNW/bdPEG9zOL3eAAD1Qw5ZxSPk7we5dMojHwNODYMV1hq4EVg==}
-    engines: {node: '>= 18.12.0'}
+  less-loader@13.0.0:
+    resolution: {integrity: sha512-TIa8d6znKH634Mg+7OU3jevZT6KeOhh0amW+YeMPD0GM9buUn5Y7HvtyCR5pUDdLaFfqLA8AX5PTSIHMNSexEA==}
+    engines: {node: '>= 22.11.0'}
     peerDependencies:
-      '@rspack/core': 0.x || 1.x
+      '@rspack/core': 0.x || ^1.0.0 || ^2.0.0-0
       less: ^3.5.0 || ^4.0.0
       webpack: ^5.0.0
     peerDependenciesMeta:
@@ -12759,6 +12756,8 @@ snapshots:
 
   '@types/json5@0.0.29': {}
 
+  '@types/less@3.0.8': {}
+
   '@types/lodash@4.17.24': {}
 
   '@types/mdast@4.0.4':
@@ -13493,8 +13492,6 @@ snapshots:
 
   bail@2.0.2: {}
 
-  balanced-match@1.0.0: {}
-
   balanced-match@1.0.2: {}
 
   balanced-match@2.0.0: {}
@@ -13535,11 +13532,6 @@ snapshots:
       type-fest: 0.20.2
       widest-line: 3.1.0
       wrap-ansi: 7.0.0
-
-  brace-expansion@1.1.11:
-    dependencies:
-      balanced-match: 1.0.0
-      concat-map: 0.0.1
 
   brace-expansion@1.1.15:
     dependencies:
@@ -16287,8 +16279,9 @@ snapshots:
       picocolors: 1.1.1
       shell-quote: 1.9.0
 
-  less-loader@12.2.0(@rspack/core@2.0.4)(less@4.3.0)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.28.1)(postcss@8.5.3)):
+  less-loader@13.0.0(@rspack/core@2.0.4)(less@4.3.0)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.28.1)(postcss@8.5.3)):
     dependencies:
+      '@types/less': 3.0.8
       less: 4.3.0
     optionalDependencies:
       '@rspack/core': 2.0.4
