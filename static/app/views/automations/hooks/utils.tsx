@@ -138,6 +138,32 @@ export function findConflictingConditions(
     };
   }
 
+  // Check for action filters incompatible with Seer activity triggers
+  const hasSeerActivityTrigger = triggers.conditions.some(
+    c => c.type === DataConditionType.SEER_ACTIVITY_TRIGGER
+  );
+  if (!hasSeerActivityTrigger) {
+    const seerConflictingActionFilters: Record<string, Set<string>> = {};
+    let hasSeerConflicts = false;
+
+    for (const actionFilter of actionFilters) {
+      const conflicts = findSeerActivityIncompatibleConditions(actionFilter);
+      if (conflicts.size > 0) {
+        hasSeerConflicts = true;
+        seerConflictingActionFilters[actionFilter.id] = conflicts;
+      }
+    }
+
+    if (hasSeerConflicts) {
+      return {
+        conflictingConditionGroups: seerConflictingActionFilters,
+        conflictReason: t(
+          'The conditions highlighted in red are not compatible with Seer activity triggers.'
+        ),
+      };
+    }
+  }
+
   return {
     conflictingConditionGroups: {},
     conflictReason: null,
@@ -156,6 +182,33 @@ const frequencyTypes = new Set<DataConditionType>([
   DataConditionType.EVENT_FREQUENCY_PERCENT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+]);
+
+/**
+ * Filters that require a GroupEvent to evaluate. Activity-based triggers
+ * (like Seer activity) pass an Activity object, so these filters always
+ * return false and will block the workflow if the logic type is ALL.
+ */
+const eventRequiredFilters = new Set<DataConditionType>([
+  DataConditionType.EVENT_ATTRIBUTE,
+  DataConditionType.TAGGED_EVENT,
+  DataConditionType.LEVEL,
+  DataConditionType.LATEST_RELEASE,
+  DataConditionType.LATEST_ADOPTED_RELEASE,
+]);
+
+/**
+ * Slow conditions that require Snuba queries. Activity-based triggers
+ * cannot be enqueued for delayed evaluation, so these conditions are
+ * silently skipped.
+ */
+const slowConditionTypes = new Set<DataConditionType>([
+  DataConditionType.EVENT_FREQUENCY_COUNT,
+  DataConditionType.EVENT_FREQUENCY_PERCENT,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+  DataConditionType.PERCENT_SESSIONS_COUNT,
+  DataConditionType.PERCENT_SESSIONS_PERCENT,
 ]);
 
 function findFirstSeenEventConflictingConditions(
@@ -251,6 +304,31 @@ function findConflictingPriorityConditions(
   }
 
   return conflictingConditions;
+}
+
+function findSeerActivityIncompatibleConditions(
+  conditionGroup: DataConditionGroup
+): Set<string> {
+  const incompatible = new Set<string>();
+
+  for (const condition of conditionGroup.conditions) {
+    if (
+      eventRequiredFilters.has(condition.type) ||
+      slowConditionTypes.has(condition.type)
+    ) {
+      incompatible.add(condition.id);
+    }
+  }
+
+  // With ANY logic, if at least one condition is compatible, the filter can still pass
+  if (
+    conditionGroup.logicType === DataConditionGroupLogicType.ANY_SHORT_CIRCUIT &&
+    incompatible.size !== conditionGroup.conditions.length
+  ) {
+    return new Set<string>();
+  }
+
+  return incompatible;
 }
 
 function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
