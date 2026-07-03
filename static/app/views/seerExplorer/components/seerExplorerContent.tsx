@@ -215,16 +215,17 @@ export function SeerExplorerContent({
 
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
-  const {data: slackIntegrations = []} = useQuery(
-    apiOptions.as<OrganizationIntegration[]>()(
+  const {data: slackIntegrations = []} = useQuery({
+    ...apiOptions.as<OrganizationIntegration[]>()(
       '/organizations/$organizationIdOrSlug/integrations/',
       {
         path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {providerKey: 'slack', includeConfig: 0},
         staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
   const activeSlackIntegrations = slackIntegrations.filter(
     integration =>
       integration.status === 'active' &&
