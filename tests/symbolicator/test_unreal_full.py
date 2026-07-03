@@ -10,6 +10,7 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils.safe import get_path
@@ -36,6 +37,7 @@ def get_unreal_crash_apple_file():
     return get_fixture_path("native", "unreal_crash_apple")
 
 
+@debug_files_test_both_backends
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):

@@ -23,11 +23,22 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
+# I don't know why, but unless we declare these loggers earlier, we run into
+# circular import errors.
+logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger("sentry.audit.api")
+api_access_logger = logging.getLogger("sentry.access.api")
+
 from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.exceptions import StaffRequired, SuperuserRequired
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    InsufficientScope,
+    StaffRequired,
+    SuperuserRequired,
+)
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
@@ -98,10 +109,6 @@ DEFAULT_AUTHENTICATION = (
     ViewerContextAuthentication,
     SessionAuthentication,
 )
-
-logger = logging.getLogger(__name__)
-audit_logger = logging.getLogger("sentry.audit.api")
-api_access_logger = logging.getLogger("sentry.access.api")
 
 
 def allow_cors_options(func):
@@ -270,6 +277,11 @@ class Endpoint(APIView):
         and the only permission class is SuperuserPermission. Otherwise, raises
         the appropriate exception according to parent DRF function.
         """
+        required_scopes = getattr(request, INSUFFICIENT_SCOPE_ATTR, None)
+        if required_scopes:
+            # A token was denied for insufficient scope; surface the RFC 6750 challenge.
+            raise InsufficientScope(required_scopes)
+
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]

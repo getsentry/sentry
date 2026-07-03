@@ -372,6 +372,7 @@ function GroupBySelector({
       value={groupBy.groupBy}
       onChange={handleChange}
       search={{
+        highlight: true,
         onChange: setSearch,
         filter: (option, searchText) => {
           return sortSearchedAttributes({
@@ -616,6 +617,7 @@ function AttributeArgumentSelect({
       value={value}
       onChange={onChange}
       search={{
+        highlight: true,
         onChange: setSearch,
         filter: (option, searchText) => {
           return sortSearchedAttributes({

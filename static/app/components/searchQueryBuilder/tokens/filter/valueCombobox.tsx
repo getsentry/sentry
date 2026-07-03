@@ -6,7 +6,7 @@ import type {KeyboardEvent} from '@react-types/shared';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {HighlightText, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DeviceName} from 'sentry/components/deviceName';
@@ -22,7 +22,6 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {getMultiSelectValueState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {
   SearchQueryBuilderCombobox,

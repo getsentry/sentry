@@ -22,6 +22,7 @@ export interface ToolCall {
   hasError: boolean;
   name: string;
   nodeId: string;
+  duration?: number;
 }
 
 export interface ConversationMessage {
@@ -105,7 +106,19 @@ export function buildConversationTurns(
     const toolCalls = toolCallSpans
       .map(span => {
         const name = getStringAttr(span, SpanFields.GEN_AI_TOOL_NAME);
-        return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
+        if (!name) {
+          return null;
+        }
+        const toolStart = getNodeStartTimestamp(span);
+        const toolEnd = getNodeEndTimestamp(span);
+        const duration = toolEnd > toolStart ? toolEnd - toolStart : undefined;
+        const toolCall: ToolCall = {
+          name,
+          nodeId: span.id,
+          hasError: hasError(span),
+          duration,
+        };
+        return toolCall;
       })
       .filter((tc): tc is ToolCall => tc !== null);
 

@@ -87,6 +87,51 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert not PlatformExternalIssue.objects.all()
 
+    def test_rejects_uri_with_userinfo_injection(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "@attacker.example/path",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "uri" in response.data
+
+    def test_rejects_uri_with_protocol_relative_path(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "//attacker.example/path",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "uri" in response.data
+
+    def test_rejects_uri_without_leading_slash(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "https://attacker.example/path",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "uri" in response.data
+
     def test_rejects_group_from_inaccessible_project(self) -> None:
         with assume_test_silo_mode_of(Organization):
             self.org.flags.allow_joinleave = False

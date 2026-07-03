@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -33,6 +34,7 @@ import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggr
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -666,6 +668,9 @@ export function getSavedQueryTraceItemUrl({
   organization: Organization;
   savedQuery: SavedQuery;
 }) {
+  if (savedQuery.dataset === 'ai_conversations') {
+    return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
+  }
   const traceItemDataset = getSavedQueryTraceItemDataset(savedQuery.dataset);
   const urlFunction = TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
   if (urlFunction) {
@@ -676,6 +681,32 @@ export function getSavedQueryTraceItemUrl({
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+function getConversationsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  const queryString = qs.stringify(queryParams, {skipNull: true});
+  const basePath = normalizeUrl(
+    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  );
+  return `${basePath}?${queryString}`;
 }
 
 function getReplayUrlFromSavedQueryUrl({
