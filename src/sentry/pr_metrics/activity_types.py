@@ -23,10 +23,6 @@ class BaseActivityPayload:
     action: str = ""
     # Login of the account that triggered the webhook action (the
     # sender field in the event payload, not necessarily the PR author).
-    sender_login: str = ""
-    sender_type: SenderType = ""
-    head_sha: str | None = None
-    base_sha: str | None = None
 
 
 @dataclass
@@ -36,6 +32,10 @@ class OpenedPayload(BaseActivityPayload):
     deletions: int = 0
     changed_files: int = 0
     commits: int = 0
+    head_sha: str | None = None
+    base_sha: str | None = None
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -43,18 +43,24 @@ class SynchronizePayload(BaseActivityPayload):
     action: str = "synchronize"
     before_sha: str | None = None  # head SHA before the push
     after_sha: str | None = None  # head SHA after the push
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
 class LabeledPayload(BaseActivityPayload):
     action: str = "labeled"
     label_name: str = ""
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
 class UnlabeledPayload(BaseActivityPayload):
     action: str = "unlabeled"
     label_name: str = ""
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -62,12 +68,16 @@ class ReviewRequestedPayload(BaseActivityPayload):
     action: str = "review_requested"
     # True when a team was requested; False for an individual reviewer.
     is_team_review: bool = False
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
 class ReviewRequestRemovedPayload(BaseActivityPayload):
     action: str = "review_request_removed"
     is_team_review: bool = False
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -76,16 +86,22 @@ class CommentCreatedPayload(BaseActivityPayload):
     author_association: AuthorAssociation = "NONE"
     is_review: bool = False
     review_id: int | None = None
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
 class ConvertedToDraftPayload(BaseActivityPayload):
     action: str = "converted_to_draft"
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
 class ReadyForReviewPayload(BaseActivityPayload):
     action: str = "ready_for_review"
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -93,12 +109,16 @@ class AssignedPayload(BaseActivityPayload):
     action: str = "assigned"
     # Login of the account that was added as an assignee.
     assignee_login: str = ""
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
 class UnassignedPayload(BaseActivityPayload):
     action: str = "unassigned"
     assignee_login: str = ""
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -107,6 +127,8 @@ class ReviewSubmittedPayload(BaseActivityPayload):
     # "approved", "changes_requested", or "commented"
     review_state: str = ""
     review_id: int = 0
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -115,6 +137,8 @@ class ReviewThreadPayload(BaseActivityPayload):
     # GitHub node_id of the review thread (the thread object has no numeric id).
     thread_id: str = ""
     is_resolved: bool = False
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
@@ -149,6 +173,8 @@ class ReviewDismissedPayload(BaseActivityPayload):
     # back to the earlier review_submitted row to see what was undone (an approval
     # or a changes-request).
     review_id: int = 0
+    sender_login: str = ""
+    sender_type: SenderType = ""
 
 
 @dataclass
