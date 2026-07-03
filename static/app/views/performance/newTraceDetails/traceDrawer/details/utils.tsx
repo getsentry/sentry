@@ -135,7 +135,7 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
   if (
     !defined(rowValue) ||
     !defined(rowKey) ||
-    !['string', 'number'].includes(typeof rowValue)
+    (typeof rowValue !== 'string' && typeof rowValue !== 'number')
   ) {
     return [];
   }
@@ -177,7 +177,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
         location,
         projectIds,
         rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
       ),
@@ -190,7 +189,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
         location,
         projectIds,
         rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
       ),
@@ -221,7 +219,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
           location,
           projectIds,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
         ),
@@ -234,7 +231,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
           location,
           projectIds,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN
         ),
