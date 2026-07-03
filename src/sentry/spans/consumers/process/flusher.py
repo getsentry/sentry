@@ -21,14 +21,17 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.consumers.process_segments.tasks import process_segment_task
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.outcomes import Outcome, track_outcome
 
 MAX_PROCESS_RESTARTS = 10
+PROCESS_SEGMENTS_TASK_ROLLOUT_OPTION = "spans.buffer.process-segments-task-rollout-rate"
 
 logger = logging.getLogger(__name__)
 
@@ -358,11 +361,16 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 len(kafka_payload.value),
                                 tags={"shard": shard_tag},
                             )
-                            produce(
-                                flushed_segment.project_id,
-                                kafka_payload,
-                                len(message["spans"]),
-                            )
+                            if produce_to_pipe is None and in_random_rollout(
+                                PROCESS_SEGMENTS_TASK_ROLLOUT_OPTION
+                            ):
+                                process_segment_task.apply_async(args=[kafka_payload.value])
+                            else:
+                                produce(
+                                    flushed_segment.project_id,
+                                    kafka_payload,
+                                    len(message["spans"]),
+                                )
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for project_id, future, dropped in producer_futures:
