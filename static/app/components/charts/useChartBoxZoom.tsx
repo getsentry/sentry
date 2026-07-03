@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {BrushComponentOption, ToolboxComponentOption} from 'echarts';
 
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
@@ -7,10 +7,9 @@ import {
   type BoxZoomRange,
 } from 'sentry/components/charts/pickBoxZoomRange';
 import type {
-  ECharts,
   EChartBrushEndHandler,
   EChartBrushStartHandler,
-  EChartFinishedHandler,
+  EChartChartReadyHandler,
 } from 'sentry/types/echarts';
 
 export type {BoxZoomRange};
@@ -40,7 +39,7 @@ interface BoxZoomOptions {
   brush: BrushComponentOption | undefined;
   onBrushEnd: EChartBrushEndHandler;
   onBrushStart: EChartBrushStartHandler;
-  onFinished: EChartFinishedHandler;
+  onChartReady: EChartChartReadyHandler;
   toolBox: ToolboxComponentOption | undefined;
 }
 
@@ -48,11 +47,13 @@ interface BoxZoomOptions {
  * Drag-to-zoom for cartesian charts where a single drag should select a 2D
  * region, e.g., heat maps. Uses ECharts' `brush` component.
  *
- * Brush mode is a global cursor that ECharts drops on every `setOption`, so the
- * hook re-arms it on the chart's `finished` event (fires after the initial
- * render, every data refresh, and each brush clear) — the same approach
- * `useChartZoom` uses for its dataZoom area-select. Wire the returned
- * `onFinished` (and `brush`/`toolBox`/`onBrushStart`/`onBrushEnd`) into the chart.
+ * The brush is a global cursor that, while active, suppresses the series'
+ * native hover emphasis. So rather than keeping it armed, the hook arms it only
+ * while the mouse button is down (`mousedown` → `mouseup`) — a plain hover keeps
+ * the chart's normal emphasis and tooltip. Arming happens in a capture-phase
+ * `mousedown` listener so the cursor is set before ECharts handles the event and
+ * can still capture that drag. Wire the returned `onChartReady` (and
+ * `brush`/`toolBox`/`onBrushStart`/`onBrushEnd`) into the chart.
  */
 export function useChartBoxZoom({
   onZoom,
@@ -60,6 +61,8 @@ export function useChartBoxZoom({
   xAxisIndex = 0,
   yAxisIndex = 0,
 }: UseChartBoxZoomProps): BoxZoomOptions {
+  const cleanupRef = useRef<(() => void) | null>(null);
+
   const brushOption = useMemo<BrushComponentOption>(
     () => ({
       mainType: 'brush',
@@ -75,17 +78,6 @@ export function useChartBoxZoom({
       transformable: false,
     }),
     [xAxisIndex, yAxisIndex]
-  );
-
-  const enableBrushMode = useCallback(
-    (chartInstance: ECharts) => {
-      chartInstance.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'brush',
-        brushOption,
-      });
-    },
-    [brushOption]
   );
 
   const onBrushStart = useCallback<EChartBrushStartHandler>((_evt, chartInstance) => {
@@ -104,8 +96,7 @@ export function useChartBoxZoom({
       // zero-width drag on either axis), so those don't fire a zoom.
       const range = pickBoxZoomRange(evt.areas[0]);
 
-      // Restore the tooltip and clear the drawn box: the zoom applies once. The
-      // resulting render re-arms brush mode via `onFinished`.
+      // Restore the tooltip and clear the drawn box: the zoom applies once.
       chartInstance.setOption({tooltip: {show: true}}, {silent: true});
       chartInstance.dispatchAction({type: 'brush', areas: []});
 
@@ -116,17 +107,57 @@ export function useChartBoxZoom({
     [onZoom]
   );
 
-  // ECharts drops the global brush cursor on every `setOption`, so re-arm it
-  // each time rendering finishes — the initial render, data refreshes, and the
-  // re-render after each brush clears.
-  const onFinished = useCallback<EChartFinishedHandler>(
-    (_props, chartInstance) => {
-      if (!disabled) {
-        enableBrushMode(chartInstance);
+  const onChartReady = useCallback<EChartChartReadyHandler>(
+    chartInstance => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+
+      if (disabled) {
+        return;
       }
+
+      const dom = chartInstance.getDom();
+      let armed = false;
+      let frame: number | null = null;
+
+      const arm = () => {
+        chartInstance.dispatchAction({
+          type: 'takeGlobalCursor',
+          key: 'brush',
+          brushOption,
+        });
+        armed = true;
+      };
+
+      const disarm = () => {
+        if (!armed) {
+          return;
+        }
+        armed = false;
+        // Defer past the synchronous `brushend` this same mouseup fires, then
+        // clear the global cursor so hovering shows normal emphasis again.
+        frame = requestAnimationFrame(() => {
+          chartInstance.dispatchAction({type: 'takeGlobalCursor'});
+        });
+      };
+
+      // Arm on press (capture phase, so the cursor is set before ECharts handles
+      // the mousedown and can capture this drag); disarm on release.
+      dom.addEventListener('mousedown', arm, true);
+      document.addEventListener('mouseup', disarm);
+
+      cleanupRef.current = () => {
+        dom.removeEventListener('mousedown', arm, true);
+        document.removeEventListener('mouseup', disarm);
+        if (frame !== null) {
+          cancelAnimationFrame(frame);
+        }
+      };
     },
-    [disabled, enableBrushMode]
+    [disabled, brushOption]
   );
+
+  useEffect(() => () => cleanupRef.current?.(), []);
 
   const toolBox = useMemo<ToolboxComponentOption | undefined>(() => {
     if (disabled) {
@@ -140,7 +171,7 @@ export function useChartBoxZoom({
     brush: disabled ? undefined : brushOption,
     onBrushEnd,
     onBrushStart,
-    onFinished,
+    onChartReady,
     toolBox,
   };
 }

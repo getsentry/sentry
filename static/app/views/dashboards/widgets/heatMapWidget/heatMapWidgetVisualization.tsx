@@ -141,7 +141,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // The heat map's readable time/value axes sit at index 1; index 0 is the
   // hidden category axis that positions the cells.
-  const {brush, toolBox, onBrushStart, onBrushEnd, onFinished} = useChartBoxZoom({
+  const {brush, toolBox, onBrushStart, onBrushEnd, onChartReady} = useChartBoxZoom({
     onZoom: handleZoom,
     disabled: !onZoom,
     xAxisIndex: 1,
@@ -324,7 +324,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         toolBox={toolBox}
         onBrushStart={onBrushStart}
         onBrushEnd={onBrushEnd}
-        onFinished={onFinished}
+        onChartReady={onChartReady}
         tooltip={{
           show: true,
           enterable: true,
