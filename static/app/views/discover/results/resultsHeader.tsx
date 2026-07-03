@@ -16,6 +16,7 @@ import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
@@ -103,7 +104,7 @@ function ResultsHeaderBase({
 
   const title = (
     <Fragment>
-      {t('Discover')}
+      {getTransactionsDeprecation(organization) ? t('Errors') : t('Discover')}
       <PageHeadingQuestionTooltip
         docsUrl="https://docs.sentry.io/product/discover-queries/"
         title={t('Create queries to get insights into the health of your system.')}
@@ -133,12 +134,14 @@ function ResultsHeaderBase({
         )}
       </TopBar.Slot>
       <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-      <DatasetSelectorTabs
-        eventView={eventView}
-        isHomepage={isHomepage}
-        savedQuery={savedQuery}
-        splitDecision={splitDecision}
-      />
+      {!getTransactionsDeprecation(organization) && (
+        <DatasetSelectorTabs
+          eventView={eventView}
+          isHomepage={isHomepage}
+          savedQuery={savedQuery}
+          splitDecision={splitDecision}
+        />
+      )}
     </Layout.Header>
   );
 }
