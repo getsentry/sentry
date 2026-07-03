@@ -3,6 +3,11 @@ import styled from '@emotion/styled';
 
 interface InlineChipProps {
   children: React.ReactNode;
+  /**
+   * Applies a hover affordance (pointer cursor and background step) for chips
+   * that are wrapped in a link or are otherwise clickable.
+   */
+  interactive?: boolean;
   tone?: 'accent' | 'default';
   variant?: 'compactLeading' | 'constrained' | 'constrainedCompactLeading' | 'default';
 }
@@ -10,6 +15,7 @@ interface InlineChipProps {
 interface ChipFrameProps {
   children: React.ReactNode;
   constrained?: boolean;
+  interactive?: boolean;
   maxWidth?: React.CSSProperties['maxWidth'];
   minWidth?: React.CSSProperties['minWidth'];
   paddingLeft?: React.CSSProperties['paddingLeft'];
@@ -18,6 +24,7 @@ interface ChipFrameProps {
 
 export function InlineChip({
   children,
+  interactive = false,
   tone = 'default',
   variant = 'default',
 }: InlineChipProps) {
@@ -30,6 +37,7 @@ export function InlineChip({
   return (
     <ChipFrame
       constrained={constrained}
+      interactive={interactive}
       maxWidth={constrained ? '100%' : undefined}
       minWidth={constrained ? 0 : undefined}
       paddingLeft={compactLeading ? theme.space.xs : undefined}
@@ -43,6 +51,7 @@ export function InlineChip({
 function ChipFrame({
   children,
   constrained,
+  interactive,
   maxWidth,
   minWidth,
   paddingLeft,
@@ -51,6 +60,7 @@ function ChipFrame({
   return (
     <ChipFrameElement
       data-constrained={constrained ? true : undefined}
+      data-interactive={interactive ? true : undefined}
       data-tone={tone}
       style={{maxWidth, minWidth, paddingLeft}}
     >
@@ -68,12 +78,22 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   border-radius: ${p.theme.radius.xs};
   background: ${p.theme.colors.gray100};
   color: ${p.theme.tokens.content.secondary};
+  font-weight: ${p.theme.font.weight.sans.regular};
   vertical-align: middle;
   white-space: nowrap;
 
   &[data-constrained='true'] {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  &[data-interactive='true'] {
+    cursor: pointer;
+    transition: background 80ms ease-out;
+  }
+
+  &[data-interactive='true']:hover {
+    background: ${p.theme.colors.gray200};
   }
 
   svg {
@@ -93,6 +113,10 @@ const chipFrameStyles = (p: {theme: Theme}) => css`
   &[data-tone='accent'] {
     background: ${p.theme.tokens.background.transparent.accent.muted};
     color: ${p.theme.tokens.content.accent};
+  }
+
+  &[data-interactive='true'][data-tone='accent']:hover {
+    background: ${p.theme.colors.blue200};
   }
 `;
 

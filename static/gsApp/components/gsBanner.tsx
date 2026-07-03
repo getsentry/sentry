@@ -55,7 +55,6 @@ import {
 import {
   getContractDaysLeft,
   getProductTrial,
-  getTrialLength,
   hasPartnerMigrationFeature,
   hasPerformance,
   isBusinessTrial,
@@ -70,7 +69,6 @@ import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
-  USAGE_EXCEEDED = 'usage-exceeded',
   PAST_DUE = 'past-due',
 }
 
@@ -156,7 +154,6 @@ function SuspensionModal({
 type NoticeModalProps = ModalRenderProps & {
   billingPermissions: boolean;
   organization: Organization;
-  subscription: Subscription;
   whichModal: ModalType;
 };
 
@@ -165,7 +162,6 @@ function NoticeModal({
   Body,
   Footer,
   closeModal,
-  subscription,
   organization,
   whichModal,
   billingPermissions,
@@ -209,14 +205,6 @@ function NoticeModal({
   let primaryButtonMessage: React.ReactNode;
 
   switch (whichModal) {
-    case ModalType.USAGE_EXCEEDED:
-      title = t('Usage exceeded');
-      body = t(
-        'Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.'
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     case ModalType.PAST_DUE:
       title = t('Unable to bill your account');
       body = billingPermissions
@@ -236,25 +224,6 @@ function NoticeModal({
         : t('See Who Can Update');
       break;
     default:
-  }
-
-  if (subscription.usageExceeded) {
-    if (subscription.isFree) {
-      subText = subscription.canTrial
-        ? t(
-            `Not yet ready to upgrade? You can start a free %s-day trial with
-               unlimited events to better understand your usage.`,
-            getTrialLength(organization)
-          )
-        : t('To ensure uninterrupted service, upgrade your subscription.');
-    } else {
-      subText = tct(
-        'To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.',
-        {
-          budgetTerm: subscription.planDetails.budgetTerm,
-        }
-      );
-    }
   }
 
   return (
@@ -500,20 +469,10 @@ class GSBanner extends Component<Props, State> {
   tryTriggerNoticeModal() {
     const {organization, subscription} = this.props;
 
-    const whichModal = subscription.usageExceeded
-      ? ModalType.USAGE_EXCEEDED
-      : subscription.isPastDue && subscription.canSelfServe
-        ? ModalType.PAST_DUE
-        : null;
+    const whichModal =
+      subscription.isPastDue && subscription.canSelfServe ? ModalType.PAST_DUE : null;
 
     if (whichModal === null) {
-      return;
-    }
-    // Only show USAGE_EXCEEDED or PAST_DUE for members
-    if (
-      !this.hasBillingPerms &&
-      !(ModalType.USAGE_EXCEEDED || whichModal === ModalType.PAST_DUE)
-    ) {
       return;
     }
 
@@ -525,7 +484,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const modalAnalytics = {
-      [ModalType.USAGE_EXCEEDED]: 'usage_exceeded_modal.seen',
       [ModalType.PAST_DUE]: 'past_due_modal.seen',
     } as const;
 
@@ -555,10 +513,7 @@ class GSBanner extends Component<Props, State> {
 
     openModal(
       props => (
-        <NoticeModal
-          {...props}
-          {...{organization, subscription, whichModal, billingPermissions}}
-        />
+        <NoticeModal {...props} {...{organization, whichModal, billingPermissions}} />
       ),
       {onClose}
     );

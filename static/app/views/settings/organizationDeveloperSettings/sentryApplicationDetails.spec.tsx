@@ -552,6 +552,31 @@ describe('Sentry Application Details', () => {
       );
     });
 
+    it('strips events no longer backed by scopes on load, so saving succeeds', async () => {
+      // Scopes can be reduced through the API without resubmitting events,
+      // leaving a subscription the backend would reject on the next save.
+      sentryApp.scopes = ['project:read'];
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(editAppRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            events: [],
+          }),
+          method: 'PUT',
+        })
+      );
+    });
+
     it('submits with no-access for event subscription when permission is revoked', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});

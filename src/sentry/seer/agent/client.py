@@ -516,6 +516,7 @@ class SeerAgentClient:
             on_run_created=_create_agent_run,
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=metadata.get("referrer") if metadata else None,
             flush=True,
         )
 
@@ -523,12 +524,16 @@ class SeerAgentClient:
         self,
         feature_id: str,
         payload: dict[str, Any],
+        title: str,
         flush: bool = True,
+        extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
         `payload`; the result is pushed back via deliver_feature_result.
+        Also creates a SeerAgentRun mirror (source=feature_id, title=title)
+        so the run shows up in the Explorer session-history listing.
 
         on_run_created(run), if given, runs in the same transaction as the
         SeerRun + outbox — use it to link associated rows atomically (e.g. a
@@ -545,10 +550,23 @@ class SeerAgentClient:
             if self.user and hasattr(self.user, "id") and self.user.id is not None
             else None
         )
+
+        def _create_agent_run(run: SeerRun) -> None:
+            SeerAgentRun.objects.create(
+                run=run,
+                title=title[:255] + "…" if len(title) > 256 else title,
+                source=feature_id,
+                project=self.project,
+                group=self.group,
+                extras=extras or {},
+            )
+            if on_run_created is not None:
+                on_run_created(run)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
-            on_run_created=on_run_created,
+            on_run_created=_create_agent_run,
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
@@ -556,6 +574,7 @@ class SeerAgentClient:
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=feature_id,
             flush=flush,
         )
 

@@ -12,10 +12,14 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
-from sentry.issues.derived.processing import process_group_log_batch
-from sentry.issues.derived.tasks import process_group_log_task
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    GroupAction,
+    GroupActionActor,
+    GroupActionLogPayload,
+)
 from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
 from sentry.users.models.user import User
@@ -25,8 +29,11 @@ from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
-# Group Action Log — experimental module for tracking who did what to an issue and how.
-# Storage backend not yet wired up; actions are emitted as structured logs and metrics only.
+# Group Action Log — tracks who did what to an issue and how.
+#
+# publish_action() writes a CellOutbox entry; the outbox receiver creates the
+# GroupActionLogEntry on the (eventually separate) grouplog database and kicks
+# off derived-data processing.
 #
 # Most mutation sites should use publish_action_from_context(), which reads attribution
 # from a ContextVar set at the request boundary via action_context_scope().
@@ -186,6 +193,7 @@ def publish_action(
     group_id: int,
     project: Project,
     actor: GroupActionActor = SYSTEM_ACTOR,
+    force_async_derived: bool = False,
 ) -> None:
     """
     Record an issue action.
@@ -193,6 +201,12 @@ def publish_action(
     Use this for shallow endpoint-level actions where the request is in scope
     (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation sites deeper in the stack,
     prefer publish_action_from_context().
+
+    If *force_async_derived* is True, derived data processing is deferred
+    entirely to the async task. Useful for latency-sensitive paths.
+
+    Log publishing is managed by an outbox that flushes on commit by
+    default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
     """
     action_name = action.get_type().name.lower()
     metrics.incr(
@@ -219,37 +233,30 @@ def publish_action(
         },
     )
 
-    # Don't write to the database until we're confident in the action schemas.
     if not features.has("projects:issue-action-log-write-to-db", project):
         return
 
-    GroupActionLogEntry.objects.create(
-        group_id=group_id,
-        project_id=project.id,
-        type=action.get_type().value,
-        actor_type=actor.actor_type.value,
-        actor_id=actor.actor_id,
-        source=source,
-        data=action.dict(),
+    payload: GroupActionLogPayload = {
+        "group_id": group_id,
+        "project_id": project.id,
+        "type": action.get_type().value,
+        "actor_type": actor.actor_type.value,
+        "actor_id": actor.actor_id,
+        "source": source,
+        "data": action.dict(),
+        "force_async_derived": force_async_derived,
+    }
+
+    outbox = CellOutbox(
+        shard_scope=OutboxScope.GROUP_SCOPE,
+        shard_identifier=group_id,
+        category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
+        object_identifier=CellOutbox.next_object_identifier(),
+        payload=payload,
     )
-
-    # Process derived data after the current transaction commits so the log
-    # entry is visible. Will be replaced by outbox processing later.
-    transaction.on_commit(
-        lambda: _process_derived_data(group_id), using=router.db_for_write(GroupActionLogEntry)
-    )
-
-
-def _process_derived_data(group_id: int) -> None:
-    """Process derived data after a log entry has been committed."""
-    from sentry.models.group import Group
-
-    try:
-        result = process_group_log_batch(group_id)
-    except Group.DoesNotExist:
-        return
-    if not result.caught_up:
-        process_group_log_task.delay(group_id)
+    # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
+    with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+        outbox.save()
 
 
 def publish_action_from_context(
@@ -257,6 +264,7 @@ def publish_action_from_context(
     *,
     group_id: int,
     project: Project,
+    force_async_derived: bool = False,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -281,4 +289,5 @@ def publish_action_from_context(
         group_id=group_id,
         project=project,
         actor=actor,
+        force_async_derived=force_async_derived,
     )

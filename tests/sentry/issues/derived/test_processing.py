@@ -1,6 +1,8 @@
 import pytest
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.base import ActionSource, publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -43,19 +45,20 @@ from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 
 SOURCE = ActionSource.API
 
 
 def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    """Helper to call publish_action() with common defaults."""
-    publish_action(
-        action,
-        source=SOURCE,
-        group_id=group.id,
-        project=group.project,
-        actor=actor,
-    )
+    with outbox_runner():
+        publish_action(
+            action,
+            source=SOURCE,
+            group_id=group.id,
+            project=group.project,
+            actor=actor,
+        )
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -462,14 +465,24 @@ class DerivedDataTransactionTest(TestCase):
         group = self.create_group()
 
         try:
-            with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
-                _publish(
-                    group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+            with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                publish_action(
+                    ViewAction(),
+                    source=SOURCE,
+                    group_id=group.id,
+                    project=group.project,
+                    actor=GroupActionActor.user(self.user.id),
                 )
+                assert CellOutbox.objects.filter(
+                    category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                ).exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 

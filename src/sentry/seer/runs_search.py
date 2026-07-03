@@ -30,6 +30,7 @@ search_config = SearchConfig.create_from(
     },
     allowed_keys={
         "agent",
+        "group",
         "has",
         "is",
         "mine",
@@ -57,13 +58,20 @@ def _validate_type(value: object) -> str:
     return raw
 
 
-def _validate_project_id(value: object) -> int:
-    # ``project`` maps to the integer ``agent__project_id`` column. Validate up
-    # front so a non-numeric value raises InvalidSearchQuery (a 400) rather than
-    # a ValueError during lazy SQL compilation (a 500).
+# ``project``/``group`` map to the integer ``agent__project_id`` /
+# ``agent__group_id`` columns.
+_ID_FIELDS: dict[str, str] = {
+    "project": "agent__project_id",
+    "group": "agent__group_id",
+}
+
+
+def _validate_numeric_id(value: object, *, field: str) -> int:
+    # Validate up front so a non-numeric value raises InvalidSearchQuery (a 400)
+    # rather than a ValueError during lazy SQL compilation (a 500).
     raw = str(value)
     if not raw.isdigit():
-        raise InvalidSearchQuery(f"Invalid project value: {value}. Expected a numeric project ID.")
+        raise InvalidSearchQuery(f"Invalid {field} value: {value}. Expected a numeric {field} ID.")
     return int(raw)
 
 
@@ -136,14 +144,18 @@ def apply_filters(
             queryset = queryset.exclude(q) if token.is_negation else queryset.filter(q)
             continue
 
-        if name == "project":
+        if name in _ID_FIELDS:
+            # ``project``/``group`` accept a single id or an ``[a, b, c]`` IN
+            # list. ``group:[...]`` lets a caller scope runs to a known set of
+            # groups (e.g. the issues on a page) in one query.
+            db_field = _ID_FIELDS[name]
             if token.is_in_filter or token.value.value != "":
                 values = token.value.value if token.is_in_filter else [token.value.value]
-                q = Q(agent__project_id__in=[_validate_project_id(v) for v in values])
+                q = Q(**{f"{db_field}__in": [_validate_numeric_id(v, field=name) for v in values]})
             else:
-                # ``has:project`` / ``!has:project`` — filter on whether a
-                # project is set rather than parsing the (empty) value as an ID.
-                q = Q(agent__project_id__isnull=False)
+                # ``has:project`` / ``!has:project`` — filter on whether the id
+                # is set rather than parsing the (empty) value as an id.
+                q = Q(**{f"{db_field}__isnull": False})
             queryset = queryset.exclude(q) if token.is_negation else queryset.filter(q)
             continue
 

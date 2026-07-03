@@ -1,30 +1,26 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  ConversationDetailPanel,
   ConversationLeftPanel,
-  ConversationSplitLayout,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+import {
+  CONVERSATION_SPAN_DETAIL_TABS,
+  ConversationSpanDetail,
+} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -43,8 +39,8 @@ interface ConversationViewContentNewProps {
   selectedSpanId?: string | null;
 }
 
-// WIP: redesigned conversation view. Reuses the existing panels for now; the
-// content treatment is still being designed.
+// WIP: redesigned conversation view. The transcript tab is a placeholder while
+// its content treatment is being designed.
 export function ConversationViewContentNew({
   conversation,
   activeTab,
@@ -52,7 +48,6 @@ export function ConversationViewContentNew({
   onSelectSpan,
   focusedTool,
 }: ConversationViewContentNewProps) {
-  const organization = useOrganization();
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
@@ -62,7 +57,20 @@ export function ConversationViewContentNew({
     isLoading,
   });
 
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const [detailState, setDetailState] = useQueryStates(
+    {
+      detailOpen: parseAsBoolean.withDefault(true),
+      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
+    },
+    {history: 'replace'}
+  );
+  const handleSelectAndOpenDetail = useCallback(
+    (node: AITraceSpanNode) => {
+      setDetailState({detailOpen: true});
+      handleSelectNode(node);
+    },
+    [handleSelectNode, setDetailState]
+  );
 
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
@@ -86,75 +94,69 @@ export function ConversationViewContentNew({
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationSplitLayout
-        left={
-          <ConversationLeftPanel>
-            <Flex
-              direction="column"
+      <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
+        <ConversationLeftPanel>
+          {activeTab === 'transcript' ? (
+            <Flex flex="1" minHeight="0" overflowY="hidden" background="secondary">
+              <EmptyMessage>{t('Transcript view is coming soon')}</EmptyMessage>
+            </Flex>
+          ) : (
+            <Container
+              containerType="inline-size"
               flex="1"
               minHeight="0"
               width="100%"
-              overflow="hidden"
+              background="secondary"
             >
-              {activeTab === 'transcript' && messages.length > 0 && (
-                <Flex
-                  flexShrink={0}
-                  justify="end"
-                  align="center"
-                  padding="xs sm"
-                  borderBottom="primary"
-                  background="primary"
-                >
-                  <CopyAsDropdown
-                    size="xs"
-                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                      markdown: () => {
-                        trackAnalytics('conversations.detail.copy-conversation', {
-                          organization,
-                        });
-                        return messagesToMarkdown(messages);
-                      },
-                      text: undefined,
-                      json: undefined,
-                    })}
-                  />
-                </Flex>
-              )}
               <Flex
-                flex="1"
-                minHeight="0"
+                direction={{xs: 'column', md: 'row'}}
+                height="100%"
                 width="100%"
-                overflowX="hidden"
+                gap="md"
+                padding="md"
+                minHeight="0"
                 overflowY="auto"
-                background="secondary"
+                overflowX="hidden"
               >
-                {activeTab === 'transcript' ? (
-                  <MessagesPanel
+                <Container
+                  flex="1"
+                  minWidth="0"
+                  minHeight={{xs: '320px', md: '0'}}
+                  padding="md"
+                  background="primary"
+                  border="primary"
+                  radius="md"
+                  overflowX="hidden"
+                  overflowY="auto"
+                >
+                  <AiSpanTimeline
                     nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
-                    onSelectNode={handleSelectNode}
+                    selectedNodeKey={selectedNode?.id ?? ''}
+                    onSelectNode={handleSelectAndOpenDetail}
+                    nodeTraceMap={nodeTraceMap}
+                    compressGaps
                   />
-                ) : (
-                  <Container padding="md lg md lg" width="100%">
-                    <AISpanList
-                      nodes={nodes}
-                      selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                      onSelectNode={handleSelectNode}
-                      compressGaps
+                </Container>
+                {detailState.detailOpen && selectedNode ? (
+                  <Flex
+                    width={{xs: '100%', md: '430px'}}
+                    flex={{xs: '1', md: '0 0 auto'}}
+                    minHeight={{xs: '320px', md: '0'}}
+                  >
+                    <ConversationSpanDetail
+                      node={selectedNode}
+                      traceId={nodeTraceMap?.get(selectedNode.id) ?? ''}
+                      activeTab={detailState.detailTab}
+                      onTabChange={detailTab => setDetailState({detailTab})}
+                      onClose={() => setDetailState({detailOpen: false, detailTab: null})}
                     />
-                  </Container>
-                )}
+                  </Flex>
+                ) : null}
               </Flex>
-            </Flex>
-          </ConversationLeftPanel>
-        }
-        right={
-          <ConversationDetailPanel
-            selectedNode={selectedNode}
-            nodeTraceMap={nodeTraceMap}
-          />
-        }
-      />
+            </Container>
+          )}
+        </ConversationLeftPanel>
+      </Flex>
     </TraceStateProvider>
   );
 }

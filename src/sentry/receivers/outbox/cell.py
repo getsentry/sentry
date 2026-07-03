@@ -27,6 +27,9 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.action_log.types import GroupActionLogPayload
+from sentry.issues.derived.processing import ProcessingStrategy, trigger_group_log_processing
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -45,6 +48,7 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
+from sentry.utils.env import in_test_environment
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -327,3 +331,44 @@ def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
     run.mirror_status = SeerRunMirrorStatus.FAILED
     run.save(update_fields=["mirror_status"])
     logger.warning(event, extra={"run_id": run.id, **extra})
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.GROUP_ACTION_LOG_EVENT)
+def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) -> None:
+    """Write a GroupActionLogEntry from the outbox payload, then trigger
+    derived data processing."""
+    try:
+        group_id = payload["group_id"]
+
+        GroupActionLogEntry.objects.create(
+            group_id=group_id,
+            project_id=payload["project_id"],
+            type=payload["type"],
+            actor_type=payload["actor_type"],
+            actor_id=payload["actor_id"],
+            source=payload["source"],
+            data=payload["data"],
+        )
+
+        # This receiver runs inside the outbox drain transaction
+        # (process_shard → transaction.atomic), so the GALE is not yet committed.
+        # Defer to on_commit so the GALE is visible to readers on other connections.
+        strategy = (
+            ProcessingStrategy.ASYNC
+            if payload["force_async_derived"]
+            else ProcessingStrategy.INLINE
+        )
+        using = router.db_for_write(GroupActionLogEntry)
+        transaction.on_commit(
+            lambda: trigger_group_log_processing(group_id, strategy=strategy), using=using
+        )
+    except KeyError:
+        # Payload schema mismatches (e.g. deploy skew) must not raise —
+        # the outbox would retry forever.  Surface in tests so producer bugs
+        # are caught, but drop the message in production.
+        if in_test_environment():
+            raise
+        logger.exception(
+            "process_group_action_log_event.permanent_failure",
+            extra={"payload": payload},
+        )
