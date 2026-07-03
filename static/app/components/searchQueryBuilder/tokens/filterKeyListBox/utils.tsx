@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from '@sentry/scraps/compactSelect';
+import {getEscapedKey, HighlightText} from '@sentry/scraps/compactSelect';
 
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
   AskSeerItem,

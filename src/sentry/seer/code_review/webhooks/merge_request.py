@@ -10,14 +10,14 @@ runs ``CodeReviewPreflightService``, whose ``_check_billing`` looks up
 ``OrganizationContributors`` by
 ``(organization_id, integration_id, external_identifier=str(author_id))`` and
 returns ``ORG_CONTRIBUTOR_NOT_FOUND`` when the row is missing. GitLab seeds that row
-through ``track_gitlab_contributor_seat_processor``, which
+through ``track_gitlab_contributor_action_processor``, which
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers before this handler. If
 that ordering changes, the first MR open from a new contributor is filtered before
 the same delivery can seed the contributor.
 
 Contributor seeding still depends on ``MergeEventWebhook.__call__`` reaching its
-processors and only runs for ``object_attributes.action == "open"``. Payloads that
-short-circuit before processor dispatch, such as MRs missing ``last_commit`` or the
+processors. Seats are only assigned for ``object_attributes.action == "open"``. Payloads
+that short-circuit before processor dispatch, such as MRs missing ``last_commit`` or the
 author email, do not seed the MR author; later ``update`` events do not backfill it.
 
 GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an

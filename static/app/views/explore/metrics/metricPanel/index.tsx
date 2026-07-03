@@ -128,7 +128,10 @@ export function MetricPanel({
 
   const [title, setTitle] = useState<string | undefined>(() => {
     if (isVisualizeEquation(visualize)) {
-      return unresolveExpression(visualize.expression.text, referenceMap);
+      return (
+        visualize.internalExpression ??
+        unresolveExpression(visualize.expression.text, referenceMap)
+      );
     }
     return;
   });

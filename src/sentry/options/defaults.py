@@ -596,13 +596,6 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Organizations that should always see the Seer config reminder
-register(
-    "seer.organizations.force-config-reminder",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Coding Workflows
 register(
@@ -1126,14 +1119,6 @@ register(
     "seer.similarity.max_token_count",
     type=Int,
     default=7000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Fraction of grouping requests to route to the CPU (summarization) backend instead of GPU
-register(
-    "seer.similarity.cpu-backend-sample-rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3810,6 +3795,14 @@ register(
 # Rolls out the new TaskProducer to uptime tasks
 register(
     "tasks.producer.uptime.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to processing_errors tasks
+register(
+    "tasks.producer.processing-errors.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

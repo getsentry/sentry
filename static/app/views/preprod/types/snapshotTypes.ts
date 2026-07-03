@@ -13,6 +13,7 @@ export interface SnapshotImage {
   key: string;
   tags: Record<string, string> | null;
   width: number;
+  canvas_theme?: 'light' | 'dark' | null;
 }
 
 export interface SnapshotDiffPair {

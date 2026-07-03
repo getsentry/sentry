@@ -222,11 +222,43 @@ def build_pr_metrics_row(
         comments_count=metrics.comments_count,
         review_comments_count=metrics.review_comments_count,
         is_assigned=metrics.is_assigned,
+        participants_count=metrics.participants_count,
+        reviews_count=metrics.reviews_count,
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
         **_conversation_analysis_fields(conversation_analysis),
     )
+
+
+def _activity_derived_counters(pull_request: PullRequest) -> dict[str, int]:
+    """Counters derived from the PR's stored activity log at its terminal event.
+
+    Computed at emit — not on the Seer callback — so both the no-judge and judge
+    paths populate them from data Sentry already holds, independent of whether the
+    PR is judged. Read before ``cleanup_pr_activity_task`` sweeps the activity
+    rows; the results are persisted onto ``PullRequestMetrics`` so a later
+    re-derivation (recovery) reads them off the row, not the deleted activity.
+
+    - ``reviews_count``: total ``REVIEW_SUBMITTED`` rows — every GitHub review
+      submission (a reviewer who submits twice counts twice), not distinct
+      reviewers.
+    - ``participants_count``: distinct non-empty ``sender_login`` across the PR's
+      activity, excluding ``sender_type == "Bot"`` so CI apps and automation don't
+      inflate human participation.
+
+    Both are only meaningful under ``pr-metrics-activity`` (no activity rows → 0).
+    """
+    activities = PullRequestActivity.objects.filter(pull_request=pull_request)
+    reviews_count = activities.filter(event_type=PullRequestActivityType.REVIEW_SUBMITTED).count()
+    participant_logins = {
+        login
+        for login, sender_type in activities.values_list(
+            "payload__sender_login", "payload__sender_type"
+        )
+        if login and sender_type != "Bot"
+    }
+    return {"participants_count": len(participant_logins), "reviews_count": reviews_count}
 
 
 def emit_pr_metrics_row(
@@ -251,6 +283,14 @@ def emit_pr_metrics_row(
     if not attributions:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
+
+    # Derive the activity-sourced counters at the terminal event — before the
+    # activity rows are swept post-emit — and persist them onto the metrics row so
+    # build_pr_metrics_row (and any later re-derivation for recovery) reads the
+    # same final counts. A no-op when Sentry never wrote a metrics row.
+    PullRequestMetrics.objects.filter(pull_request=pull_request).update(
+        **_activity_derived_counters(pull_request)
+    )
 
     close_action: CloseAction = (
         CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED

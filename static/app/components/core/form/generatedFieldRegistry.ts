@@ -156,6 +156,87 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Authorized JavaScript Origins'),
     hintText: t('Separate multiple entries with a newline.'),
   },
+  'project-general-settings.slug': {
+    name: 'slug',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Slug'),
+    hintText: t('A unique ID used to identify this project'),
+  },
+  'project-general-settings.resolveAge': {
+    name: 'resolveAge',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Auto Resolve'),
+    hintText: t(
+      "Automatically resolve an issue if it hasn't been seen for this amount of time"
+    ),
+  },
+  'project-general-settings.securityToken': {
+    name: 'securityToken',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Security Token'),
+    hintText: '',
+  },
+  'project-general-settings.securityTokenHeader': {
+    name: 'securityTokenHeader',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Security Token Header'),
+    hintText: '',
+  },
+  'project-general-settings.platform': {
+    name: 'platform',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Platform'),
+    hintText: t('The primary platform for this project'),
+  },
+  'project-general-settings.subjectPrefix': {
+    name: 'subjectPrefix',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Subject Prefix'),
+    hintText: t('Choose a custom prefix for emails from this project'),
+  },
+  'project-general-settings.debugFilesRole': {
+    name: 'debugFilesRole',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Debug Files Access'),
+    hintText: '',
+  },
+  'project-general-settings.allowedDomains': {
+    name: 'allowedDomains',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Allowed Domains'),
+    hintText: '',
+  },
+  'project-general-settings.scrapeJavaScript': {
+    name: 'scrapeJavaScript',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable JavaScript source fetching'),
+    hintText: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  'project-general-settings.scmSourceContextEnabled': {
+    name: 'scmSourceContextEnabled',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable SCM Source Context'),
+    hintText: t(
+      "Fetch source code from your connected SCM integration (e.g. GitHub, GitLab) to display in stack traces. When enabled, any project member can view source code for files matched by this project's code mappings."
+    ),
+  },
+  'project-general-settings.verifySSL': {
+    name: 'verifySSL',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Verify TLS/SSL'),
+    hintText: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
+  },
   'settings.subjectTemplate': {
     name: 'subjectTemplate',
     formId: 'settings',

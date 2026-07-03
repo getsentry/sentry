@@ -27,7 +27,7 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
     SpanFirstDetectorsRolloutController,
 )
 from sentry.issue_detection.performance_detection import detect_performance_problems
-from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -298,13 +298,86 @@ def _create_models(
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
+    # Killswitch for all segment-based issue detection
+    if not options.get("spans.process-segments.detect-performance-problems.enable"):
+        return
+
+    try:
+        # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
+        # segment span, produce occurrences from the results
+        legacy_detected_problems = _run_legacy_detectors(segment_span, spans, project)
+    except Exception:
+        logger.exception("segment_consumer_legacy_issue_detectors.error")
+        # If the legacy detectors error out, there's no point in running the experiment, so bail now
+        return
+
+    # Run the new span-first detectors and compare their results to those of the legacy detectors.
+    # Note: Not all legacy detectors have span-first analogs yet. Results from those that don't are
+    # just ignored in the comparison.
+    _maybe_run_span_first_detector_parity_check(
+        segment_span, spans, project, legacy_detected_problems
+    )
+
+
+def _run_legacy_detectors(
+    segment_span: CompatibleSpan, segment: list[CompatibleSpan], project: Project
+) -> list[PerformanceProblem]:
+    """
+    Run legacy issue detectors on segment data by first creating a fake transaction event. If the
+    `_performance_issues_spans` flag is set, also create occurrences from the results.
+    """
+    # Create a fake transaction event out of the segment data, to match what the legacy detectors
+    # are expecting
+    event_data = build_shim_event_data(segment_span, segment)
+    detected_problems = detect_performance_problems(event_data, project, standalone=True)
+
+    # This flag is set in Relay, and here enables producing occurrences from the legacy detector
+    # results. For segments derived from transactions, it additionally suppresses the running of
+    # legacy detectors in `save_transaction_events`, thus preventing duplicate occurrences from
+    # being created.
+    if segment_span.get("_performance_issues_spans"):
+        # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
+        # by the consumer. Once issue detectors can run on standalone spans, we should directly
+        # build a minimal occurrence event payload here, instead.
+        event_data["spans"] = []
+        event_data["timestamp"] = event_data["datetime"]
+
+        for problem in detected_problems:
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=project.id,
+                event_id=event_data["event_id"],
+                fingerprint=[problem.fingerprint],
+                type=problem.type,
+                issue_title=problem.title,
+                subtitle=problem.desc,
+                culprit=event_data["transaction"],
+                evidence_data=problem.evidence_data or {},
+                evidence_display=problem.evidence_display,
+                detection_time=to_datetime(segment_span["end_timestamp"]),
+                level="info",
+            )
+
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+                occurrence=occurrence,
+                event_data=event_data,
+                is_buffered_spans=True,
+            )
+
+    return detected_problems
+
+
+def _maybe_run_span_first_detector_parity_check(
+    segment_span: CompatibleSpan,
+    segment: list[CompatibleSpan],
+    project: Project,
+    all_control_problems: list[PerformanceProblem],
+) -> None:
     if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
         return
 
-    # Sample once per segment, up front: if no grouptypes are selected, neither the existing nor the
-    # span-first detectors will run.pipeline runs. Since for now the existing detection is only
-    # being run for the sake of comparison testing, gating it together with the experimental side
-    # avoids paying its cost on segments we won't compare.
     sampled_grouptypes = [
         grouptype_slug
         for grouptype_slug in SPAN_FIRST_DETECTORS_BY_GROUPTYPE
@@ -314,11 +387,8 @@ def _detect_performance_problems(
         return
 
     try:
-        event_data = build_shim_event_data(segment_span, spans)
-        all_control_problems = detect_performance_problems(event_data, project, standalone=True)
-
         span_first_problems_by_grouptype = run_span_first_detectors(
-            sampled_grouptypes, segment_span, spans, project
+            sampled_grouptypes, segment_span, segment, project
         )
 
         compare_span_first_problems_to_control_data(
@@ -330,47 +400,6 @@ def _detect_performance_problems(
         )
     except Exception:
         logger.exception("span_first_detector_test.error")
-        return
-
-    # This flag is set in Relay (though at the moment it's not turned on)
-    if not segment_span.get("_performance_issues_spans"):
-        return
-
-    # Prepare a slimmer event payload for the occurrence consumer. This event
-    # will be persisted by the consumer. Once issue detectors can run on
-    # standalone spans, we should directly build a minimal occurrence event
-    # payload here, instead.
-    event_data["spans"] = []
-    event_data["timestamp"] = event_data["datetime"]
-
-    for problem in all_control_problems:
-        problem.type = PerformanceStreamedSpansGroupTypeExperimental
-        problem.fingerprint = (
-            f"{problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
-        )
-
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            resource_id=None,
-            project_id=project.id,
-            event_id=event_data["event_id"],
-            fingerprint=[problem.fingerprint],
-            type=problem.type,
-            issue_title=problem.title,
-            subtitle=problem.desc,
-            culprit=event_data["transaction"],
-            evidence_data=problem.evidence_data or {},
-            evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp"]),
-            level="info",
-        )
-
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data=event_data,
-            is_buffered_spans=True,
-        )
 
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")

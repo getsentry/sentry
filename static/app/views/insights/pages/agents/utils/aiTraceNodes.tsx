@@ -1,7 +1,10 @@
+import type {Theme} from '@emotion/react';
+
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  GenAiOperationType,
   getGenAiOperationTypeFromSpanName,
   getIsAiAgentSpan,
   getIsAiGenerationSpan,
@@ -187,4 +190,36 @@ export function hasError(node: AITraceSpanNode): boolean {
   }
 
   return !!getStringAttr(node, 'status')?.includes('error');
+}
+
+export type ColorByOpType = Record<GenAiOperationType | 'default' | 'error', string>;
+
+/**
+ * Resolves a span node to a color using the given op-type palette, falling back
+ * to the error color for errored spans and `default` for unknown op types.
+ */
+export function getSpanColor(
+  node: AITraceSpanNode,
+  colorByOpType: ColorByOpType
+): string {
+  if (hasError(node)) {
+    return colorByOpType.error;
+  }
+  const opType = getGenAiOpType(node);
+  return colorByOpType[opType as GenAiOperationType] ?? colorByOpType.default;
+}
+
+/**
+ * Op-type color palette used by the AI span timeline and mirrored by the
+ * conversation span detail so a selected span's color ties back to its row.
+ */
+export function getTimelineColorByOpType(theme: Theme): ColorByOpType {
+  return {
+    [GenAiOperationType.AGENT]: theme.tokens.content.promotion,
+    [GenAiOperationType.AI_CLIENT]: theme.tokens.content.success,
+    [GenAiOperationType.HANDOFF]: theme.tokens.content.warning,
+    [GenAiOperationType.TOOL]: theme.tokens.content.accent,
+    default: theme.tokens.content.secondary,
+    error: theme.tokens.content.danger,
+  };
 }
