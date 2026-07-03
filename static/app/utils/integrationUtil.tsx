@@ -302,7 +302,7 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t(
-        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the slack app on your workspace to get started.'
+        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app on your workspace to get started.'
       );
 };
 
