@@ -8,12 +8,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {type Crumb, Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {defined} from 'sentry/utils/defined';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -127,9 +129,7 @@ function ConversationsHeader() {
             ]}
           />
         ) : (
-          <Fragment>
-            {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="beta" />
-          </Fragment>
+          <ConversationsLandingTitle />
         )}
       </TopBar.Slot>
       <TopBar.Slot name="feedback">
@@ -163,6 +163,38 @@ function useRestoredListQuery(
   return cache.current.conversationId === conversationId
     ? cache.current.query
     : undefined;
+}
+
+function ConversationsLandingTitle() {
+  const organization = useOrganization();
+  const location = useLocation();
+  const savedQueryTitle = decodeScalar(location.query.title);
+  const savedQueryId = decodeScalar(location.query.id);
+
+  if (defined(savedQueryId) && defined(savedQueryTitle) && savedQueryTitle.length > 0) {
+    const conversationsBaseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    );
+    const crumbs: Crumb[] = [
+      {
+        label: CONVERSATIONS_SIDEBAR_LABEL,
+        to: {
+          pathname: conversationsBaseUrl,
+          query: {statsPeriod: '24h'},
+        },
+      },
+      {
+        label: savedQueryTitle,
+      },
+    ];
+    return <Breadcrumbs crumbs={crumbs} />;
+  }
+
+  return (
+    <Fragment>
+      {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="beta" />
+    </Fragment>
+  );
 }
 
 export default ConversationsLayout;
