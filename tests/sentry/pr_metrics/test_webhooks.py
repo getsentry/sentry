@@ -103,13 +103,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
     def test_app_attribution_only_written_on_opened(self) -> None:
-        # reopened and edited should not create a second app attribution row
-        self._call(action="reopened", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-        self._call(
-            action="edited",
-            user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID,
-            changes={"body": {"from": "old body"}},
-        )
+        self._call(action="synchronize", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+        self._call(action="labeled", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert not PullRequestAttribution.objects.filter(
             pull_request=self.pr,
@@ -122,11 +117,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
         for action in (
             "synchronize",
             "closed",
-            "merged",
             "labeled",
             "assigned",
-            "reopened",
-            "edited",
         ):
             self._call(action=action, user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
@@ -368,8 +360,8 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
     @patch("sentry.analytics.record")
     def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
         self._call(action="opened")
-        self._call(action="edited")
         self._call(action="synchronize")
+        self._call(action="labeled")
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
@@ -545,6 +537,14 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
             self._call(additions=5)
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
 
+    def test_singular_assignee_key_counts_as_assigned(self) -> None:
+        # GitHub uses "assignees" (list) on most events but "assignee" (object) on
+        # assigned/unassigned events — both should mark the PR as assigned.
+        self._call(assignee={"login": "octocat"})
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.is_assigned is True
+
     def test_missing_pr_writes_nothing(self) -> None:
         handle_metrics(
             github_event=GithubWebhookType.PULL_REQUEST,
@@ -648,57 +648,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.payload["changed_files"] == 4
         assert activity.payload["commits"] == 3
 
-    def test_closed_unmerged_writes_closed_activity_with_metrics(self) -> None:
-        self._call(
-            action="closed",
-            merged=False,
-            additions=5,
-            deletions=2,
-            changed_files=1,
-            commits=1,
-            comments=3,
-            review_comments=7,
-        )
-
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.CLOSED
-        assert activity.payload["merged"] is False
-        assert activity.payload["additions"] == 5
-        assert activity.payload["comments"] == 3
-        assert activity.payload["review_comments"] == 7
-        assert activity.payload["merged_by"] is None
-
-    def test_closed_merged_writes_merged_activity_with_metrics(self) -> None:
-        self._call(
-            action="closed",
-            merged=True,
-            additions=20,
-            deletions=3,
-            changed_files=4,
-            commits=5,
-            comments=2,
-            review_comments=4,
-        )
-
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.MERGED
-        assert activity.payload["merged"] is True
-        assert activity.payload["additions"] == 20
-        assert activity.payload["commits"] == 5
-        assert activity.payload["comments"] == 2
-        assert activity.payload["review_comments"] == 4
-        assert activity.payload["merged_by"] == "testuser"
-
-    def test_reopened_writes_reopened_activity_with_size_fields(self) -> None:
-        self._call(action="reopened", additions=5, deletions=2, changed_files=1, commits=1)
-
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.REOPENED
-        assert activity.payload["additions"] == 5
-        assert activity.payload["deletions"] == 2
-        assert activity.payload["changed_files"] == 1
-        assert activity.payload["commits"] == 1
-
     def test_synchronize_writes_synchronized_activity(self) -> None:
         self._call(action="synchronize", before="old-sha", after="new-sha")
 
@@ -706,22 +655,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.event_type == PullRequestActivityType.SYNCHRONIZED
         assert activity.payload["before_sha"] == "old-sha"
         assert activity.payload["after_sha"] == "new-sha"
-
-    def test_edited_writes_edited_activity_with_changed_fields(self) -> None:
-        self._call(
-            action="edited", changes={"body": {"from": "old body"}, "title": {"from": "old"}}
-        )
-
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.EDITED
-        assert activity.payload["changed_fields"] == ["body", "title"]
-
-    def test_edited_with_no_changes_dict_writes_empty_changed_fields(self) -> None:
-        self._call(action="edited")
-
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.event_type == PullRequestActivityType.EDITED
-        assert activity.payload["changed_fields"] == []
 
     def test_labeled_writes_labeled_activity_with_label_info(self) -> None:
         self._call(action="labeled", label={"name": "bug", "color": "d73a4a"})
@@ -753,8 +686,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
     def test_payload_never_contains_title_or_body(self) -> None:
         for action, kw in [
             ("opened", {}),
-            ("closed", {"webhook_id": "d-closed"}),
-            ("reopened", {"webhook_id": "d-reopened"}),
             ("synchronize", {"webhook_id": "d-sync", "before": "old", "after": "new"}),
         ]:
             self._call(action=action, **kw)  # type: ignore[arg-type]
@@ -763,17 +694,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
             )
             assert "title" not in activity.payload
             assert "body" not in activity.payload
-
-    def test_edited_payload_stores_changed_field_names_not_values(self) -> None:
-        # changed_fields should be the keys of event["changes"], not the old text values
-        self._call(
-            action="edited",
-            changes={"body": {"from": "very sensitive old body text"}},
-        )
-
-        activity = PullRequestActivity.objects.get(pull_request=self.pr)
-        assert activity.payload["changed_fields"] == ["body"]
-        assert "very sensitive old body text" not in str(activity.payload)
 
     # --- Idempotency ---
 
@@ -1934,10 +1854,13 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         mock_response.status = status
         return patch(MATCH_RPC, return_value=mock_response)
 
+    def _mock_org_check(self) -> Any:
+        return patch(f"{MODULE}.org_has_coding_agent_for_provider", return_value=True)
+
     # --- Candidate detection calls Seer ---
 
     def test_claude_branch_prefix_sends_to_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix-the-bug")
 
         mock_rpc.assert_called_once()
@@ -1951,28 +1874,32 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         assert body.repo.external_id == "99"
 
     def test_copilot_branch_prefix_sends_to_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="copilot/fix-the-bug")
 
         mock_rpc.assert_called_once()
         assert mock_rpc.call_args.args[0].provider == "github_copilot"
 
     def test_copilot_author_login_sends_to_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(login="copilot-swe-agent[bot]", head_ref="some-branch")
 
         mock_rpc.assert_called_once()
         assert mock_rpc.call_args.args[0].provider == "github_copilot"
 
     def test_branch_prefix_takes_precedence_over_author(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(login="copilot-swe-agent[bot]", head_ref="claude/fix")
 
         mock_rpc.assert_called_once()
         assert mock_rpc.call_args.args[0].provider == "claude_code"
 
     def test_sent_metric_incremented_on_success(self) -> None:
-        with self._mock_seer(status=202), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=202),
+            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+        ):
             self._call(head_ref="claude/fix")
 
         assert any(
@@ -1984,7 +1911,11 @@ class HandleDelegatedAgentDetectionTest(TestCase):
     # --- Error handling ---
 
     def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
-        with self._mock_seer(status=500), patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=500),
+            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+        ):
             self._call(head_ref="claude/fix")
 
         assert any(
@@ -1994,6 +1925,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
     def test_seer_exception_logs_warning_and_error_metric(self) -> None:
         with (
+            self._mock_org_check(),
             patch(MATCH_RPC, side_effect=Exception("network error")),
             patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
         ):
@@ -2005,7 +1937,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         )
 
     def test_seer_exception_does_not_propagate(self) -> None:
-        with patch(MATCH_RPC, side_effect=Exception("network error")):
+        with self._mock_org_check(), patch(MATCH_RPC, side_effect=Exception("network error")):
             self._call(head_ref="claude/fix")  # must not raise
 
     # --- Non-candidates do not call Seer ---
@@ -2017,7 +1949,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         mock_rpc.assert_not_called()
 
     def test_non_opened_action_does_not_call_seer(self) -> None:
-        for action in ("synchronize", "closed", "reopened", "edited", "labeled"):
+        for action in ("synchronize", "closed", "labeled", "assigned"):
             with self._mock_seer() as mock_rpc:
                 self._call(action=action, head_ref="claude/fix")
                 mock_rpc.assert_not_called()
@@ -2031,23 +1963,15 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_no_seer_access_via_flag_does_not_call_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
-            with self.feature({"organizations:gen-ai-features": False}):
+    def test_no_matching_integration_does_not_call_seer(self) -> None:
+        with patch(f"{MODULE}.org_has_coding_agent_for_provider", return_value=False):
+            with self._mock_seer() as mock_rpc:
                 self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
 
-    def test_no_seer_access_via_hidden_ai_features_does_not_call_seer(self) -> None:
-        self.organization.update_option("sentry:hide_ai_features", True)
-
-        with self._mock_seer() as mock_rpc:
-            self._call(head_ref="claude/fix")
-
-        mock_rpc.assert_not_called()
-
     def test_missing_pr_does_not_call_seer(self) -> None:
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix", number=9999)
 
         mock_rpc.assert_not_called()
@@ -2058,7 +1982,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             linked_id=self.pr.id,
         ).delete()
 
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
@@ -2067,13 +1991,22 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         self.repo.provider = None
         self.repo.save()
 
-        with self._mock_seer() as mock_rpc:
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
 
     def test_repo_missing_external_id_does_not_call_seer(self) -> None:
         self.repo.external_id = None
+        self.repo.save()
+
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
+            self._call(head_ref="claude/fix")
+
+        mock_rpc.assert_not_called()
+
+    def test_repo_name_without_slash_does_not_call_seer(self) -> None:
+        self.repo.name = "repowithoutseparator"
         self.repo.save()
 
         with self._mock_seer() as mock_rpc:
