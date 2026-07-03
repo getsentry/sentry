@@ -13,6 +13,7 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {
+  getTraceAdditionalAttributes,
   TracePinnedAttributeColumn,
   TracePinnedAttributeHeader,
   useTracePinnedAttribute,
@@ -75,6 +76,34 @@ describe('useTracePinnedAttribute', () => {
   });
 });
 
+describe('getTraceAdditionalAttributes', () => {
+  it('returns the default set, sorted, when nothing is pinned', () => {
+    const result = getTraceAdditionalAttributes(null);
+    expect(result).toEqual([...result].sort());
+    expect(result).toContain('span.status');
+  });
+
+  it('requests a pinned attribute the trace response does not already include', () => {
+    expect(getTraceAdditionalAttributes('custom.attribute')).toContain(
+      'custom.attribute'
+    );
+  });
+
+  it('does not request a pinned attribute already in the default set', () => {
+    const withPin = getTraceAdditionalAttributes('span.status');
+    const withoutPin = getTraceAdditionalAttributes(null);
+    expect(withPin).toEqual(withoutPin);
+  });
+
+  it('does not request a pinned attribute the trace response returns natively', () => {
+    // span.op / span.duration are returned as native span fields.
+    expect(getTraceAdditionalAttributes('span.op')).not.toContain('span.op');
+    expect(getTraceAdditionalAttributes('measurements.lcp')).not.toContain(
+      'measurements.lcp'
+    );
+  });
+});
+
 describe('TracePinnedAttributeColumn', () => {
   it('renders the attribute value for the node', () => {
     const node = makeNode({'http.response.status_code': 200});
@@ -100,6 +129,17 @@ describe('TracePinnedAttributeColumn', () => {
     );
 
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('reads native span fields for attributes not in additional_attributes', () => {
+    // span.op is returned as a native span field, not in additional_attributes.
+    const node = new EapSpanNode(null, makeEAPSpan({op: 'db.query'}), {
+      organization: OrganizationFixture(),
+    });
+
+    render(<TracePinnedAttributeColumn node={node} pinnedAttribute="span.op" />);
+
+    expect(screen.getByText('db.query')).toBeInTheDocument();
   });
 });
 
