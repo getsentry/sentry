@@ -129,11 +129,11 @@ export function ConversationsTableNew() {
           justify={RIGHT_ALIGNED_CONVERSATION_COLUMNS.has(column.key) ? 'end' : 'start'}
         >
           {column.name}
-          {/* Raise the user column's growth-limit so it absorbs the leftover
+          {/* Raise the input column's growth-limit so it absorbs the leftover
               width instead of the last column stretching. The panel's
               horizontal scroll (and the `minWidth: 0` wrapper) keeps this from
               overflowing when there are too many columns to fit. */}
-          {column.key === 'user' && <Container width="100vw" />}
+          {column.key === 'input' && <Container width="100vw" />}
         </Flex>
       );
     },

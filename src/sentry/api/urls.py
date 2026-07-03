@@ -526,6 +526,7 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
+from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
@@ -2358,6 +2359,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
         OrganizationSeerAgentRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-runs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
+        OrganizationSeerRunsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-runs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
