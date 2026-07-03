@@ -179,8 +179,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         Args:
             response: The EAP RPC TimeSeriesResponse
-            subscription_key: The attribute name for subscription ID ("uptime_subscription_id" or "subscription_id")
-            epoch_cutoff: Optional cutoff timestamp for data
         """
         formatted_data: dict[str, dict[int, dict[str, int]]] = {}
 

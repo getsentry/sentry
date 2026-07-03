@@ -26,7 +26,7 @@ def entropy(xs: list[float]) -> float:
         H = -sum(p(x) * log2(p(x)))
 
     Parameters:
-        probabilities: A list of non-negative floating point values which sum to 1.
+        xs: A list of non-negative floating point values which sum to 1.
     """
     total = sum(xs)
 

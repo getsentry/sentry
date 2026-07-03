@@ -418,7 +418,7 @@ class FeatureManager(RegisteredFeatureManager):
         available, or falling back to individual checks.
 
         Args:
-            feature_names: List of feature names to check
+            feature_name: Feature name to check
             organizations: List of organizations to check the features for
 
         Returns:
