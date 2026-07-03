@@ -2,16 +2,20 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type Props = {
   integration: Integration;
+  requiresUpgrade: boolean | undefined;
   compact?: boolean;
 };
 
-export function IntegrationItem({integration, compact = false}: Props) {
+export function IntegrationItem({integration, requiresUpgrade, compact = false}: Props) {
   return (
     <Flex align="center">
       <div>
@@ -24,9 +28,12 @@ export function IntegrationItem({integration, compact = false}: Props) {
         paddingLeft="md"
         minWidth={0}
       >
-        <Text size="md" bold>
-          {integration.name}
-        </Text>
+        <Flex>
+          <Text size="md" bold>
+            {integration.name}
+          </Text>
+          {requiresUpgrade && <UpdateIntegrationIcon displayName={integration.name} />}
+        </Flex>
         <DomainName compact={compact}>
           <Text size="sm" variant="muted" density="comfortable">
             {integration.domainName}
@@ -34,6 +41,19 @@ export function IntegrationItem({integration, compact = false}: Props) {
         </DomainName>
       </Flex>
     </Flex>
+  );
+}
+
+function UpdateIntegrationIcon({displayName}: {displayName: string}) {
+  return (
+    <Tooltip
+      title={tct(
+        "There's a new update for your [displayName] integration, please update your workspace",
+        {displayName}
+      )}
+    >
+      <IconWarning variant="warning" aria-label={t('Integration alert')} />
+    </Tooltip>
   );
 }
 
