@@ -59,6 +59,7 @@ from sentry.profiles.java import (
     merge_jvm_frames_with_android_methods,
 )
 from sentry.profiles.utils import (
+    PROFILE_FORMAT_V2_ANDROID_TRACE,
     Profile,
     apply_stack_trace_rules_to_profile,
     is_android_trace_format,
@@ -629,7 +630,11 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     platform = profile["platform"]
     version = profile.get("version")
 
-    if platform not in {"cocoa", "android"} or version == "2":
+    if platform not in {"cocoa", "android"}:
+        return
+
+    # sample v2 profiles don't carry device classification
+    if version == "2" and not is_android_trace_format(profile):
         return
 
     classification = profile.get("transaction_tags", {}).get("device.class", None)
@@ -1257,13 +1262,13 @@ def _get_duration_category(profile: Profile) -> DataCategory:
 
 
 def _calculate_profile_duration_ms(profile: Profile) -> int:
+    if is_android_trace_format(profile):
+        return _calculate_duration_for_android_format(profile)
     version = profile.get("version")
     if version == "1":
         return _calculate_duration_for_sample_format_v1(profile)
     elif version == "2":
         return _calculate_duration_for_sample_format_v2(profile)
-    elif is_android_trace_format(profile):
-        return _calculate_duration_for_android_format(profile)
     return 0
 
 
@@ -1336,18 +1341,18 @@ class UnknownClientSDKException(Exception):
 
 
 def determine_profile_type(profile: Profile) -> EventType:
-    version = profile.get("version")
-
-    if version == "1":
-        return EventType.PROFILE
-    elif version == "2":
-        return EventType.PROFILE_CHUNK
-    elif is_android_trace_format(profile):
+    if is_android_trace_format(profile):
         if "profiler_id" in profile:
             return EventType.PROFILE_CHUNK
         else:
             # This is the legacy android format
             return EventType.PROFILE
+
+    version = profile.get("version")
+    if version == "1":
+        return EventType.PROFILE
+    elif version == "2":
+        return EventType.PROFILE_CHUNK
     raise UnknownProfileTypeException
 
 
@@ -1574,8 +1579,15 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
             with start_span(op="json.unmarshal", name="json.unmarshal"):
+                # don't trust the version on the payload, it may be missing or
+                # wrongly set on android trace chunks
+                version = (
+                    PROFILE_FORMAT_V2_ANDROID_TRACE
+                    if is_android_trace_format(profile)
+                    else profile.get("version")
+                )
                 chunk = vroomrs.profile_chunk_from_json_str(
-                    json_profile, platform=profile["platform"], version=profile.get("version")
+                    json_profile, platform=profile["platform"], version=version
                 )
             chunk.normalize()
             with start_span(op="gcs.write", name="compress and write"):

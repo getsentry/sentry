@@ -552,8 +552,23 @@ def test_determine_profile_type() -> None:
         determine_profile_type({"version": "2.android-trace", "platform": "android"})
         == EventType.PROFILE
     )
-    # fallback path: no version, android platform
-    assert determine_profile_type({"platform": "android"}) == EventType.PROFILE
+    # fallback path: the trace format is detected from the profile structure,
+    # even when a (faulty) sample version is set
+    assert (
+        determine_profile_type({"platform": "android", "profile": {"methods": []}})
+        == EventType.PROFILE
+    )
+    assert (
+        determine_profile_type(
+            {
+                "version": "2",
+                "platform": "android",
+                "profiler_id": "abc",
+                "profile": {"methods": []},
+            }
+        )
+        == EventType.PROFILE_CHUNK
+    )
 
     with pytest.raises(UnknownProfileTypeException):
         determine_profile_type({"platform": "cocoa"})
@@ -573,6 +588,13 @@ def test_determine_profile_type() -> None:
 )
 def test_calculate_profile_duration(profile, duration_ms, request) -> None:
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
+
+
+def test_calculate_profile_duration_faulty_version(android_profile) -> None:
+    # android trace profiles may arrive with a wrongly set sample version;
+    # the duration must still be calculated from the trace format
+    android_profile["version"] = "2"
+    assert _calculate_profile_duration_ms(android_profile) == 2020
 
 
 @pytest.mark.django_db(transaction=True)

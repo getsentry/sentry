@@ -199,10 +199,21 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
 
 
 def is_android_trace_format(profile: Profile) -> bool:
-    if profile.get("version") == PROFILE_FORMAT_V2_ANDROID_TRACE:
+    version = profile.get("version")
+
+    if version == PROFILE_FORMAT_V2_ANDROID_TRACE:
         return True
-    # fallback: remove once upstream correctly provides PROFILE_FORMAT_V2_ANDROID_TRACE
-    return "version" not in profile and profile.get("platform") == "android"
+
+    # A faulty version can't be trusted: it may be missing or wrongly set on
+    # android trace profiles, so probe the structure instead — only the android
+    # trace format stores its frames in "methods".
+    if profile.get("platform") == "android":
+        if not version:
+            return True
+        if "methods" in profile.get("profile", {}):
+            return True
+
+    return False
 
 
 JVM_FRAME_PLATFORMS = frozenset(["java", "android"])

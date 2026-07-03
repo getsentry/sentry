@@ -133,15 +133,29 @@ def test_is_android_trace_format_explicit_marker() -> None:
 
 
 def test_is_android_trace_format_fallback_no_version() -> None:
-    # Legacy payloads carry no version; an android platform identifies them.
+    # Legacy android payloads carry no version.
     assert is_android_trace_format({"platform": "android"})
+    assert is_android_trace_format({"version": "", "platform": "android"})
     assert not is_android_trace_format({"platform": "cocoa"})
 
 
-def test_is_android_trace_format_sample_versions_are_not_trace() -> None:
-    # Sample v1/v2 are never the legacy android trace format, even on android.
-    assert not is_android_trace_format({"version": "1", "platform": "android"})
-    assert not is_android_trace_format({"version": "2", "platform": "android"})
+def test_is_android_trace_format_probes_structure() -> None:
+    # a faulty version can't be trusted: a profile storing its frames in
+    # "methods" is in trace format, no matter which version is set
+    assert is_android_trace_format(
+        {"version": "2", "platform": "android", "profile": {"methods": []}}
+    )
+    assert not is_android_trace_format({"platform": "cocoa", "profile": {"methods": []}})
+
+
+def test_is_android_trace_format_sample_formats_are_not_trace() -> None:
+    # Sample v1/v2 profiles store their frames in "frames", not "methods".
+    assert not is_android_trace_format(
+        {"version": "1", "platform": "android", "profile": {"frames": []}}
+    )
+    assert not is_android_trace_format(
+        {"version": "2", "platform": "android", "profile": {"frames": []}}
+    )
 
 
 def test_is_jvm_frame_by_frame_platform() -> None:
