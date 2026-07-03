@@ -134,8 +134,10 @@ function AssistantTurn({
   onSelectNode,
 }: AssistantTurnProps) {
   const generationNode = nodeMap.get(message.nodeId);
+  // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
+  // treat that as absent so we don't show `<$0.01`, matching the timeline.
   const cost = generationNode
-    ? getNumberAttr(generationNode, SpanFields.GEN_AI_COST_TOTAL_TOKENS)
+    ? getNumberAttr(generationNode, SpanFields.GEN_AI_COST_TOTAL_TOKENS) || undefined
     : undefined;
   const hasMeta =
     cost !== undefined || (message.duration !== undefined && message.duration > 0);
@@ -188,7 +190,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
   return (
     <TurnMeta
       metric={
-        cost === undefined ? null : (
+        cost === undefined || cost <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
             {formatLLMCosts(cost)}
           </Text>

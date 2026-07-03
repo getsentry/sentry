@@ -34,9 +34,6 @@ interface ConversationViewContentNewProps {
   selectedSpanId?: string | null;
 }
 
-// Redesigned conversation view. The transcript tab renders the Seer-styled
-// `MessagesPanelNew` (right-aligned user bubbles, left-aligned assistant
-// messages); the timeline tab keeps the span timeline.
 export function ConversationViewContentNew({
   conversation,
   activeTab,

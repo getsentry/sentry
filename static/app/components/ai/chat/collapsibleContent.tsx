@@ -3,6 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 
@@ -59,9 +60,11 @@ export function CollapsibleContent({
       >
         <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
         {preview !== undefined && !isOpen ? (
-          <SummaryLine>
-            {title} {preview}
-          </SummaryLine>
+          <Flex flex="1" minWidth={0}>
+            <Text ellipsis>
+              {title} {preview}
+            </Text>
+          </Flex>
         ) : (
           title
         )}
@@ -70,16 +73,6 @@ export function CollapsibleContent({
     </Details>
   );
 }
-
-// Title and preview share one line so they stay baseline-aligned; the whole
-// line truncates with an ellipsis.
-const SummaryLine = styled('div')`
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-`;
 
 const Details = styled('details')`
   width: 100%;

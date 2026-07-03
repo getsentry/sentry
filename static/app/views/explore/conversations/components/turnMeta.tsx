@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 /**
  * Fixed-width, right-aligned metric + duration columns, mirroring the spans
@@ -9,13 +9,9 @@ import {Flex} from '@sentry/scraps/layout';
  */
 export function TurnMeta({metric, duration}: {duration: ReactNode; metric: ReactNode}) {
   return (
-    <Flex flexShrink={0}>
-      <Flex width="100px" justify="end">
-        {metric}
-      </Flex>
-      <Flex width="56px" justify="end">
-        {duration}
-      </Flex>
-    </Flex>
+    <Grid flexShrink={0} columns="100px 56px" justifyItems="end">
+      {metric}
+      {duration}
+    </Grid>
   );
 }

@@ -32,8 +32,6 @@ function XmlTagBlock({
   collapsible?: boolean;
 }) {
   const theme = useTheme();
-  // The collapsible (redesign) path uses a larger label; the existing inline
-  // path keeps its original xs size so trace-drawer/legacy surfaces are unchanged.
   const label = (
     <Text size={collapsible ? 'md' : 'xs'} variant="muted">
       {tagName}
@@ -47,7 +45,6 @@ function XmlTagBlock({
     return (
       <Container margin="sm 0">
         <CollapsibleContent title={label}>
-          {/* Space the expanded content from the caret/tag summary row. */}
           <Container paddingTop="md">{body}</Container>
         </CollapsibleContent>
       </Container>
