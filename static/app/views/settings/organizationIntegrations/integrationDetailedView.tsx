@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -24,6 +25,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
+  canManageIntegrations,
   getAlertText,
   getIntegrationStatus,
   integrationRequiresUpgrade,
@@ -518,6 +520,18 @@ export default function IntegrationDetailedView() {
   }
 
   const renderUpgradeButton = () => {
+    if (!canManageIntegrations(organization)) {
+      return (
+        <Tooltip
+          title={t('You must be an organization owner, manager or admin to update')}
+        >
+          <Button size="xs" variant="primary" disabled>
+            {t('Update')}
+          </Button>
+        </Tooltip>
+      );
+    }
+
     const outdatedConfigurations = configurations.filter(integrationRequiresUpgrade);
 
     if (outdatedConfigurations.length !== 1 || !provider) {

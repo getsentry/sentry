@@ -1,5 +1,6 @@
 import * as qs from 'query-string';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   IconAsana,
   IconBitbucket,
@@ -28,8 +29,10 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
 
@@ -297,6 +300,9 @@ const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
  */
 export const integrationRequiresUpgrade = (integration: Integration): boolean =>
   !isIntegrationUpToDate(integration);
+
+export const canManageIntegrations = (organization: Organization): boolean =>
+  isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
 
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
