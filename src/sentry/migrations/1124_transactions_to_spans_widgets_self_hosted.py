@@ -11,12 +11,14 @@ from django.db.migrations.state import StateApps
 from django.db.models import Q
 
 from sentry.explore.translation.dashboards_translation import (
-    restore_transaction_widget,
     translate_dashboard_widget_queries,
 )
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.db import atomic_transaction
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TypesClass:
@@ -321,33 +323,12 @@ def migrate_transactions_to_spans_widgets_self_hosted(
         )
     )
 
-    for widget in RangeQuerySetWrapperWithProgressBar(qs):
+    for widget in RangeQuerySetWrapper(qs):
         try:
             _migrate_widget(widget, DashboardWidgetQuery)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-
-def reverse_migrate_transactions_to_spans_widgets_self_hosted(
-    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
-) -> None:
-    DashboardWidget = apps.get_model("sentry", "DashboardWidget")
-    qs = DashboardWidget.objects.filter(
-        widget_type=DashboardWidgetTypes.SPANS,
-        dataset_source__in=[
-            DatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value,
-            DatasetSourcesTypes.SPAN_MIGRATION_VERSION_2.value,
-            DatasetSourcesTypes.SPAN_MIGRATION_VERSION_3.value,
-            DatasetSourcesTypes.SPAN_MIGRATION_VERSION_4.value,
-            DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value,
-        ],
-    )
-
-    for widget in RangeQuerySetWrapperWithProgressBar(qs):
-        try:
-            restore_transaction_widget(widget)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+            logger.info("Error migrating transactions to spans widgets self hosted: %s", e)
 
 
 class Migration(CheckedMigration):
@@ -372,7 +353,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.RunPython(
             migrate_transactions_to_spans_widgets_self_hosted,
-            reverse_code=reverse_migrate_transactions_to_spans_widgets_self_hosted,
+            reverse_code=migrations.RunPython.noop,
             hints={"tables": ["sentry_dashboardwidget"]},
         )
     ]
