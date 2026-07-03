@@ -61,6 +61,11 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {
+  TracePinnedAttributeColumn,
+  TracePinnedAttributeHeader,
+  useTracePinnedAttribute,
+} from './tracePinnedAttribute';
 import type {TraceReducerState} from './traceState';
 
 const traceIssueIconBackgroundStyles = css`
@@ -156,6 +161,7 @@ export function Trace({
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const {pinnedAttribute} = useTracePinnedAttribute();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
 
   const rerenderRef = useRef(rerender);
@@ -410,6 +416,7 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
+          pinnedAttribute={pinnedAttribute}
         />
       );
     },
@@ -431,6 +438,7 @@ export function Trace({
       theme,
       trace.type,
       forceRerender,
+      pinnedAttribute,
     ]
   );
 
@@ -468,6 +476,9 @@ export function Trace({
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
+      {pinnedAttribute ? (
+        <TracePinnedAttributeHeader pinnedAttribute={pinnedAttribute} />
+      ) : null}
       <div
         className="TraceIndicatorsContainer"
         ref={manager.registerIndicatorContainerRef}
@@ -592,6 +603,7 @@ function RenderTraceRow(props: {
   onRowKeyDown: (event: React.KeyboardEvent, index: number, node: BaseNode) => void;
   onZoomIn: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   organization: Organization;
+  pinnedAttribute: string | null;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;
   searchResultsIteratorIndex: number | null;
@@ -690,6 +702,10 @@ function RenderTraceRow(props: {
     paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
+  const pinnedColumns = props.pinnedAttribute ? (
+    <TracePinnedAttributeColumn node={node} pinnedAttribute={props.pinnedAttribute} />
+  ) : null;
+
   const rowProps: TraceRowProps<BaseNode> = {
     onExpand,
     onZoomIn,
@@ -715,6 +731,7 @@ function RenderTraceRow(props: {
     registerListColumnRef,
     registerSpanColumnRef,
     registerSpanArrowRef,
+    pinnedColumns,
   };
 
   return node.renderWaterfallRow(rowProps);
@@ -1643,6 +1660,72 @@ const TraceStylingWrapper = styled('div')`
         pointer-events: auto;
       }
     }
+  }
+
+  /*
+   * The pinned attribute column is absolutely positioned at the right edge of the
+   * tree (just left of the divider). It consumes no flex width, so the span-bar
+   * coordinate system and divider math are untouched. It must be a direct child
+   * of .TraceRow (never inside .TraceLeftColumn, which is horizontally scrolled).
+   */
+  .TracePinnedColumnHeader {
+    position: absolute;
+    top: 0;
+    height: 38px;
+    right: calc(var(--span-column-width) * 100% + 3px);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: ${p => p.theme.space.xs};
+    padding: 0 ${p => p.theme.space.md};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.sm};
+
+    .TracePinnedColumnHeaderLabel {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+  }
+
+  .TracePinnedColumn {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    right: calc(var(--span-column-width) * 100% + 3px);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    padding: 0 ${p => p.theme.space.md};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-left: 1px solid ${p => p.theme.tokens.border.primary};
+
+    .TracePinnedColumnValue {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1 1 auto;
+
+      &.Empty {
+        color: ${p => p.theme.tokens.content.secondary};
+      }
+    }
+  }
+
+  .TraceRow:focus .TracePinnedColumn,
+  .TraceRow[tabindex='0'] .TracePinnedColumn,
+  .TraceRow.Highlight .TracePinnedColumn {
+    background-color: var(--row-background-focused);
+  }
+
+  .TraceRow.SearchResult .TracePinnedColumn {
+    background-color: ${p => p.theme.colors.yellow100};
   }
 
   .TraceBar {

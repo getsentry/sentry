@@ -51,6 +51,7 @@ import {
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
+import {useTracePinnedAttribute} from './tracePinnedAttribute';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
@@ -70,6 +71,19 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
 }
 
 const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
+
+/**
+ * Attributes that are always requested from the trace endpoint so the waterfall
+ * can render things like http errors and gen_ai enrichment. A pinned attribute
+ * that is already in this list does not trigger a refetch.
+ */
+export const DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES = [
+  'thread.id',
+  'tags[performance.timeOrigin,number]',
+  'gen_ai.operation.type',
+  'http.response.status_code',
+  'span.status',
+];
 
 export default function TraceView() {
   const organization = useOrganization();
@@ -137,16 +151,24 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
+  const {pinnedAttribute} = useTracePinnedAttribute();
+  // Merge the pinned attribute into the default request set (deduped + sorted so
+  // the react-query key is stable and toggling unrelated state never refetches).
+  // A pinned attribute already in the default set leaves the set unchanged, so no
+  // refetch happens ("unless already loaded"); a new one changes the key and the
+  // trace is refetched with the extra attribute.
+  const additionalAttributes = useMemo(() => {
+    const attributes = new Set(DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES);
+    if (pinnedAttribute) {
+      attributes.add(pinnedAttribute);
+    }
+    return Array.from(attributes).sort();
+  }, [pinnedAttribute]);
+
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
-    additionalAttributes: [
-      'thread.id',
-      'tags[performance.timeOrigin,number]',
-      'gen_ai.operation.type',
-      'http.response.status_code',
-      'span.status',
-    ],
+    additionalAttributes,
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 

@@ -108,6 +108,7 @@ export function TraceSpanRow(props: TraceRowProps<SpanNode>) {
           <TraceIcons.Chevron direction="left" />
         </button>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }

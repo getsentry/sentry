@@ -102,6 +102,7 @@ export function TraceUptimeCheckTimingNodeRow(
           <TraceIcons.Chevron direction="left" />
         </button>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }

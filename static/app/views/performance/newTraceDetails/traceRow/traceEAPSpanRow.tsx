@@ -153,6 +153,7 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
           <TraceIcons.Chevron direction="left" />
         </button>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }

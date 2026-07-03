@@ -105,6 +105,7 @@ export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
           <TraceIcons.Chevron direction="left" />
         </button>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }

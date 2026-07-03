@@ -77,6 +77,7 @@ export function TraceAutogroupedRow(
           <TraceIcons.Chevron direction="left" />
         </button>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }

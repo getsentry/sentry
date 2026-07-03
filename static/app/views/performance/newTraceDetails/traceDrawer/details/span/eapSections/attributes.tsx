@@ -7,6 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
@@ -25,7 +26,10 @@ import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
-import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import type {
+  AttributesFieldRendererProps,
+  AttributesTreeContent,
+} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
@@ -41,6 +45,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
+import {useTracePinnedAttribute} from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -102,6 +107,7 @@ export function AttributesContent({
   const currentLocation = useLocation();
   const navigate = useNavigate();
   const traceState = useTraceState();
+  const {pinnedAttribute, setPinnedAttribute} = useTracePinnedAttribute();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
     traceState.preferences.layout === 'drawer right'
@@ -227,6 +233,32 @@ export function AttributesContent({
     customRenderers[attribute] = truncatedTextRenderer;
   }
 
+  // Compose the shared explore actions with a pin/unpin action that toggles the
+  // pinned attribute column on the waterfall. Only the attribute key is required
+  // to pin (a value of 0/false is still pinnable).
+  const getCustomActions = (content: AttributesTreeContent): MenuItemProps[] => {
+    const actions = getTraceAttributesTreeActions({
+      location,
+      organization,
+      projectIds: findSpanAttributeValue(attributes, 'project_id'),
+    })(content);
+
+    const attributeKey = content.originalAttribute?.original_attribute_key;
+    if (!attributeKey) {
+      return actions;
+    }
+
+    const isPinned = attributeKey === pinnedAttribute;
+    return [
+      ...actions,
+      {
+        key: 'pin-attribute',
+        label: isPinned ? t('Unpin column') : t('Pin as column'),
+        onAction: () => setPinnedAttribute(isPinned ? null : attributeKey),
+      },
+    ];
+  };
+
   return (
     <Stack gap="lg" maxWidth="100%">
       <BaseSearchBar
@@ -247,11 +279,7 @@ export function AttributesContent({
               navigate,
               organization,
             }}
-            getCustomActions={getTraceAttributesTreeActions({
-              location,
-              organization,
-              projectIds: findSpanAttributeValue(attributes, 'project_id'),
-            })}
+            getCustomActions={getCustomActions}
           />
         </div>
       ) : (

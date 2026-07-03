@@ -75,6 +75,7 @@ export function TraceErrorRow(props: TraceRowProps<ErrorNode>) {
           ) : null}
         </InvisibleTraceBar>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }
