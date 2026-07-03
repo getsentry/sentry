@@ -33,7 +33,10 @@ from sentry.seer.entrypoints.slack.mention import (
     extract_slack_message_links,
     find_message_in_attachments,
 )
-from sentry.seer.entrypoints.slack.messaging import send_halt_message
+from sentry.seer.entrypoints.slack.messaging import (
+    send_halt_message,
+    send_not_org_member_message,
+)
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
     ProcessMentionHaltReason,
@@ -143,8 +146,10 @@ def process_mention_for_slack(
 
         if not organization.has_access(user):
             lifecycle.record_halt(ProcessMentionHaltReason.USER_NOT_ORG_MEMBER)
-            _send_not_org_member_message(
-                entrypoint=entrypoint,
+            send_not_org_member_message(
+                integration_id=entrypoint.integration.id,
+                slack_user_id=entrypoint.slack_user_id,
+                channel_id=entrypoint.channel_id,
                 thread_ts=thread_ts if thread_ts else "",
                 org_name=organization.name,
             )
@@ -296,31 +301,6 @@ def _count_linked_users(
         }
     )
     return len(identities)
-
-
-def _send_not_org_member_message(
-    *,
-    entrypoint: SlackAgentEntrypoint,
-    thread_ts: str,
-    org_name: str,
-) -> None:
-    """Send an ephemeral message informing the user they are not a member of the organization."""
-    message = (
-        f"You must be a member of the *{org_name}* Sentry organization to use Seer Agent in Slack."
-    )
-    renderable = SlackRenderable(
-        blocks=[MarkdownBlock(text=message)],
-        text=message,
-    )
-    try:
-        entrypoint.install.send_threaded_ephemeral_message(
-            slack_user_id=entrypoint.slack_user_id,
-            channel_id=entrypoint.channel_id,
-            renderable=renderable,
-            thread_ts=thread_ts,
-        )
-    except Exception as e:
-        _logger.warning("seer.slack.process_mention.send_not_org_member_message_failed", exc_info=e)
 
 
 class _LinkedMessagesResult(NamedTuple):

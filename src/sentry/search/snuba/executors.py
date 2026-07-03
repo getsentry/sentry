@@ -1020,6 +1020,16 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             + newness_weight * newness
         )
 
+    # A signal whose weight is zeroed via options can't affect the score, so don't
+    # register its resolver and its query never runs. assignment_weight scales both
+    # viewer-relevance signals.
+    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = {}
+    if assignment_weight:
+        signal_resolvers["assignment"] = resolve_assignment_signal
+        signal_resolvers["suspect_commit"] = resolve_suspect_commit_signal
+    if agent_weight:
+        signal_resolvers["agent"] = resolve_issue_agent_signal
+
     return PostgresSortStrategy(
         postgres_fields={
             "fixability": "seer_fixability_score",
@@ -1027,11 +1037,7 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             "first_seen": "first_seen",
         },
         snuba_aggregations=["recommended"],
-        signal_resolvers={
-            "assignment": resolve_assignment_signal,
-            "suspect_commit": resolve_suspect_commit_signal,
-            "agent": resolve_issue_agent_signal,
-        },
+        signal_resolvers=signal_resolvers,
         score_fn=score_fn,
         # If a boost calculation ever fails, keep the issue in the stream ranked by its
         # base Snuba recommended score rather than dropping it.

@@ -96,6 +96,48 @@ def test_strip_event_data_strips_context(store_and_strip_event) -> None:
 
 @django_db_all
 @pytest.mark.snuba
+def test_strip_event_data_keeps_art_context(store_and_strip_event) -> None:
+    """ART (Android Runtime) memory and GC context from ANR thread dumps must survive stripping."""
+    event_data = get_crash_event()
+    set_path(
+        event_data,
+        "contexts",
+        "art",
+        value={
+            "gc.total_count": 42,
+            "gc.total_time": 123.4,
+            "gc.blocking_count": 5,
+            "gc.blocking_time": 50.1,
+            "gc.pre_oome_count": 1,
+            "gc.waiting_time": 10.0,
+            "memory.free": 1024,
+            "memory.free_until_gc": 2048,
+            "memory.free_until_oome": 512,
+            "memory.total": 4096,
+            "memory.max": 8192,
+            "some_private_field": "should_be_stripped",
+        },
+    )
+
+    stripped_event_data = store_and_strip_event(data=event_data)
+
+    assert stripped_event_data["contexts"]["art"] == {
+        "gc.total_count": 42,
+        "gc.total_time": 123.4,
+        "gc.blocking_count": 5,
+        "gc.blocking_time": 50.1,
+        "gc.pre_oome_count": 1,
+        "gc.waiting_time": 10.0,
+        "memory.free": 1024,
+        "memory.free_until_gc": 2048,
+        "memory.free_until_oome": 512,
+        "memory.total": 4096,
+        "memory.max": 8192,
+    }
+
+
+@django_db_all
+@pytest.mark.snuba
 def test_strip_event_data_strips_sdk(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 

@@ -6,7 +6,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
+from sentry.taskworker.adapters import SentryRouter, make_metrics, make_producer
 from sentry.taskworker.namespaces import exampletasks, test_tasks
 
 
@@ -107,7 +107,7 @@ def test_instrumented_task_parameters() -> None:
         application="sentry",
         producer_factory=make_producer,
         router=SentryRouter(),
-        metrics=SentryMetricsBackend(),
+        metrics=make_metrics(),
     )
     namespace = registry.create_namespace("registertest")
 

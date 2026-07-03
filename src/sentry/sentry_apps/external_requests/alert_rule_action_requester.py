@@ -10,7 +10,10 @@ from requests import RequestException
 from requests.models import Response
 
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
+from sentry.sentry_apps.external_requests.utils import (
+    send_and_save_sentry_app_request,
+    validate_outbound_url,
+)
 from sentry.sentry_apps.metrics import (
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
@@ -125,8 +128,11 @@ class SentryAppAlertRuleActionRequester:
             )
 
         urlparts = list(urlparse(self.sentry_app.webhook_url))
+        expected_netloc = urlparts[1]
         urlparts[2] = self.uri
-        return urlunparse(urlparts)
+        url = urlunparse(urlparts)
+        validate_outbound_url(url, expected_netloc, self.uri)
+        return url
 
     def _build_headers(self) -> dict[str, str]:
         request_uuid = uuid4().hex
