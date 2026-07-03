@@ -36,6 +36,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
   IntegrationTab,
@@ -100,21 +101,14 @@ function makeIntegrationQueryKey({
 
 function UpdateAlert({
   text,
-  onViewConfigurations,
+  trailingItems,
 }: {
-  onViewConfigurations: () => void;
   text: string;
+  trailingItems: React.ReactNode;
 }) {
   return (
     <Alert.Container>
-      <Alert
-        variant="warning"
-        trailingItems={
-          <Button size="xs" variant="primary" onClick={onViewConfigurations}>
-            {t('Update now')}
-          </Button>
-        }
-      >
+      <Alert variant="warning" trailingItems={trailingItems}>
         {text}
       </Alert>
     </Alert.Container>
@@ -523,6 +517,36 @@ export default function IntegrationDetailedView() {
     return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
+  const renderUpgradeButton = () => {
+    if (configurations.length !== 1 || !provider) {
+      return (
+        <Button
+          size="xs"
+          variant="primary"
+          onClick={() => setActiveTab('configurations')}
+        >
+          {t('Update')}
+        </Button>
+      );
+    }
+
+    return (
+      <AddIntegrationButton
+        provider={provider}
+        organization={organization}
+        onAddIntegration={onInstall}
+        analyticsParams={{
+          view: 'integrations_directory_integration_detail',
+          already_installed: true,
+        }}
+        buttonText={t('Update now')}
+        variant="primary"
+        size="xs"
+        data-test-id="integration-upgrade-button"
+      />
+    );
+  };
+
   return (
     <SentryDocumentTitle title={integrationName}>
       <IntegrationLayout.Body
@@ -556,10 +580,7 @@ export default function IntegrationDetailedView() {
               alerts={alerts}
               upgradeAlert={
                 alertText && (
-                  <UpdateAlert
-                    text={alertText}
-                    onViewConfigurations={() => setActiveTab('configurations')}
-                  />
+                  <UpdateAlert text={alertText} trailingItems={renderUpgradeButton()} />
                 )
               }
               featureData={featureData}
