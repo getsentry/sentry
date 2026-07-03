@@ -59,7 +59,6 @@ from sentry.profiles.java import (
     merge_jvm_frames_with_android_methods,
 )
 from sentry.profiles.utils import (
-    PROFILE_FORMAT_V2_ANDROID_TRACE,
     Profile,
     apply_stack_trace_rules_to_profile,
     is_android_trace_format,
@@ -1579,14 +1578,11 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
             with start_span(op="json.unmarshal", name="json.unmarshal"):
-                # don't trust the version on the payload, it may be missing or
-                # wrongly set on android trace chunks
-                version = (
-                    PROFILE_FORMAT_V2_ANDROID_TRACE
-                    if is_android_trace_format(profile)
-                    else profile.get("version") or ""
-                )
-                chunk = vroomrs.profile_chunk_from_json_str_and_version(json_profile, version)
+                version = profile.get("version")
+                if version is not None:
+                    chunk = vroomrs.profile_chunk_from_json_str_and_version(json_profile, version)
+                else:
+                    chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
