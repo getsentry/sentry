@@ -28,7 +28,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.client import GitHubApiClient, GitHubBaseClient
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -550,12 +550,15 @@ class InstallationEventWebhook(GitHubWebhook):
         # permissions are confirmed against GitHub. Non-fatal: the token also
         # refreshes lazily on the next request if this fails.
         try:
-            GitHubApiClient(integration=updated).get_access_token()
+            self._get_token_refresh_client(updated).get_access_token()
         except Exception:
             logger.exception(
                 "github.new-permissions-token-refresh-failed",
                 extra={"integration_id": integration.id, "external_id": str(external_id)},
             )
+
+    def _get_token_refresh_client(self, integration: RpcIntegration) -> GitHubBaseClient:
+        return GitHubApiClient(integration=integration)
 
     def _handle_organization_deletion(
         self,
