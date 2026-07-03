@@ -40,28 +40,31 @@ export const DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES = [
 ];
 
 /**
- * Attributes the trace endpoint already returns as native span fields, so they
- * do NOT need to be requested via additional_attributes. Mirrors the attribute
- * list in `src/sentry/snuba/spans_rpc.py` `run_trace_query`. If this drifts from
- * the backend the only cost is a redundant refetch (stale entry) or an empty
- * cell (removed entry), never a crash.
+ * Scalar attributes the trace endpoint returns as native span fields, keyed by
+ * the attribute name as it appears in the span details drawer — i.e. what a user
+ * actually pins (`span.description`, NOT the backend column name `description`) —
+ * and mapped to the corresponding field on the span value. Used both to keep
+ * these out of the additional_attributes request and to read their value for the
+ * pinned column. Mirrors `src/sentry/snuba/spans_rpc.py` `run_trace_query`.
  */
-const TRACE_RESPONSE_NATIVE_ATTRIBUTES = new Set<string>([
-  'parent_span',
-  'description',
-  'span.op',
-  'span.name',
-  'is_transaction',
-  'transaction.span_id',
-  'transaction.event_id',
-  'transaction',
-  'precise.start_ts',
-  'precise.finish_ts',
-  'project.id',
-  'profile.id',
-  'profiler.id',
-  'span.duration',
-  'sdk.name',
+const NATIVE_ATTRIBUTE_FIELDS: Record<string, keyof TraceTree.EAPSpan> = {
+  'span.op': 'op',
+  'span.name': 'name',
+  'span.description': 'description',
+  'span.duration': 'duration',
+  transaction: 'transaction',
+  is_transaction: 'is_transaction',
+  'sdk.name': 'sdk_name',
+};
+
+/**
+ * Measurements, web vitals, and mobile vitals the trace endpoint always returns
+ * (mirrors `src/sentry/snuba/spans_rpc.py`). Kept as an exact set — not a prefix
+ * match — so that custom measurements not returned by the endpoint are still
+ * requested. Drift only costs a redundant refetch or an empty cell, never a
+ * crash.
+ */
+const TRACE_RESPONSE_MEASUREMENT_ATTRIBUTES = new Set<string>([
   'measurements.time_to_initial_display',
   'measurements.time_to_full_display',
   'measurements.app_start_cold',
@@ -90,35 +93,14 @@ const TRACE_RESPONSE_NATIVE_ATTRIBUTES = new Set<string>([
 ]);
 
 /**
- * Native trace-response attribute keys that map to a top-level field on the span
- * value (as opposed to living in a measurements/vital sub-dict). Used to read a
- * pinned attribute's value when it is not requested via additional_attributes.
- */
-const NATIVE_ATTRIBUTE_FIELDS: Record<string, keyof TraceTree.EAPSpan> = {
-  'span.op': 'op',
-  'span.name': 'name',
-  'span.duration': 'duration',
-  description: 'description',
-  transaction: 'transaction',
-  'sdk.name': 'sdk_name',
-  'profile.id': 'profile_id',
-  'profiler.id': 'profiler_id',
-  'project.id': 'project_id',
-  is_transaction: 'is_transaction',
-  'transaction.event_id': 'transaction_id',
-  parent_span: 'parent_span_id',
-  'precise.start_ts': 'start_timestamp',
-  'precise.finish_ts': 'end_timestamp',
-};
-
-/**
- * Whether the trace endpoint already returns this attribute (either as a native
- * span field or one of the always-requested default attributes). Pinning such an
+ * Whether the trace endpoint already returns this attribute (as a native span
+ * field or one of the always-requested default attributes). Pinning such an
  * attribute must NOT add it to the additional_attributes request.
  */
 export function isTraceResponseAttribute(key: string): boolean {
   return (
-    TRACE_RESPONSE_NATIVE_ATTRIBUTES.has(key) ||
+    key in NATIVE_ATTRIBUTE_FIELDS ||
+    TRACE_RESPONSE_MEASUREMENT_ATTRIBUTES.has(key) ||
     DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES.includes(key)
   );
 }

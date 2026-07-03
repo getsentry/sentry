@@ -96,8 +96,11 @@ describe('getTraceAdditionalAttributes', () => {
   });
 
   it('does not request a pinned attribute the trace response returns natively', () => {
-    // span.op / span.duration are returned as native span fields.
+    // These are returned as native span fields, keyed as they appear in the drawer.
     expect(getTraceAdditionalAttributes('span.op')).not.toContain('span.op');
+    expect(getTraceAdditionalAttributes('span.description')).not.toContain(
+      'span.description'
+    );
     expect(getTraceAdditionalAttributes('measurements.lcp')).not.toContain(
       'measurements.lcp'
     );
@@ -132,14 +135,26 @@ describe('TracePinnedAttributeColumn', () => {
   });
 
   it('reads native span fields for attributes not in additional_attributes', () => {
-    // span.op is returned as a native span field, not in additional_attributes.
-    const node = new EapSpanNode(null, makeEAPSpan({op: 'db.query'}), {
-      organization: OrganizationFixture(),
-    });
+    // span.op / span.description are native span fields, not in additional_attributes.
+    const node = new EapSpanNode(
+      null,
+      makeEAPSpan({op: 'db.query', description: 'SELECT * FROM users'}),
+      {organization: OrganizationFixture()}
+    );
 
     render(<TracePinnedAttributeColumn node={node} pinnedAttribute="span.op" />);
-
     expect(screen.getByText('db.query')).toBeInTheDocument();
+  });
+
+  it('reads span.description from the native span field', () => {
+    const node = new EapSpanNode(
+      null,
+      makeEAPSpan({description: 'SELECT * FROM users'}),
+      {organization: OrganizationFixture()}
+    );
+
+    render(<TracePinnedAttributeColumn node={node} pinnedAttribute="span.description" />);
+    expect(screen.getByText('SELECT * FROM users')).toBeInTheDocument();
   });
 });
 
