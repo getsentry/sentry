@@ -46,34 +46,11 @@ describe('Subscription > UsageAlert', () => {
     expect(screen.getByLabelText('Request Additional Quota')).toBeInTheDocument();
   });
 
-  it('renders an upgrade CTA for mm2_b usage exceeded', () => {
-    const organization = OrganizationFixture({access: ['org:billing']});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'mm2_b_100k',
-      usageExceeded: true,
-      // TODO: Add "categories" when mmx plans have error BillingMetricHistory
-    });
-
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
-    expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/errors capacity/))
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
-    expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
-  });
-
   it('renders am1_f usage exceeded errors with trial', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({usageExceeded: true}),
       },
@@ -100,7 +77,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({
           category: DataCategory.ERRORS,
@@ -133,7 +109,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am2_team',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({
           usageExceeded: true,
@@ -166,7 +141,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({
           usageExceeded: true,
@@ -215,7 +189,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: plan_id,
-      usageExceeded: true,
       categories: subCategories,
       canTrial: false,
     });
@@ -256,7 +229,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: plan_id,
-      usageExceeded: true,
       categories: subCategories,
       canTrial: false,
     });
@@ -297,7 +269,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: plan_id,
-      usageExceeded: true,
       categories: subCategories,
       canTrial: false,
     });
@@ -361,7 +332,6 @@ describe('Subscription > UsageAlert', () => {
           subscription={{
             ...subscription,
             plan: 'am1_f',
-            usageExceeded: false,
             categories: {
               errors: MetricHistoryFixture({
                 usageExceeded: true,

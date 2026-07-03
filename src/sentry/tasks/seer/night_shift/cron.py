@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from django.utils.translation import ngettext
 
 from sentry import features, options, quotas
 from sentry.constants import (
@@ -579,10 +580,19 @@ def _dispatch_to_seer_feature(
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
         payload = _build_triage_payload(chunk, resolved_options, repos_by_project)
+        num_candidates = len(payload.candidates)
+        title = ngettext(
+            "Agentic triage (%(count)d candidate)",
+            "Agentic triage (%(count)d candidates)",
+            num_candidates,
+        ) % {"count": num_candidates}
+        if len(shards) > 1:
+            title += f" — part {shard_index + 1} of {len(shards)}"
         try:
             client.start_feature_run(
                 feature_id="night_shift",
                 payload=payload.dict(),
+                title=title,
                 flush=False,
                 on_run_created=_link_shard,
             )

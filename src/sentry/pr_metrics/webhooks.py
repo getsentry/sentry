@@ -50,16 +50,13 @@ from sentry.pr_metrics.activity_types import (
     AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
-    ClosedPayload,
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
-    EditedPayload,
     EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
-    ReopenedPayload,
     ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
@@ -100,10 +97,7 @@ logger = logging.getLogger("sentry.webhooks")
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
-        "closed",
-        "reopened",
         "synchronize",
-        "edited",
         "labeled",
         "unlabeled",
         "review_requested",
@@ -123,9 +117,7 @@ _ACTIVITY_ACTIONS = frozenset(
 # "closed" is absent because it forks on pull_request.merged — handled in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
-    "reopened": PullRequestActivityType.REOPENED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
-    "edited": PullRequestActivityType.EDITED,
     "labeled": PullRequestActivityType.LABELED,
     "unlabeled": PullRequestActivityType.UNLABELED,
     "review_requested": PullRequestActivityType.REVIEW_REQUESTED,
@@ -381,9 +373,9 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; only
-    the webhook-sourced columns are written, leaving the Seer-derived ones
-    (verdict, participants_count, reviews_count) untouched.
+    reflects the final counts. Gated by the emit flag, the sole consumer; it
+    writes only the webhook-sourced counters, leaving the other columns to their
+    own producers.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -1146,17 +1138,10 @@ def _write_activity(
         # Without a delivery ID idempotency cannot be guaranteed — skip.
         return
 
-    if action == "closed":
-        event_type = (
-            PullRequestActivityType.MERGED
-            if pull_request.get("merged")
-            else PullRequestActivityType.CLOSED
-        )
-    else:
-        mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
-        if mapped is None:
-            return
-        event_type = mapped
+    mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
+    if mapped is None:
+        return
+    event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
     _write_activity_row(pr, webhook_id, event_type, payload)
@@ -1189,30 +1174,6 @@ def _build_activity_payload(
                     commits=pull_request.get("commits", 0),
                 )
             )
-        case "closed":
-            return asdict(
-                ClosedPayload(
-                    **base_kw,
-                    merged=pull_request.get("merged", False),
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                    comments=pull_request.get("comments", 0),
-                    review_comments=pull_request.get("review_comments", 0),
-                    merged_by=(pull_request.get("merged_by") or {}).get("login"),
-                )
-            )
-        case "reopened":
-            return asdict(
-                ReopenedPayload(
-                    **base_kw,
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                )
-            )
         case "synchronize":
             return asdict(
                 SynchronizePayload(
@@ -1221,9 +1182,6 @@ def _build_activity_payload(
                     after_sha=event.get("after"),
                 )
             )
-        case "edited":
-            changes = event.get("changes") or {}
-            return asdict(EditedPayload(**base_kw, changed_fields=sorted(changes.keys())))
         case "labeled":
             label = event.get("label") or {}
             return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))

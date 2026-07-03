@@ -372,10 +372,6 @@ export type Subscription = {
   trialEnd: string | null;
   trialPlan: string | null;
   type: BillingType;
-  /**
-   * All quotas available on the plan are exceeded
-   */
-  usageExceeded: boolean;
   // Seats
   usedLicenses: number;
   acv?: number;

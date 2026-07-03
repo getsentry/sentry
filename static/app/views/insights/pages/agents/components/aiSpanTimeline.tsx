@@ -21,19 +21,20 @@ import {
 } from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
+  type ColorByOpType,
   getFirstToolInputValue,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
+  getSpanColor,
   getStringAttr,
+  getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
-
-type ColorByOpType = Record<GenAiOperationType | 'default' | 'error', string>;
 
 interface SpanPresentation {
   color: string;
@@ -120,16 +121,7 @@ const TimelineRow = memo(function TimelineRow({
 }) {
   const theme = useTheme();
   const hasErrors = hasError(node);
-  const colorByOpType = useMemo<ColorByOpType>(() => {
-    return {
-      [GenAiOperationType.AGENT]: theme.tokens.content.promotion,
-      [GenAiOperationType.AI_CLIENT]: theme.tokens.content.success,
-      [GenAiOperationType.HANDOFF]: theme.tokens.content.warning,
-      [GenAiOperationType.TOOL]: theme.tokens.content.accent,
-      default: theme.tokens.content.secondary,
-      error: theme.tokens.content.danger,
-    };
-  }, [theme]);
+  const colorByOpType = useMemo(() => getTimelineColorByOpType(theme), [theme]);
 
   const {icon, title, secondary, isTool, color} = getSpanPresentation(
     node,
@@ -297,14 +289,6 @@ function ToolOutputSizeMetric({
   );
 }
 
-function getColor(node: AITraceSpanNode, colorByOpType: ColorByOpType): string {
-  if (hasError(node)) {
-    return colorByOpType.error;
-  }
-  const opType = getGenAiOpType(node);
-  return colorByOpType[opType as GenAiOperationType] ?? colorByOpType.default;
-}
-
 function getSpanPresentation(
   node: AITraceSpanNode,
   colorByOpType: ColorByOpType
@@ -317,7 +301,7 @@ function getSpanPresentation(
     node.description || (node.value && 'name' in node.value ? node.value.name : '');
   const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
 
-  const color = getColor(node, colorByOpType);
+  const color = getSpanColor(node, colorByOpType);
 
   switch (genAiOpType) {
     case GenAiOperationType.AGENT: {

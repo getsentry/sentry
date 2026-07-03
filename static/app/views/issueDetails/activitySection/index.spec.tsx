@@ -3,6 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
@@ -22,6 +23,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import {RepositoryStatus} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
@@ -446,9 +448,8 @@ describe('ActivitySection', () => {
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
-    expect(timeline).toHaveTextContent('Assigned');
+    expect(timeline).toHaveTextContent('Issue assigned');
     expect(timeline).toHaveTextContent('#frontend');
-    expect(timeline).toHaveTextContent('Taylor');
     expect(timeline).not.toHaveTextContent('themselves');
   });
 
@@ -895,6 +896,144 @@ describe('ActivitySection', () => {
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
   });
 
+  it('prefers commit repository details for resolved commit activity line items', async () => {
+    const commitRepository = RepositoryFixture({
+      name: 'getsentry/sentry',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/getsentry/sentry',
+    });
+    const pullRequestRepository = RepositoryFixture({
+      name: 'getsentry/seer',
+      provider: {id: 'integrations:gitlab', name: 'GitLab'},
+      url: 'https://gitlab.com/getsentry/seer',
+    });
+    const resolvedCommitGroup = GroupFixture({
+      id: '1352',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
+          id: 'resolved-commit-prefers-commit-repository',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: '90857de21d98deda68d51a17e1411048fd74fbc4',
+              pullRequest: PullRequestFixture({repository: pullRequestRepository}),
+              repository: commitRepository,
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={resolvedCommitGroup}
+        project={resolvedCommitGroup.project}
+      >
+        <ActivitySection group={resolvedCommitGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Issue resolved')).toBeInTheDocument();
+    expect(screen.getByText(/on GitHub/)).toBeInTheDocument();
+    expect(screen.queryByText(/GitLab/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /90857de/})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/commit/90857de21d98deda68d51a17e1411048fd74fbc4'
+    );
+  });
+
+  it('uses pull request repository details for resolved commit activity line items when commit repository is unknown', async () => {
+    const activeRepository = RepositoryFixture({
+      name: 'getsentry/seer',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/getsentry/seer',
+    });
+    const resolvedCommitGroup = GroupFixture({
+      id: '1351',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
+          id: 'resolved-commit-with-pr-repository',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: '42485aa330b1719b43faede3436717ee2ce8a1ed',
+              pullRequest: PullRequestFixture({repository: activeRepository}),
+              repository: RepositoryFixture({
+                name: 'getsentry/seer',
+                provider: {id: 'unknown', name: 'Unknown Provider'},
+                status: RepositoryStatus.DISABLED,
+                url: '',
+              }),
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={resolvedCommitGroup}
+        project={resolvedCommitGroup.project}
+      >
+        <ActivitySection group={resolvedCommitGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Issue resolved')).toBeInTheDocument();
+    expect(screen.getByText(/by commit/)).toBeInTheDocument();
+    expect(screen.getByText(/on GitHub/)).toBeInTheDocument();
+    expect(screen.queryByText(/Unknown Provider/)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /42485aa/})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/seer/commit/42485aa330b1719b43faede3436717ee2ce8a1ed'
+    );
+  });
+
+  it('renders fallback details for missing resolved commit activity line item data', async () => {
+    const resolvedCommitGroup = GroupFixture({
+      id: '1353',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
+          id: 'resolved-commit-missing-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: null,
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider
+        group={resolvedCommitGroup}
+        project={resolvedCommitGroup.project}
+      >
+        <ActivitySection group={resolvedCommitGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Issue resolved')).toBeInTheDocument();
+    expect(screen.getByText('in a commit')).toBeInTheDocument();
+  });
+
   it('renders Seer activity when feature flag is enabled', async () => {
     const seerGroup = GroupFixture({
       id: '1342',
@@ -1129,6 +1268,43 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Sentry')).toBeInTheDocument();
   });
 
+  it('does not render missing pull request details in activity line items', async () => {
+    const prGroup = GroupFixture({
+      id: '1350',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-missing-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: null,
+          },
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-missing-2',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
+        <ActivitySection group={prGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findAllByText('Pull request created')).toHaveLength(2);
+    expect(screen.queryByText('in a pull request')).not.toBeInTheDocument();
+  });
+
   it('falls back to Sentry for bot authors with @localhost email', async () => {
     const prGroup = GroupFixture({
       id: '1347',
@@ -1186,7 +1362,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(await screen.findByText('Pull request closed')).toBeInTheDocument();
     expect(screen.getByText(/by Shashank N Jarmale on GitHub/)).toBeInTheDocument();
     expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
   });
@@ -1219,7 +1395,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByText('Pull Request closed')).toBeInTheDocument();
+    expect(await screen.findByText('Pull request closed')).toBeInTheDocument();
     expect(screen.getByText(/by Sentry on GitHub/)).toBeInTheDocument();
     expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });

@@ -43,7 +43,7 @@ export function ExternalIssueChip({label, location, provider}: ExternalIssueChip
 
   return (
     <ExternalLink href={location}>
-      <InlineChip tone="accent">
+      <InlineChip interactive tone="accent">
         <Icon size="xs" />
         {getExternalIssueLabel({label, provider})}
       </InlineChip>
