@@ -100,6 +100,7 @@ class User(Model, AbstractBaseUser):
 
     backend: str  # abstract -- from `django.contrib.auth`
 
+    # outbox settings
     replication_version: int = 2
 
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
@@ -223,7 +224,10 @@ class User(Model, AbstractBaseUser):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(User)),
+            flush=False,
+        ):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -232,7 +236,10 @@ class User(Model, AbstractBaseUser):
             return super().delete(*args, **kwargs)
 
     def update(self, *args: Any, **kwds: Any) -> int:
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(User)),
+            flush=False,
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
@@ -241,7 +248,7 @@ class User(Model, AbstractBaseUser):
         is_test_user = kwargs.pop("is_test_user", False)
         is_relocated_user = kwargs.pop("is_relocated_user", False)
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+            with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
                 if not self.username:
                     self.username = self.email
                 # for testing purposes, we want to be able to create new users with existing emails

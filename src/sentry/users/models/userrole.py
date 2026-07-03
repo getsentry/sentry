@@ -30,6 +30,9 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.Config
     __relocation_custom_ordinal__ = ["name"]
 
+    # outbox settings
+    default_flush = False
+
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
@@ -65,6 +68,9 @@ class UserRoleUser(ControlOutboxProducingModel):
 
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
+
+    # outbox settings
+    default_flush = False
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         cells = list(find_all_cell_names())

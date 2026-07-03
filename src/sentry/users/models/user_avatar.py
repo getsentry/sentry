@@ -68,6 +68,7 @@ class UserAvatar(ControlAvatarBase):
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
+            flush=False,
         ):
             if not outbox_before_super:
                 yield

@@ -57,6 +57,9 @@ class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["user", "email"]
 
+    # outbox settings
+    default_flush = False
+
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=200)
     validation_hash = models.CharField(max_length=32, default=get_secure_token)
