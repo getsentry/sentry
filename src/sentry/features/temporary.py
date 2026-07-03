@@ -135,8 +135,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-github_enterprise-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable recent linked pull requests on issue details
-    manager.add("organizations:issue-details-linked-pull-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use the paginated project endpoint in Jira org config to avoid timeouts on large instances.
@@ -212,8 +210,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod size monitors frontend
     manager.add("organizations:preprod-size-monitors-frontend", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enables configuring a Relay base URL for displayed Client Key DSNs
-    manager.add("organizations:relay-dsn-endpoint-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the new apiFetch implementation that uses cell fetch.
@@ -282,12 +278,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Run new autofix sessions with high intelligence and reasoning levels
-    manager.add("organizations:seer-autofix-high-intelligence-high-reasoning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Expose the code review tool to autofix coding runs
-    manager.add("organizations:seer-autofix-code-review", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Expose one-shot question answers on the Seer runs list (?expand=questions)
+    manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing seer in a persistent sidebar
     manager.add("organizations:seer-explorer-persistent-sidebar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
@@ -354,8 +348,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Organizations on the new seat-based Seer plan
     manager.add("organizations:seat-based-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Dual-write contributor PR/MR actions to OrganizationContributorAction
-    manager.add("organizations:dual-write-contributor-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Render Sentry App schema-backed forms using the backend JSON form adapter.
     manager.add("organizations:sentry-app-schema-form-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable new SentryApp webhook request endpoint

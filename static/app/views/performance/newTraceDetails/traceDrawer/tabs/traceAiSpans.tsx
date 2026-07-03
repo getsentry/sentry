@@ -16,7 +16,9 @@ import {
   ConversationLeftPanel,
   ConversationSplitLayout,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -98,6 +100,15 @@ export function TraceAiSpans({
 
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
+  const showTimeline = hasGenAiConversationsRedesignFeature(organization);
+  const nodeTraceMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const node of nodes) {
+      map.set(node.id, traceSlug);
+    }
+    return map;
+  }, [nodes, traceSlug]);
+
   const handleViewFullTraceClick = () => {
     trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
       organization,
@@ -136,11 +147,20 @@ export function TraceAiSpans({
       </HeaderCell>
       <LeftPanel>
         <SpansHeader>{t('AI Spans')}</SpansHeader>
-        <AISpanList
-          nodes={nodes}
-          onSelectNode={handleSelectNode}
-          selectedNodeKey={selectedNode?.id ?? null}
-        />
+        {showTimeline ? (
+          <AiSpanTimeline
+            nodes={nodes}
+            onSelectNode={handleSelectNode}
+            selectedNodeKey={selectedNode?.id ?? null}
+            nodeTraceMap={nodeTraceMap}
+          />
+        ) : (
+          <AISpanList
+            nodes={nodes}
+            onSelectNode={handleSelectNode}
+            selectedNodeKey={selectedNode?.id ?? null}
+          />
+        )}
       </LeftPanel>
       <RightPanel>
         {selectedNode?.renderDetails({
@@ -170,7 +190,10 @@ export function AiSpansSplitView({
   nodes: AITraceSpanNode[];
   traceSlug: string;
 }) {
+  const organization = useOrganization();
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
+
+  const showTimeline = hasGenAiConversationsRedesignFeature(organization);
 
   const nodeTraceMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -190,11 +213,20 @@ export function AiSpansSplitView({
         <ConversationLeftPanel>
           <Flex flex="1" minHeight="0" overflowY="auto" overflowX="hidden">
             <Container padding="md lg md lg" width="100%">
-              <AISpanList
-                nodes={nodes}
-                onSelectNode={handleSelectNode}
-                selectedNodeKey={selectedNode?.id ?? null}
-              />
+              {showTimeline ? (
+                <AiSpanTimeline
+                  nodes={nodes}
+                  onSelectNode={handleSelectNode}
+                  selectedNodeKey={selectedNode?.id ?? null}
+                  nodeTraceMap={nodeTraceMap}
+                />
+              ) : (
+                <AISpanList
+                  nodes={nodes}
+                  onSelectNode={handleSelectNode}
+                  selectedNodeKey={selectedNode?.id ?? null}
+                />
+              )}
             </Container>
           </Flex>
         </ConversationLeftPanel>

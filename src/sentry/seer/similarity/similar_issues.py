@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Mapping
-from random import random
 
 import sentry_sdk
 from django.conf import settings
@@ -16,11 +15,7 @@ from sentry.conf.server import (
 )
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import (
-    SeerViewerContext,
-    make_signed_seer_api_request,
-    seer_summarization_default_connection_pool,
-)
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
@@ -95,27 +90,12 @@ def get_similarity_data_from_seer(
         CountBasedTripStrategy.from_config(config),
     )
 
-    cpu_sample_rate = options.get("seer.similarity.cpu-backend-sample-rate")
-    if random() < cpu_sample_rate:
-        selected_pool = seer_summarization_default_connection_pool
-        seer_backend = "cpu"
-    else:
-        selected_pool = seer_grouping_connection_pool
-        seer_backend = "gpu"
-
-    metric_tags["seer_backend"] = seer_backend
-
-    request_metric_tags: dict[str, str | int | bool] = {"seer_backend": seer_backend}
-    if referrer:
-        request_metric_tags["referrer"] = referrer
-
     try:
         response = make_similar_issues_request(
             similar_issues_request,
-            connection_pool=selected_pool,
             retries=options.get("seer.similarity.grouping-ingest-retries"),
             timeout=options.get("seer.similarity.grouping-ingest-timeout"),
-            metric_tags=request_metric_tags,
+            metric_tags={"referrer": referrer} if referrer else {},
             viewer_context=viewer_context,
         )
     except (TimeoutError, MaxRetryError) as e:

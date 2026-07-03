@@ -3,7 +3,7 @@ import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
@@ -45,6 +45,15 @@ const pythonPlatform: OnboardingSelectedSDK = {
   language: 'python',
   type: 'language',
   link: 'https://docs.sentry.io/platforms/python/',
+  category: 'popular',
+};
+
+const javascriptPlatform: OnboardingSelectedSDK = {
+  key: 'javascript',
+  name: 'Browser JavaScript',
+  language: 'javascript',
+  type: 'language',
+  link: 'https://docs.sentry.io/platforms/javascript/',
   category: 'popular',
 };
 
@@ -247,5 +256,54 @@ describe('ScmPlatformFeaturesCore', () => {
 
     expect(onFeaturesChange).not.toHaveBeenCalled();
     expect(onClearProjectDetailsForm).not.toHaveBeenCalled();
+  });
+
+  it('reverts a manual pick to the detected platform on return, recording it', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const onPlatformChange = jest.fn();
+    const onFeaturesChange = jest.fn();
+    const onClearProjectDetailsForm = jest.fn();
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    const detectionRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    // The active platform is a manual pick that is not among the detected
+    // platforms, so the manual picker shows with a route back to recommended.
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          selectedRepository: repository,
+          selectedPlatform: javascriptPlatform,
+          onPlatformChange,
+          onFeaturesChange,
+          onClearProjectDetailsForm,
+        })}
+      />,
+      {organization}
+    );
+
+    // Wait for detection so the detected fallback (python) is available.
+    await waitFor(() => expect(detectionRequest).toHaveBeenCalled());
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Back to recommended platforms'})
+    );
+
+    // Leaving the manual pick reverts to the detected platform and records the
+    // selection with the detected source.
+    await waitFor(() =>
+      expect(onPlatformChange).toHaveBeenCalledWith(
+        expect.objectContaining({key: 'python'})
+      )
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.scm_platform_selected',
+      expect.objectContaining({platform: 'python', source: 'detected'})
+    );
   });
 });

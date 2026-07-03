@@ -46,7 +46,7 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {AttributesSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
 import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
@@ -586,7 +586,7 @@ function EAPSpanNodeDetailsContent({
         />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />
-        <Attributes
+        <AttributesSection
           node={node}
           attributes={attributes}
           theme={theme}

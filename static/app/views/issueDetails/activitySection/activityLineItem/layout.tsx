@@ -2,6 +2,7 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 export type ActivityLineVariant = 'compact' | 'full';
 
@@ -36,16 +37,22 @@ export function ActivityLineHeadline({
       column={3}
       row={1}
       minWidth={0}
-      minHeight={22}
+      minHeight="22px"
       align="center"
       wrap="wrap"
       gap="xs"
     >
-      <ActivityLineTitle>{title}</ActivityLineTitle>
+      <Text as="span" bold density="comfortable" wordBreak="break-word">
+        {title}
+      </Text>
       {details && <ActivityLineDetails>{details}</ActivityLineDetails>}
       <ActivityLineMeta>
-        <ActivityLineMutedText>&bull;</ActivityLineMutedText>
-        <ActivityLineTimestamp>{timestamp}</ActivityLineTimestamp>
+        <Text as="span" variant="muted" density="comfortable">
+          &bull;
+        </Text>
+        <Text as="span" variant="muted" density="comfortable" wrap="nowrap">
+          {timestamp}
+        </Text>
         {actions}
       </ActivityLineMeta>
     </Flex>
@@ -94,28 +101,6 @@ const ActivityLineDetails = styled('span')`
   line-height: 1.4;
   overflow-wrap: anywhere;
   word-break: break-word;
-`;
-
-const ActivityLineTitle = styled('span')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-`;
-
-const ActivityLineMutedText = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.4;
-`;
-
-const ActivityLineTimestamp = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 1.4;
-  white-space: nowrap;
 `;
 
 const ActivityLineMeta = styled('span')`

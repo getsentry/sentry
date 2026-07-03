@@ -28,6 +28,10 @@ SEER_WORKFLOW_ACTIVITIES = [
 # Activity types handled by the generic activity_handler.
 SUPPORTED_ACTIVITIES = [
     ActivityType.SET_RESOLVED,
+    ActivityType.SET_RESOLVED_IN_RELEASE,
+    ActivityType.SET_RESOLVED_BY_AGE,
+    ActivityType.SET_RESOLVED_IN_COMMIT,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
 ]
 
 
@@ -148,7 +152,10 @@ def activity_handler(
 
     metrics.incr(
         "workflow_engine.activity_handler.complete",
-        tags={"activity_name": activity_type.name},
+        tags={
+            "activity_name": activity_type.name,
+            "detector_type": detector.type,
+        },
     )
     logger.info(
         "workflow_engine.activity_handler.complete",
