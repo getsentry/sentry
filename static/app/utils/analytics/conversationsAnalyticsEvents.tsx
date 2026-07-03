@@ -4,7 +4,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.copy-conversation': Record<string, unknown>;
   'conversations.detail.copy-conversation-id': Record<string, unknown>;
   'conversations.detail.expand-thinking': {expanded: boolean};
-  'conversations.detail.page-view': {previous_referrer?: string};
+  'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.tab-switch': {
     fromTab: string;
@@ -12,9 +12,9 @@ export type ConversationsEventParameters = {
   };
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
-  'conversations.onboarding.page-view': {previous_referrer?: string};
-  'conversations.page-view': {previous_referrer?: string};
-  'conversations.table.page-view': {previous_referrer?: string};
+  'conversations.onboarding.page-view': Record<string, unknown>;
+  'conversations.page-view': Record<string, unknown>;
+  'conversations.table.page-view': Record<string, unknown>;
   'conversations.table.paginate': {
     direction: 'next' | 'previous';
   };

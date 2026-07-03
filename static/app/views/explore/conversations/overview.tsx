@@ -15,9 +15,7 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ExploreBodyContent,
@@ -36,8 +34,6 @@ import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
-  const location = useLocation();
-  const previousReferrer = decodeScalar(location.query.referrer);
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
@@ -57,25 +53,22 @@ function ConversationsOverviewPage() {
   useEffect(() => {
     trackAnalytics('conversations.page-view', {
       organization,
-      previous_referrer: previousReferrer,
     });
-  }, [organization, previousReferrer]);
+  }, [organization]);
 
   useEffect(() => {
     if (!isOnboardingLoading) {
       if (showOnboarding) {
         trackAnalytics('conversations.onboarding.page-view', {
           organization,
-          previous_referrer: previousReferrer,
         });
       } else {
         trackAnalytics('conversations.table.page-view', {
           organization,
-          previous_referrer: previousReferrer,
         });
       }
     }
-  }, [showOnboarding, isOnboardingLoading, organization, previousReferrer]);
+  }, [showOnboarding, isOnboardingLoading, organization]);
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({

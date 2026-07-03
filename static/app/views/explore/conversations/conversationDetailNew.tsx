@@ -6,8 +6,6 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
@@ -32,8 +30,6 @@ function useConversationDetailQueryState() {
 
 export function ConversationDetailPageNew() {
   const organization = useOrganization();
-  const location = useLocation();
-  const previousReferrer = decodeScalar(location.query.referrer);
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
@@ -44,9 +40,8 @@ export function ConversationDetailPageNew() {
   useEffect(() => {
     trackAnalytics('conversations.detail.page-view', {
       organization,
-      previous_referrer: previousReferrer,
     });
-  }, [organization, conversationId, previousReferrer]);
+  }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(
     (spanId: string) => {
