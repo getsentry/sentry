@@ -17,12 +17,9 @@ export type {BoxZoomRange};
 interface UseChartBoxZoomProps {
   /**
    * Called once on mouse-up with the selected x/y ranges of the dragged box.
+   * When omitted, drag-to-zoom is not installed.
    */
-  onZoom: (range: BoxZoomRange) => void;
-  /**
-   * When true, drag-to-zoom is not installed.
-   */
-  disabled?: boolean;
+  onZoom?: (range: BoxZoomRange) => void;
   /**
    * The index of the X-axis the brush maps to. Maybe be non-zero depending on
    * whether the brushed chart adds more axes (especially hidden ones, like Heat
@@ -57,7 +54,6 @@ interface BoxZoomOptions {
  */
 export function useChartBoxZoom({
   onZoom,
-  disabled = false,
   xAxisIndex = 0,
   yAxisIndex = 0,
 }: UseChartBoxZoomProps): BoxZoomOptions {
@@ -101,7 +97,7 @@ export function useChartBoxZoom({
       chartInstance.dispatchAction({type: 'brush', areas: []});
 
       if (range) {
-        onZoom(range);
+        onZoom?.(range);
       }
     },
     [onZoom]
@@ -112,7 +108,7 @@ export function useChartBoxZoom({
       cleanupRef.current?.();
       cleanupRef.current = null;
 
-      if (disabled) {
+      if (!onZoom) {
         return;
       }
 
@@ -154,21 +150,21 @@ export function useChartBoxZoom({
         }
       };
     },
-    [disabled, brushOption]
+    [onZoom, brushOption]
   );
 
   useEffect(() => () => cleanupRef.current?.(), []);
 
   const toolBox = useMemo<ToolboxComponentOption | undefined>(() => {
-    if (disabled) {
+    if (!onZoom) {
       return;
     }
     // Hidden: we enable brush selection programmatically via `takeGlobalCursor`.
     return ToolBox({show: false}, {brush: {type: ['rect']}});
-  }, [disabled]);
+  }, [onZoom]);
 
   return {
-    brush: disabled ? undefined : brushOption,
+    brush: onZoom ? brushOption : undefined,
     onBrushEnd,
     onBrushStart,
     onChartReady,

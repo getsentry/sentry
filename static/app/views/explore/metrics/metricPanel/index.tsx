@@ -324,6 +324,7 @@ export function MetricPanel({
                           heatmapResult={heatmapResult}
                           actions={actions}
                           title={title}
+                          queryLabel={queryLabel}
                         />
                       ) : (
                         <MetricsGraph

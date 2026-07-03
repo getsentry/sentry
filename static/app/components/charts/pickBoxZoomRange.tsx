@@ -1,3 +1,5 @@
+import type {EChartBrushArea} from 'sentry/types/echarts';
+
 export interface BoxZoomRange {
   /**
    * The selected range on the X-axis, in the X-axis's own units (for a `time`
@@ -8,16 +10,6 @@ export interface BoxZoomRange {
    * The selected range on the Y-axis, in the Y-axis's own units.
    */
   yRange: [number, number];
-}
-
-/**
- * A brush area over a grid with multiple coordinate systems exposes a
- * `coordRange` per axis-pair combination. ECharts only types the singular
- * `coordRange`, so reach for the plural one here.
- */
-export interface BrushArea {
-  coordRange?: number[] | number[][];
-  coordRanges?: number[][][];
 }
 
 /**
@@ -34,10 +26,10 @@ export interface BrushArea {
  *
  * Returns `null` for a selection that collapses on either axis (a click, or a
  * purely vertical/horizontal drag): a zero-width span isn't a zoom, and would
- * resolve to an empty range (e.g. `value:>=x value:<x`, matching nothing).
+ * resolve to an empty range (e.g., `value:>=x value:<x`, matching nothing).
  * Any selection with positive extent on both axes is allowed.
  */
-export function pickBoxZoomRange(area: BrushArea | undefined): BoxZoomRange | null {
+export function pickBoxZoomRange(area: EChartBrushArea | undefined): BoxZoomRange | null {
   if (!area) {
     return null;
   }
@@ -45,8 +37,8 @@ export function pickBoxZoomRange(area: BrushArea | undefined): BoxZoomRange | nu
   const {coordRanges} = area;
   const range =
     (Array.isArray(coordRanges) && coordRanges.length > 0
-      ? toBoxZoomRange(coordRanges[coordRanges.length - 1])
-      : null) ?? toBoxZoomRange(area.coordRange);
+      ? coordRangeToBoxZoomRange(coordRanges[coordRanges.length - 1])
+      : null) ?? coordRangeToBoxZoomRange(area.coordRange);
 
   if (
     !range ||
@@ -62,7 +54,7 @@ export function pickBoxZoomRange(area: BrushArea | undefined): BoxZoomRange | nu
  * Turn an ECharts `rect` brush coordinate range (`[[xMin, xMax], [yMin, yMax]]`,
  * in axis units) into sorted x/y ranges, or `null` if it isn't that shape.
  */
-function toBoxZoomRange(
+function coordRangeToBoxZoomRange(
   coordRange: number[] | number[][] | undefined
 ): BoxZoomRange | null {
   if (
