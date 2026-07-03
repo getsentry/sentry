@@ -15,6 +15,7 @@ import rspack from '@rspack/core';
 import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
+import coreJsPackageJson from 'core-js/package.json' with {type: 'json'};
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
@@ -188,7 +189,10 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
-    coreJs: '3.45.0',
+    // Read from the installed core-js so SWC's polyfill compat-data always
+    // matches the package its injected imports resolve against, with no version
+    // to keep in sync by hand on dependency bumps.
+    coreJs: coreJsPackageJson.version,
     targets: packageJson.browserslist.production,
     shippedProposals: true,
   },
