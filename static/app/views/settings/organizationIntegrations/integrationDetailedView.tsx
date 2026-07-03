@@ -518,7 +518,9 @@ export default function IntegrationDetailedView() {
   }
 
   const renderUpgradeButton = () => {
-    if (configurations.length !== 1 || !provider) {
+    const outdatedConfigurations = configurations.filter(integrationRequiresUpgrade);
+
+    if (outdatedConfigurations.length !== 1 || !provider) {
       return (
         <Button
           size="xs"
