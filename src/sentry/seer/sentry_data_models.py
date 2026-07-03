@@ -437,36 +437,6 @@ class ExecuteQueryErrorResponse(BaseModel):
         return self.dict()[key]
 
 
-class EventsQueryValidation(BaseModel):
-    valid: bool
-    error: str | None = None
-
-
-class EventsQueryNamedValidation(EventsQueryValidation):
-    name: str
-
-
-class EventsQueryAttributeValidation(EventsQueryNamedValidation):
-    attrType: str | None = None
-
-
-class EventsQueryQueryValidation(EventsQueryValidation):
-    fields: list[EventsQueryAttributeValidation] = Field(default_factory=list)
-
-
-class ValidateEventsQueryResponse(BaseModel):
-    """Wire shape for `validate_events_query` / `events/validate`: structured
-    validation results for dataset, fields, orderby, projects, and query."""
-
-    valid: bool
-    dataset: list[EventsQueryNamedValidation] = Field(default_factory=list)
-    environment: list[EventsQueryValidation] = Field(default_factory=list)
-    field: list[EventsQueryAttributeValidation] = Field(default_factory=list)
-    orderby: list[EventsQueryAttributeValidation] = Field(default_factory=list)
-    projects: list[EventsQueryValidation] = Field(default_factory=list)
-    query: EventsQueryQueryValidation
-
-
 class _DictProxyMixin(BaseModel):
     """Mixin that lets typed RPC response models be read like dicts so existing
     seer-side callers (and tests) can keep using `result["key"]` / `result.get`

@@ -100,7 +100,6 @@ from sentry.seer.agent.tools import (
     get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
-    validate_events_query,
 )
 from sentry.seer.assisted_query.discover_tools import (
     get_event_filter_key_values,
@@ -1123,7 +1122,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),
-    "validate_events_query": seer_rpc(validate_events_query),
     "execute_timeseries_query": seer_rpc(execute_timeseries_query),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_replays_query": seer_rpc(execute_replays_query),

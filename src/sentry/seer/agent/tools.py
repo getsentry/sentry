@@ -80,7 +80,6 @@ from sentry.seer.sentry_data_models import (
     RepositoryDefinitionResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
-    ValidateEventsQueryResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -145,6 +144,96 @@ def _get_full_trace_id(
     return None
 
 
+def _format_events_query_validation_errors(body: dict[str, Any]) -> str:
+    """Format an events/validate response body into an agent-readable error string."""
+    lines: list[str] = ["Query validation failed:"]
+
+    for section in ("dataset", "environment", "projects"):
+        for item in body.get(section) or []:
+            if item.get("valid") or not item.get("error"):
+                continue
+            name = item.get("name")
+            if name:
+                lines.append(f"- {section} '{name}': {item['error']}")
+            else:
+                lines.append(f"- {section}: {item['error']}")
+
+    for section in ("field", "orderby"):
+        for item in body.get(section) or []:
+            if item.get("valid") or not item.get("error"):
+                continue
+            name = item.get("name", "?")
+            lines.append(f"- {section} '{name}': {item['error']}")
+
+    query = body.get("query") or {}
+    if not query.get("valid") and query.get("error"):
+        lines.append(f"- query: {query['error']}")
+        for item in query.get("fields") or []:
+            if item.get("valid") or not item.get("error"):
+                continue
+            name = item.get("name", "?")
+            lines.append(f"  - field '{name}': {item['error']}")
+
+    if len(lines) == 1:
+        return f"Query validation failed: {body}"
+    return "\n".join(lines)
+
+
+def _validate_events_query_params(
+    *,
+    organization: Organization,
+    dataset: str,
+    fields: list[str],
+    query: str | None,
+    sort: str | None,
+    project_ids: list[int] | None,
+    project_slugs: list[str] | None,
+    stats_period: str | None,
+    start: str | None,
+    end: str | None,
+) -> ExecuteQueryErrorResponse | None:
+    """
+    Call events/validate and return an agent-readable error if the query is invalid.
+
+    Unexpected validate failures are logged and ignored so the events query can still run.
+    """
+    params: dict[str, Any] = {
+        "dataset": dataset,
+        "field": fields,
+        "query": query or None,
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
+    }
+    if sort:
+        params["orderby"] = [sort]
+    params = {k: v for k, v in params.items() if v is not None}
+
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/validate/",
+            params=params,
+        )
+        if isinstance(resp.data, dict) and resp.data.get("valid") is False:
+            return ExecuteQueryErrorResponse(
+                error=_format_events_query_validation_errors(resp.data)
+            )
+        return None
+    except client.ApiError as e:
+        if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
+            return ExecuteQueryErrorResponse(error=_format_events_query_validation_errors(e.body))
+        logger.exception(
+            "execute_table_query: validate request failed",
+            extra={"org_id": organization.id},
+        )
+        return None
+
+
 def execute_table_query(
     *,
     org_id: int,
@@ -163,6 +252,7 @@ def execute_table_query(
     span_query: list[str] | None = None,
     log_query: list[str] | None = None,
     metric_query: list[str] | None = None,
+    validate: bool = False,
 ) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get table data by calling the events endpoint.
@@ -179,6 +269,9 @@ def execute_table_query(
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
+
+        validate: When True, call events/validate first. Invalid queries return an
+        agent-readable error string instead of running the events query.
     """
     try:
         organization = Organization.objects.get(id=org_id)
@@ -198,6 +291,22 @@ def execute_table_query(
     elif "timestamp" in fields:
         # Default to -timestamp only if timestamp was selected.
         sort = "-timestamp"
+
+    if validate:
+        validation_error = _validate_events_query_params(
+            organization=organization,
+            dataset=dataset,
+            fields=fields,
+            query=query,
+            sort=sort,
+            project_ids=project_ids,
+            project_slugs=project_slugs,
+            stats_period=stats_period,
+            start=start,
+            end=end,
+        )
+        if validation_error is not None:
+            return validation_error
 
     params: dict[str, Any] = {
         "dataset": dataset,
@@ -247,67 +356,6 @@ def execute_table_query(
             return ExecuteQueryErrorResponse(
                 error=str(error_detail) if error_detail is not None else str(e.body)
             )
-        raise
-
-
-def validate_events_query(
-    *,
-    org_id: int,
-    dataset: str,
-    fields: list[str],
-    query: str | None = None,
-    sort: str | None = None,
-    project_ids: list[int] | None = None,
-    project_slugs: list[str] | None = None,
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-) -> ValidateEventsQueryResponse | None:
-    """
-    Validate an events query by calling the events/validate endpoint.
-
-    Returns the validation payload regardless of whether the query is valid.
-    A 400 response still carries structured validation details in the body.
-    """
-    try:
-        organization = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        logger.warning("Organization not found", extra={"org_id": org_id})
-        return None
-
-    if not project_ids and not project_slugs:
-        project_ids = [ALL_ACCESS_PROJECT_ID]
-
-    selected_fields = list(fields)
-
-    params: dict[str, Any] = {
-        "dataset": dataset,
-        "field": selected_fields,
-        "query": query or None,
-        "project": project_ids,
-        "projectSlug": project_slugs,
-        "statsPeriod": stats_period,
-        "start": start,
-        "end": end,
-        "referrer": Referrer.SEER_EXPLORER_TOOLS,
-    }
-    if sort:
-        params["orderby"] = [sort]
-
-    params = {k: v for k, v in params.items() if v is not None}
-
-    try:
-        resp = client.get(
-            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-            user=None,
-            path=f"/organizations/{organization.slug}/events/validate/",
-            params=params,
-        )
-        return ValidateEventsQueryResponse.parse_obj(resp.data)
-    except client.ApiError as e:
-        if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
-            return ValidateEventsQueryResponse.parse_obj(e.body)
-        logger.exception("validate_events_query: request failed", extra={"org_id": org_id})
         raise
 
 
