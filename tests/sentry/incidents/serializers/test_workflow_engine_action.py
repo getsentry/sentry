@@ -267,7 +267,9 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
         missing_target_expected["id"] = str(self.missing_target_trigger_action.id)
         missing_target_expected["alertRuleTriggerId"] = str(self.missing_target_trigger.id)
         missing_target_expected["targetType"] = "specific"
-        missing_target_expected["targetIdentifier"] = self.missing_target_trigger_action.target_display
+        missing_target_expected["targetIdentifier"] = (
+            self.missing_target_trigger_action.target_display
+        )
         missing_target_expected["inputChannelId"] = "123"
         missing_target_expected["integrationId"] = self.integration.id
         missing_target_expected["desc"] = (
