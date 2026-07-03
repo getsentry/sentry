@@ -36,7 +36,6 @@ import {
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
@@ -128,7 +127,6 @@ function Graph({
   visualize,
 }: GraphProps) {
   const isShortViewport = useIsShortViewport();
-  const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
   const aggregate = visualize.yAxis;
@@ -181,7 +179,6 @@ function Graph({
         !visualize.visible && plottablesCanBeVisualized(plottables) ? (
           <TimeSeriesWidgetVisualization
             plottables={plottables}
-            notMerge={false}
             showLegend="never"
             showXAxis="never"
             showYAxis="never"
@@ -263,11 +260,7 @@ function Graph({
       Actions={Actions}
       Visualization={
         visualize.visible && (
-          <ChartVisualization
-            key={chartRemountKey}
-            chartInfo={chartInfo}
-            notMerge={!autorefreshEnabled}
-          />
+          <ChartVisualization key={chartRemountKey} chartInfo={chartInfo} />
         )
       }
       Footer={
