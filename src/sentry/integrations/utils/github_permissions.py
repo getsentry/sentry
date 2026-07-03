@@ -1,3 +1,16 @@
+"""
+when you update the app, if and only if you want warnings to show in different places in the UI
+then you should update the option with the new expected required permissions and their required level
+
+if you don't update the option, nothing will break since the option only lists out required permissions:
+if the user's integration contains more permissions than we expect we just ignore it, since there are
+inconsistencies with what permissions we store in the metadata anyways based on whether the integration
+is for an org or a single user
+
+at the moment there's no way to gate warnings in the UI by which perm is missing, but we can add that
+where the warnings are implemented since this API returns the list of missing scopes / levels
+"""
+
 import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
