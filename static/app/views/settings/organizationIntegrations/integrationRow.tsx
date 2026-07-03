@@ -106,7 +106,7 @@ export function IntegrationRow(props: Props) {
     return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
   };
 
-  const IntegrationUpgradeTooltipTitle = () => {
+  const getUpgradeTooltipTitle = () => {
     if (!hasIntegrationAccess) {
       return tct(
         "There's a new update for your [displayName] integration, please update your workspace",
@@ -133,18 +133,6 @@ export function IntegrationRow(props: Props) {
     );
   };
 
-  function UpdateAlertTooltip() {
-    return (
-      <Tooltip
-        isHoverable
-        containerDisplayMode="flex"
-        title={<IntegrationUpgradeTooltipTitle />}
-      >
-        <IconWarning variant="warning" aria-label={t('Integration alert')} />
-      </Tooltip>
-    );
-  }
-
   return (
     <PanelRow noPadding data-test-id={slug}>
       <Flex align="center" padding="xl">
@@ -152,7 +140,15 @@ export function IntegrationRow(props: Props) {
         <TitleContainer>
           <Flex gap="xs" align="center">
             <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
-            {outdatedConfigurations > 0 && <UpdateAlertTooltip />}
+            {outdatedConfigurations > 0 && (
+              <Tooltip
+                isHoverable
+                containerDisplayMode="flex"
+                title={getUpgradeTooltipTitle()}
+              >
+                <IconWarning variant="warning" aria-label={t('Integration alert')} />
+              </Tooltip>
+            )}
           </Flex>
           <IntegrationDetails>
             {renderStatus()}
