@@ -6,7 +6,23 @@ import {MM1_PLANS} from 'getsentry-test/fixtures/mm1Plans';
 import {MM2_PLANS} from 'getsentry-test/fixtures/mm2Plans';
 import {PlanTier} from 'getsentry-test/planTier';
 
-import type {BillingConfig} from 'getsentry/types';
+import type {BillingConfig, Plan} from 'getsentry/types';
+
+// Mirrors the backend's start_at_default checkout serialization: AM3 replays
+// default to 5,000 and the 50 tier stays valid only for existing
+// subscriptions, so billing-config payloads do not offer it. Other surfaces
+// (e.g. subscription planDetails) keep the full tier list.
+export const AM3_CHECKOUT_PLANS: Plan[] = Object.values(AM3_PLANS).map(plan => ({
+  ...plan,
+  planCategories: {
+    ...plan.planCategories,
+    ...(plan.planCategories.replays
+      ? {
+          replays: plan.planCategories.replays.filter(bucket => bucket.events >= 5_000),
+        }
+      : {}),
+  },
+}));
 
 export function BillingConfigFixture(tier: PlanTier): BillingConfig {
   if (tier === PlanTier.TEST) {
@@ -47,13 +63,13 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
       defaultReserved: {
         errors: 50_000,
         attachments: 1,
-        replays: 50,
+        replays: 5_000,
         monitorSeats: 1,
         spans: 10_000_000,
         uptime: 1,
       },
       annualDiscount: 0.1,
-      planList: Object.values(AM3_PLANS),
+      planList: AM3_CHECKOUT_PLANS,
       featureList: FeatureListFixture(),
     };
   }
@@ -66,7 +82,7 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
       defaultReserved: {
         errors: 50_000,
         attachments: 1,
-        replays: 50,
+        replays: 5_000,
         monitorSeats: 1,
         spans: 10_000_000,
         uptime: 1,
@@ -77,7 +93,7 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
         ...Object.values(MM2_PLANS),
         ...Object.values(AM1_PLANS),
         ...Object.values(AM2_PLANS),
-        ...Object.values(AM3_PLANS),
+        ...AM3_CHECKOUT_PLANS,
       ],
       featureList: FeatureListFixture(),
     };

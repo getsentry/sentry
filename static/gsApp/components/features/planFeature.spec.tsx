@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {AM3_CHECKOUT_PLANS} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
@@ -117,7 +118,9 @@ describe('PlanFeature', () => {
 
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
-        plan: PlanDetailsLookupFixture('am3_business'),
+        // The billing config offers reserved tiers starting at the plan
+        // default, so its plans differ from the full planDetails fixture.
+        plan: AM3_CHECKOUT_PLANS.find(plan => plan.id === 'am3_business'),
       });
     });
   });

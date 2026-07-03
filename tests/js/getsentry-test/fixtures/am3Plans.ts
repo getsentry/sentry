@@ -42,13 +42,19 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
     plural: 'continuous profile hours',
     singular: 'continuous profile hour',
   },
-  profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
+  profileDurationUI: {
+    plural: 'UI profile hours',
+    singular: 'UI profile hour',
+  },
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
   logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
   seerUsers: {singular: 'active contributor', plural: 'active contributors'},
-  sizeAnalyses: {singular: 'size analysis build', plural: 'size analysis builds'},
+  sizeAnalyses: {
+    singular: 'size analysis build',
+    plural: 'size analysis builds',
+  },
   installableBuilds: {
     singular: 'build distribution install',
     plural: 'build distribution installs',
@@ -578,14 +584,14 @@ export const AM3_PLANS = {
         {
           events: 5000,
           unitPrice: 0.3,
-          price: 1500,
+          price: 0,
           onDemandPrice: 0.375,
         },
         {
           events: 10000,
           unitPrice: 0.285,
           price: 2900,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
@@ -1087,14 +1093,14 @@ export const AM3_PLANS = {
         {
           events: 5000,
           unitPrice: 0.3,
-          price: 16200,
+          price: 0,
           onDemandPrice: 0.375,
         },
         {
           events: 10000,
           unitPrice: 0.285,
           price: 31300,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
@@ -1723,6 +1729,12 @@ export const AM3_PLANS = {
           price: 0,
           onDemandPrice: 0,
         },
+        {
+          events: 5000,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
       ],
       attachments: [
         {
@@ -2036,14 +2048,14 @@ export const AM3_PLANS = {
         {
           events: 5000,
           unitPrice: 0.3,
-          price: 1500,
+          price: 0,
           onDemandPrice: 0.375,
         },
         {
           events: 10000,
           unitPrice: 0.285,
           price: 2900,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,
@@ -2547,14 +2559,14 @@ export const AM3_PLANS = {
         {
           events: 5000,
           unitPrice: 0.3,
-          price: 16200,
+          price: 0,
           onDemandPrice: 0.375,
         },
         {
           events: 10000,
           unitPrice: 0.285,
           price: 31300,
-          onDemandPrice: 0.3563,
+          onDemandPrice: 0.45,
         },
         {
           events: 25000,

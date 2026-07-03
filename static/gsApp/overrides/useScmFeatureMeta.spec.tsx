@@ -33,7 +33,7 @@ describe('useScmFeatureMeta', () => {
       '10M spans / mo'
     );
     expect(result.current.meta[ProductSolution.SESSION_REPLAY].volume).toBe(
-      '50 replays / mo'
+      '5,000 replays / mo'
     );
     expect(result.current.meta[ProductSolution.LOGS].volume).toBe('5 GB logs / mo');
     // PROFILING is intentionally absent from DYNAMIC_FORMATS, so the static
