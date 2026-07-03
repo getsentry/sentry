@@ -1672,12 +1672,13 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     top: 0;
     height: 38px;
-    right: calc(var(--span-column-width) * 100% + 3px);
+    right: calc(var(--span-column-width) * 100%);
     z-index: 10;
     display: flex;
     align-items: center;
     gap: ${p => p.theme.space.xs};
-    padding: 0 ${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.md};
+    padding-right: ${p => p.theme.space.xs};
     background-color: ${p => p.theme.tokens.background.primary};
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1697,11 +1698,12 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     top: 0;
     height: 100%;
-    right: calc(var(--span-column-width) * 100% + 3px);
+    right: calc(var(--span-column-width) * 100%);
     z-index: 2;
     display: flex;
     align-items: center;
-    padding: 0 ${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.md};
+    padding-right: ${p => p.theme.space.sm};
     background-color: ${p => p.theme.tokens.background.primary};
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
