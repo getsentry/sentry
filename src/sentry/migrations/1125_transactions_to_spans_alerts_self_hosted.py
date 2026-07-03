@@ -4,14 +4,16 @@ from enum import Enum
 from django.db import migrations
 
 from sentry.explore.translation.alerts_translation import (
-    rollback_detector_query_and_update_subscription_in_snuba,
     translate_detector_and_update_subscription_in_snuba,
 )
 from sentry.new_migrations.migrations import CheckedMigration
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 import sentry_sdk
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Dataset(Enum):
@@ -76,29 +78,12 @@ def migrate_transactions_to_spans_alerts_self_hosted(
         dataset__in=[Dataset.PerformanceMetrics.value, Dataset.Transactions.value]
     )
 
-    for snuba_query in RangeQuerySetWrapperWithProgressBar(qs):
+    for snuba_query in RangeQuerySetWrapper(qs):
         try:
             translate_detector_and_update_subscription_in_snuba(snuba_query, bypass_flag_check=True)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-
-
-def reverse_migrate_transactions_to_spans_alerts_self_hosted(
-    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
-) -> None:
-    SnubaQuery = apps.get_model("sentry", "SnubaQuery")
-
-    qs = SnubaQuery.objects.filter(
-        dataset=Dataset.EventsAnalyticsPlatform.value, query_snapshot__isnull=False
-    )
-
-    for snuba_query in RangeQuerySetWrapperWithProgressBar(qs):
-        try:
-            rollback_detector_query_and_update_subscription_in_snuba(
-                snuba_query, bypass_flag_check=True
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+            logger.info("Error migrating transactions to spans alerts self hosted: %s", e)
 
 
 class Migration(CheckedMigration):
@@ -123,7 +108,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.RunPython(
             migrate_transactions_to_spans_alerts_self_hosted,
-            reverse_code=reverse_migrate_transactions_to_spans_alerts_self_hosted,
+            reverse_code=migrations.RunPython.noop,
             hints={"tables": ["sentry_snubaquery"]},
         )
     ]
