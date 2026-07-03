@@ -170,5 +170,29 @@ describe('IntegrationRow', () => {
       );
       expect(link.getAttribute('href')).not.toContain('showInstallModal');
     });
+
+    it('shows an informational tooltip without a link for members without access', async () => {
+      const {organization: lowerAccessOrg} = initializeOrg({
+        organization: {access: ['org:read']},
+      });
+      render(
+        <IntegrationRow
+          organization={lowerAccessOrg}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          outdatedConfigurations={1}
+        />
+      );
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      // The warning icon still surfaces the update, but without an actionable
+      // link that would try to launch a flow the member can't complete.
+      expect(await screen.findByText(/please update your workspace/)).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'click here'})).not.toBeInTheDocument();
+    });
   });
 });

@@ -17,7 +17,10 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {convertIntegrationTypeToSnakeCase} from 'sentry/utils/integrationUtil';
+import {
+  canManageIntegrations,
+  convertIntegrationTypeToSnakeCase,
+} from 'sentry/utils/integrationUtil';
 
 import {IntegrationStatus} from './integrationStatus';
 
@@ -63,13 +66,16 @@ export function IntegrationRow(props: Props) {
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
+  const hasIntegrationAccess = canManageIntegrations(organization);
+
   // When exactly one workspace is outdated there's nothing to disambiguate, so
   // auto-open the install/upgrade modal instead of making the user pick on the
   // config page. With multiple outdated workspaces we send them to the config
-  // tab to choose which one to update.
+  // tab to choose which one to update. Members who can't manage integrations
+  // never get the auto-open param, since they can't act on the reinstall flow.
   const resolveNowHref =
     `${baseUrl}?tab=configurations&referrer=directory_resolve_now` +
-    (outdatedConfigurations === 1 ? '&showInstallModal=1' : '');
+    (hasIntegrationAccess && outdatedConfigurations === 1 ? '&showInstallModal=1' : '');
 
   const renderDetails = () => {
     if (type === 'sentryApp') {
@@ -101,6 +107,12 @@ export function IntegrationRow(props: Props) {
   };
 
   const IntegrationUpgradeTooltipTitle = () => {
+    if (!hasIntegrationAccess) {
+      return tct(
+        "There's a new update for your [displayName] integration, please update your workspace",
+        {displayName}
+      );
+    }
     return tct(
       "There's a new update for your [displayName] integration, please [link:click here] to update your workspace",
       {
