@@ -106,9 +106,7 @@ def _trigger_explorer_indexes_if_needed(
 def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
-    return features.has(
-        "organizations:seat-based-seer-enabled", organization, actor=user
-    ) or features.has("organizations:seer-added", organization, actor=user)
+    return True
 
 
 def get_monitoring_provider_connections(
