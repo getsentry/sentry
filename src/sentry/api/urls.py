@@ -309,7 +309,6 @@ from sentry.issues.endpoints import (
     OrganizationGroupSearchViewsStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
-    OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
@@ -545,12 +544,6 @@ from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgentTranslateEndpoint
-from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
-    OrganizationSupergroupDetailsEndpoint,
-)
-from sentry.seer.supergroups.endpoints.organization_supergroups_by_group import (
-    OrganizationSupergroupsByGroupEndpoint,
-)
 from sentry.sentry_apps.api.endpoints.group_external_issue_details import (
     GroupExternalIssueDetailsEndpoint,
 )
@@ -1912,11 +1905,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-index-progress",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/issues-with-supergroups/$",
-        OrganizationIssuesWithSupergroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-issues-with-supergroups",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-metrics/$",
         OrganizationIssueMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-issue-metrics",
@@ -2395,16 +2383,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
         OrganizationSeerAgentUpdateEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/by-group/$",
-        OrganizationSupergroupsByGroupEndpoint.as_view(),
-        name="sentry-api-0-organization-supergroups-by-group",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/(?P<supergroup_id>[^/]+)/$",
-        OrganizationSupergroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-supergroup-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
