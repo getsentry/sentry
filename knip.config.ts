@@ -74,7 +74,6 @@ const config: KnipConfig = {
   ],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
-    'core-js',
     'tslib', // subdependency of many packages, declare the latest version
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
