@@ -683,7 +683,6 @@ module = [
     "sentry.apidocs.constants",
     "sentry.apidocs.extensions",
     "sentry.apidocs.hooks",
-    "sentry.apidocs.parameters",
     "sentry.apidocs.schema",
     "sentry.apidocs.spectacular_ports",
     "sentry.apidocs.utils",

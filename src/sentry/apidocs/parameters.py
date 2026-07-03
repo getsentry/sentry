@@ -16,7 +16,7 @@ from sentry.snuba.sessions import STATS_PERIODS
 SENTRY_HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
 
 
-def build_typed_list(type: Any):
+def build_typed_list(type: Any) -> dict[str, Any]:
     """
     drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
     a typed list using this workaround. build_basic_type will dynamically check the type
