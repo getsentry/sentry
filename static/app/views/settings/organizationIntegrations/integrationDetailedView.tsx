@@ -3,6 +3,8 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -96,6 +98,29 @@ function makeIntegrationQueryKey({
   ];
 }
 
+function UpdateAlert({
+  text,
+  onViewConfigurations,
+}: {
+  onViewConfigurations: () => void;
+  text: string;
+}) {
+  return (
+    <Alert.Container>
+      <Alert
+        variant="warning"
+        trailingItems={
+          <Button size="xs" variant="primary" onClick={onViewConfigurations}>
+            {t('Update now')}
+          </Button>
+        }
+      >
+        {text}
+      </Alert>
+    </Alert.Container>
+  );
+}
+
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
 export default function IntegrationDetailedView() {
@@ -171,13 +196,9 @@ export default function IntegrationDetailedView() {
         text: provider?.metadata.aspects.externalInstall.noticeText,
       });
     }
-
-    const alertText = getAlertText(configurations);
-    if (alertText) {
-      alertList.push({variant: 'warning', text: alertText});
-    }
     return alertList;
-  }, [provider, configurations]);
+  }, [provider]);
+  const alertText = getAlertText(configurations);
   const installationStatus = useMemo(() => {
     const statusList = configurations?.map(getIntegrationStatus);
     // if we have conflicting statuses, we have a priority order
@@ -533,6 +554,14 @@ export default function IntegrationDetailedView() {
               integrationSlug={integrationSlug}
               description={description}
               alerts={alerts}
+              upgradeAlert={
+                alertText && (
+                  <UpdateAlert
+                    text={alertText}
+                    onViewConfigurations={() => setActiveTab('configurations')}
+                  />
+                )
+              }
               featureData={featureData}
               author={author}
               resourceLinks={resourceLinks}

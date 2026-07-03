@@ -302,7 +302,7 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t(
-        'Update to the latest version of our Slack app to tag Sentry and ask it to triage and debug issues'
+        'Update to the latest version of our Slack app to tag Sentry and ask it to triage and debug issues.'
       );
 };
 

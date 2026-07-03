@@ -16,10 +16,8 @@ import type {
   SentryAppStatus,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {
-  convertIntegrationTypeToSnakeCase,
-  trackIntegrationAnalytics,
-} from 'sentry/utils/integrationUtil';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {convertIntegrationTypeToSnakeCase} from 'sentry/utils/integrationUtil';
 
 import {IntegrationStatus} from './integrationStatus';
 
@@ -34,10 +32,6 @@ type Props = {
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
   disabledConfigurations?: number;
-  /**
-   * When true, surface a warning icon next to the name whose tooltip prompts the
-   * user to update their outdated Slack workspace.
-   */
   needsUpgrade?: boolean;
   status?: IntegrationInstallationStatus;
 };
@@ -107,6 +101,39 @@ export function IntegrationRow(props: Props) {
     return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
   };
 
+  const IntegrationUpgradeTooltipTitle = () => {
+    return tct(
+      'Your [displayName] integration is out of date. [link:Click here] to update your workspace.',
+      {
+        displayName,
+        link: (
+          <UnderlinedLink
+            to={resolveNowHref}
+            onClick={() =>
+              trackAnalytics('integrations.resolve_now_clicked', {
+                integration_type: convertIntegrationTypeToSnakeCase(type),
+                integration: slug,
+                organization,
+              })
+            }
+          />
+        ),
+      }
+    );
+  };
+
+  function UpdateAlertTooltip() {
+    return (
+      <Tooltip
+        isHoverable
+        containerDisplayMode="flex"
+        title={<IntegrationUpgradeTooltipTitle />}
+      >
+        <IconWarning variant="warning" aria-label={t('Integration alert')} />
+      </Tooltip>
+    );
+  }
+
   return (
     <PanelRow noPadding data-test-id={slug}>
       <Flex align="center" padding="xl">
@@ -114,23 +141,7 @@ export function IntegrationRow(props: Props) {
         <TitleContainer>
           <Flex gap="xs" align="center">
             <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
-            {needsUpgrade && (
-              <Tooltip
-                isHoverable
-                containerDisplayMode="flex"
-                title={
-                  <IntegrationUpgradeTooltipTitle
-                    displayName={displayName}
-                    resolveNowHref={resolveNowHref}
-                    type={type}
-                    slug={slug}
-                    organization={organization}
-                  />
-                }
-              >
-                <IconWarning variant="warning" aria-label={t('Integration alert')} />
-              </Tooltip>
-            )}
+            {needsUpgrade && <UpdateAlertTooltip />}
           </Flex>
           <IntegrationDetails>
             {renderStatus()}
@@ -147,40 +158,6 @@ export function IntegrationRow(props: Props) {
       </Flex>
       {customAlert}
     </PanelRow>
-  );
-}
-
-type IntegrationUpgradeTooltipTitleProps = Pick<
-  Props,
-  'displayName' | 'type' | 'slug' | 'organization'
-> & {
-  resolveNowHref: string;
-};
-
-function IntegrationUpgradeTooltipTitle({
-  displayName,
-  resolveNowHref,
-  type,
-  slug,
-  organization,
-}: IntegrationUpgradeTooltipTitleProps) {
-  return tct(
-    'Your [displayName] integration is out of date. [link:Click here] to update your workspace.',
-    {
-      displayName,
-      link: (
-        <UnderlinedLink
-          to={resolveNowHref}
-          onClick={() =>
-            trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-              integration_type: convertIntegrationTypeToSnakeCase(type),
-              integration: slug,
-              organization,
-            })
-          }
-        />
-      ),
-    }
   );
 }
 
