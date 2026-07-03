@@ -189,7 +189,7 @@ const frequencyTypes = new Set<DataConditionType>([
  * (like Seer activity) pass an Activity object, so these filters always
  * return false and will block the workflow if the logic type is ALL.
  */
-const eventRequiredFilters = new Set<DataConditionType>([
+const eventRequiredConditions = new Set<DataConditionType>([
   DataConditionType.EVENT_ATTRIBUTE,
   DataConditionType.TAGGED_EVENT,
   DataConditionType.LEVEL,
@@ -202,7 +202,7 @@ const eventRequiredFilters = new Set<DataConditionType>([
  * cannot be enqueued for delayed evaluation, so these conditions are
  * silently skipped.
  */
-const slowConditionTypes = new Set<DataConditionType>([
+const slowConditions = new Set<DataConditionType>([
   DataConditionType.EVENT_FREQUENCY_COUNT,
   DataConditionType.EVENT_FREQUENCY_PERCENT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
@@ -309,26 +309,26 @@ function findConflictingPriorityConditions(
 function findSeerActivityIncompatibleConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
-  const incompatible = new Set<string>();
-
-  for (const condition of conditionGroup.conditions) {
-    if (
-      eventRequiredFilters.has(condition.type) ||
-      slowConditionTypes.has(condition.type)
-    ) {
-      incompatible.add(condition.id);
-    }
-  }
-
+  const allIncompatibleConditions = new Set([
+    ...eventRequiredConditions,
+    ...slowConditions,
+  ]);
+  const anyLogicTypes = new Set([
+    DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+    DataConditionGroupLogicType.ANY,
+  ]);
+  const incompatibleConditions = conditionGroup.conditions.filter(c =>
+    allIncompatibleConditions.has(c.type)
+  );
   // With ANY logic, if at least one condition is compatible, the filter can still pass
   if (
-    conditionGroup.logicType === DataConditionGroupLogicType.ANY_SHORT_CIRCUIT &&
-    incompatible.size !== conditionGroup.conditions.length
+    anyLogicTypes.has(conditionGroup.logicType) &&
+    incompatibleConditions.length !== conditionGroup.conditions.length
   ) {
     return new Set<string>();
   }
 
-  return incompatible;
+  return new Set<string>(incompatibleConditions.map(c => c.id));
 }
 
 function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
