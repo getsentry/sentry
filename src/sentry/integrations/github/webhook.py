@@ -500,9 +500,7 @@ class InstallationEventWebhook(GitHubWebhook):
                     },
                 )
 
-    def _handle_new_permissions_accepted(
-        self, event: Mapping[str, Any], **kwargs: Any
-    ) -> None:
+    def _handle_new_permissions_accepted(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         external_id = event["installation"]["id"]
         if host := kwargs.get("host"):
             external_id = "{}:{}".format(host, event["installation"]["id"])
