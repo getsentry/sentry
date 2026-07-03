@@ -35,7 +35,6 @@ describe('AutofixSection', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: true,
       }),
     });
@@ -47,7 +46,6 @@ describe('AutofixSection', () => {
         isAutofixEnabled: true,
         isCodeReviewEnabled: true,
         isSeerConfigured: true,
-        needsConfigReminder: false,
       },
     });
   });
@@ -430,7 +428,6 @@ describe('AutofixSection', () => {
         isAutofixEnabled: false,
         isCodeReviewEnabled: false,
         isSeerConfigured: false,
-        needsConfigReminder: false,
       },
     });
 
@@ -461,7 +458,6 @@ describe('AutofixSection', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
         seerReposLinked: false,
       }),
     });
@@ -493,7 +489,6 @@ describe('AutofixSection', () => {
         isAutofixEnabled: false,
         isCodeReviewEnabled: false,
         isSeerConfigured: false,
-        needsConfigReminder: false,
       },
     });
 

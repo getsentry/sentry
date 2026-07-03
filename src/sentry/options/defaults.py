@@ -596,13 +596,6 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Organizations that should always see the Seer config reminder
-register(
-    "seer.organizations.force-config-reminder",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Coding Workflows
 register(
@@ -1525,17 +1518,17 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */4 * * *",
+    default="0 */2 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "api.deprecation.alerts-duration",
     type=Int,
-    default=60,
+    default=120,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2998,12 +2991,6 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Segments consumer
-register(
-    "spans.process-segments.consumer.enable",
-    default=True,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "spans.process-segments.detect-performance-problems.enable",
     default=False,
@@ -3794,6 +3781,22 @@ register(
 # Rolls out the new TaskProducer to preprod tasks
 register(
     "tasks.producer.preprod.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to uptime tasks
+register(
+    "tasks.producer.uptime.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to processing_errors tasks
+register(
+    "tasks.producer.processing-errors.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

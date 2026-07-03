@@ -43,10 +43,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
-import {buildHeatmapCellQuery} from 'sentry/views/dashboards/widgetCard/buildHeatmapCellQuery';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -76,14 +73,10 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {getExploreUrl as buildExploreUrl} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import {
-  applyDashboardFiltersToWidget,
-  type GenericWidgetQueriesResult,
-} from './genericWidgetQueries';
+import {type GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type TableComponentProps = Pick<
   GenericWidgetQueriesResult,
@@ -469,13 +462,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
-  const {heatmapResults, loading, widget, dashboardFilters, selection} = props;
-  const organization = useOrganization();
-
-  const selectedAggregate = getSelectedAggregate(widget);
-  const traceMetric = selectedAggregate
-    ? extractTraceMetricFromColumn(selectedAggregate)
-    : undefined;
+  const {heatmapResults, loading} = props;
 
   if (loading || !heatmapResults) {
     return <LoadingPlaceholder />;
@@ -489,50 +476,9 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
     );
   }
 
-  // Match the conditions the heat map actually fetched with (dashboard filters
-  // applied), so the cell's Explore link is scoped the same way.
-  const exploreBaseQuery = applyDashboardFiltersToWidget(widget, dashboardFilters)
-    .queries[0]?.conditions;
-
   return (
     <ChartWrapper autoHeightResize>
-      <HeatMapWidgetVisualization
-        plottables={[new HeatMap(heatmapResults)]}
-        // The heat map links each cell's tooltip to its metric in Explore.
-        renderTooltipActions={({valueMin, valueMax, timestampStart, timestampEnd}) => {
-          if (!traceMetric) {
-            return null;
-          }
-          const tracesUrl = buildExploreUrl({
-            organization,
-            selection: {
-              ...selection,
-              datetime: {
-                ...selection.datetime,
-                start: new Date(timestampStart),
-                end: new Date(timestampEnd),
-                period: null,
-              },
-            },
-            crossEvents: [
-              {
-                type: 'metrics',
-                metric: traceMetric,
-                query: buildHeatmapCellQuery(exploreBaseQuery, valueMin, valueMax),
-              },
-            ],
-          });
-          return (
-            <div>
-              <span className="tooltip-label tooltip-label-centered">
-                <a data-traces-link={tracesUrl} href={tracesUrl}>
-                  {t('View connected spans')}
-                </a>
-              </span>
-            </div>
-          );
-        }}
-      />
+      <HeatMapWidgetVisualization plottables={[new HeatMap(heatmapResults)]} />
     </ChartWrapper>
   );
 }

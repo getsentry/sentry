@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import orjson
 import sentry_sdk
@@ -23,13 +23,15 @@ from sentry.identity.oauth2 import (
     _redirect_url,
     record_event,
 )
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.identity.pipeline import IdentityPipeline
 
 DATADOG_VALID_SITES: dict[str, str] = {
     "datadoghq.com": "US1",
@@ -302,11 +304,9 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
             raise ValueError(f"Invalid Datadog site: {site}")
         return base
 
-    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
-        """Full MCP endpoint URL for a stored Datadog identity.
-        Returns None when the site is missing or invalid."""
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
         base = _mcp_base_url_for_site(identity_data.get("site"))
-        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+        return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def get_oauth_authorize_url(self) -> str:
         return self._build_mcp_base_url() + MCP_AUTHORIZE_PATH
@@ -423,11 +423,9 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
 
-    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
-        """Full MCP endpoint URL for a stored Datadog identity.
-        Returns None when the site is missing or invalid."""
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
         base = _mcp_base_url_for_site(identity_data.get("site"))
-        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+        return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
         access_token = (data.get("access_token") or "").strip()

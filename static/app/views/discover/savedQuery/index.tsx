@@ -1,4 +1,4 @@
-import {PureComponent} from 'react';
+import {memo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -107,11 +107,7 @@ export function SaveAsDropdown({
   );
 }
 
-type DefaultProps = {
-  disabled: boolean;
-};
-
-type Props = DefaultProps & {
+type Props = {
   api: Client;
 
   eventView: EventView;
@@ -132,24 +128,23 @@ type Props = DefaultProps & {
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  disabled?: boolean;
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
 };
 
-class SavedQueryButtonGroup extends PureComponent<Props> {
-  static defaultProps: DefaultProps = {
-    disabled: false,
-  };
-
-  renderButtonViewSaved(disabled: boolean) {
-    const {organization} = this.props;
+const SavedQueryButtonGroup = memo(function SavedQueryButtonGroup({
+  disabled = false,
+  organization,
+}: Props) {
+  function renderButtonViewSaved(isDisabled: boolean) {
     return (
       <LinkButton
         onClick={() => {
           trackAnalytics('discover_v2.view_saved_queries', {organization});
         }}
         data-test-id="discover2-savedquery-button-view-saved"
-        disabled={disabled}
+        disabled={isDisabled}
         size="sm"
         icon={<IconStar isSolid />}
         to={getDiscoverQueriesUrl(organization)}
@@ -159,8 +154,7 @@ class SavedQueryButtonGroup extends PureComponent<Props> {
     );
   }
 
-  renderQueryButton(renderFunc: (disabled: boolean) => React.ReactNode) {
-    const {organization} = this.props;
+  function renderQueryButton(renderFunc: (isDisabled: boolean) => React.ReactNode) {
     return (
       <Feature
         organization={organization}
@@ -168,19 +162,17 @@ class SavedQueryButtonGroup extends PureComponent<Props> {
         overrideName="feature-disabled:discover-saved-query-create"
         renderDisabled={renderDisabled}
       >
-        {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
+        {({hasFeature}) => renderFunc(!hasFeature || disabled)}
       </Feature>
     );
   }
 
-  render() {
-    return (
-      <ResponsiveButtonBar>
-        {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
-      </ResponsiveButtonBar>
-    );
-  }
-}
+  return (
+    <ResponsiveButtonBar>
+      {renderQueryButton(isDisabled => renderButtonViewSaved(isDisabled))}
+    </ResponsiveButtonBar>
+  );
+});
 
 const ResponsiveButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />

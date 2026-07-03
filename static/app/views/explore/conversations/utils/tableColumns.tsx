@@ -22,14 +22,14 @@ interface ColumnDefinition {
 }
 
 export const CONVERSATION_COLUMNS: Record<ConversationColumnKey, ColumnDefinition> = {
-  conversationId: {name: t('Conv. ID'), width: 150, type: FieldValueType.STRING},
+  conversationId: {name: t('Conv. ID'), width: 100, type: FieldValueType.STRING},
   llmCalls: {name: t('LLM Calls'), width: 100, type: FieldValueType.INTEGER},
-  user: {name: t('User'), width: COL_WIDTH_UNDEFINED, type: FieldValueType.STRING},
+  user: {name: t('User'), width: 200, type: FieldValueType.STRING},
   toolCalls: {name: t('Tool Calls'), width: 120, type: FieldValueType.INTEGER},
   errors: {name: t('Errors'), width: 100, type: FieldValueType.INTEGER},
   cost: {name: t('Cost'), width: 110, type: FieldValueType.CURRENCY},
   timestamp: {name: t('Last Message'), width: 140, type: FieldValueType.DATE},
-  input: {name: t('Input'), width: 250, type: FieldValueType.STRING},
+  input: {name: t('Input'), width: COL_WIDTH_UNDEFINED, type: FieldValueType.STRING},
   output: {name: t('Output'), width: 250, type: FieldValueType.STRING},
   inputTokens: {name: t('Input Tokens'), width: 120, type: FieldValueType.INTEGER},
   outputTokens: {name: t('Output Tokens'), width: 130, type: FieldValueType.INTEGER},
@@ -52,6 +52,7 @@ export const ALL_CONVERSATION_COLUMNS: ConversationColumnKey[] = [
 export const DEFAULT_CONVERSATION_COLUMNS: ConversationColumnKey[] = [
   'conversationId',
   'user',
+  'input',
   'llmCalls',
   'toolCalls',
   'errors',

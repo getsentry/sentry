@@ -15,6 +15,7 @@ class ImageMetadata(BaseModel):
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
     description: str | None = None
     tags: dict[str, str] | None = None
+    canvas_theme: Literal["light", "dark"] | None = None
 
     @validator("tags", pre=True)
     def coerce_tags(cls, v: object) -> dict[str, str] | None:
@@ -25,6 +26,10 @@ class ImageMetadata(BaseModel):
         if isinstance(v, list):
             return {str(tag): str(tag) for tag in v}
         return None
+
+    @validator("canvas_theme", pre=True)
+    def coerce_canvas_theme(cls, v: object) -> str | None:
+        return v if v in ("light", "dark") else None
 
     class Config:
         extra = "allow"
