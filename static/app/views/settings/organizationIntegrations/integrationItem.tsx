@@ -28,11 +28,13 @@ export function IntegrationItem({integration, requiresUpgrade, compact = false}:
         paddingLeft="md"
         minWidth={0}
       >
-        <Flex>
+        <Flex align="center" gap="xs">
           <Text size="md" bold>
             {integration.name}
           </Text>
-          {requiresUpgrade && <UpdateIntegrationIcon displayName={integration.name} />}
+          {requiresUpgrade && (
+            <UpdateIntegrationIcon displayName={integration.provider.name} />
+          )}
         </Flex>
         <DomainName compact={compact}>
           <Text size="sm" variant="muted" density="comfortable">
@@ -47,6 +49,8 @@ export function IntegrationItem({integration, requiresUpgrade, compact = false}:
 function UpdateIntegrationIcon({displayName}: {displayName: string}) {
   return (
     <Tooltip
+      isHoverable
+      containerDisplayMode="flex"
       title={tct(
         "There's a new update for your [displayName] integration, please update your workspace",
         {displayName}
