@@ -3,7 +3,6 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -172,8 +171,13 @@ export default function IntegrationDetailedView() {
         text: provider?.metadata.aspects.externalInstall.noticeText,
       });
     }
+
+    const alertText = getAlertText(configurations);
+    if (alertText) {
+      alertList.push({variant: 'warning', text: alertText});
+    }
     return alertList;
-  }, [provider]);
+  }, [provider, configurations]);
   const installationStatus = useMemo(() => {
     const statusList = configurations?.map(getIntegrationStatus);
     // if we have conflicting statuses, we have a priority order
@@ -379,15 +383,8 @@ export default function IntegrationDetailedView() {
       );
     }
 
-    const alertText = getAlertText(configurations);
-
     return (
       <Fragment>
-        {alertText && (
-          <Alert.Container>
-            <Alert variant="warning">{alertText}</Alert>
-          </Alert.Container>
-        )}
         <Panel>
           {configurations.map(integration => (
             <PanelItem key={integration.id}>
