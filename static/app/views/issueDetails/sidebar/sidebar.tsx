@@ -29,7 +29,6 @@ import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastS
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/mergedSidebarSection';
 import {PeopleSection} from 'sentry/views/issueDetails/sidebar/peopleSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/similarIssuesSidebarSection';
-import {SupergroupSection} from 'sentry/views/issueDetails/sidebar/supergroupSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
@@ -128,9 +127,6 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
           {issueTypeConfig.detector.enabled && (
             <DetectorSection group={group} project={project} />
           )}
-          <ErrorBoundary mini>
-            <SupergroupSection group={group} />
-          </ErrorBoundary>
         </Side>
       )}
     </SharedTourElement>

@@ -54,8 +54,6 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
-import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -194,11 +192,6 @@ function IssueListOverviewInner({
   }, [groups]);
 
   useIssuesINPObserver();
-
-  const {data: supergroupLookup, isLoading: supergroupsLoading} =
-    useSuperGroups(groupIds);
-
-  useSupergroupDrawer({lookup: supergroupLookup, memberList});
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -563,11 +556,6 @@ function IssueListOverviewInner({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
-    total_issue_group_count: new Set(
-      Object.values(supergroupLookup)
-        .filter(sg => sg !== null)
-        .map(sg => sg.id)
-    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -996,9 +984,8 @@ function IssueListOverviewInner({
               displayReprocessingActions={displayReprocessingActions}
               memberList={memberList}
               selectedProjectIds={selection.projects}
-              issuesLoading={issuesLoading || supergroupsLoading}
+              issuesLoading={issuesLoading}
               statsLoading={statsLoading}
-              supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
               onGroupClick={isPreviewMode ? openIssuePreview : undefined}

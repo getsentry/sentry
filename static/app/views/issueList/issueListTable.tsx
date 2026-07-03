@@ -19,7 +19,6 @@ import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
-import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 interface IssueListTableProps {
@@ -46,7 +45,6 @@ interface IssueListTableProps {
   statsLoading: boolean;
   statsPeriod: string;
   onGroupClick?: (group: Group) => void;
-  supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 }
 
@@ -73,7 +71,6 @@ export function IssueListTable({
   issuesSuccessfullyLoaded,
   pageSize,
   onGroupClick,
-  supergroupLookup,
   withColumns,
 }: IssueListTableProps) {
   const location = useLocation();
@@ -146,7 +143,6 @@ export function IssueListTable({
                       refetchGroups={refetchGroups}
                       onActionTaken={onActionTaken}
                       onGroupClick={onGroupClick}
-                      supergroupLookup={supergroupLookup}
                       withColumns={withColumns}
                     />
                   </VisuallyCompleteWithData>

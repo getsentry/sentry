@@ -1,20 +1,15 @@
-import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
-import {SupergroupRow} from 'sentry/components/stream/supergroups/supergroupRow';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggregateSupergroupStats';
-import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
-import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {useIssueProgress} from 'sentry/views/issueList/useIssueProgress';
 
@@ -34,7 +29,6 @@ type GroupListBodyProps = {
   refetchGroups: () => void;
   selectedProjectIds: number[];
   onGroupClick?: (group: Group) => void;
-  supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
 
@@ -46,7 +40,6 @@ type GroupListProps = {
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
   onGroupClick?: (group: Group) => void;
-  supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
 
@@ -60,10 +53,6 @@ const DEFAULT_COLUMNS: GroupListColumn[] = [
   'assignee',
   'lastTriggered',
 ];
-
-type RenderItem =
-  | {id: string; type: 'issue'}
-  | {matchingIds: string[]; supergroup: SupergroupDetail; type: 'supergroup'};
 
 function LoadingSkeleton({
   pageSize,
@@ -100,7 +89,6 @@ export function GroupListBody({
   pageSize,
   onActionTaken,
   onGroupClick,
-  supergroupLookup,
   withColumns,
 }: GroupListBodyProps) {
   const organization = useOrganization();
@@ -140,41 +128,9 @@ export function GroupListBody({
       groupStatsPeriod={groupStatsPeriod}
       onActionTaken={onActionTaken}
       onGroupClick={onGroupClick}
-      supergroupLookup={supergroupLookup}
       withColumns={columns}
     />
   );
-}
-
-function buildRenderItems(
-  groupIds: string[],
-  getSuperGroupForIssue: (id: string) => SupergroupDetail | null | undefined,
-  enabled: boolean
-): RenderItem[] {
-  if (!enabled) {
-    return groupIds.map(id => ({type: 'issue' as const, id}));
-  }
-
-  const seen = new Map<number, string[]>();
-  const items: RenderItem[] = [];
-
-  for (const id of groupIds) {
-    const sg = getSuperGroupForIssue(id);
-    if (sg && sg.group_ids.length > 1) {
-      const existing = seen.get(sg.id);
-      if (existing) {
-        existing.push(id);
-      } else {
-        const matchingIds = [id];
-        seen.set(sg.id, matchingIds);
-        items.push({type: 'supergroup', supergroup: sg, matchingIds});
-      }
-    } else {
-      items.push({type: 'issue', id});
-    }
-  }
-
-  return items;
 }
 
 function GroupList({
@@ -185,11 +141,9 @@ function GroupList({
   groupStatsPeriod,
   onActionTaken,
   onGroupClick,
-  supergroupLookup,
   withColumns = DEFAULT_COLUMNS,
 }: GroupListProps) {
   const theme = useTheme();
-  const organization = useOrganization();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -201,17 +155,6 @@ function GroupList({
 
   const showProgress = withColumns.includes('progress');
   const {data: progressData} = useIssueProgress(showProgress ? groupIds : []);
-
-  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-  const renderItems = useMemo(
-    () =>
-      buildRenderItems(
-        groupIds,
-        (id: string) => supergroupLookup?.[id] ?? null,
-        hasTopIssuesUI
-      ),
-    [groupIds, supergroupLookup, hasTopIssuesUI]
-  );
 
   const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
     const group = GroupStore.get(id) as Group | undefined;
@@ -239,27 +182,5 @@ function GroupList({
     );
   };
 
-  return (
-    <PanelBody>
-      {renderItems.map(item => {
-        if (item.type === 'issue') {
-          return renderStreamGroup(item.id, withColumns);
-        }
-
-        const {supergroup, matchingIds} = item;
-        const memberGroups = matchingIds
-          .map(id => GroupStore.get(id) as Group | undefined)
-          .filter((g): g is Group => g !== undefined);
-        const stats = aggregateSupergroupStats(memberGroups, groupStatsPeriod);
-
-        return (
-          <SupergroupRow
-            key={`sg-${supergroup.id}`}
-            supergroup={supergroup}
-            aggregatedStats={stats}
-          />
-        );
-      })}
-    </PanelBody>
-  );
+  return <PanelBody>{groupIds.map(id => renderStreamGroup(id, withColumns))}</PanelBody>;
 }
