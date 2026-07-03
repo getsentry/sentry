@@ -136,7 +136,7 @@ export function hasAIInputAttribute(
  * (parts, content, {system, prompt}, {messages: ...}, plain string) works on
  * any attribute. System instructions are prepended to the resulting array.
  */
-function getAIInputMessages(
+export function getAIInputMessages(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
@@ -229,7 +229,7 @@ function unwrapStructuredContent(raw: string): string {
   return raw;
 }
 
-function getAIToolInput(
+export function getAIToolInput(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
