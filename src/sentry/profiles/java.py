@@ -235,7 +235,7 @@ def _merge_jvm_frames_with_sample_v2(jvm_frames: list[dict[str, Any]], profile: 
         index_map[old_index] = new_indices
 
     profile["profile"]["stacks"] = [
-        [new_index for old_index in stack for new_index in index_map[old_index]]
+        [new_index for old_index in stack for new_index in index_map.get(old_index, [old_index])]
         for stack in profile["profile"]["stacks"]
     ]
     profile["profile"]["frames"] = new_frames
