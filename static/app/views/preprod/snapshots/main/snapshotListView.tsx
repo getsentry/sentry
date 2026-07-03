@@ -41,6 +41,7 @@ interface SnapshotListViewProps {
   onSelectSnapshot?: (key: string | null) => void;
   onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
   ref?: React.Ref<SnapshotListViewHandle>;
   selectedSnapshotKey?: string | null;
 }
@@ -194,6 +195,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   onScrollProgress,
   diffMode = 'split',
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
   ref,
   onVisibleGroupChange,
@@ -603,6 +605,7 @@ export const SnapshotListView = memo(function SnapshotListView({
                 onOpenSnapshot={onOpenSnapshot}
                 diffMode={diffMode}
                 overlayColor={overlayColor}
+                overlayOpacity={overlayOpacity}
                 diffImageBaseUrl={diffImageBaseUrl}
               />
             </RowPositioner>
@@ -622,6 +625,7 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot,
   diffMode,
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
 }: {
   diffMode: DiffMode;
@@ -633,6 +637,7 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const organization = useOrganization();
   const cards = group.cards.map(card => {
@@ -661,6 +666,7 @@ const GroupContainer = memo(function GroupContainer({
         copyUrl={copyUrl}
         diffMode={diffMode}
         overlayColor={overlayColor}
+        overlayOpacity={overlayOpacity}
         diffImageBaseUrl={diffImageBaseUrl}
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}

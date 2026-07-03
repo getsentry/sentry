@@ -260,16 +260,20 @@ function _getWidgetExploreUrl(
 
   const query = widget.queries[0]!;
 
-  let groupBy: string[] =
+  const columnFields: string[] =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
       ? query.fields.filter(
           field =>
             !isAggregateFieldOrEquation(field) &&
-            field !== 'timestamp' &&
             field !== SpanFields.IS_STARRED_TRANSACTION // starred transactions are not supported in explore
         )
       : query.columns.filter(column => column !== SpanFields.IS_STARRED_TRANSACTION);
-  if (groupBy?.length === 0) {
+
+  let groupBy =
+    widget.displayType === DisplayType.TABLE
+      ? columnFields.filter(field => field !== 'timestamp')
+      : columnFields;
+  if (groupBy.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
     // is not present, the Explore UI will assign a default groupBy
@@ -278,7 +282,7 @@ function _getWidgetExploreUrl(
   }
 
   const yAxisFields = locationQueryParams.yAxes.flatMap(getAggregateArguments);
-  const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
+  const fields = [...new Set([...columnFields, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');

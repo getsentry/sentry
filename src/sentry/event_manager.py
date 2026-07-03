@@ -40,12 +40,12 @@ from sentry.analytics.events.event_processing_error_recorded import EventProcess
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
     VALID_PLATFORMS,
     DataCategory,
     InsightModules,
+    parse_log_level,
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
@@ -876,7 +876,7 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
         "platform": job["platform"],
         "message": job["event"].search_message,
         "logger": job["logger_name"],
-        "level": LOG_LEVELS_MAP.get(job["level"]),
+        "level": parse_log_level(job["level"]),
         "last_seen": job["event"].datetime,
         "first_seen": job["event"].datetime,
         "active_at": job["event"].datetime,
@@ -2151,10 +2151,10 @@ def update_severity_error_count(reset=False) -> None:
 
 def _get_severity_score(event: Event) -> tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
-    level = str(event.data.get("level", "error"))
-    if LOG_LEVELS_MAP[level] == logging.FATAL:
+    level_value = parse_log_level(str(event.data.get("level", "error")))
+    if level_value == logging.FATAL:
         return 1.0, "log_level_fatal"
-    if LOG_LEVELS_MAP[level] <= logging.INFO:
+    if level_value is not None and level_value <= logging.INFO:
         return 0.0, "log_level_info"
 
     op = "event_manager._get_severity_score"

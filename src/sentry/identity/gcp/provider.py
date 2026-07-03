@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
@@ -19,6 +20,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.signing import urlsafe_b64decode
+
+logger = logging.getLogger(__name__)
 
 
 class GCPOAuth2LoginView(OAuth2LoginView):
@@ -125,9 +128,20 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
+        client_id = self.get_oauth_client_id()
+        client_secret = self.get_oauth_client_secret()
+        if not client_id or not client_secret:
+            logger.error(
+                "gcp.refresh.missing_client_credentials",
+                extra={
+                    "has_client_id": bool(client_id),
+                    "has_client_secret": bool(client_secret),
+                    "identity_id": identity.id,
+                },
+            )
         return {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
-            "client_id": self.get_oauth_client_id(),
-            "client_secret": self.get_oauth_client_secret(),
+            "client_id": client_id,
+            "client_secret": client_secret,
         }

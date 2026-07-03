@@ -48,6 +48,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -2028,3 +2029,199 @@ class TestRecordPrAttribution(APITestCase):
 
         assert result == {"attribution_id": None}
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+
+@override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+class TestSeerRpcViewerContextAuth(APITestCase):
+    """The Seer RPC endpoint accepts a signed X-Viewer-Context JWT as a co-equal
+    credential to the HMAC Rpcsignature."""
+
+    @staticmethod
+    def _get_path(method_name: str) -> str:
+        return reverse(
+            "sentry-api-0-seer-rpc-service",
+            kwargs={"method_name": method_name},
+        )
+
+    def _hmac_header(self, path: str, data: dict[str, Any]) -> str:
+        body = orjson.dumps(data).decode()
+        return f"rpcsignature {generate_request_signature(path, body.encode())}"
+
+    def _vc_header(self, *, organization_id: int | None, user_id: int | None = None) -> str:
+        vc = ViewerContext(
+            organization_id=organization_id,
+            user_id=user_id,
+            actor_type=ActorType.USER,
+        )
+        return encode_viewer_context(vc)
+
+    def test_org_only_viewer_context_authenticates(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+        assert "features" in response.data
+
+    def test_org_less_viewer_context_is_rejected(self) -> None:
+        # A validly-signed but org-less viewer context carries no org to enforce
+        # against, so it must not authenticate on signature alone. Every seer RPC
+        # call acts on behalf of an organization.
+        org = self.create_organization(owner=self.user)
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=None, user_id=self.user.id),
+        )
+        assert response.status_code == 403
+
+    def test_org_only_viewer_context_scopes_to_the_arg_org(self) -> None:
+        # An org-only viewer context (no user_id — e.g. an org background job or,
+        # later, a service-account viewer) must dispatch and return data scoped to
+        # the org passed in args. org_id reaches the method via request args, not
+        # auth, so filtering is unchanged; the org-binding guard only requires the
+        # arg org to equal the signed context's org.
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+        returned_ids = {p["id"] for p in response.data["projects"]}
+        assert returned_ids == {project.id}
+
+    def test_user_scoped_viewer_context_authenticates(self) -> None:
+        org = self.create_organization(owner=self.user)
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id, user_id=self.user.id),
+        )
+        assert response.status_code == 200
+
+    def test_invalid_viewer_context_signature_denied(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT="invalid.jwt.token",
+        )
+        assert response.status_code == 403
+
+    def test_no_credentials_denied(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(path, data=data)
+        assert response.status_code == 403
+
+    def test_malformed_org_id_arg_is_bad_request_not_server_error(self) -> None:
+        # A non-numeric org_id on the viewer-context path must 400, not 500 —
+        # the org-binding guard coerces caller-supplied input defensively.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": "not-a-number"}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 400
+
+    def test_hmac_only_still_authenticates(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+        )
+        assert response.status_code == 200
+
+    def test_hmac_takes_precedence_and_is_not_org_bound(self) -> None:
+        # Valid HMAC + a viewer context scoped to a DIFFERENT org. If the viewer
+        # context authenticator had won, the org-binding guard would reject the
+        # mismatch (403). A 200 proves HMAC won and skipped the binding check.
+        org = self.create_organization()
+        other_org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id),
+        )
+        assert response.status_code == 200
+
+    def test_hmac_works_with_empty_viewer_context_header(self) -> None:
+        # Invariant: an HMAC-authenticated request behaves as it does today no
+        # matter the X-Viewer-Context header. An empty header is inert — once
+        # HMAC succeeds the VC authenticator is never consulted.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT="",
+        )
+        assert response.status_code == 200
+
+    def test_hmac_works_with_malformed_viewer_context_header(self) -> None:
+        # Same invariant: a malformed/garbage VC header does not affect an
+        # HMAC-authenticated request.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT="not-a-valid-jwt",
+        )
+        assert response.status_code == 200
+
+    def test_viewer_context_org_binding_matches(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+
+    def test_viewer_context_org_binding_mismatch_denied(self) -> None:
+        org = self.create_organization()
+        other_org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        # Argument targets `org`, but the signed viewer context is for `other_org`.
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id),
+        )
+        assert response.status_code == 403
