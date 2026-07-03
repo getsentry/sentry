@@ -431,7 +431,7 @@ function TabFallback({
   isLoading: boolean;
 }) {
   if (isLoading) {
-    return <Placeholder height="100%" />;
+    return <Placeholder />;
   }
   if (isError) {
     return <EmptyTab message={t('Failed to load span details')} />;
