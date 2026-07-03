@@ -17,7 +17,7 @@ WORKFLOW_CONFIG_HELP_TEXT = """
         ```
         """
 
-WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below.
+WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below. Note: `seer_activity_trigger` may not be available to all organizations.
         ```json
             "triggers": {
                 "organizationId": "1",
@@ -41,6 +41,21 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                     {
                         "type": "regression_event",
                         "comparison": true,
+                        "conditionResult": true
+                    },
+                    {
+                        "type": "seer_activity_trigger",
+                        "comparison": [
+                            "rca_started",
+                            "rca_completed",
+                            "solution_started",
+                            "solution_completed",
+                            "coding_started",
+                            "coding_completed",
+                            "pr_created",
+                            "iteration_started",
+                            "iteration_completed"
+                        ],
                         "conditionResult": true
                     }
                 ],

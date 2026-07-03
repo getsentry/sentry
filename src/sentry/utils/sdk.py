@@ -76,8 +76,6 @@ SAMPLED_TASKS = {
     # per-message transaction, now that the work runs as a task.
     "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
@@ -319,7 +317,9 @@ class Dsns(NamedTuple):
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
+    sdk_options["max_value_length"] = 100_000
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["transport_queue_size"] = 2_000
     sdk_options["before_send"] = before_send
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["enable_logs"] = True

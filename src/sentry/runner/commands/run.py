@@ -108,14 +108,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
     from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    from sentry.taskworker.adapters import SentryMetricsBackend
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
 
     app.load_modules()
-    run_storage = RunStorage(
-        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
-    )
+    run_storage = RunStorage(metrics=app.metrics, redis=redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(app, run_storage)
@@ -168,6 +165,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @click.option("--concurrency", help="Number of child processes to create.", default=1)
 @click.option(
+    "--min-concurrency", help="Minimum number of children that should always be active.", default=0
+)
+@click.option(
     "--namespace", help="The dedicated task namespace that this worker processes", default=None
 )
 @click.option(
@@ -217,6 +217,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=0.1,
     type=float,
 )
+@click.option(
+    "--prometheus-port",
+    help="Expose worker occupancy on this port for Prometheus scraping. Unset = disabled.",
+    default=None,
+    type=int,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -238,6 +244,7 @@ def run_taskworker(
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
+    min_concurrency: int,
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
@@ -247,6 +254,7 @@ def run_taskworker(
     health_check_sec_per_touch: float,
     push_timeout_sec: float,
     future_checking_frequency: float,
+    prometheus_port: int | None,
     **options: Any,
 ) -> None:
     """
@@ -264,6 +272,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -275,6 +284,7 @@ def run_taskworker(
                 push_task_timeout=push_timeout_sec,
                 skip_awaiting_futures=skip_awaiting_futures,
                 future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         elif batch_push_mode:
             worker = BatchPushTaskWorker(
@@ -283,6 +293,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -294,6 +305,7 @@ def run_taskworker(
                 update_in_batches=True,
                 skip_awaiting_futures=skip_awaiting_futures,
                 future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         else:
             worker = TaskWorker(
@@ -304,6 +316,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,

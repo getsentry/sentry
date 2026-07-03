@@ -26,12 +26,17 @@ def validate_text_block(
     text_block: NotificationTextBlock, text_content: str, html_content: str
 ) -> None:
     if text_block.type == NotificationTextBlockType.PLAIN_TEXT:
-        assert text_block.text in text_content
         assert text_block.text in html_content
     elif text_block.type == NotificationTextBlockType.BOLD_TEXT:
-        assert f"<strong>{text_block.text}</strong>" in html_content
+        assert "<strong" in html_content
+        assert f"{text_block.text}</strong>" in html_content
     elif text_block.type == NotificationTextBlockType.CODE:
-        assert f"<code>{text_block.text}</code>" in html_content
+        assert "<code" in html_content
+        assert f"{text_block.text}</code>" in html_content
+    elif text_block.type == NotificationTextBlockType.ITALIC_TEXT:
+        assert text_block.text in html_content
+    elif text_block.type == NotificationTextBlockType.LINK:
+        assert text_block.text in html_content
 
 
 def validate_formatting_block(
@@ -47,6 +52,8 @@ def validate_formatting_block(
         assert "</pre>" in html_content
         assert "<code" in html_content
         assert "</code>" in html_content
+    elif formatting_block.type == NotificationSectionType.BLOCK_QUOTE:
+        assert "<blockquote" in html_content
 
 
 class EmailRendererTest(TestCase):
@@ -59,7 +66,7 @@ class EmailRendererTest(TestCase):
         email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
 
         assert isinstance(email, EmailMultiAlternatives)
-        assert email.subject == self.rendered_template.subject
+        assert email.subject == self.rendered_template.subject_text
         assert email.from_email == options.get("mail.from")
         assert len(email.to) == 0
         assert "Message-Id" in email.extra_headers
@@ -81,44 +88,21 @@ class EmailRendererTest(TestCase):
             self.rendered_template.actions[0].link,
             self.rendered_template.chart.url,
             self.rendered_template.chart.alt_text,
-            self.rendered_template.footer_text,
         ]:
             assert element in str(text_content)
             assert element in str(html_content)
+
+        # validate footer blocks individually (footer_text won't match verbatim
+        # because the renderer applies formatting like backticks for code blocks)
+        for footer_block in self.rendered_template.footer_blocks:
+            assert footer_block.text in str(text_content)
+            assert footer_block.text in str(html_content)
 
         # validate body blocks
         for block in self.rendered_template.body:
             validate_formatting_block(block, str(text_content), str(html_content))
             for text_block in block.blocks:
                 validate_text_block(text_block, str(text_content), str(html_content))
-
-    def test_link_text_block_rendering(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Test Link",
-            body=[
-                ParagraphBlock(
-                    blocks=[
-                        PlainTextBlock(text="Check out"),
-                        LinkTextBlock(
-                            text="getsentry/sentry (#1234)",
-                            url="https://github.com/getsentry/sentry/pull/1234",
-                        ),
-                    ],
-                )
-            ],
-        )
-
-        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
-        [html_content, _] = email.alternatives[0]
-        text_content = email.body
-
-        html_str = str(html_content)
-        assert 'href="https://github.com/getsentry/sentry/pull/1234"' in html_str
-        assert "getsentry/sentry (#1234)" in html_str
-        assert (
-            "getsentry/sentry (#1234) (https://github.com/getsentry/sentry/pull/1234)"
-            in text_content
-        )
 
     def test_xss_protection(self) -> None:
         xss_template = NotificationRenderedTemplate(

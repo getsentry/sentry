@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -33,9 +33,18 @@ import {
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
   return (
-    <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={isSidebarOpen}>
+    <Container
+      data-test-id="group-event-details"
+      background="primary"
+      display={{'2xs': 'flex', lg: 'grid'}}
+      flexGrow={{'2xs': 1, lg: 0}}
+      style={{
+        flexDirection: 'column',
+        gridTemplateColumns: isSidebarOpen ? 'minmax(100px, 100%) 325px' : '100%',
+      }}
+    >
       {children}
-    </StyledLayoutBody>
+    </Container>
   );
 }
 
@@ -99,7 +108,13 @@ export function GroupDetailsLayout({
             >
               {tourProps => (
                 <div {...tourProps}>
-                  <GroupContent>
+                  <Flex
+                    as="section"
+                    direction="column"
+                    background="secondary"
+                    borderRight={{'2xs': 'none', lg: 'primary'}}
+                    borderBottom={{'2xs': 'primary', lg: 'none'}}
+                  >
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (
                         <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
@@ -109,7 +124,7 @@ export function GroupDetailsLayout({
                         </NavigationSidebarWrapper>
                       )}
                     <ContentPadding>{children}</ContentPadding>
-                  </GroupContent>
+                  </Flex>
                 </div>
               )}
             </SharedTourElement>
@@ -120,32 +135,6 @@ export function GroupDetailsLayout({
     </IssueDetailsContextProvider>
   );
 }
-
-const StyledLayoutBody = styled('div')<{
-  sidebarOpen: boolean;
-}>`
-  display: grid;
-  background-color: ${p => p.theme.tokens.background.primary};
-  grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    flex-grow: 1;
-    flex-direction: column;
-  }
-`;
-
-const GroupContent = styled('section')`
-  background: ${p => p.theme.tokens.background.secondary};
-  display: flex;
-  flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
 
 const NavigationSidebarWrapper = styled('div')<{
   hasToggleSidebar: boolean;
