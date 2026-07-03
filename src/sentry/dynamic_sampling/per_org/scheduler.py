@@ -113,7 +113,7 @@ def _run_calculations_per_org(org_id: OrganizationId) -> DynamicSamplingStatus |
     silo_mode=SiloMode.CELL,
 )
 @track_dynamic_sampling
-def schedule_per_org_calculations():
+def schedule_per_org_calculations() -> None:
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
