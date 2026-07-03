@@ -103,7 +103,7 @@ export function IntegrationRow(props: Props) {
 
   const IntegrationUpgradeTooltipTitle = () => {
     return tct(
-      'Your [displayName] integration is out of date. [link:Click here] to update your workspace.',
+      "There's a new update for your [displayName] integration, please [link:click here] to update your workspace",
       {
         displayName,
         link: (
