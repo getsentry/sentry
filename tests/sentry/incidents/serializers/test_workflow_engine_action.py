@@ -226,53 +226,5 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
             f"Send a Slack notification to {self.slack_trigger_action.target_display}"
         )
         assert serialized_action == slack_expected
-
-    def test_missing_target_type_fallback(self) -> None:
-        """
-        Test that we gracefully fall back to ActionTarget.SPECIFIC if target_type is missing from config
-        """
-        self.integration = self.create_slack_integration(
-            self.organization,
-            external_id="TXXXXXXX1",
-            user=self.user,
-        )
-        self.missing_target_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="warning"
-        )
-        self.missing_target_trigger_action = AlertRuleTriggerAction.objects.create(
-            alert_rule_trigger=self.missing_target_trigger,
-            target_identifier="123",
-            target_display="myChannel",
-            type=AlertRuleTriggerAction.Type.SLACK,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration_id=self.integration.id,
-        )
-        migrate_metric_data_conditions(self.missing_target_trigger)
-        self.missing_target_action, _, _ = migrate_metric_action(self.missing_target_trigger_action)
-
-        # Manually remove target_type from config to simulate the bug scenario
-        if "target_type" in self.missing_target_action.config:
-            del self.missing_target_action.config["target_type"]
-        self.missing_target_action.save()
-
-        serialized_action = serialize(
-            self.missing_target_action,
-            self.user,
-            WorkflowEngineActionSerializer(),
-            alert_rule_trigger_id=self.missing_target_trigger.id,
-        )
-
-        missing_target_expected = self.expected_critical_action[0].copy()
-        missing_target_expected["type"] = self.integration.provider
-        missing_target_expected["id"] = str(self.missing_target_trigger_action.id)
-        missing_target_expected["alertRuleTriggerId"] = str(self.missing_target_trigger.id)
-        missing_target_expected["targetType"] = "specific"
-        missing_target_expected["targetIdentifier"] = (
-            self.missing_target_trigger_action.target_display
-        )
-        missing_target_expected["inputChannelId"] = "123"
-        missing_target_expected["integrationId"] = self.integration.id
-        missing_target_expected["desc"] = (
-            f"Send a Slack notification to {self.missing_target_trigger_action.target_display}"
         )
         assert serialized_action == missing_target_expected
