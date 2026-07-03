@@ -48,7 +48,7 @@ export function UserMessageBlock({children, className, expand}: UserMessageBlock
     <MessageBlock justify="end" className={className}>
       <UserBubble
         maxWidth={AI_MESSAGE_MAX_WIDTH}
-        width={expand ? '100%' : 'auto'}
+        width={expand ? '100%' : 'fit-content'}
         minWidth={0}
         padding="md"
         background="secondary"
@@ -91,7 +91,7 @@ export function AssistantMessageBlock({
       <Flex justify="between" align="start" gap="md" width="100%">
         <AssistantBubble
           maxWidth={AI_MESSAGE_MAX_WIDTH}
-          width={expand ? '100%' : 'auto'}
+          width={expand ? '100%' : 'fit-content'}
           minWidth={0}
           padding="md"
           radius="xs"

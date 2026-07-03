@@ -54,6 +54,8 @@ export function ConversationViewContentNew({
     onSelectSpan,
     focusedTool,
     isLoading,
+    // The redesign opens the span detail only when the user selects a span.
+    autoSelectDefaultNode: false,
   });
 
   const [detailState, setDetailState] = useQueryStates(
