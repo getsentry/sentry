@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -109,9 +110,11 @@ export function ConversationSpanDetail({
             radius="2xs"
             style={{backgroundColor: squareColor}}
           />
-          <Text size="md" bold ellipsis>
-            {title}
-          </Text>
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+            <Text size="md" bold ellipsis>
+              {title}
+            </Text>
+          </Tooltip>
         </Flex>
         <Button
           size="sm"
@@ -197,7 +200,9 @@ function SpanMetadata({node}: {node: AITraceSpanNode}) {
           value: (
             <Flex gap="xs" align="center" minWidth="0">
               <PlatformIcon platform={getModelPlatform(model) ?? 'unknown'} size={16} />
-              <MetaValue text={model} />
+              <Container minWidth="0">
+                <MetaValue text={model} />
+              </Container>
             </Flex>
           ),
         }
@@ -224,9 +229,11 @@ function SpanMetadata({node}: {node: AITraceSpanNode}) {
 
 function MetaValue({text}: {text: string}) {
   return (
-    <Text size="xs" ellipsis>
-      {text}
-    </Text>
+    <Tooltip title={text} showOnlyOnOverflow skipWrapper>
+      <Text size="xs" ellipsis>
+        {text}
+      </Text>
+    </Tooltip>
   );
 }
 
