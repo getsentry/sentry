@@ -7,6 +7,7 @@ import {cleanFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filt
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
+  FilterType,
   TermOperator,
   Token,
   type TokenResult,
@@ -158,4 +159,59 @@ export function newNumericFilterQuery(
     newOperator
   );
   return newFilterQuery;
+}
+
+/** Sentinel for the "(no value)" option; never sent to the backend. */
+export const NO_VALUE_SENTINEL = '__no_value__';
+
+export const NO_VALUE_SUPPORTED_OPERATORS = new Set<TermOperator>([
+  TermOperator.DEFAULT,
+  TermOperator.NOT_EQUAL,
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+]);
+
+/** Negated operators flip "(no value)" from "tag absent" to "tag present". */
+export function isNegatedNoValueOperator(operator: TermOperator): boolean {
+  return (
+    operator === TermOperator.NOT_EQUAL || operator === TermOperator.DOES_NOT_CONTAIN
+  );
+}
+
+export function hasNoValueFilter(
+  filterTokens: Array<TokenResult<Token.FILTER>>
+): boolean {
+  return filterTokens.some(token => token.filter === FilterType.HAS);
+}
+
+/** Maps a HAS token's polarity to an operator: `!has:` → `is`, `has:` → `is not`. */
+export function getNoValueOperator(
+  filterTokens: Array<TokenResult<Token.FILTER>>
+): TermOperator | null {
+  const hasToken = filterTokens.find(token => token.filter === FilterType.HAS);
+  if (!hasToken) {
+    return null;
+  }
+  return hasToken.negated ? TermOperator.DEFAULT : TermOperator.NOT_EQUAL;
+}
+
+/** First non-HAS token, e.g. `browser:firefox` in `(browser:firefox OR !has:browser)`. */
+export function getValueFilterToken(
+  filterTokens: Array<TokenResult<Token.FILTER>>
+): TokenResult<Token.FILTER> | null {
+  return filterTokens.find(token => token.filter !== FilterType.HAS) ?? null;
+}
+
+export function buildNoValueFilterQuery(
+  tagKey: string,
+  operator: TermOperator,
+  valueQuery?: string
+): string {
+  const noValuePart = isNegatedNoValueOperator(operator)
+    ? `has:${tagKey}`
+    : `!has:${tagKey}`;
+  if (!valueQuery) {
+    return noValuePart;
+  }
+  return `(${valueQuery} OR ${noValuePart})`;
 }
