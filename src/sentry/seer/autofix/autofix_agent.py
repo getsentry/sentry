@@ -301,7 +301,11 @@ def get_iterations(state: SeerRunState) -> list[Iteration]:
 
 
 def get_latest_iteration_index(state: SeerRunState) -> int:
-    iterations = get_iterations(state)
+    try:
+        iterations = get_iterations(state)
+    except Exception:
+        logger.exception("autofix.get_latest_iteration_index.failed")
+        return 0
     return iterations[-1].index if iterations else 0
 
 
