@@ -142,7 +142,7 @@ export function findConflictingConditions(
   const hasSeerActivityTrigger = triggers.conditions.some(
     c => c.type === DataConditionType.SEER_ACTIVITY_TRIGGER
   );
-  if (!hasSeerActivityTrigger) {
+  if (hasSeerActivityTrigger) {
     const seerConflictingActionFilters: Record<string, Set<string>> = {};
     let hasSeerConflicts = false;
 
