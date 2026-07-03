@@ -76,7 +76,7 @@ export function ConversationSpanDetail({
   // Full attributes (tool inputs/results, the complete attribute list) aren't
   // returned by the conversation list endpoint, so they're fetched per span.
   const eapValue = isEAPSpanNode(node) ? node.value : null;
-  const {data, isPending} = useTraceItemDetails({
+  const {data, isLoading, isError} = useTraceItemDetails({
     traceItemId: eapValue?.event_id ?? '',
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
@@ -156,13 +156,28 @@ export function ConversationSpanDetail({
             `}
           >
             <TabPanels.Item key="input">
-              <InputTab node={node} attributes={attributes} />
+              <InputTab
+                node={node}
+                attributes={attributes}
+                isLoading={isLoading}
+                isError={isError}
+              />
             </TabPanels.Item>
             <TabPanels.Item key="output">
-              <OutputTab node={node} attributes={attributes} />
+              <OutputTab
+                node={node}
+                attributes={attributes}
+                isLoading={isLoading}
+                isError={isError}
+              />
             </TabPanels.Item>
             <TabPanels.Item key="attributes">
-              <AttributesTab node={node} attributes={attributes} isPending={isPending} />
+              <AttributesTab
+                node={node}
+                attributes={attributes}
+                isLoading={isLoading}
+                isError={isError}
+              />
             </TabPanels.Item>
           </TabPanels>
         </Container>
@@ -240,8 +255,12 @@ function MetaValue({text}: {text: string}) {
 function InputTab({
   node,
   attributes,
+  isLoading,
+  isError,
 }: {
   attributes: SpanAttributes;
+  isError: boolean;
+  isLoading: boolean;
   node: AITraceSpanNode;
 }) {
   const {messages} = getAIInputMessages(node, attributes);
@@ -253,8 +272,15 @@ function InputTab({
     attributes
   );
 
-  if ((!messages || messages.length === 0) && !toolArgs && !embeddingsInput) {
-    return <EmptyTab message={t('No input for this span')} />;
+  const hasContent = (messages && messages.length > 0) || toolArgs || embeddingsInput;
+  if (!hasContent) {
+    return (
+      <TabFallback
+        isLoading={isLoading}
+        isError={isError}
+        emptyMessage={t('No input for this span')}
+      />
+    );
   }
 
   return (
@@ -282,15 +308,25 @@ function InputTab({
 function OutputTab({
   node,
   attributes,
+  isLoading,
+  isError,
 }: {
   attributes: SpanAttributes;
+  isError: boolean;
+  isLoading: boolean;
   node: AITraceSpanNode;
 }) {
   const {responseText, responseObject, toolCalls} = getAIOutputData(node, attributes);
   const toolOutput = getAIToolOutput(node, attributes);
 
   if (!responseText && !responseObject && !toolCalls && !toolOutput) {
-    return <EmptyTab message={t('No output for this span')} />;
+    return (
+      <TabFallback
+        isLoading={isLoading}
+        isError={isError}
+        emptyMessage={t('No output for this span')}
+      />
+    );
   }
 
   return (
@@ -337,10 +373,12 @@ function MessageContent({content}: {content: unknown}) {
 function AttributesTab({
   node,
   attributes,
-  isPending,
+  isLoading,
+  isError,
 }: {
   attributes: SpanAttributes;
-  isPending: boolean;
+  isError: boolean;
+  isLoading: boolean;
   node: AITraceSpanNode;
 }) {
   const theme = useTheme();
@@ -354,20 +392,51 @@ function AttributesTab({
     return <EmptyTab message={t('No attributes for this span')} />;
   }
 
-  if (isPending && !attributes) {
-    return <Placeholder height="100%" />;
+  if (!attributes) {
+    return (
+      <TabFallback
+        isLoading={isLoading}
+        isError={isError}
+        emptyMessage={t('No attributes for this span')}
+      />
+    );
   }
 
   return (
     <AttributesContent
       node={node}
-      attributes={attributes ?? []}
+      attributes={attributes}
       theme={theme}
       location={location}
       organization={organization}
       project={project}
     />
   );
+}
+
+/**
+ * Fallback for a tab with no renderable content. Tool inputs/results and
+ * embeddings aren't returned by the conversation list endpoint, so they only
+ * appear once the per-span fetch resolves — show a placeholder while it's in
+ * flight and an error state on failure so a pending or failed load isn't
+ * mistaken for genuinely empty I/O.
+ */
+function TabFallback({
+  isLoading,
+  isError,
+  emptyMessage,
+}: {
+  emptyMessage: string;
+  isError: boolean;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return <Placeholder height="100%" />;
+  }
+  if (isError) {
+    return <EmptyTab message={t('Failed to load span details')} />;
+  }
+  return <EmptyTab message={emptyMessage} />;
 }
 
 function EmptyTab({message}: {message: string}) {
