@@ -142,7 +142,7 @@ describe('IntegrationRow', () => {
         />
       );
       await userEvent.hover(screen.getByLabelText('Integration alert'));
-      expect(await screen.findByRole('link', {name: 'Click here'})).toHaveAttribute(
+      expect(await screen.findByRole('link', {name: 'click here'})).toHaveAttribute(
         'href',
         `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
       );
@@ -163,7 +163,7 @@ describe('IntegrationRow', () => {
         />
       );
       await userEvent.hover(screen.getByLabelText('Integration alert'));
-      const link = await screen.findByRole('link', {name: 'Click here'});
+      const link = await screen.findByRole('link', {name: 'click here'});
       expect(link).toHaveAttribute(
         'href',
         `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now`
