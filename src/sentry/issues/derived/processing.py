@@ -1,13 +1,15 @@
+import enum
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline
 from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.utils import metrics
@@ -24,10 +26,10 @@ DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
 
 
-@dataclass
-class ProcessResult:
-    derived: GroupDerivedData
-    caught_up: bool
+class ProcessingStrategy(enum.Enum):
+    SYNC = "sync"  # process all pending actions now
+    ASYNC = "async"  # schedule a task to process all pending actions
+    INLINE = "inline"  # try to process all pending actions quickly; fall back to ASYNC
 
 
 def _ensure_derived(group_id: int) -> GroupDerivedData:
@@ -146,23 +148,6 @@ def _process_batch(
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
-def process_group_log_batch(
-    group_id: int,
-    batch_size: int = INLINE_BATCH_SIZE,
-    target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
-) -> ProcessResult:
-    """Process a single batch of pending entries.
-
-    Raises Group.DoesNotExist if the group has been deleted.
-    """
-    with metrics.timer("issues.derived.process_batch"):
-        p = target_pipeline or PIPELINE
-        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-            derived = _ensure_derived(group_id)
-        has_more = _process_batch(p, derived, group_id, batch_size)
-    return ProcessResult(derived=derived, caught_up=not has_more)
-
-
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
@@ -182,6 +167,44 @@ def process_group_log(
         has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived
+
+
+def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy) -> None:
+    """Trigger derived data processing for a group.
+
+    Silently returns if the group has been deleted.
+
+    Strategy controls how processing is dispatched:
+      SYNC   — process all pending actions now
+      ASYNC  — schedule a task to process all pending actions
+      INLINE — try to process all pending actions quickly; fall back to ASYNC
+    """
+    if strategy is ProcessingStrategy.ASYNC:
+        process_group_log_task.delay(group_id)
+        return
+
+    if strategy is ProcessingStrategy.SYNC:
+        try:
+            process_group_log(group_id)
+        except ObjectDoesNotExist:
+            pass
+        return
+
+    assert strategy is ProcessingStrategy.INLINE
+
+    with metrics.timer("issues.derived.inline_processing"):
+        try:
+            with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+                derived = _ensure_derived(group_id)
+        except ObjectDoesNotExist:
+            return
+
+        has_more = _process_batch(PIPELINE, derived, group_id, INLINE_BATCH_SIZE)
+    if has_more:
+        # Derived data will be stale for any code running between now and
+        # when the task completes.
+        metrics.incr("issues.derived.inline_fallback_to_async")
+        process_group_log_task.delay(group_id)
 
 
 def invalidate_group_derived_data(

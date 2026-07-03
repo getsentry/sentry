@@ -123,7 +123,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     culprit: str | None
     permalink: str
     logger: str | None
-    level: str
+    level: GroupLevelStr
     status: GroupStatusStr
     statusDetails: GroupStatusDetailsResponseOptional
     substatus: GroupSubStatusStr | None
@@ -229,7 +229,18 @@ def _get_substatus_label(group: Group) -> GroupSubStatusStr | None:
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
-def _get_level_label(group: Group):
+GroupLevelStr = Literal[
+    "sample",
+    "debug",
+    "info",
+    "warning",
+    "error",
+    "fatal",
+    "unknown",
+]
+
+
+def _get_level_label(group: Group) -> GroupLevelStr:
     return LOG_LEVELS.get(group.level, "unknown")
 
 
@@ -1185,7 +1196,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     title: str
     culprit: str | None
     shortId: str | None
-    level: str
+    level: GroupLevelStr
     status: GroupStatusStr
     substatus: GroupSubStatusStr | None
     platform: str | None

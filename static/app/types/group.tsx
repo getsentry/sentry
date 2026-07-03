@@ -767,28 +767,28 @@ interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit?: Commit;
+    commit?: Commit | null;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivityReferencedInCommit extends GroupActivityBase {
   data: {
-    commit?: Commit;
+    commit?: Commit | null;
   };
   type: GroupActivityType.REFERENCED_IN_COMMIT;
 }
 
 export interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest?: PullRequest;
+    pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 }
 
 export interface GroupActivityPullRequestClosed extends GroupActivityBase {
   data: {
-    pullRequest?: PullRequest;
+    pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_CLOSED;
 }

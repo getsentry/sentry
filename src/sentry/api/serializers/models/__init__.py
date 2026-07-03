@@ -53,3 +53,4 @@ from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403
 from .userreport import *  # noqa: F401,F403
+from .weeklyreportprojectexclusion import *  # noqa: F401,F403

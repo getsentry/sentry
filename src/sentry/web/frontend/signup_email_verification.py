@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from sentry import ratelimits as ratelimiter
 from sentry.auth.email_verification import verify_signup_link
 from sentry.utils.hashlib import sha256_text
-from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.frontend.base import BaseView
 
 PENDING_VERIFICATION_SESSION_KEY = "pending_signup_verification_email"
 VERIFIED_SESSION_KEY = "verified_email"
@@ -24,8 +24,15 @@ def _get_signup_url() -> str:
     return settings.SENTRY_SIGNUP_URL or "/auth/login/"
 
 
-@control_silo_view
-class SignupEmailVerificationView(BaseView):
+class BaseSignupVerificationView(BaseView):
+    """
+    Base class for signup email verification endpoints.
+
+    Handles rate limiting, signed blob validation, and same-browser session
+    enforcement. Subclasses implement handle_verified_email() for
+    method-specific completion logic.
+    """
+
     auth_required = False
 
     def _render_error(self, title: str, message: str) -> HttpResponseBase:
@@ -82,6 +89,11 @@ class SignupEmailVerificationView(BaseView):
             extra={"email_hash": sha256_text(email.lower()).hexdigest()},
         )
 
-        # TODO: redirect based on data in session. Different methods for sso, social auth, and email+pword
+        return self.handle_verified_email(request, email)
 
-        return self.redirect(_get_signup_url())
+    def handle_verified_email(self, request: HttpRequest, email: str) -> HttpResponseBase:
+        """
+        Called after the email has been successfully verified.
+        Subclasses implement method-specific completion logic.
+        """
+        raise NotImplementedError

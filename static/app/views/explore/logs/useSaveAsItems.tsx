@@ -162,7 +162,7 @@ export function useSaveAsItems({
       textValue: newAlertLabel,
       children: alertsUrls ?? [],
       disabled: !alertsUrls || alertsUrls.length === 0,
-      isSubmenu: true,
+      submenu: true,
     };
   }, [aggregates, interval, organization, pageFilters, project, search]);
 
@@ -237,7 +237,7 @@ export function useSaveAsItems({
       textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
-      isSubmenu: true,
+      submenu: true,
     };
   }, [
     aggregates,
