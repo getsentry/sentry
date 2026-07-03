@@ -9,7 +9,7 @@ import {Grid} from '@sentry/scraps/layout';
  */
 export function TurnMeta({metric, duration}: {duration: ReactNode; metric: ReactNode}) {
   return (
-    <Grid flexShrink={0} columns="100px 56px" justifyItems="end">
+    <Grid flexShrink={0} columns="100px 56px" gap="md" justifyItems="end">
       {metric}
       {duration}
     </Grid>
