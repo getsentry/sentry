@@ -837,14 +837,12 @@ class SnubaQueryBuilder:
         is_order_by = isinstance(metric_action_by_field, MetricOrderByField)
         if not is_group_by and not is_order_by:
             raise InvalidParams("The metric action must either be an order by or group by.")
-        group_by_field = cast(MetricGroupByField, metric_action_by_field) if is_group_by else None
-        order_by_field = cast(MetricOrderByField, metric_action_by_field) if is_order_by else None
 
         if isinstance(metric_action_by_field.field, str):
             # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, group_by_field.alias
+                    use_case_id, org_id, cast(MetricGroupByField, metric_action_by_field).alias
                 )
 
             # Handles the case when we are trying to group or order by `project` for example, but we want
@@ -867,7 +865,7 @@ class SnubaQueryBuilder:
             exp = (
                 AliasedExpression(
                     exp=Column(name=column_name),
-                    alias=group_by_field.alias,
+                    alias=cast(MetricGroupByField, metric_action_by_field).alias,
                 )
                 if is_group_by and not is_column
                 else Column(name=column_name)
@@ -876,7 +874,12 @@ class SnubaQueryBuilder:
             if is_order_by:
                 # We return a list in order to use the "extend" method and reduce the number of changes across
                 # the codebase.
-                exp = [OrderBy(exp=exp, direction=order_by_field.direction)]
+                exp = [
+                    OrderBy(
+                        exp=exp,
+                        direction=cast(MetricOrderByField, metric_action_by_field).direction,
+                    )
+                ]
 
             return exp
         elif isinstance(metric_action_by_field.field, MetricField):
@@ -898,7 +901,7 @@ class SnubaQueryBuilder:
                         alias=metric_action_by_field.field.alias,
                         params=_cast_metric_operation_params(metric_action_by_field.field.params),
                         projects=projects,
-                        direction=order_by_field.direction,
+                        direction=cast(MetricOrderByField, metric_action_by_field).direction,
                     )
                 else:
                     raise NotImplementedError(
@@ -1116,7 +1119,7 @@ class SnubaQueryBuilder:
 
     def __update_query_dicts_with_component_entities(
         self,
-        component_entities: dict[MetricEntity | None, Sequence[str]],
+        component_entities: Mapping[MetricEntity | None, Sequence[str]],
         metric_mri_to_obj_dict: dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase],
         fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]],
         parent_alias,
