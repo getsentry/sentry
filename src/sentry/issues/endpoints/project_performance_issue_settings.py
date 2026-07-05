@@ -350,10 +350,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
-        update_performance_settings(
-            project, {**current_settings, **data}, sync_detectors=sync_detectors
-        )
+        update_performance_settings(project, {**current_settings, **data})
 
         if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(
@@ -389,7 +386,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
                 for option, value in project_overrides.items()
                 if option in to_preserve
             }
-            sync_detectors = features.has("projects:workflow-engine-performance-detectors", project)
-            reset_performance_settings(project, unchanged_options, sync_detectors=sync_detectors)
+            reset_performance_settings(project, unchanged_options)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

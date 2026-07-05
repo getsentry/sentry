@@ -1,12 +1,9 @@
 import logging
-from collections.abc import Mapping
 from datetime import timedelta
-from functools import cache
 
 from django.db import router, transaction
 from rest_framework import status
 
-from sentry import features
 from sentry.api.exceptions import SentryAPIException
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -17,7 +14,6 @@ from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CO
 from sentry.issues import grouptype
 from sentry.locks import locks
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -50,33 +46,6 @@ VALID_DEFAULT_DETECTOR_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-@cache
-def get_disabled_platforms_by_detector_type() -> Mapping[str, frozenset[str]]:
-    """
-    Map WFE detector types to platforms where they should be disabled by default.
-    Derives from DEFAULT_DETECTOR_DISABLING_CONFIGS using the detection_enabled_key.
-    """
-    from sentry.issue_detection.detectors.disable_detectors import (
-        DEFAULT_DETECTOR_DISABLING_CONFIGS,
-    )
-
-    disabled_by_detector_type: dict[str, frozenset[str]] = {}
-
-    for disable_config in DEFAULT_DETECTOR_DISABLING_CONFIGS:
-        detector_option_key = disable_config["detector_project_option"]
-        languages_to_disable = disable_config["languages_to_disable"]
-
-        # Find matching WFE detector via detection_enabled_key
-        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
-            if mapping.detection_enabled_key == detector_option_key:
-                disabled_by_detector_type[mapping.wfe_detector_type] = frozenset(
-                    languages_to_disable
-                )
-                break
-
-    return disabled_by_detector_type
 
 
 class UnableToAcquireLockApiError(SentryAPIException):
@@ -256,31 +225,8 @@ def ensure_default_anomaly_detector(
         raise UnableToAcquireLockApiError
 
 
-def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
-    if not features.has("projects:workflow-engine-performance-detectors", project):
-        return {}
-
-    disabled_platforms_map = get_disabled_platforms_by_detector_type()
-
-    detectors = {}
-    for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
-        detector_type = mapping.wfe_detector_type
-
-        # Determine initial enabled state based on platform and default settings
-        disabled_platforms = disabled_platforms_map.get(detector_type, frozenset())
-        default_enabled = DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS[
-            mapping.detection_enabled_key
-        ]
-        enabled = (project.platform not in disabled_platforms) and default_enabled
-
-        detectors[detector_type] = _ensure_detector(project, detector_type, default_enabled=enabled)
-
-    return detectors
-
-
 def ensure_default_detectors(project: Project) -> dict[str, Detector]:
     detectors: dict[str, Detector] = {}
     detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
     detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
-    detectors.update(ensure_performance_detectors(project))
     return detectors
