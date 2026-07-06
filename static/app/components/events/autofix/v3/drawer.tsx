@@ -238,7 +238,7 @@ function AutofixWarnings({
   ));
 
   return (
-    <Flex direction="column" gap="md" padding="md 24px 0">
+    <Flex direction="column" gap="md" padding="md 2xl 0">
       <Alert
         variant="warning"
         trailingItems={
