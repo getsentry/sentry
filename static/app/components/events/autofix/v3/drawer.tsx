@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -149,13 +148,6 @@ function useHandleOpenSeerAgent({
   }, [openSeerExplorerDrawer, runId]);
 }
 
-const WarningsWrapper = styled('div')`
-  padding: ${p => p.theme.space.md} 24px 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
-
 type AutofixWarning = {
   warning_type: string;
   installation_id?: string;
@@ -193,7 +185,7 @@ function ConfigurationPermissionsButton() {
   const configurationUrl = `/settings/${organization.slug}/integrations/github/?tab=configurations`;
 
   return (
-    <LinkButton href={configurationUrl} variant="primary" size="xs">
+    <LinkButton to={configurationUrl} variant="primary" size="xs">
       {t('Update Permissions')}
     </LinkButton>
   );
@@ -246,7 +238,7 @@ function AutofixWarnings({
   ));
 
   return (
-    <WarningsWrapper>
+    <Flex direction="column" gap="md" padding="md 24px 0">
       <Alert
         variant="warning"
         trailingItems={
@@ -269,6 +261,6 @@ function AutofixWarnings({
           }
         )}
       </Alert>
-    </WarningsWrapper>
+    </Flex>
   );
 }
