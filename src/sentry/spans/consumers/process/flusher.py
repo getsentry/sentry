@@ -31,7 +31,6 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 from sentry.utils.outcomes import Outcome, track_outcome
 
 MAX_PROCESS_RESTARTS = 10
-PROCESS_SEGMENTS_TASK_ROLLOUT_OPTION = "spans.buffer.process-segments-task-rollout-rate"
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +361,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 tags={"shard": shard_tag},
                             )
                             if produce_to_pipe is None and in_random_rollout(
-                                PROCESS_SEGMENTS_TASK_ROLLOUT_OPTION
+                                "spans.buffer.process-segments-task-rollout-rate"
                             ):
                                 task_produce_future = process_segment_task.apply_async_with_future(
                                     args=[kafka_payload.value]
