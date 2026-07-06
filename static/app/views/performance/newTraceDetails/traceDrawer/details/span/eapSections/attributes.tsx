@@ -3,15 +3,17 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -231,6 +233,20 @@ export function AttributesContent({
 
   for (const attribute of TRUNCATED_TEXT_ATTRIBUTES) {
     customRenderers[attribute] = truncatedTextRenderer;
+  }
+
+  // Indicate the pinned attribute with a pin icon next to its value, composing
+  // with any existing renderer for that attribute.
+  if (pinnedAttribute) {
+    const existingRenderer = customRenderers[pinnedAttribute];
+    customRenderers[pinnedAttribute] = (props: CustomRenderersProps) => (
+      <Flex align="center" gap="xs">
+        {existingRenderer ? existingRenderer(props) : props.basicRendered}
+        <Tooltip title={t('Pinned as a column in the waterfall')}>
+          <IconPin size="xs" data-test-id="pinned-attribute-indicator" />
+        </Tooltip>
+      </Flex>
+    );
   }
 
   // Compose the shared explore actions with a pin/unpin action that toggles the

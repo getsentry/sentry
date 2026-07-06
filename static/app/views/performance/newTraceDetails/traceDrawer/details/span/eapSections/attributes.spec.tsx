@@ -92,4 +92,17 @@ describe('AttributesContent pin action', () => {
       expect(router.location.query.pinnedAttribute).toBeUndefined();
     });
   });
+
+  it('shows a pin indicator on the pinned attribute row', async () => {
+    renderContent({pinnedAttribute: 'environment'});
+
+    expect(await screen.findByTestId('pinned-attribute-indicator')).toBeInTheDocument();
+  });
+
+  it('does not show a pin indicator when nothing is pinned', async () => {
+    renderContent();
+
+    expect(await screen.findByText('production')).toBeInTheDocument();
+    expect(screen.queryByTestId('pinned-attribute-indicator')).not.toBeInTheDocument();
+  });
 });
