@@ -61,6 +61,7 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
             : null}
         </div>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }
