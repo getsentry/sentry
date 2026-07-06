@@ -125,8 +125,11 @@ def _heatmap_y_buckets(time_range: timedelta, interval: str) -> int | None:
         return None
     x_columns = total / interval_seconds
     column_width_px = EXPLORE_CHART_SIZE["width"] / x_columns
-    # One column can't be split into a square row, so clamp to a single row.
-    return max(1, round(EXPLORE_CHART_SIZE["height"] / column_width_px))
+    square_buckets = round(EXPLORE_CHART_SIZE["height"] / column_width_px)
+    # Clamp to [1 row, one row per vertical pixel]. The lower bound covers the
+    # single-column case; the upper bound keeps very long ranges from requesting
+    # sub-pixel rows (and blowing past the events-heatmap yBuckets cap).
+    return max(1, min(square_buckets, EXPLORE_CHART_SIZE["height"]))
 
 
 def _clamp_interval(url_interval: str, minimum_interval: str) -> str:

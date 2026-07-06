@@ -1296,6 +1296,12 @@ class UnfurlTest(TestCase):
         assert _heatmap_y_buckets(timedelta(seconds=-1), "60s") is None
         assert _heatmap_y_buckets(timedelta(hours=1), "0s") is None
 
+    def test_heatmap_y_buckets_clamped_for_long_ranges(self) -> None:
+        # A multi-year range at the coarsest interval would want ~1/3 of the
+        # column count in rows (well over the events-heatmap cap); clamp to one
+        # row per vertical pixel of the canvas.
+        assert _heatmap_y_buckets(timedelta(days=4000), "86400s") == 400
+
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",
     )
