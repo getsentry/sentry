@@ -8,7 +8,7 @@ resources:
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
 ---
 
-import {LeadingGraphics} from '@sentry/scraps/leadingGraphics';
+import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 
 import {BreadcrumbList} from 'sentry/components/breadcrumbs';
 import {IconSettings, IconStar} from 'sentry/icons';
@@ -136,10 +136,10 @@ A `CompactSelect` trigger used in settings pages where the user can switch betwe
 ## Leading graphics
 
 ```tsx
-import {LeadingGraphics} from '@sentry/scraps/leadingGraphics';
+import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 ```
 
-All item types accept an optional `leadingGraphic` prop typed as `React.ReactElement<LeadingGraphicsProps>`. Pass a `<LeadingGraphics />` element — platform icons, Sentry icons, or avatars.
+All item types accept an optional `leadingGraphic` prop typed as `React.ReactElement<LeadingGraphicProps>`. Pass a `<LeadingGraphic />` element — platform icons, Sentry icons, or avatars.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -150,7 +150,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
           label: 'Settings',
           to: '/settings/',
           leadingGraphic: (
-            <LeadingGraphics variant="icon" icon={<IconSettings size="md" />} />
+            <LeadingGraphic variant="icon" icon={<IconSettings size="md" />} />
           ),
         },
       },
@@ -160,7 +160,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
           label: 'javascript',
           to: '/settings/sentry/projects/javascript/',
           leadingGraphic: (
-            <LeadingGraphics variant="badge-project" projectPlatforms={['javascript']} />
+            <LeadingGraphic variant="badge-project" projectPlatforms={['javascript']} />
           ),
         },
       },
@@ -168,19 +168,17 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
         type: 'page-title',
         props: {
           label: 'Client Keys (DSN)',
-          leadingGraphic: (
-            <LeadingGraphics variant="icon" icon={<IconStar size="md" />} />
-          ),
+          leadingGraphic: <LeadingGraphic variant="icon" icon={<IconStar size="md" />} />,
         },
       },
     ]}
   />
 </Storybook.Demo>
 ```tsx leadingGraphic=
-{<LeadingGraphics variant="icon" icon={<IconSettings size="md" />} />}
+{<LeadingGraphic variant="icon" icon={<IconSettings size="md" />} />}
 leadingGraphic=
-{<LeadingGraphics variant="badge-project" projectPlatforms={['javascript']} />}
-leadingGraphic={<LeadingGraphics variant="icon" icon={<IconStar size="md" />} />}
+{<LeadingGraphic variant="badge-project" projectPlatforms={['javascript']} />}
+leadingGraphic={<LeadingGraphic variant="icon" icon={<IconStar size="md" />} />}
 ```
 
 ## Pagination

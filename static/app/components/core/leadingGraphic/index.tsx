@@ -7,7 +7,7 @@ import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
 // badge-project variant — absorbs the 0/1/2+ platform logic from
 // SecondaryNavigationProjectIcon so both nav and breadcrumbs share one component.
-interface LeadingGraphicsBadgeProject {
+interface LeadingGraphicBadgeProject {
   /**
    * Platform slugs for the project(s) to display.
    * - 0 entries: renders an all-projects or my-projects icon
@@ -20,26 +20,26 @@ interface LeadingGraphicsBadgeProject {
   allProjects?: boolean;
 }
 
-interface LeadingGraphicsIcon {
+interface LeadingGraphicIcon {
   icon: React.ReactElement<{size?: string}>;
   variant: 'icon';
 }
 
-interface LeadingGraphicsAvatar {
+interface LeadingGraphicAvatar {
   avatar: React.ReactNode;
   variant: 'avatar';
 }
 
-export type LeadingGraphicsProps =
-  | LeadingGraphicsBadgeProject
-  | LeadingGraphicsIcon
-  | LeadingGraphicsAvatar;
+export type LeadingGraphicProps =
+  | LeadingGraphicBadgeProject
+  | LeadingGraphicIcon
+  | LeadingGraphicAvatar;
 
 /**
  * A 16×16 leading graphic used by breadcrumb items and navigation links.
  * Supports three visual variants: badge-project (platform icons), icon, and avatar.
  */
-export function LeadingGraphics(props: LeadingGraphicsProps) {
+export function LeadingGraphic(props: LeadingGraphicProps) {
   if (props.variant === 'icon') {
     const icon = cloneElement(props.icon, {
       size: props.icon.props.size ?? 'md',
@@ -80,7 +80,7 @@ export function LeadingGraphics(props: LeadingGraphicsProps) {
 function BadgeProjectGraphic({
   projectPlatforms,
   allProjects,
-}: LeadingGraphicsBadgeProject) {
+}: LeadingGraphicBadgeProject) {
   let icons: React.ReactNode;
 
   switch (projectPlatforms.length) {
