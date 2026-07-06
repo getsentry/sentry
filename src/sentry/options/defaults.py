@@ -552,6 +552,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Threshold for inlining attachments in relay.
+register(
+    "relay.attachment-inline.limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
