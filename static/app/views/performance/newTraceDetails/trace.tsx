@@ -190,8 +190,10 @@ export function Trace({
   );
 
   // Reset the pinned column's horizontal scroll when the pinned attribute changes
-  // so a new (potentially shorter) attribute isn't rendered mid-scroll.
+  // so a new (potentially shorter) attribute isn't rendered mid-scroll, and keep
+  // the tree's scroll clamp aware of the width the pinned column covers.
   useLayoutEffect(() => {
+    manager.setPinnedColumnWidth(pinnedAttribute ? PINNED_COLUMN_WIDTH : 0);
     manager.resetPinnedColumnScroll();
   }, [manager, pinnedAttribute]);
 

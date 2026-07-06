@@ -91,6 +91,10 @@ export class VirtualizedViewManager {
   // Shared horizontal scroll offset for the pinned attribute column. Applied to
   // every cell's inner element so the whole column scrolls as one unit.
   pinned_column_translate = 0;
+  // Width of the pinned attribute column (0 when none). The column overlays the
+  // right edge of the tree, so this is subtracted from the tree's visible width
+  // when clamping its horizontal scroll and sizing the horizontal scrollbar.
+  pinned_column_width = 0;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -1029,8 +1033,12 @@ export class VirtualizedViewManager {
   }
 
   clampRowTransform(transform: number): number {
+    // The pinned attribute column overlays the right edge of the tree, so the
+    // tree's visible width is reduced by it. Subtracting it here lets the tree
+    // scroll far enough to reveal content hidden behind the pinned column.
     const columnWidth =
-      this.columns.list.width * this.view.trace_container_physical_space.width;
+      this.columns.list.width * this.view.trace_container_physical_space.width -
+      this.pinned_column_width;
     const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.queue.length > 0) {
@@ -1132,6 +1140,33 @@ export class VirtualizedViewManager {
   resetPinnedColumnScroll() {
     this.pinned_column_translate = 0;
     this.applyPinnedColumnTransform();
+  }
+
+  // Updates the pinned column width (0 when unpinned) and re-clamps the tree's
+  // horizontal scroll so its content is reachable around the now (un)covered area.
+  setPinnedColumnWidth(width: number) {
+    if (this.pinned_column_width === width) {
+      return;
+    }
+    this.pinned_column_width = width;
+
+    const clamped = this.clampRowTransform(this.columns.list.translate[0]);
+    if (clamped !== this.columns.list.translate[0]) {
+      this.columns.list.translate[0] = clamped;
+      const rows = document.querySelectorAll<HTMLElement>(
+        '.TraceRow .TraceLeftColumn > div'
+      );
+      for (const row of rows) {
+        row.style.transform = `translateX(${clamped}px)`;
+      }
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.scrollLeft = -Math.round(clamped);
+      }
+    }
+
+    // Refresh the horizontal scrollbar width, which also depends on the pinned
+    // column width.
+    this.draw();
   }
 
   getCompressedView(): {left: number; right: number; width: number} {
@@ -2294,8 +2329,13 @@ export class VirtualizedViewManager {
       ) / 10;
 
     if (this.horizontal_scrollbar_container) {
+      // The pinned column covers the right edge of the tree, so the scrollbar's
+      // viewport (and thus its scroll range) is the tree width minus that column.
       this.horizontal_scrollbar_container.style.width =
-        (dividerPosition / this.view.trace_container_physical_space.width) * 100 + '%';
+        ((dividerPosition - this.pinned_column_width) /
+          this.view.trace_container_physical_space.width) *
+          100 +
+        '%';
     }
 
     if (this.divider) {
