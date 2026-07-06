@@ -2305,6 +2305,13 @@ export class VirtualizedViewManager {
       );
       this.last_span_column_width = options.span_list_width;
     }
+    // Exposed so wrapper-positioned overlays (the pinned column header + border
+    // line) can offset by the vertical scrollbar width and stay aligned with the
+    // per-row cells, which live inside the scrollbar-narrowed scroll container.
+    if (this.last_scrollbar_width_var !== this.scrollbar_width) {
+      container.style.setProperty('--trace-scrollbar-width', `${this.scrollbar_width}px`);
+      this.last_scrollbar_width_var = this.scrollbar_width;
+    }
 
     if (this.indicator_container) {
       const correction =
@@ -2346,6 +2353,7 @@ export class VirtualizedViewManager {
 
   last_list_column_width = 0;
   last_span_column_width = 0;
+  last_scrollbar_width_var = -1;
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];

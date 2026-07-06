@@ -1694,7 +1694,13 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     height: 100%;
     width: 1px;
-    right: calc(var(--span-column-width) * 100% + ${PINNED_COLUMN_WIDTH}px);
+    /* The header and this line are positioned against the wrapper (full width),
+       while the per-row cells live in the scrollbar-narrowed scroll container.
+       Offset by listFraction * scrollbarWidth so they align with the cells. */
+    right: calc(
+      var(--span-column-width) * 100% + var(--list-column-width) *
+        var(--trace-scrollbar-width, 0px) + ${PINNED_COLUMN_WIDTH}px
+    );
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background-color: ${p => p.theme.tokens.border.primary};
     z-index: 10;
@@ -1705,7 +1711,10 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     top: 0;
     height: 38px;
-    right: calc(var(--span-column-width) * 100%);
+    right: calc(
+      var(--span-column-width) * 100% + var(--list-column-width) *
+        var(--trace-scrollbar-width, 0px)
+    );
     z-index: 10;
     display: flex;
     align-items: center;
