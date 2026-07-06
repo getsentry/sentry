@@ -227,13 +227,14 @@ function AutofixWarnings({
   const installationIds = [
     ...new Set(permissionWarnings.map(w => w.installation_id).filter(defined)),
   ];
-  const hasSingleInstallation = installationIds.length === 1;
+  const [installationId] = installationIds;
 
-  const comp = hasSingleInstallation ? (
-    <InstallationPermissionsButton installationId={installationIds[0]!} />
-  ) : (
-    <ConfigurationPermissionsButton />
-  );
+  const comp =
+    installationIds.length === 1 && defined(installationId) ? (
+      <InstallationPermissionsButton installationId={installationId} />
+    ) : (
+      <ConfigurationPermissionsButton />
+    );
 
   const repoNames = permissionWarnings.map(w => w.repo_name).filter(defined);
 
