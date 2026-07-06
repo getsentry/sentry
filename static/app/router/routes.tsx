@@ -1698,7 +1698,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const discoverErrorsRoutes: SentryRouteObject = {
-    path: '/errors/',
+    path: '/discover/',
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
     children: discoverErrorsChildren,

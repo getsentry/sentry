@@ -65,10 +65,7 @@ export function ExploreSecondaryNavigation() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            <Feature
-              features="organizations:explore-errors"
-              renderDisabled={discoverTransactionsDeprecation}
-            >
+            <Feature features="organizations:explore-errors">
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/errors-v2/`}

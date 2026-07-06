@@ -8,8 +8,11 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
@@ -34,16 +37,22 @@ function DiscoverContainer() {
     discoverTransactionsDeprecation &&
     location.pathname.includes('/explore/discover/')
   ) {
-    // errors dataset redirects to new errors url and keeps the same query params
-    if (location.query.dataset === 'errors') {
+    // errors dataset (or no dataset specified) redirects to errors url and keeps the same query params
+    if (
+      location.query.queryDataset !== SavedQueryDatasets.TRANSACTIONS &&
+      location.query.dataset !== Dataset.TRANSACTIONS
+    ) {
+      const discoverPath = location.pathname
+        .replace('/explore/discover/', '')
+        .replaceAll('/', '');
       const targetPath = makeDiscoverPathname({
-        path: '/homepage/',
+        path: `/${discoverPath}/`,
         organization,
       });
       return <Redirect to={targetPath + location.search} />;
     }
     // transactions dataset redirects to traces url as we don't support transactions anymore
-    return <Redirect to="/explore/traces/" />;
+    return <Redirect to={normalizeUrl('/explore/traces/')} />;
   }
 
   function renderNoAccess() {
