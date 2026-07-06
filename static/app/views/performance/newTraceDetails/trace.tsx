@@ -1549,6 +1549,15 @@ const TraceStylingWrapper = styled('div')`
       .TraceLeftColumn {
         box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.focus.default} !important;
       }
+
+      /* The opaque pinned column covers the row's inset outline, so redraw its
+         top and bottom edges (the left/right edges are already the pinned column
+         line and the divider). */
+      .TracePinnedColumn {
+        box-shadow:
+          inset 0 1px 0 0 ${p => p.theme.tokens.focus.default},
+          inset 0 -1px 0 0 ${p => p.theme.tokens.focus.default};
+      }
     }
 
     &.Highlight,
@@ -1578,6 +1587,11 @@ const TraceStylingWrapper = styled('div')`
       }
       .TraceRightColumn.Odd {
         background-color: transparent !important;
+      }
+      .TracePinnedColumn {
+        box-shadow:
+          inset 0 1px 0 0 var(--row-outline),
+          inset 0 -1px 0 0 var(--row-outline);
       }
     }
 
