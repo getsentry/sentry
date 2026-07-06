@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+import uuid
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, overload
@@ -930,7 +931,14 @@ class SeerAgentClient:
             raise SeerPermissionError("Code generation is disabled for this organization")
 
         # Trigger PR creation
-        payload: dict[str, Any] = {"type": "create_pr", "ready_for_review": ready_for_review}
+        payload: dict[str, Any] = {
+            "type": "create_pr",
+            "ready_for_review": ready_for_review,
+            # Include an idempotency key in the request so that if
+            # the request is retried by anything, it will not create duplicate PRs
+            # This is regenerated per attempt to permit retries.
+            "idempotency_key": uuid.uuid4().hex,
+        }
         if repo_name:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
