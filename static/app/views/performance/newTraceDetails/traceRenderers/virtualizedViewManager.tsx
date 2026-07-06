@@ -1062,7 +1062,9 @@ export class VirtualizedViewManager {
 
   // Registers a pinned attribute column cell. Applies the current shared scroll
   // offset (so cells mounted mid-scroll stay in sync) and wires up the wheel
-  // listener that scrolls the whole column together.
+  // listener that scrolls the whole column together. Returns a cleanup that
+  // removes the listener when the (virtualized) cell unmounts, so remounts and
+  // Strict Mode don't leave handlers attached to detached DOM.
   registerPinnedColumnRef(ref: HTMLElement | null) {
     if (!ref) {
       return;
@@ -1072,6 +1074,9 @@ export class VirtualizedViewManager {
       inner.style.transform = `translateX(${this.pinned_column_translate}px)`;
     }
     ref.addEventListener('wheel', this.onPinnedColumnScroll, {passive: false});
+    return () => {
+      ref.removeEventListener('wheel', this.onPinnedColumnScroll);
+    };
   }
 
   // Max leftward scroll (a positive number) needed to reveal the widest currently
