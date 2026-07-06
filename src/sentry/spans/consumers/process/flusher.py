@@ -353,6 +353,11 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 },
                             )
 
+                        produce_to_process_segment_task = (
+                            produce_to_pipe is None
+                            and in_random_rollout("spans.buffer.process-segments-task-rollout-rate")
+                        )
+
                         for message in flushed_segment.to_messages():
                             kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
                             metrics.timing(
@@ -360,9 +365,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 len(kafka_payload.value),
                                 tags={"shard": shard_tag},
                             )
-                            if produce_to_pipe is None and in_random_rollout(
-                                "spans.buffer.process-segments-task-rollout-rate"
-                            ):
+                            if produce_to_process_segment_task:
                                 task_produce_future = process_segment_task.apply_async_with_future(
                                     args=[kafka_payload.value]
                                 )
