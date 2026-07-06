@@ -75,7 +75,9 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             ),
             "alertRuleTriggerId": str(alert_rule_trigger_id),
             "type": obj.type,
-            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)]
+            if target_type is not None
+            else None,
             "targetIdentifier": get_identifier_from_action(
                 type_value, str(target_identifier), target_display
             ),
