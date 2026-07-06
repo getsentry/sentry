@@ -1,30 +1,34 @@
-import {registerWebWorker} from '@sentry/browser';
-import {startSpan} from '@sentry/core';
+import * as Sentry from '@sentry/browser';
+
+import {getUnhandledRejectionError} from 'sentry/serviceWorker/worker/getUnhandledRejectionError';
+import {initNotificationHandler} from 'sentry/serviceWorker/worker/triggerTestNotification';
+import {initInboundHandler} from 'sentry/serviceWorker/worker/worker-inbound-handler';
+import {initOutboundHandler} from 'sentry/serviceWorker/worker/worker-outbound-messages';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-// registerWebWorker expects DedicatedWorkerGlobalScope.postMessage, which
-// doesn't exist on ServiceWorkerGlobalScope. The cast is safe: the only
-// call to postMessage sends debug IDs and will be a no-op here; the
-// unhandledrejection handler still registers correctly.
-registerWebWorker({self: sw as any});
+Sentry.metrics.count('service-worker.worker.running');
+console.log('service-worker.worker.running');
 
-sw.addEventListener('install', () => {
-  startSpan({name: 'service-worker.install', op: 'sw.lifecycle'}, () => {
-    return sw.skipWaiting();
-  });
+sw.addEventListener('install', event => {
+  Sentry.metrics.count('service-worker.worker.installed');
+  console.log('service-worker.worker.installed');
+  event.waitUntil(sw.skipWaiting());
 });
 
 sw.addEventListener('activate', event => {
-  event.waitUntil(
-    startSpan({name: 'service-worker.activate', op: 'sw.lifecycle'}, () =>
-      sw.clients.claim()
-    )
-  );
+  Sentry.metrics.count('service-worker.worker.activated');
+  console.log('service-worker.worker.activated');
+  event.waitUntil(sw.clients.claim());
 });
 
-sw.addEventListener('message', _event => {
-  startSpan({name: 'service-worker.message', op: 'sw.message'}, () => {
-    // No custom message handlers yet
-  });
+sw.addEventListener('unhandledrejection', (event: unknown) => {
+  Sentry.metrics.count('service-worker.worker.unhandledrejection');
+  console.log('service-worker.worker.unhandledrejection');
+  const reason = getUnhandledRejectionError(event);
+  Sentry.captureException(reason);
 });
+
+initNotificationHandler(sw);
+initInboundHandler(sw);
+initOutboundHandler(sw);

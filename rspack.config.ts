@@ -56,6 +56,8 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 // TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
 const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
+// JS self-profiling in the dev UI, enabled by setting the UI_DEV_ENABLE_PROFILING env var.
+const UI_DEV_ENABLE_PROFILING = !!env.UI_DEV_ENABLE_PROFILING;
 // Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
 const ENABLE_SENTRY_TOOLBAR =
   env.ENABLE_SENTRY_TOOLBAR === undefined
@@ -192,6 +194,7 @@ const DEFINED_ENV_VARS = {
   'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
   'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
   'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
+  'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(UI_DEV_ENABLE_PROFILING),
   'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
 };
 
@@ -621,12 +624,23 @@ const workerConfig: Configuration = {
      * Defines environment specific flags.
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
+
+    // Stub the React Refresh globals. The SWC loader's
+    // `refresh: SHOULD_HOT_MODULE_RELOAD` transform injects `$RefreshReg$` /
+    // `$RefreshSig$` calls into worker modules, but the ReactRefresh runtime that
+    // defines those globals is only applied to the app compiler — so the worker
+    // throws `$RefreshReg$ is not defined` on evaluation. A worker has nothing to
+    // hot-refresh, so no-op stubs are correct.
+    new rspack.DefinePlugin({
+      $RefreshReg$: '(() => {})',
+      $RefreshSig$: '(() => (type) => type)',
+    }),
   ],
   resolveLoader: {},
   resolve: appConfig.resolve,
   // Don't clean: app's compiler owns cleaning `dist` (see its `clean.keep`).
   output: {...appConfig.output, clean: false},
-  optimization: appConfig.optimization,
+  optimization: {...appConfig.optimization, runtimeChunk: false},
   devtool: appConfig.devtool,
 };
 
