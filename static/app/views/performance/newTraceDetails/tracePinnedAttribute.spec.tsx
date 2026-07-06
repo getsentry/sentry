@@ -18,12 +18,18 @@ import {
   TracePinnedAttributeHeader,
   useTracePinnedAttribute,
 } from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 function makeNode(additional_attributes?: Record<string, string | number>) {
   return new EapSpanNode(null, makeEAPSpan({additional_attributes}), {
     organization: OrganizationFixture(),
   });
 }
+
+// The column only calls registerPinnedColumnRef, so a minimal stub suffices.
+const manager = {
+  registerPinnedColumnRef: () => {},
+} as unknown as VirtualizedViewManager;
 
 describe('useTracePinnedAttribute', () => {
   it('reads the pinned attribute from the URL', () => {
@@ -115,6 +121,7 @@ describe('TracePinnedAttributeColumn', () => {
       <TracePinnedAttributeColumn
         node={node}
         pinnedAttribute="http.response.status_code"
+        manager={manager}
       />
     );
 
@@ -128,6 +135,7 @@ describe('TracePinnedAttributeColumn', () => {
       <TracePinnedAttributeColumn
         node={node}
         pinnedAttribute="http.response.status_code"
+        manager={manager}
       />
     );
 
@@ -142,7 +150,13 @@ describe('TracePinnedAttributeColumn', () => {
       {organization: OrganizationFixture()}
     );
 
-    render(<TracePinnedAttributeColumn node={node} pinnedAttribute="span.op" />);
+    render(
+      <TracePinnedAttributeColumn
+        node={node}
+        pinnedAttribute="span.op"
+        manager={manager}
+      />
+    );
     expect(screen.getByText('db.query')).toBeInTheDocument();
   });
 
@@ -153,7 +167,13 @@ describe('TracePinnedAttributeColumn', () => {
       {organization: OrganizationFixture()}
     );
 
-    render(<TracePinnedAttributeColumn node={node} pinnedAttribute="span.description" />);
+    render(
+      <TracePinnedAttributeColumn
+        node={node}
+        pinnedAttribute="span.description"
+        manager={manager}
+      />
+    );
     expect(screen.getByText('SELECT * FROM users')).toBeInTheDocument();
   });
 });

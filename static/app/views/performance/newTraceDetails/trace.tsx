@@ -189,6 +189,12 @@ export function Trace({
     TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
   );
 
+  // Reset the pinned column's horizontal scroll when the pinned attribute changes
+  // so a new (potentially shorter) attribute isn't rendered mid-scroll.
+  useLayoutEffect(() => {
+    manager.resetPinnedColumnScroll();
+  }, [manager, pinnedAttribute]);
+
   const visibleTraceItems = useMemo(
     () => snapshotVisibleTraceItems(trace.list, forceRerender),
     [trace.list, forceRerender]
@@ -707,7 +713,11 @@ function RenderTraceRow(props: {
   };
 
   const pinnedColumns = props.pinnedAttribute ? (
-    <TracePinnedAttributeColumn node={node} pinnedAttribute={props.pinnedAttribute} />
+    <TracePinnedAttributeColumn
+      node={node}
+      pinnedAttribute={props.pinnedAttribute}
+      manager={props.manager}
+    />
   ) : null;
 
   const rowProps: TraceRowProps<BaseNode> = {
@@ -1723,16 +1733,26 @@ const TraceStylingWrapper = styled('div')`
     z-index: 2;
     display: flex;
     align-items: center;
-    padding-left: ${p => p.theme.space.md};
-    padding-right: ${p => p.theme.space.sm};
+    overflow: hidden;
     background-color: ${p => p.theme.tokens.background.primary};
 
-    .TracePinnedColumnValue {
-      overflow: hidden;
-      text-overflow: ellipsis;
+    /* Inner element the view manager translates so the whole column scrolls
+       horizontally together. Horizontal padding lives here (not on the cell) so
+       the cell's clientWidth equals the full column width and the manager's
+       max-scroll math reveals the trailing edge of the value. */
+    .TracePinnedColumnInner {
+      display: flex;
+      align-items: center;
+      height: 100%;
       white-space: nowrap;
-      min-width: 0;
-      flex: 1 1 auto;
+      padding-left: ${p => p.theme.space.md};
+      padding-right: ${p => p.theme.space.sm};
+      will-change: transform;
+      transform-origin: left center;
+    }
+
+    .TracePinnedColumnValue {
+      white-space: nowrap;
 
       &.Empty {
         color: ${p => p.theme.tokens.content.secondary};

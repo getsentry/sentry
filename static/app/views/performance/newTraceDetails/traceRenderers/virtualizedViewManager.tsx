@@ -88,6 +88,10 @@ export class VirtualizedViewManager {
   scrolling_source: 'list' | 'fake scrollbar' | null = null;
   start_virtualized_index = 0;
 
+  // Shared horizontal scroll offset for the pinned attribute column. Applied to
+  // every cell's inner element so the whole column scrolls as one unit.
+  pinned_column_translate = 0;
+
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
   reset_zoom_button: HTMLButtonElement | null = null;
@@ -205,6 +209,8 @@ export class VirtualizedViewManager {
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
     this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
+    this.onPinnedColumnScroll = this.onPinnedColumnScroll.bind(this);
+    this.registerPinnedColumnRef = this.registerPinnedColumnRef.bind(this);
     this.onWheel = this.onWheel.bind(this);
     this.onWheelEnd = this.onWheelEnd.bind(this);
     this.onWheelStart = this.onWheelStart.bind(this);
@@ -1044,6 +1050,88 @@ export class VirtualizedViewManager {
     }
 
     return transform;
+  }
+
+  // Registers a pinned attribute column cell. Applies the current shared scroll
+  // offset (so cells mounted mid-scroll stay in sync) and wires up the wheel
+  // listener that scrolls the whole column together.
+  registerPinnedColumnRef(ref: HTMLElement | null) {
+    if (!ref) {
+      return;
+    }
+    const inner = ref.children[0] as HTMLElement | undefined;
+    if (inner) {
+      inner.style.transform = `translateX(${this.pinned_column_translate}px)`;
+    }
+    ref.addEventListener('wheel', this.onPinnedColumnScroll, {passive: false});
+  }
+
+  // Max leftward scroll (a positive number) needed to reveal the widest currently
+  // rendered pinned value. Computed from visible cells so it adapts as the pinned
+  // attribute changes without needing to reset stored measurements.
+  getPinnedColumnMaxScroll(): number {
+    let max = 0;
+    const cells = document.querySelectorAll<HTMLElement>('.TraceRow .TracePinnedColumn');
+    for (const cell of cells) {
+      const inner = cell.children[0] as HTMLElement | undefined;
+      if (inner) {
+        max = Math.max(max, inner.scrollWidth - cell.clientWidth);
+      }
+    }
+    return max;
+  }
+
+  clampPinnedColumnTransform(transform: number): number {
+    if (transform > 0) {
+      return 0;
+    }
+    const max = this.getPinnedColumnMaxScroll();
+    if (transform < -max) {
+      return -max;
+    }
+    return transform;
+  }
+
+  onPinnedColumnScroll(event: WheelEvent) {
+    // Holding shift key allows for horizontal scrolling
+    const distance = event.shiftKey
+      ? getHorizontalDelta(event.deltaX, event.deltaY)
+      : event.deltaX;
+
+    if (
+      event.shiftKey ||
+      (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+    ) {
+      // Prevents firing back/forward navigation
+      event.preventDefault();
+    } else {
+      // Let vertical wheel scroll the list as usual
+      return;
+    }
+
+    const newTransform = this.clampPinnedColumnTransform(
+      this.pinned_column_translate - distance
+    );
+    if (newTransform === this.pinned_column_translate) {
+      return;
+    }
+    this.pinned_column_translate = newTransform;
+    this.applyPinnedColumnTransform();
+  }
+
+  applyPinnedColumnTransform() {
+    const inners = document.querySelectorAll<HTMLElement>(
+      '.TraceRow .TracePinnedColumn > div'
+    );
+    for (const inner of inners) {
+      inner.style.transform = `translateX(${this.pinned_column_translate}px)`;
+    }
+  }
+
+  // Resets the pinned column scroll offset, e.g. when the pinned attribute changes.
+  resetPinnedColumnScroll() {
+    this.pinned_column_translate = 0;
+    this.applyPinnedColumnTransform();
   }
 
   getCompressedView(): {left: number; right: number; width: number} {

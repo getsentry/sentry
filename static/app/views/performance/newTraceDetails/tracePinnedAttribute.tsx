@@ -12,6 +12,7 @@ import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAt
 import {isEAPSpan} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 /**
  * URL query param that holds the single pinned attribute key. The URL is the
@@ -197,11 +198,16 @@ export function useTracePinnedAttribute(): UseTracePinnedAttribute {
  * A single cell in the pinned attribute column, rendered once per waterfall row.
  * Reads the value straight off the node's loaded attributes. Renders a muted
  * placeholder when the span has no value for the pinned attribute.
+ *
+ * The value lives in an inner element that the view manager translates so the
+ * whole column scrolls horizontally as one unit (mirroring the tree column).
  */
 export function TracePinnedAttributeColumn({
   node,
   pinnedAttribute,
+  manager,
 }: {
+  manager: VirtualizedViewManager;
   node: BaseNode;
   pinnedAttribute: string;
 }) {
@@ -210,13 +216,19 @@ export function TracePinnedAttributeColumn({
   const displayValue = hasValue ? String(value) : EMPTY_VALUE;
 
   return (
-    <div className="TracePinnedColumn" style={{width: PINNED_COLUMN_WIDTH}}>
-      <span
-        className={`TracePinnedColumnValue ${hasValue ? '' : 'Empty'}`}
-        title={hasValue ? displayValue : undefined}
-      >
-        {displayValue}
-      </span>
+    <div
+      className="TracePinnedColumn"
+      style={{width: PINNED_COLUMN_WIDTH}}
+      ref={manager.registerPinnedColumnRef}
+    >
+      <div className="TracePinnedColumnInner">
+        <span
+          className={`TracePinnedColumnValue ${hasValue ? '' : 'Empty'}`}
+          title={hasValue ? displayValue : undefined}
+        >
+          {displayValue}
+        </span>
+      </div>
     </div>
   );
 }
