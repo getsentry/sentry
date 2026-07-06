@@ -86,7 +86,7 @@ export function MetricSelectRow({
 
   // Dashboards is visualization-first: once Heat Map is chosen, restrict the
   // metric picker to distributions (the only type a heat map can render).
-  const disabledMetricReason = useCallback(
+  const getDisabledOptionReason = useCallback(
     (option: MetricSelectorOption) =>
       doesMetricSupportHeatMapVisualization({
         name: option.metricName,
@@ -104,8 +104,10 @@ export function MetricSelectRow({
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
-          disabledMetricReason={
-            state.displayType === DisplayType.HEATMAP ? disabledMetricReason : undefined
+          getDisabledOptionReason={
+            state.displayType === DisplayType.HEATMAP
+              ? getDisabledOptionReason
+              : undefined
           }
           onChange={newTraceMetric => {
             if (field.kind !== 'function' || !newTraceMetric) {

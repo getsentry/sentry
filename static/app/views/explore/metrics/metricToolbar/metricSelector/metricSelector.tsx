@@ -85,16 +85,16 @@ export function MetricSelector({
   projectIds,
   environments,
   usePortal,
-  disabledMetricReason,
+  getDisabledOptionReason,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  environments?: string[];
   // Returns a tooltip explaining why a metric option should be disabled, or
   // undefined to leave it enabled. Lets callers constrain the selectable
   // metrics to those their context supports (e.g. only distributions for heat
   // maps). Omitting it leaves every option enabled.
-  disabledMetricReason?: (option: MetricSelectorOption) => string | undefined;
-  environments?: string[];
+  getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
   usePortal?: boolean;
 }) {
@@ -272,8 +272,8 @@ export function MetricSelector({
     if (traceMetric.name) {
       return;
     }
-    const firstSelectable = disabledMetricReason
-      ? metricOptions.find(option => !disabledMetricReason(option))
+    const firstSelectable = getDisabledOptionReason
+      ? metricOptions.find(option => !getDisabledOptionReason(option))
       : metricOptions[0];
     if (firstSelectable) {
       onChange({
@@ -282,7 +282,7 @@ export function MetricSelector({
         unit: firstSelectable.metricUnit,
       });
     }
-  }, [metricOptions, onChange, traceMetric.name, disabledMetricReason]);
+  }, [metricOptions, onChange, traceMetric.name, getDisabledOptionReason]);
 
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
@@ -310,27 +310,27 @@ export function MetricSelector({
   }, [displayedOptions]);
 
   // Attach a tooltip to options the caller disables, and collect their keys so
-  // the combobox renders them disabled. Both no-op without disabledMetricReason.
+  // the combobox renders them disabled. Both no-op without getDisabledOptionReason.
   const displayedOptionsWithDisabledState = useMemo(() => {
-    if (!disabledMetricReason) {
+    if (!getDisabledOptionReason) {
       return displayedOptions;
     }
     return displayedOptions.map(option => {
-      const reason = disabledMetricReason(option);
+      const reason = getDisabledOptionReason(option);
       return reason ? {...option, tooltip: reason} : option;
     });
-  }, [displayedOptions, disabledMetricReason]);
+  }, [displayedOptions, getDisabledOptionReason]);
 
-  const disabledMetricKeys = useMemo(() => {
-    if (!disabledMetricReason) {
+  const disabledOptionKeys = useMemo(() => {
+    if (!getDisabledOptionReason) {
       return new Set<string>();
     }
     return new Set(
       displayedOptions
-        .filter(option => disabledMetricReason(option))
+        .filter(option => getDisabledOptionReason(option))
         .map(option => option.value)
     );
-  }, [displayedOptions, disabledMetricReason]);
+  }, [displayedOptions, getDisabledOptionReason]);
 
   const displayedOptionsMap = useMemo(
     () =>
@@ -369,7 +369,7 @@ export function MetricSelector({
   const comboBoxState = useComboBoxState<MetricSelectorOption>({
     children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
     items: displayedOptionsWithDisabledState,
-    disabledKeys: disabledMetricKeys,
+    disabledKeys: disabledOptionKeys,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
     menuTrigger: 'manual',
