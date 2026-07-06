@@ -23,6 +23,7 @@ import {IconEdit, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -354,11 +355,7 @@ function ToolCallsCell({
   });
 
   if (dataRow.toolCalls === 0) {
-    return (
-      <Text as="div">
-        <Count value={dataRow.toolCalls} />
-      </Text>
-    );
+    return <Text as="div">{formatAbbreviatedNumber(dataRow.toolCalls)}</Text>;
   }
 
   return (
@@ -367,7 +364,7 @@ function ToolCallsCell({
         maxWidth={400}
         title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
       >
-        <Count value={dataRow.toolCalls} />
+        {formatAbbreviatedNumber(dataRow.toolCalls)}
       </InfoText>
     </Text>
   );

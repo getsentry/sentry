@@ -1,7 +1,6 @@
 import type React from 'react';
 import {Fragment, useMemo} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -26,6 +25,7 @@ import {
   getConversationUser,
   getTraceUrl,
 } from 'sentry/views/explore/conversations/components/conversationSummary';
+import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
@@ -232,10 +232,6 @@ export function ConversationSummaryNew({
   );
 }
 
-function ToolTag({name, hasError}: {hasError: boolean; name: string}) {
-  return <Tag variant={hasError ? 'danger' : 'muted'}>{name}</Tag>;
-}
-
 function Stat({
   label,
   value,
@@ -260,7 +256,7 @@ function Stat({
         <Placeholder width="32px" height="24px" />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="inherit" wrap="nowrap">
+          <Text size="xl" tabular variant="danger" wrap="nowrap">
             {value}
           </Text>
         </Link>

@@ -53,7 +53,7 @@ export function EquationBuilder({
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
       startTransition(() => {
-        if (newExpression.isValid) {
+        if (newExpression.isValid || newExpression.text.trim() === '') {
           handleExpressionChange(
             resolveExpression(newExpression, referenceMap),
             newExpression.text

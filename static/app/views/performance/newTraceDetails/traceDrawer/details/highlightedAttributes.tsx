@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -69,7 +70,10 @@ export function getHighlightedSpanAttributes({
   spanId,
   attributes = {},
 }: {
-  attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
+  attributes:
+    | Record<string, string | number | boolean>
+    | undefined
+    | TraceItemResponseAttribute[];
   spanId: string;
   op?: string;
 }): HighlightedAttribute[] {
@@ -88,7 +92,7 @@ export function getHighlightedSpanAttributes({
 }
 
 function ensureAttributeObject(
-  attributes: Record<string, string> | TraceItemResponseAttribute[]
+  attributes: Record<string, string | number | boolean> | TraceItemResponseAttribute[]
 ) {
   if (Array.isArray(attributes)) {
     return attributes.reduce<Record<string, string | number | boolean>>(
@@ -335,7 +339,11 @@ function HighlightedTools({
                 : tn('Used %s time', 'Used %s times', usageCount)
             }
           >
-            <Tag key={tool} variant={usedTools.has(tool) ? 'info' : 'muted'}>
+            <Tag
+              key={tool}
+              variant={usedTools.has(tool) ? 'info' : 'muted'}
+              css={truncatedTagCss}
+            >
               {tool}
             </Tag>
           </Tooltip>
@@ -457,4 +465,13 @@ const TokensTooltipTitle = styled('div')`
     text-align: right;
   }
   gap: ${p => p.theme.space.xs};
+`;
+
+const truncatedTagCss = css`
+  min-width: 0;
+  max-width: 100%;
+
+  & > * {
+    display: block;
+  }
 `;

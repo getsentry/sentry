@@ -1,10 +1,12 @@
 import uuid
 from unittest.mock import Mock, patch
 
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.action_log.types import TriggerAutofixAction
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -79,6 +81,63 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["blocks"][0]["message"]["metadata"] is None
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_no_warnings_when_no_missing_permissions(
+        self, mock_get_explorer_state, mock_get_perms
+    ):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        mock_get_perms.return_value = {}
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == []
+        mock_get_perms.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_returns_github_permission_warnings(self, mock_get_explorer_state, mock_get_perms):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        mock_get_perms.return_value = {
+            "getsentry/sentry": MissingGithubPermissions(
+                integration=RpcIntegration(
+                    id=42,
+                    provider="github",
+                    external_id="9999",
+                    name="octocat",
+                    metadata={},
+                    status=0,
+                ),
+                missing_scopes=["contents"],
+            )
+        }
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == [
+            {
+                "warning_type": "github_app_permissions",
+                "repo_name": "getsentry/sentry",
+                "installation_id": "9999",
+            }
+        ]
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_triggers_autofix_agent(self, mock_trigger_explorer):
