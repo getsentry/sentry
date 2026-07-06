@@ -244,9 +244,15 @@ function SpanMetadata({
           <Text size="xs" variant="muted">
             {row.name}
           </Text>
-          <Text size="xs" as="div" ellipsis>
-            {row.value}
-          </Text>
+          {typeof row.value === 'string' ? (
+            <Text size="xs" as="div" ellipsis>
+              {row.value}
+            </Text>
+          ) : (
+            <Text size="xs" as="div">
+              {row.value}
+            </Text>
+          )}
         </Fragment>
       ))}
     </Grid>
