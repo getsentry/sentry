@@ -8,7 +8,7 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_subject,
 )
 from sentry.notifications.platform.types import (
-    CodeBlock,
+    CodeSection,
     NotificationCategory,
     NotificationRenderedTemplate,
     NotificationSection,
@@ -36,7 +36,7 @@ class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivi
             subject="Seer RCA Completed for EXAMPLE-1",
             body=[
                 *get_example_issue_description(),
-                CodeBlock(
+                CodeSection(
                     blocks=[
                         PlainTextBlock(
                             text="The error is caused by a null pointer dereference in the user authentication flow."
@@ -58,7 +58,7 @@ class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivi
         body: list[NotificationSection] = [*get_issue_description(group)]
         if activity.data:
             summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
-            body.append(CodeBlock(blocks=[summary_block]))
+            body.append(CodeSection(blocks=[summary_block]))
         return build_template(
             data=data, subject=get_subject("Root Cause Analysis Completed", group), body=body
         )
