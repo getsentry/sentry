@@ -457,14 +457,17 @@ describe('ExploreToolbar', () => {
 
     const section = screen.getByTestId('section-group-by');
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(
         within(section).queryByRole('button', {name: 'invalid.attribute'})
-      ).not.toBeInTheDocument();
+      ).not.toBeInTheDocument()
+    );
+
+    await waitFor(() =>
       expect(within(section).getAllByRole('button', {name: '—'}).length).toBeGreaterThan(
         0
-      );
-    });
+      )
+    );
   });
 
   it('does not remove selected group bys using placeholder validation data', async () => {
@@ -1066,7 +1069,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
     await userEvent.click(within(section).getByText('Dashboard widget'));
-    await waitFor(() => {
+    await waitFor(() =>
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widgets: [
@@ -1087,8 +1090,8 @@ describe('ExploreToolbar', () => {
             },
           ],
         })
-      );
-    });
+      )
+    );
   });
 
   it('highlights save button when saved query is changed', async () => {
@@ -1154,9 +1157,7 @@ describe('ExploreToolbar', () => {
     );
 
     // After navigation, the save action should switch to the update state.
-    await waitFor(() => {
-      expect(screen.getByText(/^save$/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/^save$/i)).toBeInTheDocument();
   });
 
   it('allows save as when cross events are present', async () => {
