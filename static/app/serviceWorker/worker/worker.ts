@@ -52,6 +52,9 @@ sw.addEventListener('unhandledrejection', (event: unknown) => {
 });
 
 sw.addEventListener('message', event => {
+  if (!event.data || typeof event.data !== 'object') {
+    return;
+  }
   event.waitUntil(
     Sentry.startSpan(
       {
