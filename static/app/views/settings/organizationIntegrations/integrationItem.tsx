@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {getIntegrationNoun} from 'sentry/utils/integrationUtil';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type Props = {
@@ -33,7 +34,19 @@ export function IntegrationItem({integration, requiresUpgrade, compact = false}:
             {integration.name}
           </Text>
           {requiresUpgrade && (
-            <UpdateIntegrationIcon displayName={integration.provider.name} />
+            <Tooltip
+              isHoverable
+              containerDisplayMode="flex"
+              title={tct(
+                "There's a new update for your [displayName] integration, please update your [noun]",
+                {
+                  displayName: integration.provider.name,
+                  noun: getIntegrationNoun(integration.provider.key),
+                }
+              )}
+            >
+              <IconWarning variant="warning" aria-label={t('Integration alert')} />
+            </Tooltip>
           )}
         </Flex>
         <DomainName compact={compact}>
@@ -43,21 +56,6 @@ export function IntegrationItem({integration, requiresUpgrade, compact = false}:
         </DomainName>
       </Flex>
     </Flex>
-  );
-}
-
-function UpdateIntegrationIcon({displayName}: {displayName: string}) {
-  return (
-    <Tooltip
-      isHoverable
-      containerDisplayMode="flex"
-      title={tct(
-        "There's a new update for your [displayName] integration, please update your workspace",
-        {displayName}
-      )}
-    >
-      <IconWarning variant="warning" aria-label={t('Integration alert')} />
-    </Tooltip>
   );
 }
 

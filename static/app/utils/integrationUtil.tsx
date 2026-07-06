@@ -304,6 +304,15 @@ export const integrationRequiresUpgrade = (integration: Integration): boolean =>
 export const canManageIntegrations = (organization: Organization): boolean =>
   isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
 
+export function getIntegrationNoun(slug: string): string {
+  switch (slug) {
+    case 'slack':
+      return t('workspace');
+    default:
+      return t('installation');
+  }
+}
+
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined

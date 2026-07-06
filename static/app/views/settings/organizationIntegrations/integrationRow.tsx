@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canManageIntegrations,
   convertIntegrationTypeToSnakeCase,
+  getIntegrationNoun,
 } from 'sentry/utils/integrationUtil';
 
 import {IntegrationStatus} from './integrationStatus';
@@ -109,14 +110,15 @@ export function IntegrationRow(props: Props) {
   const getUpgradeTooltipTitle = () => {
     if (!hasIntegrationAccess) {
       return tct(
-        "There's a new update for your [displayName] integration, please update your workspace",
-        {displayName}
+        "There's a new update for your [displayName] integration, please update your [noun]",
+        {displayName, noun: getIntegrationNoun(slug)}
       );
     }
     return tct(
-      "There's a new update for your [displayName] integration, please [link:click here] to update your workspace",
+      "There's a new update for your [displayName] integration, please [link:click here] to update your [noun]",
       {
         displayName,
+        noun: getIntegrationNoun(slug),
         link: (
           <UnderlinedLink
             to={resolveNowHref}
