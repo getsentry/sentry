@@ -66,27 +66,27 @@ describe('AttributesContent pin action', () => {
     const {router} = renderContent();
 
     await openAttributeMenu();
-    await userEvent.click(await screen.findByText('Pin as column'));
+    await userEvent.click(await screen.findByText('Pin attribute'));
 
     await waitFor(() => {
       expect(router.location.query.pinnedAttribute).toBe('environment');
     });
   });
 
-  it('shows "Unpin column" when the attribute is already pinned', async () => {
+  it('shows "Unpin attribute" when the attribute is already pinned', async () => {
     renderContent({pinnedAttribute: 'environment'});
 
     await openAttributeMenu();
 
-    expect(await screen.findByText('Unpin column')).toBeInTheDocument();
-    expect(screen.queryByText('Pin as column')).not.toBeInTheDocument();
+    expect(await screen.findByText('Unpin attribute')).toBeInTheDocument();
+    expect(screen.queryByText('Pin attribute')).not.toBeInTheDocument();
   });
 
-  it('unpins the attribute when "Unpin column" is clicked', async () => {
+  it('unpins the attribute when "Unpin attribute" is clicked', async () => {
     const {router} = renderContent({pinnedAttribute: 'environment'});
 
     await openAttributeMenu();
-    await userEvent.click(await screen.findByText('Unpin column'));
+    await userEvent.click(await screen.findByText('Unpin attribute'));
 
     await waitFor(() => {
       expect(router.location.query.pinnedAttribute).toBeUndefined();

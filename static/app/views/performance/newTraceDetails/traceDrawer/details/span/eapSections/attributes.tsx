@@ -270,7 +270,7 @@ export function AttributesContent({
       ...actions,
       {
         key: 'pin-attribute',
-        label: isPinned ? t('Unpin column') : t('Pin as column'),
+        label: isPinned ? t('Unpin attribute') : t('Pin attribute'),
         onAction: () => setPinnedAttribute(isPinned ? null : attributeKey),
       },
     ];
