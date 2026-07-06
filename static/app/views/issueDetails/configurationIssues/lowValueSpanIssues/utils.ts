@@ -189,29 +189,20 @@ export function getPythonSpanFilterSnippet(
 
 
 def before_send_transaction(event, hint):
-    dropped_parents = {}
+    reparent = {}
     kept_spans = []
+    # Filtering span and rewriting parent_id
     for span in event.get("spans", []):
+        parent = span.get("parent_span_id")
+        while parent in reparent:
+            parent = reparent[parent]
         if (
 ${conditions.join('\n')}
         ):
-            span_id = span.get("span_id")
-            if span_id is not None:
-                dropped_parents[span_id] = span.get("parent_span_id")
+            reparent[span.get("span_id")] = parent
         else:
+            span["parent_span_id"] = parent
             kept_spans.append(span)
-
-    if not dropped_parents:
-        return event
-
-    # Re-parent children of dropped spans so the trace stays connected.
-    for span in kept_spans:
-        parent = span.get("parent_span_id")
-        if parent not in dropped_parents:
-            continue
-        while parent in dropped_parents:
-            parent = dropped_parents[parent]
-        span["parent_span_id"] = parent
 
     event["spans"] = kept_spans
     return event
