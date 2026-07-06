@@ -79,7 +79,7 @@ function useRegisterServiceWorker() {
         });
       })
       .catch(error => {
-        log('service-worker.register.error');
+        log('error');
         Sentry.captureException(error);
       });
   }, []);
