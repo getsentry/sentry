@@ -35,6 +35,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -59,6 +60,7 @@ import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -192,6 +194,15 @@ function Graph({
     />
   );
 
+  const samplingWarningReason = getSamplingWarningReason(
+    aggregate,
+    chartInfo.series,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarningReason ? (
+    <SamplingWarning yAxis={aggregate} reason={samplingWarningReason} />
+  ) : null;
+
   const chartIcon =
     visualize.chartType === ChartType.LINE
       ? 'line'
@@ -260,6 +271,7 @@ function Graph({
   return (
     <Widget
       Title={Title}
+      TitleBadges={TitleBadges}
       Actions={Actions}
       Visualization={
         visualize.visible && (

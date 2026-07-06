@@ -685,13 +685,9 @@ def handle_check_suite(
         return
 
     check_suite = event.get("check_suite") or {}
-    sender = event.get("sender") or {}
     app = check_suite.get("app") or {}
     payload = asdict(
         CheckSuiteCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_suite.get("head_sha"),
             conclusion=check_suite.get("conclusion") or "",
             app_slug=app.get("slug", ""),
             check_runs_count=check_suite.get("latest_check_runs_count") or 0,
@@ -731,13 +727,9 @@ def handle_check_run(
         return
 
     check_run = event.get("check_run") or {}
-    sender = event.get("sender") or {}
     app = check_run.get("app") or {}
     payload = asdict(
         CheckRunCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_run.get("head_sha"),
             check_name=check_run.get("name", ""),
             conclusion=check_run.get("conclusion") or "",
             app_slug=app.get("slug", ""),
@@ -1156,18 +1148,18 @@ def _build_activity_payload(
     base = pull_request.get("base") or {}
     sender = event.get("sender") or pull_request.get("user") or {}
 
-    base_kw: dict[str, Any] = dict(
+    sender_kw: dict[str, Any] = dict(
         sender_login=sender.get("login", ""),
         sender_type=sender.get("type", ""),
-        head_sha=head.get("sha"),
-        base_sha=base.get("sha"),
     )
 
     match action:
         case "opened":
             return asdict(
                 OpenedPayload(
-                    **base_kw,
+                    **sender_kw,
+                    head_sha=head.get("sha"),
+                    base_sha=base.get("sha"),
                     additions=pull_request.get("additions", 0),
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
@@ -1177,51 +1169,49 @@ def _build_activity_payload(
         case "synchronize":
             return asdict(
                 SynchronizePayload(
-                    **base_kw,
+                    **sender_kw,
                     before_sha=event.get("before"),
                     after_sha=event.get("after"),
                 )
             )
         case "labeled":
             label = event.get("label") or {}
-            return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "unlabeled":
             label = event.get("label") or {}
-            return asdict(UnlabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(UnlabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "review_requested":
             return asdict(
                 ReviewRequestedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "review_request_removed":
             return asdict(
                 ReviewRequestRemovedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "assigned":
             assignee = event.get("assignee") or {}
-            return asdict(AssignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(AssignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "unassigned":
             assignee = event.get("assignee") or {}
-            return asdict(UnassignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(UnassignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "converted_to_draft":
-            return asdict(ConvertedToDraftPayload(**base_kw))
+            return asdict(ConvertedToDraftPayload(**sender_kw))
         case "ready_for_review":
-            return asdict(ReadyForReviewPayload(**base_kw))
+            return asdict(ReadyForReviewPayload(**sender_kw))
         case "auto_merge_enabled":
             auto_merge = pull_request.get("auto_merge") or {}
             return asdict(
-                AutoMergeEnabledPayload(
-                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
-                )
+                AutoMergeEnabledPayload(merge_method=auto_merge.get("merge_method") or "")
             )
         case "auto_merge_disabled":
-            return asdict(AutoMergeDisabledPayload(**base_kw))
+            return asdict(AutoMergeDisabledPayload())
         case "enqueued":
-            return asdict(EnqueuedPayload(**base_kw))
+            return asdict(EnqueuedPayload())
         case "dequeued":
-            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
+            return asdict(DequeuedPayload(reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")
