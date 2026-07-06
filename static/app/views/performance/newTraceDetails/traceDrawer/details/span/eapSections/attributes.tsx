@@ -320,7 +320,7 @@ const PinnedAttributeIndicator = styled('span')`
   align-items: center;
   margin-left: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
-  vertical-align: text-bottom;
+  vertical-align: middle;
 `;
 
 const NoAttributesMessage = styled('div')`
