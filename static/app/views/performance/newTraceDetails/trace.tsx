@@ -1681,6 +1681,7 @@ const TraceStylingWrapper = styled('div')`
     padding-right: ${p => p.theme.space.xs};
     background-color: ${p => p.theme.tokens.background.primary};
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.font.size.sm};
