@@ -178,28 +178,37 @@ export function isNegatedNoValueOperator(operator: TermOperator): boolean {
   );
 }
 
-export function hasNoValueFilter(
-  filterTokens: Array<TokenResult<Token.FILTER>>
-): boolean {
-  return filterTokens.some(token => token.filter === FilterType.HAS);
-}
+type NoValueInfo = {
+  operator: TermOperator.DEFAULT | TermOperator.NOT_EQUAL | null;
+  valueToken: TokenResult<Token.FILTER> | null;
+};
 
-/** Maps a HAS token's polarity to an operator: `!has:` → `is`, `has:` → `is not`. */
-export function getNoValueOperator(
+/**
+ * Inspects parsed tokens for the `has:`/`!has:` clause that backs the
+ * "(no value)" option. A `null` operator means no such clause exists.
+ */
+export function getNoValueInfo(
   filterTokens: Array<TokenResult<Token.FILTER>>
-): TermOperator | null {
+): NoValueInfo {
   const hasToken = filterTokens.find(token => token.filter === FilterType.HAS);
-  if (!hasToken) {
-    return null;
-  }
-  return hasToken.negated ? TermOperator.DEFAULT : TermOperator.NOT_EQUAL;
+  return {
+    operator: hasToken
+      ? hasToken.negated
+        ? TermOperator.DEFAULT
+        : TermOperator.NOT_EQUAL
+      : null,
+    valueToken: filterTokens.find(token => token.filter !== FilterType.HAS) ?? null,
+  };
 }
 
-/** First non-HAS token, e.g. `browser:firefox` in `(browser:firefox OR !has:browser)`. */
-export function getValueFilterToken(
-  filterTokens: Array<TokenResult<Token.FILTER>>
-): TokenResult<Token.FILTER> | null {
-  return filterTokens.find(token => token.filter !== FilterType.HAS) ?? null;
+/** Removes the "(no value)" sentinel when the operator can't express it. */
+export function stripUnsupportedNoValue(
+  values: string[],
+  operator: TermOperator
+): string[] {
+  return NO_VALUE_SUPPORTED_OPERATORS.has(operator)
+    ? values
+    : values.filter(value => value !== NO_VALUE_SENTINEL);
 }
 
 export function buildNoValueFilterQuery(

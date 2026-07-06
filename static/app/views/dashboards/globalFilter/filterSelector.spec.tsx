@@ -219,6 +219,52 @@ describe('FilterSelector', () => {
     expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
   });
 
+  it('keeps the "is" operator when switching from "(no value)" to a real value', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: '!has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: 'browser:firefox',
+    });
+  });
+
+  it('keeps the "is not" operator when switching from "(no value)" to a real value', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: '!browser:firefox',
+    });
+  });
+
   it('allows searching for values over 70 characters', async () => {
     // Create a long transaction name that exceeds 70 characters
     const longValue =
@@ -246,8 +292,8 @@ describe('FilterSelector', () => {
 
     // Wait for options to load - both values should be visible initially
     expect(await screen.findByText(shortValue)).toBeInTheDocument();
-    // Verify we have 2 checkboxes (one for each option)
-    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    // Two tag values plus the prepended "(no value)" option
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
 
     // Search for the entire long value to test that search works on the full textValue
     // even though the displayed label is truncated at 70 characters

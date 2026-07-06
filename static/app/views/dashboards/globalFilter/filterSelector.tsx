@@ -20,10 +20,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
-import {
-  modifyFilterOperatorQuery,
-  modifyFilterValue,
-} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {
   escapeTagValueForSearch,
@@ -50,12 +47,11 @@ import {
   buildNoValueFilterQuery,
   getFieldDefinitionForDataset,
   getFilterToken,
-  getNoValueOperator,
-  getValueFilterToken,
-  hasNoValueFilter,
+  getNoValueInfo,
   NO_VALUE_SENTINEL,
   NO_VALUE_SUPPORTED_OPERATORS,
   parseFilterValue,
+  stripUnsupportedNoValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {
@@ -86,27 +82,36 @@ export function FilterSelector({
   const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
   const stagedValueRef = useRef<string[]>([]);
 
-  const {fieldDefinition, filterToken} = useMemo(() => {
-    const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
+  const {fieldDefinition, filterToken, valueToken, hasNoValue, noValueOperator} =
+    useMemo(() => {
+      const fieldDef = getFieldDefinitionForDataset(
+        globalFilter.tag,
+        globalFilter.dataset
+      );
 
-    // For "(no value)" filters, drive the UI from the value token when present,
-    // otherwise a default token (the bare has:/!has: has no value to edit).
-    const allTokens = globalFilter.value
-      ? parseFilterValue(globalFilter.value, globalFilter)
-      : [];
-    const containsNoValue = hasNoValueFilter(allTokens);
-    const valueToken = containsNoValue ? getValueFilterToken(allTokens) : null;
+      const allTokens = globalFilter.value
+        ? parseFilterValue(globalFilter.value, globalFilter)
+        : [];
+      const noValueInfo = getNoValueInfo(allTokens);
+      const containsNoValue = noValueInfo.operator !== null;
+      // The editable value paired with a "(no value)" clause, e.g. the
+      // `browser:firefox` in `(browser:firefox OR !has:browser)`.
+      const pairedValueToken = containsNoValue ? noValueInfo.valueToken : null;
 
-    return {
-      fieldDefinition: fieldDef,
-      filterToken:
-        valueToken ??
-        getFilterToken(
-          containsNoValue ? {...globalFilter, value: ''} : globalFilter,
-          fieldDef
-        ),
-    };
-  }, [globalFilter]);
+      return {
+        fieldDefinition: fieldDef,
+        filterToken:
+          pairedValueToken ??
+          getFilterToken(
+            containsNoValue ? {...globalFilter, value: ''} : globalFilter,
+            fieldDef
+          ),
+        valueToken: pairedValueToken,
+        hasNoValue: containsNoValue,
+        noValueOperator:
+          containsNoValue && !pairedValueToken ? noValueInfo.operator : null,
+      };
+    }, [globalFilter]);
 
   // Get initial selected values from the filter token
   const initialValues = useMemo(() => {
@@ -114,29 +119,21 @@ export function FilterSelector({
       return [];
     }
 
-    const allTokens = globalFilter.value
-      ? parseFilterValue(globalFilter.value, globalFilter)
-      : [];
-    const includesNoValue = hasNoValueFilter(allTokens);
-    const valueToken = includesNoValue ? getValueFilterToken(allTokens) : null;
-    const tokenForParsing = valueToken ?? filterToken;
-
-    const initialValue =
-      globalFilter.value && !includesNoValue
-        ? getInitialInputValue(tokenForParsing, true)
-        : valueToken
-          ? getInitialInputValue(valueToken, true)
-          : '';
+    const tokenForParsing =
+      valueToken ?? (globalFilter.value && !hasNoValue ? filterToken : null);
+    const initialValue = tokenForParsing
+      ? getInitialInputValue(tokenForParsing, true)
+      : '';
 
     const selectedValues = getSelectedValuesFromText(initialValue);
     const values = selectedValues.map(item => item.value);
 
-    if (includesNoValue) {
+    if (hasNoValue) {
       values.push(NO_VALUE_SENTINEL);
     }
 
     return values;
-  }, [filterToken, globalFilter]);
+  }, [filterToken, valueToken, hasNoValue, globalFilter.value]);
 
   // Get operator info from the filter token
   const {initialOperator, operatorDropdownItems} = useMemo(() => {
@@ -148,16 +145,6 @@ export function FilterSelector({
     }
 
     const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
-
-    // A bare has:/!has: has no value token, so derive its operator from the
-    // HAS polarity instead of the synthetic (always DEFAULT) filterToken.
-    const allTokens = globalFilter.value
-      ? parseFilterValue(globalFilter.value, globalFilter)
-      : [];
-    const noValueOperator =
-      hasNoValueFilter(allTokens) && !getValueFilterToken(allTokens)
-        ? getNoValueOperator(allTokens)
-        : null;
 
     return {
       initialOperator: noValueOperator ?? operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -178,7 +165,7 @@ export function FilterSelector({
         },
       })),
     };
-  }, [filterToken, fieldDefinition, globalFilter]);
+  }, [filterToken, fieldDefinition, noValueOperator]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
   const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
@@ -380,10 +367,7 @@ export function FilterSelector({
   const translatedOptions = translateKnownFilterOptions(options, globalFilter);
 
   const handleChange = (rawOpts: string[]) => {
-    // Strip the sentinel if the current operator doesn't support it
-    const opts = NO_VALUE_SUPPORTED_OPERATORS.has(stagedOperator)
-      ? rawOpts
-      : rawOpts.filter(opt => opt !== NO_VALUE_SENTINEL);
+    const opts = stripUnsupportedNoValue(rawOpts, stagedOperator);
 
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
       return;
@@ -413,12 +397,15 @@ export function FilterSelector({
           .map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false}))
           .join(',')
       );
-      valueQuery = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
-
-      if (stagedOperator !== initialOperator) {
-        const newToken = parseFilterValue(valueQuery, globalFilter)[0] ?? filterToken;
-        valueQuery = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
-      }
+      // Always rebuild the token with the operator the UI is showing.
+      // The synthetic filterToken used for "(no value)" defaults to the string
+      // CONTAINS wildcard, so patching only the value would leak that operator.
+      valueQuery = modifyFilterValue(
+        filterToken.text,
+        filterToken,
+        cleanedValue,
+        stagedOperator
+      );
     }
 
     const newValue = includeNoValue
@@ -459,9 +446,7 @@ export function FilterSelector({
 
   const renderFilterSelectorTrigger = (filterValues: string[]) => {
     // Strip the sentinel from display when the operator doesn't support it
-    const displayValues = NO_VALUE_SUPPORTED_OPERATORS.has(stagedOperator)
-      ? filterValues
-      : filterValues.filter(v => v !== NO_VALUE_SENTINEL);
+    const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
 
     return (
       <FilterSelectorTrigger
