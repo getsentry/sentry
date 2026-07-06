@@ -2,6 +2,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   buildConversationTurns,
+  buildToolCallsFromSpans,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
@@ -600,6 +601,25 @@ describe('conversationMessages utilities', () => {
       ]);
     });
 
+    it('creates a synthetic turn for orphaned tool calls when result is empty', () => {
+      const turns = [
+        makeTurn({
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+        }),
+      ];
+
+      const merged = mergeEmptyTurns(turns);
+
+      expect(merged).toHaveLength(1);
+      expect(merged[0]?.toolCalls).toHaveLength(1);
+      expect(merged[0]?.toolCalls[0]?.name).toBe('search');
+      expect(merged[0]?.generation.id).toBe('gen-1');
+    });
+
     it('flushes pending tool calls onto last turn when no subsequent turn has content', () => {
       const turns = [
         makeTurn({
@@ -1188,6 +1208,67 @@ describe('conversationMessages utilities', () => {
     it('returns empty array when no generation spans', () => {
       const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
+    });
+
+    it('surfaces tool calls from generation spans with no message content', () => {
+      // Generation spans exist but have no input/output. Tool spans between
+      // them should still appear as a tool-call-only assistant message.
+      const gen1 = createMockNode({id: 'gen-1', startTimestamp: 1000});
+      const tool = createMockToolNode({
+        id: 'tool-1',
+        toolName: 'search',
+        startTimestamp: 1500,
+      });
+      const gen2 = createMockNode({id: 'gen-2', startTimestamp: 2000});
+
+      const messages = extractMessagesFromNodes([gen1, tool, gen2] as any);
+
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(assistantMessages).toHaveLength(1);
+      expect(assistantMessages[0]?.content).toBe('');
+      expect(assistantMessages[0]?.toolCalls).toHaveLength(1);
+      expect(assistantMessages[0]?.toolCalls?.[0]?.name).toBe('search');
+    });
+  });
+
+  describe('buildToolCallsFromSpans', () => {
+    it('converts tool spans to ToolCall objects', () => {
+      const tool1 = createMockToolNode({
+        id: 'tool-1',
+        toolName: 'search',
+        startTimestamp: 1000,
+        endTimestamp: 1200,
+      });
+      const tool2 = createMockToolNode({
+        id: 'tool-2',
+        toolName: 'calculator',
+        startTimestamp: 2000,
+        endTimestamp: 2050,
+      });
+
+      const toolCalls = buildToolCallsFromSpans([tool1, tool2] as any);
+
+      expect(toolCalls).toHaveLength(2);
+      expect(toolCalls[0]).toMatchObject({
+        name: 'search',
+        nodeId: 'tool-1',
+        hasError: false,
+      });
+      expect(toolCalls[1]).toMatchObject({
+        name: 'calculator',
+        nodeId: 'tool-2',
+        hasError: false,
+      });
+    });
+
+    it('skips spans without a tool name', () => {
+      const noName = createMockNode({id: 'gen-1'});
+      const toolCalls = buildToolCallsFromSpans([noName] as any);
+      expect(toolCalls).toHaveLength(0);
+    });
+
+    it('returns empty array for empty input', () => {
+      expect(buildToolCallsFromSpans([])).toEqual([]);
     });
   });
 

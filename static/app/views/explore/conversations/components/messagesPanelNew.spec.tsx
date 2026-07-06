@@ -57,7 +57,7 @@ describe('MessagesPanelNew', () => {
     jest.clearAllMocks();
   });
 
-  it('renders empty message when no nodes provided', () => {
+  it('shows "not captured" notice when there are no nodes at all', () => {
     render(
       <MessagesPanelNew
         nodes={[]}
@@ -67,7 +67,47 @@ describe('MessagesPanelNew', () => {
       />
     );
 
-    expect(screen.getByText('No messages found')).toBeInTheDocument();
+    expect(
+      screen.getByText('Message inputs and outputs were not captured')
+    ).toBeInTheDocument();
+  });
+
+  it('shows placeholder bubbles when generation spans have no message content', () => {
+    const genNode = createMockNode({id: 'gen-1', startTimestamp: 1000});
+
+    render(
+      <MessagesPanelNew
+        nodes={[genNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+        nodeTraceMap={new Map()}
+      />
+    );
+
+    // Two "(not captured)" placeholders: one user bubble, one assistant bubble
+    expect(screen.getAllByText('(not captured)')).toHaveLength(2);
+  });
+
+  it('shows tool calls and notice when there are only tool spans and no generation spans', () => {
+    const toolNode = createMockToolNode({
+      id: 'tool-1',
+      toolName: 'search',
+      startTimestamp: 1000,
+    });
+
+    render(
+      <MessagesPanelNew
+        nodes={[toolNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+        nodeTraceMap={new Map()}
+      />
+    );
+
+    expect(screen.getByText('search')).toBeInTheDocument();
+    expect(
+      screen.getByText('Message inputs and outputs were not captured')
+    ).toBeInTheDocument();
   });
 
   it('renders user and assistant messages', () => {

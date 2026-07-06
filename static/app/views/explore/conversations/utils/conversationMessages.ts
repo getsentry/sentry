@@ -148,8 +148,10 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
   const result: ConversationTurn[] = [];
   let pendingToolCalls: ToolCall[] = [];
   let pendingToolSpanNodes: AITraceSpanNode[] = [];
+  let lastSeenTurn: ConversationTurn | null = null;
 
   for (const turn of turns) {
+    lastSeenTurn = turn;
     const allToolCalls = [...pendingToolCalls, ...turn.toolCalls];
     const allToolSpanNodes = [...pendingToolSpanNodes, ...(turn.toolSpanNodes ?? [])];
 
@@ -170,14 +172,26 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
     }
   }
 
-  // Flush any remaining pending tool calls as a tool-call-only turn
+  // Flush any remaining pending tool calls as a tool-call-only turn.
   const lastTurn = result.at(-1);
-  if (pendingToolCalls.length > 0 && lastTurn) {
-    result[result.length - 1] = {
-      ...lastTurn,
-      toolCalls: [...lastTurn.toolCalls, ...pendingToolCalls],
-      toolSpanNodes: [...(lastTurn.toolSpanNodes ?? []), ...pendingToolSpanNodes],
-    };
+  if (pendingToolCalls.length > 0) {
+    if (lastTurn) {
+      result[result.length - 1] = {
+        ...lastTurn,
+        toolCalls: [...lastTurn.toolCalls, ...pendingToolCalls],
+        toolSpanNodes: [...(lastTurn.toolSpanNodes ?? []), ...pendingToolSpanNodes],
+      };
+    } else if (lastSeenTurn) {
+      // All generation spans had no content; surface the orphaned tool calls
+      // as a tool-call-only assistant turn anchored on the last generation span.
+      result.push({
+        ...lastSeenTurn,
+        userContent: null,
+        assistantContent: null,
+        toolCalls: pendingToolCalls,
+        toolSpanNodes: pendingToolSpanNodes,
+      });
+    }
   }
 
   return result;
@@ -415,6 +429,30 @@ function getNodeEndTimestamp(node: AITraceSpanNode): number {
     return node.value.timestamp;
   }
   return 0;
+}
+
+/**
+ * Converts raw tool span nodes into ToolCall objects for direct rendering.
+ * Use this when there are no generation spans to anchor tool calls (e.g. when
+ * all generation spans lack message content, or when only tool spans are present).
+ */
+export function buildToolCallsFromSpans(spans: AITraceSpanNode[]): ToolCall[] {
+  return spans.flatMap(span => {
+    const name = getStringAttr(span, SpanFields.GEN_AI_TOOL_NAME);
+    if (!name) {
+      return [];
+    }
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    const duration = end > start ? end - start : undefined;
+    const toolCall: ToolCall = {
+      name,
+      nodeId: span.id,
+      hasError: hasError(span),
+      duration,
+    };
+    return [toolCall];
+  });
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {

@@ -11,7 +11,6 @@ import {
   MessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,8 +19,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
 import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
+  buildToolCallsFromSpans,
   type ConversationMessage,
   extractMessagesFromNodes,
+  partitionSpansByType,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -87,9 +88,49 @@ export function MessagesPanelNew({
   }
 
   if (messages.length === 0) {
+    // Even without message content, tool spans and generation spans may be
+    // present. Surface them so the user sees AI activity rather than a blank
+    // panel. Generation spans with no input/output get placeholder bubbles
+    // ("not captured") to preserve the conversational shape.
+    const {generationSpans, toolSpans} = partitionSpansByType(nodes);
+    const orphanToolCalls = buildToolCallsFromSpans(toolSpans);
+    const hasGenerations = generationSpans.length > 0;
+
     return (
       <PanelContainer>
-        <EmptyMessage>{t('No messages found')}</EmptyMessage>
+        <Stack gap="0" width="100%">
+          {hasGenerations && (
+            <UserMessageBlock>
+              <MessageText align="left" variant="muted">
+                {t('(not captured)')}
+              </MessageText>
+            </UserMessageBlock>
+          )}
+          {orphanToolCalls.length > 0 && (
+            <MessageBlock>
+              <MessageToolCallsNew
+                toolCalls={orphanToolCalls}
+                selectedNodeId={selectedNodeId}
+                nodeMap={nodeMap}
+                nodeTraceMap={nodeTraceMap}
+                onSelectNode={onSelectNode}
+              />
+            </MessageBlock>
+          )}
+          {hasGenerations ? (
+            <AssistantMessageBlock>
+              <MessageText align="left" variant="muted">
+                {t('(not captured)')}
+              </MessageText>
+            </AssistantMessageBlock>
+          ) : (
+            <Flex padding="md xl" width="100%" justify="center">
+              <Text size="sm" variant="muted" align="center">
+                {t('Message inputs and outputs were not captured')}
+              </Text>
+            </Flex>
+          )}
+        </Stack>
       </PanelContainer>
     );
   }
