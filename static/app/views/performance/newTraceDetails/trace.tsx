@@ -451,11 +451,17 @@ export function Trace({
     ]
   );
 
+  // While the trace is loading the virtualized list renders TraceLoadingRow,
+  // which has no pinned attribute cell. Derive the loading state once so the
+  // pinned column header and border line only render alongside real rows,
+  // never orphaned above the loading placeholders.
+  const isTraceLoading = trace.type !== 'trace' || isLoading;
+
   const render = useMemo(() => {
-    return trace.type !== 'trace' || isLoading
+    return isTraceLoading
       ? (r: any) => renderLoadingRow(r)
       : (r: any) => renderVirtualizedRow(r);
-  }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
+  }, [isTraceLoading, renderLoadingRow, renderVirtualizedRow]);
 
   const traceNode = trace.root.children[0];
   const traceStartTimestamp = traceNode?.space?.[0];
@@ -475,7 +481,7 @@ export function Trace({
       className={`
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
-        ${trace.type !== 'trace' || isLoading ? 'Loading' : ''}
+        ${isTraceLoading ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
     >
       <div
@@ -485,7 +491,7 @@ export function Trace({
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
-      {pinnedAttribute ? (
+      {pinnedAttribute && !isTraceLoading ? (
         <Fragment>
           <div className="TracePinnedColumnLine" />
           <TracePinnedAttributeHeader pinnedAttribute={pinnedAttribute} />
@@ -543,7 +549,7 @@ export function Trace({
         {manager.interval_bars.map((_, i) => {
           const indicatorTimestamp = manager.intervals[i] ?? 0;
 
-          if (trace.type !== 'trace' || isLoading) {
+          if (isTraceLoading) {
             return null;
           }
 
@@ -562,8 +568,7 @@ export function Trace({
             </div>
           );
         })}
-        {trace.type === 'trace' &&
-          !isLoading &&
+        {!isTraceLoading &&
           timeCompression.gaps.map((gap, i) => (
             <CollapsedGapMarker
               key={`${gap.start}-${gap.end}`}
