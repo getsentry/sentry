@@ -1,27 +1,28 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
+import {IconWarning} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {
   IntegrationInstallationStatus,
   SentryApp,
   SentryAppStatus,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
+  canManageIntegrations,
   convertIntegrationTypeToSnakeCase,
-  trackIntegrationAnalytics,
+  getIntegrationNoun,
 } from 'sentry/utils/integrationUtil';
 
-import {AlertContainer} from './integrationAlertContainer';
 import {IntegrationStatus} from './integrationStatus';
 
 type Props = {
@@ -32,18 +33,10 @@ type Props = {
   publishStatus: SentryAppStatus;
   slug: string;
   type: 'firstParty' | 'sentryApp' | 'docIntegration';
-  /**
-   * If provided, render an alert message with this text.
-   */
-  alertText?: string;
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
   disabledConfigurations?: number;
-  /**
-   * If `alertText` was provided, this text overrides the "Resolve now" message
-   * in the alert.
-   */
-  resolveText?: string;
+  outdatedConfigurations?: number;
   status?: IntegrationInstallationStatus;
 };
 
@@ -63,8 +56,7 @@ export function IntegrationRow(props: Props) {
     publishStatus,
     configurations,
     categories,
-    alertText,
-    resolveText,
+    outdatedConfigurations = 0,
     customAlert,
     customIcon,
     disabledConfigurations,
@@ -75,14 +67,16 @@ export function IntegrationRow(props: Props) {
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
-  // When there's exactly one installed workspace there's nothing to
-  // disambiguate, so auto-open the install/upgrade modal (via
-  // `useAutoOpenInstallModal`) instead of making the user pick on the config
-  // page. With multiple workspaces we still send them to the config tab to
-  // choose which one to update.
+  const hasIntegrationAccess = canManageIntegrations(organization);
+
+  // When exactly one workspace is outdated there's nothing to disambiguate, so
+  // auto-open the install/upgrade modal instead of making the user pick on the
+  // config page. With multiple outdated workspaces we send them to the config
+  // tab to choose which one to update. Members who can't manage integrations
+  // never get the auto-open param, since they can't act on the reinstall flow.
   const resolveNowHref =
     `${baseUrl}?tab=configurations&referrer=directory_resolve_now` +
-    (configurations === 1 ? '&showInstallModal=1' : '');
+    (hasIntegrationAccess && outdatedConfigurations === 1 ? '&showInstallModal=1' : '');
 
   const renderDetails = () => {
     if (type === 'sentryApp') {
@@ -113,12 +107,51 @@ export function IntegrationRow(props: Props) {
     return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
   };
 
+  const getUpgradeTooltipTitle = () => {
+    if (!hasIntegrationAccess) {
+      return tct(
+        "There's a new update for your [displayName] integration, please update your [noun]",
+        {displayName, noun: getIntegrationNoun(slug)}
+      );
+    }
+    return tct(
+      "There's a new update for your [displayName] integration, please [link:click here] to update your [noun]",
+      {
+        displayName,
+        noun: getIntegrationNoun(slug),
+        link: (
+          <Link
+            to={resolveNowHref}
+            onClick={() =>
+              trackAnalytics('integrations.resolve_now_clicked', {
+                integration_type: convertIntegrationTypeToSnakeCase(type),
+                integration: slug,
+                organization,
+              })
+            }
+          />
+        ),
+      }
+    );
+  };
+
   return (
     <PanelRow noPadding data-test-id={slug}>
       <Flex align="center" padding="xl">
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
-          <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+          <Flex gap="xs" align="center">
+            <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+            {outdatedConfigurations > 0 && (
+              <Tooltip
+                isHoverable
+                containerDisplayMode="flex"
+                title={getUpgradeTooltipTitle()}
+              >
+                <IconWarning variant="warning" aria-label={t('Integration alert')} />
+              </Tooltip>
+            )}
+          </Flex>
           <IntegrationDetails>
             {renderStatus()}
             {renderDetails()}
@@ -132,33 +165,6 @@ export function IntegrationRow(props: Props) {
           ))}
         </Flex>
       </Flex>
-      {alertText && (
-        <AlertContainer>
-          <Alert.Container>
-            <Alert
-              variant="warning"
-              trailingItems={
-                <LinkButton
-                  href={resolveNowHref}
-                  variant="primary"
-                  size="xs"
-                  onClick={() =>
-                    trackIntegrationAnalytics('integrations.resolve_now_clicked', {
-                      integration_type: convertIntegrationTypeToSnakeCase(type),
-                      integration: slug,
-                      organization,
-                    })
-                  }
-                >
-                  {resolveText || t('Resolve Now')}
-                </LinkButton>
-              }
-            >
-              {alertText}
-            </Alert>
-          </Alert.Container>
-        </AlertContainer>
-      )}
       {customAlert}
     </PanelRow>
   );

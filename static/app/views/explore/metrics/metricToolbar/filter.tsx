@@ -9,6 +9,7 @@ import {
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -20,6 +21,7 @@ import {
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
@@ -33,11 +35,11 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
-const EMPTY_TAG_COLLECTION: TagCollection = {};
 const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  disableValidation?: boolean;
   disabled?: boolean;
   environments?: string[];
   portalTarget?: HTMLElement;
@@ -70,6 +72,7 @@ export function Filter({
   environments,
   portalTarget,
   disabled,
+  disableValidation,
 }: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
@@ -100,6 +103,16 @@ export function Filter({
   });
   const isSearchBarDisabled =
     isLoading || (!skipTraceMetricFilter && !traceMetricFilter) || disabled;
+
+  const {data: validatedSearchQueryData} = useValidateMetricsTab({
+    enabled:
+      !disableValidation &&
+      Boolean(query) &&
+      (skipTraceMetricFilter || Boolean(traceMetricFilter)) &&
+      !disabled,
+    projectIds,
+    environments,
+  });
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -164,13 +177,73 @@ export function Filter({
     };
   }, [data?.booleanAttributes]);
 
+  const {
+    validatedNumberTags,
+    validatedStringTags,
+    validatedBooleanTags,
+    invalidFilterKeys,
+  } = useMemo(() => {
+    const localBooleanTags: TagCollection = {...visibleBooleanTags};
+    const localNumberTags: TagCollection = {...visibleNumberTags};
+    const localStringTags: TagCollection = {...visibleStringTags};
+    const localInvalidFilterKeys: string[] = [];
+
+    for (const item of validatedSearchQueryData?.query.fields ?? []) {
+      if (HiddenTraceMetricSearchFields.includes(item.name)) {
+        continue;
+      }
+
+      if (item.valid) {
+        if (item.attrType === 'boolean') {
+          localBooleanTags[item.name] ??= {
+            key: item.name,
+            name: prettifyAttributeName(item.name),
+            kind: FieldKind.BOOLEAN,
+          };
+        }
+
+        if (item.attrType === 'number') {
+          localNumberTags[item.name] ??= {
+            key: item.name,
+            name: prettifyAttributeName(item.name),
+            kind: FieldKind.MEASUREMENT,
+          };
+        }
+
+        if (item.attrType === 'string') {
+          localStringTags[item.name] ??= {
+            key: item.name,
+            name: prettifyAttributeName(item.name),
+            kind: FieldKind.TAG,
+          };
+        }
+
+        continue;
+      }
+
+      localInvalidFilterKeys.push(item.name);
+    }
+
+    return {
+      validatedNumberTags: localNumberTags,
+      validatedStringTags: localStringTags,
+      validatedBooleanTags: localBooleanTags,
+      invalidFilterKeys: localInvalidFilterKeys,
+    };
+  }, [
+    validatedSearchQueryData?.query.fields,
+    visibleBooleanTags,
+    visibleNumberTags,
+    visibleStringTags,
+  ]);
+
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
-        booleanAttributes: visibleBooleanTags ?? EMPTY_TAG_COLLECTION,
-        numberAttributes: visibleNumberTags ?? EMPTY_TAG_COLLECTION,
-        stringAttributes: visibleStringTags ?? EMPTY_TAG_COLLECTION,
+        booleanAttributes: validatedBooleanTags,
+        numberAttributes: validatedNumberTags,
+        stringAttributes: validatedStringTags,
         booleanSecondaryAliases: EMPTY_ALIASES,
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
@@ -184,24 +257,26 @@ export function Filter({
         environments,
         disabled: isSearchBarDisabled,
         portalTarget,
+        invalidFilterKeys,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
         disableRecentSearches: skipTraceMetricFilter || !traceMetric.name,
       };
     }, [
-      query,
-      setQuery,
-      visibleBooleanTags,
-      visibleNumberTags,
-      visibleStringTags,
-      traceMetric.name,
       attributeQuery,
-      skipTraceMetricFilter,
-      projectIds,
       environments,
+      invalidFilterKeys,
       isSearchBarDisabled,
       portalTarget,
+      projectIds,
+      query,
+      setQuery,
+      skipTraceMetricFilter,
+      traceMetric.name,
+      validatedBooleanTags,
+      validatedNumberTags,
+      validatedStringTags,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

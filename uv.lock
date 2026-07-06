@@ -2426,7 +2426,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.20.10" },
+    { name = "taskbroker-client", specifier = ">=0.20.11" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2498,13 +2498,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.40.3"
+version = "2.41.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.40.3-py3-none-any.whl", hash = "sha256:d10b9767cbb572de86b8a41b3894bcb371d112ac5d6f70cd66f35cabdbf6ea9b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.41.0-py3-none-any.whl", hash = "sha256:08c0efb1a02a97ba9364f07b53a520ed204d7da015c4ea01f9bc8f9f81d6373b" },
 ]
 
 [[package]]
@@ -2819,7 +2819,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.10"
+version = "0.20.11"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2836,7 +2836,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.10-py3-none-any.whl", hash = "sha256:044088c1fc908c6cc658152cac9461bccc5aa948fd34ce6633954ca2c3d72ea8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.11-py3-none-any.whl", hash = "sha256:f3d172a60f375426bdc3523a1a786a78d2a488050e67396b472d5b4d0725d01b" },
 ]
 
 [[package]]

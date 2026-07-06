@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
+import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
@@ -127,7 +127,10 @@ export class InstalledIntegration extends Component<Props> {
           return (
             <Fragment>
               <IntegrationItemBox>
-                <IntegrationItem integration={integration} />
+                <IntegrationItem
+                  integration={integration}
+                  requiresUpgrade={requiresUpgrade}
+                />
               </IntegrationItemBox>
               <div>
                 <Tooltip
@@ -143,10 +146,9 @@ export class InstalledIntegration extends Component<Props> {
                         view: 'integrations_directory_integration_detail',
                         already_installed: true,
                       }}
-                      buttonText={t('Update Now')}
+                      buttonText={t('Update %s', provider.name)}
                       data-test-id="integration-upgrade-button"
                       disabled={disableAction}
-                      icon={<IconWarning />}
                       onAddIntegration={() => {}}
                       organization={organization}
                       provider={provider}

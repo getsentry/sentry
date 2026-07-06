@@ -32,6 +32,7 @@ import type {
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -54,6 +55,7 @@ import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
+import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
@@ -363,7 +365,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      ? props.releases?.map(({timestamp, version}) => ({
+          date: timestamp,
+          version,
+        }))
       : [],
     yAxisIndex: yAxes.length,
   });
@@ -427,17 +432,46 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';
 
+  const timezone = utc ? 'UTC' : getUserTimezone();
+  const customTicks = useMemo(() => {
+    if (earliestTimeStamp === undefined || latestTimeStamp === undefined) {
+      return;
+    }
+    return generateTimezoneAlignedTicks(
+      earliestTimeStamp,
+      latestTimeStamp,
+      X_AXIS_SPLIT_NUMBER,
+      timezone
+    );
+  }, [earliestTimeStamp, latestTimeStamp, timezone]);
+
+  const hasCustomTicks = customTicks && customTicks.length > 0;
+
   const xAxis = showXAxis
     ? {
         animation: false,
+        type: 'value' as const,
+        min: 'dataMin' as const,
+        max: 'dataMax' as const,
         axisLabel: {
           padding: [0, 10, 0, 10],
-          width: 60,
           formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            return formatXAxisTimestamp(value, timezone);
           },
+          ...(hasCustomTicks
+            ? // With `customValues`, `showMinLabel`/`showMaxLabel` govern the
+              // first and last custom tick. ECharts auto-hides them when it
+              // thinks they'd clip at the axis edge, so force both on.
+              {customValues: customTicks, showMinLabel: true, showMaxLabel: true}
+            : {}),
         },
-        splitNumber: 5,
+        axisTick: {
+          show: true,
+          ...(hasCustomTicks ? {customValues: customTicks} : {}),
+        },
+        // When customValues are provided, suppress auto-tick generation
+        // so ECharts only renders our timezone-aligned ticks.
+        splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
         ...releaseBubbleXAxis,
       }
     : HIDDEN_AXIS;
@@ -712,6 +746,8 @@ function getPlottableEventDataIndex(
 }
 
 // Hide every part of the axis so ECharts will remove those elements and also
+const X_AXIS_SPLIT_NUMBER = 10;
+
 // remove the visual space they would take up if they were there.
 const HIDDEN_AXIS = {
   show: false,
