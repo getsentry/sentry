@@ -22,14 +22,6 @@ from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 logger = logging.getLogger(__name__)
 
 
-def _log_missing_target_type(action: "Action") -> None:
-    logger.warning(
-        "workflow_engine_action.missing_target_type",
-        extra={"action_id": action.id, "action_type": action.type},
-    )
-    return None
-
-
 class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self, item_list: Sequence[Action], user: User | RpcUser | AnonymousUser, **kwargs: Any
@@ -72,6 +64,12 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         target_identifier: str | None = obj.config.get("target_identifier")
         target_display: str | None = obj.config.get("target_display")
 
+        if target_type is None:
+            logger.warning(
+                "workflow_engine_action.missing_target_type",
+                extra={"action_id": obj.id, "action_type": obj.type},
+            )
+
         sentry_app_id = None
         sentry_app_config = None
         if obj.type == Action.Type.SENTRY_APP.value:
@@ -88,7 +86,7 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             "type": obj.type,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)]
             if target_type is not None
-            else _log_missing_target_type(obj),
+            else None,
             "targetIdentifier": get_identifier_from_action(
                 type_value, str(target_identifier), target_display
             ),
