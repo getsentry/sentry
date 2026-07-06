@@ -1722,6 +1722,8 @@ const TraceStylingWrapper = styled('div')`
       white-space: nowrap;
       min-width: 0;
       flex: 1 1 auto;
+      color: ${p => p.theme.tokens.content.primary};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
     }
   }
 
@@ -1735,6 +1737,9 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     overflow: hidden;
     background-color: ${p => p.theme.tokens.background.primary};
+    /* Keep the column visually uniform instead of inheriting the row's semantic
+       (error/warning) text color or highlight background. */
+    color: ${p => p.theme.tokens.content.primary};
 
     /* Inner element the view manager translates so the whole column scrolls
        horizontally together. Horizontal padding lives here (not on the cell) so
@@ -1758,16 +1763,6 @@ const TraceStylingWrapper = styled('div')`
         color: ${p => p.theme.tokens.content.secondary};
       }
     }
-  }
-
-  .TraceRow:focus .TracePinnedColumn,
-  .TraceRow[tabindex='0'] .TracePinnedColumn,
-  .TraceRow.Highlight .TracePinnedColumn {
-    background-color: var(--row-background-focused);
-  }
-
-  .TraceRow.SearchResult .TracePinnedColumn {
-    background-color: ${p => p.theme.colors.yellow100};
   }
 
   .TraceBar {
