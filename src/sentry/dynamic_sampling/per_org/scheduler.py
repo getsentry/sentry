@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from datetime import timedelta
 
 import sentry_sdk
@@ -30,6 +31,7 @@ from sentry.dynamic_sampling.per_org.queries import (
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingStatus,
+    emit_status,
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
@@ -41,6 +43,9 @@ from sentry.utils.cursored_scheduler import CursoredScheduler
 
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
+JITTER_WINDOW_SECONDS = 60
+
+SCHEDULER_METRIC = "dynamic_sampling.schedule_per_org_calculations.org_status"
 
 
 @instrumented_task(
@@ -114,12 +119,31 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 )
 @track_dynamic_sampling
 def schedule_per_org_calculations() -> None:
+    dispatched = 0
+    skipped = 0
+
+    def validate_and_dispatch(org_id: int) -> bool:
+        nonlocal dispatched, skipped
+        if not is_org_in_rollout(org_id):
+            skipped += 1
+            return False
+        run_calculations_per_org_task_entry.apply_async(
+            args=(org_id,),
+            countdown=random.randint(0, JITTER_WINDOW_SECONDS),
+        )
+        dispatched += 1
+        # Return False so CursoredScheduler does not call task.delay() again.
+        return False
+
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
         queryset=Organization.objects.filter(status=OrganizationStatus.ACTIVE),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
-        validate_item=is_org_in_rollout,
+        validate_item=validate_and_dispatch,
     )
     scheduler.tick()
+
+    emit_status(SCHEDULER_METRIC, DynamicSamplingStatus.DISPATCHED, amount=dispatched)
+    emit_status(SCHEDULER_METRIC, DynamicSamplingStatus.ROLLOUT_EXCLUDED, amount=skipped)
