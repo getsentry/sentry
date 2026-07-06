@@ -467,9 +467,6 @@ const TokensTooltipTitle = styled('div')`
   gap: ${p => p.theme.space.xs};
 `;
 
-// Bound the tag to its container so a long tool name truncates with an ellipsis
-// instead of overflowing the panel. The tag's inner text already truncates, but
-// text-overflow is ignored on its flex container, so flip it to block.
 const truncatedTagCss = css`
   min-width: 0;
   max-width: 100%;
