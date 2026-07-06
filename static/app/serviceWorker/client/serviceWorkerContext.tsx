@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
 
-const DEBUG_LOGGING = true;
+const DEBUG_LOGGING = false;
 
 function log(message: string, options?: Sentry.metrics.MetricOptions) {
   Sentry.metrics.count(`service-worker.register.${message}`, 1, options);

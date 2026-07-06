@@ -6,7 +6,7 @@ import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-const DEBUG_LOGGING = true;
+const DEBUG_LOGGING = false;
 
 function log(message: string) {
   Sentry.metrics.count(`service-worker.worker.${message}`);
