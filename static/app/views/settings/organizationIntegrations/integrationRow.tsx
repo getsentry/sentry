@@ -120,7 +120,7 @@ export function IntegrationRow(props: Props) {
         displayName,
         noun: getIntegrationNoun(slug),
         link: (
-          <UnderlinedLink
+          <Link
             to={resolveNowHref}
             onClick={() =>
               trackAnalytics('integrations.resolve_now_clicked', {
@@ -169,10 +169,6 @@ export function IntegrationRow(props: Props) {
     </PanelRow>
   );
 }
-
-const UnderlinedLink = styled(Link)`
-  text-decoration: underline;
-`;
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;
