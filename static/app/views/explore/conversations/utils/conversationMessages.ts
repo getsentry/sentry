@@ -46,13 +46,10 @@ interface ConversationTurn {
   toolCalls: ToolCall[];
   userContent: string | null;
   userEmail: string | undefined;
-  // Whether the input carries history (>1 message). Single-message inputs are
-  // non-cumulative SDKs, so every generation is a genuine turn (never deduped).
-  // Defaults to true (assume cumulative) when unknown.
+  // Input carries history (>1 message). Single-message inputs are never deduped.
   hasInputHistory?: boolean;
   toolSpanNodes?: AITraceSpanNode[];
-  // User messages in the cumulative input history. A growing count marks a
-  // genuine repeat vs. the same last message carried across a tool loop.
+  // User messages in the input history; a growing count marks a genuine repeat.
   userMessageCount?: number;
 }
 
@@ -190,17 +187,13 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   const messages: ConversationMessage[] = [];
   const seenUserContent = new Set<string>();
   const seenAssistantContent = new Set<string>();
-  // Highest number of user messages seen in any generation's input so far. A
-  // growing count means the user genuinely sent another message, even when its
-  // text is identical to a previous one.
   let maxUserMessageCount = 0;
 
   for (const turn of turns) {
     const startTs = getNodeStartTimestamp(turn.generation);
     const genEnd = getNodeEndTimestamp(turn.generation);
 
-    // Only cumulative inputs are deduped; a non-cumulative (single-message)
-    // input is always a genuine new turn.
+    // Only cumulative inputs are deduped; single-message inputs are genuine turns.
     const hasHistory = turn.hasInputHistory ?? true;
     const userMessageCount = turn.userMessageCount ?? 0;
     const userCountGrew = userMessageCount > maxUserMessageCount;
@@ -318,12 +311,9 @@ export interface InputMessageStats {
 }
 
 /**
- * Counts messages in a generation's input, used to decide whether a repeated
- * user message is a genuine new turn or a carry-forward. `totalMessageCount`
- * separates cumulative SDKs (>1 message) from non-cumulative ones (only the
- * current message); `userMessageCount` grows on a genuine repeat within a
- * cumulative history. Both are 0 for missing or scrubbed input, which falls
- * back to content-based dedup.
+ * Counts messages in a generation's input to distinguish a genuine repeated
+ * user message from a carry-forward. Returns zeroes for missing or scrubbed
+ * input.
  */
 export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
   const raw =

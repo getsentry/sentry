@@ -321,8 +321,7 @@ describe('MessagesPanel', () => {
       },
     });
 
-    // Cumulative history replaying the same last user message: same turn, so
-    // the question is shown once while both responses render.
+    // Cumulative history replaying the same last message: shown once.
     const node2 = createMockNode({
       id: 'span-2',
       startTimestamp: 2000,

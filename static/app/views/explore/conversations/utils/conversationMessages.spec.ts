@@ -656,10 +656,7 @@ describe('conversationMessages utilities', () => {
       });
     });
 
-    // Same user text in two turns. Whether it collapses depends on the input
-    // shape: a cumulative tool loop replays the same last message (collapse),
-    // while a growing user-message count or a non-cumulative single-message
-    // input marks a genuine repeat (keep).
+    // Same user text in two turns: collapse only for a cumulative tool loop.
     it.each([
       {
         name: 'collapses identical content in a cumulative history',
@@ -1098,10 +1095,7 @@ describe('conversationMessages utilities', () => {
       ]);
     });
 
-    // The same question "Q" in two spans. It collapses only when the second
-    // span's input proves it is the same cumulative turn (a tool loop replaying
-    // the last message); a non-cumulative single-message input or a growing
-    // cumulative history keeps both.
+    // Same question in two spans: collapse only for a cumulative tool loop.
     const Q = 'How is the weather in Vienna?';
     it.each([
       {
