@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -34,6 +35,15 @@ from sentry.seer.runs_query import filtered_runs_queryset
 
 MAX_USER_QUESTIONS = 5
 MAX_QUESTION_LENGTH = 4096
+
+
+def _as_str_list(value: object) -> list[str]:
+    """Coerce a JSON value into a list of strings (``None`` → empty, scalar → singleton)."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [v for v in value if isinstance(v, str)]
+    return []
 
 
 def _fetch_run_outputs(
@@ -74,6 +84,7 @@ def _fetch_run_outputs(
 class OrganizationSeerRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
+        "POST": ["org:read"],
     }
 
 
@@ -81,6 +92,7 @@ class OrganizationSeerRunsPermission(OrganizationPermission):
 class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -103,7 +115,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                 one-shot outputs for the built-in question set on each run
                 (requires the ``seer-run-questions`` feature).
             question: Optional repeatable free-text question (also requires the
-                feature). At most ``MAX_CUSTOM_QUESTIONS`` may be passed.
+                feature). At most ``MAX_USER_QUESTIONS`` may be passed.
 
         ``expand=questions`` and ``question`` are additive: you may request the
         built-in set, user questions, both, or neither. Each run's ``outputs``
@@ -112,6 +124,48 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         correlate answers positionally. The per-output ``key`` and ``hash`` are
         supplementary metadata, not the primary correlation key.
         """
+        start, end = get_date_range_from_params(request.GET, optional=True)
+        return self._list_runs(
+            request,
+            organization,
+            query=request.GET.get("query", "").strip(),
+            expand=request.GET.getlist("expand"),
+            questions=request.GET.getlist("question"),
+            start=start,
+            end=end,
+        )
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Same as ``GET`` but reads its parameters (``query``, ``expand``,
+        ``question``, and date range) from a JSON body. Prefer this when asking
+        many or long questions that don't fit comfortably in a query string.
+        Pagination (``cursor``) is still read from the query string.
+        """
+        data = request.data if isinstance(request.data, dict) else {}
+        query = data.get("query", "")
+        start, end = get_date_range_from_params(data, optional=True)
+        return self._list_runs(
+            request,
+            organization,
+            query=query.strip() if isinstance(query, str) else "",
+            expand=_as_str_list(data.get("expand")),
+            questions=_as_str_list(data.get("question")),
+            start=start,
+            end=end,
+        )
+
+    def _list_runs(
+        self,
+        request: Request,
+        organization: Organization,
+        *,
+        query: str,
+        expand: Sequence[str],
+        questions: Sequence[str],
+        start: datetime | None,
+        end: datetime | None,
+    ) -> Response:
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
@@ -123,8 +177,8 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         user_questions: list[str] = []
         include_builtin = False
         if feature_enabled:
-            include_builtin = "questions" in request.GET.getlist("expand")
-            user_questions = [q.strip() for q in request.GET.getlist("question") if q.strip()]
+            include_builtin = "questions" in expand
+            user_questions = [q.strip() for q in questions if q.strip()]
             if len(user_questions) > MAX_USER_QUESTIONS:
                 return Response(
                     {"detail": f"At most {MAX_USER_QUESTIONS} questions may be supplied."},
@@ -138,21 +192,16 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
 
         # The built-in set (expand=questions) and user questions are additive.
         # Built-ins come first so outputs stay ordered.
-        questions: list[Question] = []
+        run_questions: list[Question] = []
         if include_builtin:
-            questions.extend(QUESTIONS)
+            run_questions.extend(QUESTIONS)
         if user_questions:
-            questions.extend(build_user_questions(user_questions))
-        include_outputs = bool(questions)
+            run_questions.extend(build_user_questions(user_questions))
+        include_outputs = bool(run_questions)
 
-        query = request.GET.get("query", "").strip()
         accessible_project_ids = [
             p.id for p in self.get_projects(request, organization, include_all_accessible=True)
         ]
-
-        # get_date_range_from_params raises InvalidParams (a DRF ParseError) on
-        # bad date params, which DRF renders as a 400 on its own.
-        start, end = get_date_range_from_params(request.GET, optional=True)
 
         try:
             queryset = filtered_runs_queryset(
@@ -174,7 +223,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                 outputs_by_run_id = _fetch_run_outputs(
                     runs,
                     organization,
-                    questions=questions,
+                    questions=run_questions,
                     user_id=request.user.id,
                 )
                 for run, data in zip(runs, serialized):

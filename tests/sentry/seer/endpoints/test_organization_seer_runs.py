@@ -570,6 +570,67 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             status_code=400,
         )
 
+    def test_post_lists_runs(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=1
+        )
+
+        response = self.get_success_response(self.organization.slug, method="post")
+
+        assert [r["id"] for r in response.data] == [str(run.uuid)]
+        assert "outputs" not in response.data[0]
+
+    @with_feature("organizations:seer-run-questions")
+    def test_post_builtin_and_user_questions_are_additive(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+        user_questions = ["What broke?", "Who is affected?"]
+
+        def fake_oneshot(
+            oneshot_id: str, payload: Mapping[str, Any], organization: Any, **kwargs: Any
+        ) -> dict[str, str]:
+            return {"answer": f"answer to: {payload['question']}"}
+
+        with patch("sentry.seer.run_questions.run_oneshot", side_effect=fake_oneshot) as mock_run:
+            response = self.get_success_response(
+                self.organization.slug,
+                method="post",
+                expand=["questions"],
+                question=user_questions,
+            )
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        assert [o["key"] for o in row["outputs"]] == [
+            *(q.key for q in QUESTIONS),
+            "user_0",
+            "user_1",
+        ]
+        assert [o["question"] for o in row["outputs"][len(QUESTIONS) :]] == user_questions
+        assert mock_run.call_count == len(QUESTIONS) + len(user_questions)
+
+    @with_feature("organizations:seer-run-questions")
+    def test_post_too_many_questions_returns_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            method="post",
+            question=[f"q{i}" for i in range(6)],
+            status_code=400,
+        )
+
+    def test_post_questions_require_feature(self) -> None:
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(
+                self.organization.slug, method="post", question=["What broke?"]
+            )
+
+        assert "outputs" not in response.data[0]
+        assert mock_run.call_count == 0
+
 
 class OrganizationSeerRunsEndpointAccessTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-runs"
