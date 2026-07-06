@@ -963,6 +963,7 @@ export function GlobalCommandPaletteActions() {
           t('switch project'),
           t('go to project'),
           t('subproject'),
+          t('project slug'),
         ]}
         prompt={t('Search for a project...')}
         limit={4}
