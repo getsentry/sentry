@@ -62,6 +62,7 @@ import {
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
+  PINNED_COLUMN_WIDTH,
   TracePinnedAttributeColumn,
   TracePinnedAttributeHeader,
   useTracePinnedAttribute,
@@ -477,7 +478,10 @@ export function Trace({
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
       {pinnedAttribute ? (
-        <TracePinnedAttributeHeader pinnedAttribute={pinnedAttribute} />
+        <Fragment>
+          <div className="TracePinnedColumnLine" />
+          <TracePinnedAttributeHeader pinnedAttribute={pinnedAttribute} />
+        </Fragment>
       ) : null}
       <div
         className="TraceIndicatorsContainer"
@@ -1667,7 +1671,24 @@ const TraceStylingWrapper = styled('div')`
    * tree (just left of the divider). It consumes no flex width, so the span-bar
    * coordinate system and divider math are untouched. It must be a direct child
    * of .TraceRow (never inside .TraceLeftColumn, which is horizontally scrolled).
+   *
+   * The left border is drawn once as a full-height line (.TracePinnedColumnLine)
+   * so it stays continuous below the last row, matching the full-height divider on
+   * the right. The per-row cells and header therefore do not draw their own left
+   * border.
    */
+  .TracePinnedColumnLine {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 1px;
+    right: calc(var(--span-column-width) * 100% + ${PINNED_COLUMN_WIDTH}px);
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background-color: ${p => p.theme.tokens.border.primary};
+    z-index: 10;
+    pointer-events: none;
+  }
+
   .TracePinnedColumnHeader {
     position: absolute;
     top: 0;
@@ -1680,7 +1701,6 @@ const TraceStylingWrapper = styled('div')`
     padding-left: ${p => p.theme.space.md};
     padding-right: ${p => p.theme.space.xs};
     background-color: ${p => p.theme.tokens.background.primary};
-    border-left: 1px solid ${p => p.theme.tokens.border.primary};
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     color: ${p => p.theme.tokens.content.secondary};
@@ -1706,7 +1726,6 @@ const TraceStylingWrapper = styled('div')`
     padding-left: ${p => p.theme.space.md};
     padding-right: ${p => p.theme.space.sm};
     background-color: ${p => p.theme.tokens.background.primary};
-    border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
     .TracePinnedColumnValue {
       overflow: hidden;
