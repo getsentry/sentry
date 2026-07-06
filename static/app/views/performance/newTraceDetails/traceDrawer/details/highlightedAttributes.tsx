@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -325,7 +326,7 @@ function HighlightedTools({
   }
 
   return (
-    <Flex direction="row" gap="xs" wrap="wrap" minWidth="0">
+    <Flex direction="row" gap="xs" wrap="wrap">
       {toolNames.sort().map(tool => {
         const usageCount = usedTools.get(tool) ?? 0;
         return (
@@ -338,7 +339,11 @@ function HighlightedTools({
                 : tn('Used %s time', 'Used %s times', usageCount)
             }
           >
-            <Tag key={tool} variant={usedTools.has(tool) ? 'info' : 'muted'}>
+            <Tag
+              key={tool}
+              variant={usedTools.has(tool) ? 'info' : 'muted'}
+              css={truncatedTagCss}
+            >
               {tool}
             </Tag>
           </Tooltip>
@@ -460,4 +465,16 @@ const TokensTooltipTitle = styled('div')`
     text-align: right;
   }
   gap: ${p => p.theme.space.xs};
+`;
+
+// Bound the tag to its container so a long tool name truncates with an ellipsis
+// instead of overflowing the panel. The tag's inner text already truncates, but
+// text-overflow is ignored on its flex container, so flip it to block.
+const truncatedTagCss = css`
+  min-width: 0;
+  max-width: 100%;
+
+  & > * {
+    display: block;
+  }
 `;
