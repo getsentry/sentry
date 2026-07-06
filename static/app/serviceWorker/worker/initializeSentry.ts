@@ -9,7 +9,6 @@ import {
   SPA_MODE_ALLOW_URLS,
   SPA_MODE_TRACE_PROPAGATION_TARGETS,
 } from 'sentry/constants/sdk';
-import type {Config} from 'sentry/types/system';
 
 let lastEventId: string | undefined;
 
@@ -21,13 +20,38 @@ export function getLastEventId(): string | undefined {
   return lastEventId;
 }
 
+// A subset of the Config interface. (see: sentry/static/app/types/system.tsx)
+export interface Props {
+  apmSampling: number;
+  customerDomain: {
+    organizationUrl: string | undefined;
+    sentryUrl: string;
+    subdomain: string;
+  } | null;
+  dsn: string;
+  sentryConfig: {
+    allowUrls: string[];
+    dsn: string;
+    release: string;
+    tracePropagationTargets: string[];
+    environment?: string;
+    profileSessionSampleRate?: number;
+  };
+  userIdentity: {
+    email: string;
+    id: string;
+    ip_address: string;
+    isStaff: boolean;
+  };
+}
+
 export function initializeSentry({
   apmSampling,
   customerDomain,
   dsn,
   sentryConfig,
   userIdentity,
-}: Config) {
+}: Props) {
   Sentry.init({
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig.allowUrls,
     dsn: SPA_DSN || dsn,
