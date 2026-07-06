@@ -104,7 +104,7 @@ export function AutofixAgent({canWrite, project}: Props) {
         {field => (
           <Stack gap="md">
             {!isOnlyGithubRepos && (
-              <Alert variant="warning">{NON_GITHUB_HANDOFF_WARNING}</Alert>
+              <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>
             )}
             <field.Layout.Row
               label={t('Handoff to Agent')}

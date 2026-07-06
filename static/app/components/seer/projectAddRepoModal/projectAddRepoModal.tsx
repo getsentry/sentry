@@ -354,7 +354,7 @@ export function ProjectAddRepoModal({
 
             <Stack gap="md">
               {!isOnlyGithubRepos && (
-                <Alert variant="warning">{NON_GITHUB_HANDOFF_WARNING}</Alert>
+                <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>
               )}
               <form.AppField name="agentOption">
                 {field => (

@@ -38,7 +38,7 @@ export function isGithubRepoProvider(provider: string | undefined | null): boole
 }
 
 export const NON_GITHUB_HANDOFF_WARNING = t(
-  'Non-GitHub repositories only support handing off to Seer.'
+  'Only Seer can be used with non-GitHub repositories.'
 );
 
 export function isPreferredAgentProvider(
