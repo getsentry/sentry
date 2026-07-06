@@ -11,7 +11,6 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.models.project import Project
-from sentry_plugins.amazon_sqs.plugin import get_regions
 
 
 class SQSConfig(TypedDict, total=False):
@@ -127,8 +126,12 @@ class DataForwarderSerializer(Serializer):
             )
 
     def _validate_sqs_region(self, config: dict, errors: list[str]) -> None:
+        import boto3
+
         region = config.get("region")
-        valid_regions = get_regions()
+        valid_regions = boto3.session.Session().get_available_regions(
+            "sqs"
+        ) + boto3.session.Session().get_available_regions("sqs", partition_name="aws-cn")
         if not region or region not in valid_regions:
             errors.append("region must be a valid AWS region")
 

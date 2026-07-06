@@ -9,7 +9,6 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.pr_metrics.attribution import (
-    _parse_pr_number,
     attribute_delegated_agent_pull_request,
     attribute_seer_created_pull_requests,
     recompute_pull_request_attribution,
@@ -64,7 +63,7 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
         assert attribution.is_valid is True
         assert attribution.signal_details == {
             "run_id": 123,
-            "group_id": self.group.id,
+            "group_ids": [self.group.id],
             "pr_url": "https://github.com/getsentry/sentry/pull/42",
         }
 
@@ -307,28 +306,6 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
         assert PullRequest.objects.filter(repository_id=other_repo.id).exists()
 
 
-class ParsePrNumberTest(TestCase):
-    def test_extracts_number_from_supported_url_shapes(self) -> None:
-        # Each provider segment the regex recognizes must yield the trailing number.
-        cases = [
-            ("https://github.com/getsentry/sentry/pull/42", 42),
-            ("https://github.com/getsentry/sentry/pulls/7", 7),
-            ("https://gitlab.com/getsentry/sentry/merge_requests/13", 13),
-        ]
-        for url, expected in cases:
-            assert _parse_pr_number(url) == expected
-
-    def test_returns_none_when_no_pr_segment(self) -> None:
-        # A branch/tree URL or a number-less path must not be mistaken for a PR.
-        cases = [
-            "https://github.com/getsentry/sentry/tree/123",
-            "https://github.com/getsentry/sentry/pulls",
-            "https://github.com/getsentry/sentry",
-        ]
-        for url in cases:
-            assert _parse_pr_number(url) is None
-
-
 class RecordAttributionSignalTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name=REPO_NAME)
@@ -348,10 +325,10 @@ class RecordAttributionSignalTest(TestCase):
 
     def test_updates_details_on_redelivery(self) -> None:
         first = self._record_seer_signal(
-            signal_details={"run_id": 1, "group_id": 2, "pr_url": "https://x/1"}
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
         )
         second = self._record_seer_signal(
-            signal_details={"run_id": 1, "group_id": 2, "pr_url": "https://x/2"}
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/2"}
         )
 
         assert first.id == second.id

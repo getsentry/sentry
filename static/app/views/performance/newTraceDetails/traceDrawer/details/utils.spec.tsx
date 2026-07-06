@@ -1,12 +1,80 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {
+  getAttributeFilterSearch,
+  getTraceAttributesTreeActions,
+  getTraceKeyValueActions,
   getTraceIssueSeverityClassName,
   parseJsonWithFix,
+  TraceDrawerActionValueKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeEAPError,
   makeEAPOccurrence,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+
+describe('getAttributeFilterSearch', () => {
+  it('formats an attribute key and value as a search filter', () => {
+    expect(getAttributeFilterSearch('http.request.method', 'GET')).toBe(
+      'http.request.method:GET'
+    );
+  });
+
+  it('quotes attribute values that need query escaping', () => {
+    expect(getAttributeFilterSearch('span.description', 'GET /api/users')).toBe(
+      'span.description:"GET /api/users"'
+    );
+  });
+});
+
+describe('getTraceAttributesTreeActions', () => {
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue('')},
+    });
+  });
+
+  it('copies the attribute as a formatted filter', () => {
+    const actions = getTraceAttributesTreeActions({
+      location: LocationFixture(),
+      organization: OrganizationFixture({features: []}),
+    })({
+      subtree: {},
+      value: 'GET /api/users',
+      originalAttribute: {
+        attribute_key: 'description',
+        attribute_value: 'GET /api/users',
+        original_attribute_key: 'span.description',
+      },
+    });
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]?.label).toBe('Copy attribute for filter');
+
+    actions[0]?.onAction?.();
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'span.description:"GET /api/users"'
+    );
+  });
+});
+
+describe('getTraceKeyValueActions', () => {
+  it('adds a copy-filter action for attribute values', () => {
+    const actions = getTraceKeyValueActions({
+      location: LocationFixture(),
+      organization: OrganizationFixture({features: []}),
+      rowKey: 'span.description',
+      rowValue: 'GET /api/users',
+      kind: TraceDrawerActionValueKind.ATTRIBUTE,
+    });
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]?.label).toBe('Copy attribute for filter');
+  });
+});
 
 describe('parseJsonWithFix', () => {
   it('parses valid JSON without fixing', () => {

@@ -5,12 +5,12 @@ from collections.abc import Callable, Sequence
 from functools import cached_property
 
 from django.contrib import messages
+from django.db import router, transaction
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.base import Provider
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -22,6 +22,7 @@ from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 from sentry.utils import metrics
+from sentry.utils.auth import is_valid_relative_redirect
 
 from . import default_manager
 
@@ -53,6 +54,8 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
         return self.provider.get_pipeline_views()
 
     def finish_pipeline(self) -> HttpResponseBase:
+        from sentry.integrations.base import IntegrationDomain
+
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,
@@ -64,25 +67,36 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
 
             assert self.request.user.is_authenticated
 
-            if self.provider_model is None and self.provider.auto_create_provider_model:
-                self.provider_model, _ = IdentityProvider.objects.get_or_create(
-                    type=identity["type"],
-                    external_id=identity["idp_external_id"],
-                    defaults={"config": identity.get("idp_config", {})},
+            with transaction.atomic(router.db_for_write(Identity)):
+                if self.provider_model is None and self.provider.auto_create_provider_model:
+                    self.provider_model, _ = IdentityProvider.objects.get_or_create(
+                        type=identity["type"],
+                        external_id=identity["idp_external_id"],
+                        defaults={"config": identity.get("idp_config", {})},
+                    )
+
+                assert self.provider_model is not None
+
+                linked_identity = Identity.objects.link_identity(
+                    user=self.request.user,
+                    idp=self.provider_model,
+                    external_id=identity["id"],
+                    should_reattach=False,
+                    defaults={
+                        "scopes": identity.get("scopes", []),
+                        "data": identity.get("data", {}),
+                    },
                 )
 
-            assert self.provider_model is not None
-
-            Identity.objects.link_identity(
-                user=self.request.user,
-                idp=self.provider_model,
-                external_id=identity["id"],
-                should_reattach=False,
-                defaults={
-                    "scopes": identity.get("scopes", []),
-                    "data": identity.get("data", {}),
-                },
-            )
+                if (
+                    self.provider.create_organization_identity
+                    and self.organization
+                    and linked_identity is not None
+                ):
+                    OrganizationIdentity.objects.get_or_create(
+                        organization_id=self.organization.id,
+                        identity=linked_identity,
+                    )
 
             # Let providers react to a freshly linked identity (e.g. backfilling
             # derived mappings). Best-effort: never let it break the link flow.
@@ -107,30 +121,14 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 skip_internal=False,
             )
 
+            return_url = self.config.get("return_url")
+
             self.state.clear()
+
+            if return_url and is_valid_relative_redirect(return_url):
+                return HttpResponseRedirect(return_url)
 
             # TODO(epurkhiser): When we have more identities and have built out an
             # identity management page that supports these new identities (not
             # social-auth ones), redirect to the identities page.
             return HttpResponseRedirect(reverse("sentry-account-settings"))
-
-
-class MonitoringIdentityPipeline(IdentityPipeline):
-    pipeline_name = "monitoring_identity_provider"
-
-    def finish_pipeline(self) -> HttpResponseBase:
-        response = super().finish_pipeline()
-
-        user = self.request.user
-        if self.organization and self.provider_model is not None and user.is_authenticated:
-            identity = Identity.objects.filter(
-                idp=self.provider_model,
-                user_id=user.id,
-            ).first()
-            if identity:
-                OrganizationIdentity.objects.get_or_create(
-                    organization_id=self.organization.id,
-                    identity=identity,
-                )
-
-        return response

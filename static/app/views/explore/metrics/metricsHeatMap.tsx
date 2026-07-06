@@ -1,49 +1,55 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
-import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
+import {
+  HeatMapWidgetVisualization,
+  type HeatMapZoomContext,
+} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
+import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricLabel,
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
-  useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {
-  useQueryParamsQuery,
-  useSetQueryParamsQuery,
-} from 'sentry/views/explore/queryParams/context';
-import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
-
-// Tooltip action id for the "Add to filter" button, wired to a handler via
-// `tooltipActionHandlers`.
-const ADD_TO_FILTER_ACTION = 'add-to-filter';
+import {prettifyAggregation} from 'sentry/views/explore/utils';
+import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
 
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
   heatmapResult: UseQueryResult<HeatMapSeries>;
+  /**
+   * Stable label of this heat map's metric query (e.g., "A"), used to find the
+   * matching row when drag-zooming. See `handleZoom`.
+   */
+  queryLabel: string;
   title?: string;
 }
 
-export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapProps) {
+export function MetricsHeatMap({
+  heatmapResult,
+  actions,
+  title,
+  queryLabel,
+}: MetricsHeatMapProps) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
-  const metric = useTraceMetric();
-  const userQuery = useQueryParamsQuery();
-  const setMetricQuery = useSetQueryParamsQuery();
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const metricQueries = useMultiMetricsQueryParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -53,11 +59,59 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
 
-  const updateMetricQuery = useCallback(
-    (query: string) => {
-      setMetricQuery(userQuery ? `${userQuery} ${query}` : query);
+  // Drag-to-zoom changes two independent URL params at once: this row's `value`
+  // filter (encoded inside the `metric` param) and the page time range
+  // (`start`/`end`/`statsPeriod`). They have to land in a single `navigate`:
+  // two navigations would each rebuild the whole query from the same stale
+  // `location` snapshot and clobber each other, dropping one of the changes.
+  //
+  // So we hand-assemble that one navigation here — re-encode every metric row,
+  // swapping the new `value` bounds into the row this heat map belongs to. That
+  // row is found by its stable label ("A", "B", ...) rather than object
+  // identity, because the metric queries are decoded fresh from the URL on
+  // every render and share no reference across navigations.
+  //
+  // This is more manual than it should be. A URL-state library like Nuqs
+  // (batched, functional param updates) would let a `value`-filter setter and a
+  // datetime setter each update independently and coalesce into one URL write,
+  // removing both the re-encode loop and the label lookup.
+  const handleZoom = useCallback(
+    ({timestampStart, timestampEnd, valueMin, valueMax}: HeatMapZoomContext) => {
+      const metric = metricQueries
+        .map(metricQuery => {
+          if ((metricQuery.label ?? '') !== queryLabel) {
+            return encodeMetricQueryParams(metricQuery);
+          }
+          const {queryParams} = metricQuery;
+          return encodeMetricQueryParams({
+            ...metricQuery,
+            queryParams: queryParams.replace({
+              query: setExploreAttributeBounds(
+                queryParams.query,
+                'value',
+                valueMin,
+                valueMax
+              ),
+            }),
+          });
+        })
+        .filter(Boolean);
+
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            metric,
+            start: getUtcDateString(Math.floor(timestampStart / 60_000) * 60_000),
+            end: getUtcDateString(Math.ceil(timestampEnd / 60_000) * 60_000),
+            statsPeriod: undefined,
+          },
+        },
+        {preventScrollReset: true}
+      );
     },
-    [userQuery, setMetricQuery]
+    [metricQueries, location, navigate, queryLabel]
   );
 
   return (
@@ -75,52 +129,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
           ) : (
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
-              tooltipActionHandlers={{[ADD_TO_FILTER_ACTION]: updateMetricQuery}}
-              renderTooltipActions={({
-                valueMin,
-                valueMax,
-                timestampStart,
-                timestampEnd,
-              }) => {
-                const valueQuery =
-                  valueMin === valueMax
-                    ? `value:<=${valueMin}`
-                    : `value:>=${valueMin} value:<${valueMax}`;
-                const tracesUrl = getExploreUrl({
-                  organization,
-                  selection: {
-                    ...selection,
-                    datetime: {
-                      ...selection.datetime,
-                      start: new Date(timestampStart),
-                      end: new Date(timestampEnd),
-                      period: null,
-                    },
-                  },
-                  crossEvents: [{type: 'metrics', metric, query: valueQuery}],
-                });
-                return (
-                  <Fragment>
-                    <div>
-                      <span className="tooltip-label tooltip-label-centered">
-                        <a data-traces-link={tracesUrl} href={tracesUrl}>
-                          {t('View connected spans')}
-                        </a>
-                      </span>
-                    </div>
-                    <div>
-                      <span className="tooltip-label tooltip-label-centered">
-                        <a
-                          data-tooltip-action={ADD_TO_FILTER_ACTION}
-                          data-tooltip-action-value={valueQuery}
-                        >
-                          {t('Add to filter')}
-                        </a>
-                      </span>
-                    </div>
-                  </Fragment>
-                );
-              }}
+              onZoom={handleZoom}
             />
           )
         }

@@ -24,10 +24,10 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert response.status_code == 404
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     def test_connect_returns_redirect_url(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
@@ -44,10 +44,10 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         mock_initialize.assert_called_once()
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     def test_connect_gcp_creates_identity_provider(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
@@ -62,13 +62,13 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert IdentityProvider.objects.filter(type="gcp").exists()
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_datadog_does_not_create_identity_provider(
@@ -108,13 +108,13 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert "Unknown monitoring provider" in response.data["detail"]
 
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.current_step"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.initialize"
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
     )
     @patch(
-        "sentry.api.endpoints.organization_monitoring_provider_details.MonitoringIdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_allowed_for_org_read_member(
@@ -279,6 +279,148 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         # The other user's identity is preserved.
         assert Identity.objects.get(idp=idp, external_id="dd-user-123").user_id == other_user.id
         assert not Identity.objects.filter(idp=idp, user=self.user).exists()
+
+
+@control_silo_test
+class OrganizationMonitoringProviderDetailsReauthenticateTest(APITestCase):
+    endpoint = "sentry-api-0-organization-monitoring-provider-details"
+    method = "put"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _connect_datadog_pat(self, *, site: str) -> Identity:
+        idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-456")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "pat-old", "site": site},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+        return identity
+
+    def test_reauthenticate_requires_feature_flag(self) -> None:
+        response = self.get_response(self.organization.slug, "datadog_pat")
+        assert response.status_code == 404
+
+    def test_reauthenticate_not_connected(self) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "datadog_pat")
+
+        assert response.status_code == 404
+        assert "Not connected to this provider" in response.data["detail"]
+
+    def test_reauthenticate_unknown_provider(self) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "unknown")
+
+        assert response.status_code == 400
+        assert "Unknown monitoring provider" in response.data["detail"]
+
+    def test_reauthenticate_only_finds_requesting_user(self) -> None:
+        other_user = self.create_user()
+        self.create_member(organization=self.organization, user=other_user)
+        idp = self.create_identity_provider(type="datadog_pat", external_id="dd-org-456")
+        other_identity = self.create_identity(
+            user=other_user,
+            identity_provider=idp,
+            external_id="dd-user-999",
+            data={"access_token": "pat-other", "site": "datadoghq.eu"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=other_identity)
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-new"
+            )
+
+        assert response.status_code == 404
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_reauthenticate_datadog_pat_reuses_stored_site(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+        }
+        identity = self._connect_datadog_pat(site="datadoghq.eu")
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-new"
+            )
+
+        assert response.status_code == 204
+        identity.refresh_from_db()
+        assert identity.data == {"access_token": "pat-new", "site": "datadoghq.eu"}
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_reauthenticate_datadog_pat_overrides_request_site(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        mock_get_user_info.return_value = {"user_uuid": "dd-user-123", "org_uuid": "dd-org-456"}
+        identity = self._connect_datadog_pat(site="datadoghq.eu")
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            # Deliberately send a different site; the stored region must win.
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-new", site="datadoghq.com"
+            )
+
+        assert response.status_code == 204
+        # The whoami call used the stored region, not the one in the request.
+        mock_get_user_info.assert_called_once_with("pat-new", "https://mcp.datadoghq.eu")
+        identity.refresh_from_db()
+        assert identity.data == {"access_token": "pat-new", "site": "datadoghq.eu"}
+
+    def test_reauthenticate_datadog_pat_requires_access_token(self) -> None:
+        self._connect_datadog_pat(site="datadoghq.eu")
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "datadog_pat")
+
+        assert response.status_code == 400
+        assert "access_token" in response.data["detail"]
+
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
+        return_value=None,
+    )
+    def test_reauthenticate_datadog_oauth_reuses_stored_site(
+        self, mock_init: MagicMock, mock_initialize: MagicMock, mock_current_step: MagicMock
+    ) -> None:
+        mock_current_step.return_value = HttpResponseRedirect(
+            "https://mcp.datadoghq.eu/api/unstable/mcp-server/authorize"
+        )
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={
+                "access_token": "tok",
+                "site": "datadoghq.eu",
+                "client_id": "c",
+                "client_secret": "s",
+            },
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_success_response(self.organization.slug, "datadog")
+
+        assert response.data["redirectUrl"].startswith("https://mcp.datadoghq.eu/")
+        # The pipeline is built with the stored region.
+        assert mock_init.call_args.kwargs["config"] == {"site": "datadoghq.eu"}
 
 
 @control_silo_test

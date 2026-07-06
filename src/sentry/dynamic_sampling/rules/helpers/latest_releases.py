@@ -12,6 +12,7 @@ from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redi
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 ENVIRONMENT_SEPARATOR = ":e:"
 BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
@@ -372,18 +373,22 @@ def record_latest_release(project: Project, release: Release, environment: str |
         return
 
     def on_release_boosted() -> None:
-        span.set_tag(
+        set_span_tag(
+            span,
             "dynamic_sampling.observe_release_status",
             "(release, environment) pair observed and boosted",
         )
-        span.set_data("release", release.id)
-        span.set_data("environment", environment)
+        set_span_data(span, "release", release.id)
+        set_span_data(span, "environment", environment)
 
         schedule_invalidate_project_config(
             project_id=project.id,
             trigger="dynamic_sampling:boost_release",
         )
 
-    with sentry_sdk.start_span(op="event_manager.dynamic_sampling_observe_latest_release") as span:
+    with start_span(
+        op="event_manager.dynamic_sampling_observe_latest_release",
+        name="event_manager.dynamic_sampling_observe_latest_release",
+    ) as span:
         params = LatestReleaseParams(release=release, project=project, environment=environment)
         LatestReleaseBias(params).observe_release(on_release_boosted)

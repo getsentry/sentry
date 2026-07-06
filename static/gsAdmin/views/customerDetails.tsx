@@ -236,8 +236,8 @@ export function CustomerDetails() {
     if (!subscription?.planDetails) {
       return {};
     }
-    // We display all categories that are in either checkoutCategories or onDemandCategories,
-    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // We display all plan categories that are giftable (have a freeEventsMultiple),
+    // then disable the button if the category cannot be gifted on this particular subscription (ie. unlimited quota).
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
@@ -331,7 +331,6 @@ export function CustomerDetails() {
     localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
       level: 'danger',
@@ -499,7 +498,7 @@ export function CustomerDetails() {
             name: 'Terminate Contract',
             help: 'Terminate the contract (charges an early termination fee for contracts with 3 or more months remaining).',
             visible:
-              subscription.contractInterval === 'annual' &&
+              subscription.billingInterval === 'annual' &&
               subscription.canCancel &&
               !subscription.cancelAtPeriodEnd,
             onAction: params =>

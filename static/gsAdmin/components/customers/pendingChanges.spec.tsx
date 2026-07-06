@@ -39,7 +39,6 @@ describe('PendingChanges', () => {
       pendingChanges: PendingChangesFixture({
         planDetails: PlanFixture({
           name: 'Team (Enterprise)',
-          contractInterval: 'annual',
           billingInterval: 'annual',
           budgetTerm: 'on-demand',
         }),
@@ -64,7 +63,6 @@ describe('PendingChanges', () => {
       'The following changes will take effect on Mar 16, 2022'
     );
     expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
-    expect(container).toHaveTextContent('Contract period — monthly → annual');
     expect(container).toHaveTextContent('Billing period — monthly → annual');
     expect(container).toHaveTextContent('Reserved errors — 5,000 → 15,000,000 errors');
     expect(container).toHaveTextContent(
@@ -94,7 +92,6 @@ describe('PendingChanges', () => {
       pendingChanges: PendingChangesFixture({
         planDetails: PlanFixture({
           name: 'Team (Enterprise)',
-          contractInterval: 'annual',
           billingInterval: 'annual',
           budgetTerm: 'on-demand',
         }),
@@ -119,7 +116,6 @@ describe('PendingChanges', () => {
       'The following changes will take effect on Oct 9, 2024'
     );
     expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
-    expect(container).toHaveTextContent('Contract period — monthly → annual');
     expect(container).toHaveTextContent('Billing period — monthly → annual');
     expect(container).toHaveTextContent('Reserved errors — 5,000 → 15,000,000 errors');
     expect(container).toHaveTextContent(
@@ -152,7 +148,6 @@ describe('PendingChanges', () => {
       pendingChanges: PendingChangesFixture({
         planDetails: PlanFixture({
           name: 'Team (Enterprise)',
-          contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: [
             DataCategory.ERRORS,
@@ -202,7 +197,6 @@ describe('PendingChanges', () => {
       pendingChanges: PendingChangesFixture({
         planDetails: PlanFixture({
           name: 'Team (Enterprise)',
-          contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: [
             DataCategory.ERRORS,

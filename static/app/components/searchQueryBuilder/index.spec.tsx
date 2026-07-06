@@ -29,6 +29,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import * as analytics from 'sentry/utils/analytics';
 import {
   FieldKey,
   FieldKind,
@@ -3299,6 +3300,64 @@ describe('SearchQueryBuilder', () => {
           .getAllByRole('option')
           .map(option => option.textContent);
         expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('tracks an analytics event when selecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: true,
+            selected_count: 2,
+          })
+        );
+      });
+
+      it('tracks an analytics event when deselecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:[firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: false,
+            selected_count: 1,
+          })
+        );
       });
 
       it('sorts value suggestions by fuzzy match relevance', async () => {

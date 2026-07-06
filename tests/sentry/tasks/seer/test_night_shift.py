@@ -291,6 +291,19 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         assert [ep.project for ep in result] == [eligible]
         assert result[0].tweaks.enabled is True
 
+    def test_carries_each_projects_connected_repos(self) -> None:
+        org = self.create_organization()
+        a = self._make_eligible(self.create_project(organization=org, slug="a"))
+        b = self._make_eligible(self.create_project(organization=org, slug="b"))
+        extra = self.create_repo(project=b, provider="github", name="owner/b-extra")
+        self.create_seer_project_repository(project=b, repository=extra)
+
+        result = _get_eligible_projects(org, "manual")
+
+        repos_by_slug = {ep.project.slug: sorted(ep.connected_repos) for ep in result}
+        assert repos_by_slug[a.slug] == ["owner/a"]
+        assert repos_by_slug[b.slug] == ["owner/b", "owner/b-extra"]
+
     def test_filters_by_project_id(self) -> None:
         org = self.create_organization()
         target = self._make_eligible(self.create_project(organization=org))
@@ -329,6 +342,20 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         result = _get_eligible_projects(org, "manual")
 
         assert [ep.project for ep in result] == [opens_pr]
+
+    def test_cron_respects_org_allowed_project_slugs_manual_ignores(self) -> None:
+        org = self.create_organization()
+        for slug in ("keep", "drop"):
+            self._make_eligible(self.create_project(organization=org, slug=slug))
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
+        ):
+            cron_result = _get_eligible_projects(org, "cron")
+            manual_result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project.slug for ep in cron_result] == ["keep"]
+        assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
 
 
 @django_db_all
@@ -604,6 +631,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert body["feature_id"] == "night_shift"
         assert [c["group_id"] for c in body["payload"]["candidates"]] == [group.id]
         assert body["payload"]["candidates"][0]["priority"] == "high"
+        assert body["payload"]["candidates"][0]["connected_repos"] == [f"owner/{project.slug}"]
 
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=seer_run.id
@@ -695,7 +723,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         # No SeerRun for the org -> no outbox either (created in one transaction).
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -711,7 +739,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert not SeerRun.objects.filter(organization=org).exists()
 
@@ -733,7 +761,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert run.seer_run is None
+        assert not run.shards.exists()
         assert run.extras["error_message"] == "Night shift dispatch failed"
 
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:

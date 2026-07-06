@@ -38,13 +38,9 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     return null;
   }
 
-  const {billingInterval, contractInterval} = subscription;
+  const {billingInterval} = subscription;
 
   const billingIntervalFilter = (p: Plan) => p.billingInterval === billingInterval;
-
-  // Plans may not have a contract interval.
-  const contractIntervalFilter = (p: Plan) =>
-    contractInterval === undefined || p.contractInterval === contractInterval;
 
   let plans = billingConfig.planList
     .filter(
@@ -57,23 +53,10 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     .sort((a, b) => a.totalPrice - b.totalPrice);
 
   // We try and keep the list of plans as close to the user current plan
-  // configuration as we can, however some older plans (mm2) have
-  // configurations not present in newer billing plans.
-  //
-  // As an example, am1 does NOT have plans where the contract interval is
-  // different from the billing interval.
-  //
-  // Because of this we incrementally loosen the filters when we produce an
-  // empty set of plans.
+  // configuration as we can by matching on the billing interval, but fall
+  // back to the full list when that produces an empty set.
   function matchPlanConfiguration() {
-    let filtered: Plan[] = [];
-
-    filtered = plans.filter(billingIntervalFilter).filter(contractIntervalFilter);
-    if (filtered.length > 0) {
-      return filtered;
-    }
-
-    filtered = plans.filter(billingIntervalFilter);
+    const filtered = plans.filter(billingIntervalFilter);
     if (filtered.length > 0) {
       return filtered;
     }

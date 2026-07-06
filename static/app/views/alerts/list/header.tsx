@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {TabList} from '@sentry/scraps/tabs';
 
@@ -47,18 +49,16 @@ export function AlertHeader({activeTab}: Props) {
   );
 
   return (
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Layout.Title>
-          {t('Alerts')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/alerts/"
-            title={t(
-              'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date.'
-            )}
-          />
-        </Layout.Title>
-      </Layout.HeaderContent>
+    <Fragment>
+      <Layout.Title>
+        {t('Alerts')}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/alerts/"
+          title={t(
+            'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date.'
+          )}
+        />
+      </Layout.Title>
       <TopBar.Slot name="actions">
         <LinkButton
           onClick={handleNavigateToSettings}
@@ -76,20 +76,22 @@ export function AlertHeader({activeTab}: Props) {
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <Layout.HeaderTabs value={activeTab}>
-        <TabList>
-          {alertRulesLink}
-          <TabList.Item
-            key="stream"
-            to={makeAlertsPathname({
-              path: '/',
-              organization,
-            })}
-          >
-            {t('History')}
-          </TabList.Item>
-        </TabList>
-      </Layout.HeaderTabs>
-    </Layout.Header>
+      <Layout.Header>
+        <Layout.HeaderTabs value={activeTab}>
+          <TabList>
+            {alertRulesLink}
+            <TabList.Item
+              key="stream"
+              to={makeAlertsPathname({
+                path: '/',
+                organization,
+              })}
+            >
+              {t('History')}
+            </TabList.Item>
+          </TabList>
+        </Layout.HeaderTabs>
+      </Layout.Header>
+    </Fragment>
   );
 }

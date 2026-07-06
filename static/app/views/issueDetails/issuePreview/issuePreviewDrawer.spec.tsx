@@ -147,7 +147,6 @@ describe('IssuePreviewDrawer', () => {
         billing: null,
         integration: {ok: false, reason: null},
         seerReposLinked: false,
-        githubWriteIntegration: null,
       },
     });
     MockApiClient.addMockResponse({
@@ -160,6 +159,10 @@ describe('IssuePreviewDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
     MockApiClient.addMockResponse({

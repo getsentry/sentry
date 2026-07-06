@@ -112,6 +112,7 @@ function ToolbarGroupByItem({
     <ToolbarGroupByDropdown
       column={column}
       options={options}
+      groupBys={groupBys}
       loading={loading}
       onClose={() => setSearch(undefined)}
       onSearch={setSearch}

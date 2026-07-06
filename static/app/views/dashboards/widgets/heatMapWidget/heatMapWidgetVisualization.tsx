@@ -1,6 +1,6 @@
 import 'echarts/lib/chart/heatmap';
 
-import {Fragment, useCallback, useEffect, useRef, type ReactNode} from 'react';
+import {useCallback, useEffect, useRef, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import type {
   TooltipFormatterCallback,
@@ -8,38 +8,50 @@ import type {
   VisualMapComponentOption,
 } from 'echarts/types/dist/shared';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Text} from '@sentry/scraps/text';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import {isChartHovered} from 'sentry/components/charts/utils';
+import {
+  useChartBoxZoom,
+  type BoxZoomRange,
+} from 'sentry/components/charts/useChartBoxZoom';
+import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
-import {formatYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue';
+import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
+import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
+import {
+  HIDDEN_CATEGORY_AXIS,
+  heatMapTimeAxis,
+  heatMapValueAxis,
+} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/heatMapAxes';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
-import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
 import {HEATMAP_COLORS} from './settings';
 
-// This is the ECharts default font size for axis labels. We need to use this number to do axis label frequency calculations
-// Source: https://echarts.apache.org/en/option.html#yAxis.axisLabel.fontSize
-const Y_AXIS_LABEL_FONT_SIZE = 12;
-
 interface HeatMapWidgetVisualizationProps {
   /**
    * An single `HeatMap` object to render on the chart, and any number of other compatible Heat Map plottables.
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
+  /**
+   * Called when the user drag-selects a region of the heat map. The X-axis
+   * range maps to a time range and the Y-axis range to a value range. When
+   * omitted, drag-to-zoom is disabled.
+   */
+  onZoom?: (context: HeatMapZoomContext) => void;
   /**
    * Renders extra content in a cell's tooltip. Because ECharts renders the
    * tooltip to an HTML string (no live React handlers), the visualization
@@ -57,7 +69,7 @@ interface HeatMapWidgetVisualizationProps {
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, tooltipActionHandlers, renderTooltipActions} = props;
+  const {plottables, tooltipActionHandlers, renderTooltipActions, onZoom} = props;
   const theme = useTheme();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
@@ -115,6 +127,26 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     return () => document.removeEventListener('click', handleTooltipLinksClick);
   }, [handleTooltipLinksClick]);
 
+  const handleZoom = useCallback(
+    (range: BoxZoomRange) => {
+      onZoom?.({
+        timestampStart: range.xRange[0],
+        timestampEnd: range.xRange[1],
+        valueMin: range.yRange[0],
+        valueMax: range.yRange[1],
+      });
+    },
+    [onZoom]
+  );
+
+  // The heat map's readable time/value axes sit at index 1; index 0 is the
+  // hidden category axis that positions the cells.
+  const {brush, toolBox, onBrushStart, onBrushEnd, onChartReady} = useChartBoxZoom({
+    onZoom: onZoom ? handleZoom : undefined,
+    xAxisIndex: 1,
+    yAxisIndex: 1,
+  });
+
   if (!plottablesCanBeVisualized(plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
@@ -146,8 +178,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     return typeof value === 'number' ? value : null;
   }
 
-  const yAxisBucketSize = heatMapPlottable.heatMapSeries.meta.yAxis.bucketSize;
-  const yAxisBucketCount = heatMapPlottable.heatMapSeries.meta.yAxis.bucketCount;
+  const {meta} = heatMapPlottable.heatMapSeries;
+  const yAxisBucketSize = meta.yAxis.bucketSize;
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
@@ -159,12 +191,16 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
     const seriesParams = Array.isArray(params) ? params : [params];
 
-    // Filter null values from tooltip
+    // Hide tooltip for 0 cells. No point showing empty data.
     const filteredParams = seriesParams.filter(param => {
       // @ts-expect-error ECharts types param.value as unknown, but we know it's [xAxis, yAxis, colorPosition, rawCount] from our HeatMap plottable
       const value = extractValue(param.value[3]);
-      return value !== null;
+      return value !== null && value !== 0;
     });
+
+    if (filteredParams.length === 0) {
+      return '';
+    }
 
     let formattedXValue = ECHARTS_MISSING_DATA_VALUE;
 
@@ -172,9 +208,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
+    const yAxisLabel = t('value');
+    const zAxisLabel = truncationFormatter(meta.zAxis.name || 'count()', true, false);
+
     return renderToString(
-      <Fragment>
-        <div className="tooltip-series" style={{cursor: 'default'}}>
+      <Container>
+        <Container padding="lg">
           {filteredParams.map(param => {
             let rawXValue: number | undefined;
             let rawYValue: number | undefined;
@@ -201,36 +240,26 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
               if (defined(yValue) && typeof yValue === 'number') {
                 rawYValue = yValue;
-                const yAxisMinValueFormatted = formatTooltipValue(
+                formattedYValue = formatTooltipYAxisValue(
                   yValue,
+                  yAxisBucketSize,
                   yAxisValueType,
                   yAxisUnit ?? undefined
                 );
-
-                if (yAxisBucketSize === 0) {
-                  formattedYValue = yAxisMinValueFormatted;
-                } else {
-                  const yAxisMaxValueFormatted = formatTooltipValue(
-                    yValue + yAxisBucketSize,
-                    yAxisValueType,
-                    yAxisUnit ?? undefined
-                  );
-
-                  formattedYValue = `${yAxisMinValueFormatted} – ${yAxisMaxValueFormatted}`;
-                }
               }
 
               if (defined(zValue) && typeof zValue === 'number') {
                 // `zValue` is the raw count carried through on dim 3, so it can
                 // be formatted directly (the color position on dim 2 is what's
                 // been transformed, not this).
-                formattedZValue = formatAbbreviatedNumber(zValue, 4, false);
+                formattedZValue = formatTooltipZAxisValue(zValue);
               }
             }
 
-            // The caller renders any cell actions (e.g. an Explore link) from the
-            // cell's raw value/time bounds — the visualization doesn't know what
-            // a "query" or "selection" should look like.
+            // Pull the cell color directly out of ECharts instead of
+            // re-calculating it using the palette.
+            const cellColor = typeof param.color === 'string' ? param.color : undefined;
+
             let tooltipActions: ReactNode = null;
             if (defined(rawXValue) && defined(rawYValue) && renderTooltipActions) {
               tooltipActions = renderTooltipActions({
@@ -242,18 +271,34 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             }
 
             return (
-              <Fragment key={param.seriesIndex}>
-                <div>
-                  <span className="tooltip-label">
-                    <strong>{formattedYValue}</strong>
-                  </span>{' '}
-                  {formattedZValue}
-                </div>
+              <Flex direction="column" gap="sm" key={param.seriesIndex}>
+                <Flex justify="between" gap="xl">
+                  <Text variant="primary" size="sm">
+                    {yAxisLabel}
+                  </Text>
+                  <Text variant="muted" size="sm">
+                    {formattedYValue}
+                  </Text>
+                </Flex>
+                <Flex justify="between" gap="xl">
+                  <Flex align="center" gap="xs">
+                    <CircleIndicator as="span" size={8} color={cellColor} />
+                    <Text variant="primary" size="sm">
+                      {zAxisLabel}
+                    </Text>
+                  </Flex>
+                  <Text variant="muted" size="sm">
+                    {formattedZValue}
+                  </Text>
+                </Flex>
+
                 {tooltipActions}
-              </Fragment>
+              </Flex>
             );
           })}
-        </div>
+        </Container>
+        {/* Tooltip footer styles are a bit hard to emulate, let's use the
+        existing ones for now. */}
         <div
           className="tooltip-footer tooltip-footer-centered"
           style={{cursor: 'default'}}
@@ -261,7 +306,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           {formattedXValue}
         </div>
         <div className="tooltip-arrow" />
-      </Fragment>
+      </Container>
     );
   };
 
@@ -274,6 +319,11 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         isGroupedByDate
         showTimeInTooltip
         ref={chartRef}
+        brush={brush}
+        toolBox={toolBox}
+        onBrushStart={onBrushStart}
+        onBrushEnd={onBrushEnd}
+        onChartReady={onChartReady}
         tooltip={{
           show: true,
           enterable: true,
@@ -281,79 +331,27 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           axisPointer: {
             show: false,
           },
-          triggerOn: 'click',
+          triggerOn: 'mousemove',
           formatter: formatTooltip,
         }}
         series={series}
-        xAxis={{
-          type: 'category',
-          animation: false,
-          axisLabel: {
-            formatter: value => {
-              // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-              return formatXAxisTimestamp(parseFloat(value), {
-                utc: utc ?? undefined,
-              });
-            },
-          },
-          axisPointer: {
-            show: false,
-          },
-          splitArea: {
-            show: false,
-          },
-        }}
-        yAxis={{
-          type: 'category',
-          animation: false,
-          axisLabel: {
-            hideOverlap: true,
-            interval: (index, _value) => {
-              // show the first and last label
-              if (index === 0 || index === yAxisBucketCount - 1) {
-                return true;
-              }
-              // we want to make sure that there's going to be ample amount of space between each label:
-              // chart height / label size = number of labels that will fix with no space between
-              // chart height / (label size * 3) = number of labels that will fit with space between (label shown every 3 label placements)
-              // NOTE: this may change as we start putting heat widgets in dashboards with different chart heights
-              const numFittingLabels = Math.floor(
-                (chartRef.current?.ele.clientHeight ?? 0) / (Y_AXIS_LABEL_FONT_SIZE * 3)
-              );
-              // show all labels if we can't find the client height
-              if (numFittingLabels === 0) {
-                return true;
-              }
-              const nthBucketToShow = Math.ceil(yAxisBucketCount / numFittingLabels);
-              // don't show the third last and second last labels; we want to make sure the last label
-              // isn't smushed up against another label
-              if (
-                index % nthBucketToShow === 0 &&
-                (nthBucketToShow === 1 ||
-                  (index !== yAxisBucketCount - 3 && index !== yAxisBucketCount - 2))
-              ) {
-                return true;
-              }
-              return false;
-            },
-            showMinLabel: true,
-            showMaxLabel: true,
-            formatter: value => {
-              // NOTE: ECharts requires a `"category"` Y-axis for heat maps, but we _know_ that we only support continuous values for the Y-axis. We need to parse the value here.
-              return formatYAxisValue(
-                parseFloat(value),
-                yAxisDataType,
-                yAxisDataUnit ?? undefined
-              );
-            },
-          },
-          axisPointer: {
-            show: false,
-          },
-          splitArea: {
-            show: false,
-          },
-        }}
+        xAxes={[
+          HIDDEN_CATEGORY_AXIS,
+          heatMapTimeAxis({
+            min: meta.xAxis.start,
+            max: meta.xAxis.end,
+            utc: utc ?? undefined,
+          }),
+        ]}
+        yAxes={[
+          HIDDEN_CATEGORY_AXIS,
+          heatMapValueAxis({
+            min: meta.yAxis.start,
+            max: meta.yAxis.end,
+            valueType: yAxisDataType,
+            valueUnit: yAxisDataUnit ?? undefined,
+          }),
+        ]}
         visualMap={visualMapOptions(HEATMAP_COLORS)}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
@@ -396,12 +394,23 @@ export const visualMapOptions = (
 };
 
 /**
- * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
- * caller can build its own tooltip actions (e.g. links into Explore).
+ * Bucket bounds of a region of the heat map, in raw axis units: a time span on
+ * the X axis (ms since epoch) and a value span on the Y axis.
  */
-interface HeatMapTooltipContext {
+interface HeatMapBucketBounds {
   timestampEnd: number;
   timestampStart: number;
   valueMax: number;
   valueMin: number;
 }
+
+/**
+ * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
+ * caller can build its own tooltip actions (e.g., link into Explore).
+ */
+type HeatMapTooltipContext = HeatMapBucketBounds;
+
+/**
+ * Context for a drag-selected region, handed to `onZoom`.
+ */
+export type HeatMapZoomContext = HeatMapBucketBounds;

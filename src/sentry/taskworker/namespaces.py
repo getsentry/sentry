@@ -92,6 +92,11 @@ ingest_transactions_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+spans_process_segments_tasks = app.taskregistry.create_namespace(
+    "spans.process_segments",
+    app_feature="transactions",
+)
+
 ingest_attachments_tasks = app.taskregistry.create_namespace(
     "ingest.attachments",
     app_feature="attachments",
@@ -214,6 +219,13 @@ release_health_tasks = app.taskregistry.create_namespace(
 
 replays_tasks = app.taskregistry.create_namespace(
     "replays",
+    app_feature="replays",
+)
+
+# Dedicated namespace for the raw ingest-replay-recordings topic, consumed by
+# taskbroker in "raw mode" (one raw topic maps 1:1 to a namespace).
+replays_raw_tasks = app.taskregistry.create_namespace(
+    "replays.raw",
     app_feature="replays",
 )
 

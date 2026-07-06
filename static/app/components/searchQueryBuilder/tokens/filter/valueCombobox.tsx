@@ -6,7 +6,7 @@ import type {KeyboardEvent} from '@react-types/shared';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {HighlightText, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DeviceName} from 'sentry/components/deviceName';
@@ -22,7 +22,7 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {HighlightText} from 'sentry/components/searchQueryBuilder/highlightText';
+import {getMultiSelectValueState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
@@ -575,7 +575,8 @@ function ItemCheckbox({
   isFocused: boolean;
   value: string;
 }) {
-  const {ctrlKeyPressed, selectedValueMap, token} = useValueComboboxContext();
+  const {analyticsData, ctrlKeyPressed, selectedValueMap, token} =
+    useValueComboboxContext();
   const {dispatch} = useSearchQueryBuilderState();
   const selected = selectedValueMap.get(value) ?? false;
 
@@ -591,10 +592,23 @@ function ItemCheckbox({
           checked={selected}
           disabled={disabled}
           onChange={() => {
+            const escapedValue = escapeTagValueForSearch(value);
+
             dispatch({
               type: 'TOGGLE_FILTER_VALUE',
               token,
-              value: escapeTagValueForSearch(value),
+              value: escapedValue,
+            });
+
+            const {selected: currentlySelected, selectedCount} = getMultiSelectValueState(
+              token,
+              escapedValue
+            );
+
+            trackAnalytics('search.multi_value_selected', {
+              ...analyticsData,
+              selected: !currentlySelected,
+              selected_count: currentlySelected ? selectedCount - 1 : selectedCount + 1,
             });
           }}
           aria-label={t('Toggle %s', value)}
@@ -733,10 +747,6 @@ export function SearchQueryBuilderValueCombobox({
     () => new Map(selectedValues.map(v => [v.value, v.selected] as const)),
     [selectedValues]
   );
-  const valueComboboxContextValue = useMemo(
-    () => ({token, ctrlKeyPressed, selectedValueMap}),
-    [token, ctrlKeyPressed, selectedValueMap]
-  );
 
   useEffect(() => {
     if (canSelectMultipleValues) {
@@ -775,6 +785,11 @@ export function SearchQueryBuilderValueCombobox({
       new_experience: true,
     }),
     [organization, recentSearches, searchSource, keyName, token, fieldDefinition]
+  );
+
+  const valueComboboxContextValue = useMemo(
+    () => ({token, ctrlKeyPressed, selectedValueMap, analyticsData}),
+    [token, ctrlKeyPressed, selectedValueMap, analyticsData]
   );
 
   const handleSelectAbsoluteDate = useCallback(

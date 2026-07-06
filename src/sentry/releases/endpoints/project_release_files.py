@@ -276,10 +276,10 @@ def pseudo_releasefile(url, info, dist):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
@@ -287,7 +287,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     )
 
     @extend_schema(
-        operation_id="List a Project Release's Files",
+        operation_id="listProjectReleaseFiles",
+        summary="List a Project's Release Files",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

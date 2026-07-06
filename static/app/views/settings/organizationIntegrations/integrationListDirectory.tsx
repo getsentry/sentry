@@ -21,8 +21,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -37,6 +37,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {
   getAlertText,
   getCategoriesForIntegration,
+  getIntegrationStatus,
   getProviderIntegrationStatus,
   getSentryAppInstallStatus,
   isDocIntegration,
@@ -347,6 +348,10 @@ export default function IntegrationListDirectory() {
           status={getProviderIntegrationStatus(providerIntegrations)}
           publishStatus="published"
           configurations={providerIntegrations.length}
+          disabledConfigurations={
+            providerIntegrations.filter(i => getIntegrationStatus(i) === 'disabled')
+              .length
+          }
           categories={getCategoriesForIntegration(provider)}
           alertText={getAlertText(providerIntegrations)}
           resolveText={t('Update Now')}
@@ -510,9 +515,9 @@ function IntegrationSettingsHeader({
           />
         </Container>
         <Container flex={1}>
-          {({className}) => (
+          {containerProps => (
             <SearchBar
-              className={className}
+              {...containerProps}
               query={search}
               onSearch={onChangeSearch}
               placeholder={t('Filter Integrations\u2026')}

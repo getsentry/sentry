@@ -121,6 +121,13 @@ function startExternalIssueFormSpan({
     scope.setTag('projectID', group.project.id);
     scope.setTag('integrationSlug', integration.provider.slug);
     scope.setTag('integrationType', 'firstParty');
+    scope.setAttributes({
+      issueAction: action,
+      groupID: group.id,
+      projectID: group.project.id,
+      integrationSlug: integration.provider.slug,
+      integrationType: 'firstParty',
+    });
     return Sentry.startInactiveSpan({
       name: `externalIssueForm.${type}`,
       forceTransaction: true,
