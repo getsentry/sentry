@@ -35,6 +35,11 @@ export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
   'timeline',
 ];
 
+// On narrow screens the panels stack vertically; these floors keep each usable.
+// The detail panel gets more room since its header + tabs leave little for content.
+const LIST_PANEL_STACKED_MIN_HEIGHT = '320px';
+const DETAIL_PANEL_STACKED_MIN_HEIGHT = '400px';
+
 interface ConversationViewContentNewProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
@@ -124,7 +129,7 @@ export function ConversationViewContentNew({
               <Container
                 flex="1"
                 minWidth="0"
-                minHeight={{xs: '320px', md: '0'}}
+                minHeight={{xs: LIST_PANEL_STACKED_MIN_HEIGHT, md: '0'}}
                 padding={isTranscript ? '0' : 'md'}
                 background="primary"
                 border="primary"
@@ -157,7 +162,7 @@ export function ConversationViewContentNew({
                 <Flex
                   width={{xs: '100%', md: '430px'}}
                   flex={{xs: '1', md: '0 0 auto'}}
-                  minHeight={{xs: '320px', md: '0'}}
+                  minHeight={{xs: DETAIL_PANEL_STACKED_MIN_HEIGHT, md: '0'}}
                 >
                   <ConversationSpanDetail
                     node={selectedNode}
