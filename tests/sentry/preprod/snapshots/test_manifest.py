@@ -72,6 +72,29 @@ class TestImageMetadataTagsCoercion:
         assert meta.tags == {"count": "42", "ratio": "1.5"}
 
 
+class TestImageMetadataCanvasTheme:
+    def test_canvas_theme_none(self) -> None:
+        assert ImageMetadata(**_meta()).canvas_theme is None
+
+    def test_canvas_theme_light(self) -> None:
+        assert ImageMetadata(**_meta(canvas_theme="light")).canvas_theme == "light"
+
+    def test_canvas_theme_dark(self) -> None:
+        assert ImageMetadata(**_meta(canvas_theme="dark")).canvas_theme == "dark"
+
+    def test_canvas_theme_unknown_value_becomes_none(self) -> None:
+        assert ImageMetadata(**_meta(canvas_theme="sepia")).canvas_theme is None
+
+    def test_canvas_theme_unexpected_type_becomes_none(self) -> None:
+        assert ImageMetadata(**_meta(canvas_theme=42)).canvas_theme is None
+
+    def test_manifest_round_trip_drops_unknown_theme(self) -> None:
+        # Mirrors the POST ingest path, which builds a SnapshotManifest: an
+        # invalid theme is coerced to None instead of rejecting the upload.
+        manifest = SnapshotManifest(images={"a.png": _meta(canvas_theme="sepia")})
+        assert manifest.images["a.png"].canvas_theme is None
+
+
 class TestImageMetadataJsonSchema:
     def test_schema_accepts_dict_tags(self) -> None:
         schema = ImageMetadata.schema()

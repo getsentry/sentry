@@ -1,6 +1,6 @@
 from typing import Any, Callable
 
-from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS, LogLevel, parse_log_level
 from sentry.rules import LEVEL_MATCH_CHOICES, MatchType
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
@@ -20,7 +20,7 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "level": {"type": "integer", "enum": list(LOG_LEVELS_MAP.values())},
+            "level": {"type": "integer", "enum": [level.value for level in LogLevel]},
             "match": {"type": "string", "enum": [*MatchType]},
         },
         "required": ["level", "match"],
@@ -35,19 +35,14 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
             # This condition is only applicable to GroupEvent
             return False
 
-        level_name = event.get_tag("level")
-        if level_name is None:
+        # Fetch the event level from the tags since event.level is
+        # event.group.level which may have changed
+        level = parse_log_level(event.get_tag("level"))
+        if level is None:
             return False
 
         desired_level = int(comparison.get("level"))
         desired_match = comparison.get("match")
-
-        # Fetch the event level from the tags since event.level is
-        # event.group.level which may have changed
-        try:
-            level: int = LOG_LEVELS_MAP[level_name]
-        except KeyError:
-            return False
 
         if desired_match == MatchType.EQUAL:
             return level == desired_level

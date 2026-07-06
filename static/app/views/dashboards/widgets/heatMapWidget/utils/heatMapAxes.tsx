@@ -68,11 +68,11 @@ export function heatMapValueAxis({
 export function heatMapTimeAxis({
   min,
   max,
-  utc,
+  timezone,
 }: {
   max: number;
   min: number;
-  utc?: boolean;
+  timezone: string;
 }): XAXisComponentOption {
   return {
     type: 'time',
@@ -82,7 +82,7 @@ export function heatMapTimeAxis({
     animation: false,
     axisLabel: {
       hideOverlap: true,
-      formatter: (value: number) => formatXAxisTimestamp(value, {utc}),
+      formatter: (value: number) => formatXAxisTimestamp(value, timezone),
     },
     axisPointer: {show: false},
     splitArea: {show: false},

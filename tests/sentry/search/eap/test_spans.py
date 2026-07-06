@@ -5,12 +5,12 @@ import pytest
 from sentry_conventions.attributes import (
     ATTRIBUTE_METADATA,
     ATTRIBUTE_NAMES,
+    ApplyScrubbing,
+    ApplyScrubbingInfo,
     AttributeMetadata,
     AttributeType,
     DeprecationInfo,
     DeprecationStatus,
-    IsPii,
-    PiiInfo,
     Visibility,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -1061,6 +1061,30 @@ class SearchResolverColumnTest(TestCase):
         )
         assert virtual_context is None
 
+    def test_max_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("max(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MAX,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="max(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_min_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MIN,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="min(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_max_string_field_raises(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.resolver.resolve_column("max(span.description)")
+
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])
         assert "span.op" in self.resolver._resolved_attribute_cache
@@ -1092,7 +1116,7 @@ def _make_deprecated_metadata(
     return AttributeMetadata(
         brief="",
         type=attr_type,
-        pii=PiiInfo(isPii=IsPii.FALSE),
+        apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
         deprecation=DeprecationInfo(replacement=replacement, status=status),

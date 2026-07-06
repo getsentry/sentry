@@ -3,6 +3,7 @@ import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations
 interface ConversationsUrlOptions {
   end?: string;
   project?: number | string;
+  referrer?: string;
   start?: string;
 }
 
@@ -26,6 +27,9 @@ export function getConversationsUrlForExternalUse(
   }
   if (options?.project !== undefined) {
     params.set('project', String(options.project));
+  }
+  if (options?.referrer) {
+    params.set('referrer', options.referrer);
   }
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;

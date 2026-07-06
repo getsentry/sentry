@@ -1,7 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
@@ -134,6 +134,10 @@ describe('SeerDrawerNextStep', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
         body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
       });
     });
 
@@ -294,6 +298,122 @@ describe('SeerDrawerNextStep', () => {
         '/settings/org-slug/integrations/?category=coding%20agent'
       );
     });
+
+    it('disables the coding agent dropdown when the project only has GitLab repos', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Claude', provider: 'claude_code', requires_identity: false},
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'gitlab'}],
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      // The dropdown is still rendered, but disabled with an explanatory tooltip.
+      const dropdownButton = await screen.findByRole('button', {
+        name: 'More code fix options',
+      });
+      expect(dropdownButton).toBeDisabled();
+      await userEvent.hover(dropdownButton);
+      expect(
+        await screen.findByText(/requires a connected GitHub repository/)
+      ).toBeInTheDocument();
+    });
+
+    it('disables the coding agent dropdown with repo-connect copy when the project has no repos', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Claude', provider: 'claude_code', requires_identity: false},
+          ],
+        },
+      });
+      // No repos connected: the backend can't launch a handoff, so disable the dropdown
+      // with copy pointing at the actual gap — a connected GitHub repository.
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [],
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      const dropdownButton = await screen.findByRole('button', {
+        name: 'More code fix options',
+      });
+      expect(dropdownButton).toBeDisabled();
+      await userEvent.hover(dropdownButton);
+      expect(
+        await screen.findByText(
+          'Connect a GitHub repository to hand off to a coding agent.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not expose the coding agent dropdown until every repo page has loaded', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Claude', provider: 'claude_code', requires_identity: false},
+          ],
+        },
+      });
+      // Page 1 is GitHub-only and advertises another page via the Link header. Gating on
+      // the first page alone would briefly expose the dropdown enabled, before the GitLab
+      // repo on page 2 (which makes the project non-GitHub-only) has loaded.
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+        headers: {
+          Link:
+            '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", ' +
+            '<https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
+        },
+      });
+      // Page 2 stays in flight (large delay) so we can observe the mid-pagination state:
+      // page 1 has resolved, but the full repo list is not yet known.
+      const page2Request = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'gitlab'}],
+        match: [MockApiClient.matchQuery({cursor: '0:20:0'})],
+        asyncDelay: 100_000,
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+
+      // Page 2 is only requested once page 1 resolves and `useFetchAllPages` advances,
+      // so this confirms page 1 (GitHub-only) has loaded.
+      await waitFor(() => expect(page2Request).toHaveBeenCalled());
+
+      // While page 2 is still loading the dropdown must remain hidden, so it can never
+      // render briefly enabled from the partial (GitHub-only) page-1 repo list.
+      expect(
+        screen.queryByRole('button', {name: 'More code fix options'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('SolutionNextStep', () => {
@@ -301,6 +421,10 @@ describe('SeerDrawerNextStep', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
         body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
       });
     });
     it('returns null when section has no artifacts', () => {
