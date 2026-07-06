@@ -46,16 +46,13 @@ interface ConversationTurn {
   toolCalls: ToolCall[];
   userContent: string | null;
   userEmail: string | undefined;
-  // Whether this generation's input carries prior conversation history (more
-  // than one message). Single-message inputs are non-cumulative SDKs where
-  // every generation is a genuine new turn, so they are never deduplicated.
+  // Whether the input carries history (>1 message). Single-message inputs are
+  // non-cumulative SDKs, so every generation is a genuine turn (never deduped).
   // Defaults to true (assume cumulative) when unknown.
   hasInputHistory?: boolean;
   toolSpanNodes?: AITraceSpanNode[];
-  // Number of user messages in this generation's input history. Used to tell
-  // apart a genuine repeated user message (count grows) from the same
-  // last-user-message carried across tool-loop generations (count is stable)
-  // in cumulative SDKs.
+  // User messages in the cumulative input history. A growing count marks a
+  // genuine repeat vs. the same last message carried across a tool loop.
   userMessageCount?: number;
 }
 
@@ -202,9 +199,8 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
     const startTs = getNodeStartTimestamp(turn.generation);
     const genEnd = getNodeEndTimestamp(turn.generation);
 
-    // Non-cumulative SDKs send only the current message per generation, so a
-    // repeated user message is always a genuine new turn. Only cumulative
-    // inputs (history present) are deduplicated.
+    // Only cumulative inputs are deduped; a non-cumulative (single-message)
+    // input is always a genuine new turn.
     const hasHistory = turn.hasInputHistory ?? true;
     const userMessageCount = turn.userMessageCount ?? 0;
     const userCountGrew = userMessageCount > maxUserMessageCount;
@@ -233,7 +229,6 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
         turn.assistantContent === EMPTY_TEXT_CONTENT ||
-        !hasHistory ||
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 
@@ -323,19 +318,12 @@ export interface InputMessageStats {
 }
 
 /**
- * Parses a generation's input history into the counts used to decide whether a
- * repeated user message is a genuine new turn or a carry-forward.
- *
- * `totalMessageCount` separates cumulative SDKs (full history, more than one
- * message) from non-cumulative SDKs (only the current message). A single
- * message means every generation is a genuine turn, so it is never deduped.
- *
- * `userMessageCount` grows each time a cumulative history gains another user
- * message, even when the text repeats, while staying stable across the extra
- * generations of a single tool-loop turn.
- *
- * Both are 0 when the input is missing or scrubbed, so those turns fall back to
- * content-based deduplication.
+ * Counts messages in a generation's input, used to decide whether a repeated
+ * user message is a genuine new turn or a carry-forward. `totalMessageCount`
+ * separates cumulative SDKs (>1 message) from non-cumulative ones (only the
+ * current message); `userMessageCount` grows on a genuine repeat within a
+ * cumulative history. Both are 0 for missing or scrubbed input, which falls
+ * back to content-based dedup.
  */
 export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
   const raw =

@@ -241,51 +241,36 @@ describe('conversationMessages utilities', () => {
   });
 
   describe('getInputMessageStats', () => {
-    it('counts total and user messages in the input history', () => {
+    it.each([
+      {
+        name: 'counts total and user messages in a cumulative history',
+        input: JSON.stringify([
+          {role: 'user', content: 'First'},
+          {role: 'assistant', content: 'Reply'},
+          {role: 'user', content: 'Second'},
+        ]),
+        expected: {totalMessageCount: 3, userMessageCount: 2},
+      },
+      {
+        name: 'reports a single-message input as non-cumulative',
+        input: JSON.stringify([{role: 'user', content: 'Only message'}]),
+        expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
+        name: 'returns zeroes when input is scrubbed',
+        input: '[Filtered]',
+        expected: {totalMessageCount: 0, userMessageCount: 0},
+      },
+    ])('$name', ({input, expected}) => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-            {role: 'user', content: 'First'},
-            {role: 'assistant', content: 'Reply'},
-            {role: 'user', content: 'Second'},
-          ]),
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: input},
       });
-      expect(getInputMessageStats(node as any)).toEqual({
-        totalMessageCount: 3,
-        userMessageCount: 2,
-      });
-    });
-
-    it('reports a single-message input as non-cumulative', () => {
-      const node = createMockNode({
-        id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-            {role: 'user', content: 'Only message'},
-          ]),
-        },
-      });
-      expect(getInputMessageStats(node as any)).toEqual({
-        totalMessageCount: 1,
-        userMessageCount: 1,
-      });
+      expect(getInputMessageStats(node as any)).toEqual(expected);
     });
 
     it('returns zeroes when input is missing', () => {
       const node = createMockNode({id: 'node-1'});
-      expect(getInputMessageStats(node as any)).toEqual({
-        totalMessageCount: 0,
-        userMessageCount: 0,
-      });
-    });
-
-    it('returns zeroes when input is scrubbed', () => {
-      const node = createMockNode({
-        id: 'node-1',
-        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]'},
-      });
       expect(getInputMessageStats(node as any)).toEqual({
         totalMessageCount: 0,
         userMessageCount: 0,
@@ -671,130 +656,59 @@ describe('conversationMessages utilities', () => {
       });
     });
 
-    it('deduplicates user messages by exact content', () => {
-      const turns = [
+    // Same user text in two turns. Whether it collapses depends on the input
+    // shape: a cumulative tool loop replays the same last message (collapse),
+    // while a growing user-message count or a non-cumulative single-message
+    // input marks a genuine repeat (keep).
+    it.each([
+      {
+        name: 'collapses identical content in a cumulative history',
+        turn1: {assistantContent: 'A1'},
+        turn2: {assistantContent: 'A2'},
+        users: 1,
+      },
+      {
+        name: 'keeps a repeat when the cumulative user-message count grows',
+        turn1: {assistantContent: 'A1', userMessageCount: 1},
+        turn2: {assistantContent: 'A2', userMessageCount: 2},
+        users: 2,
+      },
+      {
+        name: 'keeps a repeat from non-cumulative single-message inputs',
+        turn1: {assistantContent: 'A', hasInputHistory: false},
+        turn2: {assistantContent: 'A', hasInputHistory: false},
+        users: 2,
+      },
+      {
+        name: 'collapses a repeat carried across a tool loop (stable count)',
+        turn1: {
+          toolCalls: [{name: 'weather', nodeId: 'tool-1', hasError: false}],
+          userMessageCount: 1,
+        },
+        turn2: {assistantContent: 'A', userMessageCount: 1},
+        users: 1,
+      },
+    ])('deduplicates user messages: $name', ({turn1, turn2, users}) => {
+      const messages = turnsToMessages([
         makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
-          assistantContent: 'Response 1',
+          ...turn1,
         }),
         makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
-          userContent: 'Hello', // Exact same content
-          assistantContent: 'Response 2',
+          userContent: 'Hello',
+          ...turn2,
         }),
-      ];
+      ]);
 
-      const messages = turnsToMessages(turns);
-
-      // Should have 1 user message and 2 assistant messages
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      expect(userMessages).toHaveLength(1);
-      expect(assistantMessages).toHaveLength(2);
-    });
-
-    it('keeps a repeated user message when the input user-message count grows', () => {
-      // The user asked the exact same question twice in two separate turns.
-      // The second generation's input history contains both user messages, so
-      // its userMessageCount is higher and the repeat must be preserved.
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-          } as any,
-          userContent: 'How is the weather in Vienna?',
-          assistantContent: 'It is sunny',
-          userMessageCount: 1,
-        }),
-        makeTurn({
-          generation: {
-            id: 'gen-2',
-            value: {start_timestamp: 2000, end_timestamp: 2100},
-          } as any,
-          userContent: 'How is the weather in Vienna?', // Exact same content
-          assistantContent: 'Still sunny',
-          userMessageCount: 2,
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      expect(userMessages).toHaveLength(2);
-      expect(assistantMessages).toHaveLength(2);
-    });
-
-    it('keeps a repeated user message when the input has no history', () => {
-      // Non-cumulative SDK: single-message inputs, so identical content in two
-      // turns is two genuine questions even though the count never grows.
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-          } as any,
-          userContent: 'How is the weather in Vienna?',
-          assistantContent: 'It is sunny',
-          hasInputHistory: false,
-          userMessageCount: 1,
-        }),
-        makeTurn({
-          generation: {
-            id: 'gen-2',
-            value: {start_timestamp: 2000, end_timestamp: 2100},
-          } as any,
-          userContent: 'How is the weather in Vienna?', // Exact same content
-          assistantContent: 'It is sunny', // Identical answer too
-          hasInputHistory: false,
-          userMessageCount: 1,
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-
-      expect(messages.filter(m => m.role === 'user')).toHaveLength(2);
-      expect(messages.filter(m => m.role === 'assistant')).toHaveLength(2);
-    });
-
-    it('still collapses a repeated user message across a tool loop (stable count)', () => {
-      // Two generations in the same turn (tool loop) share the same last user
-      // message and the same userMessageCount, so only one user message shows.
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-          } as any,
-          userContent: 'How is the weather in Vienna?',
-          toolCalls: [{name: 'weather', nodeId: 'tool-1', hasError: false}],
-          userMessageCount: 1,
-        }),
-        makeTurn({
-          generation: {
-            id: 'gen-2',
-            value: {start_timestamp: 2000, end_timestamp: 2100},
-          } as any,
-          userContent: 'How is the weather in Vienna?',
-          assistantContent: 'It is sunny',
-          userMessageCount: 1,
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-
-      const userMessages = messages.filter(m => m.role === 'user');
-      expect(userMessages).toHaveLength(1);
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
     });
 
     it('does not deduplicate user messages with different whitespace or case', () => {
@@ -1184,113 +1098,57 @@ describe('conversationMessages utilities', () => {
       ]);
     });
 
-    it('collapses a repeated last user message carried across a cumulative tool loop', () => {
-      // Cumulative SDK: the second generation's input replays the same last
-      // user message from history (with only one user message total), so it is
-      // the same turn and should be shown once.
+    // The same question "Q" in two spans. It collapses only when the second
+    // span's input proves it is the same cumulative turn (a tool loop replaying
+    // the last message); a non-cumulative single-message input or a growing
+    // cumulative history keeps both.
+    const Q = 'How is the weather in Vienna?';
+    it.each([
+      {
+        name: 'collapses a last message replayed across a cumulative tool loop',
+        input2: [
+          {role: 'user', content: Q},
+          {role: 'assistant', content: 'R1'},
+        ],
+        users: 1,
+      },
+      {
+        name: 'keeps repeats from non-cumulative single-message inputs',
+        input2: [{role: 'user', content: Q}],
+        users: 2,
+      },
+      {
+        name: 'keeps a repeat when the cumulative history gains a user message',
+        input2: [
+          {role: 'user', content: Q},
+          {role: 'assistant', content: 'R1'},
+          {role: 'user', content: Q},
+        ],
+        users: 2,
+      },
+    ])('user-message dedup end to end: $name', ({input2, users}) => {
       const node1 = createMockNode({
         id: 'span-1',
         startTimestamp: 1000,
         attributes: {
           [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-            {role: 'user', content: 'Duplicate'},
+            {role: 'user', content: Q},
           ]),
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 1',
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R1',
         },
       });
-
       const node2 = createMockNode({
         id: 'span-2',
         startTimestamp: 2000,
         attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-            {role: 'user', content: 'Duplicate'},
-            {role: 'assistant', content: 'Response 1'},
-          ]),
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 2',
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify(input2),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R2',
         },
       });
 
       const messages = extractMessagesFromNodes([node1, node2] as any);
 
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      expect(userMessages).toHaveLength(1);
-      expect(assistantMessages).toHaveLength(2);
-    });
-
-    it('keeps repeated user messages when each span carries a single-message input', () => {
-      // Non-cumulative SDK (the TET-2602 case): each generation carries only
-      // the current message, so two spans with the same question are two
-      // genuine turns and must both appear.
-      const singleMessage = JSON.stringify([
-        {role: 'user', content: 'How is the weather in Vienna?'},
-      ]);
-
-      const node1 = createMockNode({
-        id: 'span-1',
-        startTimestamp: 1000,
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: singleMessage,
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'It is sunny',
-        },
-      });
-
-      const node2 = createMockNode({
-        id: 'span-2',
-        startTimestamp: 2000,
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: singleMessage,
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'It is sunny',
-        },
-      });
-
-      const messages = extractMessagesFromNodes([node1, node2] as any);
-
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      // Both the repeated question and its (identical) answer are preserved.
-      expect(userMessages).toHaveLength(2);
-      expect(assistantMessages).toHaveLength(2);
-    });
-
-    it('keeps a genuinely repeated user message across separate turns', () => {
-      // First turn: only the initial question in the input history.
-      const gen1 = createMockNode({
-        id: 'gen-1',
-        startTimestamp: 1000,
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-            {role: 'user', content: 'How is the weather in Vienna?'},
-          ]),
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'It is sunny',
-        },
-      });
-
-      // Second turn: the user asked the same question again, so the cumulative
-      // input history now contains two identical user messages.
-      const gen2 = createMockNode({
-        id: 'gen-2',
-        startTimestamp: 2000,
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
-            {role: 'user', content: 'How is the weather in Vienna?'},
-            {role: 'assistant', content: 'It is sunny'},
-            {role: 'user', content: 'How is the weather in Vienna?'},
-          ]),
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Still sunny',
-        },
-      });
-
-      const messages = extractMessagesFromNodes([gen1, gen2] as any);
-
-      const userMessages = messages.filter(m => m.role === 'user');
-      expect(userMessages).toHaveLength(2);
-      expect(userMessages.every(m => m.content === 'How is the weather in Vienna?')).toBe(
-        true
-      );
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
     });
 
     it('returns empty array for empty input', () => {
