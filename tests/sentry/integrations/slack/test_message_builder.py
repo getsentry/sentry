@@ -42,6 +42,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -703,7 +704,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         # suggested user/suspect commit for user with name
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             user2.update(name="Scooby Doo")
         commit.author.update(name=user2.name)
         expected_blocks = build_test_message_blocks(
