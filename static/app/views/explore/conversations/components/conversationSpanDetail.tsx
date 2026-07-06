@@ -86,9 +86,20 @@ export function ConversationSpanDetail({
   const tabContentRef = useRef<HTMLDivElement>(null);
 
   // Reset the scroll position to the top when switching tabs, otherwise the
-  // shared scroll container keeps the previous tab's offset.
+  // shared scroll container keeps the previous tab's offset. In the fixed-height
+  // layout the tab container is its own scroll region; on narrow screens it
+  // flows into the page's scroll container, so scrolling it is a no-op — bring
+  // its top back into view instead.
   useEffect(() => {
-    tabContentRef.current?.scrollTo({top: 0});
+    const el = tabContentRef.current;
+    if (!el) {
+      return;
+    }
+    if (getComputedStyle(el).overflowY === 'visible') {
+      el.scrollIntoView({block: 'start'});
+    } else {
+      el.scrollTo({top: 0});
+    }
   }, [activeTab]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
