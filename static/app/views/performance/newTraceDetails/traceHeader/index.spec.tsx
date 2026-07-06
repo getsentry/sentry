@@ -96,6 +96,28 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsItems[0]).toHaveTextContent(/trace-slug/);
     });
 
+    it('strips the pinnedAttribute query param from breadcrumb links', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/123',
+          query: {
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            transaction: 'transaction-name',
+            pinnedAttribute: 'span.description',
+          },
+        })
+      );
+      const props = {...baseProps} as TraceMetadataHeaderProps;
+      render(<TraceMetaDataHeader {...props} organization={organization} />);
+
+      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
+      // pinnedAttribute is trace-view specific and must not leak into the link.
+      expect(breadcrumbsLinks[0]).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/insights/summary?source=performance_transaction_summary&transaction=transaction-name'
+      );
+    });
+
     it('should show insights from transaction summary with perf removal feature', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({

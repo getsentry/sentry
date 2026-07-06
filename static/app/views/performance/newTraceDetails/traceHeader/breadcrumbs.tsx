@@ -23,6 +23,7 @@ import {
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
+import {PINNED_ATTRIBUTE_QUERY_KEY} from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -88,7 +89,9 @@ function getBreadCrumbTarget(pathname: string, query: Location['query']) {
   return {
     pathname,
     // Remove traceView specific query parameters that are not needed when navigating back.
-    query: {...omit(query, ['node', 'fov', 'timestamp', 'eventId'])},
+    query: {
+      ...omit(query, ['node', 'fov', 'timestamp', 'eventId', PINNED_ATTRIBUTE_QUERY_KEY]),
+    },
   };
 }
 
