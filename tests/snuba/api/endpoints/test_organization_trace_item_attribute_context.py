@@ -123,6 +123,41 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             == 1
         )
 
+    def test_canonicalizes_typed_tag_syntax(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        # Typed-tag syntax resolves to the same canonical internal name as the
+        # bare key, so both forms address a single stored row.
+        typed = self.do_request(
+            {
+                "attributeKey": "tags[my_custom_attr,string]",
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "From typed syntax",
+            }
+        )
+        assert typed.status_code == 201, typed.data
+        assert typed.data["attributeKey"] == "my_custom_attr"
+
+        bare = self.do_request(
+            {
+                "attributeKey": "my_custom_attr",
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "From bare key",
+            }
+        )
+        assert bare.status_code == 200, bare.data
+        assert bare.data["id"] == typed.data["id"]
+        assert bare.data["brief"] == "From bare key"
+
+        assert (
+            TraceItemAttributeContext.objects.filter(
+                organization=self.organization, attribute_key="my_custom_attr"
+            ).count()
+            == 1
+        )
+
     def test_requires_brief(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
@@ -168,8 +203,42 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         )
 
         assert response.status_code == 400, response.data
-        assert "sentry convention" in response.data["detail"]
+        assert "reserved sentry attribute" in response.data["detail"]
         assert not TraceItemAttributeContext.objects.filter(attribute_key="span.op").exists()
+
+    def test_rejects_sentry_convention_internal_name(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        # Passing the internal name directly must be rejected the same as the
+        # public alias.
+        response = self.do_request(
+            {
+                "attributeKey": "sentry.op",
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            }
+        )
+
+        assert response.status_code == 400, response.data
+        assert "reserved sentry attribute" in response.data["detail"]
+
+    def test_rejects_sentry_defined_column_without_convention(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        # `span.duration` is a Sentry-defined EAP column that is not in the
+        # conventions library, but is still reserved.
+        response = self.do_request(
+            {
+                "attributeKey": "span.duration",
+                "dataset": "spans",
+                "attributeType": "number",
+                "brief": "My custom attribute",
+            }
+        )
+
+        assert response.status_code == 400, response.data
+        assert "reserved sentry attribute" in response.data["detail"]
 
     def test_rejects_nonexistent_attribute(self) -> None:
         self.store_attribute(my_custom_attr="value")

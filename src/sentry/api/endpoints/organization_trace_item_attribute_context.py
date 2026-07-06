@@ -4,9 +4,9 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -27,6 +27,7 @@ from sentry.api.serializers.models.trace_item_attribute_context import (
     TraceItemAttributeContextSerializer,
 )
 from sentry.api.utils import handle_query_errors
+from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import (
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
@@ -34,13 +35,9 @@ from sentry.explore.models import (
 )
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
+from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import (
-    PUBLIC_ALIAS_TO_INTERNAL_MAPPING,
-    translate_internal_to_public_alias,
-)
-from sentry.search.events.types import SnubaParams
 from sentry.utils import snuba_rpc
 
 AttributeType = Literal["string", "number", "boolean"]
@@ -62,68 +59,71 @@ class OrganizationTraceItemAttributeContextPostSerializer(serializers.Serializer
     examples = serializers.ListField(child=serializers.CharField(), required=False)
 
 
-def is_sentry_convention_attribute(
-    attribute_key: str,
-    item_type: SupportedTraceItemType,
+def is_sentry_defined_attribute(
+    definitions: ColumnDefinitions,
+    resolved_attribute: ResolvedAttribute,
+    raw_attribute_key: str,
 ) -> bool:
     """
-    Whether ``attribute_key`` (a public alias or internal name) maps to a known
-    sentry convention. Convention attributes already carry context from the
-    conventions metadata, so custom context cannot be authored for them.
-    """
-    resolved = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(item_type, {}).get(attribute_key)
-    internal_name = resolved.internal_name if resolved else attribute_key
-    return build_sentry_convention_context(attribute_key, internal_name) is not None
+    Whether the attribute is defined/owned by Sentry, in which case custom
+    context can't be authored for it (Sentry-owned attributes already carry
+    context from their definitions / conventions metadata). An attribute is
+    sentry-defined if it is:
 
+    - a known EAP column public alias or secondary alias — ``definitions.columns``
+      is keyed by public alias, and secondary aliases are stored there too;
+    - a virtual context (e.g. ``project``, ``device.class``);
+    - resolvable to a known column's internal name (the caller passed the
+      internal name, e.g. ``sentry.op``, directly); or
+    - present in the sentry conventions library, which is keyed by convention
+      name and includes each convention's aliases as keys of their own (so
+      passing an alias resolves to a hit here too).
+    """
+    if raw_attribute_key in definitions.columns or raw_attribute_key in definitions.contexts:
+        return True
 
-def attribute_exists(
-    snuba_params: SnubaParams,
-    item_type: SupportedTraceItemType,
-    attribute_key: str,
-    attribute_type: AttributeType,
-) -> bool:
-    """
-    Whether an attribute named ``attribute_key`` exists in storage for the given
-    snuba params (org/projects/time window) and item/attribute type.
-    """
-    column_definitions = get_column_definitions(item_type)
-    resolver = SearchResolver(
-        params=snuba_params,
-        config=SearchResolverConfig(),
-        definitions=column_definitions,
+    known_internal_names = {column.internal_name for column in definitions.columns.values()}
+    if resolved_attribute.internal_name in known_internal_names:
+        return True
+
+    return (
+        build_sentry_convention_context(
+            resolved_attribute.public_alias, resolved_attribute.internal_name
+        )
+        is not None
     )
+
+
+def attribute_exists_in_storage(
+    resolver: SearchResolver,
+    item_type: SupportedTraceItemType,
+    internal_name: str,
+    attr_type: AttributeKey.Type.ValueType,
+) -> bool:
+    """
+    Whether an attribute with the given internal name exists in storage for the
+    resolver's snuba params (org/projects/time window) and attribute type.
+    """
     meta = resolver.resolve_meta(referrer=resolve_attribute_referrer(item_type.value).value)
     meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
-    attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
-        attribute_type, AttributeKey.Type.TYPE_STRING
-    )
 
     rpc_request = TraceItemAttributeNamesRequest(
         meta=meta,
-        limit=1000,
-        page_token=PageToken(offset=0),
+        limit=10000,
         type=attr_type,
-        # Substring match narrows the scan; we still require an exact match below.
-        value_substring_match=attribute_key,
+        # An exact-name existence filter avoids the false negatives a substring +
+        # single-page scan produces when many stored names share a prefix: the
+        # target name appears in the response iff it exists in storage.
+        intersecting_attributes_filter=TraceItemFilter(
+            exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=internal_name))
+        ),
     )
     with handle_query_errors():
         rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
-    for attribute in rpc_response.attributes:
-        if not attribute.name:
-            continue
-        if attribute.name == attribute_key:
-            return True
-        # The RPC returns internal names; the caller passes a public alias, so
-        # compare against the translated public alias too.
-        public_key, public_name, _ = translate_internal_to_public_alias(
-            attribute.name, attribute_type, item_type
-        )
-        if attribute_key in (public_key, public_name):
-            return True
-    return False
+    return any(attribute.name == internal_name for attribute in rpc_response.attributes)
 
 
 @cell_silo_endpoint
@@ -154,17 +154,8 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         data = serializer.validated_data
 
         dataset = data["dataset"]
-        attribute_key = data["attribute_key"]
         attribute_type = cast(AttributeType, data["attribute_type"])
         trace_item_type = SupportedTraceItemType(dataset)
-
-        # Convention attributes already carry context from the conventions
-        # metadata, so authoring custom context for them isn't allowed.
-        if is_sentry_convention_attribute(attribute_key, trace_item_type):
-            return Response(
-                {"detail": f"`{attribute_key}` is a sentry convention attribute."},
-                status=400,
-            )
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -192,9 +183,45 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 
-        if not attribute_exists(snuba_params, trace_item_type, attribute_key, attribute_type):
+        column_definitions = get_column_definitions(trace_item_type)
+        resolver = SearchResolver(
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=column_definitions,
+        )
+
+        # Resolve the raw key — a public alias, internal name, or the
+        # `tags[foo,number]` tag syntax — to its canonical internal name. This is
+        # what the storage layer keys on, so existence/reserved checks and the
+        # upsert all operate on the same identity; equivalent forms of the same
+        # attribute collapse to a single stored row.
+        try:
+            resolved_attribute, _ = resolver.resolve_attribute(data["attribute_key"])
+        except InvalidSearchQuery as e:
+            return Response({"detail": str(e)}, status=400)
+
+        internal_name = resolved_attribute.internal_name
+        public_alias = resolved_attribute.public_alias
+
+        # Sentry-defined attributes (known columns, contexts, or conventions)
+        # already carry their own context, so authoring custom context for them
+        # isn't allowed — only user-defined attributes are eligible.
+        if is_sentry_defined_attribute(
+            column_definitions, resolved_attribute, data["attribute_key"]
+        ):
             return Response(
-                {"detail": f"Attribute `{attribute_key}` was not found."},
+                {"detail": f"`{public_alias}` is a reserved sentry attribute."},
+                status=400,
+            )
+
+        # Anything past the reserved check is a user attribute; confirm it has
+        # actually been seen in storage before authoring context for it.
+        attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+            attribute_type, AttributeKey.Type.TYPE_STRING
+        )
+        if not attribute_exists_in_storage(resolver, trace_item_type, internal_name, attr_type):
+            return Response(
+                {"detail": f"Attribute `{public_alias}` was not found."},
                 status=400,
             )
 
@@ -216,7 +243,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             organization=organization,
             project=scope_project,
             item_type=TraceItemTypes.get_id_for_type_name(dataset),
-            attribute_key=attribute_key,
+            attribute_key=internal_name,
             attribute_type=TraceItemAttributeTypes.get_id_for_type_name(attribute_type),
             defaults=defaults,
             create_defaults={
