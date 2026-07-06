@@ -101,22 +101,6 @@ function makeIntegrationQueryKey({
   ];
 }
 
-function UpdateAlert({
-  text,
-  trailingItems,
-}: {
-  text: string;
-  trailingItems: React.ReactNode;
-}) {
-  return (
-    <Alert.Container>
-      <Alert variant="warning" trailingItems={trailingItems}>
-        {text}
-      </Alert>
-    </Alert.Container>
-  );
-}
-
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
 export default function IntegrationDetailedView() {
@@ -596,7 +580,11 @@ export default function IntegrationDetailedView() {
               alerts={alerts}
               upgradeAlert={
                 alertText && (
-                  <UpdateAlert text={alertText} trailingItems={renderUpgradeButton()} />
+                  <Alert.Container>
+                    <Alert variant="warning" trailingItems={renderUpgradeButton()}>
+                      {alertText}
+                    </Alert>
+                  </Alert.Container>
                 )
               }
               featureData={featureData}
