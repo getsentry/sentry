@@ -4,6 +4,7 @@ from rest_framework import serializers
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor, ActorType, parse_and_validate_actor
@@ -212,7 +213,10 @@ def test_parse_and_validate_actor_rejects_deactivated_user() -> None:
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
 
-    with assume_test_silo_mode(SiloMode.CONTROL):
+    with (
+        assume_test_silo_mode(SiloMode.CONTROL),
+        outbox_runner(),
+    ):
         user.is_active = False
         user.save()
 

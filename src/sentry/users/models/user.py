@@ -26,7 +26,6 @@ from sentry.backup.dependencies import (
     NormalizedModelName,
     PrimaryKeyMap,
     get_model_name,
-    merge_users_for_model_in_org,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -428,23 +427,17 @@ class User(Model, AbstractBaseUser):
                 organization_id=organization_id, from_user_id=from_user_id, to_user_id=to_user_id
             )
 
-            # Update all organization control models to only use the new user id.
+            # Update all organization control models that don't use user_id
             #
-            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
             with enforce_constraints(
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
             ):
-                control_side_org_models: tuple[type[Model], ...] = (
-                    OrgAuthToken,
-                    OrganizationMemberMapping,
-                )
-                for model in control_side_org_models:
-                    merge_users_for_model_in_org(
-                        model,
-                        organization_id=organization_id,
-                        from_user_id=from_user_id,
-                        to_user_id=to_user_id,
-                    )
+                # Update records individually as OrgAuthToken has outboxes
+                for token in OrgAuthToken.objects.filter(
+                    organization_id=organization_id, created_by_id=from_user_id
+                ):
+                    token.created_by_id = to_user_id
+                    token.save()
 
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
@@ -455,14 +448,17 @@ class User(Model, AbstractBaseUser):
             UserAvatar,
             UserEmail,
             UserOption,
+            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
+            OrganizationMemberMapping,
         )
-        for model in user_related_models:
-            for obj in model.objects.filter(user_id=from_user_id):
-                try:
-                    with transaction.atomic(using=router.db_for_write(User)):
-                        obj.update(user_id=to_user_id)
-                except IntegrityError:
-                    pass
+        with outbox_context(flush=False):
+            for model in user_related_models:
+                for obj in model.objects.filter(user_id=from_user_id):
+                    try:
+                        with transaction.atomic(using=router.db_for_write(User)):
+                            obj.update(user_id=to_user_id)
+                    except IntegrityError:
+                        pass
 
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)

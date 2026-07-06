@@ -160,8 +160,9 @@ class UserHybridCloudDeletionTest(TestCase):
         self.create_member(user=user, organization=na_org)
 
         with patch.object(caching_module, "cell_caching_service") as mock_caching_service:
-            user.username = "bob2"
-            user.save()
+            with outbox_runner():
+                user.username = "bob2"
+                user.save()
             mock_caching_service.clear_key.assert_any_call(
                 key=f"user_service.get_many_by_id:{user.id}",
                 cell_name=_TEST_CELLS[0].name,
