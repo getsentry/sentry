@@ -7,6 +7,7 @@ import time
 from collections.abc import Callable, Mapping
 from concurrent.futures import Future
 from functools import partial
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -282,7 +283,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         logger.info("Flusher process started for shards %s", shard_tag)
 
         try:
-            producer_futures = []
+            producer_futures: list[tuple[int, Any, int]] = []
 
             if produce_to_pipe is not None:
 
