@@ -191,7 +191,7 @@ function ConfigurationPermissionsButton() {
   );
 }
 
-function AutofixWarnings({
+export function AutofixWarnings({
   warnings,
   groupId,
 }: {
@@ -228,7 +228,9 @@ function AutofixWarnings({
       <ConfigurationPermissionsButton />
     );
 
-  const repoNames = permissionWarnings.map(w => w.repo_name).filter(defined);
+  const repoNames = [
+    ...new Set(permissionWarnings.map(w => w.repo_name).filter(defined)),
+  ];
 
   const repoNamesNode = repoNames.map((repoName, index) => (
     <Fragment key={repoName}>
@@ -254,12 +256,16 @@ function AutofixWarnings({
           </Flex>
         }
       >
-        {tct(
-          'The configured GitHub App for [repoNames] is missing permissions. Update the app and ask Seer to retry.',
-          {
-            repoNames: repoNamesNode,
-          }
-        )}
+        {repoNames.length
+          ? tct(
+              'The configured GitHub App for [repoNames] is missing permissions. Update the app and ask Seer to retry.',
+              {
+                repoNames: repoNamesNode,
+              }
+            )
+          : t(
+              'The configured GitHub App is missing permissions. Update the app and ask Seer to retry.'
+            )}
       </Alert>
     </Flex>
   );
