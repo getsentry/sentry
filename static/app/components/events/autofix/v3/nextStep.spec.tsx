@@ -341,7 +341,7 @@ describe('SeerDrawerNextStep', () => {
         },
       });
       // No repos connected: the backend can't launch a handoff, so disable the dropdown
-      // with copy pointing at the actual gap (a connected repo) rather than GitHub.
+      // with copy pointing at the actual gap — a connected GitHub repository.
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/seer/repos/',
         body: [],
@@ -360,7 +360,9 @@ describe('SeerDrawerNextStep', () => {
       expect(dropdownButton).toBeDisabled();
       await userEvent.hover(dropdownButton);
       expect(
-        await screen.findByText('Connect a repository to hand off to a coding agent.')
+        await screen.findByText(
+          'Connect a GitHub repository to hand off to a coding agent.'
+        )
       ).toBeInTheDocument();
     });
 
