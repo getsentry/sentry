@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
+import type {ContainerProps} from '@sentry/scraps/layout';
+
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
@@ -122,8 +124,26 @@ function ResultsHeaderBase({
     />
   );
 
+  // there's some styling that gets messed up when choosing to not render the
+  // dataset selector tabs so i'm injecting some styles fix it. This should be removed
+  // when the dataset selector tabs are removed.
+  const deprecationHeaderStyles: ContainerProps<'header'> = {
+    padding: {
+      'screen:sm': '0',
+      'screen:md': '0',
+    },
+    borderBottom: {
+      '2xs': 'none',
+      xs: 'none',
+      sm: 'none',
+      md: 'none',
+    },
+  };
+
   return (
-    <Layout.Header>
+    <Layout.Header
+      {...(getTransactionsDeprecation(organization) ? deprecationHeaderStyles : {})}
+    >
       <TopBar.Slot name="title">
         {isHomepage ? (
           <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>

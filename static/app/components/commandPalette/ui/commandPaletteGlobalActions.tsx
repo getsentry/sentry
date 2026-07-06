@@ -107,6 +107,8 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
+
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
@@ -381,12 +383,24 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') && (
-            <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
-          )}
+          {organization.features.includes('explore-errors') &&
+            !getTransactionsDeprecation(organization) && (
+              <CMDKAction
+                display={{label: t('Errors')}}
+                to={`${prefix}/explore/errors-v2/`}
+              />
+            )}
           <CMDKAction
-            display={{label: t('Discover')}}
-            to={`${prefix}/explore/discover/homepage/`}
+            display={{
+              label: getTransactionsDeprecation(organization)
+                ? t('Errors')
+                : t('Discover'),
+            }}
+            to={
+              getTransactionsDeprecation(organization)
+                ? `${prefix}/explore/errors/homepage/`
+                : `${prefix}/explore/discover/homepage/`
+            }
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
