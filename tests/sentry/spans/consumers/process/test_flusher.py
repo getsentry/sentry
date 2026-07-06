@@ -134,8 +134,8 @@ def test_flusher_produces_flushed_segments_to_buffered_segments_topic() -> None:
             return_value=producer_manager,
         ) as mock_multi_producer,
         mock.patch(
-            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async"
-        ) as mock_apply_async,
+            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future"
+        ) as mock_apply_async_with_future,
     ):
         SpanFlusher.main(
             buffer,
@@ -148,23 +148,37 @@ def test_flusher_produces_flushed_segments_to_buffered_segments_topic() -> None:
         )
 
     mock_multi_producer.assert_called_once_with(Topic.BUFFERED_SEGMENTS)
-    mock_apply_async.assert_not_called()
+    mock_apply_async_with_future.assert_not_called()
     assert len(produced_payloads) == 1
     assert orjson.loads(produced_payloads[0].value)["spans"][0]["span_id"] == span_id
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.process-segments-task-rollout-rate": 1.0})
 def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
+    project_id = 999_002
+    trace_id = "9" * 32
     span_id = "c" * 16
-    buffer = _buffer_with_segment(span_id=span_id)
+    slice_id = 999_002
+    segment_key = f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode()
+    queue_key = f"span-buf:q:{slice_id}-0".encode()
+    buffer = _buffer_with_segment(
+        project_id=project_id, trace_id=trace_id, span_id=span_id, slice_id=slice_id
+    )
     stopped = SimpleNamespace(value=0)
     current_drift = SimpleNamespace(value=0)
     backpressure_since = SimpleNamespace(value=0)
     healthy_since = SimpleNamespace(value=0)
     producer_manager = mock.Mock()
+    task_future = mock.Mock()
 
-    def apply_async(*args: Any, **kwargs: Any) -> None:
+    def wait_for_task_delivery() -> None:
+        assert buffer.client.zscore(queue_key, segment_key) is not None
+
+    task_future.result.side_effect = wait_for_task_delivery
+
+    def apply_async_with_future(*args: Any, **kwargs: Any) -> Any:
         stopped.value = 1
+        return task_future
 
     with (
         mock.patch(
@@ -172,9 +186,9 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
             return_value=producer_manager,
         ) as mock_multi_producer,
         mock.patch(
-            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async",
-            side_effect=apply_async,
-        ) as mock_apply_async,
+            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future",
+            side_effect=apply_async_with_future,
+        ) as mock_apply_async_with_future,
     ):
         SpanFlusher.main(
             buffer,
@@ -188,10 +202,12 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
 
     mock_multi_producer.assert_called_once_with(Topic.BUFFERED_SEGMENTS)
     producer_manager.produce.assert_not_called()
-    mock_apply_async.assert_called_once()
-    task_args = mock_apply_async.call_args.kwargs["args"]
+    mock_apply_async_with_future.assert_called_once()
+    task_args = mock_apply_async_with_future.call_args.kwargs["args"]
     assert len(task_args) == 1
     assert orjson.loads(task_args[0])["spans"][0]["span_id"] == span_id
+    task_future.result.assert_called_once_with()
+    assert buffer.client.zscore(queue_key, segment_key) is None
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
