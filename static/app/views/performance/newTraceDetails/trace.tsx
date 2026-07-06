@@ -1560,6 +1560,12 @@ const TraceStylingWrapper = styled('div')`
       .TraceRightColumn.Odd {
         background-color: transparent !important;
       }
+
+      /* The pinned column is opaque (it scrolls over the tree), so match the
+         row's focused background instead of leaving a plain block behind. */
+      .TracePinnedColumn {
+        background-color: var(--row-background-focused);
+      }
     }
 
     &:focus,
@@ -1580,6 +1586,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceRightColumn {
         background-color: transparent;
+      }
+
+      .TracePinnedColumn {
+        background-color: ${p => p.theme.colors.yellow100};
       }
     }
 
@@ -1625,6 +1635,10 @@ const TraceStylingWrapper = styled('div')`
         .TraceLeftColumnInner {
           padding-left: 0 !important;
         }
+      }
+
+      .TracePinnedColumn {
+        background-color: ${p => p.theme.tokens.background.secondary};
       }
     }
   }
@@ -1748,8 +1762,10 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     overflow: hidden;
     background-color: ${p => p.theme.tokens.background.primary};
-    /* Keep the column visually uniform instead of inheriting the row's semantic
-       (error/warning) text color or highlight background. */
+    /* Keep the column's text uniform instead of inheriting the row's semantic
+       (error/warning) color. The background still tracks the row's focused,
+       search, and collapsed states (see the row-state rules above) so the column
+       matches the row rather than leaving a plain block behind. */
     color: ${p => p.theme.tokens.content.primary};
 
     /* Inner element the view manager translates so the whole column scrolls
