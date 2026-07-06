@@ -14,6 +14,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
+import {
+  useChartBoxZoom,
+  type BoxZoomRange,
+} from 'sentry/components/charts/useChartBoxZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -43,6 +47,12 @@ interface HeatMapWidgetVisualizationProps {
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
   /**
+   * Called when the user drag-selects a region of the heat map. The X-axis
+   * range maps to a time range and the Y-axis range to a value range. When
+   * omitted, drag-to-zoom is disabled.
+   */
+  onZoom?: (context: HeatMapZoomContext) => void;
+  /**
    * Renders extra content in a cell's tooltip. Because ECharts renders the
    * tooltip to an HTML string (no live React handlers), the visualization
    * routes clicks for you: use `data-traces-link="<url>"` for navigations, and
@@ -59,7 +69,7 @@ interface HeatMapWidgetVisualizationProps {
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, tooltipActionHandlers, renderTooltipActions} = props;
+  const {plottables, tooltipActionHandlers, renderTooltipActions, onZoom} = props;
   const theme = useTheme();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
@@ -116,6 +126,26 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     document.addEventListener('click', handleTooltipLinksClick);
     return () => document.removeEventListener('click', handleTooltipLinksClick);
   }, [handleTooltipLinksClick]);
+
+  const handleZoom = useCallback(
+    (range: BoxZoomRange) => {
+      onZoom?.({
+        timestampStart: range.xRange[0],
+        timestampEnd: range.xRange[1],
+        valueMin: range.yRange[0],
+        valueMax: range.yRange[1],
+      });
+    },
+    [onZoom]
+  );
+
+  // The heat map's readable time/value axes sit at index 1; index 0 is the
+  // hidden category axis that positions the cells.
+  const {brush, toolBox, onBrushStart, onBrushEnd, onChartReady} = useChartBoxZoom({
+    onZoom: onZoom ? handleZoom : undefined,
+    xAxisIndex: 1,
+    yAxisIndex: 1,
+  });
 
   if (!plottablesCanBeVisualized(plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
@@ -289,6 +319,11 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         isGroupedByDate
         showTimeInTooltip
         ref={chartRef}
+        brush={brush}
+        toolBox={toolBox}
+        onBrushStart={onBrushStart}
+        onBrushEnd={onBrushEnd}
+        onChartReady={onChartReady}
         tooltip={{
           show: true,
           enterable: true,
@@ -359,12 +394,23 @@ export const visualMapOptions = (
 };
 
 /**
- * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
- * caller can build its own tooltip actions (e.g. links into Explore).
+ * Bucket bounds of a region of the heat map, in raw axis units: a time span on
+ * the X axis (ms since epoch) and a value span on the Y axis.
  */
-interface HeatMapTooltipContext {
+interface HeatMapBucketBounds {
   timestampEnd: number;
   timestampStart: number;
   valueMax: number;
   valueMin: number;
 }
+
+/**
+ * Context for the hovered heat map cell, handed to `renderTooltipActions` so the
+ * caller can build its own tooltip actions (e.g., link into Explore).
+ */
+type HeatMapTooltipContext = HeatMapBucketBounds;
+
+/**
+ * Context for a drag-selected region, handed to `onZoom`.
+ */
+export type HeatMapZoomContext = HeatMapBucketBounds;
