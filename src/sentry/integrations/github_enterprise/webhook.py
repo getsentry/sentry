@@ -19,6 +19,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
@@ -29,6 +30,7 @@ from sentry.integrations.github.webhook import (
     get_github_external_id,
 )
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
@@ -113,7 +115,17 @@ class GitHubEnterpriseWebhook:
 
 
 class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
-    pass
+    def _get_token_refresh_client(self, integration: RpcIntegration) -> GitHubBaseClient:
+        metadata = integration.metadata
+        installation = metadata["installation"]
+        return GitHubEnterpriseApiClient(
+            base_url=metadata["domain_name"].split("/")[0],
+            integration=integration,
+            app_id=installation["id"],
+            private_key=installation["private_key"],
+            verify_ssl=installation["verify_ssl"],
+            org_integration_id=None,
+        )
 
 
 class GitHubEnterpriseInstallationRepositoriesEventWebhook(

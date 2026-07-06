@@ -1,4 +1,3 @@
-import type React from 'react';
 import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,7 +16,7 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
-interface Props extends React.ComponentProps<typeof StyledPanel> {
+interface Props {
   sampleCounts: ProjectSampleCount[];
   sampleRates: Record<string, number>;
   isLoading?: boolean;
@@ -45,12 +44,7 @@ function OthersBadge() {
   );
 }
 
-export function SamplingBreakdown({
-  sampleCounts,
-  sampleRates,
-  isLoading,
-  ...props
-}: Props) {
+export function SamplingBreakdown({sampleCounts, sampleRates, isLoading}: Props) {
   const theme = useTheme();
   const spansWithSampleRates = sampleCounts
     ?.map(item => {
@@ -61,7 +55,7 @@ export function SamplingBreakdown({
         sampledSpans,
       };
     })
-    .toSorted((a: any, b: any) => b.sampledSpans - a.sampledSpans);
+    .toSorted((a, b) => b.sampledSpans - a.sampledSpans);
 
   const hasOthers = spansWithSampleRates.length > ITEMS_TO_SHOW;
 
@@ -70,18 +64,15 @@ export function SamplingBreakdown({
     : spansWithSampleRates.slice(0, ITEMS_TO_SHOW);
   const otherSpanCount = spansWithSampleRates
     .slice(ITEMS_TO_SHOW - 1)
-    .reduce((acc: any, item: any) => acc + item.sampledSpans, 0);
-  const total = spansWithSampleRates.reduce(
-    (acc: any, item: any) => acc + item.sampledSpans,
-    0
-  );
+    .reduce((acc, item) => acc + item.sampledSpans, 0);
+  const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
 
-  const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
+  const getSpanRate = (spanCount: number) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
   const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW);
 
   return (
-    <StyledPanel {...props}>
+    <StyledPanel>
       <Heading>{t('Distribution of stored spans')}</Heading>
       {isLoading ? (
         <LoadingIndicator
@@ -93,7 +84,7 @@ export function SamplingBreakdown({
       ) : sampleCounts.length > 0 ? (
         <Fragment>
           <Breakdown>
-            {topItems.map((item: any, index: any) => {
+            {topItems.map((item, index) => {
               const itemPercent = getSpanRate(item.sampledSpans);
               return (
                 <Tooltip
@@ -140,7 +131,7 @@ export function SamplingBreakdown({
           </Breakdown>
           <Flex align="start" gap="xl">
             <Legend>
-              {topItems.map((item: any) => {
+              {topItems.map(item => {
                 const itemPercent = getSpanRate(item.sampledSpans);
                 return (
                   <Flex align="center" gap="sm" key={item.project.id}>

@@ -158,7 +158,6 @@ export type Plan = {
    * Data categories on the plan (errors, transactions, etc.)
    */
   categories: DataCategory[];
-  checkoutCategories: DataCategory[];
   dashboardLimit: number;
   features: string[];
 
@@ -169,7 +168,6 @@ export type Plan = {
    * upsell suppression, provisioning).
    */
   isEnterprise: boolean;
-  isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
   name: string;
@@ -374,10 +372,6 @@ export type Subscription = {
   trialEnd: string | null;
   trialPlan: string | null;
   type: BillingType;
-  /**
-   * All quotas available on the plan are exceeded
-   */
-  usageExceeded: boolean;
   // Seats
   usedLicenses: number;
   acv?: number;
@@ -766,7 +760,6 @@ export type BillingMetricHistory = {
   sentUsageWarning: boolean;
   // TODO(isabella): Make SoftCapType an enum
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
-  trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
   retention?: {downsampled: number | null; standard: number | null};

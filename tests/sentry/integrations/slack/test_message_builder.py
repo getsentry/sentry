@@ -1299,7 +1299,8 @@ class SlackAppUpdateNudgeBlockTest(TestCase):
         # Old install missing the mandatory app_mentions:read scope.
         org = self.organization
         reinstall_url = org.absolute_url(
-            f"/settings/{org.slug}/integrations/slack/", query="showInstallModal=1"
+            f"/settings/{org.slug}/integrations/slack/",
+            query="showInstallModal=1&referrer=slack_alert_nudge",
         )
         assert self._build_nudge_text(has_mentions_read_scope=False) == (
             f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."

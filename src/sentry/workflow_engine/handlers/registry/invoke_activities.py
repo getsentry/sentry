@@ -43,7 +43,11 @@ def invoke_workflow_activity_handlers(
         try:
             with metrics.timer(
                 DURATION_METRIC,
-                tags={"handler": handler_key, "activity_type": activity_type},
+                tags={
+                    "handler": handler_key,
+                    "activity_type": activity_type,
+                    "detector_type": group.issue_type.slug,
+                },
             ):
                 handler(group, activity, detector_id)
 

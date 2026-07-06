@@ -554,8 +554,8 @@ class ForwardPrToSeerJudgeTest(TestCase):
             )
         PullRequestActivity.objects.create(
             pull_request=self.pull_request,
-            webhook_id="merged",
-            event_type=PullRequestActivityType.MERGED,
+            webhook_id="synchronized",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
             payload={},
             date_added=base + timedelta(hours=10),
         )
@@ -567,7 +567,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
         lifecycle = [e for e in activity if e["event_type"] != "check_run_completed"]
 
         # All lifecycle rows kept; check rows capped to the most recent N.
-        assert {e["event_type"] for e in lifecycle} == {"opened", "merged"}
+        assert {e["event_type"] for e in lifecycle} == {"opened", "synchronized"}
         assert len(check_events) == _MAX_FORWARDED_CHECK_ROWS
         # The oldest `dropped` check rows are trimmed; the most recent N remain.
         kept_indexes = {e["payload"]["index"] for e in check_events}
