@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {cloneElement, Fragment} from 'react';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -21,7 +21,7 @@ interface LeadingGraphicsBadgeProject {
 }
 
 interface LeadingGraphicsIcon {
-  icon: React.ReactNode;
+  icon: React.ReactElement<{size?: string}>;
   variant: 'icon';
 }
 
@@ -41,6 +41,9 @@ export type LeadingGraphicsProps =
  */
 export function LeadingGraphics(props: LeadingGraphicsProps) {
   if (props.variant === 'icon') {
+    const icon = cloneElement(props.icon, {
+      size: props.icon.props.size ?? 'md',
+    });
     return (
       <Stack
         flexShrink={0}
@@ -50,7 +53,7 @@ export function LeadingGraphics(props: LeadingGraphicsProps) {
         height="16px"
         aria-hidden="true"
       >
-        {props.icon}
+        {icon}
       </Stack>
     );
   }
@@ -83,9 +86,9 @@ function BadgeProjectGraphic({
   switch (projectPlatforms.length) {
     case 0:
       icons = allProjects ? (
-        <IconAllProjects size="xs" aria-hidden="true" />
+        <IconAllProjects size="md" aria-hidden="true" />
       ) : (
-        <IconMyProjects size="xs" aria-hidden="true" />
+        <IconMyProjects size="md" aria-hidden="true" />
       );
       break;
 
@@ -93,10 +96,10 @@ function BadgeProjectGraphic({
       icons = (
         <Container
           position="absolute"
-          top="1px"
-          left="1px"
-          width="14px"
-          height="14px"
+          top="0px"
+          left="0px"
+          width="16px"
+          height="16px"
           overflow="hidden"
           radius="2xs"
           border="muted"

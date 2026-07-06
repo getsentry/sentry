@@ -21,15 +21,15 @@ export default Storybook.story('LeadingGraphics', story => {
       </p>
       <Storybook.SideBySide>
         <Flex align="center" gap="sm">
-          <LeadingGraphics variant="icon" icon={<IconSettings size="xs" />} />
+          <LeadingGraphics variant="icon" icon={<IconSettings size="md" />} />
           <Text variant="muted">icon</Text>
         </Flex>
         <Flex align="center" gap="sm">
-          <LeadingGraphics variant="icon" icon={<IconStar size="xs" />} />
+          <LeadingGraphics variant="icon" icon={<IconStar size="md" />} />
           <Text variant="muted">icon (star)</Text>
         </Flex>
         <Flex align="center" gap="sm">
-          <LeadingGraphics variant="avatar" avatar={<IconUser size="xs" />} />
+          <LeadingGraphics variant="avatar" avatar={<IconUser size="md" />} />
           <Text variant="muted">avatar</Text>
         </Flex>
       </Storybook.SideBySide>

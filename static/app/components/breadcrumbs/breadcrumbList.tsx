@@ -75,6 +75,7 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
     <Container
       as="nav"
       containerType="inline-size"
+      width="100%"
       aria-label={t('Breadcrumbs')}
       data-test-id="breadcrumb-list"
       {...props}

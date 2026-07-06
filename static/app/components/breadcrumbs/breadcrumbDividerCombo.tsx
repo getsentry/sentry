@@ -15,17 +15,10 @@ interface BreadcrumbDividerComboProps {
  */
 export function BreadcrumbDividerCombo({children, display}: BreadcrumbDividerComboProps) {
   return (
-    <Flex
-      as="li"
-      align="center"
-      gap="xs"
-      overflow="hidden"
-      flexShrink={0}
-      display={display}
-    >
+    <Flex as="li" align="center" gap="xs" flexShrink={0} display={display}>
       {children}
       <Flex as="span" align="center" justify="center" flexShrink={0}>
-        <IconSlashForward size="xs" variant="muted" />
+        <IconSlashForward size="md" variant="muted" />
       </Flex>
     </Flex>
   );

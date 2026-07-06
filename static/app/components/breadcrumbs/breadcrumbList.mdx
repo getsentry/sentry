@@ -1,0 +1,248 @@
+---
+title: BreadcrumbList
+description: A typed, accessible breadcrumb trail that collapses parent links into an overflow menu in narrow containers.
+category: navigation
+source: 'sentry/components/breadcrumbs'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/breadcrumbs/breadcrumbList.tsx
+  figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
+---
+
+import {LeadingGraphics} from '@sentry/scraps/leadingGraphics';
+
+import {BreadcrumbList} from 'sentry/components/breadcrumbs';
+import {IconSettings, IconStar} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!sentry/components/breadcrumbs/breadcrumbList');
+
+`BreadcrumbList` renders a horizontal breadcrumb trail as a semantic `<nav>` element. Each slot in the trail has an explicit `type` — developers must consciously choose a variant rather than having it inferred from position. At container widths below 800px, parent link crumbs automatically collapse into a single overflow (`…`) menu via a container query, keeping the page title always visible.
+
+## Usage
+
+```tsx
+import {BreadcrumbList} from 'sentry/components/breadcrumbs';
+```
+
+Pass a typed `items` array. Each entry is a discriminated union with a `type` key and a `props` object matching that type's interface.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Organization', to: '/organizations/sentry/'}},
+      {type: 'link', props: {label: 'Projects', to: '/organizations/sentry/projects/'}},
+      {
+        type: 'link',
+        props: {label: 'javascript', to: '/settings/sentry/projects/javascript/'},
+      },
+      {type: 'page-title', props: {label: 'General Settings'}},
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+<BreadcrumbList
+  items={[
+    {type: 'link', props: {label: 'Organization', to: '/organizations/sentry/'}},
+    {type: 'link', props: {label: 'Projects', to: '/organizations/sentry/projects/'}},
+    {
+      type: 'link',
+      props: {label: 'javascript', to: '/settings/sentry/projects/javascript/'},
+    },
+    {type: 'page-title', props: {label: 'General Settings'}},
+  ]}
+/>
+```
+
+## Item types
+
+### `'link'` — parent page
+
+A clickable, muted-weight crumb that navigates to a parent page. Use for every item except the current page. Set `preservePageFilters` to carry project/environment/date filters across the navigation. Labels are truncated at 132px and wrapped in a tooltip showing the full text.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {
+        type: 'link',
+        props: {
+          label: 'A very long project name that will be truncated',
+          to: '/organizations/sentry/projects/',
+        },
+      },
+      {type: 'page-title', props: {label: 'Current Page'}},
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+{type: 'link', props: {label: 'Projects', to: '/organizations/sentry/projects/'}}
+{type: 'link', props: {label: 'Issues', to: '/issues/', preservePageFilters: true}}
+```
+
+### `'page-title'` — current page
+
+The final crumb — bold, non-interactive, and always visible. Represents the page the user is currently on. Labels are truncated at 200px and wrapped in a tooltip showing the full text.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Issues', to: '/organizations/sentry/issues/'}},
+      {
+        type: 'page-title',
+        props: {label: 'TypeError: Cannot read properties of undefined'},
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+{type: 'page-title', props: {label: 'TypeError: Cannot read properties of undefined'}}
+```
+
+### `'select-projects'` — project picker
+
+A `CompactSelect` trigger used in settings pages where the user can switch between projects inline. Accepts standard `options`, `value`, and `onChange` props.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+      {
+        type: 'select-projects',
+        props: {
+          value: 'javascript',
+          options: [
+            {value: 'javascript', label: 'javascript'},
+            {value: 'python', label: 'python'},
+            {value: 'ruby', label: 'ruby'},
+          ],
+          onChange: () => {},
+        },
+      },
+      {type: 'page-title', props: {label: 'Client Keys (DSN)'}},
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+{
+  type: 'select-projects',
+  props: {
+    value: 'javascript',
+    options: [{value: 'javascript', label: 'javascript'}, {value: 'python', label: 'python'}],
+    onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
+  },
+}
+```
+
+## Leading graphics
+
+```tsx
+import {LeadingGraphics} from '@sentry/scraps/leadingGraphics';
+```
+
+All item types accept an optional `leadingGraphic` prop typed as `React.ReactElement<LeadingGraphicsProps>`. Pass a `<LeadingGraphics />` element — platform icons, Sentry icons, or avatars.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {
+        type: 'link',
+        props: {
+          label: 'Settings',
+          to: '/settings/',
+          leadingGraphic: (
+            <LeadingGraphics variant="icon" icon={<IconSettings size="md" />} />
+          ),
+        },
+      },
+      {
+        type: 'link',
+        props: {
+          label: 'javascript',
+          to: '/settings/sentry/projects/javascript/',
+          leadingGraphic: (
+            <LeadingGraphics variant="badge-project" projectPlatforms={['javascript']} />
+          ),
+        },
+      },
+      {
+        type: 'page-title',
+        props: {
+          label: 'Client Keys (DSN)',
+          leadingGraphic: (
+            <LeadingGraphics variant="icon" icon={<IconStar size="md" />} />
+          ),
+        },
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx leadingGraphic=
+{<LeadingGraphics variant="icon" icon={<IconSettings size="md" />} />}
+leadingGraphic=
+{<LeadingGraphics variant="badge-project" projectPlatforms={['javascript']} />}
+leadingGraphic={<LeadingGraphics variant="icon" icon={<IconStar size="md" />} />}
+```
+
+## Pagination
+
+The `'page-title'` item accepts an optional `pagination` prop for pages where the user can step through a list of items (e.g. issues, replays, traces). Pass a `{previous, next}` object — each with a `to` URL, `ariaLabel`, optional `disabled` flag, and an optional rich `tooltip`. The two chevron buttons are rendered internally.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Issues', to: '/organizations/sentry/issues/'}},
+      {
+        type: 'page-title',
+        props: {
+          label: 'TypeError: Cannot read properties of undefined',
+          pagination: {
+            previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
+            next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
+          },
+        },
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx pagination=
+{{
+  previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
+  next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
+}}
+```
+
+## Trailing actions
+
+The `'page-title'` item also accepts a `trailingActions` slot for up to 52px of action buttons rendered after the label — e.g. a bookmark or share button.
+
+```tsx
+trailingActions={
+  <Button size="zero" priority="transparent" icon={<IconStar size="md" />} aria-label="Bookmark" />
+}
+```
+
+## Overflow (container query)
+
+`BreadcrumbList` sets `containerType="inline-size"` on its outer `<nav>`. When that container is narrower than 800px, all `'link'` parent items are hidden and replaced with a single `…` overflow button — only the `'page-title'` stays visible. Non-link parent types (e.g. `'select-projects'`) are never collapsed.
+
+Drag the sizing handle below to see the transition:
+
+<Storybook.SizingWindow display="block">
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+      {
+        type: 'link',
+        props: {label: 'javascript', to: '/settings/sentry/projects/javascript/'},
+      },
+      {
+        type: 'link',
+        props: {
+          label: 'Client Keys (DSN)',
+          to: '/settings/sentry/projects/javascript/keys/',
+        },
+      },
+      {type: 'page-title', props: {label: 'web-frontend-dsn'}},
+    ]}
+  />
+</Storybook.SizingWindow>
