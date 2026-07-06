@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from datetime import timedelta
 
 import sentry_sdk
@@ -43,8 +42,6 @@ from sentry.utils.cursored_scheduler import CursoredScheduler
 
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
-JITTER_WINDOW_SECONDS = 60
-
 SCHEDULER_METRIC = "dynamic_sampling.schedule_per_org_calculations.org_status"
 
 
@@ -122,18 +119,13 @@ def schedule_per_org_calculations() -> None:
     dispatched = 0
     skipped = 0
 
-    def validate_and_dispatch(org_id: int) -> bool:
+    def validate_and_track(org_id: int) -> bool:
         nonlocal dispatched, skipped
         if not is_org_in_rollout(org_id):
             skipped += 1
             return False
-        run_calculations_per_org_task_entry.apply_async(
-            args=(org_id,),
-            countdown=random.randint(0, JITTER_WINDOW_SECONDS),
-        )
         dispatched += 1
-        # Return False so CursoredScheduler does not call task.delay() again.
-        return False
+        return True
 
     scheduler = CursoredScheduler(
         name="ds_per_org",
@@ -141,7 +133,7 @@ def schedule_per_org_calculations() -> None:
         queryset=Organization.objects.filter(status=OrganizationStatus.ACTIVE),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
-        validate_item=validate_and_dispatch,
+        validate_item=validate_and_track,
     )
     scheduler.tick()
 
