@@ -179,6 +179,7 @@ export function WidgetBuilderXAxisSelector() {
           isEAPDataset
             ? {
                 onChange: setSearch,
+                highlight: true,
                 filter: (option, searchText) =>
                   sortSearchedAttributes({
                     fieldDefinitionType: traceItemType,
