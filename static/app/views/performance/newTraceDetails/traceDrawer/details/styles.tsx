@@ -630,7 +630,7 @@ const HighlightOp = styled('div')`
 
 const HighlightedAttributesWrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: ${p => p.theme.space.lg};
   row-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};

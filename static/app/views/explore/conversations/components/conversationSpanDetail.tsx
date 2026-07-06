@@ -86,9 +86,20 @@ export function ConversationSpanDetail({
   const tabContentRef = useRef<HTMLDivElement>(null);
 
   // Reset the scroll position to the top when switching tabs, otherwise the
-  // shared scroll container keeps the previous tab's offset.
+  // shared scroll container keeps the previous tab's offset. In the fixed-height
+  // layout the tab container is its own scroll region; on narrow screens it
+  // flows into the page's scroll container, so scrolling it is a no-op — bring
+  // its top back into view instead.
   useEffect(() => {
-    tabContentRef.current?.scrollTo({top: 0});
+    const el = tabContentRef.current;
+    if (!el) {
+      return;
+    }
+    if (getComputedStyle(el).overflowY === 'visible') {
+      el.scrollIntoView({block: 'start'});
+    } else {
+      el.scrollTo({top: 0});
+    }
   }, [activeTab]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
@@ -122,8 +133,9 @@ export function ConversationSpanDetail({
       padding="xl"
       gap="lg"
       flex="1"
+      minWidth="0"
       minHeight="0"
-      height="100%"
+      height={embedded ? '100%' : {xs: 'auto', md: '100%'}}
     >
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
@@ -178,11 +190,11 @@ export function ConversationSpanDetail({
 
         <Container
           ref={tabContentRef}
-          flex="1"
+          flex={embedded ? '1' : {xs: '0 0 auto', md: '1'}}
           minHeight="0"
           width="100%"
-          overflowY="auto"
-          overflowX="hidden"
+          overflowY={embedded ? 'auto' : {xs: 'visible', md: 'auto'}}
+          overflowX={embedded ? 'hidden' : {xs: 'visible', md: 'hidden'}}
           // Gutter so the scroll container doesn't clip a focused input's focus ring.
           padding="xs"
         >
@@ -246,15 +258,17 @@ function SpanMetadata({
           <Text size="xs" variant="muted">
             {row.name}
           </Text>
-          {typeof row.value === 'string' ? (
-            <Text size="xs" as="div" ellipsis>
-              {row.value}
-            </Text>
-          ) : (
-            <Text size="xs" as="div">
-              {row.value}
-            </Text>
-          )}
+          <Container minWidth="0">
+            {typeof row.value === 'string' ? (
+              <Text size="xs" as="div" ellipsis>
+                {row.value}
+              </Text>
+            ) : (
+              <Text size="xs" as="div">
+                {row.value}
+              </Text>
+            )}
+          </Container>
         </Fragment>
       ))}
     </Grid>

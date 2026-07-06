@@ -122,15 +122,15 @@ export function ConversationViewContentNew({
               overflowX="hidden"
             >
               <Container
-                flex="1"
+                flex={{xs: '0 0 auto', md: '1'}}
                 minWidth="0"
-                minHeight={{xs: '320px', md: '0'}}
+                minHeight={{xs: 'auto', md: '0'}}
                 padding={isTranscript ? '0' : 'md'}
                 background="primary"
                 border="primary"
                 radius="md"
                 overflowX="hidden"
-                overflowY="auto"
+                overflowY={{xs: 'hidden', md: 'auto'}}
               >
                 {isTranscript ? (
                   isLoading ? (
@@ -156,8 +156,8 @@ export function ConversationViewContentNew({
               {detailState.detailOpen && selectedNode ? (
                 <Flex
                   width={{xs: '100%', md: '430px'}}
-                  flex={{xs: '1', md: '0 0 auto'}}
-                  minHeight={{xs: '320px', md: '0'}}
+                  flex="0 0 auto"
+                  minHeight={{xs: 'auto', md: '0'}}
                 >
                   <ConversationSpanDetail
                     node={selectedNode}
