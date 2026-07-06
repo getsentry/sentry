@@ -47,6 +47,10 @@ interface ConversationTurn {
   userContent: string | null;
   userEmail: string | undefined;
   toolSpanNodes?: AITraceSpanNode[];
+  // Number of user messages in this generation's input history. Used to tell
+  // apart a genuine repeated user message (count grows) from the same
+  // last-user-message carried across tool-loop generations (count is stable).
+  userMessageCount?: number;
 }
 
 /**
@@ -128,6 +132,7 @@ export function buildConversationTurns(
       toolCalls,
       toolSpanNodes: toolCallSpans,
       userContent: parseUserContent(node),
+      userMessageCount: countUserMessages(node),
       assistantContent,
       reasoning,
       userEmail,
@@ -180,15 +185,24 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   const messages: ConversationMessage[] = [];
   const seenUserContent = new Set<string>();
   const seenAssistantContent = new Set<string>();
+  // Highest number of user messages seen in any generation's input so far. A
+  // growing count means the user genuinely sent another message, even when its
+  // text is identical to a previous one.
+  let maxUserMessageCount = 0;
 
   for (const turn of turns) {
     const startTs = getNodeStartTimestamp(turn.generation);
     const genEnd = getNodeEndTimestamp(turn.generation);
 
+    const userMessageCount = turn.userMessageCount ?? 0;
+    const userCountGrew = userMessageCount > maxUserMessageCount;
+    maxUserMessageCount = Math.max(maxUserMessageCount, userMessageCount);
+
     if (
       turn.userContent &&
       (turn.userContent === FILTERED ||
         turn.userContent === EMPTY_TEXT_CONTENT ||
+        userCountGrew ||
         !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
@@ -287,6 +301,32 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     return null;
   }
   return userMessage.content;
+}
+
+/**
+ * Counts user messages in a generation's input history. Because
+ * `gen_ai.input.messages` typically carries the full cumulative conversation,
+ * this count grows by one each time the user sends a new message — even if that
+ * message repeats earlier text — while staying stable across the extra
+ * generations produced by a single tool-loop turn.
+ *
+ * Returns 0 when the input is missing or scrubbed, so those turns fall back to
+ * content-based deduplication.
+ */
+export function countUserMessages(node: AITraceSpanNode): number {
+  const raw =
+    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
+
+  if (!raw || raw === FILTERED) {
+    return 0;
+  }
+
+  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
+  if (!messages) {
+    return 0;
+  }
+  return messages.filter(m => m.role === 'user').length;
 }
 
 /**

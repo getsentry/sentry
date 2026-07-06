@@ -2,6 +2,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   buildConversationTurns,
+  countUserMessages,
   extractMessagesFromNodes,
   getNodeTimestamp,
   mergeEmptyTurns,
@@ -236,6 +237,35 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseUserContent(node as any)).toBe('Wrapped question');
+    });
+  });
+
+  describe('countUserMessages', () => {
+    it('counts user messages in the input history', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'user', content: 'First'},
+            {role: 'assistant', content: 'Reply'},
+            {role: 'user', content: 'Second'},
+          ]),
+        },
+      });
+      expect(countUserMessages(node as any)).toBe(2);
+    });
+
+    it('returns 0 when input is missing', () => {
+      const node = createMockNode({id: 'node-1'});
+      expect(countUserMessages(node as any)).toBe(0);
+    });
+
+    it('returns 0 when input is scrubbed', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]'},
+      });
+      expect(countUserMessages(node as any)).toBe(0);
     });
   });
 
@@ -645,6 +675,70 @@ describe('conversationMessages utilities', () => {
 
       expect(userMessages).toHaveLength(1);
       expect(assistantMessages).toHaveLength(2);
+    });
+
+    it('keeps a repeated user message when the input user-message count grows', () => {
+      // The user asked the exact same question twice in two separate turns.
+      // The second generation's input history contains both user messages, so
+      // its userMessageCount is higher and the repeat must be preserved.
+      const turns = [
+        makeTurn({
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'How is the weather in Vienna?',
+          assistantContent: 'It is sunny',
+          userMessageCount: 1,
+        }),
+        makeTurn({
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
+          userContent: 'How is the weather in Vienna?', // Exact same content
+          assistantContent: 'Still sunny',
+          userMessageCount: 2,
+        }),
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const userMessages = messages.filter(m => m.role === 'user');
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+
+      expect(userMessages).toHaveLength(2);
+      expect(assistantMessages).toHaveLength(2);
+    });
+
+    it('still collapses a repeated user message across a tool loop (stable count)', () => {
+      // Two generations in the same turn (tool loop) share the same last user
+      // message and the same userMessageCount, so only one user message shows.
+      const turns = [
+        makeTurn({
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'How is the weather in Vienna?',
+          toolCalls: [{name: 'weather', nodeId: 'tool-1', hasError: false}],
+          userMessageCount: 1,
+        }),
+        makeTurn({
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 2000, end_timestamp: 2100},
+          } as any,
+          userContent: 'How is the weather in Vienna?',
+          assistantContent: 'It is sunny',
+          userMessageCount: 1,
+        }),
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const userMessages = messages.filter(m => m.role === 'user');
+      expect(userMessages).toHaveLength(1);
     });
 
     it('does not deduplicate user messages with different whitespace or case', () => {
@@ -1062,6 +1156,43 @@ describe('conversationMessages utilities', () => {
 
       expect(userMessages).toHaveLength(1);
       expect(assistantMessages).toHaveLength(2);
+    });
+
+    it('keeps a genuinely repeated user message across separate turns', () => {
+      // First turn: only the initial question in the input history.
+      const gen1 = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'user', content: 'How is the weather in Vienna?'},
+          ]),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'It is sunny',
+        },
+      });
+
+      // Second turn: the user asked the same question again, so the cumulative
+      // input history now contains two identical user messages.
+      const gen2 = createMockNode({
+        id: 'gen-2',
+        startTimestamp: 2000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'user', content: 'How is the weather in Vienna?'},
+            {role: 'assistant', content: 'It is sunny'},
+            {role: 'user', content: 'How is the weather in Vienna?'},
+          ]),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Still sunny',
+        },
+      });
+
+      const messages = extractMessagesFromNodes([gen1, gen2] as any);
+
+      const userMessages = messages.filter(m => m.role === 'user');
+      expect(userMessages).toHaveLength(2);
+      expect(userMessages.every(m => m.content === 'How is the weather in Vienna?')).toBe(
+        true
+      );
     });
 
     it('returns empty array for empty input', () => {
