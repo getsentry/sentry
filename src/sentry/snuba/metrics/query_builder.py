@@ -95,24 +95,19 @@ __all__ = (
 
 QUERY_PROJECT_LIMIT = 10
 
-ScalarMetricOperationParam = str | int | float
-MetricFieldParamValue = None | ScalarMetricOperationParam | Sequence[tuple[str | int, ...]]
+MetricOperationParam = str | int | float
+MetricFieldParamValue = None | MetricOperationParam | Sequence[tuple[str | int, ...]]
 MetricFieldParams = Mapping[str, MetricFieldParamValue] | None
 MetricFieldKey = tuple[MetricOperationType | None, str, str]
 
 
 def _to_metric_operation_params(
     params: MetricFieldParams,
-) -> Mapping[str, ScalarMetricOperationParam] | None:
-    if params is None:
-        return None
-
-    operation_params: dict[str, ScalarMetricOperationParam] = {}
-    for key, value in params.items():
-        if isinstance(value, (str, int, float)):
-            operation_params[key] = value
-
-    return operation_params or None
+) -> Mapping[str, MetricOperationParam] | None:
+    # MetricField.params supports some richer value shapes (e.g. tuple lists for
+    # team_key_transaction), while MetricExpression signatures type params as
+    # scalar mappings. Keep runtime values intact and narrow for static typing.
+    return cast(Mapping[str, MetricOperationParam] | None, params)
 
 
 def _strip_project_id(condition: Condition) -> Condition | None:
@@ -1110,7 +1105,9 @@ class SnubaQueryBuilder:
 
             if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
                 if self._metrics_query.interval is None:
-                    raise InvalidParams("Interval is required for transactions and spans series queries")
+                    raise InvalidParams(
+                        "Interval is required for transactions and spans series queries"
+                    )
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
