@@ -379,7 +379,7 @@ class NotificationTextBlock(Protocol):
     """
     text: str
     """
-    Text to be rendered in the body.
+    Text to be rendered in the notification.
     """
 
 
