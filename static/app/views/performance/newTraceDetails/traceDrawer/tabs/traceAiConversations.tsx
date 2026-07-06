@@ -21,10 +21,7 @@ import {
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
-import {
-  MessagesPanelNew,
-  MessagesPanelSkeleton,
-} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -48,8 +45,6 @@ export function TraceAiConversations({
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
   const hasRedesign = hasGenAiConversationsRedesignFeature(organization);
-  // The redesign leads with the transcript, so default to the first
-  // conversation tab instead of the Timeline/Spans tab.
   const [activeSubTab, setActiveSubTab] = useState(() =>
     hasRedesign && conversationIds.length > 0 ? `chat-${conversationIds[0]}` : 'spans'
   );
@@ -107,7 +102,6 @@ export function TraceAiConversations({
       conversationId: id,
     }));
 
-    // The redesign leads with the transcript(s), then the timeline.
     return hasRedesign
       ? [...conversationTabs, spansTab]
       : [spansTab, ...conversationTabs];
@@ -268,12 +262,6 @@ function TraceConversationChat({
   );
 }
 
-/**
- * Redesigned transcript for the trace AI tab, gated behind
- * `gen-ai-conversations-redesign`. Mirrors `ConversationViewContentNew`: the
- * Seer Explorer-styled transcript on the left and the redesigned span detail
- * panel on the right, opened only when the user selects a span.
- */
 function TraceConversationTranscript({
   nodes,
   nodeTraceMap,
@@ -294,28 +282,20 @@ function TraceConversationTranscript({
     selectedSpanId,
     onSelectSpan,
     isLoading,
-    // The redesign opens the span detail only when the user selects a span.
     autoSelectDefaultNode: false,
   });
 
-  const [detailState, setDetailState] = useState<{open: boolean; tab: DetailTab}>({
-    open: true,
-    tab: 'input',
-  });
+  const [detailTab, setDetailTab] = useState<DetailTab>('input');
 
-  const handleSelectAndOpenDetail = useCallback(
-    (node: AITraceSpanNode) => {
-      setDetailState(prev => ({...prev, open: true}));
-      handleSelectNode(node);
-    },
-    [handleSelectNode]
-  );
+  if (isLoading) {
+    return <ConversationViewSkeleton />;
+  }
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (!isLoading && nodes.length === 0) {
+  if (nodes.length === 0) {
     return (
       <EmptyMessage>
         {t('No chat messages in this portion of the conversation')}
@@ -325,65 +305,43 @@ function TraceConversationTranscript({
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
-        <ConversationLeftPanel>
-          <Container
-            containerType="inline-size"
-            flex="1"
-            minHeight="0"
-            width="100%"
-            background="secondary"
-          >
+      <ConversationSplitLayout
+        sizeStorageKey="trace-conversation-split-size"
+        left={
+          <ConversationLeftPanel>
             <Flex
-              direction={{xs: 'column', md: 'row'}}
-              height="100%"
-              width="100%"
-              gap="md"
-              padding="md"
+              flex="1"
               minHeight="0"
-              overflowY="auto"
+              width="100%"
+              background="secondary"
               overflowX="hidden"
+              overflowY="auto"
             >
-              <Container
-                flex="1"
-                minWidth="0"
-                minHeight={{xs: '320px', md: '0'}}
-                background="primary"
-                border="primary"
-                radius="md"
-                overflowX="hidden"
-                overflowY="auto"
-              >
-                {isLoading ? (
-                  <MessagesPanelSkeleton />
-                ) : (
-                  <MessagesPanelNew
-                    nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
-                    onSelectNode={handleSelectAndOpenDetail}
-                    nodeTraceMap={nodeTraceMap}
-                  />
-                )}
-              </Container>
-              {detailState.open && selectedNode ? (
-                <Flex
-                  width={{xs: '100%', md: '430px'}}
-                  flex={{xs: '1', md: '0 0 auto'}}
-                  minHeight={{xs: '320px', md: '0'}}
-                >
-                  <ConversationSpanDetail
-                    node={selectedNode}
-                    traceId={nodeTraceMap.get(selectedNode.id) ?? ''}
-                    activeTab={detailState.tab}
-                    onTabChange={tab => setDetailState(prev => ({...prev, tab}))}
-                    onClose={() => setDetailState(prev => ({...prev, open: false}))}
-                  />
-                </Flex>
-              ) : null}
+              <MessagesPanelNew
+                nodes={nodes}
+                selectedNodeId={selectedNode?.id ?? null}
+                onSelectNode={handleSelectNode}
+                nodeTraceMap={nodeTraceMap}
+              />
             </Flex>
-          </Container>
-        </ConversationLeftPanel>
-      </Flex>
+          </ConversationLeftPanel>
+        }
+        right={
+          selectedNode ? (
+            <Flex flex="1" minHeight="0" background="primary">
+              <ConversationSpanDetail
+                node={selectedNode}
+                traceId={nodeTraceMap.get(selectedNode.id) ?? ''}
+                activeTab={detailTab}
+                onTabChange={setDetailTab}
+                embedded
+              />
+            </Flex>
+          ) : (
+            <EmptyMessage>{t('Select a span to see its details')}</EmptyMessage>
+          )
+        }
+      />
     </TraceStateProvider>
   );
 }
