@@ -489,6 +489,43 @@ class CursoredSchedulerTest(TestCase):
 
         assert all_dispatched == sorted_pks
 
+    def test_jitter_dispatches_via_apply_async(self):
+        """When jitter=True, tasks are dispatched via apply_async with a countdown."""
+        self._create_org_integrations(30)
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            jitter=True,
+        )
+
+        scheduler.tick()
+
+        # Should use apply_async, not delay
+        self.mock_task.delay.assert_not_called()
+        assert self.mock_task.apply_async.call_count == 10
+
+        # Each call should have a countdown between 0 and tick interval (60s)
+        for call in self.mock_task.apply_async.call_args_list:
+            countdown = call.kwargs["countdown"]
+            assert 0 <= countdown <= 60
+
+    def test_jitter_false_dispatches_via_delay(self):
+        """When jitter=False (default), tasks are dispatched via delay."""
+        self._create_org_integrations(30)
+        scheduler = self._make_scheduler()
+
+        scheduler.tick()
+
+        assert self.mock_task.delay.call_count == 10
+        self.mock_task.apply_async.assert_not_called()
+
     def test_interval_decrease_halves_batch_size(self):
         """When tick interval is halved, batch size is halved for remaining items."""
         self._create_org_integrations(30)

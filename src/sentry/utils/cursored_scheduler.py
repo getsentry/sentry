@@ -52,6 +52,18 @@ Optional validate_item callback:
 
 When provided, validate_item is called for each PK before dispatching.
 Items that fail validation are skipped without dispatching the task.
+
+Optional jitter:
+
+    scheduler = CursoredScheduler(
+        ...
+        jitter=True,
+    )
+
+When enabled, each task is dispatched via apply_async with a random
+countdown between 0 and the tick interval (in seconds). This spreads
+task execution evenly across the time until the next tick, avoiding
+spikes when a single tick dispatches a large batch.
 """
 
 from __future__ import annotations
@@ -138,6 +150,7 @@ class CursoredScheduler[M: Model]:
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
         shuffle: bool = False,
+        jitter: bool = False,
     ):
         self.name = name
         self.schedule_key = schedule_key
@@ -154,6 +167,7 @@ class CursoredScheduler[M: Model]:
         self.lock_duration = lock_duration
         self.validate_item = validate_item
         self.shuffle = shuffle
+        self.jitter = jitter
         self._metric_tags = {"scheduler": name}
 
     @property
@@ -211,10 +225,14 @@ class CursoredScheduler[M: Model]:
             return False
 
         dispatched = 0
+        jitter_window = int(self.tick_interval.total_seconds()) if self.jitter else 0
         for pk in items:
             if self.validate_item is not None and not self.validate_item(pk):
                 continue
-            self.task.delay(pk)
+            if jitter_window > 0:
+                self.task.apply_async(args=(pk,), countdown=random.randint(0, jitter_window))
+            else:
+                self.task.delay(pk)
             dispatched += 1
 
         metrics.gauge("cursored_scheduler.batch_size", dispatched, tags=self._metric_tags)
