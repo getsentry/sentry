@@ -256,7 +256,7 @@ function Stat({
         <Placeholder width="32px" height="24px" />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="inherit" wrap="nowrap">
+          <Text size="xl" tabular variant="danger" wrap="nowrap">
             {value}
           </Text>
         </Link>
