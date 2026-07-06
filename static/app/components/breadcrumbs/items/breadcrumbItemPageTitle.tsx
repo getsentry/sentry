@@ -1,5 +1,6 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {LeadingGraphicsProps} from '@sentry/scraps/leadingGraphics';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -25,7 +26,7 @@ export interface BreadcrumbItemPageTitleProps {
   label: string;
   /** Renders a tooltip showing the full label — useful when text is truncated. Defaults to true. */
   labelTooltip?: boolean;
-  leadingGraphic?: React.ReactNode;
+  leadingGraphic?: React.ReactElement<LeadingGraphicsProps>;
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
   /** Trailing action slot (up to 52px wide). */

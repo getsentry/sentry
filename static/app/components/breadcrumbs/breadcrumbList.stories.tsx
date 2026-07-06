@@ -183,24 +183,4 @@ export default Storybook.story('BreadcrumbList', story => {
       </Storybook.SideBySide>
     </Fragment>
   ));
-
-  story('As nav element', () => (
-    <Fragment>
-      <p>
-        Pass <Storybook.JSXProperty name="as" value="'nav'" /> to render the breadcrumb
-        trail inside a semantic <code>{'<nav>'}</code> element with{' '}
-        <code>aria-label="Breadcrumbs"</code>.
-      </p>
-      <Storybook.SizingWindow display="block">
-        <BreadcrumbList
-          as="nav"
-          items={[
-            {type: 'link', props: {label: 'Home', to: '/'}},
-            {type: 'link', props: {label: 'Alerts', to: '/organizations/sentry/alerts/'}},
-            {type: 'page-title', props: {label: 'Alert Rules'}},
-          ]}
-        />
-      </Storybook.SizingWindow>
-    </Fragment>
-  ));
 });

@@ -18,8 +18,6 @@ export type BreadcrumbItem =
 
 export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
   items: BreadcrumbItem[];
-  /** Render as a semantic nav element with an aria-label. */
-  as?: 'nav';
 }
 
 function renderItem(item: BreadcrumbItem) {
@@ -48,7 +46,7 @@ function renderItem(item: BreadcrumbItem) {
  * - Narrow (< 800px): all 'link' type parent items collapse into a single
  *   BreadcrumbItemMenuBreadcrumbs overflow button; other parent types remain visible
  */
-export function BreadcrumbList({items, as, ...props}: BreadcrumbListProps) {
+export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   if (items.length === 0) {
     return null;
   }
@@ -75,9 +73,9 @@ export function BreadcrumbList({items, as, ...props}: BreadcrumbListProps) {
     // containerType="inline-size" makes this element a container for @container queries.
     // Must use the standard children form (not render-prop) to use containerType.
     <Container
-      as={as ?? 'span'}
+      as="nav"
       containerType="inline-size"
-      aria-label={as === 'nav' ? t('Breadcrumbs') : undefined}
+      aria-label={t('Breadcrumbs')}
       data-test-id="breadcrumb-list"
       {...props}
     >

@@ -1,4 +1,5 @@
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {LeadingGraphicsProps} from '@sentry/scraps/leadingGraphics';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -13,7 +14,7 @@ export interface BreadcrumbItemLinkProps {
   to: LinkProps['to'];
   /** Renders a tooltip showing the full label — useful when text is truncated. Defaults to true. */
   labelTooltip?: boolean;
-  leadingGraphic?: React.ReactNode;
+  leadingGraphic?: React.ReactElement<LeadingGraphicsProps>;
   preservePageFilters?: boolean;
 }
 

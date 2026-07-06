@@ -50,13 +50,12 @@ export interface Crumb {
 
 interface BreadcrumbsProps extends React.HTMLAttributes<HTMLElement> {
   crumbs: Crumb[];
-  as?: 'nav';
 }
 
 /**
  * @deprecated Use `BreadcrumbList` with typed items instead.
  */
-export function Breadcrumbs({crumbs, as, ...props}: BreadcrumbsProps) {
+export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
   if (crumbs.length === 0) {
     return null;
   }
@@ -85,5 +84,5 @@ export function Breadcrumbs({crumbs, as, ...props}: BreadcrumbsProps) {
     };
   });
 
-  return <BreadcrumbList items={items} as={as} {...props} />;
+  return <BreadcrumbList items={items} {...props} />;
 }

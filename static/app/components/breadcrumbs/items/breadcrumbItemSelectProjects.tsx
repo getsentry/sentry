@@ -1,13 +1,13 @@
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import type {LeadingGraphicsProps} from '@sentry/scraps/leadingGraphics';
 
 export interface BreadcrumbItemSelectProjectsProps<Value extends SelectKey = string> {
   onChange: (value: SelectOption<Value>) => void;
   options: Array<SelectOption<Value>>;
   value: Value;
-  /** Optional leading graphic rendered before the select trigger (e.g. a LeadingGraphics badge). */
-  leadingGraphic?: React.ReactNode;
+  leadingGraphic?: React.ReactElement<LeadingGraphicsProps>;
 }
 
 export function BreadcrumbItemSelectProjects<Value extends SelectKey = string>({
