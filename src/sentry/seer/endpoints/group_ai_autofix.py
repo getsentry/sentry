@@ -484,9 +484,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         iteration_blocks = [
             block for iteration in get_iterations(state) for block in iteration.blocks
         ]
-        missing_perms = get_out_of_date_github_permissions(
-            group.organization, iteration_blocks
-        )
+        missing_perms = get_out_of_date_github_permissions(group.organization, iteration_blocks)
         warnings = [
             GithubAppPermissionsWarning(
                 repo_name=repo_name,

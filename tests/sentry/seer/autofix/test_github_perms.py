@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Sequence
 
 from sentry.seer.agent.client_models import (
@@ -14,6 +13,7 @@ from sentry.seer.autofix.github_perms import (
     blocks_have_failed_tool_call,
     repos_with_failed_tool_calls,
 )
+from sentry.utils import json
 
 
 def _block(
@@ -30,9 +30,7 @@ def _block(
         args = json.dumps({"repo_name": repo} if repo is not None else {})
         tool_calls.append(ToolCall(id=call_id, function=fn, args=args))
         tool_links.append(ToolLink(kind=fn, params={"is_error": True}) if is_error else None)
-        tool_results.append(
-            ToolResult(tool_call_id=call_id, tool_call_function=fn, content="x")
-        )
+        tool_results.append(ToolResult(tool_call_id=call_id, tool_call_function=fn, content="x"))
     return MemoryBlock(
         id="b",
         message=Message(role="assistant", content="", tool_calls=tool_calls or None),

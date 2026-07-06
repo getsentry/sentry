@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Sequence
 from unittest.mock import patch
 
@@ -20,6 +19,7 @@ from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class TestTriggerCodingAgentHandoff(TestCase):

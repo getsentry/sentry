@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import MemoryBlock, SeerRunState, ToolCall

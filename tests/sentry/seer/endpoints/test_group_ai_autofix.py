@@ -105,9 +105,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_returns_github_permission_warnings(
-        self, mock_get_explorer_state, mock_get_perms
-    ):
+    def test_get_returns_github_permission_warnings(self, mock_get_explorer_state, mock_get_perms):
         group = self.create_group()
         mock_get_explorer_state.return_value = SeerRunState(
             run_id=888,
