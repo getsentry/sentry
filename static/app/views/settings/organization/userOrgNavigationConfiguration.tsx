@@ -313,8 +313,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('create auth token'),
             t('new token'),
             'SENTRY_AUTH_TOKEN',
-            'SENTRY_ORG',
-            'SENTRY_PROJECT',
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -337,8 +335,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('create auth token'),
             t('new token'),
             'SENTRY_AUTH_TOKEN',
-            'SENTRY_ORG',
-            'SENTRY_PROJECT',
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."

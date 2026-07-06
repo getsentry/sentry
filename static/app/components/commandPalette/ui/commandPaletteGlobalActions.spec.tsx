@@ -355,6 +355,15 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
     ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    // Users searching to create a token should land on the token pages.
+    [
+      'create new token',
+      /Settings.*Organization Tokens/,
+      /Settings.*Personal Tokens/,
+    ],
+    ['create token', /Settings.*Organization Tokens/, /Settings.*Personal Tokens/],
+    // "SDK setup" (the section name, not a page) should surface Client Keys (DSN).
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 
