@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
@@ -50,6 +50,8 @@ export function ConversationViewContentNew({
   onSelectSpan,
   focusedTool,
 }: ConversationViewContentNewProps) {
+  const isTimeline = activeTab === 'timeline';
+
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
@@ -57,8 +59,9 @@ export function ConversationViewContentNew({
     onSelectSpan,
     focusedTool,
     isLoading,
-    // The redesign opens the span detail only when the user selects a span.
-    autoSelectDefaultNode: false,
+    // In the transcript view the span detail only opens on user action; in the
+    // timeline view we auto-select a default span so its detail is visible.
+    autoSelectDefaultNode: isTimeline,
   });
 
   const [detailState, setDetailState] = useQueryStates(
@@ -76,6 +79,16 @@ export function ConversationViewContentNew({
     [handleSelectNode, setDetailState]
   );
 
+  // Open the span detail whenever the user enters the timeline view, so the
+  // auto-selected span's detail shows without an extra click.
+  const wasTimeline = useRef(false);
+  useEffect(() => {
+    if (isTimeline && !wasTimeline.current) {
+      setDetailState({detailOpen: true});
+    }
+    wasTimeline.current = isTimeline;
+  }, [isTimeline, setDetailState]);
+
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
       Sentry.captureMessage('User landed on empty conversation detail page', {
@@ -84,7 +97,7 @@ export function ConversationViewContentNew({
     }
   }, [isLoading, error, nodes.length]);
 
-  const isTranscript = activeTab === 'transcript';
+  const isTranscript = !isTimeline;
 
   // The transcript renders its own chat-shaped skeleton inside the layout below;
   // the timeline tab keeps the legacy span-detail skeleton.
@@ -116,7 +129,6 @@ export function ConversationViewContentNew({
               height="100%"
               width="100%"
               gap="md"
-              padding="md"
               minHeight="0"
               overflowY="auto"
               overflowX="hidden"
