@@ -255,16 +255,16 @@ function SpanMetadata({
     <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
       {rows.map(row => (
         <Fragment key={row.name}>
-          <Text size="xs" variant="muted">
+          <Text size="md" variant="muted">
             {row.name}
           </Text>
           <Container minWidth="0">
             {typeof row.value === 'string' ? (
-              <Text size="xs" as="div" ellipsis>
+              <Text size="md" as="div" ellipsis>
                 {row.value}
               </Text>
             ) : (
-              <Text size="xs" as="div">
+              <Text size="md" as="div">
                 {row.value}
               </Text>
             )}
