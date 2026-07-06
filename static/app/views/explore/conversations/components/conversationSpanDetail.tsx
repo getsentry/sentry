@@ -232,7 +232,7 @@ function SpanMetadata({
   const rows = getHighlightedSpanAttributes({
     op: node.op,
     spanId: node.id,
-    attributes: attributes ?? (node.attributes as Record<string, string>),
+    attributes: attributes ?? node.attributes,
   });
 
   if (rows.length === 0) {

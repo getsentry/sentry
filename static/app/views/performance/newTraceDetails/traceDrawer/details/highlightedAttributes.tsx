@@ -69,7 +69,10 @@ export function getHighlightedSpanAttributes({
   spanId,
   attributes = {},
 }: {
-  attributes: Record<string, string> | undefined | TraceItemResponseAttribute[];
+  attributes:
+    | Record<string, string | number | boolean>
+    | undefined
+    | TraceItemResponseAttribute[];
   spanId: string;
   op?: string;
 }): HighlightedAttribute[] {
@@ -88,7 +91,7 @@ export function getHighlightedSpanAttributes({
 }
 
 function ensureAttributeObject(
-  attributes: Record<string, string> | TraceItemResponseAttribute[]
+  attributes: Record<string, string | number | boolean> | TraceItemResponseAttribute[]
 ) {
   if (Array.isArray(attributes)) {
     return attributes.reduce<Record<string, string | number | boolean>>(
