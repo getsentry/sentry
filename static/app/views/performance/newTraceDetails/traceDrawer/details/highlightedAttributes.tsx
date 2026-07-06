@@ -325,7 +325,7 @@ function HighlightedTools({
   }
 
   return (
-    <Flex direction="row" gap="xs" wrap="wrap">
+    <Flex direction="row" gap="xs" wrap="wrap" minWidth="0">
       {toolNames.sort().map(tool => {
         const usageCount = usedTools.get(tool) ?? 0;
         return (

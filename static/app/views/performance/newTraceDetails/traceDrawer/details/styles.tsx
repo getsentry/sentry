@@ -430,7 +430,7 @@ function Highlights({
               {highlightedAttributes.map(({name, value}) => (
                 <Fragment key={name}>
                   <HighlightedAttributeName>{name}</HighlightedAttributeName>
-                  <div>{value}</div>
+                  <HighlightedAttributeValue>{value}</HighlightedAttributeValue>
                 </Fragment>
               ))}
             </HighlightedAttributesWrapper>
@@ -630,7 +630,7 @@ const HighlightOp = styled('div')`
 
 const HighlightedAttributesWrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: ${p => p.theme.space.lg};
   row-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
@@ -641,6 +641,12 @@ const HighlightedAttributesWrapper = styled('div')`
 
 const HighlightedAttributeName = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
+`;
+
+// Allow the value cell to shrink below its content width so wrapping content
+// (e.g. the available-tools tag list) wraps instead of overflowing the panel.
+const HighlightedAttributeValue = styled('div')`
+  min-width: 0;
 `;
 
 const OpenInAIFocusButton = styled(LinkButton)`
