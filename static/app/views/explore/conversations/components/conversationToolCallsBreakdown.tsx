@@ -46,7 +46,6 @@ export function ConversationToolCallsBreakdown({
         <Fragment key={tool.toolName}>
           <Tag
             variant={tool.hasError ? 'danger' : 'muted'}
-            title={tool.toolName}
             // Cap long tool names; the inner Text truncates with an ellipsis.
             style={{justifySelf: 'start', maxWidth: 200, minWidth: 0}}
           >
