@@ -129,8 +129,8 @@ export function ConversationViewContentNew({
                 background="primary"
                 border="primary"
                 radius="md"
-                overflowX={{xs: 'visible', md: 'hidden'}}
-                overflowY={{xs: 'visible', md: 'auto'}}
+                overflowX="hidden"
+                overflowY={{xs: 'hidden', md: 'auto'}}
               >
                 {isTranscript ? (
                   isLoading ? (
