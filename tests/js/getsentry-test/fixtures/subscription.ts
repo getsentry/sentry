@@ -139,7 +139,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     canTrial: true,
     slug: organization.slug,
     pendingChanges: null,
-    usageExceeded: false,
     name: organization.name,
     billingInterval: planDetails.billingInterval || 'monthly',
     dateJoined: '2018-09-10T23:58:10.167Z',

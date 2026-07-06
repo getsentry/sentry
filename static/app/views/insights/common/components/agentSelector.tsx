@@ -62,14 +62,19 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reset when project changes
+  // Reset when project changes, but preserve agent if it was set via URL
+  // (e.g. navigating to a saved query that includes both project and agent)
   const prevProjectKey = useRef(projectKey);
   useEffect(() => {
     if (prevProjectKey.current !== projectKey) {
       prevProjectKey.current = projectKey;
-      setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
+      if (urlAgents?.length) {
+        setQueryStates({[TableUrlParams.CURSOR]: null});
+      } else {
+        setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
+      }
     }
-  }, [projectKey, setQueryStates]);
+  }, [projectKey, urlAgents, setQueryStates]);
 
   const selectedAgents = useMemo(() => {
     // Prevent cache pollution during project transitions

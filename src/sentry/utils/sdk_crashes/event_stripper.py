@@ -94,13 +94,24 @@ EVENT_DATA_ALLOWLIST = {
         "device": {
             "family": Allow.SIMPLE_TYPE,
             "model": Allow.SIMPLE_TYPE,
+            "model_id": Allow.SIMPLE_TYPE,
             "arch": Allow.SIMPLE_TYPE,
             "simulator": Allow.SIMPLE_TYPE,
+            "manufacturer": Allow.SIMPLE_TYPE,
+            "brand": Allow.SIMPLE_TYPE,
+            "memory_size": Allow.SIMPLE_TYPE,
+            "processor_count": Allow.SIMPLE_TYPE,
+            "processor_frequency": Allow.SIMPLE_TYPE,
         },
         "os": {
             "name": Allow.SIMPLE_TYPE,
             "version": Allow.SIMPLE_TYPE,
             "build": Allow.SIMPLE_TYPE,
+            "kernel_version": Allow.SIMPLE_TYPE,
+            "rooted": Allow.SIMPLE_TYPE,
+        },
+        "app": {
+            "in_foreground": Allow.SIMPLE_TYPE,
         },
         "art": {
             "gc.total_count": Allow.SIMPLE_TYPE,

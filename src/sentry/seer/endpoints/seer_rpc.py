@@ -14,6 +14,7 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
 from requests.exceptions import RequestException
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -170,11 +171,15 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
-from sentry.utils import snuba_rpc
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span
-from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
+from sentry.viewer_context import (
+    get_viewer_context,
+    observe_viewer_context_propagation,
+    viewer_context_from_header,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +206,9 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
 
     Once a key has been able to validate the signature other keys will
     not be attempted. We should only have multiple keys during key rotations.
+
+    DEPRECATED: part of the HMAC RPC auth mechanism being retired in favor of
+    signed ``X-Viewer-Context`` (see ``SeerRpcSignatureAuthentication``).
     """
     if not settings.SEER_RPC_SHARED_SECRET:
         raise RpcAuthenticationSetupException(
@@ -240,6 +248,14 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for seer RPC requests.
     Requests are sent with an HMAC signed by a shared private key.
+
+    DEPRECATED: this HMAC mechanism (backed by ``SEER_RPC_SHARED_SECRET``) is
+    slated for removal. Seer↔Sentry auth is consolidating onto the signed
+    ``X-Viewer-Context`` header (see ``SeerRpcViewerContextAuthentication``).
+    Removal order: (1) this endpoint accepts viewer context [done],
+    (2) Seer stops sending ``Rpcsignature``, (3) delete this class +
+    ``compare_signature``, (4) retire ``SEER_RPC_SHARED_SECRET`` (only after
+    step 2 — an inbound signature with the secret unset raises).
     """
 
     token_name = b"rpcsignature"
@@ -258,6 +274,57 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         return (AnonymousUser(), token)
 
 
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
+class SeerRpcViewerContextAuthentication(BaseAuthentication):
+    """
+    Authentication for seer RPC requests via a signed ``X-Viewer-Context`` JWT.
+
+    A co-equal alternative to :class:`SeerRpcSignatureAuthentication` (HMAC). The
+    JWT is verified with ``SEER_API_SHARED_SECRET`` using the shared
+    ``sentry.viewer_context`` verification logic — the same trust envelope the
+    rest of the Sentry API already relies on.
+
+    Unlike the REST ``ViewerContextAuthentication``, this accepts org-only
+    contexts (no ``user_id``) — the common near-term case for RPC callers — and
+    returns a truthy ``auth`` value so the endpoint's ``_is_authorized`` gate
+    passes. The user is resolved opportunistically when a ``user_id`` is present.
+    """
+
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        if not header:
+            # No viewer context: leave authentication to the HMAC authenticator.
+            return None
+
+        vc = viewer_context_from_header(header)
+        if vc is None or vc.organization_id is None:
+            # Reject a viewer context that is unverifiable OR carries no
+            # organization: every seer RPC call acts on behalf of an org, so a
+            # VC used for auth MUST name one. We fall through (do not raise) so a
+            # valid HMAC on the same request can still win; otherwise the
+            # endpoint denies via _is_authorized. This guarantees every
+            # VC-authenticated call carries an attested org to enforce against.
+            return None
+
+        user: Any = AnonymousUser()
+        if vc.user_id is not None:
+            resolved = user_service.get_user(user_id=vc.user_id)
+            if resolved is not None:
+                user = resolved
+
+        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_viewer_context_auth", True)
+
+        # Stash the verified context so the org-binding guard reads the signed
+        # value directly. (The middleware contextvar can drop organization_id when
+        # it resolves the user and prefers the request context, so it is not a
+        # reliable source for the binding check.)
+        setattr(request, "_seer_rpc_viewer_context", vc)
+
+        # Return the raw header as a truthy ``auth`` so ``_is_authorized`` passes,
+        # mirroring the HMAC authenticator's (user, token) shape.
+        return (user, header)
+
+
 @internal_cell_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
@@ -269,17 +336,55 @@ class SeerRpcServiceEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    authentication_classes = (SeerRpcSignatureAuthentication,)
+    # HMAC is listed first so it wins when a caller sends both credentials
+    # (Seer sends both today), keeping this a no-op at rollout. The viewer
+    # context authenticator only engages when there is no valid Rpcsignature.
+    authentication_classes = (
+        SeerRpcSignatureAuthentication,
+        SeerRpcViewerContextAuthentication,
+    )
     permission_classes = ()
     enforce_rate_limit = False
 
     @sentry_sdk.trace
     def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, SeerRpcSignatureAuthentication
-        ):
-            return True
-        return False
+        return bool(request.auth) and isinstance(
+            request.successful_authenticator,
+            (SeerRpcSignatureAuthentication, SeerRpcViewerContextAuthentication),
+        )
+
+    def _enforce_viewer_context_org_binding(
+        self, request: Request, arguments: dict[str, Any]
+    ) -> None:
+        """Bind a viewer-context-authenticated call to the signed context's org.
+
+        This endpoint has no per-org access control — ``org_id`` is a trusted
+        argument. That is safe for HMAC callers (only Seer holds the secret), but
+        as viewer-context auth generalizes to any caller, an unforgeable VC for
+        org A must not be usable to read org B. HMAC calls keep god-mode.
+        """
+        if not isinstance(request.successful_authenticator, SeerRpcViewerContextAuthentication):
+            return
+
+        arg_org_id = arguments.get("org_id", arguments.get("organization_id"))
+        if arg_org_id is None:
+            return
+
+        # ``arg_org_id`` is caller-supplied and only validated to live under a
+        # dict; coerce defensively so malformed input is a 400, not a 500.
+        try:
+            arg_org_id = int(arg_org_id)
+        except (TypeError, ValueError):
+            raise ParseError("Invalid organization id")
+
+        vc = getattr(request, "_seer_rpc_viewer_context", None)
+        vc_org_id = vc.organization_id if vc is not None else None
+        if vc_org_id is None or arg_org_id != int(vc_org_id):
+            metrics.incr(
+                "seer.rpc.viewer_context_org_binding",
+                tags={"outcome": "mismatch"},
+            )
+            raise PermissionDenied("Viewer context organization does not match request")
 
     @sentry_sdk.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
@@ -323,6 +428,8 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError from e
         if not isinstance(arguments, dict):
             raise ParseError
+
+        self._enforce_viewer_context_org_binding(request, arguments)
 
         try:
             result = self._dispatch_to_local_method(method_name, arguments)

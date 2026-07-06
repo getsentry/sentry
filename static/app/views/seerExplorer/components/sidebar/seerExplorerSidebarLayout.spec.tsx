@@ -138,6 +138,12 @@ describe('SeerExplorerSidebarLayout', () => {
       method: 'GET',
       body: [],
     });
+    // Slack integration lookup that drives the reinstall nudge.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithSidebar.slug}/integrations/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   afterEach(() => {

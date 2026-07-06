@@ -794,7 +794,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.event_type == PullRequestActivityType.UNASSIGNED
         assert activity.payload["assignee_login"] == "dev"
 
-    # --- sender_type in base payload ---
+    # --- sender_type in opened payload ---
 
     def test_bot_sender_type_stored_in_payload(self) -> None:
         self._call(action="opened", extra_event={"sender": {"login": "testbot", "type": "Bot"}})
@@ -1527,8 +1527,6 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.payload["conclusion"] == "success"
         assert activity.payload["app_slug"] == "github-actions"
         assert activity.payload["check_runs_count"] == 6
-        assert activity.payload["head_sha"] == "headsha1"
-        assert activity.payload["sender_type"] == "Bot"
 
     def test_check_suite_non_completed_action_skipped(self) -> None:
         for action in ("requested", "rerequested"):
@@ -1618,7 +1616,6 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.payload["check_name"] == "lint"
         assert activity.payload["conclusion"] == "failure"
         assert activity.payload["app_slug"] == "github-actions"
-        assert activity.payload["head_sha"] == "headsha1"
 
     def test_check_run_non_completed_action_skipped(self) -> None:
         for action in ("created", "rerequested", "requested_action"):

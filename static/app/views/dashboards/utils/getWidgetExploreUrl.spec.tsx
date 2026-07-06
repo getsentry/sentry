@@ -397,6 +397,37 @@ describe('getWidgetExploreUrl', () => {
     expect(url).toBeNull();
   });
 
+  it('preserves timestamp column and sort when opening in explore', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          fields: ['span.description', 'timestamp'],
+          aggregates: [],
+          columns: ['span.description', 'timestamp'],
+          conditions: '',
+          orderby: '-timestamp',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'timestamp'],
+        ['field', 'span.description'],
+        ['interval', '30m'],
+        ['mode', 'samples'],
+        ['sort', '-timestamp'],
+        ['statsPeriod', '14d'],
+        ['project', ''],
+      ],
+    });
+  });
+
   it('adds referrer query parameter if provided', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

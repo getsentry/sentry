@@ -1,6 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {
+  SidebarItem,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
@@ -31,9 +33,9 @@ jest.mock('sentry/utils/useCopyToClipboard', () => ({
   useCopyToClipboard: () => ({copy: mockCopy}),
 }));
 
-function renderSnapshotMainContent(
+function buildProps(
   props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
-) {
+): React.ComponentProps<typeof SnapshotMainContent> {
   const defaultProps: React.ComponentProps<typeof SnapshotMainContent> = {
     canNavigateNext: false,
     canNavigatePrev: false,
@@ -58,7 +60,13 @@ function renderSnapshotMainContent(
     viewMode: 'list',
   };
 
-  return render(<SnapshotMainContent {...defaultProps} {...props} />);
+  return {...defaultProps, ...props};
+}
+
+function renderSnapshotMainContent(
+  props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
+) {
+  return render(<SnapshotMainContent {...buildProps(props)} />);
 }
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
@@ -348,6 +356,142 @@ describe('SnapshotMainContent', () => {
         image_file_name: 'button.light.png',
         width: 320,
       },
+    });
+  });
+
+  describe('canvas theme', () => {
+    // The header toggle button is labeled with the action it performs, so its
+    // accessible name reveals the current canvas: 'Light preview' means the
+    // canvas is dark, 'Dark preview' means it is light.
+    function expectDarkCanvas() {
+      expect(screen.getByRole('button', {name: 'Light preview'})).toBeInTheDocument();
+    }
+    function expectLightCanvas() {
+      expect(screen.getByRole('button', {name: 'Dark preview'})).toBeInTheDocument();
+    }
+
+    function soloItem(img: SnapshotImage): SidebarItem {
+      return {
+        key: `solo-${img.key}`,
+        name: img.image_file_name,
+        displayName: img.display_name ?? img.image_file_name,
+        images: [img],
+        type: 'solo',
+      };
+    }
+
+    const darkTagged = image({
+      display_name: 'Dark screen',
+      image_file_name: 'dark.png',
+      key: 'head-dark',
+      canvas_theme: 'dark',
+    });
+    const lightTagged = image({
+      display_name: 'Light screen',
+      image_file_name: 'light.png',
+      key: 'head-light',
+      canvas_theme: 'light',
+    });
+    const untagged = image({
+      display_name: 'Untagged screen',
+      image_file_name: 'untagged.png',
+      key: 'head-untagged',
+    });
+
+    function renderSingleView(img: SnapshotImage) {
+      const item = soloItem(img);
+      const view = renderSnapshotMainContent({
+        listItems: [item],
+        selectedItem: item,
+        viewMode: 'single',
+      });
+      const renderItem = (nextItem: SidebarItem) =>
+        view.rerender(
+          <SnapshotMainContent
+            {...buildProps({
+              listItems: [nextItem],
+              selectedItem: nextItem,
+              viewMode: 'single',
+            })}
+          />
+        );
+      return {
+        navigateTo: (nextImg: SnapshotImage) => renderItem(soloItem(nextImg)),
+        // Re-render the same view, as the app's theme provider does when the
+        // site theme changes (the isolated test tree has no such subscriber).
+        rerender: () => renderItem(item),
+      };
+    }
+
+    afterEach(() => {
+      ConfigStore.set('theme', 'light');
+    });
+
+    it('seeds the canvas from an explicit canvas_theme hint', () => {
+      renderSingleView(darkTagged);
+      expectDarkCanvas();
+    });
+
+    it('follows the site theme when the image has no hint', () => {
+      renderSingleView(untagged);
+      expectLightCanvas();
+    });
+
+    it('follows a dark site theme when the image has no hint', () => {
+      ConfigStore.set('theme', 'dark');
+      renderSingleView(untagged);
+      expectDarkCanvas();
+    });
+
+    it('keeps following the site theme for an unhinted image after it changes', () => {
+      const {rerender} = renderSingleView(untagged);
+      expectLightCanvas();
+
+      // An unhinted image must track the site theme live, not freeze to the
+      // theme that happened to be active when it first mounted.
+      ConfigStore.set('theme', 'dark');
+      rerender();
+      expectDarkCanvas();
+    });
+
+    it('asserts an explicit hint on navigation, overriding a manual toggle', async () => {
+      const {navigateTo} = renderSingleView(untagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Dark preview'}));
+      expectDarkCanvas();
+
+      navigateTo(lightTagged);
+      expectLightCanvas();
+    });
+
+    it('carries a manual toggle over to images without a hint', async () => {
+      const {navigateTo} = renderSingleView(darkTagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
+      expectLightCanvas();
+
+      navigateTo(untagged);
+      expectLightCanvas();
+    });
+
+    it('keeps a manual toggle when the same image is refetched', async () => {
+      const {navigateTo} = renderSingleView(darkTagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
+      expectLightCanvas();
+
+      // A poll refetch produces new objects with identical values; the hint
+      // must not re-assert itself while the user stays on the image.
+      navigateTo({...darkTagged});
+      expectLightCanvas();
+    });
+
+    it('re-asserts the hint when navigating between same-themed images', async () => {
+      const {navigateTo} = renderSingleView(darkTagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
+      expectLightCanvas();
+
+      // The next image shares the same canvas_theme, so only the image key
+      // changes — navigation must still re-assert the hint over the toggle.
+      navigateTo(image({...darkTagged, key: 'head-dark-2'}));
+      expectDarkCanvas();
     });
   });
 });

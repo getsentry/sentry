@@ -21,57 +21,63 @@ class BaseActivityPayload:
     """
 
     action: str = ""
+
+
+@dataclass
+class SenderMixin:
+    """Mixin for payload types that record who triggered the webhook action."""
+
     # Login of the account that triggered the webhook action (the
     # sender field in the event payload, not necessarily the PR author).
     sender_login: str = ""
     sender_type: SenderType = ""
-    head_sha: str | None = None
-    base_sha: str | None = None
 
 
 @dataclass
-class OpenedPayload(BaseActivityPayload):
+class OpenedPayload(BaseActivityPayload, SenderMixin):
     action: str = "opened"
     additions: int = 0
     deletions: int = 0
     changed_files: int = 0
     commits: int = 0
+    head_sha: str | None = None
+    base_sha: str | None = None
 
 
 @dataclass
-class SynchronizePayload(BaseActivityPayload):
+class SynchronizePayload(BaseActivityPayload, SenderMixin):
     action: str = "synchronize"
     before_sha: str | None = None  # head SHA before the push
     after_sha: str | None = None  # head SHA after the push
 
 
 @dataclass
-class LabeledPayload(BaseActivityPayload):
+class LabeledPayload(BaseActivityPayload, SenderMixin):
     action: str = "labeled"
     label_name: str = ""
 
 
 @dataclass
-class UnlabeledPayload(BaseActivityPayload):
+class UnlabeledPayload(BaseActivityPayload, SenderMixin):
     action: str = "unlabeled"
     label_name: str = ""
 
 
 @dataclass
-class ReviewRequestedPayload(BaseActivityPayload):
+class ReviewRequestedPayload(BaseActivityPayload, SenderMixin):
     action: str = "review_requested"
     # True when a team was requested; False for an individual reviewer.
     is_team_review: bool = False
 
 
 @dataclass
-class ReviewRequestRemovedPayload(BaseActivityPayload):
+class ReviewRequestRemovedPayload(BaseActivityPayload, SenderMixin):
     action: str = "review_request_removed"
     is_team_review: bool = False
 
 
 @dataclass
-class CommentCreatedPayload(BaseActivityPayload):
+class CommentCreatedPayload(BaseActivityPayload, SenderMixin):
     action: str = "comment_created"
     author_association: AuthorAssociation = "NONE"
     is_review: bool = False
@@ -79,30 +85,30 @@ class CommentCreatedPayload(BaseActivityPayload):
 
 
 @dataclass
-class ConvertedToDraftPayload(BaseActivityPayload):
+class ConvertedToDraftPayload(BaseActivityPayload, SenderMixin):
     action: str = "converted_to_draft"
 
 
 @dataclass
-class ReadyForReviewPayload(BaseActivityPayload):
+class ReadyForReviewPayload(BaseActivityPayload, SenderMixin):
     action: str = "ready_for_review"
 
 
 @dataclass
-class AssignedPayload(BaseActivityPayload):
+class AssignedPayload(BaseActivityPayload, SenderMixin):
     action: str = "assigned"
     # Login of the account that was added as an assignee.
     assignee_login: str = ""
 
 
 @dataclass
-class UnassignedPayload(BaseActivityPayload):
+class UnassignedPayload(BaseActivityPayload, SenderMixin):
     action: str = "unassigned"
     assignee_login: str = ""
 
 
 @dataclass
-class ReviewSubmittedPayload(BaseActivityPayload):
+class ReviewSubmittedPayload(BaseActivityPayload, SenderMixin):
     action: str = ""
     # "approved", "changes_requested", or "commented"
     review_state: str = ""
@@ -110,7 +116,7 @@ class ReviewSubmittedPayload(BaseActivityPayload):
 
 
 @dataclass
-class ReviewThreadPayload(BaseActivityPayload):
+class ReviewThreadPayload(BaseActivityPayload, SenderMixin):
     action: str = ""
     # GitHub node_id of the review thread (the thread object has no numeric id).
     thread_id: str = ""
@@ -142,7 +148,7 @@ class CheckRunCompletedPayload(BaseActivityPayload):
 
 
 @dataclass
-class ReviewDismissedPayload(BaseActivityPayload):
+class ReviewDismissedPayload(BaseActivityPayload, SenderMixin):
     action: str = "dismissed"
     # Numeric id of the dismissed review. The dismissed payload reports the review
     # state only as "dismissed", so the id is what lets the judge correlate this
