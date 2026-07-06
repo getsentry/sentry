@@ -445,6 +445,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     );
   }, [earliestTimeStamp, latestTimeStamp, timezone]);
 
+  const hasCustomTicks = customTicks && customTicks.length > 0;
+
   const xAxis = showXAxis
     ? {
         animation: false,
@@ -456,14 +458,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatter: (value: number) => {
             return formatXAxisTimestamp(value, timezone);
           },
-          ...(customTicks?.length ? {customValues: customTicks} : {}),
-          showMaxLabel: true,
+          ...(hasCustomTicks
+            ? // With `customValues`, `showMinLabel`/`showMaxLabel` govern the
+              // first and last custom tick. ECharts auto-hides them when it
+              // thinks they'd clip at the axis edge, so force both on.
+              {customValues: customTicks, showMinLabel: true, showMaxLabel: true}
+            : {}),
         },
         axisTick: {
           show: true,
-          ...(customTicks?.length ? {customValues: customTicks} : {}),
+          ...(hasCustomTicks ? {customValues: customTicks} : {}),
         },
-        splitNumber: customTicks?.length || X_AXIS_SPLIT_NUMBER,
+        // When customValues are provided, suppress auto-tick generation
+        // so ECharts only renders our timezone-aligned ticks.
+        splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
         ...releaseBubbleXAxis,
       }
     : HIDDEN_AXIS;
