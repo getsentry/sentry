@@ -70,7 +70,11 @@ export function AutofixAgent({canWrite, project}: Props) {
     .some(repo => !isGithubRepoProvider(repo.provider));
   const restrictToSeer = reposLoaded && hasNonGithubRepo;
 
-  const {mutate: persistAgentOption, isPending: isPersistingAgent} = useMutation(
+  // `isIdle` is true only until the first attempt settles, so the effect below
+  // fires at most once. This matters because the mutation rolls back its
+  // optimistic update on error; without a one-shot guard a failed persist would
+  // restore the coding agent, re-satisfy the condition, and loop indefinitely.
+  const {mutate: persistAgentOption, isIdle: agentPersistNotAttempted} = useMutation(
     getMutateSeerProjectSettingsOptions({
       organization,
       project: {slug: project.slug},
@@ -95,14 +99,21 @@ export function AutofixAgent({canWrite, project}: Props) {
     : undefined;
   useEffect(() => {
     if (
+      canWrite &&
       restrictToSeer &&
       storedAgent !== undefined &&
       storedAgent !== 'seer' &&
-      !isPersistingAgent
+      agentPersistNotAttempted
     ) {
       persistAgentOption({agentOption: 'seer'});
     }
-  }, [restrictToSeer, storedAgent, isPersistingAgent, persistAgentOption]);
+  }, [
+    canWrite,
+    restrictToSeer,
+    storedAgent,
+    agentPersistNotAttempted,
+    persistAgentOption,
+  ]);
 
   if (isPending) {
     return (

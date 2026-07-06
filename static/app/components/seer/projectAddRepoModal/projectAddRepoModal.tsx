@@ -372,7 +372,7 @@ export function ProjectAddRepoModal({
                     )}
                   >
                     <field.Select
-                      value={field.state.value}
+                      value={isOnlyGithubRepos ? field.state.value : 'seer'}
                       onChange={field.handleChange}
                       options={agentOptions}
                       disabled={!isOnlyGithubRepos}

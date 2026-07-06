@@ -13,6 +13,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {ProjectAddRepoModal} from 'sentry/components/seer/projectAddRepoModal/projectAddRepoModal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
 
 describe('ProjectAddRepoModal', () => {
   const organization = OrganizationFixture();
@@ -85,9 +86,7 @@ describe('ProjectAddRepoModal', () => {
     await addRepository(/getsentry\/sentry/);
 
     expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeEnabled();
-    expect(
-      screen.queryByText(/Non-GitHub repositories only support handing off to Seer/)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(NON_GITHUB_HANDOFF_WARNING)).not.toBeInTheDocument();
   });
 
   it('disables the agent dropdown and warns when a GitLab repo is added', async () => {
@@ -98,9 +97,7 @@ describe('ProjectAddRepoModal', () => {
     await waitFor(() =>
       expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
     );
-    expect(
-      screen.getByText(/Non-GitHub repositories only support handing off to Seer/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(NON_GITHUB_HANDOFF_WARNING)).toBeInTheDocument();
   });
 
   async function selectCodingAgent() {
@@ -134,9 +131,7 @@ describe('ProjectAddRepoModal', () => {
     );
     expect(screen.getByText('Seer')).toBeInTheDocument();
     expect(screen.queryByText('Cursor Cloud Agent')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/Non-GitHub repositories only support handing off to Seer/)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(NON_GITHUB_HANDOFF_WARNING)).not.toBeInTheDocument();
   });
 
   it('saves Seer as the agent when a GitLab repo is attached', async () => {

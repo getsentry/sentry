@@ -169,4 +169,45 @@ describe('AutofixAgent', () => {
     await waitFor(() => expect(select).toBeEnabled());
     expect(putMock).not.toHaveBeenCalled();
   });
+
+  // A read-only user must never trigger a write, even to coerce the agent.
+  it('does not persist Seer when the user cannot write', async () => {
+    const putMock = mockEndpoints({
+      repos: [seerRepo({provider: 'gitlab'})],
+      agent: 'cursor',
+      integrationId: '123',
+    });
+
+    render(<AutofixAgent canWrite={false} project={project} />, {organization});
+
+    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    await waitFor(() => expect(select).toBeDisabled());
+    expect(putMock).not.toHaveBeenCalled();
+  });
+
+  // The coercion mutation rolls back its optimistic update on error, which would
+  // re-satisfy the condition and loop. The effect must fire exactly once.
+  it('does not retry the Seer coercion after a failed save', async () => {
+    mockEndpoints({
+      repos: [seerRepo({provider: 'gitlab'})],
+      agent: 'cursor',
+      integrationId: '123',
+    });
+    // Registered after mockEndpoints' PUT so this failing response wins.
+    const failingPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
+      statusCode: 500,
+      body: {},
+    });
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    await waitFor(() => expect(failingPut).toHaveBeenCalledTimes(1));
+    // Let the rollback + refetch settle; the effect must not re-fire.
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
+    );
+    expect(failingPut).toHaveBeenCalledTimes(1);
+  });
 });
