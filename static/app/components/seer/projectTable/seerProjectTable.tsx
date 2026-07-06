@@ -39,12 +39,14 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
   seerAgentIntegrationsSelectQueryOptions,
-  isGithubRepoProvider,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
+import {
+  getSeerProjectReposInfiniteQueryOptions,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
@@ -305,7 +307,7 @@ export function SeerProjectTable() {
                                       );
                                     hasNonGithubRepo = reposData.pages
                                       .flatMap(page => page.json)
-                                      .some(repo => !isGithubRepoProvider(repo.provider));
+                                      .some(repo => !isGitHubProvider(repo.provider));
                                   } catch {
                                     addErrorMessage(
                                       t(
