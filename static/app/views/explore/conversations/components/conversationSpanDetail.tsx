@@ -154,7 +154,9 @@ export function ConversationSpanDetail({
       <Stack gap="md" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
           <Text size="md">{getDuration(duration, 2, true, true)}</Text>
-          {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+          {duration > 0 &&
+          comparison &&
+          comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
             <Tag variant={comparison.variant}>{comparison.deltaText}</Tag>
           ) : null}
         </Flex>
