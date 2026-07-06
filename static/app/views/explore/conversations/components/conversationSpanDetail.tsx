@@ -124,7 +124,7 @@ export function ConversationSpanDetail({
       flex="1"
       minWidth="0"
       minHeight="0"
-      height="100%"
+      height={embedded ? '100%' : {xs: 'auto', md: '100%'}}
     >
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
@@ -179,11 +179,11 @@ export function ConversationSpanDetail({
 
         <Container
           ref={tabContentRef}
-          flex="1"
+          flex={embedded ? '1' : {xs: '0 0 auto', md: '1'}}
           minHeight="0"
           width="100%"
-          overflowY="auto"
-          overflowX="hidden"
+          overflowY={embedded ? 'auto' : {xs: 'visible', md: 'auto'}}
+          overflowX={embedded ? 'hidden' : {xs: 'visible', md: 'hidden'}}
           // Gutter so the scroll container doesn't clip a focused input's focus ring.
           padding="xs"
         >
