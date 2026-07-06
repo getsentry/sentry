@@ -27,7 +27,8 @@ class GroupDerivedDataStore:
     """Translates between Pipeline State and GroupDerivedData storage.
 
     Features listed in COLUMN_MAP are read from / written to dedicated
-    model columns. All other features use the `data` JSON blob.
+    model columns as raw Python values (the column type must be compatible).
+    All other features use the ``data`` JSON blob via the Feature's codec.
     """
 
     @staticmethod
@@ -37,7 +38,7 @@ class GroupDerivedDataStore:
         for f in pipeline.features:
             column = COLUMN_MAP.get(f)
             if column:
-                result[f] = f.load(getattr(derived, column))
+                result[f] = getattr(derived, column)
             elif f.name in data:
                 result[f] = f.load(data[f.name])
             else:
@@ -58,7 +59,7 @@ class GroupDerivedDataStore:
         for f in pipeline.features:
             column = COLUMN_MAP.get(f)
             if column and f in updated:
-                update[column] = f.dump(state[f])
+                update[column] = state[f]
         # If any JSON feature was updated, include all of them (the blob is replaced wholesale)
         if updated.intersection(json_features):
             update["data"] = {f.name: f.dump(state[f]) for f in json_features}

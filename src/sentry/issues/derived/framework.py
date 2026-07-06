@@ -6,6 +6,7 @@ No Django dependencies — pure Python, fully testable in isolation.
 import copy
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Any, Protocol, runtime_checkable
 
@@ -18,7 +19,12 @@ _MISSING = object()
 
 
 class Codec[T]:
-    """Handles serialization of a Feature value to/from JSON-compatible form."""
+    """Converts a Feature's Python value to/from a JSON-compatible representation.
+
+    Used only for JSON serialization (e.g. the ``data`` JSONField blob).
+    Column-backed features bypass the codec entirely — Django model fields
+    handle native Python values directly.
+    """
 
     def dump(self, value: T) -> Any:
         return value
@@ -39,6 +45,14 @@ class EnumCodec[E: StrEnum](Codec[E]):
 
     def dump(self, value: E) -> str:
         return value.value
+
+
+class DateTimeCodec(Codec[datetime]):
+    def dump(self, value: datetime) -> str:
+        return value.isoformat()
+
+    def load(self, raw: Any) -> datetime:
+        return datetime.fromisoformat(raw)
 
 
 class OptionalCodec[T](Codec[T | None]):
@@ -62,8 +76,9 @@ FeatureEntry = tuple["Feature[Any]", Any]
 class Feature[T]:
     """A named, typed slot in derived state with a default value.
 
-    The `codec` handles conversion to/from JSON-compatible representations.
-    Defaults to identity (pass-through) for JSON-native types.
+    The ``codec`` handles conversion to/from JSON-compatible representations
+    and is used only for features stored in the JSON blob.  Column-backed
+    features are stored as raw Python values; no codec is applied.
     """
 
     def __init__(

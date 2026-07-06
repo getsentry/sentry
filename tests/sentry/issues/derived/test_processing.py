@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 from django.db import router, transaction
 
@@ -26,7 +28,10 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DateTimeCodec,
+    EnumCodec,
     Feature,
+    OptionalCodec,
     Pipeline,
     State,
     StateUpdate,
@@ -46,6 +51,7 @@ from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils import json
 
 SOURCE = ActionSource.API
 
@@ -331,6 +337,66 @@ def test_store_apply_to_instance() -> None:
     GroupDerivedDataStore.apply_to_instance(derived, update)
     assert derived.data == {"status": "closed"}
     assert derived.view_count == 5
+
+
+def test_all_feature_defaults_round_trip_through_json() -> None:
+    state = PIPELINE.initial_state()
+    blob = {f.name: f.dump(state[f]) for f in PIPELINE.features}
+    serialized = json.loads(json.dumps(blob))
+    for f in PIPELINE.features:
+        assert f.load(serialized[f.name]) == state[f], f"round-trip failed for {f.name}"
+
+
+# --- Codec tests ---
+
+
+class TestDateTimeCodec:
+    def test_round_trip(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.load(codec.dump(dt)) == dt
+
+    def test_dump_produces_iso_string(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        dumped = codec.dump(dt)
+        assert isinstance(dumped, str)
+        assert dumped == dt.isoformat()
+
+    def test_optional_none(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        assert codec.dump(None) is None
+        assert codec.load(None) is None
+
+    def test_optional_round_trip(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.load(codec.dump(dt)) == dt
+
+
+class TestEnumCodecCoverage:
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_loads_known_values(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.load(raw)
+        assert codec.dump(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_loads_known_values(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.load(raw)
+        assert codec.dump(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_loads_known_values(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.load(raw)
+        assert codec.dump(loaded) == raw
 
 
 # --- Store tests (need DB) ---
