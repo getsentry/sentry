@@ -1,4 +1,10 @@
-import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useEffect} from 'react';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -53,9 +59,25 @@ export function AutofixAgent({canWrite, project}: Props) {
     getSeerProjectReposInfiniteQueryOptions({organization, project: {slug: project.slug}})
   );
   useFetchAllPages({result: reposResult});
-  const isOnlyGithubRepos = (reposResult.data?.pages ?? [])
+  // An empty or partially-loaded page list would make `.every(isGithub)` true,
+  // so gate on the query being fully settled: until every page is in we can't
+  // know the project is GitHub-only, and must not enable the dropdown or hide
+  // the warning (a repos-fetch error keeps handoff restricted, which is safe).
+  const reposLoaded =
+    reposResult.isSuccess && !reposResult.hasNextPage && !reposResult.isFetchingNextPage;
+  const hasNonGithubRepo = (reposResult.data?.pages ?? [])
     .flatMap(page => page.json)
-    .every(repo => isGithubRepoProvider(repo.provider));
+    .some(repo => !isGithubRepoProvider(repo.provider));
+  const restrictToSeer = reposLoaded && hasNonGithubRepo;
+
+  const {mutate: persistAgentOption, isPending: isPersistingAgent} = useMutation(
+    getMutateSeerProjectSettingsOptions({
+      organization,
+      project: {slug: project.slug},
+      queryClient,
+      knownAgents,
+    })
+  );
 
   const {data, isPending, isError, error} = useQuery(
     getSeerProjectSettingsQueryOptions({
@@ -63,6 +85,24 @@ export function AutofixAgent({canWrite, project}: Props) {
       project: {slug: project.slug},
     })
   );
+
+  // A non-GitHub repo means the stored agent can no longer hand off, so persist
+  // Seer (rather than only overriding the dropdown's display value) to keep the
+  // saved setting consistent with what the user sees. The optimistic update in
+  // the mutation flips `storedAgent` to 'seer', so this fires at most once.
+  const storedAgent = data
+    ? coalesePreferredAgent(data.agent, data.integrationId)
+    : undefined;
+  useEffect(() => {
+    if (
+      restrictToSeer &&
+      storedAgent !== undefined &&
+      storedAgent !== 'seer' &&
+      !isPersistingAgent
+    ) {
+      persistAgentOption({agentOption: 'seer'});
+    }
+  }, [restrictToSeer, storedAgent, isPersistingAgent, persistAgentOption]);
 
   if (isPending) {
     return (
@@ -103,9 +143,7 @@ export function AutofixAgent({canWrite, project}: Props) {
       >
         {field => (
           <Stack gap="md">
-            {!isOnlyGithubRepos && (
-              <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>
-            )}
+            {restrictToSeer && <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>}
             <field.Layout.Row
               label={t('Handoff to Agent')}
               hintText={tct(
@@ -123,11 +161,11 @@ export function AutofixAgent({canWrite, project}: Props) {
               )}
             >
               <field.Select
-                disabled={!canWrite || !isOnlyGithubRepos}
+                disabled={!canWrite || !reposLoaded || hasNonGithubRepo}
                 multiple={false}
                 onChange={field.handleChange}
                 options={agentSelectOptions}
-                value={isOnlyGithubRepos ? field.state.value : 'seer'}
+                value={restrictToSeer ? 'seer' : field.state.value}
               />
             </field.Layout.Row>
           </Stack>
