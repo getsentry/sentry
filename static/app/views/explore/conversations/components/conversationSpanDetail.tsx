@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
-import {PlatformIcon} from 'platformicons';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
@@ -11,9 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,17 +19,17 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {getModelPlatform} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
-  getNumberAttr,
   getSpanColor,
-  getStringAttr,
   getTimelineColorByOpType,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {
+  getDurationComparison,
+  MIN_PCT_DURATION_DIFFERENCE,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
@@ -59,9 +57,20 @@ type SpanAttributes = Parameters<typeof getAIInputMessages>[1];
 interface ConversationSpanDetailProps {
   activeTab: DetailTab;
   node: AITraceSpanNode;
-  onClose: () => void;
   onTabChange: (tab: DetailTab) => void;
   traceId: string;
+  /**
+   * Average duration (in seconds) to compare this span against. When provided,
+   * a "faster/slower than avg" pill is shown next to the duration.
+   */
+  avgDuration?: number;
+  /**
+   * Embeds the panel flush inside another surface (trace views), dropping the
+   * border and radius. Off, it renders as a standalone bordered card.
+   */
+  embedded?: boolean;
+  /** When provided, a close button is shown in the header. */
+  onClose?: () => void;
 }
 
 export function ConversationSpanDetail({
@@ -70,8 +79,17 @@ export function ConversationSpanDetail({
   activeTab,
   onTabChange,
   onClose,
+  avgDuration,
+  embedded,
 }: ConversationSpanDetailProps) {
   const theme = useTheme();
+  const tabContentRef = useRef<HTMLDivElement>(null);
+
+  // Reset the scroll position to the top when switching tabs, otherwise the
+  // shared scroll container keeps the previous tab's offset.
+  useEffect(() => {
+    tabContentRef.current?.scrollTo({top: 0});
+  }, [activeTab]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
   // returned by the conversation list endpoint, so they're fetched per span.
@@ -90,16 +108,22 @@ export function ConversationSpanDetail({
   const title = node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const squareColor = getSpanColor(node, getTimelineColorByOpType(theme));
+  const comparison = getDurationComparison(
+    avgDuration,
+    duration,
+    t('Average duration for this span over the last 24 hours')
+  );
 
   return (
     <Stack
       background="primary"
-      border="primary"
-      radius="md"
+      border={embedded ? undefined : 'primary'}
+      radius={embedded ? undefined : 'md'}
       padding="xl"
       gap="lg"
       flex="1"
       minHeight="0"
+      height="100%"
     >
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
@@ -116,18 +140,25 @@ export function ConversationSpanDetail({
             </Text>
           </Tooltip>
         </Flex>
-        <Button
-          size="sm"
-          variant="transparent"
-          icon={<IconClose />}
-          aria-label={t('Close')}
-          onClick={onClose}
-        />
+        {onClose ? (
+          <Button
+            size="sm"
+            variant="transparent"
+            icon={<IconClose />}
+            aria-label={t('Close')}
+            onClick={onClose}
+          />
+        ) : null}
       </Flex>
 
       <Stack gap="md" flexShrink={0}>
-        <Text size="md">{getDuration(duration, 2, true, true)}</Text>
-        <SpanMetadata node={node} />
+        <Flex align="center" gap="sm" wrap="wrap">
+          <Text size="md">{getDuration(duration, 2, true, true)}</Text>
+          {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+            <Tag variant={comparison.variant}>{comparison.deltaText}</Tag>
+          ) : null}
+        </Flex>
+        <SpanMetadata node={node} attributes={attributes} />
       </Stack>
 
       <TabStateProvider<DetailTab>
@@ -144,11 +175,14 @@ export function ConversationSpanDetail({
         </Flex>
 
         <Container
+          ref={tabContentRef}
           flex="1"
           minHeight="0"
           width="100%"
           overflowY="auto"
           overflowX="hidden"
+          // Gutter so the scroll container doesn't clip a focused input's focus ring.
+          padding="xs"
         >
           <TabPanels
             css={css`
@@ -186,43 +220,18 @@ export function ConversationSpanDetail({
   );
 }
 
-function SpanMetadata({node}: {node: AITraceSpanNode}) {
-  const agentName = getStringAttr(node, SpanFields.GEN_AI_AGENT_NAME);
-  const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
-  const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
-  const model =
-    getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
-    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL);
-
-  const rows = [
-    agentName ? {label: t('Agent Name'), value: <MetaValue text={agentName} />} : null,
-    tokens
-      ? {label: t('Tokens'), value: <MetaValue text={formatAbbreviatedNumber(tokens)} />}
-      : null,
-    cost
-      ? {
-          label: t('Spend'),
-          value: (
-            <Text size="xs">
-              <LLMCosts cost={cost} />
-            </Text>
-          ),
-        }
-      : null,
-    model
-      ? {
-          label: t('Model'),
-          value: (
-            <Flex gap="xs" align="center" minWidth="0">
-              <PlatformIcon platform={getModelPlatform(model) ?? 'unknown'} size={16} />
-              <Container minWidth="0">
-                <MetaValue text={model} />
-              </Container>
-            </Flex>
-          ),
-        }
-      : null,
-  ].filter(defined);
+function SpanMetadata({
+  node,
+  attributes,
+}: {
+  attributes: SpanAttributes;
+  node: AITraceSpanNode;
+}) {
+  const rows = getHighlightedSpanAttributes({
+    op: node.op,
+    spanId: node.id,
+    attributes: attributes ?? (node.attributes as Record<string, string>),
+  });
 
   if (rows.length === 0) {
     return null;
@@ -231,24 +240,16 @@ function SpanMetadata({node}: {node: AITraceSpanNode}) {
   return (
     <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
       {rows.map(row => (
-        <Fragment key={row.label}>
+        <Fragment key={row.name}>
           <Text size="xs" variant="muted">
-            {row.label}
+            {row.name}
           </Text>
-          {row.value}
+          <Text size="xs" as="div" ellipsis>
+            {row.value}
+          </Text>
         </Fragment>
       ))}
     </Grid>
-  );
-}
-
-function MetaValue({text}: {text: string}) {
-  return (
-    <Tooltip title={text} showOnlyOnOverflow skipWrapper>
-      <Text size="xs" ellipsis>
-        {text}
-      </Text>
-    </Tooltip>
   );
 }
 

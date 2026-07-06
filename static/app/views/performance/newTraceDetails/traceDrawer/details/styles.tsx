@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
@@ -46,7 +46,7 @@ import {
   IconProfiling,
   IconTerminal,
 } from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -77,6 +77,12 @@ import {
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
+import type {DurationComparison} from './durationComparison';
+import {
+  getDurationComparison,
+  makeDurationComparisonStatusColors,
+  MIN_PCT_DURATION_DIFFERENCE,
+} from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
@@ -268,78 +274,6 @@ const HeaderContainer = styled(FlexBox)`
   gap: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-function makeDurationComparisonStatusColors(theme: Theme): {
-  equal: {light: string; normal: string};
-  faster: {light: string; normal: string};
-  slower: {light: string; normal: string};
-} {
-  return {
-    faster: {
-      light: theme.colors.green100,
-      normal: theme.colors.green600,
-    },
-    slower: {
-      light: theme.colors.red100,
-      normal: theme.colors.red600,
-    },
-    equal: {
-      light: theme.tokens.background.transparent.neutral.muted,
-      normal: theme.tokens.content.secondary,
-    },
-  };
-}
-
-const MIN_PCT_DURATION_DIFFERENCE = 10;
-
-type DurationComparison = {
-  deltaPct: number;
-  deltaText: React.JSX.Element;
-  status: 'faster' | 'slower' | 'equal';
-} | null;
-
-const getDurationComparison = (
-  baseline: number | undefined,
-  duration: number,
-  baseDescription?: string
-): DurationComparison => {
-  if (!baseline) {
-    return null;
-  }
-
-  const delta = duration - baseline;
-  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
-  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
-
-  const formattedBaseDuration = (
-    <Tooltip
-      title={baseDescription}
-      showUnderline
-      underlineColor={
-        status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted'
-      }
-    >
-      {getDuration(baseline, 2, true)}
-    </Tooltip>
-  );
-
-  const deltaText =
-    status === 'equal'
-      ? tct('equal to avg [formattedBaseDuration]', {
-          formattedBaseDuration,
-        })
-      : status === 'faster'
-        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          })
-        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          });
-
-  return {deltaPct, status, deltaText};
-};
 
 type DurationProps = {
   baseline: number | undefined;

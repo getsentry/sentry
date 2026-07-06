@@ -20,6 +20,7 @@ import {MessagesPanel} from 'sentry/views/explore/conversations/components/messa
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
@@ -71,16 +72,28 @@ export function TraceAiConversations({
     [conversationNodes, nodeTraceMap, traceSlug]
   );
 
+  const hasRedesign = hasGenAiConversationsRedesignFeature(organization);
+
   const tabItems = useMemo(
     (): Array<{conversationId: string | null; key: string; label: string}> => [
-      {key: 'spans', label: t('Spans'), conversationId: null},
+      {
+        key: 'spans',
+        label: hasRedesign ? t('Timeline') : t('Spans'),
+        conversationId: null,
+      },
       ...conversationIds.map(id => ({
         key: `chat-${id}`,
-        label: conversationIds.length === 1 ? t('Chat') : t('Chat %s', id.slice(0, 8)),
+        label: hasRedesign
+          ? conversationIds.length === 1
+            ? t('Transcript')
+            : t('Transcript %s', id.slice(0, 8))
+          : conversationIds.length === 1
+            ? t('Chat')
+            : t('Chat %s', id.slice(0, 8)),
         conversationId: id,
       })),
     ],
-    [conversationIds]
+    [conversationIds, hasRedesign]
   );
 
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
