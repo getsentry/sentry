@@ -402,7 +402,7 @@ def build_sentry_attribute_context(
     """
     column = get_column_definitions(item_type).columns.get(public_name)
     context = getattr(column, "context", None)
-    if column is None or context is None:
+    if column is None or context is None or column.secondary_alias:
         return None
 
     if (

@@ -588,6 +588,29 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert attributes["span.description"]["context"]["isConvention"] is False
         assert attributes["span.description"]["context"]["brief"]
 
+    def test_expand_context_user_attribute_matching_secondary_alias(self) -> None:
+        # `message` is a secondary alias of `span.description` on spans and carries
+        # a definition context. A user tag that happens to share that name must not
+        # be mislabeled with the Sentry context; it should resolve to an empty one.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"message": "hello"},
+        )
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        message = attributes["tags[message,string]"]
+        assert message["name"] == "message"
+        assert message["context"] == {}
+
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
 
