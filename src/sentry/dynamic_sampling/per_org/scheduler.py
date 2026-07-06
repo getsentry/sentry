@@ -134,6 +134,7 @@ def schedule_per_org_calculations() -> None:
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
+        jitter=True,
     )
     scheduler.tick()
 
