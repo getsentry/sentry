@@ -331,6 +331,39 @@ describe('SeerDrawerNextStep', () => {
       ).toBeInTheDocument();
     });
 
+    it('disables the coding agent dropdown with repo-connect copy when the project has no repos', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Claude', provider: 'claude_code', requires_identity: false},
+          ],
+        },
+      });
+      // No repos connected: the backend can't launch a handoff, so disable the dropdown
+      // with copy pointing at the actual gap (a connected repo) rather than GitHub.
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [],
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      const dropdownButton = await screen.findByRole('button', {
+        name: 'More code fix options',
+      });
+      expect(dropdownButton).toBeDisabled();
+      await userEvent.hover(dropdownButton);
+      expect(
+        await screen.findByText('Connect a repository to hand off to a coding agent.')
+      ).toBeInTheDocument();
+    });
+
     it('does not expose the coding agent dropdown until every repo page has loaded', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',

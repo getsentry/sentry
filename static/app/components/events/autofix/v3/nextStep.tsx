@@ -628,17 +628,21 @@ function useCodingAgents({
   const isReposLoading =
     reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage;
 
-  const isGithubOnly =
-    repos.length > 0 && repos.every(repo => isGitHubProvider(repo.provider));
+  // Disable handoff when the project has no connected repos, or when a non-GitHub repo
+  // (e.g. GitLab) is connected — coding agents only operate on GitHub repositories.
+  const hasNoRepos = repos.length === 0;
+  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
 
   const codingAgentIntegrations = useMemo(
     () => (isReposLoading ? undefined : codingAgentResponse?.integrations),
     [codingAgentResponse?.integrations, isReposLoading]
   );
 
-  const codingAgentDisabledReason = isGithubOnly
-    ? undefined
-    : t('Handing off to a coding agent requires a connected GitHub repository.');
+  const codingAgentDisabledReason = hasNoRepos
+    ? t('Connect a GitHub repository to hand off to a coding agent.')
+    : hasNonGithubRepo
+      ? t('Handing off to a coding agent requires a connected GitHub repository.')
+      : undefined;
 
   const handleCodingAgentHandoff = useCallback(
     (integration: CodingAgentIntegration) => {
