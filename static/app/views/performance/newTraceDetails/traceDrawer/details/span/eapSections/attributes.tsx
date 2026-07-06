@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -235,19 +235,20 @@ export function AttributesContent({
     customRenderers[attribute] = truncatedTextRenderer;
   }
 
-  // Indicate the pinned attribute with a pin icon next to its value, composing
-  // with any existing renderer for that attribute.
-  if (pinnedAttribute) {
-    const existingRenderer = customRenderers[pinnedAttribute];
-    customRenderers[pinnedAttribute] = (props: CustomRenderersProps) => (
-      <Flex align="center" gap="xs">
-        {existingRenderer ? existingRenderer(props) : props.basicRendered}
+  // Render a pin icon next to the pinned attribute's name so it's identifiable
+  // at a glance in the drawer.
+  const getAttributeKeySuffix = (content: AttributesTreeContent) => {
+    if (content.originalAttribute?.original_attribute_key !== pinnedAttribute) {
+      return null;
+    }
+    return (
+      <PinnedAttributeIndicator>
         <Tooltip title={t('Pinned as a column in the waterfall')}>
           <IconPin size="xs" data-test-id="pinned-attribute-indicator" />
         </Tooltip>
-      </Flex>
+      </PinnedAttributeIndicator>
     );
-  }
+  };
 
   // Compose the shared explore actions with a pin/unpin action that toggles the
   // pinned attribute column on the waterfall. Only the attribute key is required
@@ -296,6 +297,7 @@ export function AttributesContent({
               organization,
             }}
             getCustomActions={getCustomActions}
+            getAttributeKeySuffix={getAttributeKeySuffix}
           />
         </div>
       ) : (
@@ -311,6 +313,14 @@ const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
+`;
+
+const PinnedAttributeIndicator = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  margin-left: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  vertical-align: text-bottom;
 `;
 
 const NoAttributesMessage = styled('div')`
