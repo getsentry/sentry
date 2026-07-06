@@ -32,7 +32,7 @@ const EMPTY_VALUE = '—';
  * Attributes that are always requested from the trace endpoint so the waterfall
  * can render things like http errors and gen_ai enrichment.
  */
-export const DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES = [
+const DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES = [
   'thread.id',
   'tags[performance.timeOrigin,number]',
   'gen_ai.operation.type',
@@ -98,7 +98,7 @@ const TRACE_RESPONSE_MEASUREMENT_ATTRIBUTES = new Set<string>([
  * field or one of the always-requested default attributes). Pinning such an
  * attribute must NOT add it to the additional_attributes request.
  */
-export function isTraceResponseAttribute(key: string): boolean {
+function isTraceResponseAttribute(key: string): boolean {
   return (
     key in NATIVE_ATTRIBUTE_FIELDS ||
     TRACE_RESPONSE_MEASUREMENT_ATTRIBUTES.has(key) ||
@@ -126,7 +126,7 @@ export function getTraceAdditionalAttributes(pinnedAttribute: string | null): st
  * the trace endpoint always returns (so attributes excluded from the request
  * still render).
  */
-export function getPinnedAttributeValue(
+function getPinnedAttributeValue(
   node: BaseNode,
   key: string
 ): string | number | boolean | undefined {
