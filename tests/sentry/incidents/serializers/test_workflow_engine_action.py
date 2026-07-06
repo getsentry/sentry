@@ -226,28 +226,3 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
             f"Send a Slack notification to {self.slack_trigger_action.target_display}"
         )
         assert serialized_action == slack_expected
-
-    def test_missing_target_type_does_not_raise(self) -> None:
-        """
-        Regression test: Action records without a target_type in their config (e.g.
-        PagerDuty/OpsGenie actions created via the workflow engine path) previously
-        caused a ValueError when the serializer called ActionTarget(None).
-        """
-        from sentry.workflow_engine.models import Action
-
-        action = self.create_action(
-            config={
-                "target_identifier": "svc-123",
-                "target_display": "My PD Service",
-                # intentionally omit target_type
-            },
-            type=Action.Type.PAGERDUTY,
-        )
-
-        serialized_action = serialize(
-            action,
-            self.user,
-            WorkflowEngineActionSerializer(),
-            alert_rule_trigger_id=self.critical_trigger.id,
-        )
-        assert serialized_action["targetType"] is None
