@@ -94,8 +94,6 @@ export function FilterSelector({
         : [];
       const noValueInfo = getNoValueInfo(allTokens);
       const containsNoValue = noValueInfo.operator !== null;
-      // The editable value paired with a "(no value)" clause, e.g. the
-      // `browser:firefox` in `(browser:firefox OR !has:browser)`.
       const pairedValueToken = containsNoValue ? noValueInfo.valueToken : null;
 
       return {
@@ -244,14 +242,14 @@ export function FilterSelector({
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    // "(no value)" option, prepended for supported operators.
     const buildNoValueOption = (): SelectOption<string> | null => {
       if (!NO_VALUE_SUPPORTED_OPERATORS.has(stagedOperator)) {
         return null;
       }
+      const noValueLabel = t('(no value)');
       const noValueOption: SelectOption<string> = {
-        label: <Text variant="muted">{t('(no value)')}</Text>,
-        textValue: t('(no value)'),
+        label: <Text variant="muted">{noValueLabel}</Text>,
+        textValue: noValueLabel,
         value: NO_VALUE_SENTINEL,
       };
       if (canSelectMultipleValues) {
@@ -259,7 +257,7 @@ export function FilterSelector({
           <Checkbox
             checked={isSelected}
             onChange={() => toggleOptionRef.current?.(NO_VALUE_SENTINEL)}
-            aria-label={t('Select %s', t('(no value)'))}
+            aria-label={t('Select %s', noValueLabel)}
             tabIndex={-1}
           />
         );
@@ -316,7 +314,6 @@ export function FilterSelector({
       return map.set(value, option);
     };
 
-    // Filter values in the global filter (sentinel is added separately)
     activeFilterValues
       .filter(value => value !== NO_VALUE_SENTINEL)
       .forEach(value => addOption(value, optionMap));
@@ -445,7 +442,6 @@ export function FilterSelector({
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
   const renderFilterSelectorTrigger = (filterValues: string[]) => {
-    // Strip the sentinel from display when the operator doesn't support it
     const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
 
     return (
