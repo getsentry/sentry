@@ -38,7 +38,7 @@ export function isGithubRepoProvider(provider: string | undefined | null): boole
 }
 
 export const NON_GITHUB_HANDOFF_WARNING = t(
-  'Handoff to Agent is only supported for GitHub repositories.'
+  'Only the Seer agent is supported for non-GitHub repositories.'
 );
 
 export function isPreferredAgentProvider(
