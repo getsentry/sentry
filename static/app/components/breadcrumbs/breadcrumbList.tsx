@@ -43,8 +43,9 @@ function renderItem(item: BreadcrumbItem) {
  *
  * Overflow behaviour:
  * - Wide (≥ 800px): all items render individually
- * - Narrow (< 800px): all 'link' type parent items collapse into a single
- *   BreadcrumbItemMenuBreadcrumbs overflow button; other parent types remain visible
+ * - Narrow (< 800px): every parent item is hidden, leaving only the last crumb.
+ *   'link' parents additionally collapse into a single BreadcrumbItemMenuBreadcrumbs
+ *   overflow button; non-link parents (e.g. 'select-projects') just hide.
  */
 export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   if (items.length === 0) {
@@ -81,18 +82,14 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
       {...props}
     >
       <Flex as="ol" align="center" gap="xs" padding="md 0" wrap="nowrap">
-        {parentItems.map((item, index) => {
-          const isLinkItem = item.type === 'link';
-          return (
-            // Wide: show all parent items; Narrow: hide link items (they go in the menu)
-            <BreadcrumbDividerCombo
-              key={index}
-              display={isLinkItem ? showWide : undefined}
-            >
-              {renderItem(item)}
-            </BreadcrumbDividerCombo>
-          );
-        })}
+        {parentItems.map((item, index) => (
+          // Wide: show every parent item. Narrow: hide them all — 'link' parents
+          // reappear in the overflow menu below; other types (e.g. 'select-projects')
+          // simply collapse out of view.
+          <BreadcrumbDividerCombo key={index} display={showWide}>
+            {renderItem(item)}
+          </BreadcrumbDividerCombo>
+        ))}
 
         {/* Overflow menu — only visible in narrow layout when there are link items to collapse */}
         {menuItems.length > 0 && (

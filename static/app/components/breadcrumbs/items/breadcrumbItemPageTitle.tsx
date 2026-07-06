@@ -2,7 +2,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LeadingGraphicsProps} from '@sentry/scraps/leadingGraphics';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -51,7 +51,7 @@ export function BreadcrumbItemPageTitle({
             <LinkButton
               size="zero"
               variant="transparent"
-              icon={<IconChevron direction="left" size="xs" />}
+              icon={<IconChevron direction="left" size="xs" aria-hidden />}
               aria-label={pagination.previous.ariaLabel ?? t('Previous')}
               disabled={pagination.previous.disabled}
               to={pagination.previous.to}
@@ -62,7 +62,7 @@ export function BreadcrumbItemPageTitle({
             <LinkButton
               size="zero"
               variant="transparent"
-              icon={<IconChevron direction="right" size="xs" />}
+              icon={<IconChevron direction="right" size="xs" aria-hidden />}
               aria-label={pagination.next.ariaLabel ?? t('Next')}
               disabled={pagination.next.disabled}
               to={pagination.next.to}
@@ -75,15 +75,22 @@ export function BreadcrumbItemPageTitle({
       <Tooltip title={label} disabled={!labelTooltip}>
         <Container maxWidth="200px" width="auto">
           {styleProps => (
-            <Text
+            // Rendered as an <h1>: the current-page crumb is the page's primary
+            // heading. `Heading` is always medium weight (matching the previous
+            // `Text bold`); `size="md"` retains the prior visual size instead of
+            // the h1 default (2xl).
+            <Heading
+              as="h1"
+              size="md"
               ellipsis
               variant="primary"
               data-test-id="breadcrumb-item"
-              bold
+              // Marks this crumb as the current page for assistive tech.
+              aria-current="page"
               {...styleProps}
             >
               {label}
-            </Text>
+            </Heading>
           )}
         </Container>
       </Tooltip>

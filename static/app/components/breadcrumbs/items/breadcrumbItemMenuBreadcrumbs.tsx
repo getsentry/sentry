@@ -4,6 +4,7 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 export interface BreadcrumbMenuLinkItem {
   label: string;
@@ -36,11 +37,12 @@ export function BreadcrumbItemMenuBreadcrumbs({
         trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
-            aria-label="More breadcrumbs"
+            aria-label={t('More breadcrumbs')}
             aria-expanded={isOpen}
             size="zero"
+            variant="transparent"
             showChevron={false}
-            icon={<IconEllipsis size="xs" />}
+            icon={<IconEllipsis size="xs" aria-hidden />}
           />
         )}
       />

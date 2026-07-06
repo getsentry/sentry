@@ -223,7 +223,7 @@ trailingActions={
 
 ## Overflow (container query)
 
-`BreadcrumbList` sets `containerType="inline-size"` on its outer `<nav>`. When that container is narrower than 800px, all `'link'` parent items are hidden and replaced with a single `…` overflow button — only the `'page-title'` stays visible. Non-link parent types (e.g. `'select-projects'`) are never collapsed.
+`BreadcrumbList` sets `containerType="inline-size"` on its outer `<nav>`. When that container is narrower than 800px, every parent item is hidden and only the `'page-title'` stays visible. `'link'` parents are additionally replaced with a single `…` overflow button; other parent types (e.g. `'select-projects'`) simply collapse out of view — they are not added to the overflow menu.
 
 Drag the sizing handle below to see the transition:
 
