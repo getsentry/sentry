@@ -49,12 +49,12 @@ CYCLE_DURATION = timedelta(minutes=10)
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
     silo_mode=SiloMode.CELL,
 )
-def run_calculations_per_org_task(org_id: OrganizationId) -> None:
-    _run_calculations_per_org(org_id)
+def run_calculations_per_org_task_entry(org_id: OrganizationId) -> None:
+    run_calculations_per_org_task(org_id)
 
 
 @track_dynamic_sampling
-def _run_calculations_per_org(org_id: OrganizationId) -> DynamicSamplingStatus | None:
+def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStatus | None:
     config = get_configuration(org_id)
     if not config.is_enabled:
         return DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
@@ -118,7 +118,7 @@ def schedule_per_org_calculations() -> None:
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
         queryset=Organization.objects.filter(status=OrganizationStatus.ACTIVE),
-        task=run_calculations_per_org_task,
+        task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=is_org_in_rollout,
     )
