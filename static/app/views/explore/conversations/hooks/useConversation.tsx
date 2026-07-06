@@ -16,8 +16,8 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 export interface UseConversationsOptions {
   conversationId: string;
@@ -197,10 +197,7 @@ function createNodeFromApiSpan(
       if (hasGenAiConversationsRedesignFeature(props.organization)) {
         return <AiSpanDetails node={props.node} traceId={props.traceId} />;
       }
-      if (isEAPSpanNode(props.node)) {
-        return <EAPSpanNodeDetails {...props} node={props.node} />;
-      }
-      return null;
+      return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
     },
   };
 
