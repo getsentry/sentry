@@ -310,15 +310,9 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
-# Sentry-defined attributes the `/attributes` endpoint force-includes in its
-# response even when the attribute-names RPC pages them out past its key limit.
-# Kept deliberately narrow (it widens every no-substring response, including the
-# frontend's), so it only covers attributes with a demonstrated paging problem
-# rather than every described attribute. Each must be a public alias of a
-# definition carrying an `AttributeContext`.
 SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
     SupportedTraceItemType.SPANS: frozenset({"span.description"}),
-    SupportedTraceItemType.LOGS: frozenset(),
+    SupportedTraceItemType.LOGS: frozenset({"message"}),
     SupportedTraceItemType.TRACEMETRICS: frozenset(),
 }
 
@@ -402,17 +396,9 @@ def build_sentry_attribute_context(
     item_type: SupportedTraceItemType,
 ) -> TraceItemAttributeContext | None:
     """
-    Build context for a Sentry-defined attribute that isn't a sentry convention
-    (e.g. ``span.description``), sourced from the attribute definition's
-    ``context`` (see ``ResolvedAttribute.context``). These resolve with
-    ``isConvention=False``; clients distinguish them from conventions via
-    ``source_type == sentry``.
-
-    The expected type is taken from the definition's ``search_type`` -- the same
-    object the context lives on -- so it can't drift. When ``attribute_type`` is
-    provided the context only attaches if it matches, so a user attribute that
-    merely shares a public alias (e.g. a string tag named ``span.duration``) isn't
-    mislabeled with the definition's context.
+    Build context for a Sentry-defined (non-convention) attribute from its
+    definition's ``context``. When ``attribute_type`` is given, context only
+    attaches if it matches, so a user tag sharing a public alias isn't mislabeled.
     """
     column = get_column_definitions(item_type).columns.get(public_name)
     context = getattr(column, "context", None)
