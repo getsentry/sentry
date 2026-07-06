@@ -10,6 +10,11 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 interface UseConversationSelectionOptions {
   isLoading: boolean;
   nodes: AITraceSpanNode[];
+  /**
+   * Auto-select the first assistant span (and any deep-linked span) on load.
+   * Disabled by the redesign, where the span detail only opens on user action.
+   */
+  autoSelectDefaultNode?: boolean;
   focusedTool?: string | null;
   onSelectSpan?: (spanId: string) => void;
   selectedSpanId?: string | null;
@@ -26,6 +31,7 @@ export function useConversationSelection({
   onSelectSpan,
   focusedTool,
   isLoading,
+  autoSelectDefaultNode = true,
 }: UseConversationSelectionOptions) {
   const organization = useOrganization();
 
@@ -60,14 +66,15 @@ export function useConversationSelection({
   }, [nodes]);
 
   const selectedNode = useMemo(() => {
-    return (
-      nodes.find(node => node.id === selectedSpanId) ??
-      nodes.find(node => node.id === defaultNodeId)
-    );
-  }, [nodes, selectedSpanId, defaultNodeId]);
+    const explicitNode = nodes.find(node => node.id === selectedSpanId);
+    if (explicitNode || !autoSelectDefaultNode) {
+      return explicitNode;
+    }
+    return nodes.find(node => node.id === defaultNodeId);
+  }, [nodes, selectedSpanId, defaultNodeId, autoSelectDefaultNode]);
 
   useEffect(() => {
-    if (isLoading || !defaultNodeId || focusedTool) {
+    if (isLoading || !defaultNodeId || focusedTool || !autoSelectDefaultNode) {
       return;
     }
 
@@ -77,7 +84,15 @@ export function useConversationSelection({
     if (!isCurrentSpanValid) {
       onSelectSpan?.(defaultNodeId);
     }
-  }, [isLoading, defaultNodeId, selectedSpanId, nodes, onSelectSpan, focusedTool]);
+  }, [
+    isLoading,
+    defaultNodeId,
+    selectedSpanId,
+    nodes,
+    onSelectSpan,
+    focusedTool,
+    autoSelectDefaultNode,
+  ]);
 
   return {selectedNode, handleSelectNode};
 }

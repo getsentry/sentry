@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import router, transaction
 
 from sentry import eventstream
-from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, parse_log_level
 from sentry.event_manager import (
     GroupInfo,
     _get_or_create_group_environment,
@@ -134,7 +134,7 @@ def _create_issue_kwargs(
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
         # define it in `search_message` there.
         "message": event.search_message,
-        "level": LOG_LEVELS_MAP.get(occurrence.level),
+        "level": parse_log_level(occurrence.level),
         "culprit": truncatechars(occurrence.culprit, MAX_CULPRIT_LENGTH),
         "last_seen": event.datetime,
         "first_seen": event.datetime,

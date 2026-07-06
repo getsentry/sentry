@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {type ReactNode, useRef} from 'react';
 import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -13,6 +13,7 @@ import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
 import {
+  ContainerQueryProvider,
   getBorder,
   rc,
   useActiveBreakpoint,
@@ -553,22 +554,41 @@ describe('useContainerBreakpoint', () => {
     });
   };
 
+  // The hook reads the nearest query container's size from context, so render
+  // the probe inside a ContainerQueryProvider whose measured element reports the
+  // faked width.
   function BreakpointProbe() {
-    const ref = useRef<HTMLDivElement>(null);
-    const breakpoint = useContainerBreakpoint(ref);
-    return <div ref={ref}>breakpoint:{breakpoint}</div>;
+    const breakpoint = useContainerBreakpoint();
+    return <div>breakpoint:{breakpoint}</div>;
   }
 
-  it('resolves the largest breakpoint the element width satisfies', () => {
+  function Container({children}: {children: ReactNode}) {
+    const ref = useRef<HTMLDivElement>(null);
+    return (
+      <ContainerQueryProvider elementRef={ref}>
+        <div ref={ref}>{children}</div>
+      </ContainerQueryProvider>
+    );
+  }
+
+  it('resolves the largest breakpoint the container width satisfies', () => {
     // md = 992px, lg = 1200px -> 1000px resolves to md.
     setClientWidth(1000);
-    render(<BreakpointProbe />);
+    render(
+      <Container>
+        <BreakpointProbe />
+      </Container>
+    );
     expect(screen.getByText('breakpoint:md')).toBeInTheDocument();
   });
 
-  it('falls back to 2xs when the element is narrower than the smallest breakpoint', () => {
+  it('falls back to 2xs when the container is narrower than the smallest breakpoint', () => {
     setClientWidth(0);
-    render(<BreakpointProbe />);
+    render(
+      <Container>
+        <BreakpointProbe />
+      </Container>
+    );
     expect(screen.getByText('breakpoint:2xs')).toBeInTheDocument();
   });
 });

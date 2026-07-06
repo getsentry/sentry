@@ -25,6 +25,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -37,6 +38,7 @@ import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFoot
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
@@ -228,6 +230,15 @@ function Chart({
     />
   );
 
+  const samplingWarningReason = getSamplingWarningReason(
+    visualize.yAxis,
+    chartInfo.series,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarningReason ? (
+    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  ) : null;
+
   const Actions = visualize.visible ? (
     <Fragment>
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
@@ -294,6 +305,7 @@ function Chart({
     <ChartWrapper ref={chartWrapperRef}>
       <Widget
         Title={Title}
+        TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
           visualize.visible && (

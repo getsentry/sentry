@@ -704,7 +704,7 @@ function getConversationsUrlFromSavedQueryUrl({
 
   let queryString = qs.stringify(queryParams, {skipNull: true});
   if (savedQuery.agent?.length) {
-    queryString += `&agent=${savedQuery.agent.join(',')}`;
+    queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
   }
   const basePath = normalizeUrl(
     `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
@@ -827,4 +827,68 @@ interface RemarkObject {
   rangeStart: number;
   ruleId: string;
   type: string;
+}
+
+const SAMPLING_SENSITIVE_AGGREGATES = new Set([
+  'count_unique',
+  'failure_count',
+  'failure_rate',
+]);
+const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
+
+export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
+
+export function getSamplingWarningReason(
+  yAxis: string,
+  series: TimeSeries[],
+  dataScanned: 'full' | 'partial' | undefined
+): SamplingWarningReason | null {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return null;
+  }
+  if (!series.some(seriesItem => defined(seriesItem) && seriesItem.values.length > 0)) {
+    return null;
+  }
+  if (dataScanned === 'partial') {
+    return 'partialData';
+  }
+  if (shouldWarnSamplingSensitive(yAxis, series)) {
+    return 'lowSampleRate';
+  }
+  return null;
+}
+
+export function shouldWarnSamplingSensitive(
+  yAxis: string,
+  series: TimeSeries[]
+): boolean {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return false;
+  }
+  const avgSampleRate = computeAvgSampleRate(series);
+  return defined(avgSampleRate) && avgSampleRate < LOW_SAMPLE_RATE_THRESHOLD;
+}
+
+export function isSamplingSensitiveAggregate(yAxis: string): boolean {
+  const parsed = parseFunction(yAxis);
+  if (!parsed) {
+    return false;
+  }
+  return SAMPLING_SENSITIVE_AGGREGATES.has(parsed.name);
+}
+
+function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
+  let total = 0;
+  let count = 0;
+
+  for (const seriesItem of series.filter(defined)) {
+    for (const item of seriesItem.values) {
+      if (defined(item.sampleRate)) {
+        total += item.sampleRate;
+        count += 1;
+      }
+    }
+  }
+
+  return count > 0 ? total / count : undefined;
 }

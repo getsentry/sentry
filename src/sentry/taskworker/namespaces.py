@@ -92,6 +92,11 @@ ingest_transactions_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+spans_process_segments_tasks = app.taskregistry.create_namespace(
+    "spans.process_segments",
+    app_feature="transactions",
+)
+
 ingest_attachments_tasks = app.taskregistry.create_namespace(
     "ingest.attachments",
     app_feature="attachments",
