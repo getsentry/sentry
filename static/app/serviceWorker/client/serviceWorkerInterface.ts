@@ -109,11 +109,11 @@ export class ServiceWorkerController {
                   },
                   () => {
                     clearTimeout(timeout);
-                    if (error) {
+                    if (error === undefined) {
+                      resolve(result);
+                    } else {
                       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
                       reject(error);
-                    } else {
-                      resolve(result);
                     }
                   }
                 )
