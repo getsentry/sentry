@@ -220,6 +220,7 @@ def invalidate_group_derived_data(
     """
     if cursor is None:
         GroupDerivedData.objects.filter(group_id=group_id).delete()
+        process_group_log_task.delay(group_id)
         return
 
     # Only invalidate if the row has already processed past the affected point.
@@ -237,3 +238,4 @@ def invalidate_group_derived_data(
                 "cursor_id": cursor_id,
             },
         )
+        process_group_log_task.delay(group_id)
