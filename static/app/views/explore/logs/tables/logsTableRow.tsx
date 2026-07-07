@@ -62,7 +62,10 @@ import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {usePrefetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  usePrefetchTraceItemDetailsOnHover,
+  usePrefetchTraceItemDetailsOnMount,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -340,7 +343,7 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, traceItemMeta, traceItemAttributes} =
+  const {hoverProps, prefetch, isProjectReady, traceItemMeta, traceItemAttributes} =
     usePrefetchTraceItemDetailsOnHover({
       traceItemId: rowId,
       projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
@@ -350,8 +353,12 @@ export const LogRowContent = memo(function LogRowContent({
       timestamp: logTimestampSeconds,
       sharedHoverTimeoutRef,
       timeout: prefetchTimeout,
-      prefetchOnMount: isHighlighted,
     });
+  usePrefetchTraceItemDetailsOnMount({
+    prefetch,
+    enabled: isHighlighted,
+    isProjectReady,
+  });
   const [caseInsensitivity] = useCaseInsensitivity();
 
   const observedTimestamp = traceItemAttributes?.find(

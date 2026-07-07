@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -196,39 +196,14 @@ function traceItemDetailsApiOptions({
   );
 }
 
-export function usePrefetchTraceItemDetailsOnHover({
+function useTraceItemDetailsPrefetch({
   traceItemId,
   projectId,
   traceId,
   traceItemType,
   referrer,
   timestamp,
-  hoverPrefetchDisabled,
-  prefetchOnMount,
-  sharedHoverTimeoutRef,
-  timeout,
-}: UseTraceItemDetailsProps & {
-  /**
-   * A ref to a shared timeout so multiple hover events can be handled
-   * without creating multiple timeouts and firing multiple prefetches.
-   */
-  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
-  /**
-   * Custom timeout for the prefetched item.
-   */
-  timeout: number;
-  /**
-   * Whether the hover prefetch should be disabled.
-   */
-  hoverPrefetchDisabled?: boolean;
-  /**
-   * Fetch the details once on mount (e.g. for a deep-linked, auto-expanded row)
-   * without requiring a hover. The reactive `useTraceItemDetails` query in the
-   * expanded details can be torn down by virtualizer re-layout during the
-   * initial load, so this guarantees the request fires and populates the cache.
-   */
-  prefetchOnMount?: boolean;
-}) {
+}: UseTraceItemDetailsProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
@@ -275,13 +250,43 @@ export function usePrefetchTraceItemDetailsOnHover({
     traceItemType,
   ]);
 
-  const hasPrefetchedOnMount = useRef(false);
-  useEffect(() => {
-    if (prefetchOnMount && !hasPrefetchedOnMount.current && project?.slug) {
-      hasPrefetchedOnMount.current = true;
-      prefetch();
-    }
-  }, [prefetchOnMount, project?.slug, prefetch]);
+  return {prefetch, project, traceItemMeta, traceItemAttributes};
+}
+
+export function usePrefetchTraceItemDetailsOnHover({
+  traceItemId,
+  projectId,
+  traceId,
+  traceItemType,
+  referrer,
+  timestamp,
+  hoverPrefetchDisabled,
+  sharedHoverTimeoutRef,
+  timeout,
+}: UseTraceItemDetailsProps & {
+  /**
+   * A ref to a shared timeout so multiple hover events can be handled
+   * without creating multiple timeouts and firing multiple prefetches.
+   */
+  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  /**
+   * Custom timeout for the prefetched item.
+   */
+  timeout: number;
+  /**
+   * Whether the hover prefetch should be disabled.
+   */
+  hoverPrefetchDisabled?: boolean;
+}) {
+  const {prefetch, project, traceItemMeta, traceItemAttributes} =
+    useTraceItemDetailsPrefetch({
+      traceItemId,
+      projectId,
+      traceId,
+      traceItemType,
+      referrer,
+      timestamp,
+    });
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -298,5 +303,27 @@ export function usePrefetchTraceItemDetailsOnHover({
     isDisabled: hoverPrefetchDisabled,
   });
 
-  return {hoverProps, traceItemMeta, traceItemAttributes};
+  return {
+    hoverProps,
+    prefetch,
+    isProjectReady: Boolean(project?.slug),
+    traceItemMeta,
+    traceItemAttributes,
+  };
+}
+
+export function usePrefetchTraceItemDetailsOnMount({
+  prefetch,
+  enabled,
+  isProjectReady,
+}: {
+  isProjectReady: boolean;
+  prefetch: () => void;
+  enabled?: boolean;
+}) {
+  const hasPrefetched = useRef(false);
+  if (enabled && isProjectReady && !hasPrefetched.current) {
+    hasPrefetched.current = true;
+    prefetch();
+  }
 }
