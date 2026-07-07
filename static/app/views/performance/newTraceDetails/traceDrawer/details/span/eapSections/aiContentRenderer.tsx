@@ -45,7 +45,9 @@ function XmlTagBlock({
     return (
       <Container margin="sm 0">
         <CollapsibleContent title={label}>
-          <Container paddingTop="md">{body}</Container>
+          <Container paddingTop="md" paddingLeft="md">
+            {body}
+          </Container>
         </CollapsibleContent>
       </Container>
     );
