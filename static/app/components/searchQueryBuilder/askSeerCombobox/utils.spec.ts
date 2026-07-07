@@ -80,6 +80,24 @@ describe('resolveSeerProjectSelection', () => {
     ).toEqual({projectIds: undefined, query: 'project:[seer,unknown] span.op:db'});
   });
 
+  it('does not lift branch-scoped project conditions out of an OR', () => {
+    // Lifting both projects to the global selector would change the meaning:
+    // `(a AND /a) OR (b AND /b)` is not `(a OR b) AND (/a OR /b)`.
+    const query = '(project:seer span.name:/a) OR (project:sentry span.name:/b)';
+    expect(resolveSeerProjectSelection(query, projects)).toEqual({
+      projectIds: undefined,
+      query,
+    });
+  });
+
+  it('does not lift a project condition when the query uses OR', () => {
+    const query = 'project:seer OR span.op:db';
+    expect(resolveSeerProjectSelection(query, projects)).toEqual({
+      projectIds: undefined,
+      query,
+    });
+  });
+
   it('falls back to expandedProjectIds when the query has no project filter', () => {
     expect(resolveSeerProjectSelection('span.op:db', projects, [5, 6])).toEqual({
       projectIds: [5, 6],
