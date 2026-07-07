@@ -11,11 +11,13 @@ import type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSele
 import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
+/** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
 export type BreadcrumbItem =
   | {props: BreadcrumbItemLinkProps; type: 'link'}
   | {props: BreadcrumbItemPageTitleProps; type: 'page-title'}
   | {props: BreadcrumbItemSelectProjectsProps; type: 'select-projects'};
 
+/** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
 export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
   items: BreadcrumbItem[];
 }
@@ -71,38 +73,46 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   const showNarrow = {sm: 'none', '2xs': 'flex'} as const;
 
   return (
-    // containerType="inline-size" makes this element a container for @container queries.
-    // Must use the standard children form (not render-prop) to use containerType.
     <Container
       as="nav"
-      containerType="inline-size"
       width="100%"
       aria-label={t('Breadcrumbs')}
       data-test-id="breadcrumb-list"
       {...props}
     >
-      <Flex as="ol" align="center" gap="xs" padding="md 0" wrap="nowrap">
-        {parentItems.map((item, index) => (
-          // Wide: show every parent item. Narrow: hide them all — 'link' parents
-          // reappear in the overflow menu below; other types (e.g. 'select-projects')
-          // simply collapse out of view.
-          <BreadcrumbDividerCombo key={index} display={showWide}>
-            {renderItem(item)}
-          </BreadcrumbDividerCombo>
-        ))}
+      {/*
+       * The query container is this inner element, not the <nav> above. emotion's
+       * `as` swap on a styled component bypasses the wrapper that strips
+       * `containerType`, so pairing `as="nav"` with `containerType` would leak the
+       * prop onto the DOM node. Keeping `containerType` on an un-swapped Container
+       * (rendered as a plain div) lets the primitive strip it as intended while
+       * still establishing the container at full width — the @container collapse
+       * below resolves against it either way.
+       */}
+      <Container containerType="inline-size" width="100%">
+        <Flex as="ol" align="center" gap="xs" padding="md 0" wrap="nowrap">
+          {parentItems.map((item, index) => (
+            // Wide: show every parent item. Narrow: hide them all — 'link' parents
+            // reappear in the overflow menu below; other types (e.g. 'select-projects')
+            // simply collapse out of view.
+            <BreadcrumbDividerCombo key={index} display={showWide}>
+              {renderItem(item)}
+            </BreadcrumbDividerCombo>
+          ))}
 
-        {/* Overflow menu — only visible in narrow layout when there are link items to collapse */}
-        {menuItems.length > 0 && (
-          <BreadcrumbDividerCombo display={showNarrow}>
-            <BreadcrumbItemMenuBreadcrumbs items={menuItems} />
-          </BreadcrumbDividerCombo>
-        )}
+          {/* Overflow menu — only visible in narrow layout when there are link items to collapse */}
+          {menuItems.length > 0 && (
+            <BreadcrumbDividerCombo display={showNarrow}>
+              <BreadcrumbItemMenuBreadcrumbs items={menuItems} />
+            </BreadcrumbDividerCombo>
+          )}
 
-        {/* Page title — always visible, no divider after it */}
-        <Container as="li" display="contents">
-          {renderItem(lastItem)}
-        </Container>
-      </Flex>
+          {/* Page title — always visible, no divider after it */}
+          <Container as="li" display="contents">
+            {renderItem(lastItem)}
+          </Container>
+        </Flex>
+      </Container>
     </Container>
   );
 }

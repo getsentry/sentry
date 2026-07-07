@@ -6,7 +6,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export interface BreadcrumbMenuLinkItem {
+interface BreadcrumbMenuLinkItem {
   label: string;
   to: LinkProps['to'];
 }

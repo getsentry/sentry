@@ -39,7 +39,7 @@ const StyledNavigationCrumbs = styled(NavigationBreadcrumbs)`
 export function NavigationCrumbs(
   props: ComponentPropsWithoutRef<typeof NavigationBreadcrumbs>
 ) {
-  return <StyledNavigationCrumbs as="nav" {...props} />;
+  return <StyledNavigationCrumbs {...props} />;
 }
 
 export function CrumbContainer(props: FlexProps) {

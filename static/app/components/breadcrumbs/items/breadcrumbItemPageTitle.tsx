@@ -6,9 +6,8 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
 
-export interface BreadcrumbPaginationItem {
+interface BreadcrumbPaginationItem {
   ariaLabel: string;
   to: LinkProps['to'];
   disabled?: boolean;
@@ -17,7 +16,7 @@ export interface BreadcrumbPaginationItem {
   tooltip?: React.ReactNode;
 }
 
-export interface BreadcrumbItemPaginationProps {
+interface BreadcrumbItemPaginationProps {
   next: BreadcrumbPaginationItem;
   previous: BreadcrumbPaginationItem;
 }
@@ -52,7 +51,7 @@ export function BreadcrumbItemPageTitle({
               size="zero"
               variant="transparent"
               icon={<IconChevron direction="left" size="xs" aria-hidden />}
-              aria-label={pagination.previous.ariaLabel ?? t('Previous')}
+              aria-label={pagination.previous.ariaLabel}
               disabled={pagination.previous.disabled}
               to={pagination.previous.to}
               onClick={pagination.previous.onClick}
@@ -63,7 +62,7 @@ export function BreadcrumbItemPageTitle({
               size="zero"
               variant="transparent"
               icon={<IconChevron direction="right" size="xs" aria-hidden />}
-              aria-label={pagination.next.ariaLabel ?? t('Next')}
+              aria-label={pagination.next.ariaLabel}
               disabled={pagination.next.disabled}
               to={pagination.next.to}
               onClick={pagination.next.onClick}

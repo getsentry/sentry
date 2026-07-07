@@ -12,35 +12,37 @@
  *   />
  *
  * ## Legacy API (compatibility shim)
- * The old `<Breadcrumbs crumbs={[...]} />` signature continues to work unchanged.
- * All non-last crumbs become `type: 'link'`; the last crumb becomes `type: 'page-title'`.
- * Migrate call sites to `BreadcrumbList` when making changes in those files.
+ * The old `<Breadcrumbs crumbs={[...]} />` signature continues to work unchanged,
+ * including crumbs whose `label` is arbitrary React content (e.g. an editable
+ * name field). Migrate call sites to `BreadcrumbList` when making changes in
+ * those files — but note the new API only accepts string labels.
  */
+import {Fragment} from 'react';
 
+import {Container, Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {IconSlashForward} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+
+// The new typed API. Individual item components and their prop types are
+// implementation details of `BreadcrumbList` and are intentionally not
+// re-exported until a consumer needs them — re-export them here when migrating
+// a call site to the typed API.
 export {BreadcrumbList} from './breadcrumbList';
+/** @public Consumed once call sites migrate onto the typed API in a downstream PR. */
 export type {BreadcrumbItem, BreadcrumbListProps} from './breadcrumbList';
-
-export {BreadcrumbItemLink} from './items/breadcrumbItemLink';
-export type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
-
-export {BreadcrumbItemPageTitle} from './items/breadcrumbItemPageTitle';
-export type {
-  BreadcrumbItemPaginationProps,
-  BreadcrumbItemPageTitleProps,
-  BreadcrumbPaginationItem,
-} from './items/breadcrumbItemPageTitle';
-
-export {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
-export type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSelectProjects';
 
 // ── Legacy compatibility shim ─────────────────────────────────────────────────
 // Preserves the old `Breadcrumbs` + `Crumb` API so existing call sites need no
-// changes. Maps the flat crumbs array to `BreadcrumbList` typed items.
-
-import type {LinkProps} from '@sentry/scraps/link';
-
-import type {BreadcrumbItem} from './breadcrumbList';
-import {BreadcrumbList} from './breadcrumbList';
+// changes. Unlike the new `BreadcrumbList`, this renders each crumb's `label`
+// as-is, so callers passing React nodes (editable titles, badges, …) keep
+// working. New code should prefer the typed `BreadcrumbList` API above.
 
 export interface Crumb {
   label: NonNullable<React.ReactNode>;
@@ -60,29 +62,86 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
     return null;
   }
 
-  const items: BreadcrumbItem[] = crumbs.map((crumb, index) => {
-    const isLast = index === crumbs.length - 1;
-    // The new API requires string labels (used for tooltip text).
-    // Non-string labels from the legacy API are coerced to empty string;
-    // callers passing React nodes should migrate to the new BreadcrumbList API.
-    const label = typeof crumb.label === 'string' ? crumb.label : '';
+  return (
+    <Flex
+      as="nav"
+      aria-label={t('Breadcrumbs')}
+      gap="xs"
+      align="center"
+      padding="md 0"
+      data-test-id="breadcrumb-list"
+      {...props}
+    >
+      {crumbs.map((crumb, index) => {
+        const isLast = index === crumbs.length - 1;
+        return (
+          <Fragment key={index}>
+            <BreadcrumbItem
+              crumb={{...crumb, to: isLast ? undefined : crumb.to}}
+              variant={isLast ? 'primary' : 'muted'}
+            />
+            {isLast ? null : (
+              <Flex as="span" align="center" justify="center" flexShrink={0} aria-hidden>
+                <IconSlashForward size="xs" variant="muted" aria-hidden />
+              </Flex>
+            )}
+          </Fragment>
+        );
+      })}
+    </Flex>
+  );
+}
 
-    if (isLast) {
-      return {
-        props: {label},
-        type: 'page-title',
-      };
-    }
+interface BreadcrumbItemProps {
+  crumb: Crumb;
+  variant: 'primary' | 'muted';
+}
 
-    return {
-      props: {
-        label,
-        preservePageFilters: crumb.preservePageFilters,
-        to: crumb.to ?? '/',
-      },
-      type: 'link',
-    };
-  });
+function BreadcrumbItem({crumb, variant}: BreadcrumbItemProps) {
+  return (
+    <Container maxWidth="400px" width="auto">
+      {styleProps =>
+        crumb.to ? (
+          <BreadcrumbLink
+            to={crumb.to}
+            preservePageFilters={crumb.preservePageFilters}
+            data-test-id="breadcrumb-link"
+            onClick={() =>
+              trackAnalytics('breadcrumbs.link.clicked', {organization: null})
+            }
+            {...styleProps}
+          >
+            <Text ellipsis variant={variant}>
+              {crumb.label}
+            </Text>
+          </BreadcrumbLink>
+        ) : (
+          <Text ellipsis variant={variant} data-test-id="breadcrumb-item" {...styleProps}>
+            {crumb.label}
+          </Text>
+        )
+      }
+    </Container>
+  );
+}
 
-  return <BreadcrumbList items={items} {...props} />;
+interface BreadcrumbLinkProps extends LinkProps {
+  children?: React.ReactNode;
+  preservePageFilters?: boolean;
+}
+
+function BreadcrumbLink({preservePageFilters, to, ...rest}: BreadcrumbLinkProps) {
+  const location = useLocation();
+
+  if (!to) {
+    return <Link to={to} {...rest} />;
+  }
+
+  const toWithQuery = preservePageFilters
+    ? typeof to === 'string'
+      ? {pathname: to, query: extractSelectionParameters(location.query)}
+      : {...to, query: {...extractSelectionParameters(location.query), ...to.query}}
+    : to;
+
+  return <Link to={toWithQuery} {...rest} />;
 }
