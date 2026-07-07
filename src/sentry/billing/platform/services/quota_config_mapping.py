@@ -36,8 +36,12 @@ def sentry_to_proto_quota_config(quota: QuotaConfig) -> ProtoQuotaConfig:
     return ProtoQuotaConfig(**kwargs)
 
 
-def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig:
-    """Convert a proto QuotaConfig to its sentry equivalent."""
+def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig | None:
+    """Convert a proto QuotaConfig to its sentry equivalent.
+
+    Returns None if the proto had categories but none could be mapped,
+    since an empty category set would broaden the quota to all data.
+    """
     categories: list[DataCategory] = []
     for c in proto_quota.categories:
         sentry_cat = proto_to_sentry_category(c)
@@ -48,6 +52,13 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig:
                 "quota_config_mapping.unknown_category",
                 extra={"proto_category": c, "mapped_value": sentry_cat},
             )
+
+    if proto_quota.categories and not categories:
+        logger.warning(
+            "quota_config_mapping.all_categories_dropped",
+            extra={"proto_categories": list(proto_quota.categories)},
+        )
+        return None
 
     try:
         scope = (
