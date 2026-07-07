@@ -397,6 +397,9 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         id = request.GET.get("id")
         source = request.data
 
+        if not isinstance(source, dict):
+            return Response(data={"detail": "Invalid request body"}, status=400)
+
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
         sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
