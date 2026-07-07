@@ -90,4 +90,18 @@ describe('getWidgetConfigError', () => {
 
     expect(getWidgetConfigError(widget)).toBeUndefined();
   });
+
+  it('returns an error for heat map widgets with a non-distribution metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['count(value,test_metric,counter,none)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'Heat maps can only visualize distribution metrics.'
+    );
+  });
 });

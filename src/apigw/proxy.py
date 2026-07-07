@@ -217,7 +217,7 @@ async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = N
             except asyncio.CancelledError:
                 metric_abort.labels(route=request.name, target=cell.name).inc()
                 raise
-            except httpx.ConnectError:
+            except httpx.NetworkError:
                 metric_failed.labels(route=request.name, target=cell.name).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(
@@ -260,7 +260,7 @@ async def proxy_control_request(request: Any) -> Any:
     except asyncio.CancelledError:
         metric_abort.labels(route=request.name, target="control").inc()
         raise
-    except httpx.ConnectError:
+    except httpx.NetworkError:
         metric_failed.labels(route=request.name, target="control").inc()
         abort_with_json(503, {"error": "apigateway", "detail": "Downstream service unavailable"})
     except httpx.TimeoutException:

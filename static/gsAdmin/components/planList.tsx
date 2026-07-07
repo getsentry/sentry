@@ -21,7 +21,11 @@ import {
   type Plan,
   type Subscription,
 } from 'getsentry/types';
-import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  isByteCategory,
+  isCheckoutCategory,
+} from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -135,39 +139,41 @@ export function PlanList({
         ).length > 1 && (
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
-            {activePlan.checkoutCategories.map(category => {
-              const titleCategory = getPlanCategoryName({
-                plan: activePlan,
-                category,
-              });
-              const reservedKey = `reserved${toTitleCase(category, {
-                allowInnerUpperCase: true,
-              })}`;
-              const label = isByteCategory(category)
-                ? `${titleCategory} (GB)`
-                : titleCategory;
-              const fieldValue = formModel.getValue(reservedKey);
-              const currentValueDisplay = getCurrentValueDisplay(category);
-              return (
-                <Container position="relative" key={`test-${category}`}>
-                  <SelectField
-                    inline={false}
-                    stacked
-                    name={reservedKey}
-                    label={label}
-                    value={fieldValue}
-                    options={(activePlan.planCategories[category] || []).map(
-                      (level: {events: {toLocaleString: () => any}}) => ({
-                        label: level.events.toLocaleString(),
-                        value: level.events,
-                      })
-                    )}
-                    required
-                  />
-                  {currentValueDisplay}
-                </Container>
-              );
-            })}
+            {activePlan.categories
+              .filter(category => isCheckoutCategory(category, activePlan))
+              .map(category => {
+                const titleCategory = getPlanCategoryName({
+                  plan: activePlan,
+                  category,
+                });
+                const reservedKey = `reserved${toTitleCase(category, {
+                  allowInnerUpperCase: true,
+                })}`;
+                const label = isByteCategory(category)
+                  ? `${titleCategory} (GB)`
+                  : titleCategory;
+                const fieldValue = formModel.getValue(reservedKey);
+                const currentValueDisplay = getCurrentValueDisplay(category);
+                return (
+                  <Container position="relative" key={`test-${category}`}>
+                    <SelectField
+                      inline={false}
+                      stacked
+                      name={reservedKey}
+                      label={label}
+                      value={fieldValue}
+                      options={(activePlan.planCategories[category] || []).map(
+                        (level: {events: {toLocaleString: () => any}}) => ({
+                          label: level.events.toLocaleString(),
+                          value: level.events,
+                        })
+                      )}
+                      required
+                    />
+                    {currentValueDisplay}
+                  </Container>
+                );
+              })}
           </StyledFormSection>
         )}
       {availableAddOns.length > 0 && (

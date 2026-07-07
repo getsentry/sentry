@@ -1,4 +1,4 @@
-import React from 'react';
+import {createContext, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
@@ -20,13 +20,15 @@ const StackComponent = styled(
     direction = 'column',
     ...props
   }: StackProps<T>) => {
-    const responsiveDirection = useResponsivePropValue(direction);
+    const directionContext = useMemo<StackDirectionContextValue>(
+      () => ({direction}),
+      [direction]
+    );
+
     return (
-      <OrientationContext.Provider
-        value={getOrientationFromDirection(responsiveDirection)}
-      >
+      <StackDirectionContext.Provider value={directionContext}>
         <Flex {...props} direction={direction} />
-      </OrientationContext.Provider>
+      </StackDirectionContext.Provider>
     );
   }
 )<StackProps<any> | StackPropsWithRenderFunction<any>>`
@@ -54,15 +56,20 @@ function getOrientationFromDirection(
   }
 }
 
-const OrientationContext = React.createContext<'horizontal' | 'vertical'>('horizontal');
-function useOrientation(): 'horizontal' | 'vertical' {
-  return React.useContext(OrientationContext);
+interface StackDirectionContextValue {
+  direction: NonNullable<StackProps['direction']>;
 }
+
+const StackDirectionContext = createContext<StackDirectionContextValue>({
+  direction: 'row',
+});
 
 type StackSeparatorProps = Omit<SeparatorProps, 'orientation'>;
 
 const StackSeparator = styled((props: StackSeparatorProps) => {
-  const orientation = useOrientation();
+  const {direction} = useContext(StackDirectionContext);
+  const responsiveDirection = useResponsivePropValue(direction);
+  const orientation = getOrientationFromDirection(responsiveDirection);
 
   return (
     <Separator

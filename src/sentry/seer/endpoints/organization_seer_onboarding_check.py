@@ -3,7 +3,7 @@ from __future__ import annotations
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,10 +16,6 @@ from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-
-def is_in_seer_config_reminder_list(organization: Organization) -> bool:
-    return organization.slug in options.get("seer.organizations.force-config-reminder")
 
 
 def has_supported_scm_integration(organization: Organization) -> bool:
@@ -87,7 +83,6 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         autofix_enabled = is_autofix_enabled(organization)
         has_scm_integration = has_supported_scm_integration(organization)
         code_review_enabled = is_code_review_enabled(organization)
-        needs_config_reminder = is_in_seer_config_reminder_list(organization)
         is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
 
         return Response(
@@ -95,7 +90,6 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
                 "hasSupportedScmIntegration": has_scm_integration,
                 "isCodeReviewEnabled": code_review_enabled,
                 "isAutofixEnabled": autofix_enabled,
-                "needsConfigReminder": needs_config_reminder,
                 "isSeerConfigured": is_seer_configured,
             }
         )

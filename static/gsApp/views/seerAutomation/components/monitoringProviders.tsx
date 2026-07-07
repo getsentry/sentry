@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -60,7 +61,10 @@ export function MonitoringProvidersSection() {
             },
           }
         ),
-        data: params.site ? {site: params.site} : undefined,
+        data: {
+          return_url: monitoringProvidersSettingsPath(organization),
+          ...(params.site ? {site: params.site} : {}),
+        },
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);

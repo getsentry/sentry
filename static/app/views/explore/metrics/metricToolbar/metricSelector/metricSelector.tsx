@@ -85,10 +85,16 @@ export function MetricSelector({
   projectIds,
   environments,
   usePortal,
+  getDisabledOptionReason,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   environments?: string[];
+  // Returns a tooltip explaining why a metric option should be disabled, or
+  // undefined to leave it enabled. Lets callers constrain the selectable
+  // metrics to those their context supports (e.g. only distributions for heat
+  // maps). Omitting it leaves every option enabled.
+  getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
   usePortal?: boolean;
 }) {
@@ -257,17 +263,26 @@ export function MetricSelector({
     hasMetricUnitsUI,
   ]);
 
-  // Auto-select the first metric when no metric is currently selected.
-  // This handles the initial load case where the URL has no metric param.
+  // Auto-select the first selectable metric when no metric is currently
+  // selected. This handles the initial load case where the URL has no metric
+  // param. Skip options the caller disables (e.g. counters for heat maps) so we
+  // don't default into an invalid selection. If every option is disabled, leave
+  // the slot empty rather than selecting a metric the caller marked invalid.
   useEffect(() => {
-    if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
+    if (traceMetric.name) {
+      return;
+    }
+    const firstSelectable = getDisabledOptionReason
+      ? metricOptions.find(option => !getDisabledOptionReason(option))
+      : metricOptions[0];
+    if (firstSelectable) {
       onChange({
-        name: metricOptions[0].metricName,
-        type: metricOptions[0].metricType,
-        unit: metricOptions[0].metricUnit,
+        name: firstSelectable.metricName,
+        type: firstSelectable.metricType,
+        unit: firstSelectable.metricUnit,
       });
     }
-  }, [metricOptions, onChange, traceMetric.name, hasMetricUnitsUI]);
+  }, [metricOptions, onChange, traceMetric.name, getDisabledOptionReason]);
 
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
@@ -294,9 +309,33 @@ export function MetricSelector({
     }, null);
   }, [displayedOptions]);
 
+  // Attach a tooltip to options the caller disables, and collect their keys so
+  // the combobox renders them disabled. Both no-op without getDisabledOptionReason.
+  const displayedOptionsWithDisabledState = useMemo(() => {
+    if (!getDisabledOptionReason) {
+      return displayedOptions;
+    }
+    return displayedOptions.map(option => {
+      const reason = getDisabledOptionReason(option);
+      return reason ? {...option, tooltip: reason} : option;
+    });
+  }, [displayedOptions, getDisabledOptionReason]);
+
+  const disabledOptionKeys = useMemo(() => {
+    if (!getDisabledOptionReason) {
+      return new Set<string>();
+    }
+    return new Set(
+      displayedOptions
+        .filter(option => getDisabledOptionReason(option))
+        .map(option => option.value)
+    );
+  }, [displayedOptions, getDisabledOptionReason]);
+
   const displayedOptionsMap = useMemo(
-    () => new Map(displayedOptions.map(option => [option.value, option])),
-    [displayedOptions]
+    () =>
+      new Map(displayedOptionsWithDisabledState.map(option => [option.value, option])),
+    [displayedOptionsWithDisabledState]
   );
 
   function handleOverlayOpenChange(open: boolean) {
@@ -329,7 +368,8 @@ export function MetricSelector({
 
   const comboBoxState = useComboBoxState<MetricSelectorOption>({
     children: (item: MetricSelectorOption) => <Item key={item.value}>{item.label}</Item>,
-    items: displayedOptions,
+    items: displayedOptionsWithDisabledState,
+    disabledKeys: disabledOptionKeys,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
     menuTrigger: 'manual',
@@ -527,8 +567,8 @@ export function MetricSelector({
                 <Flex
                   minHeight="0"
                   direction={{
-                    xs: isOverlayAboveTrigger ? 'column-reverse' : 'column',
-                    md: 'row',
+                    'screen:xs': isOverlayAboveTrigger ? 'column-reverse' : 'column',
+                    'screen:md': 'row',
                   }}
                 >
                   <Stack
@@ -536,10 +576,14 @@ export function MetricSelector({
                     minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
                     maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
                     borderBottom={
-                      isOverlayAboveTrigger ? undefined : {xs: 'primary', md: undefined}
+                      isOverlayAboveTrigger
+                        ? undefined
+                        : {'screen:xs': 'primary', 'screen:md': undefined}
                     }
                     borderTop={
-                      isOverlayAboveTrigger ? {xs: 'primary', md: undefined} : undefined
+                      isOverlayAboveTrigger
+                        ? {'screen:xs': 'primary', 'screen:md': undefined}
+                        : undefined
                     }
                     width="100%"
                   >
@@ -665,14 +709,14 @@ export function MetricSelector({
                       top={
                         isOverlayAboveTrigger
                           ? undefined
-                          : {xs: 'auto', md: sidePanelAnchorPosition}
+                          : {'screen:xs': 'auto', 'screen:md': sidePanelAnchorPosition}
                       }
                       bottom={
                         isOverlayAboveTrigger
-                          ? {xs: 'auto', md: sidePanelAnchorPosition}
+                          ? {'screen:xs': 'auto', 'screen:md': sidePanelAnchorPosition}
                           : undefined
                       }
-                      width={{xs: '100%', md: '280px'}}
+                      width={{'screen:xs': '100%', 'screen:md': '280px'}}
                       padding="lg"
                       minHeight="0"
                     >

@@ -1,13 +1,18 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
+  getSamplingWarningReason,
+  isSamplingSensitiveAggregate,
   removeHiddenKeys,
+  shouldWarnSamplingSensitive,
   viewSamplesTarget,
 } from 'sentry/views/explore/utils';
 
@@ -379,5 +384,123 @@ describe('removeHiddenKeys', () => {
     };
 
     expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+  });
+});
+
+function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] {
+  return [
+    TimeSeriesFixture({
+      values: sampleRates.map((sampleRate, index) => ({
+        value: 1,
+        timestamp: 1729796400000 + index,
+        sampleRate,
+      })),
+    }),
+  ];
+}
+
+describe('isSamplingSensitiveAggregate', () => {
+  it.each(['count_unique(user)', 'failure_count()', 'failure_rate()'])(
+    'returns true for sampling-sensitive aggregate %s',
+    aggregate => {
+      expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
+    }
+  );
+
+  it.each(['count()', 'avg(span.duration)', 'p50(span.duration)'])(
+    'returns false for non-sensitive aggregate %s',
+    aggregate => {
+      expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
+    }
+  );
+});
+
+describe('shouldWarnSamplingSensitive', () => {
+  it('returns true when there is a sensitive aggregate and the average sample rate is below the threshold', () => {
+    expect(
+      shouldWarnSamplingSensitive(
+        'count_unique(user)',
+        seriesWithSampleRates([0.05, 0.05])
+      )
+    ).toBe(true);
+  });
+
+  it('returns false when the average sample rate is at or above the threshold', () => {
+    expect(
+      shouldWarnSamplingSensitive('count_unique(user)', seriesWithSampleRates([1, 1]))
+    ).toBe(false);
+  });
+
+  it('returns false when there is no sample rate data', () => {
+    expect(
+      shouldWarnSamplingSensitive(
+        'count_unique(user)',
+        seriesWithSampleRates([null, null])
+      )
+    ).toBe(false);
+  });
+
+  it('returns false for a non-sensitive aggregate even with a low sample rate', () => {
+    expect(
+      shouldWarnSamplingSensitive('count()', seriesWithSampleRates([0.05, 0.05]))
+    ).toBe(false);
+  });
+});
+
+describe('getSamplingWarningReason', () => {
+  it('returns null for a non-sensitive aggregate even when partially scanned', () => {
+    expect(
+      getSamplingWarningReason('count()', seriesWithSampleRates([0.05, 0.05]), 'partial')
+    ).toBeNull();
+  });
+
+  it('returns partialData when sensitive and partially scanned, regardless of sample rate', () => {
+    expect(
+      getSamplingWarningReason(
+        'count_unique(user)',
+        seriesWithSampleRates([1, 1]),
+        'partial'
+      )
+    ).toBe('partialData');
+  });
+
+  it('returns lowSampleRate when sensitive, fully scanned, and below the threshold', () => {
+    expect(
+      getSamplingWarningReason(
+        'count_unique(user)',
+        seriesWithSampleRates([0.05, 0.05]),
+        'full'
+      )
+    ).toBe('lowSampleRate');
+  });
+
+  it('returns null when sensitive, fully scanned, and the sample rate is high', () => {
+    expect(
+      getSamplingWarningReason(
+        'count_unique(user)',
+        seriesWithSampleRates([1, 1]),
+        'full'
+      )
+    ).toBeNull();
+  });
+
+  it('returns null when sensitive, fully scanned, and there is no sample rate data', () => {
+    expect(
+      getSamplingWarningReason(
+        'count_unique(user)',
+        seriesWithSampleRates([null, null]),
+        'full'
+      )
+    ).toBeNull();
+  });
+
+  it('returns null when partially scanned but the series has no plotted data', () => {
+    expect(getSamplingWarningReason('count_unique(user)', [], 'partial')).toBeNull();
+  });
+
+  it('returns null when the series only contains empty timeseries', () => {
+    expect(
+      getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
+    ).toBeNull();
   });
 });

@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
@@ -15,6 +16,7 @@ from pydantic import BaseModel
 from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
+    AuthenticationFailed,
     NotFound,
     ParseError,
     PermissionDenied,
@@ -36,6 +38,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.internal.llm_proxy_key import make_llm_proxy_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
@@ -120,7 +123,7 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
 )
-from sentry.seer.auth import SeerRpcSignatureAuthentication
+from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
@@ -163,16 +166,20 @@ from sentry.seer.sentry_data_models import (
     ValidateRepoSuccessResponse,
 )
 from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
-from sentry.utils import snuba_rpc
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span
-from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
+from sentry.viewer_context import (
+    get_viewer_context,
+    observe_viewer_context_propagation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +200,80 @@ class SpansResponse(TypedDict):
     meta: dict[str, Any]
 
 
+def compare_signature(url: str, body: bytes, signature: str) -> bool:
+    """
+    Compare request data + signature signed by one of the shared secrets.
+
+    Once a key has been able to validate the signature other keys will
+    not be attempted. We should only have multiple keys during key rotations.
+
+    DEPRECATED: part of the HMAC RPC auth mechanism being retired in favor of
+    signed ``X-Viewer-Context`` (see ``SeerRpcSignatureAuthentication``).
+    """
+    if not settings.SEER_RPC_SHARED_SECRET:
+        raise RpcAuthenticationSetupException(
+            "Cannot validate RPC request signatures without SEER_RPC_SHARED_SECRET"
+        )
+
+    if not signature.startswith("rpc0:"):
+        logger.error("Seer RPC signature validation failed: invalid signature prefix")
+        return False
+
+    if not body:
+        logger.error("Seer RPC signature validation failed: no body")
+        return False
+
+    try:
+        # We aren't using the version bits currently.
+        _, signature_data = signature.split(":", 2)
+
+        signature_input = body
+
+        for key in settings.SEER_RPC_SHARED_SECRET:
+            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+            is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
+            if is_valid:
+                return True
+    except Exception:
+        logger.exception("Seer RPC signature validation failed")
+        return False
+
+    logger.error("Seer RPC signature validation failed")
+
+    return False
+
+
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
+class SeerRpcSignatureAuthentication(StandardAuthentication):
+    """
+    Authentication for seer RPC requests.
+    Requests are sent with an HMAC signed by a shared private key.
+
+    DEPRECATED: this HMAC mechanism (backed by ``SEER_RPC_SHARED_SECRET``) is
+    slated for removal. Seer<->Sentry auth is consolidating onto the signed
+    ``X-Viewer-Context`` header (see ``SeerRpcViewerContextAuthentication``).
+    Removal order: (1) this endpoint accepts viewer context [done],
+    (2) Seer stops sending ``Rpcsignature``, (3) delete this class +
+    ``compare_signature``, (4) retire ``SEER_RPC_SHARED_SECRET`` (only after
+    step 2 --- an inbound signature with the secret unset raises).
+    """
+
+    token_name = b"rpcsignature"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not auth or len(auth) < 2:
+            return False
+        return auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
+        if not compare_signature(request.path_info, request.body, token):
+            raise AuthenticationFailed("Invalid signature")
+
+        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
+
+        return (AnonymousUser(), token)
+
+
 @internal_cell_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
@@ -204,17 +285,55 @@ class SeerRpcServiceEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    authentication_classes = (SeerRpcSignatureAuthentication,)
+    # HMAC is listed first so it wins when a caller sends both credentials
+    # (Seer sends both today), keeping this a no-op at rollout. The viewer
+    # context authenticator only engages when there is no valid Rpcsignature.
+    authentication_classes = (
+        SeerRpcSignatureAuthentication,
+        SeerRpcViewerContextAuthentication,
+    )
     permission_classes = ()
     enforce_rate_limit = False
 
     @sentry_sdk.trace
     def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, SeerRpcSignatureAuthentication
-        ):
-            return True
-        return False
+        return bool(request.auth) and isinstance(
+            request.successful_authenticator,
+            (SeerRpcSignatureAuthentication, SeerRpcViewerContextAuthentication),
+        )
+
+    def _enforce_viewer_context_org_binding(
+        self, request: Request, arguments: dict[str, Any]
+    ) -> None:
+        """Bind a viewer-context-authenticated call to the signed context's org.
+
+        This endpoint has no per-org access control — ``org_id`` is a trusted
+        argument. That is safe for HMAC callers (only Seer holds the secret), but
+        as viewer-context auth generalizes to any caller, an unforgeable VC for
+        org A must not be usable to read org B. HMAC calls keep god-mode.
+        """
+        if not isinstance(request.successful_authenticator, SeerRpcViewerContextAuthentication):
+            return
+
+        arg_org_id = arguments.get("org_id", arguments.get("organization_id"))
+        if arg_org_id is None:
+            return
+
+        # ``arg_org_id`` is caller-supplied and only validated to live under a
+        # dict; coerce defensively so malformed input is a 400, not a 500.
+        try:
+            arg_org_id = int(arg_org_id)
+        except (TypeError, ValueError):
+            raise ParseError("Invalid organization id")
+
+        vc = getattr(request, "_seer_rpc_viewer_context", None)
+        vc_org_id = vc.organization_id if vc is not None else None
+        if vc_org_id is None or arg_org_id != int(vc_org_id):
+            metrics.incr(
+                "seer.rpc.viewer_context_org_binding",
+                tags={"outcome": "mismatch"},
+            )
+            raise PermissionDenied("Viewer context organization does not match request")
 
     @sentry_sdk.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
@@ -258,6 +377,8 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError from e
         if not isinstance(arguments, dict):
             raise ParseError
+
+        self._enforce_viewer_context_org_binding(request, arguments)
 
         try:
             result = self._dispatch_to_local_method(method_name, arguments)
@@ -930,10 +1051,21 @@ def refresh_monitoring_provider_token(
 
     identity = identity_service.get_identity(filter={"id": identity_id})
     if identity is None:
+        logger.error(
+            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     idp = identity_service.get_provider(provider_id=identity.idp_id)
     if idp is None or idp.type not in MONITORING_PROVIDERS:
+        logger.error(
+            "monitoring_provider.refresh.identity_provider_not_found",
+            extra={
+                "identity_id": identity.id,
+                "idp_id": identity.idp_id,
+                "idp_type": idp.type if idp is not None else None,
+            },
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
 
     provider = identity_manager.get(idp.type)
@@ -944,16 +1076,35 @@ def refresh_monitoring_provider_token(
     try:
         provider.refresh_identity(identity)
     except IdentityNotValid:
+        logger.exception(
+            "monitoring_provider.refresh.identity_not_valid",
+            extra={
+                "identity_id": identity_id,
+                "provider": idp.type,
+                "has_refresh_token": "refresh_token" in identity.data,
+            },
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
     except (ApiError, KeyError, RequestException):
+        logger.exception(
+            "monitoring_provider.refresh.failed",
+            extra={"identity_id": identity_id, "provider": idp.type},
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
 
     access_token = identity.data.get("access_token")
     if not access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_not_found", extra={"identity_id": identity.id}
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
 
     encrypted_access_token = encrypt_access_token_for_seer(access_token)
     if not encrypted_access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_encryption_failed",
+            extra={"identity_id": identity.id},
+        )
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
     return RefreshMonitoringProviderTokenSuccessResponse(

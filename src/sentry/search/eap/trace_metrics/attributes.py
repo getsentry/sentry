@@ -2,6 +2,7 @@ from typing import Literal
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AttributeContext,
     ResolvedAttribute,
     simple_sentry_field,
 )
@@ -26,6 +27,13 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            context=AttributeContext(
+                brief=(
+                    "A trace represents the record of the entire operation you want to "
+                    "measure or track — like page load, searched using the UUID generated "
+                    "by Sentry's SDK."
+                )
+            ),
         ),
         ResolvedAttribute(
             public_alias=constants.TIMESTAMP_PRECISE_ALIAS,
