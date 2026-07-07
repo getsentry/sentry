@@ -284,6 +284,7 @@ telemetry_experience_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+
 tempest_tasks = app.taskregistry.create_namespace(
     "tempest",
     app_feature="errors",

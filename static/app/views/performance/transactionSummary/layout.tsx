@@ -12,7 +12,6 @@ import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {generateTransactionEventsEventView} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {generateTransactionOverviewEventView} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {generateTransactionReplaysEventView} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
-import {generateTransactionTagsEventView} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
 
 function TransactionSummaryLayout() {
   const location = useLocation();
@@ -44,8 +43,6 @@ function makeGenerateEventView(tab: Tab) {
       return generateTransactionOverviewEventView;
     case Tab.EVENTS:
       return generateTransactionEventsEventView;
-    case Tab.TAGS:
-      return generateTransactionTagsEventView;
     case Tab.REPLAYS:
       return generateTransactionReplaysEventView;
     case Tab.PROFILING:
@@ -68,9 +65,6 @@ function makeGetDocumentTitle(tab: Tab) {
       break;
     case Tab.EVENTS:
       name = t('Events');
-      break;
-    case Tab.TAGS:
-      name = t('Tags');
       break;
     case Tab.REPLAYS:
       name = t('Replays');

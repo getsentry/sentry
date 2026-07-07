@@ -301,6 +301,13 @@ const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
 export const integrationRequiresUpgrade = (integration: Integration): boolean =>
   !isIntegrationUpToDate(integration);
 
+/**
+ * URL where a user can review and accept a GitHub App installation's updated
+ * permissions. Mirrors `_build_permissions_update_url` on the backend.
+ */
+export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
+  `https://github.com/settings/installations/${installationId}/permissions/update`;
+
 export const canManageIntegrations = (organization: Organization): boolean =>
   isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
 
