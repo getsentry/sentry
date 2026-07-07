@@ -112,6 +112,9 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:continuous-profiling-billing": False,
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": False,
+        # Display on demand metrics related UI elements (alerts). Provided by subscription
+        # plans via getsentry's SubscriptionPlanFeatureHandler.
+        "organizations:on-demand-metrics-ui": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
         "organizations:custom-metrics": False,
         # Prefix host with organization ID when giving users DSNs (can be
