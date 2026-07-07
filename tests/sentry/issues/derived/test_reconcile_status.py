@@ -68,9 +68,13 @@ def test_reconcile_status_literal_matches_issue_status() -> None:
 
 
 def test_reconcile_status_action_roundtrips() -> None:
-    action = ReconcileStatusAction(status=IssueStatus.CLOSED.value)
+    action = ReconcileStatusAction(status=IssueStatus.CLOSED.value, reason="group model disagrees")
     assert action.status == "closed"
+    assert action.reason == "group model disagrees"
     assert IssueStatus(action.status) == IssueStatus.CLOSED
+    # reason survives serialization round-trip through dict
+    restored = ReconcileStatusAction(**action.dict())
+    assert restored.reason == "group model disagrees"
 
 
 # ---------------------------------------------------------------------------

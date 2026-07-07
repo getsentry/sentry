@@ -630,6 +630,7 @@ class ReconcileStatusAction(GroupAction):
 
     # Must stay in sync with IssueStatus in sentry.issues.derived.features.
     status: Literal["open", "closed"]
+    reason: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
