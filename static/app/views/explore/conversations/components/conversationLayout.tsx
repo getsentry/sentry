@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -83,12 +83,35 @@ export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   );
 }
 
-/**
- * Two-column shell for the redesigned timeline view: a fluid left card holding
- * the span timeline (or its skeleton) and a fixed-width right card for the span
- * detail. Both the live content and the loading skeleton render into this so the
- * two layouts can't drift.
- */
+export function SpanDetailCard({
+  children,
+  embedded,
+  ref,
+}: {
+  children: React.ReactNode;
+  embedded?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <Stack
+      ref={ref}
+      background="primary"
+      border={embedded ? undefined : 'primary'}
+      radius={embedded ? undefined : 'md'}
+      padding="xl"
+      gap="lg"
+      flex="1"
+      minWidth="0"
+      minHeight="0"
+      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
+      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
+      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
+    >
+      {children}
+    </Stack>
+  );
+}
+
 export function ConversationTimelineLayout({
   left,
   right,

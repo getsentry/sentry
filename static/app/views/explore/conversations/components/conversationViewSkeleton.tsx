@@ -1,20 +1,23 @@
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {ConversationTimelineLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {
+  ConversationTimelineLayout,
+  SpanDetailCard,
+} from 'sentry/views/explore/conversations/components/conversationLayout';
 
 const TIMELINE_SKELETON_ROWS: Array<{
-  indent: boolean;
-  secondary: string | null;
   title: string;
+  indent?: boolean;
+  secondary?: string;
 }> = [
-  {title: '130px', secondary: '90px', indent: false},
+  {title: '130px', secondary: '90px'},
   {title: '90px', secondary: '60px', indent: true},
-  {title: '110px', secondary: null, indent: true},
+  {title: '110px', indent: true},
   {title: '80px', secondary: '100px', indent: true},
   {title: '85px', secondary: '55px', indent: true},
-  {title: '120px', secondary: null, indent: true},
-  {title: '100px', secondary: '70px', indent: false},
+  {title: '120px', indent: true},
+  {title: '100px', secondary: '70px'},
   {title: '95px', secondary: '85px', indent: true},
 ];
 
@@ -56,17 +59,7 @@ function TimelineSkeleton() {
 
 function SpanDetailSkeleton() {
   return (
-    <Stack
-      background="primary"
-      border="primary"
-      radius="md"
-      padding="xl"
-      gap="lg"
-      flex="1"
-      minWidth="0"
-      minHeight="0"
-      height={{xs: 'auto', sm: '100%'}}
-    >
+    <SpanDetailCard>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Placeholder height="16px" width="16px" />
         <Placeholder height="16px" width="180px" />
@@ -86,6 +79,6 @@ function SpanDetailSkeleton() {
         <Placeholder height="16px" width="72px" />
       </Flex>
       <Placeholder height="240px" width="100%" />
-    </Stack>
+    </SpanDetailCard>
   );
 }

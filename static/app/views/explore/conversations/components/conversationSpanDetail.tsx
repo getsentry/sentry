@@ -16,6 +16,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
@@ -116,20 +117,7 @@ export function ConversationSpanDetail({
   );
 
   return (
-    <Stack
-      ref={scrollContainerRef}
-      background="primary"
-      border={embedded ? undefined : 'primary'}
-      radius={embedded ? undefined : 'md'}
-      padding="xl"
-      gap="lg"
-      flex="1"
-      minWidth="0"
-      minHeight="0"
-      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
-      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
-      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
-    >
+    <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <Container
@@ -222,7 +210,7 @@ export function ConversationSpanDetail({
           </TabPanels>
         </Container>
       </TabStateProvider>
-    </Stack>
+    </SpanDetailCard>
   );
 }
 
