@@ -269,7 +269,13 @@ export default function IntegrationDetailedView() {
     if (showPermsModal !== '1' || !canManageIntegrations(organization)) {
       return;
     }
-    switch (provider?.key) {
+    // Wait until configurations have loaded before deciding whether to open the
+    // modal or clear the param, otherwise we'd strip `showPermsModal` before the
+    // data arrives and the modal would never open.
+    if (isConfigurationsPending || !provider) {
+      return;
+    }
+    switch (provider.key) {
       case 'github':
         if (outdatedConfigurations.length === 1) {
           openOutdatedGithubPermissionsModal();
@@ -282,6 +288,7 @@ export default function IntegrationDetailedView() {
   }, [
     showPermsModal,
     setShowPermsModal,
+    isConfigurationsPending,
     provider,
     organization,
     outdatedConfigurations,
