@@ -102,13 +102,9 @@ def backfill_actions(
     with transaction.atomic(using=using):
         cursor = connections[using].cursor()
         cursor.execute(sql % values_clause, params)
-        inserted = cursor.rowcount
+        inserted = len(cursor.fetchall())
 
-    metrics.incr(
-        "issues.action_log.backfill",
-        amount=inserted,
-        tags={"actor_type": entries[0].actor.actor_type.name.lower()},
-    )
+    metrics.incr("issues.action_log.backfill", amount=inserted, sample_rate=1.0)
 
     if inserted:
         # entries are sorted ascending, so [0] is the earliest.
