@@ -530,6 +530,9 @@ class Fixtures:
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
 
+    def create_weekly_report_project_exclusion(self, **kwargs):
+        return Factories.create_weekly_report_project_exclusion(**kwargs)
+
     def create_user_option(self, *args, **kwargs):
         return Factories.create_user_option(*args, **kwargs)
 
@@ -1236,6 +1239,9 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
+
+    def create_seer_agent_run(self, run, **kwargs):
+        return Factories.create_seer_agent_run(run=run, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

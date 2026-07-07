@@ -21,9 +21,15 @@ jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
 
   return {
     ...actual,
-    TraceItemSearchQueryBuilder: (props: {disabled?: boolean}) => (
+    TraceItemSearchQueryBuilder: (props: {
+      disabled?: boolean;
+      invalidFilterKeys?: string[];
+      numberAttributes?: Record<string, unknown>;
+    }) => (
       <div
         data-disabled={String(props.disabled ?? false)}
+        data-invalid-filter-keys={props.invalidFilterKeys?.join(',') ?? ''}
+        data-number-attributes={Object.keys(props.numberAttributes ?? {}).join(',')}
         data-test-id="metrics-filter-search"
       />
     ),
@@ -205,6 +211,10 @@ describe('Filter', () => {
   let queryParams: ReadableQueryParams;
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
     queryParams = new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.SAMPLES,
@@ -273,6 +283,78 @@ describe('Filter', () => {
     expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
       'data-disabled',
       'true'
+    );
+  });
+
+  it('passes validated filter keys to the search bar', async () => {
+    queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: 'custom.duration:>300 missing.key:value',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('sum(value,test_metric,distribution,none)'),
+      ],
+      aggregateSortBys: [
+        {field: 'sum(value,test_metric,distribution,none)', kind: 'desc'},
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {
+          error: 'Unknown attribute',
+          fields: [
+            {
+              attrType: 'number',
+              error: null,
+              name: 'custom.duration',
+              valid: true,
+            },
+            {
+              attrType: null,
+              error: 'Unknown attribute',
+              name: 'missing.key',
+              valid: false,
+            },
+          ],
+          valid: false,
+        },
+        valid: false,
+      },
+      statusCode: 400,
+      match: [
+        MockApiClient.matchQuery({query: 'custom.duration:>300 missing.key:value'}),
+      ],
+    });
+
+    render(<Filter traceMetric={{name: 'test_metric', type: 'distribution'}} />, {
+      organization: OrganizationFixture({
+        features: ['tracemetrics-enabled'],
+      }),
+      additionalWrapper: ({children}: {children: ReactNode}) => (
+        <Wrapper queryParams={queryParams}>{children}</Wrapper>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
+        'data-number-attributes',
+        expect.stringContaining('custom.duration')
+      );
+    });
+    expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
+      'data-invalid-filter-keys',
+      'missing.key'
     );
   });
 });

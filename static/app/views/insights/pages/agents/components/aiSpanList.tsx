@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
-  getFirstToolInputValue,
+  getToolInputPreview,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -30,7 +30,7 @@ import {
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
+export function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   let startTime = 0;
   let endTime = 0;
 
@@ -284,13 +284,13 @@ const TraceListItem = memo(function TraceListItem({
   );
 });
 
-interface TraceBounds {
+export interface TraceBounds {
   duration: number;
   endTime: number;
   startTime: number;
 }
 
-interface CompressedTimeBounds extends TraceBounds {
+export interface CompressedTimeBounds extends TraceBounds {
   compressedStartByNodeId: Map<string, number>;
 }
 
@@ -308,7 +308,7 @@ const COMPRESSED_GAP_SECONDS = 1;
  * Returns a Map of node IDs to their compressed start times, which allows O(1)
  * lookup when rendering each span's position on the timeline.
  */
-function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
+export function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
   const emptyResult: CompressedTimeBounds = {
     startTime: 0,
     endTime: 0,
@@ -377,7 +377,7 @@ function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds
   };
 }
 
-function calculateRelativeTiming(
+export function calculateRelativeTiming(
   node: AITraceSpanNode,
   traceBounds: TraceBounds,
   compressedStartByNodeId?: Map<string, number>
@@ -500,12 +500,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: firstInputValue || (toolName ? op : ''),
+        subtitle: inputPreview || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:

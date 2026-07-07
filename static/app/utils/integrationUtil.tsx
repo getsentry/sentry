@@ -1,5 +1,6 @@
 import * as qs from 'query-string';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   IconAsana,
   IconBitbucket,
@@ -28,8 +29,10 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
 
@@ -298,11 +301,30 @@ const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
 export const integrationRequiresUpgrade = (integration: Integration): boolean =>
   !isIntegrationUpToDate(integration);
 
+/**
+ * URL where a user can review and accept a GitHub App installation's updated
+ * permissions. Mirrors `_build_permissions_update_url` on the backend.
+ */
+export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
+  `https://github.com/settings/installations/${installationId}/permissions/update`;
+
+export const canManageIntegrations = (organization: Organization): boolean =>
+  isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
+
+export function getIntegrationNoun(slug: string): string {
+  switch (slug) {
+    case 'slack':
+      return t('workspace');
+    default:
+      return t('installation');
+  }
+}
+
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t(
-        'Update to the latest version of our Slack app to tag Sentry and ask it to triage and debug issues'
+        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app on your workspace to get started.'
       );
 };
 

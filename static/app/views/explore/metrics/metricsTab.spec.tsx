@@ -22,6 +22,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -40,6 +41,16 @@ const datePageFilterProps: DatePageFilterProps = {
     '24h': 'Last 24 hours',
     '7d': 'Last 7 days',
   }),
+};
+
+const validationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: true,
 };
 
 describe('MetricsTabContent', () => {
@@ -81,6 +92,12 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
     });
 
     setupEventsMock(metricFixtures.detailedFixtures, [

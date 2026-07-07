@@ -6,8 +6,16 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {BooleanOperator, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {
+  BooleanOperator,
+  parseSearch,
+  TermOperator,
+  Token,
+  type WildcardOperator,
+  wildcardOperators,
+} from 'sentry/components/searchSyntax/parser';
 import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -191,9 +199,49 @@ export function resolveSeerProjectSelection(
   };
 }
 
+const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {
+  [TermOperator.CONTAINS]: OP_LABELS[TermOperator.DOES_NOT_CONTAIN],
+  [TermOperator.STARTS_WITH]: OP_LABELS[TermOperator.DOES_NOT_START_WITH],
+  [TermOperator.ENDS_WITH]: OP_LABELS[TermOperator.DOES_NOT_END_WITH],
+};
+
+function getWildcardOperatorLabel(
+  operator: WildcardOperator,
+  isNegated: boolean
+): string {
+  if (isNegated) {
+    return NEGATED_WILDCARD_OPERATOR_LABELS[operator] ?? `not ${OP_LABELS[operator]}`;
+  }
+
+  return OP_LABELS[operator];
+}
+
+function formatWildcardToken(token: string, isNegated: boolean): string | null {
+  for (const operator of wildcardOperators) {
+    const operatorIndex = token.indexOf(operator);
+
+    if (operatorIndex === -1) {
+      continue;
+    }
+
+    const key = token.slice(0, operatorIndex).replace(/:$/, '').trim();
+    const value = token.slice(operatorIndex + operator.length).trim();
+    const description = getWildcardOperatorLabel(operator, isNegated);
+
+    return `${key} ${description} ${value}`.replace(/\s+/g, ' ').trim();
+  }
+
+  return null;
+}
+
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
   const actualToken = isNegated ? token.slice(1) : token;
+  const wildcardToken = formatWildcardToken(actualToken, isNegated);
+
+  if (wildcardToken) {
+    return wildcardToken;
+  }
 
   const operators = [
     [':>=', 'greater than or equal to'],

@@ -47,6 +47,7 @@ import {
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
@@ -555,6 +556,13 @@ export function useWidgetBuilderState(): {
               // count() while preserving the metric (the function args).
               nextFields = nextFields
                 .filter(field => field.kind !== FieldValueKind.EQUATION)
+                .filter(field => {
+                  // Heat maps can only render distribution metrics; drop
+                  // counter/gauge aggregates so switching to a heat map never
+                  // lands on an invalid metric.
+                  const metric = extractTraceMetricFromColumn(field);
+                  return !metric || doesMetricSupportHeatMapVisualization(metric);
+                })
                 .map(field => {
                   if (
                     field.kind === FieldValueKind.FUNCTION &&
@@ -571,7 +579,9 @@ export function useWidgetBuilderState(): {
                   }
                   return field;
                 });
-              // If stripping equations left nothing, fall back to the default.
+              // If dropping equations / invalid metrics left nothing, fall back
+              // to the default. The metric-less placeholder lets the metric
+              // picker auto-select the first distribution metric.
               if (nextFields.length === 0) {
                 nextFields.push({...currentDatasetConfig.defaultField, alias: undefined});
               }

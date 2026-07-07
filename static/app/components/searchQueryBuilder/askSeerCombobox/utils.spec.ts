@@ -1,6 +1,9 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+
 import {
+  formatQueryToNaturalLanguage,
   generateQueryTokensString,
   getExpandedProjectIds,
   resolveSeerProjectSelection,
@@ -139,5 +142,44 @@ describe('generateQueryTokensString', () => {
         projects
       )
     ).toContain("projects are 'seer, sentry'");
+  });
+
+  it('formats wildcard operators without private unicode markers', () => {
+    expect(
+      generateQueryTokensString({
+        query: `browser.name:${WildcardOperators.CONTAINS}FireFox`,
+      })
+    ).toBe("Filter is 'browser.name contains FireFox '");
+  });
+});
+
+describe('formatQueryToNaturalLanguage', () => {
+  it.each([
+    {
+      query: `browser.name:${WildcardOperators.CONTAINS}FireFox`,
+      expected: 'browser.name contains FireFox ',
+    },
+    {
+      query: `url:${WildcardOperators.STARTS_WITH}/api`,
+      expected: 'url starts with /api ',
+    },
+    {
+      query: `path:${WildcardOperators.ENDS_WITH}.js`,
+      expected: 'path ends with .js ',
+    },
+    {
+      query: `!browser.name:${WildcardOperators.CONTAINS}FireFox`,
+      expected: 'browser.name does not contain FireFox ',
+    },
+    {
+      query: `!url:${WildcardOperators.STARTS_WITH}/api`,
+      expected: 'url does not start with /api ',
+    },
+    {
+      query: `!path:${WildcardOperators.ENDS_WITH}.js`,
+      expected: 'path does not end with .js ',
+    },
+  ])('formats $query as $expected', ({query, expected}) => {
+    expect(formatQueryToNaturalLanguage(query)).toBe(expected);
   });
 });

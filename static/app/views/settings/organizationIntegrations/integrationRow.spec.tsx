@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
@@ -111,7 +111,7 @@ describe('IntegrationRow', () => {
   });
 
   describe('Update Now alert', () => {
-    it('auto-opens the install modal for a single outdated workspace', () => {
+    it('does not render the alert icon when up to date', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -122,17 +122,12 @@ describe('IntegrationRow', () => {
           publishStatus="published"
           configurations={1}
           categories={[]}
-          alertText="Update to the latest version of our Slack app"
-          resolveText="Update Now"
         />
       );
-      expect(screen.getByRole('button', {name: 'Update Now'})).toHaveAttribute(
-        'href',
-        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
-      );
+      expect(screen.queryByLabelText('Integration alert')).not.toBeInTheDocument();
     });
 
-    it('sends users to the config page when multiple workspaces exist', () => {
+    it('auto-opens the install modal when a single workspace is outdated', async () => {
       render(
         <IntegrationRow
           organization={org}
@@ -143,16 +138,61 @@ describe('IntegrationRow', () => {
           publishStatus="published"
           configurations={2}
           categories={[]}
-          alertText="Update to the latest version of our Slack app"
-          resolveText="Update Now"
+          outdatedConfigurations={1}
         />
       );
-      const button = screen.getByRole('button', {name: 'Update Now'});
-      expect(button).toHaveAttribute(
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      expect(await screen.findByRole('link', {name: 'click here'})).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
+      );
+    });
+
+    it('sends users to the config page when multiple workspaces are outdated', async () => {
+      render(
+        <IntegrationRow
+          organization={org}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          outdatedConfigurations={2}
+        />
+      );
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      const link = await screen.findByRole('link', {name: 'click here'});
+      expect(link).toHaveAttribute(
         'href',
         `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now`
       );
-      expect(button.getAttribute('href')).not.toContain('showInstallModal');
+      expect(link.getAttribute('href')).not.toContain('showInstallModal');
+    });
+
+    it('shows an informational tooltip without a link for members without access', async () => {
+      const {organization: lowerAccessOrg} = initializeOrg({
+        organization: {access: ['org:read']},
+      });
+      render(
+        <IntegrationRow
+          organization={lowerAccessOrg}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          outdatedConfigurations={1}
+        />
+      );
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      // The warning icon still surfaces the update, but without an actionable
+      // link that would try to launch a flow the member can't complete.
+      expect(await screen.findByText(/please update your workspace/)).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'click here'})).not.toBeInTheDocument();
     });
   });
 });

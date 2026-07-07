@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useContext, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
@@ -7,7 +7,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {LeadWrap} from '@sentry/scraps/compactSelect';
+import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
 import {
   InnerWrap,
   MenuListItem,
@@ -56,6 +56,14 @@ export function ListBoxOption({
   const {optionProps, labelProps, isSelected, isFocused, isDisabled, isPressed} =
     useOption({key: item.key, 'aria-label': item['aria-label']}, listState, ref);
 
+  const {search, highlightSearch} = useContext(ControlContext);
+  const renderedLabel =
+    highlightSearch && search && typeof label === 'string' ? (
+      <HighlightText text={label} query={search} />
+    ) : (
+      label
+    );
+
   // Not memoized: optionProps contains press event handlers from useOption/usePress
   // that capture the current selection state and must stay up-to-date.
 
@@ -103,7 +111,7 @@ export function ListBoxOption({
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
       size={size}
-      label={label}
+      label={renderedLabel}
       details={showDetails ? details : null}
       disabled={isDisabled}
       isPressed={isPressed}
