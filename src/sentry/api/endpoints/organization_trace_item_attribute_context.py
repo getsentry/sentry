@@ -197,8 +197,8 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         # attribute collapse to a single stored row.
         try:
             resolved_attribute, _ = resolver.resolve_attribute(data["attribute_key"])
-        except InvalidSearchQuery as e:
-            return Response({"detail": str(e)}, status=400)
+        except InvalidSearchQuery as _e:
+            return Response({"detail": "Invalid attribute query."}, status=400)
 
         internal_name = resolved_attribute.internal_name
         public_alias = resolved_attribute.public_alias
