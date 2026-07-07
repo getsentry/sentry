@@ -35,6 +35,17 @@ ATTACHMENT_ID_PARAM = OpenApiParameter(
     description="The numeric ID of the attachment, as returned from the attachments list endpoint.",
 )
 
+DOWNLOAD_PARAM = OpenApiParameter(
+    name="download",
+    location="query",
+    required=False,
+    type=bool,
+    description=(
+        "If set, the response will be a binary file download instead of JSON metadata. "
+        "The response will include `Content-Disposition` and `Content-Type` headers."
+    ),
+)
+
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request: Request, view, project):
@@ -100,6 +111,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             ATTACHMENT_ID_PARAM,
+            DOWNLOAD_PARAM,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -120,7 +132,8 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         | StreamingHttpResponse
     ):
         """
-        Retrieve metadata for a single attachment on an event.
+        Retrieve metadata for a single attachment on an event, or download its
+        contents by passing the `download` query parameter.
 
         Requires the `event-attachments` organization feature.
         """
