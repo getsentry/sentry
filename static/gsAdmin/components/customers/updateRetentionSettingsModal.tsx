@@ -86,7 +86,6 @@ function UpdateRetentionSettingsModal({
 
     const orgRetention = {
       standard: getNumberOrNull(orgStandard),
-      downsampled: null,
     };
 
     const data = {retentions, orgRetention};

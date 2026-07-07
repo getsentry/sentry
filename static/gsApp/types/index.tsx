@@ -140,11 +140,6 @@ type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
-type RetentionSettings = {
-  downsampled: number | null;
-  standard: number | null;
-};
-
 export type Plan = {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
   allowOnDemand: boolean;
@@ -342,7 +337,7 @@ export type Subscription = {
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
   onTrialPlan: boolean;
-  orgRetention: RetentionSettings | null;
+  orgRetention: {standard: number | null} | null;
   partner: Partner | null;
   paymentSource: {
     brand: string;

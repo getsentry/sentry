@@ -144,7 +144,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     dateJoined: '2018-09-10T23:58:10.167Z',
     onDemandPeriodEnd: '2018-10-24',
     msaUpdatedForDataConsent: false,
-    orgRetention: {standard: null, downsampled: null},
+    orgRetention: {standard: null},
     addOns,
     reservedBudgets,
     categories: {

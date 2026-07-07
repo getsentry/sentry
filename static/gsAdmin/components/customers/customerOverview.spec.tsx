@@ -885,7 +885,7 @@ describe('CustomerOverview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      orgRetention: {standard: 1234567, downsampled: null},
+      orgRetention: {standard: 1234567},
     });
 
     render(
@@ -904,7 +904,7 @@ describe('CustomerOverview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
       categories: {
         errors: MetricHistoryFixture({
           retention: {standard: 987, downsampled: null},
@@ -928,7 +928,7 @@ describe('CustomerOverview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
     });
 
     render(

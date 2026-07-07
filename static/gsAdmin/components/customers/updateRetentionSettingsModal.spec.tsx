@@ -48,7 +48,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: 1234567, downsampled: null},
+      orgRetention: {standard: 1234567},
     });
 
     openUpdateRetentionSettingsModal({
@@ -124,7 +124,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
     });
 
     openUpdateRetentionSettingsModal({
@@ -160,7 +160,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: 123, downsampled: null},
+      orgRetention: {standard: 123},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -202,7 +202,6 @@ describe('UpdateRetentionSettingsModal', () => {
           data: {
             orgRetention: {
               standard: 456,
-              downsampled: null,
             },
             retentions: {
               spans: {
@@ -240,7 +239,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am2_f'),
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -281,7 +280,6 @@ describe('UpdateRetentionSettingsModal', () => {
           data: {
             orgRetention: {
               standard: null,
-              downsampled: null,
             },
             retentions: {
               transactions: {
@@ -319,7 +317,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: 123, downsampled: null},
+      orgRetention: {standard: 123},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -357,7 +355,6 @@ describe('UpdateRetentionSettingsModal', () => {
           data: {
             orgRetention: {
               standard: null,
-              downsampled: null,
             },
             retentions: {
               spans: {
@@ -395,7 +392,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -436,7 +433,6 @@ describe('UpdateRetentionSettingsModal', () => {
           data: {
             orgRetention: {
               standard: null,
-              downsampled: null,
             },
             retentions: {
               spans: {
@@ -474,7 +470,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -509,7 +505,6 @@ describe('UpdateRetentionSettingsModal', () => {
           data: {
             orgRetention: {
               standard: null,
-              downsampled: null,
             },
             retentions: {
               spans: {
@@ -545,7 +540,7 @@ describe('UpdateRetentionSettingsModal', () => {
         }),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
-      orgRetention: {standard: null, downsampled: null},
+      orgRetention: {standard: null},
     });
 
     const updateMock = MockApiClient.addMockResponse({
@@ -580,7 +575,6 @@ describe('UpdateRetentionSettingsModal', () => {
           data: {
             orgRetention: {
               standard: null,
-              downsampled: null,
             },
             retentions: {
               spans: {
