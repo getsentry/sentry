@@ -478,6 +478,11 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
 
   return (
     <ChartWrapper autoHeightResize>
+      {/* Drag-to-zoom not implemented in Dashboards because we haven't come up
+      with a sensible behaviour here. The X-axis selection can update the
+      selected date range, but what about the Y-axis? It might update the global
+      filter, but that affects other widgets, is that okay? Or, it might affect
+      just the current widget, but how does the UI react? */}
       <HeatMapWidgetVisualization plottables={[new HeatMap(heatmapResults)]} />
     </ChartWrapper>
   );

@@ -1,4 +1,5 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Fragment} from 'react';
+
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -70,30 +71,6 @@ function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
   return t('an unknown user');
 }
 
-function AssignmentLead({children}: {children: React.ReactNode}) {
-  return (
-    <Flex
-      as="span"
-      display="inline-flex"
-      align="center"
-      wrap="wrap"
-      gap="xs"
-      maxWidth="100%"
-      minWidth={0}
-    >
-      {children}
-    </Flex>
-  );
-}
-
-function AssignmentTitleText({children}: {children: React.ReactNode}) {
-  return (
-    <Text as="span" bold density="comfortable">
-      {children}
-    </Text>
-  );
-}
-
 function AssignmentDetailText({children}: {children: React.ReactNode}) {
   return (
     <Text as="span" variant="muted" bold={false} density="comfortable">
@@ -126,7 +103,7 @@ function RuleText({children}: {children: React.ReactNode}) {
   );
 }
 
-function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams) {
+function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) {
   const {teams} = useTeamsById();
   const {data} = activity;
   const assignedToSelf =
@@ -138,37 +115,28 @@ function AssignedActivityTitle({activity, author}: GetAssignedActivityItemParams
   );
   const integrationName = getAssignmentIntegrationName(data.integration);
 
-  if (integrationName) {
-    return (
-      <AssignmentLead>
-        <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
-        <AssignmentDetailText>{t('to')}</AssignmentDetailText>
-        {assignee}
-        <AssignmentDetailText>{t('due to')}</AssignmentDetailText>
-        <RuleSource>{integrationName}</RuleSource>
-      </AssignmentLead>
-    );
-  }
-
   return (
-    <AssignmentLead>
-      <AssignmentTitleText>{t('Assigned')}</AssignmentTitleText>
+    <Fragment>
       <AssignmentDetailText>{t('to')}</AssignmentDetailText>
       {assignee}
-      {assignedToSelf ? null : <AssignmentDetailText>{t('by')}</AssignmentDetailText>}
-      {assignedToSelf ? null : <AssignmentDetailText>{author}</AssignmentDetailText>}
-    </AssignmentLead>
+      {integrationName ? (
+        <Fragment>
+          <AssignmentDetailText>{t('due to')}</AssignmentDetailText>
+          <RuleSource>{integrationName}</RuleSource>
+        </Fragment>
+      ) : null}
+    </Fragment>
   );
 }
 
 export function getAssignedActivityItem({
   activity,
-  author,
 }: GetAssignedActivityItemParams): CompactGroupActivityItem {
   const integrationName = getAssignmentIntegrationName(activity.data.integration);
 
   return {
-    title: <AssignedActivityTitle activity={activity} author={author} />,
+    title: t('Issue assigned'),
+    details: <AssignedActivityDetails activity={activity} />,
     subtext:
       integrationName && activity.data.rule ? (
         <RuleText>{activity.data.rule}</RuleText>

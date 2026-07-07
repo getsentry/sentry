@@ -219,6 +219,12 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         max_length=MAX_CROSS_EVENT_QUERIES,
         help_text="Optional cross-event queries across event types. Max 2 entries.",
     )
+    agent = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Agent names to filter conversations by.",
+    )
     query = ListField(child=QuerySerializer(), required=True, min_length=1)
 
     def validate_projects(self, projects):
@@ -236,6 +242,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "end",
             "interval",
             "crossEvents",
+            "agent",
         ]
 
         inner_query_keys = [

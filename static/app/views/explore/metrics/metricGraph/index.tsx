@@ -219,7 +219,7 @@ function Graph({
               )}
             />
           ) : showChart ? (
-            <ChartVisualization chartInfo={chartInfo} notMerge={false} />
+            <ChartVisualization chartInfo={chartInfo} />
           ) : undefined
         }
         Footer={

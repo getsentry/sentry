@@ -180,7 +180,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
         examples=IssueExamples.GROUP_DETAILS,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-details",
+        url_names=["sentry-api-0-group-details"],
+    )
     def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
         Return details on an individual issue, including its basic stats, comment
@@ -376,7 +380,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-details",
+        url_names=["sentry-api-0-group-details"],
+    )
     def put(
         self, request: Request, group: Group
     ) -> Response[BaseGroupSerializerResponse] | Response[DetailResponse]:
@@ -447,7 +455,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-details",
+        url_names=["sentry-api-0-group-details"],
+    )
     def delete(self, request: Request, group: Group) -> Response[None]:
         """
         Asynchronously queue an individual issue for deletion.

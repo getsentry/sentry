@@ -290,7 +290,7 @@ def _serialize_rpc_event(
         duration=event["span.duration"],
         transaction=event["transaction"],
         is_transaction=event["is_transaction"],
-        description=event["description"],
+        description=event["span.description"],
         sdk_name=event["sdk.name"],
         op=event["span.op"],
         name=event["span.name"],

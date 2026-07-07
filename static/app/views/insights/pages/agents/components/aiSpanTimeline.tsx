@@ -8,13 +8,10 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
+import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   calculateRelativeTiming,
   getCompressedTimeBounds,
@@ -23,20 +20,21 @@ import {
 } from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
-  getFirstToolInputValue,
+  type ColorByOpType,
+  getToolInputPreview,
   getGenAiOpType,
+  getGenAiOpTypeIcon,
   getIsAiAgentNode,
   getNumberAttr,
+  getSpanColor,
   getStringAttr,
-  getTraceNodeAttribute,
+  getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-type ColorByOpType = Record<GenAiOperationType | 'default' | 'error', string>;
 
 interface SpanPresentation {
   color: string;
@@ -123,16 +121,7 @@ const TimelineRow = memo(function TimelineRow({
 }) {
   const theme = useTheme();
   const hasErrors = hasError(node);
-  const colorByOpType = useMemo<ColorByOpType>(() => {
-    return {
-      [GenAiOperationType.AGENT]: theme.tokens.content.promotion,
-      [GenAiOperationType.AI_CLIENT]: theme.tokens.content.success,
-      [GenAiOperationType.HANDOFF]: theme.tokens.content.warning,
-      [GenAiOperationType.TOOL]: theme.tokens.content.accent,
-      default: theme.tokens.content.secondary,
-      error: theme.tokens.content.danger,
-    };
-  }, [theme]);
+  const colorByOpType = useMemo(() => getTimelineColorByOpType(theme), [theme]);
 
   const {icon, title, secondary, isTool, color} = getSpanPresentation(
     node,
@@ -223,12 +212,23 @@ const TimelineRow = memo(function TimelineRow({
                   >
                     {metric}
                   </Text>
-                ) : isTool && traceId ? (
-                  <ToolOutputSizeMetric
-                    node={node}
-                    traceId={traceId}
-                    isSelected={isSelected}
-                  />
+                ) : isTool ? (
+                  traceId ? (
+                    <ToolOutputSizeMetric
+                      node={node}
+                      traceId={traceId}
+                      isSelected={isSelected}
+                    />
+                  ) : (
+                    <Text
+                      size="sm"
+                      variant={isSelected ? 'primary' : 'muted'}
+                      align="right"
+                      tabular
+                    >
+                      {formatBytesBase10(0)}
+                    </Text>
+                  )
                 ) : null}
               </Flex>
               <Flex flexShrink={0} width="56px" justify="end">
@@ -275,12 +275,8 @@ function getMetric(node: AITraceSpanNode): React.ReactNode {
 }
 
 /**
- * Tool-call spans don't report token usage, so we approximate their output
- * size (e.g. `4.1 KB`) from the tool result. The result lives on the full span
- * attributes (`gen_ai.tool.call.result` / `gen_ai.tool.output`), which the
- * conversation list endpoint doesn't return, so it is fetched per tool span.
- * This component is only rendered for tool spans, so the fetch is scoped to
- * those rows.
+ * Tool-call spans don't report token usage, so we show their output size
+ * (e.g. `4.1 KB`) instead, fetched per tool span via `useToolOutputBytes`.
  */
 function ToolOutputSizeMetric({
   node,
@@ -291,45 +287,13 @@ function ToolOutputSizeMetric({
   node: AITraceSpanNode;
   traceId: string;
 }) {
-  const eapValue = isEAPSpanNode(node) ? node.value : null;
-  const {data} = useTraceItemDetails({
-    traceItemId: eapValue?.event_id ?? '',
-    projectId: eapValue ? eapValue.project_id.toString() : '',
-    traceId,
-    traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
-    timestamp: eapValue?.start_timestamp,
-    enabled: Boolean(eapValue),
-  });
-
-  const bytes = useMemo(() => {
-    const output =
-      getTraceNodeAttribute(
-        'gen_ai.tool.call.result',
-        node,
-        undefined,
-        data?.attributes
-      ) ?? getTraceNodeAttribute('gen_ai.tool.output', node, undefined, data?.attributes);
-    return typeof output === 'string' ? new TextEncoder().encode(output).length : 0;
-  }, [node, data]);
-
-  if (!bytes) {
-    return null;
-  }
+  const bytes = useToolOutputBytes(node, traceId);
 
   return (
     <Text size="sm" variant={isSelected ? 'primary' : 'muted'} align="right" tabular>
       {formatBytesBase10(bytes)}
     </Text>
   );
-}
-
-function getColor(node: AITraceSpanNode, colorByOpType: ColorByOpType): string {
-  if (hasError(node)) {
-    return colorByOpType.error;
-  }
-  const opType = getGenAiOpType(node);
-  return colorByOpType[opType as GenAiOperationType] ?? colorByOpType.default;
 }
 
 function getSpanPresentation(
@@ -344,7 +308,7 @@ function getSpanPresentation(
     node.description || (node.value && 'name' in node.value ? node.value.name : '');
   const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
 
-  const color = getColor(node, colorByOpType);
+  const color = getSpanColor(node, colorByOpType);
 
   switch (genAiOpType) {
     case GenAiOperationType.AGENT: {
@@ -357,7 +321,7 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
       return {
-        icon: <IconBot size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: name || op,
@@ -368,7 +332,7 @@ function getSpanPresentation(
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
       return {
-        icon: <IconChat size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title,
@@ -377,18 +341,18 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
-        icon: <IconFix size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: true,
         title: toolName || op,
-        secondary: firstInputValue || '',
+        secondary: inputPreview || '',
       };
     }
     case GenAiOperationType.HANDOFF:
       return {
-        icon: <IconChevron size="md" isDouble direction="right" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -396,7 +360,7 @@ function getSpanPresentation(
       };
     default:
       return {
-        icon: <IconCode size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
