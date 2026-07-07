@@ -142,6 +142,55 @@ class SafeRolloutComparatorTestCase(TestCase):
                 TestRolloutComparator.check_and_choose("ctl", "exp", "known_good_callsite") == "exp"
             )
 
+    def test_comparator_use(self) -> None:
+        exact_matcher = lambda control, exp: exp["dogs"] == control["dogs"]
+        close_matcher = lambda control, exp: exp["dogs"].issubset(control["dogs"])
+        expected_tags = {
+            "rollout_name": "test_rollout",
+            "callsite": "dogs_are_great",
+            "source_of_truth": "neither",
+        }
+
+        with patch("sentry.utils.rollout.metrics.incr") as mock_metrics_incr:
+            TestRolloutComparator.compare(
+                control_data={"dogs": {"maisey"}},
+                experimental_data={"dogs": {"maisey"}},
+                callsite="dogs_are_great",
+                exact_match_comparator=exact_matcher,
+            )
+            mock_metrics_incr.assert_called_with(
+                "SafeRolloutComparator.compare",
+                sample_rate=0.1,
+                tags={**expected_tags, "exact_match": "True"},
+            )
+
+        with patch("sentry.utils.rollout.metrics.incr") as mock_metrics_incr:
+            TestRolloutComparator.compare(
+                control_data={"dogs": {"charlie"}},
+                experimental_data={"dogs": {"maisey"}},
+                callsite="dogs_are_great",
+                exact_match_comparator=exact_matcher,
+            )
+            mock_metrics_incr.assert_called_with(
+                "SafeRolloutComparator.compare",
+                sample_rate=0.1,
+                tags={**expected_tags, "exact_match": "False"},
+            )
+
+        with patch("sentry.utils.rollout.metrics.incr") as mock_metrics_incr:
+            TestRolloutComparator.compare(
+                control_data={"dogs": {"charlie", "maisey"}},
+                experimental_data={"dogs": {"maisey"}},
+                callsite="dogs_are_great",
+                exact_match_comparator=exact_matcher,
+                reasonable_match_comparator=close_matcher,
+            )
+            mock_metrics_incr.assert_called_with(
+                "SafeRolloutComparator.compare",
+                sample_rate=0.1,
+                tags={**expected_tags, "exact_match": "False", "reasonable_match": "True"},
+            )
+
     @patch("sentry.utils.rollout.SafeRolloutComparator.check_and_choose", return_value="control")
     def test_check_and_choose_with_timings_forwards_debug_args(
         self, mock_check_and_choose: MagicMock
