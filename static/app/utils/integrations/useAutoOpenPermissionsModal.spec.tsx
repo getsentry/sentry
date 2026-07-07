@@ -101,7 +101,9 @@ describe('useAutoOpenPermissionsModal', () => {
     expect(openModalSpy).not.toHaveBeenCalled();
     expect(router.location.query.showPermsModal).toBe('1');
 
-    rerender(makeProps({outdatedConfigurations: [GitHubIntegrationFixture({id: 'fresh'})]}));
+    rerender(
+      makeProps({outdatedConfigurations: [GitHubIntegrationFixture({id: 'fresh'})]})
+    );
 
     await waitFor(() => {
       expect(openModalSpy).toHaveBeenCalledTimes(1);
