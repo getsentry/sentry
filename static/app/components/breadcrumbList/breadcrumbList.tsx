@@ -1,7 +1,5 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {t} from 'sentry/locale';
-
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
 import {BreadcrumbItemLink} from './items/breadcrumbItemLink';
 import {BreadcrumbItemMenuBreadcrumbs} from './items/breadcrumbItemMenuBreadcrumbs';
@@ -48,6 +46,8 @@ function renderItem(item: BreadcrumbItem) {
  * - Narrow (< 800px): every parent item is hidden, leaving only the last crumb.
  *   'link' parents additionally collapse into a single BreadcrumbItemMenuBreadcrumbs
  *   overflow button; non-link parents (e.g. 'select-projects') just hide.
+ *
+ * @public Consumed once call sites migrate onto the typed API in a downstream PR.
  */
 export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   if (items.length === 0) {
@@ -73,13 +73,11 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   const showNarrow = {sm: 'none', '2xs': 'flex'} as const;
 
   return (
-    <Container
-      as="nav"
-      width="100%"
-      aria-label={t('Breadcrumbs')}
-      data-test-id="breadcrumb-list"
-      {...props}
-    >
+    // Renders as inline content (no <nav> landmark, no own heading): breadcrumbs
+    // are placed inside the page heading (e.g. the TopBar title <h1>), which owns
+    // the landmark/heading semantics. A `<nav aria-label>` here would both nest
+    // invalidly and override that <h1>'s accessible name.
+    <Container width="100%" data-test-id="breadcrumb-list" {...props}>
       {/*
        * The query container is this inner element, not the <nav> above. emotion's
        * `as` swap on a styled component bypasses the wrapper that strips

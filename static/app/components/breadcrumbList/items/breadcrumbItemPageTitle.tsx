@@ -2,7 +2,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LeadingGraphicProps} from '@sentry/scraps/leadingGraphic';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Heading} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -74,22 +74,18 @@ export function BreadcrumbItemPageTitle({
       <Tooltip title={label} disabled={!labelTooltip}>
         <Container maxWidth="200px" width="auto">
           {styleProps => (
-            // Rendered as an <h1>: the current-page crumb is the page's primary
-            // heading. `Heading` is always medium weight (matching the previous
-            // `Text bold`); `size="md"` retains the prior visual size instead of
-            // the h1 default (2xl).
-            <Heading
-              as="h1"
-              size="md"
+            // Rendered as inline text (a <span>), not a heading: the surrounding
+            // context (e.g. the TopBar title <h1>) owns the page heading, so the
+            // current-page crumb must be phrasing content that nests cleanly
+            // inside it. Mirrors the legacy breadcrumb's current-crumb rendering.
+            <Text
               ellipsis
               variant="primary"
               data-test-id="breadcrumb-item"
-              // Marks this crumb as the current page for assistive tech.
-              aria-current="page"
               {...styleProps}
             >
               {label}
-            </Heading>
+            </Text>
           )}
         </Container>
       </Tooltip>

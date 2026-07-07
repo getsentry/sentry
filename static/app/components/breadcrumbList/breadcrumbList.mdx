@@ -2,27 +2,27 @@
 title: BreadcrumbList
 description: A typed, accessible breadcrumb trail that collapses parent links into an overflow menu in narrow containers.
 category: navigation
-source: 'sentry/components/breadcrumbs'
+source: 'sentry/components/breadcrumbList'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/breadcrumbs/breadcrumbList.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/breadcrumbList/breadcrumbList.tsx
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
 ---
 
 import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 
-import {BreadcrumbList} from 'sentry/components/breadcrumbs';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {IconSettings, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
-  import('!!type-loader!sentry/components/breadcrumbs/breadcrumbList');
+  import('!!type-loader!sentry/components/breadcrumbList/breadcrumbList');
 
-`BreadcrumbList` renders a horizontal breadcrumb trail as a semantic `<nav>` element. Each slot in the trail has an explicit `type` — developers must consciously choose a variant rather than having it inferred from position. At container widths below 800px, parent link crumbs automatically collapse into a single overflow (`…`) menu via a container query, keeping the page title always visible.
+`BreadcrumbList` renders a horizontal breadcrumb trail as inline content. It is designed to sit inside the page's heading (e.g. the TopBar title `<h1>`), which owns the landmark and heading semantics — so the trail itself renders no `<nav>` landmark and the current-page crumb is inline text, not its own heading. Each slot in the trail has an explicit `type` — developers must consciously choose a variant rather than having it inferred from position. At container widths below 800px, parent link crumbs automatically collapse into a single overflow (`…`) menu via a container query, keeping the page title always visible.
 
 ## Usage
 
 ```tsx
-import {BreadcrumbList} from 'sentry/components/breadcrumbs';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 ```
 
 Pass a typed `items` array. Each entry is a discriminated union with a `type` key and a `props` object matching that type's interface.
@@ -221,7 +221,7 @@ trailingActions={
 
 ## Overflow (container query)
 
-`BreadcrumbList` sets `containerType="inline-size"` on its outer `<nav>`. When that container is narrower than 800px, every parent item is hidden and only the `'page-title'` stays visible. `'link'` parents are additionally replaced with a single `…` overflow button; other parent types (e.g. `'select-projects'`) simply collapse out of view — they are not added to the overflow menu.
+`BreadcrumbList` sets `containerType="inline-size"` on its outer element. When that container is narrower than 800px, every parent item is hidden and only the `'page-title'` stays visible. `'link'` parents are additionally replaced with a single `…` overflow button; other parent types (e.g. `'select-projects'`) simply collapse out of view — they are not added to the overflow menu.
 
 Drag the sizing handle below to see the transition:
 

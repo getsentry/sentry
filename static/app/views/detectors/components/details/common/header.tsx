@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -26,17 +26,23 @@ type DetectorDetailsHeaderProps = {
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();
   return (
-    <Breadcrumbs
-      crumbs={[
+    <BreadcrumbList
+      items={[
         {
-          label: t('Monitors'),
-          to: makeMonitorBasePathname(organization.slug),
+          type: 'link',
+          props: {
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
         },
         {
-          label: getDetectorTypeLabel(detector.type),
-          to: makeMonitorTypePathname(organization.slug, detector.type),
+          type: 'link',
+          props: {
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
         },
-        {label: detector.name},
+        {type: 'page-title', props: {label: detector.name}},
       ]}
     />
   );

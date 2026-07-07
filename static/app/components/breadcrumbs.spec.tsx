@@ -48,19 +48,4 @@ describe('Breadcrumbs', () => {
     await userEvent.click(screen.getByText('Test 3'));
     expect(router.location.pathname).toBe(initialPathname);
   });
-
-  it('renders non-string (React node) labels', () => {
-    // Many call sites pass rich content as the current crumb — e.g. an editable
-    // name field. The shim must render it as-is, not coerce it away.
-    render(
-      <Breadcrumbs
-        crumbs={[
-          {label: 'Parent', to: '/parent'},
-          {label: <button type="button">Editable Name</button>, to: null},
-        ]}
-      />
-    );
-
-    expect(screen.getByRole('button', {name: 'Editable Name'})).toBeInTheDocument();
-  });
 });

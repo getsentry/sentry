@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbList} from 'sentry/components/breadcrumbs';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 
 function collectCssRules(): string[] {
   const rules: string[] = [];
@@ -67,12 +67,12 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    // Presence check — the nav renders as a labelled landmark.
-    expect(screen.getByRole('navigation', {name: 'Breadcrumbs'})).toBeInTheDocument();
+    // Presence check — the list renders (as inline content, not a landmark).
+    expect(screen.getByTestId('breadcrumb-list')).toBeInTheDocument();
 
     const rules = collectCssRules();
 
-    // The nav establishes an inline-size query container.
+    // The list establishes an inline-size query container.
     // (jsdom's getComputedStyle can't read `container-type`, so assert the rule.)
     expect(rules.some(r => /container-type:\s*inline-size/.test(r))).toBe(true);
 
@@ -89,7 +89,7 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(alwaysOnMediaFlex).toBe(false);
   });
 
-  it('marks the current page with aria-current and hides dividers from AT', () => {
+  it('renders the current page as inline text and hides dividers from AT', () => {
     render(
       <BreadcrumbList
         items={[
@@ -99,10 +99,11 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    // The final crumb is the page's primary heading (<h1>) and signals
-    // "you are here" to assistive tech.
-    const current = screen.getByRole('heading', {level: 1, name: 'General'});
-    expect(current).toHaveAttribute('aria-current', 'page');
+    // The current-page crumb renders as inline text, not a heading — the
+    // surrounding context (e.g. the TopBar title <h1>) owns the page heading, so
+    // the crumb's label must not surface as its own heading.
+    expect(screen.getByTestId('breadcrumb-item')).toHaveTextContent('General');
+    expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(
@@ -172,7 +173,8 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(hidesBelowSm(selectItem!)).toBe(true);
 
     // The last crumb is not wrapped in a hiding <li> — it always stays visible.
-    const current = screen.getByRole('heading', {level: 1, name: 'Client Keys'});
+    const current = screen.getByTestId('breadcrumb-item');
+    expect(current).toHaveTextContent('Client Keys');
     expect(hidesBelowSm(current.closest('li')!)).toBe(false);
   });
 });
