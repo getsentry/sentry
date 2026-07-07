@@ -3,7 +3,7 @@ import {notifyManager, QueryClient, QueryClientProvider} from '@tanstack/react-q
 import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
 import {get as getItem, del as removeItem, set as setItem} from 'idb-keyval';
 
-import {SENTRY_RELEASE_VERSION} from 'sentry/constants';
+import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
 
 /**

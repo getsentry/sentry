@@ -265,6 +265,86 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
     expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Reset partner billing to self-serve')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders reset button for stranded managed partner still partner-billed', async () => {
+    const organization = OrganizationFixture();
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      isPartner: true,
+      isManaged: true,
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: false,
+      },
+    });
+
+    const mockOnAction = jest.fn();
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={mockOnAction}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
+    expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Reset partner billing to self-serve'));
+
+    expect(mockOnAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deactivatePartnerAccount: true,
+      })
+    );
+  });
+
+  it('hides reset button for stranded partner that is not managed', () => {
+    const organization = OrganizationFixture();
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      isPartner: true,
+      isManaged: false,
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: false,
+      },
+    });
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
+    expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Reset partner billing to self-serve')
+    ).not.toBeInTheDocument();
   });
 
   it('deactivates partner account with right data', async () => {

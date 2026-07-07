@@ -38,7 +38,6 @@ const getRow = (row: Subscription) => [
             </span>
           )}
         </small>
-        {row.usageExceeded && <Tag variant="warning">Capacity Limit</Tag>}
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
             <Tag variant="danger">Suspended</Tag>
@@ -156,13 +155,6 @@ export function CustomerGrid(props: Props) {
         },
         suspended: {
           name: 'Suspended',
-          options: [
-            ['0', 'No'],
-            ['1', 'Yes'],
-          ],
-        },
-        usageExceeded: {
-          name: 'Usage Exceeded',
           options: [
             ['0', 'No'],
             ['1', 'Yes'],

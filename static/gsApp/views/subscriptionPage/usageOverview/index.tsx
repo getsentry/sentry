@@ -101,7 +101,10 @@ export function UsageOverview({
 
   return (
     <Grid
-      columns={{xs: '1fr', [SIDE_PANEL_MIN_SCREEN_BREAKPOINT]: 'repeat(2, 1fr)'}}
+      columns={{
+        'screen:xs': '1fr',
+        [`screen:${SIDE_PANEL_MIN_SCREEN_BREAKPOINT}`]: 'repeat(2, 1fr)',
+      }}
       gap="lg"
       align="start"
     >

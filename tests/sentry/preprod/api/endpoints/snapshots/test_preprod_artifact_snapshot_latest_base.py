@@ -46,6 +46,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
                         "display_name": "Screen 1",
                         "width": 375,
                         "height": 812,
+                        "canvas_theme": "dark",
                     },
                 },
             }
@@ -58,6 +59,18 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         mock_session = MagicMock()
         mock_session.get.return_value = mock_result
         return mock_session
+
+    @patch(MOCK_TARGET)
+    def test_returns_canvas_theme(self, mock_get_session):
+        _, _, manifest_json = self._create_base_artifact()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        response = self.client.get(self._get_url(), {"app_id": "com.example.app"})
+
+        assert response.status_code == 200
+        image = response.data["images"][0]
+        assert image["canvas_theme"] == "dark"
+        assert image["key"] == "hash1"
 
     @patch("sentry.analytics.record")
     @patch(MOCK_TARGET)

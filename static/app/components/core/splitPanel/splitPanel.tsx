@@ -1,12 +1,8 @@
 import {useCallback, useImperativeHandle, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  Container,
-  Flex,
-  type Responsive,
-  useResponsivePropValue,
-} from '@sentry/scraps/layout';
+import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
+import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -129,9 +125,9 @@ function SplitDivider({
 
   return (
     <Container position="relative" flexShrink={0}>
-      {({className}) => (
+      {containerProps => (
         <DividerLine
-          className={className}
+          {...containerProps}
           $cursor={cursor}
           aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
           aria-valuemax={Number.isFinite(max) ? max : undefined}

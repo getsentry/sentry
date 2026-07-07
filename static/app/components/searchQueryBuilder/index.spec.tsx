@@ -29,6 +29,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import * as analytics from 'sentry/utils/analytics';
 import {
   FieldKey,
   FieldKind,
@@ -231,6 +232,87 @@ describe('SearchQueryBuilder', () => {
     expect(
       await screen.findByRole('row', {name: 'browser.name:Firefox'})
     ).toBeInTheDocument();
+  });
+
+  describe('severity value indicators', () => {
+    const severityFilterKeys: TagCollection = {
+      ...FILTER_KEYS,
+      severity: {
+        key: 'severity',
+        name: 'Severity',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: ['error', 'warn', 'info'],
+      },
+    };
+
+    it('renders a severity indicator next to each severity value option', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={severityFilterKeys}
+          initialQuery="severity:error"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: severity'})
+      );
+
+      const errorOption = await screen.findByRole('option', {name: 'error'});
+      expect(within(errorOption).getByTestId('severity-indicator')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('option', {name: 'warn'})).getByTestId(
+          'severity-indicator'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('renders a severity indicator next to each level value option', async () => {
+      const levelFilterKeys: TagCollection = {
+        ...FILTER_KEYS,
+        level: {
+          key: 'level',
+          name: 'Level',
+          kind: FieldKind.FIELD,
+          predefined: true,
+          values: ['fatal', 'error', 'warning', 'info', 'sample'],
+        },
+      };
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={levelFilterKeys}
+          initialQuery="level:error"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: level'})
+      );
+
+      const errorOption = await screen.findByRole('option', {name: 'error'});
+      expect(within(errorOption).getByTestId('severity-indicator')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('option', {name: 'warning'})).getByTestId(
+          'severity-indicator'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not render a severity indicator for non-severity value options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+      expect(within(option).queryByTestId('severity-indicator')).not.toBeInTheDocument();
+    });
   });
 
   describe('rendering search query builder', () => {
@@ -3301,6 +3383,64 @@ describe('SearchQueryBuilder', () => {
         expect(optionsAfterToggle).toEqual(initialOptions);
       });
 
+      it('tracks an analytics event when selecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: true,
+            selected_count: 2,
+          })
+        );
+      });
+
+      it('tracks an analytics event when deselecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:[firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: false,
+            selected_count: 1,
+          })
+        );
+      });
+
       it('sorts value suggestions by fuzzy match relevance', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
@@ -5144,6 +5284,31 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
+    });
+
+    it('should support configured filters named like Object prototype keys', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowUnsupportedFilters
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            constructor: {
+              key: 'constructor',
+              name: 'Constructor',
+              kind: FieldKind.TAG,
+            },
+          }}
+          initialQuery="constructor:value"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'constructor:value'})).not.toHaveAttribute(
+          'aria-invalid',
+          'true'
+        );
+      });
     });
 
     describe('secondary aliases provided', () => {

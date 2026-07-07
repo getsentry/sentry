@@ -197,7 +197,7 @@ export function TracesTable({
 
   const traceErrorRequest = useSpans(
     {
-      search: `span.status:internal_error trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
+      search: `span.status:[internal_error,error] trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
       limit: tracesData?.length ?? 0,
       enabled: Boolean(tracesData && tracesData.length > 0),
@@ -404,7 +404,7 @@ const BodyCell = memo(function BodyCell({
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:internal_error trace:[${dataRow.traceId}]`,
+            query: `${query} span.status:[internal_error,error] trace:[${dataRow.traceId}]`,
             organization,
             selection,
             referrer: Referrer.TRACES_TABLE,

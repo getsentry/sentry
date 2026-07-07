@@ -30,7 +30,10 @@ export function Page(props: FlexProps<'main'>) {
  */
 export const Header = styled((props: ContainerProps<'header'>) => {
   return (
-    <Container as="header" padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}} {...props} />
+    <Container
+      padding={{'screen:sm': 'md lg 0 lg', 'screen:md': 'lg xl 0 xl'}}
+      {...props}
+    />
   );
 })<{
   borderStyle?: 'dashed' | 'solid';

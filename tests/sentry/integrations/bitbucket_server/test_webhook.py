@@ -14,9 +14,20 @@ from sentry.testutils.asserts import assert_failure_metric, assert_success_metri
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
-from sentry_plugins.bitbucket.testutils import REFS_CHANGED_EXAMPLE
 
 PROVIDER = "bitbucket_server"
+
+REFS_CHANGED_EXAMPLE = b"""{
+    "changes": [],
+    "repository": {
+        "id": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
+        "project": {
+            "key": "my-project"
+        },
+        "slug": "marcos"
+    }
+}
+"""
 
 
 class WebhookTestBase(APITestCase):

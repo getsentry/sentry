@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -9,6 +10,7 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const MAX_PROJECT_CHIPS = 3;
 
@@ -22,6 +24,7 @@ export function QueryTokens({
   end,
   visualizations,
   expandedProjectIds,
+  crossEvents,
 }: QueryTokensProps) {
   const tokens = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
@@ -156,13 +159,66 @@ export function QueryTokens({
     );
   }
 
-  return <TokenContainer>{tokens}</TokenContainer>;
+  return (
+    <Fragment>
+      <TokenContainer>{tokens}</TokenContainer>
+      {crossEvents?.length ? (
+        <CrossEventSection>
+          {crossEvents.map((crossEvent, idx) => {
+            const filterQuery =
+              crossEvent.type === 'metrics'
+                ? [
+                    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
+                    crossEvent.query,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                : crossEvent.query;
+            const parsedCrossEvent = filterQuery
+              ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
+              : null;
+            return (
+              <Flex
+                as="span"
+                align="center"
+                wrap="wrap"
+                gap="xs"
+                overflow="hidden"
+                key={`${crossEvent.type}-${idx}`}
+              >
+                <ExploreParamTitle>{t('Cross Event Filter')}</ExploreParamTitle>
+                <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
+                <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
+                <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
+                {parsedCrossEvent
+                  ?.filter(({text}) => text.trim() !== '')
+                  .map(({text}) => (
+                    <FormattedQueryWrapper key={text}>
+                      <ProvidedFormattedQuery query={text} />
+                    </FormattedQueryWrapper>
+                  ))}
+              </Flex>
+            );
+          })}
+        </CrossEventSection>
+      ) : null}
+    </Fragment>
+  );
 }
 
 const TokenContainer = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md};
+`;
+
+// Cross-event filters render as their own block beneath the main query row,
+// one sibling per line, each labelled with its Dataset and Filter.
+const CrossEventSection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.md} ${p => p.theme.space.md};
 `;
 
 const ExploreParamTitle = styled('span')`

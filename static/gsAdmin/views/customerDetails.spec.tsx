@@ -3258,13 +3258,6 @@ describe('Gift Categories Availability', () => {
     organization,
     planDetails: {
       ...SubscriptionFixture({organization}).planDetails,
-      checkoutCategories: [
-        DataCategory.ERRORS,
-        DataCategory.REPLAYS,
-        DataCategory.SPANS,
-        DataCategory.SEER_AUTOFIX,
-        DataCategory.SEER_SCANNER,
-      ],
       onDemandCategories: [
         DataCategory.ERRORS,
         DataCategory.PROFILE_DURATION,

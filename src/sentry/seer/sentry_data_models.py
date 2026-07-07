@@ -125,6 +125,16 @@ class OrganizationProjectIdsResponse(BaseModel):
     projects: list[OrganizationProject]
 
 
+class OrganizationProjectDetail(BaseModel):
+    id: int
+    slug: str
+    instrumentation: list[str]
+
+
+class OrganizationProjectsResponse(BaseModel):
+    projects: list[OrganizationProjectDetail]
+
+
 class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
@@ -503,6 +513,66 @@ class IssueAndEventDetailsResponse(_DictProxyMixin):
     def dict(self, **kwargs: Any) -> Any:
         kwargs.setdefault("exclude_unset", True)
         return super().dict(**kwargs)
+
+
+class IssueCommittersResponse(_DictProxyMixin):
+    """`get_issue_committers` returns the likely code authors for an issue, combining
+    three commit-derived signals: `stack_commits` (frame-blame authors of the files in
+    the stacktrace), `suspect_commits` (the precomputed GroupOwner suspect commits), and
+    `release_commits` (a broader pool of commits shipped around when the issue first
+    appeared). The entries are `CommitSerializer` / committer-serializer output enriched
+    with extra keys (score, files_changed_count, is_merge_commit) — wider than
+    sentry-side can lock down — so the lists are dict passthroughs."""
+
+    stack_commits: list[dict[str, Any]]
+    suspect_commits: list[dict[str, Any]]
+    release_commits: list[dict[str, Any]]
+    project_id: int
+    project_slug: str
+
+
+class IssueOwner(BaseModel):
+    """A resolved code owner of an issue's failing files. Exactly one of the identity
+    fields is set: `email` for a `user`, `slug` for a `team`. `name` is the display
+    name when known. Kept fully typed (not a dict passthrough) so the same model can be
+    reused for RPC request/response validation on both sides of the wire."""
+
+    type: Literal["user", "team"]
+    name: str | None = None
+    email: str | None = None
+    slug: str | None = None
+
+
+class IssueOwnershipResponse(_DictProxyMixin):
+    """`get_issue_ownership` returns the *configured* code owners (Ownership Rules /
+    CODEOWNERS) for the files in an issue's stacktrace — who is RESPONSIBLE for the
+    area, independent of who authored any commit. Useful when there's no suspect commit
+    (e.g. infra/transient errors) but the area still has a clear owner.
+
+    `owners` is the ordered list of resolved users/teams; `matched_rules` are the rule
+    patterns that matched the failing files. `auto_assignment` reports whether Sentry is
+    already auto-assigning issues from these rules — when False, the configured owners
+    exist but nothing acts on them, which is precisely where a suggested assignee adds
+    value. Empty `owners` means no rule covered the failing files."""
+
+    owners: list[IssueOwner]
+    matched_rules: list[str]
+    auto_assignment: bool
+    project_id: int
+    project_slug: str
+
+
+class TeamMembersResponse(_DictProxyMixin):
+    """`get_team_members` returns the active users on a team, letting the agent drill from
+    a team-level owner (e.g. one returned by `get_issue_ownership`) down to individual
+    users — the eventual target when suggesting an assignee. `members` reuses `IssueOwner`
+    (always `type="user"`, with `email`/`name`); it is empty when the team has no active
+    members. Returns `None` (not this model) when the team can't be found."""
+
+    team_id: int
+    team_slug: str
+    team_name: str
+    members: list[IssueOwner]
 
 
 class TransactionsForProjectResponse(BaseModel):

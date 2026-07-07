@@ -27,8 +27,8 @@ export function TraceLink({event}: TraceLinkProps) {
     {
       ...location,
       query: {
-        ...location.query,
         groupId: event.groupID,
+        referrer: location.query.referrer,
       },
     },
     area.startsWith('feedback')

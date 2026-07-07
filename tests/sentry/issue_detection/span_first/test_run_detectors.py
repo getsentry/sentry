@@ -158,6 +158,7 @@ class CompareSpanFirstProblemsToControlDataTest(TestCase):
                 experimental_data={"slow-db-fingerprint", "span-first-slow-db-fingerprint"},
                 is_experimental_data_nullish=False,
                 source_of_truth="neither",
+                metric_sample_rate=1.0,
             )
             mock_compare.assert_any_call(
                 callsite=N_PLUS_ONE_SLUG,
@@ -165,4 +166,31 @@ class CompareSpanFirstProblemsToControlDataTest(TestCase):
                 experimental_data={"n-plus-one-fingerprint", "span-first-n-plus-one-fingerprint"},
                 is_experimental_data_nullish=False,
                 source_of_truth="neither",
+                metric_sample_rate=1.0,
+            )
+
+    def test_skips_comparison_for_null_results(self) -> None:
+        span_first_problems_by_grouptype = {
+            SLOW_DB_SLUG: [make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE)],
+            N_PLUS_ONE_SLUG: [],
+        }
+        control_problems = [make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE)]
+
+        with patch.object(SpanFirstDetectorsRolloutController, "compare") as mock_compare:
+            compare_span_first_problems_to_control_data(
+                span_first_problems_by_grouptype,
+                control_problems,
+                get_source_of_truth=lambda _: "neither",
+            )
+
+            # Comparison was run only for the slow DB detector results, not for the n+1 results,
+            # since they were null
+            assert mock_compare.call_count == 1
+            mock_compare.assert_any_call(
+                callsite=SLOW_DB_SLUG,
+                control_data={"slow-db-fingerprint"},
+                experimental_data={"slow-db-fingerprint"},
+                is_experimental_data_nullish=False,
+                source_of_truth="neither",
+                metric_sample_rate=1.0,
             )

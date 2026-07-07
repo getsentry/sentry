@@ -1,9 +1,8 @@
 import {Input} from '@sentry/scraps/input';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClock, IconFix, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ScmAlertOptionCard} from 'sentry/views/onboarding/components/scmAlertOptionCard';
 import {
@@ -32,74 +31,61 @@ export function ScmAlertFrequency({
   const isLaterSelected = alertSetting === RuleAction.CREATE_ALERT_LATER;
 
   return (
-    <Stack gap="xl" role="radiogroup" aria-label={t('Alert frequency')}>
+    <Stack gap="md" role="radiogroup" aria-label={t('Alert frequency')}>
       <ScmAlertOptionCard
         label={t('High priority issues')}
-        icon={
-          <IconWarning size="md" variant={isDefaultSelected ? 'accent' : 'secondary'} />
-        }
+        description={t('Alert on new, regressed, and escalating issues')}
         isSelected={isDefaultSelected}
         onSelect={() => onFieldChange('alertSetting', RuleAction.DEFAULT_ALERT)}
       />
 
       <ScmAlertOptionCard
-        label={t('Custom')}
-        icon={<IconFix size="md" variant={isCustomSelected ? 'accent' : 'secondary'} />}
+        label={t('Custom threshold')}
         isSelected={isCustomSelected}
         onSelect={() => onFieldChange('alertSetting', RuleAction.CUSTOMIZED_ALERTS)}
       >
-        <Container paddingLeft="2xl">
-          <Stack
-            gap="lg"
-            padding="sm 0 0 2xl"
-            borderLeft={isCustomSelected ? 'accent' : 'secondary'}
-          >
+        {isCustomSelected && (
+          <Stack gap="lg">
             <Stack gap="xs">
-              <Container>
-                <Text size="md" density="comfortable">
-                  {t('When there are more than')}
-                </Text>
-              </Container>
-              <Grid gap="md" columns=".35fr .65fr">
+              <Text size="md" density="comfortable">
+                {t('When there are more than')}
+              </Text>
+              <Grid gap="xl" columns={{'screen:sm': '1fr', 'screen:md': '1fr 1fr'}}>
                 <Input
-                  size="sm"
+                  size="md"
                   type="number"
                   min="0"
                   placeholder="10"
                   value={threshold}
                   onChange={e => onFieldChange('threshold', e.target.value)}
-                  disabled={!isCustomSelected}
                 />
                 <Select
-                  size="sm"
+                  size="md"
                   value={metric}
                   options={METRIC_CHOICES}
                   onChange={option => onFieldChange('metric', option.value)}
-                  disabled={!isCustomSelected}
+                  menuPortalTarget={document.body}
                 />
               </Grid>
             </Stack>
             <Stack gap="xs">
-              <Container>
-                <Text size="md" density="comfortable">
-                  {t('a unique error in')}
-                </Text>
-              </Container>
+              <Text size="md" density="comfortable">
+                {t('a unique error in')}
+              </Text>
               <Select
-                size="sm"
+                size="md"
                 value={interval}
                 options={INTERVAL_CHOICES}
                 onChange={option => onFieldChange('interval', option.value)}
-                disabled={!isCustomSelected}
+                menuPortalTarget={document.body}
               />
             </Stack>
           </Stack>
-        </Container>
+        )}
       </ScmAlertOptionCard>
 
       <ScmAlertOptionCard
-        label={t("I'll create my own alerts later")}
-        icon={<IconClock size="md" variant={isLaterSelected ? 'accent' : 'secondary'} />}
+        label={t("I'll set up alerts later")}
         isSelected={isLaterSelected}
         onSelect={() => onFieldChange('alertSetting', RuleAction.CREATE_ALERT_LATER)}
       />

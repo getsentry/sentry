@@ -328,7 +328,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_chat_post.assert_called_once_with(
             channel="C1234567890",
             blocks=self.slack_renderable.get("blocks", []),
-            text="Mock Notification",
+            text="Alert: Mock Notification",
             attachments=None,
             unfurl_links=False,
             unfurl_media=False,

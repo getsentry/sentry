@@ -97,6 +97,17 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             assert response.json() == {"verification_code": "123"}
             assert FlagAuditLogModel.objects.count() == 0
 
+    def test_statsig_post_verification_missing_code(self, mock_incr: MagicMock) -> None:
+        """A url_verification event without a verification_code must not raise (no 500)."""
+        request_data = {"data": {"event": "url_verification"}}
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")), request_data
+            )
+            assert response.status_code == 200, response.content
+            assert response.json() == {"verification_code": None}
+            assert FlagAuditLogModel.objects.count() == 0
+
     def test_statsig_post_create(self, mock_incr: MagicMock) -> None:
         request_data = {
             "data": [
@@ -239,6 +250,104 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(self.url, {})
             assert response.status_code == 401, response.content
             assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
+
+    def test_statsig_nonexistent_org_returns_401_not_404(self, mock_incr: MagicMock) -> None:
+        """A missing org must look identical to a real org with a bad signature (no enumeration)."""
+        request_data = {
+            "data": [
+                {
+                    "user": {"name": "johndoe", "email": "john@sentry.io"},
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {"type": "Gate", "name": "gate1", "action": "updated"},
+                },
+            ]
+        }
+        headers = {
+            "X-Statsig-Signature": "v0=invalid",
+            "X-Statsig-Request-Timestamp": "1739400185400",
+        }
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=("nonexistent-org-xyz", "statsig")),
+                request_data,
+                headers=headers,
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
+            assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
+
+    def test_statsig_nonexistent_org_numeric_id_returns_401_not_404(
+        self, mock_incr: MagicMock
+    ) -> None:
+        """Numeric org ids must not be enumerable either."""
+        headers = {
+            "X-Statsig-Signature": "v0=invalid",
+            "X-Statsig-Request-Timestamp": "1739400185400",
+        }
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=("123456789", "statsig")),
+                {"data": [{"eventName": "statsig::config_change"}]},
+                headers=headers,
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_statsig_verification_nonexistent_org(self, mock_incr: MagicMock) -> None:
+        """url_verification echoes back for a missing org exactly as it does for a real one."""
+        request_data = {"data": {"event": "url_verification", "verification_code": "123"}}
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=("nonexistent-org-xyz", "statsig")), request_data
+            )
+            assert response.status_code == 200, response.content
+            assert response.json() == {"verification_code": "123"}
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_launchdarkly_nonexistent_org_returns_401_not_404(self, mock_incr: MagicMock) -> None:
+        sig = hmac_sha256_hex_digest(key="123", message=json.dumps(LD_REQUEST).encode())
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=("nonexistent-org-xyz", "launchdarkly")),
+                LD_REQUEST,
+                headers={"X-LD-Signature": sig},
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_generic_nonexistent_org_returns_401_not_404(self, mock_incr: MagicMock) -> None:
+        request_data = {
+            "data": [
+                {
+                    "action": "created",
+                    "change_id": 9734362632,
+                    "created_at": "2024-12-12T00:00:00+00:00",
+                    "created_by": {"id": "username", "type": "name"},
+                    "flag": "hello",
+                }
+            ],
+            "meta": {"version": 1},
+        }
+        sig = hmac_sha256_hex_digest(key="123", message=json.dumps(request_data).encode())
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=("nonexistent-org-xyz", "generic")),
+                request_data,
+                headers={"X-Sentry-Signature": sig},
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
+
+    def test_unleash_nonexistent_org_returns_401_not_404(self, mock_incr: MagicMock) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=("nonexistent-org-xyz", "unleash")),
+                {"featureName": "test-flag", "type": "feature-environment-enabled"},
+                headers={"Authorization": "some-token"},
+            )
+            assert response.status_code == 401, response.content
+            assert FlagAuditLogModel.objects.count() == 0
 
 
 LD_REQUEST = {

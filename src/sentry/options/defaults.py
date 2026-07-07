@@ -319,6 +319,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "unmerge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "merge.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.merge-unmerge.max-group-times-seen",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -523,20 +544,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for moving accepted outcome emission from Relay to EAP.
-register(
-    "relay.eap-outcomes.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Killswitch for fetching projects in the endpoints.
 register(
     "relay.endpoint-fetch-config.enabled",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Threshold for inlining attachments in relay.
+register(
+    "relay.attachment-inline.limit",
+    type=Int,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -584,13 +604,6 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Organizations that should always see the Seer config reminder
-register(
-    "seer.organizations.force-config-reminder",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Coding Workflows
 register(
@@ -607,6 +620,12 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.required-permissions",
+    type=Dict,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "github-app.rate-limit-sensitive-orgs",
     type=Sequence,
@@ -1132,6 +1151,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.pull-request-linking.killswitch.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.explorer.context-engine-rollout",
     type=Float,
     default=0.0,
@@ -1507,17 +1532,17 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */4 * * *",
+    default="0 */2 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "api.deprecation.alerts-duration",
     type=Int,
-    default=60,
+    default=120,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1967,6 +1992,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.trace-item-details-timebuffer-minutes",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # minutes
+register(
     "performance.traces.query_timestamp_projects",
     type=Bool,
     default=False,
@@ -2050,6 +2081,12 @@ register(
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
     0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
+register(
+    "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2666,16 +2703,6 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Relocation: populates the target region drop down in the control silo. Note: this option has NO
-# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
-# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
-# should also be added to/removed from this array in the control silo at the same time.
-register(
-    "relocation.selectable-regions",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
 # before continuing.
 # DEPRECATED: will be removed after the new `relocation.autopause.*` options are fully rolled out.
@@ -2970,6 +2997,12 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.process-segments-task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -2982,12 +3015,6 @@ register(
 register(
     "spans.buffer.use-msgspec-decoder",
     default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Segments consumer
-register(
-    "spans.process-segments.consumer.enable",
-    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3729,14 +3756,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
-register(
-    "tasks.producer.occurrences.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rolls out the new TaskProducer to the clock_pulse task
 register(
     "tasks.producer.clock-pulse.rollout",
@@ -3758,6 +3777,55 @@ register(
     "tasks.producer.profiles.rollout",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to track_outcome in tasks
+register(
+    "tasks.producer.track_outcome.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to preprod tasks
+register(
+    "tasks.producer.preprod.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to uptime tasks
+register(
+    "tasks.producer.uptime.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to processing_errors tasks
+register(
+    "tasks.producer.processing-errors.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If False, TaskWorkers will wait for a task's producer futures to complete
+# before marking a task as complete
+register(
+    "taskworker.skip.awaiting.futures",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

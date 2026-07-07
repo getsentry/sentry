@@ -9,14 +9,14 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {DatadogPatConnectModal} from 'getsentry/views/seerAutomation/components/datadogPatConnectModal';
 
 type MonitoringProvider = {
   connected: boolean;
@@ -61,7 +61,10 @@ export function MonitoringProvidersSection() {
             },
           }
         ),
-        data: params.site ? {site: params.site} : undefined,
+        data: {
+          return_url: monitoringProvidersSettingsPath(organization),
+          ...(params.site ? {site: params.site} : {}),
+        },
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);

@@ -346,6 +346,7 @@ function ToolbarGroupBy() {
               onColumnChange={c => updateColumnAtIndex(i, c)}
               onColumnDelete={() => deleteColumnAtIndex(i)}
               options={options}
+              groupBys={groupBys}
               onSearch={onSearch}
               onClose={onClose}
               loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
