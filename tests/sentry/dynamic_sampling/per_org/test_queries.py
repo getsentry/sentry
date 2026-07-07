@@ -93,7 +93,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
                 return_value=1.0,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
         ):

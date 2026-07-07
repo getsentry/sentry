@@ -794,10 +794,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       try {
         scope.setTag('type', AlertRuleType.METRIC);
         scope.setTag('operation', rule.id ? 'edit' : 'create');
+        scope.setAttributes({
+          type: AlertRuleType.METRIC,
+          operation: rule.id ? 'edit' : 'create',
+        });
         for (const trigger of sanitizedTriggers) {
           for (const action of trigger.actions) {
             if (action.type === 'slack' || action.type === 'discord') {
               scope.setTag(action.type, true);
+              scope.setAttribute(action.type, true);
             }
           }
         }

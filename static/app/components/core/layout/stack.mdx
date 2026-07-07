@@ -178,12 +178,16 @@ The `Stack` `gap` property follows the same spacing system as other layout compo
 
 #### Responsive Props
 
-All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+All props support responsive values using breakpoint objects. Breakpoint keys are prefixed with `screen:`: `screen:2xs`, `screen:xs`, `screen:sm`, `screen:md`, `screen:lg`, `screen:xl`, `screen:2xl`.
 
 Example of a responsive stack that uses a static gap, but changes direction based on the breakpoint.
 
 <Storybook.Demo>
-  <Stack direction={{xs: 'column', sm: 'row', md: 'column'}} gap="md" padding="md">
+  <Stack
+    direction={{'screen:xs': 'column', 'screen:sm': 'row', 'screen:md': 'column'}}
+    gap="md"
+    padding="md"
+  >
     <Container padding="md" border="primary" radius="md" background="primary">
       Responsive
     </Container>
@@ -201,7 +205,7 @@ Example of a responsive stack that uses a static gap, but changes direction base
 ```jsx
 <Stack
   // Direction = column on xs, row on sm, column on md
-  direction={{xs: 'column', sm: 'row', md: 'column'}}
+  direction={{'screen:xs': 'column', 'screen:sm': 'row', 'screen:md': 'column'}}
   // Gap = md on all sizes
   gap="md"
 >
@@ -224,7 +228,7 @@ The `Stack` component provides a `Stack.Separator` subcomponent that can be used
 This automatic orientation inheritance means separators adapt seamlessly to responsive direction changes without requiring manual orientation props. The separator uses the `border` prop (defaults to `'primary'`) and automatically applies the correct styling based on the inherited orientation.
 
 <Storybook.Demo>
-  <Stack gap="md" direction={{sm: 'column', md: 'row'}}>
+  <Stack gap="md" direction={{'screen:sm': 'column', 'screen:md': 'row'}}>
     <Container padding="md" border="primary" radius="md" background="primary">
       First Item
     </Container>
@@ -239,7 +243,7 @@ This automatic orientation inheritance means separators adapt seamlessly to resp
   </Stack>
 </Storybook.Demo>
 ```jsx
-<Stack gap="md" direction={{sm: 'column', md: 'row'}}>
+<Stack gap="md" direction={{'screen:sm': 'column', 'screen:md': 'row'}}>
   <div>First Item</div>
   <Stack.Separator border="primary" />
   <div>Second Item</div>

@@ -1,5 +1,6 @@
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
+  EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -21,6 +22,7 @@ export interface ToolCall {
   hasError: boolean;
   name: string;
   nodeId: string;
+  duration?: number;
 }
 
 export interface ConversationMessage {
@@ -104,7 +106,19 @@ export function buildConversationTurns(
     const toolCalls = toolCallSpans
       .map(span => {
         const name = getStringAttr(span, SpanFields.GEN_AI_TOOL_NAME);
-        return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
+        if (!name) {
+          return null;
+        }
+        const toolStart = getNodeStartTimestamp(span);
+        const toolEnd = getNodeEndTimestamp(span);
+        const duration = toolEnd > toolStart ? toolEnd - toolStart : undefined;
+        const toolCall: ToolCall = {
+          name,
+          nodeId: span.id,
+          hasError: hasError(span),
+          duration,
+        };
+        return toolCall;
       })
       .filter((tc): tc is ToolCall => tc !== null);
 
@@ -173,7 +187,9 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
     if (
       turn.userContent &&
-      (turn.userContent === FILTERED || !seenUserContent.has(turn.userContent))
+      (turn.userContent === FILTERED ||
+        turn.userContent === EMPTY_TEXT_CONTENT ||
+        !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
       messages.push({
@@ -189,6 +205,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
     const hasAssistantContent =
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
+        turn.assistantContent === EMPTY_TEXT_CONTENT ||
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 
@@ -355,6 +372,14 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
+// Prefix every line with `> ` so multi-line content forms one blockquote.
+function toBlockquote(text: string): string {
+  return text
+    .split('\n')
+    .map(line => `> ${line}`)
+    .join('\n');
+}
+
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
@@ -375,6 +400,10 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
       if (message.toolCalls && message.toolCalls.length > 0) {
         const toolNames = message.toolCalls.map(tc => `\`${tc.name}\``).join(', ');
         lines.push(`> Called tools: ${toolNames}`);
+      }
+
+      if (message.reasoning) {
+        lines.push(toBlockquote(`Thinking:\n${message.reasoning}`));
       }
     }
 

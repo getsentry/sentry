@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
@@ -140,6 +140,11 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate is not None
 
     def get_sample_rate(self) -> TargetSampleRate:
+        # Mirror the legacy serving path (get_guarded_project_sample_rate): a blended
+        # (reserved-based) rate of 100% takes precedence over the usage-based sliding-window
+        # rate. Reproduced intentionally so the new pipeline matches the legacy one.
+        if self.sample_rate == 1.0:
+            return self.sample_rate
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
@@ -152,7 +157,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if not self.projects:
             return None
 
-        org_volume_24h = get_eap_organization_volume(
+        org_volume_24h = get_outcomes_organization_volume(
             self, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
         )
         if org_volume_24h is None:

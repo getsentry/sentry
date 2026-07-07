@@ -479,7 +479,7 @@ class WeeklyReportsTest(
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
 
-        ts = self.now.timestamp()
+        ts = (self.now - timedelta(hours=1)).timestamp()
 
         group_a = self.store_events_to_snuba_and_eap(
             "key-errors-a",
@@ -1357,6 +1357,38 @@ class WeeklyReportsTest(
 
         message_builder.return_value.send.assert_not_called()
 
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_dry_run_does_not_block_subsequent_send(self, message_builder: mock.MagicMock) -> None:
+        """A dry_run send should not poison the duplicate delivery check."""
+        user = self.create_user(email="dio@speedwagon.org")
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            self._dummy_batch_id,
+            dry_run=True,
+            target_user=user.id,
+            email_override="dio@speedwagon.org",
+        )
+        message_builder.return_value.send.assert_not_called()
+
+        message_builder.reset_mock()
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            self._dummy_batch_id,
+            dry_run=False,
+            target_user=user.id,
+            email_override="dio@speedwagon.org",
+        )
+        message_builder.return_value.send.assert_called_once_with(to=("dio@speedwagon.org",))
+
     @mock.patch("sentry.tasks.summaries.weekly_reports.logger")
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
@@ -1565,7 +1597,6 @@ class WeeklyReportsTest(
 
         assert ctx["enhanced_privacy"]
         assert len(ctx["key_errors"]) == 0
-        assert len(ctx["key_transactions"]) == 0
         assert len(ctx["key_performance_issues"]) == 0
         assert ctx["trends"]["total_error_count"] == 2
         assert ctx["issue_summary"] is not None
@@ -1597,7 +1628,6 @@ class WeeklyReportsTest(
 
         for project_ctx in ctx.projects_context_map.values():
             assert project_ctx.key_errors_by_group == []
-            assert project_ctx.key_transactions == []
             assert project_ctx.key_performance_issues == []
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))

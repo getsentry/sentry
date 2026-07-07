@@ -413,6 +413,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
+    "sentry.middleware.agent_discovery.AgentDiscoveryMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -482,13 +483,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
-    "sentry.lang.java.apps.Config",
-    "sentry.lang.javascript.apps.Config",
-    "sentry.lang.dart.apps.Config",
-    "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_urls.apps.Config",
-    "sentry.plugins.sentry_useragents.apps.Config",
-    "sentry.plugins.sentry_webhooks.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -866,11 +860,6 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
-# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
-# from within tasks.
-# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
-TASKWORKER_USE_TASK_PRODUCER: bool = False
-
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -905,7 +894,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
-    "sentry.integrations.opsgenie.tasks",
     "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
     "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
@@ -950,16 +938,19 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
+    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
+    "sentry.spans.consumers.process_segments.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1155,7 +1146,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
-        "schedule": crontab("*", "*", "*", "*", "*"),
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1267,6 +1258,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "integrations.control:sentry.integrations.source_code_management.sync_repos.scm_repo_sync_beat",
         "schedule": timedelta(minutes=1),
     },
+    "cleanup-pending-users": {
+        "task": "auth.control:sentry.tasks.auth.cleanup_pending_users",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
 }
 
 if SILO_MODE == "CONTROL":
@@ -1323,7 +1318,6 @@ LOGGING: LoggingConfig = {
     "overridable": ["sentry"],
     "loggers": {
         "sentry": {"level": "INFO"},
-        "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
         "sentry.reprocessing": {"handlers": ["internal"], "propagate": False},
@@ -1535,6 +1529,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
+
+# sample rate for the ingest-replay-recordings processing (consumer and task)
+SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -2183,10 +2180,6 @@ SENTRY_WATCHERS = (
 SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
-# Controls whether we'll run the snuba subscription processor. If enabled, we'll run
-# it as a worker, and devservices will run Kafka.
-SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
-
 SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
 
 # The chunk size for attachments in blob store. Should be a power of two.
@@ -2282,7 +2275,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "project_root": "/usr/src",
-    "in_app_include": ["sentry", "sentry_plugins"],
+    "in_app_include": ["sentry"],
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
@@ -2783,8 +2776,10 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-limited-dlq": "default",
     "taskworker-launchpad": "default",
     "taskworker-launchpad-dlq": "default",
+    "taskworker-launchpad-push": "default",
     "taskworker-long": "default",
     "taskworker-long-dlq": "default",
+    "taskworker-process-segments": "default",
     "taskworker-products": "default",
     "taskworker-products-dlq": "default",
     "taskworker-sentryapp": "default",
@@ -3396,3 +3391,20 @@ if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"
+
+    # Synapse's ingest-router fronts the cell relays and signs its upstream
+    # requests to Sentry with its own credentials (started with --credentials-path
+    # relay-credentials.json). Register it as a static, internal relay: static auth
+    # is an alternative to the register/challenge handshake, so synapse is trusted
+    # by relay_id directly from config without ever registering. Values come from
+    # synapse's relay-credentials.json. Dev-only, gated behind cell-routing.
+    SENTRY_RELAY_STATIC_AUTH = {
+        "7835bea9-7df4-42d7-ab67-d344d026f9f6": {
+            "public_key": "Pr9zR1197orWo8Ekw85tTje4zjAGpMdIg9DgrVhFQ70",
+            "internal": True,
+        },
+    }
+    # The browser sits on the org subdomain ({slug}.dev.getsentry.net:8000) while
+    # cell-scoped API XHRs cross to Synapse on :13000, so Django's CSRF origin check
+    # needs the page origin trusted explicitly.
+    CSRF_TRUSTED_ORIGINS = ["http://*.dev.getsentry.net:8000", "http://dev.getsentry.net:8000"]

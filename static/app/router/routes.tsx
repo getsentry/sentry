@@ -948,20 +948,6 @@ function buildRoutes(): RouteObject[] {
       redirectTo: 'integrations/',
     },
     {
-      path: 'plugins/',
-      name: t('Integrations'),
-      children: [
-        {
-          path: ':integrationSlug/',
-          name: t('Integration Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
-          ),
-        },
-      ],
-    },
-    {
       path: 'sentry-apps/',
       redirectTo: 'integrations/',
     },
@@ -2378,6 +2364,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'snapshots/:snapshotId/',
       component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
+    },
+    {
+      path: 'snapshots/latest-base/:projectId/:appId/',
+      component: make(
+        () => import('sentry/views/preprod/snapshots/latestBaseSnapshotResolver')
+      ),
     },
     // TODO(EME-735): Remove old routes after backend deployment
     {

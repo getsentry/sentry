@@ -38,13 +38,22 @@ TRACE_SPAN = {
     "start_timestamp": "2026-04-15T18:22:31.000000Z",
     "end_timestamp": "2026-04-15T18:22:31.250000Z",
     "duration": 250.0,
-    "measurements": {},
+    "measurements": {
+        "measurements.frames_slow_rate": 0.02,
+        "measurements.frames_frozen_rate": 0.01,
+    },
     "browser_web_vital": {
         "browser.web_vital.lcp.value": 2807.335,
         "browser.web_vital.cls.value": 0.0382,
         "browser.web_vital.inp.value": 120.0,
         "browser.web_vital.ttfb.value": 450.0,
         "browser.web_vital.fcp.value": 2258.06,
+    },
+    "mobile_app_vital": {
+        "app.vitals.start.cold.value": 1600.0,
+        "app.vitals.start.warm.value": 400.0,
+        "app.vitals.ttid.value": 1200.0,
+        "app.vitals.ttfd.value": 2400.0,
     },
     "children": [],
     "errors": [],

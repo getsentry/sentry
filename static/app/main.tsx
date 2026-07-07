@@ -13,7 +13,8 @@ import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
-import {SENTRY_RELEASE_VERSION, USE_TANSTACK_DEVTOOL} from 'sentry/constants';
+import {USE_TANSTACK_DEVTOOL} from 'sentry/constants';
+import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
 import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
@@ -48,7 +49,7 @@ export function Main() {
             </NuqsAdapter>
             {USE_TANSTACK_DEVTOOL && (
               <TanStackDevtools
-                config={{position: 'bottom-left'}}
+                config={{position: 'bottom-right'}}
                 plugins={[
                   {
                     name: 'TanStack Query',

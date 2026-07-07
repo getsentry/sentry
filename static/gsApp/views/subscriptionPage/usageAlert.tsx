@@ -110,7 +110,7 @@ export function UsageAlert({subscription, usage}: Props) {
   }
 
   function getProjectedOverages(): ProjectedOverages {
-    if (subscription.isEnterpriseTrial || subscription.hasOverageNotificationsDisabled) {
+    if (subscription.isEnterpriseTrial) {
       return [];
     }
     return projectedCategoryOverages();
@@ -250,10 +250,9 @@ export function UsageAlert({subscription, usage}: Props) {
     return null;
   }
 
-  const hasExceeded =
-    Object.values(subscription.categories).some(({usageExceeded}) => usageExceeded) ||
-    // TODO: Remove when mmx plans have error BillingMetricHistory
-    subscription.usageExceeded;
+  const hasExceeded = Object.values(subscription.categories).some(
+    ({usageExceeded}) => usageExceeded
+  );
   const projectedOverages = getProjectedOverages();
   const hasOverage = hasExceeded || !!projectedOverages.length;
 

@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any, Final, Literal
-
-from pydantic import BaseModel
+from typing import Any
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
@@ -26,51 +24,16 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
+from sentry.pr_metrics.contracts import (
+    CLOSE_ACTION_CLOSED,
+    CLOSE_ACTION_MERGED,
+    CloseAction,
+    PrConversationAnalysis,
+)
 from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
-
-# GitHub fires a single ``closed`` action for both outcomes; a set ``merged_at``
-# on the PR row disambiguates a merge from a plain close.
-CLOSE_ACTION_CLOSED: Final = "closed"
-CLOSE_ACTION_MERGED: Final = "merged"
-
-CloseAction = Literal["closed", "merged"]
-
-
-class PrConversationAnalysis(BaseModel):
-    """The conversation judge's analysis of a closed/merged PR — one of several
-    judges, each with its own result type and columns.
-
-    Mirrors the ``conversation_analysis`` Seer sends to ``update_pr_metrics`` — the
-    inbound-callback half of the contract, so it lives here beside the row it
-    shapes, separate from the outbound request mirrors in ``judge.py``; keep both in
-    sync with getsentry/seer:src/seer/pr_metrics/models.py. BigQuery-only: it shapes
-    the emitted ``PrCloseMetricsEvent`` and is never persisted. Enum-like values
-    stay free strings, so a Seer vocabulary change can't fail validation.
-
-    Extra keys are ignored (pydantic v1's default), deliberately: it keeps old
-    Sentry pods forward-compatible with fields a newer Seer adds. The flip side — a
-    near-miss payload that matches some field names populates those and silently
-    leaves the rest null — is owned by the Seer-side builder + a shared contract
-    test, not tightened here: ``extra="forbid"`` would fight both that forward-compat
-    and the graceful-drop behavior (it'd drop the whole analysis on any new field).
-    """
-
-    # positive | neutral | negative | mixed. Null when there was nothing to judge
-    # (no comments) or the judge couldn't run; comments_total disambiguates.
-    sentiment: str | None = None
-    # Comments split by author class.
-    comments_bot: int | None = None
-    comments_human: int | None = None
-    # comments_truncated > 0 means a chatty PR was capped before judging.
-    comments_total: int | None = None
-    comments_judged: int | None = None
-    comments_truncated: int | None = None
-    # Opaque drill-down stored verbatim: per-comment intents, reasoning, version
-    # markers, intent counts.
-    metadata: dict[str, Any] | None = None
 
 
 def select_verdict(
@@ -110,6 +73,7 @@ def select_verdict(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
                 "pull_request_id": pull_request.id,
             },
         )
@@ -258,11 +222,43 @@ def build_pr_metrics_row(
         comments_count=metrics.comments_count,
         review_comments_count=metrics.review_comments_count,
         is_assigned=metrics.is_assigned,
+        participants_count=metrics.participants_count,
+        reviews_count=metrics.reviews_count,
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
         **_conversation_analysis_fields(conversation_analysis),
     )
+
+
+def _activity_derived_counters(pull_request: PullRequest) -> dict[str, int]:
+    """Counters derived from the PR's stored activity log at its terminal event.
+
+    Computed at emit — not on the Seer callback — so both the no-judge and judge
+    paths populate them from data Sentry already holds, independent of whether the
+    PR is judged. Read before ``cleanup_pr_activity_task`` sweeps the activity
+    rows; the results are persisted onto ``PullRequestMetrics`` so a later
+    re-derivation (recovery) reads them off the row, not the deleted activity.
+
+    - ``reviews_count``: total ``REVIEW_SUBMITTED`` rows — every GitHub review
+      submission (a reviewer who submits twice counts twice), not distinct
+      reviewers.
+    - ``participants_count``: distinct non-empty ``sender_login`` across the PR's
+      activity, excluding ``sender_type == "Bot"`` so CI apps and automation don't
+      inflate human participation.
+
+    Both are only meaningful under ``pr-metrics-activity`` (no activity rows → 0).
+    """
+    activities = PullRequestActivity.objects.filter(pull_request=pull_request)
+    reviews_count = activities.filter(event_type=PullRequestActivityType.REVIEW_SUBMITTED).count()
+    participant_logins = {
+        login
+        for login, sender_type in activities.values_list(
+            "payload__sender_login", "payload__sender_type"
+        )
+        if login and sender_type != "Bot"
+    }
+    return {"participants_count": len(participant_logins), "reviews_count": reviews_count}
 
 
 def emit_pr_metrics_row(
@@ -288,6 +284,14 @@ def emit_pr_metrics_row(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 
+    # Derive the activity-sourced counters at the terminal event — before the
+    # activity rows are swept post-emit — and persist them onto the metrics row so
+    # build_pr_metrics_row (and any later re-derivation for recovery) reads the
+    # same final counts. A no-op when Sentry never wrote a metrics row.
+    PullRequestMetrics.objects.filter(pull_request=pull_request).update(
+        **_activity_derived_counters(pull_request)
+    )
+
     close_action: CloseAction = (
         CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
     )
@@ -310,4 +314,8 @@ def emit_pr_metrics_row(
             "close_action": close_action,
         },
     )
+    # Imported here to avoid a circular import: tasks → judge → emit.
+    from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+    cleanup_pr_activity_task.delay(pull_request_id=pull_request.id)
     return True

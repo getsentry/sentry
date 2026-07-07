@@ -17,11 +17,13 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -124,6 +126,16 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
+export interface RawFeedback {
+  text: string;
+  source?: {
+    type: string;
+    comment?: {html_url?: string; user?: {login: string}};
+    user?: User;
+  };
+  timestamp?: string;
+}
+
 export interface ExplorerAutofixState {
   blocks: Block[];
   run_id: number;
@@ -135,7 +147,13 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
+  warnings?: Array<{
+    warning_type: string;
+    installation_id?: string;
+    repo_name?: string;
+  }>;
 }
 
 /**
@@ -203,24 +221,38 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
+  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning
+    anyCodingAgentsRunning ||
+    hasQueuedFeedback
   );
 };
 
+const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
+  Object.values(autofixState?.repo_pr_states ?? {}).some(
+    state => state.pr_creation_status === 'completed'
+  );
+
 /**
  * Gets the appropriate poll interval based on state.
- * Returns false to disable polling, or a number for the interval.
  */
-const getPollInterval = (
-  autofixState: ExplorerAutofixState | null,
-  runStarted: boolean
-): number | false => {
-  // Actively processing - poll fast
-  if (isActivelyProcessing(autofixState, runStarted)) {
+export const getPollInterval = ({
+  autofixState,
+  runStarted,
+  pollPR = false,
+}: {
+  autofixState: ExplorerAutofixState | null;
+  runStarted: boolean;
+  pollPR?: boolean;
+}): number | false => {
+  const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
+  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+
+  if (shouldPollPR || shouldPollProcessing) {
     return POLL_INTERVAL;
   }
 
@@ -453,6 +485,11 @@ interface UseExplorerAutofixOptions {
    * Defaults to true.
    */
   enabled?: boolean;
+  /**
+   * Force fast polling while the drawer is mounted. Other observers can keep
+   * their processing-aware intervals.
+   */
+  pollPR?: boolean;
 }
 
 /**
@@ -469,7 +506,7 @@ export function useExplorerAutofix(
 ) {
   const {openModal} = useModal();
 
-  const {enabled = true} = options;
+  const {enabled = true, pollPR = false} = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -502,7 +539,9 @@ export function useExplorerAutofix(
       if (!enabled) {
         return false;
       }
-      return getPollInterval(query.state.data?.json?.autofix || null, waitingForResponse);
+
+      const autofixState = query.state.data?.json?.autofix || null;
+      return getPollInterval({autofixState, runStarted: waitingForResponse, pollPR});
     },
   });
 
@@ -555,9 +594,13 @@ export function useExplorerAutofix(
         );
 
         // Invalidate to fetch fresh data
-        queryClient.invalidateQueries({
+        const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
+
+        if (step === 'pr_iteration') {
+          await invalidation;
+        }
 
         return response.run_id as number;
       } catch (e: any) {
@@ -699,7 +742,7 @@ export function useExplorerAutofix(
           if (permissionFailures.length > 0) {
             const installationId = permissionFailures[0]?.github_installation_id;
             const installationUrl = installationId
-              ? `https://github.com/settings/installations/${installationId}`
+              ? getGithubPermissionsUpdateUrl(installationId)
               : undefined;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
@@ -755,7 +798,6 @@ export function useExplorerAutofix(
     ]
   );
 
-  // Clear waiting state when we get a response
   if (waitingForResponse && runState) {
     const hasLoadingBlock = runState.blocks.some(block => block.loading);
     if (!hasLoadingBlock && runState.status !== 'processing') {
@@ -803,6 +845,7 @@ export function useExplorerAutofix(
      */
     dismissCodingAgentError: (id: number) =>
       setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
+    warnings: runState?.warnings ?? [],
   };
 }
 

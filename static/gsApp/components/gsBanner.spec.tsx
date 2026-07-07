@@ -138,21 +138,6 @@ describe('GSBanner', () => {
     expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
-  it('renders usage exceeded modal', async () => {
-    const organization = OrganizationFixture({slug: 'exceeded'});
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({organization, usageExceeded: true})
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-    renderGlobalModal();
-
-    expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
-  });
-
   it('opens the trialEndingModal within 3 days of ending', async () => {
     const now = moment();
     const organization = OrganizationFixture({
@@ -453,7 +438,7 @@ describe('GSBanner', () => {
           plan: 'am3_business',
           planDetails: PlanFixture({
             name: 'Business',
-            price: 100,
+            totalPrice: 100,
           }),
         }),
       })
@@ -493,7 +478,6 @@ describe('GSBanner', () => {
           plan: 'am3_f',
           planDetails: PlanFixture({
             name: 'Developer',
-            price: 0,
           }),
         }),
       })

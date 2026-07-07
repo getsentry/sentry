@@ -59,4 +59,51 @@ describe('EquationBuilder', () => {
       'A * 2'
     );
   });
+
+  it('allows the expression to be cleared', async () => {
+    const expression = 'count(value,metricA,distribution,none)';
+    const handleExpressionChange = jest.fn();
+
+    render(
+      <EquationBuilder
+        expression={expression}
+        referenceMap={{A: 'count(value,metricA,distribution,none)'}}
+        handleExpressionChange={handleExpressionChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Remove reference A'}));
+
+    expect(handleExpressionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: '',
+      }),
+      ''
+    );
+  });
+
+  it('submits an empty expression when the user types a bunch of spaces', async () => {
+    const handleExpressionChange = jest.fn();
+
+    render(
+      <EquationBuilder
+        expression=""
+        referenceMap={{A: 'count(value,metricA,distribution,none)'}}
+        handleExpressionChange={handleExpressionChange}
+      />
+    );
+
+    // Type a bunch of spaces and then enter to submit the expression
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Add a term'}),
+      '    {enter}'
+    );
+
+    expect(handleExpressionChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: '',
+      }),
+      ''
+    );
+  });
 });

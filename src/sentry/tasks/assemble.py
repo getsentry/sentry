@@ -44,7 +44,7 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from rediscluster import RedisCluster
+    from sentry_redis_tools.clients import RedisCluster
 
 
 class ChunkFileState:
@@ -185,7 +185,7 @@ def _get_cache_key(task, scope, checksum):
 
 def _get_redis_cluster_for_assemble() -> RedisCluster:
     cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 @sentry_sdk.tracing.trace
@@ -278,7 +278,10 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            delete_file = False
+            # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
+            # or when the new DIF references an already existing underlying `File` that's not this temporary one.
+            # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
+            delete_file = dif.file is not file
 
             if created:
                 record_last_upload(project)

@@ -17,12 +17,13 @@ from typing import Any
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from urllib3.exceptions import HTTPError
 
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityType,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
@@ -31,12 +32,13 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.pr_metrics.attribution import record_attribution_signal
-from sentry.pr_metrics.emit import (
+from sentry.pr_metrics.contracts import (
     CloseAction,
+    PrActivityEvent,
+    PrCloseJudgeRequest,
     PrConversationAnalysis,
-    active_attributions,
-    emit_pr_metrics_row,
 )
+from sentry.pr_metrics.emit import active_attributions, emit_pr_metrics_row
 from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
@@ -64,65 +66,51 @@ seer_pr_metrics_connection_pool = connection_from_url(
 RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {PullRequestVerdict.JUDGE_IN_PROGRESS}
 
 
-# The models below are a manual mirror of Seer's PR-metrics contract — keep them
-# in sync with getsentry/seer:src/seer/pr_metrics/models.py. There's no shared
-# package or codegen; both sides validate with pydantic, so drift surfaces as a
-# ValidationError here or a 4xx from Seer rather than silent corruption.
-# https://github.com/getsentry/seer/blob/main/src/seer/pr_metrics/models.py
-# TODO move this to a new file "contracts.py" and PrConversationAnalysis there as well
-class PrActivityEvent(BaseModel):
-    """One captured ``PullRequestActivity`` row, projected for the judge.
-
-    The stored payloads are structural-only — titles, bodies, and comment text are
-    excluded at capture — so the whole payload is safe to forward as-is.
-    """
-
-    event_type: str
-    # When Sentry recorded the activity (≈ webhook arrival); preserves event order.
-    timestamp: str
-    payload: dict[str, Any]
-
-
-class PrCloseJudgeRequest(BaseModel):
-    """The Sentry → Seer judge request body; mirrors Seer's ``PrCloseJudgeRequest``.
-
-    A pydantic model rather than a bare dict so the assembled body — including the
-    ``repo`` sub-shape that ``build_repo_definition`` produces — is validated before
-    send, catching contract drift here instead of as a Seer-side rejection.
-    """
-
-    organization_id: int
-    repository_id: int
-    pull_request_id: int
-    # Reuses the shared repo-definition model (the validated shape of
-    # build_repo_definition's output), so a dropped/renamed repo field is caught.
-    repo: SeerCodeReviewRepoDefinition
-    pr_number: str
-    close_action: CloseAction
-    head_commit_sha: str
-    merge_commit_sha: str | None
-    opened_at: str | None
-    closed_at: str
-    merged_at: str | None
-    draft: bool
-    additions: int
-    deletions: int
-    files_changed: int
-    commits_count: int
-    comments_count: int
-    review_comments_count: int
-    is_assigned: bool
-    attributions: list[dict[str, Any]]
-    group_ids: list[int]
-    # The captured activity timeline, oldest first. Carries the event sequence and
-    # actors that the end-state counters above flatten away: who pushed the
-    # post-open commits (Bot vs human), review outcomes, labels, draft transitions.
-    activity: list[PrActivityEvent]
+# check_run fires per check per push, so a busy PR can accumulate far more check
+# rows than the aggregate "was CI green or red at close" signal needs. Lifecycle
+# rows (reviews, labels, the close itself) are bounded in practice and forwarded
+# in full; only the most recent check rows are forwarded, which preserves the
+# final CI state while keeping the request from ballooning.
+_CHECK_EVENT_TYPES = frozenset(
+    {
+        PullRequestActivityType.CHECK_RUN_COMPLETED,
+        PullRequestActivityType.CHECK_SUITE_COMPLETED,
+    }
+)
+_MAX_FORWARDED_CHECK_ROWS = 100
 
 
 def _pr_activity_timeline(pull_request: PullRequest) -> list[PrActivityEvent]:
-    """The PR's captured activity rows, oldest first, projected for the judge."""
-    rows = PullRequestActivity.objects.filter(pull_request=pull_request).order_by("date_added")
+    """The PR's captured activity rows, oldest first, projected for the judge.
+
+    All lifecycle rows are forwarded; check rows are capped to the most recent
+    ``_MAX_FORWARDED_CHECK_ROWS`` (see comment above) so CI noise on busy PRs
+    can't balloon the Seer request.
+    """
+    rows = list(
+        PullRequestActivity.objects.filter(pull_request=pull_request).order_by("date_added")
+    )
+    check_rows = [row for row in rows if row.event_type in _CHECK_EVENT_TYPES]
+    if len(check_rows) > _MAX_FORWARDED_CHECK_ROWS:
+        # The cap is sized above what a normal PR produces, so hitting it is a
+        # signal worth watching: it means CI noise is dropping rows from the
+        # forward, and a persistently high rate would argue for raising the cap.
+        dropped = len(check_rows) - _MAX_FORWARDED_CHECK_ROWS
+        logger.warning(
+            "pr_metrics.judge.check_rows_capped",
+            extra={
+                "pull_request_id": pull_request.id,
+                "check_rows": len(check_rows),
+                "dropped": dropped,
+            },
+        )
+        metrics.incr("pr_metrics.judge.check_rows_capped")
+        kept_check_ids = {row.id for row in check_rows[-_MAX_FORWARDED_CHECK_ROWS:]}
+        rows = [
+            row
+            for row in rows
+            if row.event_type not in _CHECK_EVENT_TYPES or row.id in kept_check_ids
+        ]
     return [
         PrActivityEvent(
             event_type=row.event_type, timestamp=row.date_added.isoformat(), payload=row.payload
@@ -200,6 +188,7 @@ def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) 
     log_extra = {
         "organization_id": pull_request.organization_id,
         "repository_id": pull_request.repository_id,
+        "repo_name": repository.name,
         "pull_request_id": pull_request.id,
     }
     response = make_signed_seer_api_request(

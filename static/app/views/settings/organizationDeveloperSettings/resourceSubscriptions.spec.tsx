@@ -3,7 +3,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
+import type {Permissions} from 'sentry/types/integrations';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+
+const basePermissions: Permissions = {
+  Event: 'read',
+  Team: 'no-access',
+  Project: 'write',
+  Release: 'admin',
+  Organization: 'admin',
+  Member: 'admin',
+};
 
 describe('Resource Subscriptions', () => {
   describe('initial no-access permissions', () => {
@@ -13,14 +23,7 @@ describe('Resource Subscriptions', () => {
         <Form>
           <Subscriptions
             events={[]}
-            permissions={{
-              Event: 'no-access',
-              Team: 'no-access',
-              Project: 'write',
-              Release: 'admin',
-              Organization: 'admin',
-              Member: 'admin',
-            }}
+            permissions={{...basePermissions, Event: 'no-access'}}
             onChange={jest.fn()}
           />
         </Form>,
@@ -41,14 +44,7 @@ describe('Resource Subscriptions', () => {
         <Form>
           <Subscriptions
             events={[]}
-            permissions={{
-              Event: 'no-access',
-              Team: 'no-access',
-              Project: 'write',
-              Release: 'admin',
-              Organization: 'admin',
-              Member: 'admin',
-            }}
+            permissions={{...basePermissions, Event: 'no-access'}}
             onChange={jest.fn()}
           />
         </Form>
@@ -63,18 +59,7 @@ describe('Resource Subscriptions', () => {
     it('updates events state when new permissions props is passed', () => {
       render(
         <Form>
-          <Subscriptions
-            events={[]}
-            permissions={{
-              Event: 'read',
-              Team: 'no-access',
-              Project: 'write',
-              Release: 'admin',
-              Organization: 'admin',
-              Member: 'admin',
-            }}
-            onChange={jest.fn()}
-          />
+          <Subscriptions events={[]} permissions={basePermissions} onChange={jest.fn()} />
         </Form>
       );
 
@@ -90,14 +75,7 @@ describe('Resource Subscriptions', () => {
         <Form>
           <Subscriptions
             events={['issue']}
-            permissions={{
-              Event: 'read',
-              Team: 'no-access',
-              Project: 'write',
-              Release: 'admin',
-              Organization: 'admin',
-              Member: 'admin',
-            }}
+            permissions={basePermissions}
             onChange={jest.fn()}
           />
         </Form>
@@ -113,14 +91,7 @@ describe('Resource Subscriptions', () => {
         <Form>
           <Subscriptions
             events={['issue']}
-            permissions={{
-              Event: 'no-access',
-              Team: 'no-access',
-              Project: 'write',
-              Release: 'admin',
-              Organization: 'admin',
-              Member: 'admin',
-            }}
+            permissions={{...basePermissions, Event: 'no-access'}}
             onChange={jest.fn()}
           />
         </Form>

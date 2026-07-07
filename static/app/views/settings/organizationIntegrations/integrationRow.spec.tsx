@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
@@ -109,64 +109,90 @@ describe('IntegrationRow', () => {
       );
     });
   });
-  describe('Plugin', () => {
-    it('has been installed (1 project)', () => {
+
+  describe('Update Now alert', () => {
+    it('does not render the alert icon when up to date', () => {
       render(
         <IntegrationRow
           organization={org}
-          type="plugin"
-          slug="twilio"
-          displayName="Twilio (SMS) "
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
           status="Installed"
           publishStatus="published"
           configurations={1}
           categories={[]}
         />
       );
-      expect(screen.getByText('Installed')).toBeInTheDocument();
-      expect(screen.getByText('1 Configuration')).toBeInTheDocument();
-      expect(screen.getByText('Twilio (SMS)')).toHaveAttribute(
-        'href',
-        `/settings/${org.slug}/plugins/twilio/`
-      );
+      expect(screen.queryByLabelText('Integration alert')).not.toBeInTheDocument();
     });
 
-    it('has been installed (3 projects)', () => {
+    it('auto-opens the install modal when a single workspace is outdated', async () => {
       render(
         <IntegrationRow
           organization={org}
-          type="plugin"
-          slug="twilio"
-          displayName="Twilio (SMS) "
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
           status="Installed"
           publishStatus="published"
-          configurations={3}
+          configurations={2}
           categories={[]}
+          outdatedConfigurations={1}
         />
       );
-      expect(screen.getByText('Installed')).toBeInTheDocument();
-      expect(screen.getByText('3 Configurations')).toBeInTheDocument();
-      expect(screen.getByText('Twilio (SMS)')).toHaveAttribute(
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      expect(await screen.findByRole('link', {name: 'click here'})).toHaveAttribute(
         'href',
-        `/settings/${org.slug}/plugins/twilio/`
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now&showInstallModal=1`
       );
     });
 
-    it('has not been installed', () => {
+    it('sends users to the config page when multiple workspaces are outdated', async () => {
       render(
         <IntegrationRow
           organization={org}
-          type="plugin"
-          slug="amazon-sqs"
-          displayName="Amazon SQS"
-          status="Not Installed"
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
           publishStatus="published"
-          configurations={0}
+          configurations={2}
           categories={[]}
+          outdatedConfigurations={2}
         />
       );
-      expect(screen.getByText('Not Installed')).toBeInTheDocument();
-      expect(screen.getByText('Amazon SQS')).toBeInTheDocument();
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      const link = await screen.findByRole('link', {name: 'click here'});
+      expect(link).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/slack/?tab=configurations&referrer=directory_resolve_now`
+      );
+      expect(link.getAttribute('href')).not.toContain('showInstallModal');
+    });
+
+    it('shows an informational tooltip without a link for members without access', async () => {
+      const {organization: lowerAccessOrg} = initializeOrg({
+        organization: {access: ['org:read']},
+      });
+      render(
+        <IntegrationRow
+          organization={lowerAccessOrg}
+          type="firstParty"
+          slug="slack"
+          displayName="Slack"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          outdatedConfigurations={1}
+        />
+      );
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      // The warning icon still surfaces the update, but without an actionable
+      // link that would try to launch a flow the member can't complete.
+      expect(await screen.findByText(/please update your workspace/)).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'click here'})).not.toBeInTheDocument();
     });
   });
 });

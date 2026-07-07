@@ -42,6 +42,7 @@
     .legend-inbox {
       font-size: 12px;
       text-align: right;
+      padding-bottom: 8px;
     }
     .legend-inbox span.swatch {
       width: 14px;
@@ -158,6 +159,10 @@
 
       #events-by-issue-type .legend {
         margin-bottom: 20px !important;
+        text-align: center !important;
+      }
+
+      .legend-inbox {
         text-align: center !important;
       }
 
@@ -447,33 +452,9 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_transactions|length > 0 and not enhanced_privacy %}
-  <div id="key-transactions">
-    <h4>Most frequent transactions</h4>
-    {% for a in key_transactions %}
-    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
-      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
-      <div style="width: 65%;">
-        {% url 'sentry-organization-performance-summary' organization.slug as performance_summary %}
-        {% querystring project=a.project.id transaction=a.name referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;"
-           href="{% org_url organization performance_summary query=query %}">{{a.name}}</a>
-        <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
-      </div>
-      <div style="font-size: 14px; margin-left: auto; display: flex;">
-        {% if a.p95_prev_week %}
-        <span>{{a.p95_prev_week | duration}}</span>
-        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-right.png' %}" width="16px" height="16px" style="margin: 0 8px;">
-        {% endif %}
-        <span>{{a.p95 | duration}}</span>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
   {% if past_issues|length > 0 and not enhanced_privacy %}
   <div id="past-resolved-issues">
-    <h4>Resolved this week</h4>
+    <h4>Resolved last week</h4>
     {% for a in past_issues %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
@@ -485,7 +466,7 @@
         <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; max-height: 38px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
-      <span style="background-color: #E7E1EC; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center;">Resolved</span>
+      <span style="background-color: #E3F7E3; color: #008900; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">Resolved</span>
     </div>
     {% endfor %}
   </div>

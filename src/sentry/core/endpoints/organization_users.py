@@ -1,4 +1,3 @@
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
+from sentry.utils.tracing import set_span_data, start_span
 
 
 @cell_silo_endpoint
@@ -34,7 +34,9 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
         """
         projects = self.get_projects(request, organization)
 
-        with sentry_sdk.start_span(op="OrganizationUsersEndpoint.get_members") as span:
+        with start_span(
+            op="OrganizationUsersEndpoint.get_members", name="OrganizationUsersEndpoint.get_members"
+        ) as span:
             qs = OrganizationMember.objects.filter(
                 user_id__isnull=False,
                 user_is_active=True,
@@ -48,8 +50,8 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
 
             organization_members = list(qs)
 
-            span.set_data("Project Count", len(projects))
-            span.set_data("Member Count", len(organization_members))
+            set_span_data(span, "Project Count", len(projects))
+            set_span_data(span, "Member Count", len(organization_members))
 
         return Response(
             serialize(

@@ -21,6 +21,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {PlanList} from 'admin/components/planList';
 import {ANNUAL, BillingConfigTier, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
+import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
 
 type Props = {
   onSuccess: () => void;
@@ -37,7 +38,6 @@ function ChangePlanAction({
   closeModal,
 }: Props) {
   const [billingInterval, setBillingInterval] = useState(MONTHLY);
-  const [contractInterval, setContractInterval] = useState(MONTHLY);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
   const orgId = organization.slug;
@@ -76,10 +76,9 @@ function ChangePlanAction({
   const getPlanList = (): BillingConfig['planList'] =>
     planList.filter(
       plan =>
-        plan.price &&
+        plan.totalPrice &&
         plan.userSelectable &&
         plan.billingInterval === billingInterval &&
-        plan.contractInterval === contractInterval &&
         // Plan id on partner sponsored subscriptions is not modifiable so only
         // including the existing plan in the list
         (partnerPlanId === null || partnerPlanId === plan.id)
@@ -133,10 +132,7 @@ function ChangePlanAction({
     }
 
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (
-        metricHistory.reserved &&
-        plan.checkoutCategories.includes(category as DataCategory)
-      ) {
+      if (metricHistory.reserved && isCheckoutCategory(category as DataCategory, plan)) {
         const closestTier = findClosestTier(
           plan,
           category as DataCategory,
@@ -189,13 +185,12 @@ function ChangePlanAction({
     <ul className="nav nav-pills">
       <li
         className={classNames({
-          active: contractInterval === MONTHLY && billingInterval === MONTHLY,
+          active: billingInterval === MONTHLY,
         })}
       >
         <a
           onClick={() => {
             setBillingInterval(MONTHLY);
-            setContractInterval(MONTHLY);
           }}
         >
           Monthly
@@ -203,13 +198,12 @@ function ChangePlanAction({
       </li>
       <li
         className={classNames({
-          active: contractInterval === ANNUAL && billingInterval === ANNUAL,
+          active: billingInterval === ANNUAL,
         })}
       >
         <a
           onClick={() => {
             setBillingInterval(ANNUAL);
-            setContractInterval(ANNUAL);
           }}
         >
           Annual (Upfront)

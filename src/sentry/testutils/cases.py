@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import inspect
 import random
 import re
 import time
@@ -126,7 +125,6 @@ from sentry.notifications.models.notificationsettingprovider import (
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -919,12 +917,6 @@ class PluginTestCase(TestCase):
 
     def setUp(self):
         super().setUp()
-
-        # Old plugins, plugin is a class, new plugins, it's an instance
-        # New plugins don't need to be registered
-        if inspect.isclass(self.plugin):
-            plugins.register(self.plugin)
-            self.addCleanup(plugins.unregister, self.plugin)
 
 
 class CliTestCase(TestCase):

@@ -120,6 +120,7 @@ class SeerFeatureRunRequest(TypedDict):
 
     feature_id: str
     payload: dict[str, Any]
+    agent_run_options: NotRequired[dict[str, Any]]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -232,6 +233,7 @@ def enqueue_seer_run(
     body: Mapping[str, Any],
     viewer_context: SeerViewerContext | None,
     user_id: int | None = None,
+    referrer: str | None = None,
     flush: bool = True,
     on_run_created: Callable[[SeerRun], None] | None = None,
 ) -> SeerRun:
@@ -253,6 +255,7 @@ def enqueue_seer_run(
                 organization=organization,
                 user_id=user_id,
                 type=run_type,
+                referrer=referrer,
                 last_triggered_at=now(),
             )
             if on_run_created is not None:

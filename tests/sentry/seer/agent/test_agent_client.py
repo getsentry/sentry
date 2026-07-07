@@ -22,7 +22,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -1249,7 +1249,10 @@ class TestStartFeatureRun(TestCase):
     def test_flush_false_enqueues_without_dispatch(self, mock_request, _mock_access) -> None:
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
-            feature_id="night_shift", payload={"candidates": [1, 2]}, flush=False
+            feature_id="night_shift",
+            payload={"candidates": [1, 2]},
+            title="Agentic triage (2 candidates)",
+            flush=False,
         )
 
         mock_request.assert_not_called()
@@ -1269,11 +1272,80 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_creates_agent_run_mirror(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={"candidates": [1, 2]},
+            flush=False,
+            title="Agentic triage (2 candidates)",
+            extras={"foo": "bar"},
+        )
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.title == "Agentic triage (2 candidates)"
+        assert agent_run.source == "night_shift"
+        assert agent_run.extras == {"foo": "bar"}
+        assert run.referrer == "night_shift"
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_truncates_long_title(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, flush=False, title="x" * 300
+        )
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.title == "x" * 255 + "…"
+        assert len(agent_run.title) == 256
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_creates_agent_run_mirror_extras_default_to_empty(
+        self, mock_request, _mock_access
+    ) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={"candidates": [1, 2]},
+            title="Agentic triage (2 candidates)",
+            flush=False,
+        )
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.title == "Agentic triage (2 candidates)"
+        assert agent_run.source == "night_shift"
+        assert agent_run.extras == {}
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_on_run_created_still_called_alongside_agent_run_mirror(
+        self, mock_request, _mock_access
+    ) -> None:
+        linked: list[SeerRun] = []
+
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={"candidates": [1, 2]},
+            title="Agentic triage (2 candidates)",
+            flush=False,
+            on_run_created=linked.append,
+        )
+
+        assert linked == [run]
+        assert SeerAgentRun.objects.filter(run=run).exists()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_flush_true_dispatches_inline_and_mirrors(self, mock_request, _mock_access) -> None:
         mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 4242}))
 
         client = SeerAgentClient(self.organization, self.user)
-        run = client.start_feature_run(feature_id="night_shift", payload={})
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, title="Test feature run"
+        )
 
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
         assert run.seer_run_state_id == 4242
@@ -1292,7 +1364,7 @@ class TestStartFeatureRun(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
-            client.start_feature_run(feature_id="night_shift", payload={})
+            client.start_feature_run(feature_id="night_shift", payload={}, title="Test feature run")
 
         run = SeerRun.objects.get(organization=self.organization, type=SeerRunType.FEATURE_RUN)
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
@@ -1303,6 +1375,48 @@ class TestStartFeatureRun(TestCase):
         with pytest.raises(SeerPermissionError):
             SeerAgentClient(self.organization, self.user)
         assert not SeerRun.objects.filter(organization=self.organization).exists()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-added")
+    @override_options({"seer.explorer.context-engine-rollout": 1.0})
+    def test_inherits_context_engine_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    @with_feature("organizations:seer-agent-source-code-search")
+    def test_inherits_frontend_code_search_from_org(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_agent_run_options_empty_without_org_flags(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="night_shift", payload={}, title="Test feature run", flush=False
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        body = outbox.payload["body"]
+        assert body["agent_run_options"] == {}
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -1330,6 +1444,10 @@ class TestGetMonitoringProviderConnections(TestCase):
                 "site": "datadoghq.com",
             },
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
 
@@ -1339,6 +1457,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert connection["provider_key"] == "datadog"
         assert connection["url"] == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection["identity_id"] == identity.id
+        assert connection["auth_method"] == "oauth"
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
         decrypted_access_token = fernet.decrypt(
             connection["encrypted_access_token"].encode("utf-8")
@@ -1348,11 +1467,15 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_returns_multiple_connections(self) -> None:
         for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
             idp = self.create_identity_provider(type="datadog", external_id=ext_id)
-            self.create_identity(
+            identity = self.create_identity(
                 user=self.user,
                 identity_provider=idp,
                 external_id=f"user-{ext_id}",
                 data={"access_token": "access-token", "site": site},
+            )
+            self.create_organization_identity(
+                organization=self.organization,
+                identity=identity,
             )
 
         result = get_monitoring_provider_connections(self.organization, self.user.id)
@@ -1363,24 +1486,54 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp" in urls
         assert "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp" in urls
 
+    def test_cross_org_isolation(self) -> None:
+        org2 = self.create_organization(name="other-org", owner=self.user)
+
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result_org1 = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert len(result_org1) == 1
+        assert result_org1[0]["provider_key"] == "datadog"
+
+        result_org2 = get_monitoring_provider_connections(org2, self.user.id)
+        assert result_org2 == []
+
     def test_skips_identity_missing_access_token(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     def test_skips_identity_missing_site(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1399,11 +1552,15 @@ class TestGetMonitoringProviderConnections(TestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY=None)
     def test_skips_identity_when_encryption_fails(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
         )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
@@ -1411,19 +1568,127 @@ class TestGetMonitoringProviderConnections(TestCase):
     @with_feature({"organizations:seer-infra-telemetry": False})
     def test_returns_empty_when_feature_disabled(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
-        self.create_identity(
+        identity = self.create_identity(
             user=self.user,
             identity_provider=idp,
             external_id="dd-user-1",
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
 
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     @patch(
-        "sentry.seer.agent.client.identity_service.get_user_identities_by_provider_type",
-        side_effect=RpcException("identity", "get_user_identities_by_provider_type", "boom"),
+        "sentry.seer.agent.client.identity_service.get_org_user_identities_by_provider_type",
+        side_effect=RpcException("identity", "get_org_user_identities_by_provider_type", "boom"),
     )
     def test_degrades_when_identity_service_errors(self, mock_get: MagicMock) -> None:
         # A control-silo RPC failure must not propagate (it would stall the outbox shard).
         assert get_monitoring_provider_connections(self.organization, self.user.id) == []
+
+    def test_returns_gcp_connections(self) -> None:
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={
+                "access_token": "gcp-access-token",
+                "refresh_token": "gcp-refresh-token",
+            },
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 3
+        urls = {c["url"] for c in result}
+        assert urls == {
+            "https://logging.googleapis.com/mcp",
+            "https://monitoring.googleapis.com/mcp",
+            "https://cloudtrace.googleapis.com/mcp",
+        }
+        for connection in result:
+            assert connection["provider_key"] == "gcp"
+            assert connection["identity_id"] == identity.id
+            assert connection["auth_method"] == "oauth"
+            fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+            decrypted = fernet.decrypt(connection["encrypted_access_token"].encode("utf-8")).decode(
+                "utf-8"
+            )
+            assert decrypted == "gcp-access-token"
+
+    def test_gcp_and_datadog_connections_together(self) -> None:
+        gcp_idp = self.create_identity_provider(type="gcp", external_id="")
+        gcp_identity = self.create_identity(
+            user=self.user,
+            identity_provider=gcp_idp,
+            external_id="gcp-user-1",
+            data={"access_token": "gcp-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=gcp_identity,
+        )
+
+        dd_idp = self.create_identity_provider(type="datadog", external_id="dd-org-1")
+        dd_identity = self.create_identity(
+            user=self.user,
+            identity_provider=dd_idp,
+            external_id="dd-user-1",
+            data={"access_token": "dd-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=dd_identity,
+        )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 4
+        gcp_connections = [c for c in result if c["provider_key"] == "gcp"]
+        dd_connections = [c for c in result if c["provider_key"] == "datadog"]
+        assert len(gcp_connections) == 3
+        assert len(dd_connections) == 1
+
+    def test_gcp_skips_identity_missing_access_token(self) -> None:
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={"refresh_token": "refresh-only"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
+
+    @patch("sentry.seer.agent.client.encrypt_access_token_for_seer")
+    def test_gcp_token_encrypted_once(self, mock_encrypt: MagicMock) -> None:
+        mock_encrypt.return_value = "encrypted-token"
+
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={"access_token": "gcp-token"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 3
+        mock_encrypt.assert_called_once_with("gcp-token")

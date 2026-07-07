@@ -10,8 +10,6 @@ const productionEntryPoints = [
   'static/app/serviceWorker/worker/worker.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
-  // this is imported with require.context
-  'static/app/data/forms/*.tsx',
   // frontend experiemnt framework may be unused when we have no experiemnets
   'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
@@ -27,8 +25,6 @@ const productionEntryPoints = [
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
-  // TODO: Remove when consumed in production (#117849 wires it into alert frequency)
-  'static/app/views/onboarding/components/scmCollapsibleSection.tsx',
 ];
 
 const testingEntryPoints = [
@@ -92,6 +88,8 @@ const config: KnipConfig = {
   mdx: {
     config: 'tsconfig.mdx.json',
   },
+  treatConfigHintsAsErrors: true,
+  treatTagHintsAsErrors: true,
 };
 
 export default config;

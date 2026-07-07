@@ -13,16 +13,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
+import {IdentityIcon, type IdentityIconProps} from 'sentry/icons/identityIcon';
+import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
-import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
-import {
-  IdentityIcon,
-  type IdentityIconProps,
-} from 'sentry/views/settings/components/identityIcon';
 
 type TIcon = {
   id: string;
@@ -767,6 +764,27 @@ const SECTIONS: TSection[] = [
         name: 'Bot',
         defaultProps: {},
       },
+      {
+        id: 'barAntennaOne',
+        groups: ['status'],
+        keywords: ['signal', 'antenna', 'bars', 'strength', 'connectivity', 'low'],
+        name: 'BarAntennaOne',
+        defaultProps: {},
+      },
+      {
+        id: 'barAntennaTwo',
+        groups: ['status'],
+        keywords: ['signal', 'antenna', 'bars', 'strength', 'connectivity', 'medium'],
+        name: 'BarAntennaTwo',
+        defaultProps: {},
+      },
+      {
+        id: 'barAntennaThree',
+        groups: ['status'],
+        keywords: ['signal', 'antenna', 'bars', 'strength', 'connectivity', 'full'],
+        name: 'BarAntennaThree',
+        defaultProps: {},
+      },
     ],
   },
   {
@@ -1163,6 +1181,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'sun',
+        groups: ['action'],
+        keywords: ['light', 'day', 'theme', 'mode', 'bright'],
+        name: 'Sun',
+        defaultProps: {},
+      },
+      {
         id: 'subscribed',
         groups: ['action'],
         keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring', 'enabled'],
@@ -1548,6 +1573,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'pullRequestDraft',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project', 'draft', 'wip'],
+        name: 'PullRequestDraft',
+        defaultProps: {},
+      },
+      {
         id: 'repository',
         groups: ['code'],
         keywords: ['git', 'repo', 'code', 'version control', 'project'],
@@ -1732,7 +1764,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
       renderIcon={(icon: TIcon) => (
         <IconCard
           icon={{id: icon.id, name: 'PluginIcon', defaultProps: {pluginId: icon.id}}}
-          importSource="sentry/plugins/components/pluginIcon"
+          importSource="sentry/icons/pluginIcon"
         >
           <PluginIcon pluginId={icon.id} /> {icon.name}
         </IconCard>
@@ -1784,7 +1816,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
             name: 'IdentityIcon',
             defaultProps: {providerId: identity.id},
           }}
-          importSource="sentry/views/settings/components/identityIcon"
+          importSource="sentry/icons/identityIcon"
         >
           <IdentityIcon providerId={identity.id} /> {identity.name}
         </IconCard>
@@ -1878,7 +1910,11 @@ function Section(props: CategorySectionProps) {
         </Heading>
       </Container>
       <Grid
-        columns={{xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)'}}
+        columns={{
+          'screen:xs': 'repeat(2, 1fr)',
+          'screen:sm': 'repeat(3, 1fr)',
+          'screen:lg': 'repeat(4, 1fr)',
+        }}
         align="center"
         gap="md"
       >

@@ -1,5 +1,6 @@
 import * as qs from 'query-string';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   IconAsana,
   IconBitbucket,
@@ -25,13 +26,13 @@ import type {
   IntegrationInstallationStatus,
   IntegrationProvider,
   IntegrationType,
-  PluginNoProject,
-  PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
 
@@ -118,9 +119,6 @@ export const getCategoriesForIntegration = (
       ? [integration.status]
       : getCategories(integration.featureData);
   }
-  if (isPlugin(integration)) {
-    return getCategories(integration.featureDescriptions);
-  }
   if (isDocIntegration(integration)) {
     return getCategories(integration.features ?? []);
   }
@@ -131,12 +129,6 @@ export function isSentryApp(
   integration: AppOrProviderOrPlugin
 ): integration is SentryApp {
   return !!(integration as SentryApp).uuid;
-}
-
-export function isPlugin(
-  integration: AppOrProviderOrPlugin
-): integration is PluginWithProjectList {
-  return Object.hasOwn(integration, 'shortName');
 }
 
 export function isDocIntegration(
@@ -154,15 +146,6 @@ export function isScmProvider(provider: IntegrationProvider): boolean {
   return provider.metadata.features.some(f => f.featureGate.includes('commits'));
 }
 
-/**
- * True when the plugin declares the `commits` feature gate. The legacy GitHub
- * and Bitbucket plugins both declare this, so they must not be reported as
- * non-SCM to analytics.
- */
-export function isScmPlugin(plugin: PluginNoProject): boolean {
-  return plugin.features.includes('commits');
-}
-
 export function isExternalActorMapping(
   mapping: ExternalActorMappingOrSuggestion
 ): mapping is ExternalActorMapping {
@@ -175,9 +158,6 @@ export const getIntegrationType = (
   if (isSentryApp(integration)) {
     return 'sentry_app';
   }
-  if (isPlugin(integration)) {
-    return 'plugin';
-  }
   if (isDocIntegration(integration)) {
     return 'document';
   }
@@ -185,7 +165,7 @@ export const getIntegrationType = (
 };
 
 export const convertIntegrationTypeToSnakeCase = (
-  type: 'plugin' | 'firstParty' | 'sentryApp' | 'docIntegration'
+  type: 'firstParty' | 'sentryApp' | 'docIntegration'
 ) => {
   switch (type) {
     case 'firstParty':
@@ -305,18 +285,46 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
+const isIntegrationUpToDate = (integration: Integration): boolean =>
+  integration.provider.key !== 'slack' ||
+  (integration.scopes?.includes('app_mentions:read') ?? false);
+
 const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
-  return integrations.every(
-    integration =>
-      integration.provider.key !== 'slack' || integration.scopes?.includes('commands')
-  );
+  return integrations.every(isIntegrationUpToDate);
 };
+
+/**
+ * Whether a single integration installation is running an outdated app and
+ * should surface an "Update Now" prompt. Checked per-workspace so that, e.g.,
+ * an outdated Slack workspace doesn't flag a sibling workspace that is current.
+ */
+export const integrationRequiresUpgrade = (integration: Integration): boolean =>
+  !isIntegrationUpToDate(integration);
+
+/**
+ * URL where a user can review and accept a GitHub App installation's updated
+ * permissions. Mirrors `_build_permissions_update_url` on the backend.
+ */
+export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
+  `https://github.com/settings/installations/${installationId}/permissions/update`;
+
+export const canManageIntegrations = (organization: Organization): boolean =>
+  isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
+
+export function getIntegrationNoun(slug: string): string {
+  switch (slug) {
+    case 'slack':
+      return t('workspace');
+    default:
+      return t('installation');
+  }
+}
 
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t(
-        'Update to the latest version of our Slack app to get access to personal and team notifications.'
+        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app on your workspace to get started.'
       );
 };
 
@@ -363,7 +371,7 @@ export function getProviderIntegrationStatus(integrations: Integration[]) {
 }
 
 /**
- * Returns 0 if uninstalled, 1 if pending, 2 if installed
+ * Returns 0 if uninstalled, 1 if pending, 2 if installed, 3 if disabled
  */
 function getInstallValue({
   integration,
@@ -374,10 +382,6 @@ function getInstallValue({
   integrationInstalls: Integration[];
   sentryAppInstalls: SentryAppInstallation[];
 }) {
-  if (isPlugin(integration)) {
-    return integration.projectList.length > 0 ? 2 : 0;
-  }
-
   if (isSentryApp(integration)) {
     const install = sentryAppInstalls.find(sa => sa.app.slug === integration.slug);
     if (install) {
@@ -390,7 +394,15 @@ function getInstallValue({
     return 0;
   }
 
-  return integrationInstalls.some(i => i.provider.key === integration.key) ? 2 : 0;
+  const providerInstalls = integrationInstalls.filter(
+    i => i.provider.key === integration.key
+  );
+  // Providers with any disabled config sort above all installed integrations (3 > 2)
+  // so they stay at the top when the reinstall banner is shown.
+  if (providerInstalls.some(i => getIntegrationStatus(i) === 'disabled')) {
+    return 3;
+  }
+  return providerInstalls.length > 0 ? 2 : 0;
 }
 
 function getPopularityWeight(integration: AppOrProviderOrPlugin) {

@@ -1,8 +1,11 @@
+import uuid
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import orjson
 from rest_framework import status
 
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -48,9 +51,91 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
 
         # Verify the payload
         sent_data = orjson.loads(call_args[0][2])
-        assert sent_data["run_id"] == "123"
+        assert sent_data["run_id"] == 123
         assert sent_data["organization_id"] == self.organization.id
         assert sent_data["payload"]["type"] == "interrupt"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_explorer_update_with_uuid_run_id(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """UUID run_id should be resolved to the numeric seer_run_state_id before forwarding to Seer."""
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"run_id": 456}
+
+        run_uuid = uuid.uuid4()
+        SeerRun.objects.create(
+            organization=self.organization,
+            uuid=run_uuid,
+            seer_run_state_id=456,
+            type=SeerRunType.EXPLORER,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+            last_triggered_at=datetime.now(tz=timezone.utc),
+        )
+
+        url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/{run_uuid}/"
+        response = self.client.post(
+            url,
+            data={"payload": {"type": "interrupt"}},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        mock_request.assert_called_once()
+        sent_data = orjson.loads(mock_request.call_args[0][2])
+        # UUID must be translated to the numeric seer_run_state_id before Seer sees it
+        assert sent_data["run_id"] == 456
+        assert sent_data["organization_id"] == self.organization.id
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_explorer_update_uuid_run_still_mirroring_returns_409(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """A UUID run whose seer_run_state_id is not yet populated should return 409."""
+        mock_has_access.return_value = (True, None)
+
+        run_uuid = uuid.uuid4()
+        SeerRun.objects.create(
+            organization=self.organization,
+            uuid=run_uuid,
+            seer_run_state_id=None,  # not yet mirrored
+            type=SeerRunType.EXPLORER,
+            mirror_status=SeerRunMirrorStatus.PENDING,
+            last_triggered_at=datetime.now(tz=timezone.utc),
+        )
+
+        url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/{run_uuid}/"
+        response = self.client.post(url, data={"payload": {"type": "interrupt"}}, format="json")
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_explorer_update_uuid_run_mirror_failed_returns_422(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        """A UUID run whose mirror failed should return 422."""
+        mock_has_access.return_value = (True, None)
+
+        run_uuid = uuid.uuid4()
+        SeerRun.objects.create(
+            organization=self.organization,
+            uuid=run_uuid,
+            seer_run_state_id=None,
+            type=SeerRunType.EXPLORER,
+            mirror_status=SeerRunMirrorStatus.FAILED,
+            last_triggered_at=datetime.now(tz=timezone.utc),
+        )
+
+        url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/{run_uuid}/"
+        response = self.client.post(url, data={"payload": {"type": "interrupt"}}, format="json")
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        mock_request.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")

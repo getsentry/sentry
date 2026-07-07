@@ -218,7 +218,7 @@ class TestDeprecationDecorator(APITestCase):
                 self.assert_denied_request("GET")
 
     def test_with_url_names(self) -> None:
-        with self.settings(SENTRY_SELF_HOSTED=False):
+        with self.settings(SENTRY_SELF_HOSTED=False), freeze_time(test_date - timedelta(minutes=1)):
             # Resolver url_name doesn't match
             request = self.make_request(method="DELETE")
             request.resolver_match = ResolverMatch(

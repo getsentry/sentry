@@ -592,10 +592,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the linked dashboard breadcrumb in the top bar when page frame is enabled', async () => {
+    it('renders the linked dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'page-frame'],
+        features: organization.features,
       });
 
       render(

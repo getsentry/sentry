@@ -101,11 +101,11 @@ describe('ScmCreateProject', () => {
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 
-    // All sections render up front (no progressive disclosure).
-    expect(
-      await screen.findByRole('heading', {name: 'Platform & features'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Project details'})).toBeInTheDocument();
+    // All sections render up front (no progressive disclosure): the repository,
+    // platform, and project-details sections are all present at once.
+    expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
@@ -135,7 +135,7 @@ describe('ScmCreateProject', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {name: 'Project details'})
+      await screen.findByRole('heading', {name: 'Project name'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
   });
@@ -237,6 +237,46 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
+  });
+
+  it('forwards the selected products to getting-started as the product query', async () => {
+    persistWizardSession({
+      selectedFeatures: ['performance-monitoring', 'session-replay'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({slug: 'python', name: 'python'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [adminTeam],
+    });
+
+    const {router} = render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toContain('/python/getting-started/');
+    });
+    // The upfront product selection seeds the setup docs via the product query.
+    expect(router.location.query.product).toEqual([
+      'performance-monitoring',
+      'session-replay',
+    ]);
   });
 
   it('reuses the existing project on an unchanged return instead of duplicating', async () => {

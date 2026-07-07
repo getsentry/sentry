@@ -23,6 +23,7 @@ class ExploreSavedQueryDataset(TypesClass):
     OURLOGS = 1
     METRICS = 2
     REPLAYS = 3
+    AI_CONVERSATIONS = 4
     # This is a temporary dataset to be used for the discover -> explore migration.
     # It will track which queries are generated from discover queries.
     SEGMENT_SPANS = 101
@@ -33,6 +34,7 @@ class ExploreSavedQueryDataset(TypesClass):
         (SEGMENT_SPANS, "segment_spans"),
         (METRICS, "metrics"),
         (REPLAYS, "replays"),
+        (AI_CONVERSATIONS, "ai_conversations"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -451,8 +453,6 @@ class TraceItemAttributeContext(DefaultFieldsModel):
 
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # When the attribute was last seen in storage. Used to prune stale attributes.
-    last_received = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "explore"
@@ -512,8 +512,6 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
 
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # When the value was last seen in storage. Used to prune stale entries.
-    last_received = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "explore"

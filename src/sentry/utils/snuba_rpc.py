@@ -53,6 +53,7 @@ from urllib3.response import BaseHTTPResponse
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import SnubaError, _snuba_pool
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
@@ -395,10 +396,10 @@ def _make_rpc_request(
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
+            with start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
                 if referrer:
-                    span.set_tag("snuba.referrer", referrer)
-                    span.set_data("snuba.query", req)
+                    set_span_tag(span, "snuba.referrer", referrer)
+                    set_span_data(span, "snuba.query", req)
                 try:
                     http_resp = _snuba_pool.urlopen(
                         "POST",
@@ -417,7 +418,7 @@ def _make_rpc_request(
                         metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
                         raise SnubaRPCTimeout(err)
                     raise SnubaRPCError(err)
-                span.set_tag("timeout", "False")
+                set_span_tag(span, "timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
                     error = _parse_error(http_resp)
                     if SNUBA_INFO:
