@@ -491,7 +491,7 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
     <Flex gap="md" align="start" justify="between">
       <Flex gap="md" align="start" flex="1" minWidth={0}>
         <Flex align="center" gap="md" height="1lh">
-          <Flex width="28px" justify="center">
+          <Flex align="center" justify="center" flex="0 0 28px">
             <FeedbackStatusIcon status={item.status} />
           </Flex>
           <FeedbackAttribution item={item} />
