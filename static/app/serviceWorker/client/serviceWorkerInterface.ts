@@ -79,7 +79,8 @@ export class ServiceWorkerController {
       async () => {
         switch (message.type) {
           case 'event': {
-            (await this.getWorker())?.postMessage(message);
+            const worker = await this.getWorker();
+            worker?.postMessage(message);
             return;
           }
           case 'request': {
@@ -93,7 +94,7 @@ export class ServiceWorkerController {
               const timeout = setTimeout(() => {
                 this._outstandingRequests.delete(messageId);
                 reject(new Error('Request timed out'));
-              }, message.timeout_ms ?? 10_000); // 10 seconds
+              }, message.timeoutMs ?? 10_000); // 10 seconds
 
               this._outstandingRequests.set(messageId, (error, result) =>
                 Sentry.startSpan(
