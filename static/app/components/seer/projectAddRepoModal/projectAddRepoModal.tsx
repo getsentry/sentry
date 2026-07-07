@@ -33,11 +33,11 @@ import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {
-  isGithubRepoProvider,
   NON_GITHUB_HANDOFF_WARNING,
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {isGitHubProvider} from 'sentry/utils/seer/seerProjectRepos';
 import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
@@ -165,7 +165,7 @@ export function ProjectAddRepoModal({
   const isOnlyGithubRepos = repoEntries.every(entry => {
     const providerId = repositoriesById.get(entry.repoId)?.provider.id;
     // Ignore unresolved repos (still loading) so we don't disable mid-fetch.
-    return providerId === undefined || isGithubRepoProvider(providerId);
+    return providerId === undefined || isGitHubProvider(providerId);
   });
   useEffect(() => {
     if (!isOnlyGithubRepos && form.state.values.agentOption !== 'seer') {

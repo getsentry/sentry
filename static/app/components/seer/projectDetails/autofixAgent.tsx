@@ -17,13 +17,15 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {
-  isGithubRepoProvider,
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
-import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
+import {
+  getSeerProjectReposInfiniteQueryOptions,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
@@ -67,7 +69,7 @@ export function AutofixAgent({canWrite, project}: Props) {
     reposResult.isSuccess && !reposResult.hasNextPage && !reposResult.isFetchingNextPage;
   const hasNonGithubRepo = (reposResult.data?.pages ?? [])
     .flatMap(page => page.json)
-    .some(repo => !isGithubRepoProvider(repo.provider));
+    .some(repo => !isGitHubProvider(repo.provider));
   const restrictToSeer = reposLoaded && hasNonGithubRepo;
 
   // `isIdle` is true only until the first attempt settles, so the effect below
