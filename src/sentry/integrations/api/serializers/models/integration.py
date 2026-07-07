@@ -95,9 +95,7 @@ class IntegrationSerializer(Serializer):
             case "github":
                 out_of_date = bool(get_missing_github_app_permissions(obj.metadata))
             case "slack":
-                out_of_date = SlackScope.APP_MENTIONS_READ not in (
-                    obj.metadata.get("scopes") or []
-                )
+                out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
 
         return {
             "id": str(obj.id),

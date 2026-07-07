@@ -10,10 +10,10 @@ class IntegrationSerializerTest(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    def test_non_github_provider_has_null_out_of_date(self) -> None:
+    def test_other_provider_has_null_out_of_date(self) -> None:
         integration = self.create_provider_integration(
-            provider="slack",
-            external_id="TXXXX",
+            provider="opsgenie",
+            external_id="opsgenie:1",
             name="Team A",
             metadata={"permissions": {"contents": "read"}},
         )
