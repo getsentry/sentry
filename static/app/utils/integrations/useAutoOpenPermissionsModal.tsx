@@ -47,15 +47,10 @@ interface Props {
 }
 
 /**
- * Auto-opens the update-permissions modal once per provider when the detail
- * page is loaded with `?showPermsModal=1` (e.g. from the outdated-integration
- * "click here" link). The param is stripped after opening so refresh /
- * back-button don't re-trigger it.
- *
- * The dedupe is keyed on the provider rather than mount: the detail view stays
- * mounted across client-side navigation between integration detail routes (only
- * the slug param changes), so a later visit for a different provider must still
- * open — while re-adding the param for the same provider must not re-open.
+ * Auto-opens the update-permissions modal when the detail page is loaded with
+ * `?showPermsModal=1` (e.g. from the outdated-integration "click here" link).
+ * The param is stripped once configs load so refresh / back-button don't
+ * re-trigger it, and a fresh arrival (re-adding the param) opens it again.
  *
  * Only GitHub has a permissions modal (its outdated state means missing app
  * permissions); for other providers this no-ops.
@@ -67,23 +62,28 @@ export function useAutoOpenPermissionsModal({
   isConfigurationsPending,
 }: Props) {
   const [showPermsModal, setShowPermsModal] = useQueryState('showPermsModal');
-  const autoOpenedForRef = useRef<string | null>(null);
+  const hasAutoOpenedRef = useRef(false);
 
   useEffect(() => {
-    if (showPermsModal !== '1' || !canManageIntegrations(organization)) {
+    // Reset when the param is absent so a fresh arrival (e.g. re-clicking the
+    // link) can auto-open again. While the param is present this ref only
+    // guards against a double-open before setShowPermsModal(null) lands.
+    if (showPermsModal !== '1') {
+      hasAutoOpenedRef.current = false;
       return;
     }
-    if (isConfigurationsPending || !provider) {
+    if (!canManageIntegrations(organization)) {
+      hasAutoOpenedRef.current = false;
+      setShowPermsModal(null);
       return;
     }
-    if (autoOpenedForRef.current === provider.key) {
+    if (isConfigurationsPending || !provider || hasAutoOpenedRef.current) {
       return;
     }
-
-    autoOpenedForRef.current = provider.key;
 
     if (provider.key === 'github' && outdatedConfigurations.length === 1) {
       const [outdatedConfiguration] = outdatedConfigurations;
+      hasAutoOpenedRef.current = true;
       openGithubPermissionsUpdateModal(outdatedConfiguration!);
     }
 
