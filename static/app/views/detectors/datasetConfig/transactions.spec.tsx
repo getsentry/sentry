@@ -35,7 +35,7 @@ describe('DetectorTransactionsConfig', () => {
 
     it('on-demand success (apdex) returns METRICS_ENHANCED and prefixed query', () => {
       const orgWithFeature = OrganizationFixture({
-        features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui'],
+        features: ['on-demand-metrics-extraction'],
       });
 
       const key = DetectorTransactionsConfig.getSeriesQueryOptions({
