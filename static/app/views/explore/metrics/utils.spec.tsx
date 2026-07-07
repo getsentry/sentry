@@ -10,6 +10,7 @@ import {
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
   parseTraceMetricFromQuery,
+  stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
@@ -59,6 +60,19 @@ describe('parseTraceMetricFromQuery', () => {
     ['metric.name:foo.duration metric.type:bogus'],
   ])('returns no metric and leaves %s untouched', query => {
     expect(parseTraceMetricFromQuery(query)).toEqual({metric: undefined, rest: query});
+  });
+});
+
+describe('stripTraceMetricTokens', () => {
+  it.each([
+    ['metric.name:foo metric.type:distribution metric.unit:ms value:>100', 'value:>100'],
+    // Incomplete identity (missing metric.type) is still stripped — the case where
+    // the metric came from the visualization aggregate but a stale metric.name
+    // token lingered in the query.
+    ['metric.name:foo value:>100', 'value:>100'],
+    ['value:>100', 'value:>100'],
+  ])('strips metric tokens from %s', (query, expected) => {
+    expect(stripTraceMetricTokens(query)).toBe(expected);
   });
 });
 

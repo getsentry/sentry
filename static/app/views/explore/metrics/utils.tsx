@@ -106,6 +106,19 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
  * metrics query). Returns `metric: undefined` and the query untouched when the
  * identity isn't present, so callers can ignore it.
  */
+/**
+ * Removes any metric.name/metric.type/metric.unit identity tokens from a query,
+ * whether or not they form a complete metric. Use when the metric has been
+ * adopted onto the panel so no stale identity filters linger in the query.
+ */
+export function stripTraceMetricTokens(query: string): string {
+  const search = new MutableSearch(query);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
+  return search.formatString();
+}
+
 export function parseTraceMetricFromQuery(query: string): {
   metric: TraceMetric | undefined;
   rest: string;
@@ -117,10 +130,10 @@ export function parseTraceMetricFromQuery(query: string): {
   if (!name || !type || !isTraceMetricTypeValue(type)) {
     return {metric: undefined, rest: query};
   }
-  search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
-  search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
-  search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
-  return {metric: {name, type, unit: unit ?? NONE_UNIT}, rest: search.formatString()};
+  return {
+    metric: {name, type, unit: unit ?? NONE_UNIT},
+    rest: stripTraceMetricTokens(query),
+  };
 }
 
 export function hasDisplayMetricUnit(

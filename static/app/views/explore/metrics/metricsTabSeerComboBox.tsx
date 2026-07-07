@@ -38,6 +38,7 @@ import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 import {
   makeMetricsAggregate,
   parseTraceMetricFromQuery,
+  stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
@@ -120,8 +121,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           metric => metric.name && metric.type && isTraceMetricTypeValue(metric.type)
         );
 
-      const {metric: queryTraceMetric, rest: queryWithoutMetric} =
-        parseTraceMetricFromQuery(seerQuery.query);
+      const {metric: queryTraceMetric} = parseTraceMetricFromQuery(seerQuery.query);
 
       // Prefer the visualization metric (normalizing its unit to NONE_UNIT, since
       // parseMetricAggregate omits the unit arg), falling back to the query-filter
@@ -133,10 +133,13 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       const nextMetric = resolvedMetric ?? traceMetric;
 
-      // Strip the metric tokens from the query only when we adopted a metric (it's
-      // then tracked on the panel, not the query); parseTraceMetricFromQuery
-      // returns that stripped query as `rest`.
-      const cleanedQuery = resolvedMetric ? queryWithoutMetric : seerQuery.query;
+      // Strip the metric identity tokens whenever we adopt a metric (it's tracked
+      // on the panel, not the query). Done unconditionally so stale/incomplete
+      // metric.* tokens don't linger when the metric came from the visualization
+      // aggregate rather than the query.
+      const cleanedQuery = resolvedMetric
+        ? stripTraceMetricTokens(seerQuery.query)
+        : seerQuery.query;
 
       const aggregateFields: AggregateField[] = [];
 
