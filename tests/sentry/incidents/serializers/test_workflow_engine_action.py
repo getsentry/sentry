@@ -188,6 +188,25 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
         sentry_app_expected["desc"] = f"Send a notification via {sentry_app.name}"
         assert serialized_action == sentry_app_expected
 
+    def test_missing_target_type_does_not_raise(self) -> None:
+        """
+        Regression test for: ValueError: None is not a valid ActionTarget.
+        Actions whose config dict lacks a 'target_type' key (e.g. actions created
+        before the field was required) should serialize without raising.
+        """
+        # Mutate the migrated action's config to remove target_type, simulating
+        # the DB state that triggers the bug in production.
+        self.critical_action.config.pop("target_type", None)
+        self.critical_action.save()
+
+        serialized_action = serialize(
+            self.critical_action,
+            self.user,
+            WorkflowEngineActionSerializer(),
+            alert_rule_trigger_id=self.critical_trigger.id,
+        )
+        assert serialized_action["targetType"] is None
+
     def test_slack_action(self) -> None:
         self.integration = self.create_slack_integration(
             self.organization,
