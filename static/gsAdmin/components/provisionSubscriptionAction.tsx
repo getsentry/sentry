@@ -309,7 +309,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           key.startsWith('reservedCpeSeerAutofix') ||
           key.startsWith('reservedCpeSeerScanner')
       )
-      .every(([_, value]) => value !== null && value !== undefined) &&
+      .every(([_, value]) => value !== null && value !== undefined && value !== '') &&
     Object.keys(this.state.data).filter(
       key =>
         key.startsWith('reservedCpeSeerAutofix') ||
