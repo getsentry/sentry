@@ -6,14 +6,12 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {
-  ConversationLeftPanel,
-  ConversationViewSkeleton,
-} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationLeftPanel} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
+import {ConversationViewSkeletonNew} from 'sentry/views/explore/conversations/components/conversationViewSkeleton';
 import {
   MessagesPanelNew,
   MessagesPanelSkeleton,
@@ -102,7 +100,7 @@ export function ConversationViewContentNew({
   // The transcript renders its own chat-shaped skeleton inside the layout below;
   // the timeline tab keeps the legacy span-detail skeleton.
   if (isLoading && !isTranscript) {
-    return <ConversationViewSkeleton />;
+    return <ConversationViewSkeletonNew />;
   }
 
   if (error) {

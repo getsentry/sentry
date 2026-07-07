@@ -112,6 +112,10 @@ export function ConversationSummaryNew({
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
               </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="12px" height="12px" />
+                <Placeholder width="40px" height="14px" />
+              </Flex>
               <Flex align="center" gap="sm">
                 <Placeholder width="72px" height="20px" />
                 <Placeholder width="72px" height="20px" />
