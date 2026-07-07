@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
+import {IssueType} from 'sentry/types/group';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -22,6 +23,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
+const REPLAY_ID = '22222222222222222222222222222222';
+const REPLAY_TRACE_ID = '33333333333333333333333333333333';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -256,6 +259,154 @@ describe('OurlogsSection', () => {
 
     expect(within(aside).getByTestId('tree-key-severity')).toBeInTheDocument();
     expect(within(aside).getByTestId('tree-key-severity')).toHaveTextContent('severity');
+  });
+
+  const rageClickGroup = GroupFixture({issueType: IssueType.REPLAY_RAGE_CLICK});
+
+  function mockReplayRecord(traceIds: string[]) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${REPLAY_ID}/`,
+      body: {
+        data: {
+          id: REPLAY_ID,
+          started_at: '2019-03-20T00:00:00.000Z',
+          finished_at: '2019-03-20T01:00:00.000Z',
+          duration: 3600,
+          trace_ids: traceIds,
+        },
+      },
+    });
+  }
+
+  const replayEvent = EventFixture({
+    contexts: {
+      replay: {type: 'default', replay_id: REPLAY_ID},
+    },
+  });
+
+  it('renders logs for a rage-click issue when there is no trace context', async () => {
+    mockReplayRecord([REPLAY_TRACE_ID]);
+
+    render(
+      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
+      {organization}
+    );
+
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-logs/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          replayId: REPLAY_ID,
+          traceId: [REPLAY_TRACE_ID],
+        }),
+      })
+    );
+  });
+
+  it('queries by both the replay id and the replay trace ids when both are available', async () => {
+    mockReplayRecord([REPLAY_TRACE_ID]);
+    const replayAndTraceEvent = EventFixture({
+      contexts: {
+        replay: {type: 'default', replay_id: REPLAY_ID},
+        trace: {type: 'trace', trace_id: TRACE_ID, span_id: 'b0e6f15b45c36b12'},
+      },
+    });
+
+    render(
+      <OurlogsSection
+        event={replayAndTraceEvent}
+        project={project}
+        group={rageClickGroup}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-logs/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          replayId: REPLAY_ID,
+          traceId: expect.arrayContaining([REPLAY_TRACE_ID, TRACE_ID]),
+        }),
+      })
+    );
+  });
+
+  it('falls back to trace-only logs when the replay record fails to load', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${REPLAY_ID}/`,
+      statusCode: 404,
+      body: {detail: 'Not found'},
+    });
+    const replayAndTraceEvent = EventFixture({
+      contexts: {
+        replay: {type: 'default', replay_id: REPLAY_ID},
+        trace: {type: 'trace', trace_id: TRACE_ID, span_id: 'b0e6f15b45c36b12'},
+      },
+    });
+
+    render(
+      <OurlogsSection
+        event={replayAndTraceEvent}
+        project={project}
+        group={rageClickGroup}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
+    const [, options] = mockRequest.mock.calls[0];
+    expect(options.query.traceId).toEqual([TRACE_ID]);
+    expect(options.query.replayId).toBeUndefined();
+  });
+
+  it('does not fetch the replay record for non-replay-generated issues', async () => {
+    const replayRecordRequest = mockReplayRecord([REPLAY_TRACE_ID]);
+    const errorEventWithReplay = EventFixture({
+      contexts: {
+        replay: {type: 'default', replay_id: REPLAY_ID},
+        trace: {type: 'trace', trace_id: TRACE_ID, span_id: 'b0e6f15b45c36b12'},
+      },
+    });
+
+    render(
+      <OurlogsSection event={errorEventWithReplay} project={project} group={group} />,
+      {organization}
+    );
+
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
+    expect(replayRecordRequest).not.toHaveBeenCalled();
+    const [, options] = mockRequest.mock.calls[0];
+    expect(options.query.traceId).toEqual([TRACE_ID]);
+    expect(options.query.replayId).toBeUndefined();
+  });
+
+  it('omits an empty query param when freezing on replay + traces', async () => {
+    mockReplayRecord([REPLAY_TRACE_ID]);
+
+    render(
+      <OurlogsSection event={replayEvent} project={project} group={rageClickGroup} />,
+      {organization}
+    );
+
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
+    const [, options] = mockRequest.mock.calls[0];
+    expect(options.query.query).toBeUndefined();
+  });
+
+  it('renders nothing when the event has neither a trace id nor a replay id', async () => {
+    const bareEvent = EventFixture({contexts: {}});
+
+    render(<OurlogsSection event={bareEvent} project={project} group={group} />, {
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
+    });
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 
   it('renders Open in explore button with correct URL when trace_id exists', async () => {

@@ -6,13 +6,9 @@ from typing import Any
 from unittest import mock
 
 import pytest
-from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message, Partition
-from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas import get_codec
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.query_subscriptions.consumer import (
@@ -21,15 +17,13 @@ from sentry.snuba.query_subscriptions.consumer import (
     register_subscriber,
     subscriber_registry,
 )
-from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactory
+from sentry.snuba.query_subscriptions.run import _process_subscription_message
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.utils.batching_kafka_consumer import create_topics
-from sentry.utils.kafka_config import get_topic_definition
 
-pytestmark = [requires_snuba, requires_kafka]
+pytestmark = [requires_snuba]
 
 
 @pytest.mark.snuba_ci
@@ -68,13 +62,6 @@ class BaseQuerySubscriptionTest:
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    def build_mock_message(self, data: Any, topic: Any = None) -> Any:
-        message = mock.Mock()
-        message.value.return_value = json.dumps(data)
-        if topic:
-            message.topic.return_value = topic
-        return message
-
 
 class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
     @pytest.fixture(autouse=True)
@@ -82,10 +69,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         with mock.patch("sentry.utils.metrics") as self.metrics:
             yield
 
-    def test_arroyo_consumer(self) -> None:
-        topic_defn = get_topic_definition(Topic.EVENTS)
-        create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
-
+    def test_raw_subscription_task(self) -> None:
         registration_key = "registered_test_2"
         mock_callback = mock.Mock()
         register_subscriber(registration_key)(mock_callback)
@@ -104,31 +88,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
-        commit = mock.Mock()
-        partition = Partition(ArroyoTopic("test"), 0)
-        strategy = QuerySubscriptionStrategyFactory(
-            self.dataset.value,
-            1,
-            1,
-            1,
-            DEFAULT_BLOCK_SIZE,
-            DEFAULT_BLOCK_SIZE,
-            # We have to disable multi_proc here, otherwise the consumer attempts to access the dev
-            # database rather than the test one due to reinitialising Django
-            multi_proc=False,
-        ).create_with_partitions(commit, {partition: 0})
-        message = self.build_mock_message(data, topic=self.topic)
-
-        strategy.submit(
-            Message(
-                BrokerValue(
-                    KafkaPayload(b"key", message.value().encode("utf-8"), [("should_drop", b"1")]),
-                    partition,
-                    1,
-                    datetime.now(),
-                )
-            )
-        )
+        _process_subscription_message(json.dumps(data).encode("utf-8"), self.dataset)
 
         data = deepcopy(data)
         data["payload"]["values"] = data["payload"]["result"]

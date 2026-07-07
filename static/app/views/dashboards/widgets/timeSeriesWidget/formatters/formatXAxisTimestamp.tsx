@@ -1,4 +1,6 @@
-import {getParser, getTimeFormat} from 'sentry/utils/dates';
+import moment from 'moment-timezone';
+
+import {getTimeFormat} from 'sentry/utils/dates';
 
 /**
  * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
@@ -11,15 +13,13 @@ import {getParser, getTimeFormat} from 'sentry/utils/dates';
  * ["Dec 1st", "Jan 1st 2025", "Feb 1st"] when ECharts aligns markers with starts of month across a year boundary
  * ["12:00pm", "1:00am", "2:00am", "3:00am"] when ECharts aligns ticks with hours starts
  *
- * @param value
- * @param options
+ * @param value Tick timestamp in UTC milliseconds
+ * @param userTimezone The user's configured Sentry timezone (IANA string,
+ *   e.g. 'America/New_York'). Pass 'UTC' when the page filter has UTC enabled.
  * @returns Formatted X axis label string
  */
-export function formatXAxisTimestamp(
-  value: number,
-  options: {utc?: boolean} = {utc: false}
-): string {
-  const parsed = getParser(!options.utc)(value);
+export function formatXAxisTimestamp(value: number, userTimezone: string): string {
+  const parsed = moment.tz(value, userTimezone);
 
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the
@@ -35,7 +35,7 @@ export function formatXAxisTimestamp(
     // Start of a year
     format = 'MMM Do YYYY';
   } else if (
-    parsed.day() === 0 &&
+    parsed.date() === 1 &&
     parsed.hour() === 0 &&
     parsed.minute() === 0 &&
     parsed.second() === 0

@@ -14,6 +14,11 @@ export type ConversationsEventParameters = {
   'conversations.message.click-tool-call': Record<string, unknown>;
   'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.page-view': Record<string, unknown>;
+  'conversations.save_query_modal': {
+    action: 'open' | 'submit';
+    save_type?: 'save_new_query' | 'rename_query';
+    ui_source?: 'table';
+  };
   'conversations.table.page-view': Record<string, unknown>;
   'conversations.table.paginate': {
     direction: 'next' | 'previous';
@@ -23,6 +28,7 @@ export type ConversationsEventParameters = {
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.onboarding.page-view': 'Conversations: Onboarding Page View',
   'conversations.page-view': 'Conversations: Page View',
+  'conversations.save_query_modal': 'Conversations: Save Query Modal',
   'conversations.table.page-view': 'Conversations: Table Page View',
   'conversations.table.paginate': 'Conversations: Table Paginate',
   'conversations.detail.expand-thinking': 'Conversations: Detail Expand Thinking',

@@ -23,6 +23,7 @@ DEFAULT_MAX_AGE_MINUTES = 120
 
 def send_signup_verification_email(
     email: str,
+    url_name: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
 ) -> None:
     """
@@ -31,6 +32,9 @@ def send_signup_verification_email(
     Signs {email, expires_at} into a URL-safe blob and emails the link.
     Pure send function — callers are responsible for session state
     (setting request.session[PENDING_VERIFICATION_SESSION_KEY])
+
+    url_name controls which verification endpoint the link points to,
+    allowing different signup methods to have their own completion logic.
     """
     payload = {
         "email": email,
@@ -38,7 +42,7 @@ def send_signup_verification_email(
     }
     signed_data = sign(salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, **payload)
 
-    url = absolute_uri(reverse("sentry-signup-verify-email", args=[signed_data]))
+    url = absolute_uri(reverse(url_name, args=[signed_data]))
 
     context = {
         "confirm_email": email,

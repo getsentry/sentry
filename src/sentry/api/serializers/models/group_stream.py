@@ -15,6 +15,7 @@ from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
+    GroupLevelStr,
     GroupProjectResponse,
     GroupSerializer,
     GroupSerializerSnuba,
@@ -252,7 +253,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     culprit: NotRequired[str | None]
     permalink: NotRequired[str]
     logger: NotRequired[str | None]
-    level: NotRequired[str]
+    level: NotRequired[GroupLevelStr]
     status: NotRequired[GroupStatusStr]
     statusDetails: NotRequired[GroupStatusDetailsResponseOptional]
     substatus: NotRequired[GroupSubStatusStr | None]

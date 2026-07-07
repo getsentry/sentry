@@ -110,6 +110,7 @@ const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   triggerCodingAgentHandoff: jest.fn(),
   codingAgentErrors: [],
   dismissCodingAgentError: jest.fn(),
+  warnings: [],
 };
 
 const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {

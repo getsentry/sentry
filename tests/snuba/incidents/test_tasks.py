@@ -1,54 +1,34 @@
 from copy import deepcopy
 from functools import cached_property
 
-from arroyo.processing.processor import StreamProcessor
 from arroyo.utils import metrics
-from confluent_kafka import Producer
-from confluent_kafka.admin import AdminClient
-from django.conf import settings
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
+from sentry.snuba.query_subscriptions.run import _process_subscription_message
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.skips import requires_kafka
-from sentry.utils import json, kafka_config
-from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils import json
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_state import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
-
-pytestmark = [requires_kafka]
 
 
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
         self.orig_registry = deepcopy(subscriber_registry)
-
-        cluster_options = kafka_config.get_kafka_admin_cluster_options(
-            "default", {"allow.auto.create.topics": "true"}
-        )
-        self.admin_client = AdminClient(cluster_options)
-
-        topic_defn = kafka_config.get_topic_definition(self.topic)
-        self.real_topic = topic_defn["real_topic_name"]
-        self.cluster = topic_defn["cluster"]
-
-        create_topics(self.cluster, [self.real_topic])
 
     def tearDown(self) -> None:
         super().tearDown()
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-        self.admin_client.delete_topics([self.real_topic])
         metrics._metrics_backend = None
 
     @cached_property
@@ -120,17 +100,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         return detector
 
-    @cached_property
-    def producer(self) -> Producer:
-        conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[self.cluster]["common"][
-                "bootstrap.servers"
-            ],
-            "session.timeout.ms": 6000,
-        }
-        return Producer(conf)
-
-    def run_test(self, consumer: StreamProcessor) -> None:
+    def run_test(self) -> None:
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in a GroupOpenPeriod being created.
@@ -156,8 +126,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
-        self.producer.produce(self.real_topic, json.dumps(message))
-        self.producer.flush()
 
         original_callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
         callback_invoked = []
@@ -167,15 +135,14 @@ class HandleSnubaQueryUpdateTest(TestCase):
             # processing.
             callback_invoked.append(True)
             original_callback(*args, **kwargs)
-            consumer.signal_shutdown()
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 
         with self.feature("organizations:incidents"):
             with self.tasks(), self.capture_on_commit_callbacks(execute=True):
-                # Integration test: verify Kafka consumer successfully processes
+                # Integration test: verify taskbroker raw mode successfully processes
                 # subscription updates through the workflow engine without error.
-                consumer.run()
+                _process_subscription_message(json.dumps(message).encode(), Dataset.Metrics)
 
             # Verify the callback was invoked
             assert callback_invoked, "Subscription processor callback should have been invoked"
@@ -188,18 +155,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             # Note: This test verifies subscription processing through the workflow engine.
             # IssueOccurrences are created but not persisted to Groups in this test since
             # that would require the occurrence consumer to be running, which is outside
-            # the scope of this Kafka subscription consumer integration test.
+            # the scope of this taskbroker raw-mode integration test.
 
-    def test_arroyo(self) -> None:
-        from sentry.consumers import get_stream_processor
-
-        consumer = get_stream_processor(
-            "metrics-subscription-results",
-            consumer_args=["--max-batch-size=1", "--max-batch-time-ms=1000", "--processes=1"],
-            topic=None,
-            group_id="hi",
-            strict_offset_reset=True,
-            auto_offset_reset="earliest",
-            enforce_schema=True,
-        )
-        self.run_test(consumer)
+    def test_raw_subscription_task(self) -> None:
+        self.run_test()
