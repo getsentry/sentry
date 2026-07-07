@@ -2,6 +2,7 @@ import {createContext, useContext, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
+import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
 
 const supportsServiceWorker = 'serviceWorker' in navigator;
@@ -49,7 +50,7 @@ export function useServiceWorker() {
 /**
  * Register a service worker and send event `worker.init` to the newest worker
  * available.
- */
+    if (!isServiceWorkerSupported()) {
 function useRegisterServiceWorker() {
   useEffect(() => {
     if (!supportsServiceWorker) {
@@ -89,7 +90,7 @@ function useRegisterServiceWorker() {
 }
 
 function useServiceWorkerUpdateCheck() {
-  const {state} = useFrontendVersion();
+    if (!isServiceWorkerSupported() || state === 'current') {
 
   useEffect(() => {
     if (!supportsServiceWorker || state === 'current') {
@@ -118,7 +119,7 @@ function useServiceWorkerUpdateCheck() {
     };
   }, [state]);
 }
-
+    if (!isServiceWorkerSupported()) {
 function useLogControllerChangeEvent() {
   useEffect(() => {
     if (!supportsServiceWorker) {

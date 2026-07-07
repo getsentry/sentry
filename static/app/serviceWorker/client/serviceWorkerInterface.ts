@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import type {EventMessage, RequestMessage} from 'sentry/serviceWorker/types';
 
 type RequestCallback = (error: unknown, result: unknown) => void;
@@ -17,7 +18,7 @@ export class ServiceWorkerController {
   _outstandingRequests = new Map<string, RequestCallback>();
 
   constructor() {
-    if (!supportsServiceWorker) {
+    if (!isServiceWorkerSupported()) {
       return;
     }
     navigator.serviceWorker.addEventListener('message', this._onMessage);
