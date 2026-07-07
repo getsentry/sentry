@@ -308,14 +308,7 @@ function TraceConversationTranscript({
         sizeStorageKey="trace-conversation-split-size"
         left={
           <ConversationLeftPanel>
-            <Flex
-              flex="1"
-              minHeight="0"
-              width="100%"
-              background="secondary"
-              overflowX="hidden"
-              overflowY="auto"
-            >
+       <Flex flex="1" minHeight="0" overflowY="auto">
               <MessagesPanelNew
                 nodes={nodes}
                 selectedNodeId={selectedNode?.id ?? null}
