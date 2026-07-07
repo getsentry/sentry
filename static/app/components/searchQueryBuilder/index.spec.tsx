@@ -5205,6 +5205,31 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('should support configured filters named like Object prototype keys', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowUnsupportedFilters
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            constructor: {
+              key: 'constructor',
+              name: 'Constructor',
+              kind: FieldKind.TAG,
+            },
+          }}
+          initialQuery="constructor:value"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'constructor:value'})).not.toHaveAttribute(
+          'aria-invalid',
+          'true'
+        );
+      });
+    });
+
     describe('secondary aliases provided', () => {
       it('should not mark secondary aliases as invalid', async () => {
         render(
