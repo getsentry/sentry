@@ -1,5 +1,6 @@
 import {type Key, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -109,7 +110,12 @@ export function TraceAiConversations({
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
   const conversationUrl = linkConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/${selectedSpanId && activeConversationId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
+        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/?${qs.stringify(
+          {
+            referrer: 'trace-view',
+            ...(selectedSpanId && activeConversationId ? {spanId: selectedSpanId} : {}),
+          }
+        )}`
       )
     : null;
 
@@ -308,7 +314,7 @@ function TraceConversationTranscript({
         sizeStorageKey="trace-conversation-split-size"
         left={
           <ConversationLeftPanel>
-       <Flex flex="1" minHeight="0" overflowY="auto">
+            <Flex flex="1" minHeight="0" overflowY="auto">
               <MessagesPanelNew
                 nodes={nodes}
                 selectedNodeId={selectedNode?.id ?? null}
