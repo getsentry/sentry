@@ -101,6 +101,21 @@ describe('resolveSeerProjectSelection', () => {
     });
   });
 
+  it('lifts a top-level project filter alongside a parenthesized group', () => {
+    // The project term is a top-level AND, not under an OR, so lifting is safe.
+    expect(resolveSeerProjectSelection('project:seer (span.op:db)', projects)).toEqual({
+      projectIds: [11],
+      query: 'span.op:db',
+    });
+  });
+
+  it('lifts a top-level project filter when an OR does not scope it', () => {
+    // The OR only scopes the span.op group; project:seer is still a top-level AND.
+    expect(
+      resolveSeerProjectSelection('project:seer AND (span.op:a OR span.op:b)', projects)
+    ).toEqual({projectIds: [11], query: '( span.op:a OR span.op:b )'});
+  });
+
   it('falls back to expandedProjectIds when the query has no project filter', () => {
     expect(resolveSeerProjectSelection('span.op:db', projects, [5, 6])).toEqual({
       projectIds: [5, 6],

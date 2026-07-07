@@ -13,9 +13,11 @@ import {
   parseSearch,
   TermOperator,
   Token,
+  type TokenResult,
   type WildcardOperator,
   wildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -102,24 +104,41 @@ export function getExpandedProjectIds(
   return hasExtraProjects ? returnedProjectIds : undefined;
 }
 
-/**
- * Whether the query uses OR / parenthesized groups. Moving a `project:` term to
- * the global page-level selector is only equivalent when it's a top-level AND
- * condition; inside an OR or a group it may be scoped to one branch (e.g.
- * `(project:a x) OR (project:b y)`), so lifting it would change the query's
- * meaning. Uses `flattenParenGroups` so ORs nested inside groups are still seen.
- */
-function queryHasBranching(query: string): boolean {
-  const parsed = parseSearch(query, {flattenParenGroups: true});
-  if (!parsed) {
-    return false;
-  }
-  return parsed.some(
-    token =>
-      token.type === Token.L_PAREN ||
-      token.type === Token.R_PAREN ||
-      (token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR)
+function isProjectFilterToken(token: TokenResult<Token>): boolean {
+  return (
+    token.type === Token.FILTER &&
+    (getKeyName(token.key) === 'project' || getKeyName(token.key) === 'project.id')
   );
+}
+
+/**
+ * Whether any `project`/`project.id` filter sits under an `OR`. Moving a project
+ * term to the global page-level selector (a top-level AND) is only equivalent
+ * when the term isn't scoped to one branch of a disjunction — e.g.
+ * `(project:a x) OR (project:b y)` must not be lifted, but `project:a (x OR y)`
+ * is safe. Walks the parse tree tracking whether the current level (or any
+ * ancestor) contains an `OR`; a group under an `OR` propagates that context.
+ */
+function hasProjectFilterUnderOr(
+  tokens: Array<TokenResult<Token>>,
+  underOr: boolean
+): boolean {
+  const levelHasOr = tokens.some(
+    token => token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR
+  );
+  const effectiveUnderOr = underOr || levelHasOr;
+  for (const token of tokens) {
+    if (effectiveUnderOr && isProjectFilterToken(token)) {
+      return true;
+    }
+    if (
+      token.type === Token.LOGIC_GROUP &&
+      hasProjectFilterUnderOr(token.inner, effectiveUnderOr)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export interface SeerProjectSelection {
@@ -140,12 +159,12 @@ export interface SeerProjectSelection {
  *
  * `project:` values are resolved by slug (falling back to a numeric id);
  * `project.id:` values are taken as ids directly. This is all-or-nothing: if any
- * project value can't be resolved to a known project, or the query uses OR /
- * grouping (where a project term may be scoped to one branch rather than a
- * top-level AND), the whole filter is left in the query untouched and the
- * selection is unchanged, rather than changing the query's meaning. Falls back to
- * `expandedProjectIds` (the scope Seer broadened to) only when the query has no
- * project filter at all. Returns `projectIds: undefined` when neither is present.
+ * project value can't be resolved to a known project, or a project term sits under
+ * an `OR` (where it may be scoped to one branch rather than a top-level AND), the
+ * whole filter is left in the query untouched and the selection is unchanged,
+ * rather than changing the query's meaning. Falls back to `expandedProjectIds`
+ * (the scope Seer broadened to) only when the query has no project filter at all.
+ * Returns `projectIds: undefined` when neither is present.
  */
 export function resolveSeerProjectSelection(
   query: string,
@@ -178,11 +197,11 @@ export function resolveSeerProjectSelection(
 
   if (projectValues.length > 0 || projectIdValues.length > 0) {
     // Only move the filter to the selector when every project value resolves and
-    // the query has no OR/grouping. Otherwise leave the whole filter in the query
-    // untouched: removeFilter drops every value for the key regardless of nesting,
-    // so lifting would silently drop an unresolvable value or change the meaning
-    // of a branch-scoped condition (e.g. `(project:a x) OR (project:b y)`).
-    if (allResolved && !queryHasBranching(query)) {
+    // no project term sits under an OR. Otherwise leave the whole filter in the
+    // query untouched: removeFilter drops every value for the key regardless of
+    // nesting, so lifting would silently drop an unresolvable value or change the
+    // meaning of a branch-scoped condition (e.g. `(project:a x) OR (project:b y)`).
+    if (allResolved && !hasProjectFilterUnderOr(parseSearch(query) ?? [], false)) {
       search.removeFilter('project');
       search.removeFilter('project.id');
       return {
