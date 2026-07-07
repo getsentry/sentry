@@ -282,7 +282,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
             event=audit_log.get_event_id("AUTOFIX_REPO_EDIT"),
             data={
                 "project_id": project.id,
-                "repository_id": repo_id,
+                "repository_id": str(repo_id),
                 "fields_updated": sorted(data.keys()),
             },
         )
@@ -305,7 +305,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
             organization=project.organization,
             target_object=project.id,
             event=audit_log.get_event_id("AUTOFIX_REPO_REMOVE"),
-            data={"project_id": project.id, "repository_id": repo_id},
+            data={"project_id": project.id, "repository_id": str(repo_id)},
         )
 
         return Response(status=204)
