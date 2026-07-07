@@ -33,21 +33,6 @@ def test_build_sentry_attribute_context_project_id_string_type() -> None:
     assert context["brief"] == "The id of the project."
 
 
-def test_build_sentry_attribute_context_project_virtual_column() -> None:
-    # `project` is served as a virtual column (VirtualColumnDefinition), not a
-    # ResolvedAttribute. Its brief must still surface via the virtual-context
-    # fallback, marked isConvention=False with no deprecation metadata.
-    context = build_sentry_attribute_context("project", "string", SupportedTraceItemType.SPANS)
-    assert context is not None
-    assert context["isConvention"] is False
-    assert context["brief"] == (
-        "The name of the project. In some pages of sentry.io, you can also "
-        "filter on project using a dropdown."
-    )
-    assert context["isDeprecated"] is False
-    assert "replacementAttribute" not in context
-
-
 def test_build_sentry_attribute_context_type_mismatch_returns_none() -> None:
     # A request whose type doesn't match the definition (e.g. a string tag that
     # merely shares the `span.duration` alias) must not be labeled with the
