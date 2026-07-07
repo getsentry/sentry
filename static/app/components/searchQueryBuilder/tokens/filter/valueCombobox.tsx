@@ -217,7 +217,7 @@ export function getPredefinedValues({
     return null;
   }
 
-  const definedValues = key?.values ?? fieldDefinition?.values;
+  const definedValues = Array.isArray(key?.values) ? key.values : fieldDefinition?.values;
   const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {
@@ -281,7 +281,8 @@ export function tokenSupportsMultipleValues(
     case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
-      const key = keys[getKeyName(token.key)];
+      const keyName = getKeyName(token.key);
+      const key = Object.hasOwn(keys, keyName) ? keys[keyName] : undefined;
       if (!key) {
         return true;
       }
@@ -377,7 +378,7 @@ function useFilterSuggestions({
     getTagKeys,
     getTagValues,
   } = useSearchQueryBuilderConfig();
-  const key = filterKeys[keyName];
+  const key = Object.hasOwn(filterKeys, keyName) ? filterKeys[keyName] : undefined;
   const fieldDefinition = getFieldDefinition(keyName);
   const valueType = getFilterValueType(token, fieldDefinition);
   const predefinedValues = useMemo(

@@ -92,7 +92,7 @@ export function createSection(
     label: section.label,
     options: section.children
       .map(key => {
-        if (!keys[key]) {
+        if (!Object.hasOwn(keys, key)) {
           return null;
         }
         return createItem(keys[key], getFieldDefinition(key), section);
