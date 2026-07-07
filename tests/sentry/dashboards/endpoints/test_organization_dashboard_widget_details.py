@@ -1624,7 +1624,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             )
         assert response.status_code == 400, response.data
         assert (
-            response.data["queries"][0]["aggregates"] == "Heatmap widgets support one aggregate."
+            response.data["queries"][0]["aggregates"] == "Heatmap widgets support one aggregate"
         ), response.data
 
     def test_heatmap_rejects_non_metric_aggregate(self) -> None:
@@ -1710,6 +1710,37 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             response.data["queries"][0]["columns"]
             == "Heatmap widgets don't support group-by columns"
         ), response.data
+
+    def test_heatmap_rejects_group_by_columns_and_aggregate(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["sum(value,foo,counter,none)", "environment"],
+                    "columns": ["environment"],
+                    "aggregates": ["sum(value,foo,counter,none)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["queries"][0]["columns"]
+            == "Heatmap widgets don't support group-by columns"
+        ), (
+            response.data["queries"][0]["aggregates"]
+            == "Heatmap widgets are only supported by distribution type metrics"
+        )
 
     def test_heatmap_rejects_thresholds(self) -> None:
         data = {
