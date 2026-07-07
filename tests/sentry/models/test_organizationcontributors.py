@@ -28,6 +28,15 @@ NON_BOT_ALIASES = [
     "group_lead",
     "service_accountant",
     "my_project_42_bot_thing",
+    # Known gap (intentional): pre-16.0 GitLab named access-token bots with a
+    # numeric counter and no random suffix, so they lack the trailing "_bot_"
+    # the pattern requires. We deliberately do not match these -- see the note
+    # on GITLAB_BOT_USERNAME_RE -- so they are asserted as non-bots to pin that
+    # current behavior. If legacy support is ever added, move these to
+    # BOT_ALIASES.
+    "project_123_bot",
+    "project_123_bot2",
+    "group_109_bot2",
     # A null alias must never be treated as a bot.
     None,
 ]

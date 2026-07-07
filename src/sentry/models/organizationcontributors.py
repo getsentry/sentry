@@ -21,6 +21,15 @@ ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD = 2
 #                                ``service_account_group_{group_id}_{random}``
 # GitHub usernames cannot contain underscores, so these patterns never collide
 # with a real GitHub login.
+#
+# Known gap (intentional): GitLab < 16.0 named access-token bots with a numeric
+# counter and no random suffix -- ``project_{id}_bot`` / ``project_{id}_bot2`` /
+# ``group_{id}_bot2`` -- which lack the trailing ``_`` this pattern requires and
+# so are NOT matched. We only support the >= 16.0 ``_bot_{random}`` format:
+# service accounts (the other prefix) did not exist until 16.1, and the legacy
+# window (self-managed instances on 13.0-15.11 that are also on Seer GitLab
+# code review) is narrow enough that we accept miscounting those bots as human
+# rather than loosen the boundary. See SCM-121 for the broader alias caveats.
 GITLAB_BOT_USERNAME_RE = re.compile(r"^(project_\d+_bot_|group_\d+_bot_|service_account_)")
 
 
