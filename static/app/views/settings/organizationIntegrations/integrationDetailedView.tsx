@@ -257,7 +257,10 @@ export default function IntegrationDetailedView() {
   }, []);
 
   const openOutdatedGithubPermissionsModal = useCallback(() => {
-    openGithubPermissionsUpdateModal(outdatedConfigurations[0]!);
+    const [outdatedConfiguration] = outdatedConfigurations;
+    if (outdatedConfiguration) {
+      openGithubPermissionsUpdateModal(outdatedConfiguration);
+    }
   }, [openGithubPermissionsUpdateModal, outdatedConfigurations]);
 
   // Auto-opens the update-permissions modal when the detail page is loaded with
@@ -595,7 +598,9 @@ export default function IntegrationDetailedView() {
       );
     }
 
-    if (outdatedConfigurations.length !== 1 || !provider) {
+    const [outdatedConfiguration] = outdatedConfigurations;
+
+    if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
       return (
         <Button
           size="xs"
@@ -606,8 +611,6 @@ export default function IntegrationDetailedView() {
         </Button>
       );
     }
-
-    const outdatedConfiguration = outdatedConfigurations[0]!;
 
     return provider.key === 'github' ? (
       <Button

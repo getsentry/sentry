@@ -1992,6 +1992,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.trace-item-details-timebuffer-minutes",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # minutes
+register(
     "performance.traces.query_timestamp_projects",
     type=Bool,
     default=False,

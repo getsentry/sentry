@@ -258,6 +258,21 @@ class CursorWebhookEndpoint(Endpoint):
                     "cursor_webhook.pr_attribution_failed",
                     extra={"agent_id": agent_id, "pr_url": pr_url},
                 )
+        elif status == CodingAgentStatus.COMPLETED:
+            # A completed agent that we did not attribute is otherwise invisible: the
+            # webhook arrived and the agent finished, but one of the remaining gates
+            # dropped it silently, leaving no SEER_DELEGATED_CURSOR row and no trace of
+            # why. Log which gate blocked so these are diagnosable from logs alone.
+            logger.info(
+                "cursor_webhook.attribution_skipped",
+                extra={
+                    "agent_id": agent_id,
+                    "pr_url": pr_url,
+                    "repo_full_name": repo_full_name,
+                    "known_to_seer": known_to_seer,
+                    "has_pr_url": bool(pr_url),
+                },
+            )
 
     def _validate_pr_url(self, pr_url: str, repo_full_name: str) -> bool:
         """Validates that the URL points to the expected repo."""
@@ -282,6 +297,7 @@ class CursorWebhookEndpoint(Endpoint):
                 "agent_id": agent_id,
                 "status": status.value,
                 "has_result": result is not None,
+                "known_to_seer": known_to_seer,
             },
         )
         return known_to_seer

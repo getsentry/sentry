@@ -1,3 +1,5 @@
-from sentry.integrations.constants import SlackScope  # noqa: F401
+from sentry.integrations.constants import SlackScope
+
+__all__ = ["SlackScope", "SLACK_RATE_LIMITED_MESSAGE"]
 
 SLACK_RATE_LIMITED_MESSAGE = "Requests to Slack exceeded the rate limit. Please try again later."
