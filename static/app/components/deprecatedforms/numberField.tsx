@@ -13,7 +13,7 @@ type Props = {
  */
 // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-export class NumberField extends InputField<Props> {
+class NumberField extends InputField<Props> {
   coerceValue(value: any) {
     const intValue = parseInt(value, 10);
 

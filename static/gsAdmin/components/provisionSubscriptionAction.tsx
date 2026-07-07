@@ -861,7 +861,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               name={`reserved${capitalizedApiName}`}
                               required
                               disabled={
-                                !!this.state.data[`reservedCpe${capitalizedApiName}`]
+                                Number(
+                                  this.state.data[`reservedCpe${capitalizedApiName}`]
+                                ) > 0
                               }
                               value={
                                 this.state.data[`reserved${capitalizedApiName}`] ?? ''
