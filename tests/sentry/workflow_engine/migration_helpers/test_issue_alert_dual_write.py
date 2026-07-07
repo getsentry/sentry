@@ -4,6 +4,7 @@ from jsonschema.exceptions import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
@@ -133,6 +134,11 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert workflow.enabled is True
 
     def test_update_issue_alert(self) -> None:
+        # NotifyEventAction dual-writes to a WEBHOOK action only when the project has the legacy
+        # webhook enabled.
+        assert self.issue_alert.project
+        ProjectOption.objects.set_value(self.issue_alert.project, "webhooks:enabled", True)
+
         conditions_payload = [
             {
                 "id": FirstSeenEventCondition.id,
@@ -200,6 +206,33 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         # tested fully in test_migrate_rule_action.py
         assert action.type == Action.Type.WEBHOOK
         assert action.config.get("target_identifier") == "webhooks"
+
+    def test_update_issue_alert__notify_event_webhooks_disabled(self) -> None:
+        # Without the legacy webhook enabled, the NotifyEventAction is skipped and no action is
+        # written -- the workflow is left as a valid "No actions" automation.
+        rule_data = self.issue_alert.data
+        rule_data.update(
+            {
+                "action_match": "none",
+                "filter_match": "all",
+                "conditions": [{"id": FirstSeenEventCondition.id}],
+                "frequency": 60,
+                "actions": [
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "uuid": "test-uuid",
+                    }
+                ],
+            }
+        )
+
+        self.issue_alert.update(data=rule_data)
+        update_migrated_issue_alert(self.issue_alert)
+
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
 
     def test_update_issue_alert__none_match(self) -> None:
         conditions_payload = [

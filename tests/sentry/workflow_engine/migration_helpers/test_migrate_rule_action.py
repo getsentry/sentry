@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
@@ -643,22 +644,26 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_notify_event_action_migration(self) -> None:
-        # NotifyEventAction dual-writes to a WEBHOOK action targeting the legacy webhooks service.
-        # Runtime delivery stays gated by send_legacy_webhooks_for_invocation (webhooks:enabled/urls).
-        action_data = [
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "0202a169-326b-4575-8887-afe69cc58040",
-            },
-        ]
+    NOTIFY_EVENT_ACTION_DATA = [
+        {
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
+        },
+        {
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            "uuid": "0202a169-326b-4575-8887-afe69cc58040",
+        },
+    ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        assert len(actions) == len(action_data)
+    def test_notify_event_action_migration_webhooks_enabled(self) -> None:
+        # NotifyEventAction dual-writes to a WEBHOOK action targeting the legacy webhooks service,
+        # but only when the project has the legacy webhook enabled.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+
+        actions = build_notification_actions_from_rule_data_actions(
+            self.NOTIFY_EVENT_ACTION_DATA, project=self.project
+        )
+        assert len(actions) == len(self.NOTIFY_EVENT_ACTION_DATA)
         for action in actions:
             action.refresh_from_db()
             assert action.type == Action.Type.WEBHOOK
@@ -667,6 +672,19 @@ class TestNotificationActionMigrationUtils(TestCase):
             assert action.config.get("target_type") is None
             assert action.integration_id is None
             assert action.data == {}
+
+    def test_notify_event_action_migration_webhooks_disabled(self) -> None:
+        # Without the legacy webhook enabled, NotifyEventAction delivers nothing, so it is skipped
+        # (no action written) rather than persisted as a dead webhook action.
+        actions = build_notification_actions_from_rule_data_actions(
+            self.NOTIFY_EVENT_ACTION_DATA, project=self.project
+        )
+        assert actions == []
+
+    def test_notify_event_action_migration_no_project(self) -> None:
+        # Without a project to gate on, the NotifyEventAction dual-write is skipped.
+        actions = build_notification_actions_from_rule_data_actions(self.NOTIFY_EVENT_ACTION_DATA)
+        assert actions == []
 
     def test_webhook_action_migration(self) -> None:
         action_data = WEBHOOK_ACTION_DATA_BLOBS
@@ -856,14 +874,6 @@ class TestNotificationActionMigrationUtils(TestCase):
                     "targetType": "IssueOwners",
                 },
                 Action.Type.EMAIL,
-            ),
-            # NotifyEventAction (legacy webhooks) -> WEBHOOK
-            (
-                {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "uuid": "test-uuid",
-                },
-                Action.Type.WEBHOOK,
             ),
             # Webhook
             (

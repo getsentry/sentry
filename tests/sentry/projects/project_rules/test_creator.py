@@ -1,4 +1,5 @@
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
@@ -54,6 +55,10 @@ class TestProjectRuleCreator(TestCase):
         )
 
     def test_create_rule_and_workflow(self) -> None:
+        # NotifyEventAction dual-writes to a WEBHOOK action only when the project has the legacy
+        # webhook enabled.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+
         rule = self.creator.run()
 
         rule_id = rule.id
@@ -91,3 +96,12 @@ class TestProjectRuleCreator(TestCase):
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.WEBHOOK
         assert action.config.get("target_identifier") == "webhooks"
+
+    def test_create_rule_and_workflow__notify_event_webhooks_disabled(self) -> None:
+        # Without the legacy webhook enabled, the NotifyEventAction is skipped and no action is
+        # written; the workflow is left as a valid "No actions" automation.
+        rule = self.creator.run()
+
+        workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+        action_filter = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert not DataConditionGroupAction.objects.filter(condition_group=action_filter).exists()
