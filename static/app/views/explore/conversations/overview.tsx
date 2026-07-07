@@ -31,7 +31,10 @@ import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {
+  FilterUrlParams,
+  TableUrlParams,
+} from 'sentry/views/insights/pages/agents/utils/urlParams';
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
@@ -103,17 +106,16 @@ function ConversationsOverviewPage() {
             <Flex gap="md" align="center" wrap="wrap">
               <Flex gap="md" align="center" wrap="wrap">
                 <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
+                  <ProjectPageFilter
+                    resetParamsOnChange={[TableUrlParams.CURSOR, FilterUrlParams.AGENT]}
+                  />
                   <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
                   <DatePageFilter
                     {...datePageFilterProps}
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
                   />
                 </PageFilterBar>
-                <AgentSelector
-                  storageKeyPrefix="conversations:agent-filter"
-                  referrer="api.insights.conversations.get-agent-names"
-                />
+                <AgentSelector referrer="api.insights.conversations.get-agent-names" />
               </Flex>
               {!showOnboarding && !isOnboardingLoading && (
                 <Flex flex={1} minWidth="300px">
