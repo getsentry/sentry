@@ -22,7 +22,7 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
-_RESOLVES: frozenset[int] = frozenset(
+_RESOLVES: frozenset[GroupActionType] = frozenset(
     {
         GroupActionType.RESOLVE,
         GroupActionType.RESOLVED_IN_PULL_REQUEST,
@@ -30,7 +30,7 @@ _RESOLVES: frozenset[int] = frozenset(
     }
 )
 
-_REOPENS: frozenset[int] = frozenset(
+_REOPENS: frozenset[GroupActionType] = frozenset(
     {
         GroupActionType.UNRESOLVE,
         GroupActionType.SET_REGRESSED,
