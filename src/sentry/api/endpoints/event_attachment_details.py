@@ -39,10 +39,11 @@ DOWNLOAD_PARAM = OpenApiParameter(
     name="download",
     location="query",
     required=False,
-    type=bool,
+    type=str,
     description=(
-        "If set, the response will be a binary file download instead of JSON metadata. "
-        "The response will include `Content-Disposition` and `Content-Type` headers."
+        "If this parameter is present, the response will be a binary file download "
+        "instead of JSON metadata. The value does not matter — any value (including "
+        "empty) triggers the download."
     ),
 )
 
