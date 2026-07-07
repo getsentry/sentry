@@ -7,6 +7,7 @@ import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuer
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
   AskSeerItem,
+  ConvertHumanizedItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
@@ -147,6 +148,20 @@ export function createRawSearchItem(value: string): RawSearchItem {
     details: null,
     type: 'raw-search',
     trailingItems: () => <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
+  };
+}
+
+export function createConvertHumanizedItem(esq: string): ConvertHumanizedItem {
+  return {
+    key: getEscapedKey(`convert-humanized:${esq}`),
+    label: <FormattedQuery query={esq} />,
+    value: esq,
+    textValue: esq,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'convert-humanized',
+    trailingItems: () => <SearchItemLabel>{t('Convert')}</SearchItemLabel>,
   };
 }
 

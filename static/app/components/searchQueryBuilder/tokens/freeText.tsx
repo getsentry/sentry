@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
+import {humanizedToEsq} from 'sentry/components/searchQueryBuilder/askSeerCombobox/humanizedToEsq';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderInteraction,
@@ -14,6 +15,7 @@ import {
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
+import {createConvertHumanizedItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {
@@ -295,7 +297,24 @@ function SearchQueryBuilderInputInternal({
       includeSuggestions: true,
     });
 
-  const items = customMenu ? sectionItems : sortedFilteredItems;
+  // Best-effort local conversion of "humanized ESQ" (e.g. "is unresolved
+  // assigned is me") into real ESQ ("is:unresolved assigned:me"). Runs on every
+  // keystroke; returns null when the input isn't cleanly invertible (then we
+  // show nothing extra and the existing AI/Seer path stays available).
+  const humanizedEsqSuggestion = useMemo(() => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const esq = humanizedToEsq(trimmed, key => Boolean(filterKeys[key]));
+    return esq && esq !== trimmed ? esq : null;
+  }, [inputValue, filterKeys]);
+
+  const baseItems = customMenu ? sectionItems : sortedFilteredItems;
+  const items =
+    humanizedEsqSuggestion && !customMenu
+      ? [createConvertHumanizedItem(humanizedEsqSuggestion), ...baseItems]
+      : baseItems;
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
 
@@ -446,6 +465,15 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (option.type === 'recent-query') {
+            dispatch({
+              type: 'UPDATE_QUERY',
+              query: option.value,
+              focusOverride: {itemKey: 'end'},
+            });
+            return;
+          }
+
+          if (option.type === 'convert-humanized') {
             dispatch({
               type: 'UPDATE_QUERY',
               query: option.value,
