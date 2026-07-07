@@ -494,14 +494,14 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(postData).forEach(([key, value]) => {
       if (
         (key.startsWith('paygCpe') || key.startsWith('reservedCpe')) &&
-        !isNaN(value as number)
+        typeof value === 'number'
       ) {
-        postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
+        postData[key] = toCpeCents(value);
       } else if (
         (key.startsWith('customPrice') || key === 'seerBudget') &&
-        !isNaN(value as number)
+        typeof value === 'number'
       ) {
-        postData[key] = toCents(value as number); // price should be in cents
+        postData[key] = toCents(value);
       }
     });
 
