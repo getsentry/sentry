@@ -123,8 +123,6 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
 
 const PinnedTableBody = styled(TableBody)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  height: max-content;
-  flex-shrink: 0;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
@@ -132,7 +130,10 @@ const PinnedTableBody = styled(TableBody)`
 `;
 
 const PinnedToolbarRow = styled(GridRow)`
+  position: sticky;
+  bottom: 0;
   z-index: 1;
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const PinnedGridBodyCell = styled('td')`

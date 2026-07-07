@@ -12,6 +12,10 @@ export enum TableUrlParams {
   SORT_ORDER = 'sortKind',
 }
 
+export enum FilterUrlParams {
+  AGENT = 'agent',
+}
+
 export function useTraceDrawerQueryState() {
   return useQueryStates(
     {

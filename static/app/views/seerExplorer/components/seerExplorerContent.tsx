@@ -42,8 +42,10 @@ import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
   getLangfuseUrl,
+  getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
+  useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -488,6 +490,12 @@ export function SeerExplorerContent({
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
 
+  // Resume the run after we return from an OAuth reconnect.
+  useSeerExplorerResumeDeepLink({
+    onResume: handleReauthComplete,
+    ready: !readOnly && isReauthPending && !!reauthData,
+  });
+
   // Track when a session times out
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
@@ -615,6 +623,11 @@ export function SeerExplorerContent({
               <ReauthMonitoringProviderBlock
                 data={reauthData}
                 onComplete={handleReauthComplete}
+                returnUrl={
+                  runId === null
+                    ? undefined
+                    : getRelativeExplorerUrl(runId, {resume: true})
+                }
               />
             )}
           </Fragment>

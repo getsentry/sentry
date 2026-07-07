@@ -60,12 +60,16 @@ _DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
 )
 
 
-# Heat Map unfurls always render to a fixed Chartcuterie canvas, so we target a
-# fixed-density grid sized to those dimensions. 150 x 50 over 1200x400 gives
-# ~8px square cells. 150 is an approximation, since we're limited to a known set
-# of intervals.
+# Heat Map unfurls always render to a fixed Chartcuterie canvas. We pick the
+# X-axis interval to target ~150 columns; the actual column count varies because
+# we're limited to a known set of intervals. The Y-axis bucket count is then
+# derived geometrically from that column width (see `_heatmap_y_buckets`) so
+# cells render square regardless of how the interval quantization landed,
+# falling back to `HEATMAP_FALLBACK_Y_BUCKETS` when the geometry is undefined.
 HEATMAP_TARGET_X_BUCKETS = 150
-HEATMAP_TARGET_Y_BUCKETS = 50
+# Fallback Y-axis bucket count for degenerate time ranges. 50 over the 400px
+# canvas gives ~8px cells.
+HEATMAP_FALLBACK_Y_BUCKETS = 50
 
 
 def _query_time_range(params: QueryDict) -> timedelta:
@@ -105,6 +109,27 @@ def _heatmap_interval(time_range: timedelta) -> str:
         if seconds / granularity <= HEATMAP_TARGET_X_BUCKETS:
             return f"{granularity}s"
     return f"{max(VALID_GRANULARITIES)}s"
+
+
+def _heatmap_y_buckets(time_range: timedelta, interval: str) -> int | None:
+    """Derive the Y-axis bucket count that makes Heat Map cells square on the
+    fixed Chartcuterie canvas: the X column width in px is
+    ``(interval / time_range) * width``, and we pick the Y bucket count whose
+    cell height matches it. Returns ``None`` when the geometry is undefined
+    (empty time range / interval) so the caller can fall back to a default.
+    Mirrors the frontend's ``calculateHeatMapBucketDimensions``."""
+    total = time_range.total_seconds()
+    interval_td = parse_stats_period(interval)
+    interval_seconds = interval_td.total_seconds() if interval_td else 0
+    if total <= 0 or interval_seconds <= 0:
+        return None
+    x_columns = total / interval_seconds
+    column_width_px = EXPLORE_CHART_SIZE["width"] / x_columns
+    square_buckets = round(EXPLORE_CHART_SIZE["height"] / column_width_px)
+    # Clamp to [1 row, one row per vertical pixel]. The lower bound covers the
+    # single-column case; the upper bound keeps very long ranges from requesting
+    # sub-pixel rows (and blowing past the events-heatmap yBuckets cap).
+    return max(1, min(square_buckets, EXPLORE_CHART_SIZE["height"]))
 
 
 def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
@@ -172,9 +197,9 @@ def _parse_aggregate_field_entries(
 def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     """Assemble the QueryDict sent to the events-heatmap API. Like
     ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
-    yBuckets). The URL interval is ignored; instead we target a fixed-density
-    grid (`HEATMAP_TARGET_X_BUCKETS` x `HEATMAP_TARGET_Y_BUCKETS`) sized to the
-    Chartcuterie canvas."""
+    yBuckets). The URL interval is ignored; instead we pick the interval that
+    targets `HEATMAP_TARGET_X_BUCKETS` columns and derive `yBuckets`
+    geometrically so cells render square on the Chartcuterie canvas."""
     out = QueryDict(mutable=True)
 
     for param in ("project", "statsPeriod", "start", "end", "environment"):
@@ -199,8 +224,11 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    out["interval"] = _heatmap_interval(_query_time_range(out))
-    out["yBuckets"] = str(HEATMAP_TARGET_Y_BUCKETS)
+    time_range = _query_time_range(out)
+    interval = _heatmap_interval(time_range)
+    out["interval"] = interval
+    y_buckets = _heatmap_y_buckets(time_range, interval)
+    out["yBuckets"] = str(y_buckets if y_buckets is not None else HEATMAP_FALLBACK_Y_BUCKETS)
 
     # Fixed axes — the endpoint currently only supports these values.
     out["xAxis"] = "time"

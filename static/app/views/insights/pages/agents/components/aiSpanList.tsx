@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
-  getFirstToolInputValue,
+  getToolInputPreview,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -500,12 +500,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: firstInputValue || (toolName ? op : ''),
+        subtitle: inputPreview || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:
