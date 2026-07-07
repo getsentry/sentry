@@ -20,7 +20,6 @@ import {
   ConversationSpanDetail,
   type DetailTab,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {
   MessagesPanelNew,
@@ -29,9 +28,12 @@ import {
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
+import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -82,6 +84,22 @@ export function TraceAiConversations({
     [conversationNodes, nodeTraceMap, traceSlug]
   );
 
+  // For each conversation, check whether the trace's AI nodes produce any
+  // transcript messages. Only conversations with actual input/output content
+  // get a Transcript tab.
+  const conversationsWithMessages = useMemo(() => {
+    const result = new Set<string>();
+    for (const id of conversationIds) {
+      const convNodes = allAiNodes.filter(
+        n => getStringAttr(n, SpanFields.GEN_AI_CONVERSATION_ID) === id
+      );
+      if (extractMessagesFromNodes(convNodes).length > 0) {
+        result.add(id);
+      }
+    }
+    return result;
+  }, [conversationIds, allAiNodes]);
+
   const tabItems = useMemo((): Array<{
     conversationId: string | null;
     key: string;
@@ -92,20 +110,23 @@ export function TraceAiConversations({
       label: hasRedesign ? t('Timeline') : t('Spans'),
       conversationId: null,
     };
-    const conversationTabs = conversationIds.map(id => ({
+    const transcriptIds = conversationIds.filter(id =>
+      hasRedesign ? conversationsWithMessages.has(id) : true
+    );
+    const conversationTabs = transcriptIds.map(id => ({
       key: `chat-${id}`,
       label: hasRedesign
-        ? conversationIds.length === 1
+        ? transcriptIds.length === 1
           ? t('Transcript')
           : t('Transcript %s', id.slice(0, 8))
-        : conversationIds.length === 1
+        : transcriptIds.length === 1
           ? t('Chat')
           : t('Chat %s', id.slice(0, 8)),
       conversationId: id,
     }));
 
     return [spansTab, ...conversationTabs];
-  }, [conversationIds, hasRedesign]);
+  }, [conversationIds, conversationsWithMessages, hasRedesign]);
 
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
   const conversationUrl = linkConversationId
@@ -122,13 +143,6 @@ export function TraceAiConversations({
   return (
     <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
       <Flex direction="column" height="100%">
-        {activeConversationId && (
-          <TraceConversationHeader
-            conversationId={activeConversationId}
-            nodes={traceNodes}
-            isLoading={isLoading}
-          />
-        )}
         <StyledTabs value={activeSubTab} onChange={handleTabChange}>
           <Flex direction="row" justify="between" align="center" borderBottom="primary">
             <Container width="100%" minWidth="0">
@@ -179,26 +193,6 @@ export function TraceAiConversations({
           </FullHeightTabPanels>
         </StyledTabs>
       </Flex>
-    </Container>
-  );
-}
-
-function TraceConversationHeader({
-  conversationId,
-  nodes,
-  isLoading,
-}: {
-  conversationId: string;
-  isLoading: boolean;
-  nodes: AITraceSpanNode[];
-}) {
-  return (
-    <Container padding="md lg" borderBottom="primary">
-      <ConversationAggregatesBar
-        nodes={nodes}
-        conversationId={conversationId}
-        isLoading={isLoading}
-      />
     </Container>
   );
 }
