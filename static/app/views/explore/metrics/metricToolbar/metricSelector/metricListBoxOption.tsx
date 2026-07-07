@@ -67,6 +67,7 @@ export function MetricListBoxOption({
       isSelected={isSelected}
       isPressed={isPressed}
       disabled={isDisabled}
+      tooltip={option.tooltip}
       priority={isSelected ? 'primary' : 'default'}
       leadingItems={
         <LeadWrap aria-hidden="true">

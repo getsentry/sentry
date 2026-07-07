@@ -6,7 +6,6 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_example_template,
     get_issue_description,
     get_subject,
-    get_view_in_sentry_button,
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
@@ -16,7 +15,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
     NotificationTextBlock,
-    ParagraphBlock,
+    ParagraphSection,
 )
 from sentry.types.activity import ActivityType
 
@@ -38,7 +37,7 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
             subject="Seer PR Created for EXAMPLE-1",
             body=[
                 *get_example_issue_description(),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         LinkTextBlock(
                             text="getsentry/sentry (#1234)",
@@ -70,11 +69,8 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
 
         body: list[NotificationSection] = [*get_issue_description(group)]
         if pr_links:
-            body.append(ParagraphBlock(blocks=pr_links))
+            body.append(ParagraphSection(blocks=pr_links))
 
         return build_template(
-            data=data,
-            subject=get_subject("Seer PR Created", group),
-            body=body,
-            extra_actions=[get_view_in_sentry_button(group)],
+            data=data, subject=get_subject("Pull Request Created", group), body=body
         )

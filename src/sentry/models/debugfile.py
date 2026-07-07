@@ -4,11 +4,14 @@ import enum
 import errno
 import hashlib
 import logging
+import math
 import os
 import os.path
 import re
 import shutil
 import tempfile
+import threading
+import time
 import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
@@ -20,10 +23,12 @@ from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.utils import timezone
 from objectstore_client import RequestError
+from objectstore_client.multipart import CompletePart, MultipartUpload
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
+from urllib3.exceptions import HTTPError
 
-from sentry import options
+from sentry import features, options
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
@@ -39,6 +44,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.objectstore import get_debug_files_session
 from sentry.utils import json, metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -51,6 +57,8 @@ logger = logging.getLogger(__name__)
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
+
+OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
 
 
 class BadDif(Exception):
@@ -389,6 +397,57 @@ def create_dif_from_file(
     return create_dif_from_id(project, result[0], file=file)
 
 
+def _upload_dif_to_objectstore(
+    session: Session,
+    fileobj: IO[bytes],
+    content_type: str,
+    file_size: int,
+) -> str:
+    """Uploads a debug file to Objectstore via parallel multipart upload, returning the key under which the file was uploaded."""
+    upload = session.initiate_multipart_upload(content_type=content_type)
+
+    lock = threading.Lock()
+    num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE))
+
+    def put_part_with_retry(
+        upload: MultipartUpload, chunk: bytes, part_number: int
+    ) -> CompletePart:
+        for attempt in range(3):
+            try:
+                return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
+            except (RequestError, HTTPError):
+                if attempt == 2:
+                    raise
+                time.sleep(2**attempt)
+        raise AssertionError("unreachable")
+
+    def read_and_put_part(part_number: int) -> CompletePart | None:
+        offset = (part_number - 1) * OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE
+        with lock:
+            fileobj.seek(offset)
+            chunk = fileobj.read(OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE)
+        if not chunk:
+            return None
+        return put_part_with_retry(upload, chunk, part_number)
+
+    try:
+        with ContextPropagatingThreadPoolExecutor(
+            max_workers=4,
+        ) as executor:
+            futures = [executor.submit(read_and_put_part, i + 1) for i in range(num_parts)]
+            parts = [part for f in futures if (part := f.result()) is not None]
+
+        storage_path = upload.complete(parts)
+        return storage_path
+    except Exception:
+        logger.exception("Failed to upload debug file to Objectstore")
+        try:
+            upload.abort()
+        except Exception:
+            pass
+        raise
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -398,11 +457,14 @@ def create_dif_from_id(
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
 
     This creates the :class:`ProjectDebugFile` entry for the DIF provided in `meta` (a
-    :class:`DifMeta` object).  If the correct entry already exists this simply returns the
+    :class:`DifMeta` object). If the correct entry already exists, this simply returns the
     existing entry.
 
-    It intentionally does not validate the file, only will ensure a :class:`File` entry
-    exists and set its `ContentType` according to the provided :class:DifMeta`.
+    It intentionally does not validate the file, only will ensure a :class:`File` entry or
+    a `storage_path` exists, and set the `ContentType` according to the provided :class:DifMeta`.
+
+    It can be passed either an existing `File` model, or an actual stream of bytes, depending on
+    whether the `File` already exists.
 
     Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
     `created` is a bool.
@@ -429,14 +491,17 @@ def create_dif_from_id(
         raise TypeError(f"unknown dif type {meta.file_format!r}")
 
     if file is not None:
+        file_size = file.size
         checksum = file.checksum
     elif fileobj is not None:
+        file_size = 0
         h = hashlib.sha1()
         while True:
             chunk = fileobj.read(16384)
             if not chunk:
                 break
             h.update(chunk)
+            file_size += len(chunk)
         checksum = h.hexdigest()
         fileobj.seek(0, 0)
     else:
@@ -454,16 +519,58 @@ def create_dif_from_id(
     if dif is not None:
         return dif, False
 
+    content_type = DIF_MIMETYPES[meta.file_format]
+
+    if features.has("organizations:objectstore-debugfiles-write", project.organization):
+        session = get_debug_files_session(project.organization_id, project.id)
+        if file is not None:
+            with file.getfile() as source:
+                storage_path = _upload_dif_to_objectstore(session, source, content_type, file_size)
+        elif fileobj is not None:
+            storage_path = _upload_dif_to_objectstore(session, fileobj, content_type, file_size)
+        else:
+            raise RuntimeError("missing file object")
+
+        metrics.distribution(
+            "storage.put.size",
+            file_size,
+            tags={"usecase": "debug-files", "compression": "none"},
+            unit="byte",
+        )
+
+        dif = ProjectDebugFile.objects.create(
+            file=None,
+            storage_path=storage_path,
+            content_type=content_type,
+            file_size=file_size,
+            date_created=timezone.now(),
+            checksum=checksum,
+            debug_id=meta.debug_id,
+            code_id=meta.code_id,
+            cpu_name=meta.arch,
+            object_name=object_name,
+            project_id=project.id,
+            data=meta.data,
+        )
+
+        # The DIF we've just created might actually be removed here again. But since
+        # this can happen at any time in near or distant future, we don't care and
+        # assume a successful upload. The DIF will be reported to the uploader and
+        # reprocessing can start.
+        clean_redundant_difs(project, meta.debug_id)
+
+        return dif, True
+
     if file is None:
         file = File.objects.create(
             name=meta.debug_id,
             type="project.dif",
-            headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
+            headers={"Content-Type": content_type},
         )
         file.putfile(fileobj)
     else:
         file.type = "project.dif"
-        file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
+        file.headers["Content-Type"] = content_type
         file.save()
 
     metrics.distribution(

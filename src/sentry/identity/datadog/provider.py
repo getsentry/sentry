@@ -304,11 +304,9 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
             raise ValueError(f"Invalid Datadog site: {site}")
         return base
 
-    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
-        """Full MCP endpoint URL for a stored Datadog identity.
-        Returns None when the site is missing or invalid."""
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
         base = _mcp_base_url_for_site(identity_data.get("site"))
-        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+        return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def get_oauth_authorize_url(self) -> str:
         return self._build_mcp_base_url() + MCP_AUTHORIZE_PATH
@@ -425,11 +423,9 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
 
-    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
-        """Full MCP endpoint URL for a stored Datadog identity.
-        Returns None when the site is missing or invalid."""
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
         base = _mcp_base_url_for_site(identity_data.get("site"))
-        return f"{base}{MCP_ENDPOINT_PATH}" if base else None
+        return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
         access_token = (data.get("access_token") or "").strip()

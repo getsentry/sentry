@@ -221,22 +221,6 @@ class OrganizationUserReportsPermission(OrganizationPermission):
     scope_map = {"GET": ["project:read", "project:write", "project:admin"]}
 
 
-class OrganizationPinnedSearchPermission(OrganizationPermission):
-    scope_map = {
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
-
-
-class OrganizationSearchPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
-
-
 class OrganizationDataExportPermission(OrganizationPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],

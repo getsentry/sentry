@@ -46,7 +46,9 @@ function computeEquationReferencedLabels(
     return [];
   }
   const labelSet = new Set(Object.keys(referenceMap));
-  const unresolvedText = unresolveExpression(visualize.expression.text, referenceMap);
+  const unresolvedText =
+    visualize.internalExpression ??
+    unresolveExpression(visualize.expression.text, referenceMap);
   return extractReferenceLabels(new Expression(unresolvedText, labelSet));
 }
 

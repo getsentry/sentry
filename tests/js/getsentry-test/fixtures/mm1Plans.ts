@@ -14,7 +14,6 @@ const commonFields = {
   addOnCategories: {},
   categories: MM1_CATEGORIES,
   categoryDisplayNames: MM1_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: MM1_CATEGORIES,
   onDemandCategories: MM1_CATEGORIES,
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'on-demand',
@@ -24,7 +23,6 @@ const commonFields = {
 export const MM1_PLANS = {
   e1_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'e1_ac',
     isEnterprise: true,
@@ -59,7 +57,6 @@ export const MM1_PLANS = {
   },
   e1_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'e1_auf',
     isEnterprise: true,
@@ -93,7 +90,6 @@ export const MM1_PLANS = {
   },
   f1: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'f1',
     isEnterprise: false,
@@ -119,7 +115,6 @@ export const MM1_PLANS = {
   },
   l1: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'l1',
     isEnterprise: false,
@@ -155,7 +150,6 @@ export const MM1_PLANS = {
   },
   l1_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'l1_ac',
     isEnterprise: false,
@@ -191,7 +185,6 @@ export const MM1_PLANS = {
   },
   l1_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'l1_auf',
     isEnterprise: false,
@@ -227,7 +220,6 @@ export const MM1_PLANS = {
   },
   m1: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'm1',
     isEnterprise: false,
@@ -260,7 +252,6 @@ export const MM1_PLANS = {
   },
   m1_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'm1_ac',
     isEnterprise: false,
@@ -293,7 +284,6 @@ export const MM1_PLANS = {
   },
   m1_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'm1_auf',
     isEnterprise: false,
@@ -326,7 +316,6 @@ export const MM1_PLANS = {
   },
   s1: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 's1',
     isEnterprise: false,
@@ -357,7 +346,6 @@ export const MM1_PLANS = {
   },
   s1_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 's1_ac',
     isEnterprise: false,

@@ -95,7 +95,7 @@ class Spans(rpc_dataset_common.RPCBase):
 
         trace_attributes = [
             "parent_span",
-            "description",
+            "span.description",
             "span.op",
             "span.name",
             "is_transaction",
@@ -113,6 +113,8 @@ class Spans(rpc_dataset_common.RPCBase):
             "measurements.time_to_full_display",
             "measurements.app_start_cold",
             "measurements.app_start_warm",
+            "measurements.frames_slow_rate",
+            "measurements.frames_frozen_rate",
             "measurements.lcp",
             "measurements.score.ratio.lcp",
             "measurements.fcp",

@@ -309,7 +309,7 @@ class NotificationRenderedTemplate:
 
 class NotificationTextBlockType(StrEnum):
     """
-    Represents a block of text to be rendered in the notification body.
+    Represents a block of text to be rendered in the notification.
     """
 
     PLAIN_TEXT = "plain_text"
@@ -319,6 +319,10 @@ class NotificationTextBlockType(StrEnum):
     BOLD_TEXT = "bold_text"
     """
     A bolded section of text.
+    """
+    ITALIC_TEXT = "italic_text"
+    """
+    An italicized section of text.
     """
     CODE = "code"
     """
@@ -343,54 +347,70 @@ class NotificationSectionType(StrEnum):
     """
     A new section of code with a line break before.
     """
+    BLOCK_QUOTE = "block_quote"
+    """
+    A quoted block of text, rendered as a blockquote.
+    """
 
 
 class NotificationSection(Protocol):
     """
-    A block that applies formatting such as a newline and encapsulates other text.
+    A section of text that applies formatting such as a newline and encapsulates other text.
     """
 
     type: NotificationSectionType
     """
-    The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
+    The type of the section, such as ParagraphSection, CodeSection, etc.
     """
     blocks: list[NotificationTextBlock]
     """
-    Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
+    The text blocks contain actual content, such as BoldTextBlock, ItalicTextBlock, etc.
     """
 
 
 class NotificationTextBlock(Protocol):
     """
-    Represents a block of text to be rendered in the notification body.
+    Represents a block of text to be rendered in the notification.
     """
 
     type: NotificationTextBlockType
     """
-    The type of the block, such as BoldTextBlock, CodeBlock, etc.
+    The type of the block, such as BoldTextBlock, CodeTextBlock, etc.
     """
     text: str
     """
-    Text to be rendered in the body.
+    Text to be rendered in the notification.
     """
 
 
 @dataclass
-class ParagraphBlock(NotificationSection):
+class ParagraphSection(NotificationSection):
     blocks: list[NotificationTextBlock]
     type: Literal[NotificationSectionType.PARAGRAPH] = NotificationSectionType.PARAGRAPH
 
 
 @dataclass
-class CodeBlock(NotificationSection):
+class CodeSection(NotificationSection):
     blocks: list[NotificationTextBlock]
     type: Literal[NotificationSectionType.CODE_BLOCK] = NotificationSectionType.CODE_BLOCK
+
+
+@dataclass
+class BlockQuoteSection(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.BLOCK_QUOTE] = NotificationSectionType.BLOCK_QUOTE
 
 
 @dataclass
 class BoldTextBlock(NotificationTextBlock):
     text: str
     type: Literal[NotificationTextBlockType.BOLD_TEXT] = NotificationTextBlockType.BOLD_TEXT
+
+
+@dataclass
+class ItalicTextBlock(NotificationTextBlock):
+    text: str
+    type: Literal[NotificationTextBlockType.ITALIC_TEXT] = NotificationTextBlockType.ITALIC_TEXT
 
 
 @dataclass
