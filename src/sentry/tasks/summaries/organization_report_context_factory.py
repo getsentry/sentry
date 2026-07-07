@@ -98,33 +98,38 @@ class OrganizationReportContextFactory:
             project_ids = list(ctx.projects_context_map.keys())
             cached = read_project_metrics(ctx.organization.id, project_ids)
 
-            # Track per-source cache misses: a cache entry may exist but lack
+            # Track per-key cache misses: a cache entry may exist but lack
             # keys added in newer versions (e.g. "i" was added after "e"/"t").
-            # Each fallback only runs for projects actually missing its keys.
-            event_missed_project_ids: set[int] = set()
+            # Each fallback only runs for projects actually missing that key.
+            error_missed_project_ids: set[int] = set()
+            transaction_missed_project_ids: set[int] = set()
             issue_missed_project_ids: set[int] = set()
 
             for project_id, values in cached.items():
                 project_ctx = ctx.projects_context_map[project_id]
                 if "e" in values:
                     project_ctx.prev_week_accepted_error_count = values["e"]
+                else:
+                    error_missed_project_ids.add(project_id)
                 if "t" in values:
                     project_ctx.prev_week_accepted_transaction_count = values["t"]
-                if "e" not in values or "t" not in values:
-                    event_missed_project_ids.add(project_id)
+                else:
+                    transaction_missed_project_ids.add(project_id)
                 if "i" in values:
                     project_ctx.prev_week_total_substatus_count = values["i"]
                 else:
                     issue_missed_project_ids.add(project_id)
 
             no_cache_project_ids = set(project_ids) - set(cached.keys())
-            event_missed_project_ids |= no_cache_project_ids
+            error_missed_project_ids |= no_cache_project_ids
+            transaction_missed_project_ids |= no_cache_project_ids
             issue_missed_project_ids |= no_cache_project_ids
 
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
 
-            if event_missed_project_ids:
+            snuba_project_ids = error_missed_project_ids | transaction_missed_project_ids
+            if snuba_project_ids:
                 # Snuba fallback for cache misses (e.g. new projects, first report run)
                 event_counts = project_event_counts_for_organization(
                     start=prev_start,
@@ -134,8 +139,6 @@ class OrganizationReportContextFactory:
                 )
                 for data in event_counts:
                     project_id = data["project_id"]
-                    if project_id not in event_missed_project_ids:
-                        continue
                     if project_id not in ctx.projects_context_map:
                         continue
                     project_ctx = ctx.projects_context_map[project_id]
@@ -143,9 +146,11 @@ class OrganizationReportContextFactory:
                     if data["outcome"] != Outcome.ACCEPTED:
                         continue
                     if data["category"] == DataCategory.TRANSACTION:
-                        project_ctx.prev_week_accepted_transaction_count += total
+                        if project_id in transaction_missed_project_ids:
+                            project_ctx.prev_week_accepted_transaction_count += total
                     elif data["category"] in DataCategory.error_categories():
-                        project_ctx.prev_week_accepted_error_count += total
+                        if project_id in error_missed_project_ids:
+                            project_ctx.prev_week_accepted_error_count += total
 
             if issue_missed_project_ids:
                 # Django ORM fallback for previous-week issue counts
