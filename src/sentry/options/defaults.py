@@ -3756,14 +3756,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
-register(
-    "tasks.producer.occurrences.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rolls out the new TaskProducer to the clock_pulse task
 register(
     "tasks.producer.clock-pulse.rollout",
