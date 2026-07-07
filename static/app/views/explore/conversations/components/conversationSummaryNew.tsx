@@ -99,11 +99,7 @@ export function ConversationSummaryNew({
     >
       <Stack gap="md" minWidth={0} flex={1}>
         <Container minWidth={0}>
-          <Tooltip
-            title={conversationId}
-            showOnlyOnOverflow={!isUUID(conversationId)}
-            skipWrapper
-          >
+          <Tooltip title={conversationId} showOnlyOnOverflow={!isUUID(conversationId)}>
             <Heading as="h2" ellipsis>
               {displayId}
             </Heading>
