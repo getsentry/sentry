@@ -272,7 +272,11 @@ function getLogRowSortValue(
     field === OurLogKnownFieldKey.TIMESTAMP ||
     field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
   ) {
-    return BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    try {
+      return BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
+      return BigInt(new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+    }
   }
   return (isRegularLogResponseItem(row) ? row[field] : undefined) ?? '';
 }

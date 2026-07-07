@@ -201,4 +201,32 @@ describe('compareLogRowsBySortBys', () => {
 
     expect(result).toEqual(['newer', 'older']);
   });
+
+  it('falls back to the timestamp field when timestamp_precise cannot be parsed', () => {
+    const olderInvalid = logRow('older', {
+      [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:10+00:00',
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'not-a-number',
+    });
+    const newerInvalid = logRow('newer', {
+      [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:20+00:00',
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'not-a-number',
+    });
+
+    const result = sortedIds(
+      [olderInvalid, newerInvalid],
+      [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}]
+    );
+
+    expect(result).toEqual(['newer', 'older']);
+  });
+
+  it('does not throw when timestamp_precise is not an integer', () => {
+    const invalid = logRow('invalid', {
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.5,
+    });
+
+    expect(() =>
+      sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])
+    ).not.toThrow();
+  });
 });
