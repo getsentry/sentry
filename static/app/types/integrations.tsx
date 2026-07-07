@@ -420,9 +420,9 @@ interface CommonIntegration {
   id: string;
   name: string;
   organizationIntegrationStatus: ObjectStatus;
-  outOfDate?: boolean | null;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  outOfDate?: boolean | null;
 }
 
 export interface Integration extends CommonIntegration {
