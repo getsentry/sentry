@@ -53,7 +53,7 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         response = self.do_request(uuid4().hex)
         assert response.status_code == 404
 
-    def test_returns_summary(self) -> None:
+    def test_returns_meta(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
@@ -91,6 +91,10 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
             output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
+            user_id="user-456",
+            user_email="other@example.com",
+            user_username="otheruser",
+            user_ip="10.0.0.1",
         )
         # "search" called twice (both ok); "database" called once and errored.
         self.store_ai_span(
@@ -130,28 +134,28 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
 
-        summary = response.data
-        assert summary["errors"] == 1
-        assert summary["llmCalls"] == 2
-        assert summary["toolCalls"] == 3
-        assert summary["totalTokens"] == LLM_TOKENS * 2
-        assert summary["inputTokens"] == LLM_INPUT_TOKENS * 2
-        assert summary["outputTokens"] == LLM_OUTPUT_TOKENS * 2
-        assert summary["totalCost"] == LLM_COST * 2
+        meta = response.data
+        assert meta["errors"] == 1
+        assert meta["llmCalls"] == 2
+        assert meta["toolCalls"] == 3
+        assert meta["totalTokens"] == LLM_TOKENS * 2
+        assert meta["inputTokens"] == LLM_INPUT_TOKENS * 2
+        assert meta["outputTokens"] == LLM_OUTPUT_TOKENS * 2
+        assert meta["totalCost"] == LLM_COST * 2
 
         # User is taken from the first span (earliest timestamp) that carries one.
-        assert summary["user"] == {
+        assert meta["user"] == {
             "id": "user-123",
             "email": "test@example.com",
             "username": "testuser",
             "ip_address": "192.168.1.1",
         }
 
-        assert summary["traceIds"] == [trace_id]
+        assert meta["traceIds"] == [trace_id]
 
         # Per-tool breakdown: call count, total duration, and error flag, ordered by
         # call count descending (matching the Tool Calls hover card).
-        tools = summary["tools"]
+        tools = meta["tools"]
         assert [tool["name"] for tool in tools] == ["search", "database"]
 
         by_name = {tool["name"]: tool for tool in tools}
@@ -161,7 +165,7 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         assert by_name["database"]["calls"] == 1
         assert by_name["database"]["hasError"] is True
 
-    def test_nonexistent_conversation_returns_empty_summary(self) -> None:
+    def test_nonexistent_conversation_returns_empty_meta(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         other_conversation_id = uuid4().hex
 
@@ -182,15 +186,15 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         response = self.do_request(uuid4().hex, query)
         assert response.status_code == 200
 
-        summary = response.data
-        assert summary["errors"] == 0
-        assert summary["llmCalls"] == 0
-        assert summary["toolCalls"] == 0
-        assert summary["totalTokens"] == 0
-        assert summary["totalCost"] == 0
-        assert summary["user"] is None
-        assert summary["tools"] == []
-        assert summary["traceIds"] == []
+        meta = response.data
+        assert meta["errors"] == 0
+        assert meta["llmCalls"] == 0
+        assert meta["toolCalls"] == 0
+        assert meta["totalTokens"] == 0
+        assert meta["totalCost"] == 0
+        assert meta["user"] is None
+        assert meta["tools"] == []
+        assert meta["traceIds"] == []
 
     def test_rejects_range_older_than_retention(self) -> None:
         now = before_now(days=40).replace(microsecond=0)

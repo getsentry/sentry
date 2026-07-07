@@ -1,7 +1,7 @@
 """Shared helpers for the AI conversation endpoints.
 
 Keeping the aggregation columns and time-window resolution in one place ensures the
-list, details, and summary endpoints compute the same per-conversation numbers.
+list, details, and meta endpoints compute the same per-conversation numbers.
 """
 
 from __future__ import annotations
@@ -10,6 +10,9 @@ from collections.abc import Iterable
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
+
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
@@ -266,3 +269,21 @@ def resolve_conversation_time_window(
         if conversation_exists(params, conversation_id):
             return params
     return candidates[-1]
+
+
+def resolve_conversation_params(
+    request: Request, snuba_params: SnubaParams, conversation_id: str, now: datetime
+) -> SnubaParams:
+    """Resolve the time window for a single-conversation request.
+
+    An explicit range is validated against retention (raising ParseError -> 400) and used
+    as-is; otherwise probe progressively wider windows to find the conversation.
+    """
+    if request.GET.get("start") or request.GET.get("end"):
+        error = retention_window_error(snuba_params, now)
+        if error:
+            raise ParseError(detail=error)
+        return snuba_params
+    return resolve_conversation_time_window(
+        snuba_params, request.GET.get("statsPeriod"), now, conversation_id
+    )

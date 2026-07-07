@@ -17,8 +17,7 @@ from sentry.api.helpers.ai_conversations import (
     extract_conversation_enrichment,
     parse_conversation_aggregates,
     parse_tool_breakdown,
-    resolve_conversation_time_window,
-    retention_window_error,
+    resolve_conversation_params,
 )
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -45,21 +44,11 @@ class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         now = timezone.now()
-        has_explicit_range = request.GET.get("start") or request.GET.get("end")
-
-        if has_explicit_range:
-            error = retention_window_error(snuba_params, now)
-            if error:
-                return Response({"detail": error}, status=400)
 
         with handle_query_errors():
-            if has_explicit_range:
-                resolved_params = snuba_params
-            else:
-                resolved_params = resolve_conversation_time_window(
-                    snuba_params, request.GET.get("statsPeriod"), now, conversation_id
-                )
-
+            resolved_params = resolve_conversation_params(
+                request, snuba_params, conversation_id, now
+            )
             return Response(self._fetch_meta(resolved_params, conversation_id))
 
     @sentry_sdk.trace

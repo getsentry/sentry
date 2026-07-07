@@ -10,10 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.helpers.ai_conversations import (
-    resolve_conversation_time_window,
-    retention_window_error,
-)
+from sentry.api.helpers.ai_conversations import resolve_conversation_params
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -80,20 +77,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         now = timezone.now()
-        has_explicit_range = request.GET.get("start") or request.GET.get("end")
-
-        if has_explicit_range:
-            error = retention_window_error(snuba_params, now)
-            if error:
-                return Response({"detail": error}, status=400)
 
         with handle_query_errors():
-            if has_explicit_range:
-                resolved_params = snuba_params
-            else:
-                resolved_params = resolve_conversation_time_window(
-                    snuba_params, request.GET.get("statsPeriod"), now, conversation_id
-                )
+            resolved_params = resolve_conversation_params(
+                request, snuba_params, conversation_id, now
+            )
 
             def data_fn(offset: int, limit: int) -> list:
                 spans = self._fetch_spans(resolved_params, conversation_id, offset, limit)
