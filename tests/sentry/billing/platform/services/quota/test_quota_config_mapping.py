@@ -2,7 +2,7 @@ from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoData
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaConfig
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaScope as ProtoQuotaScope
 
-from sentry.billing.platform.services.quota_config_mapping import (
+from sentry.billing.platform.services.quota.quota_config_mapping import (
     proto_to_sentry_quota_config,
     sentry_to_proto_quota_config,
 )
