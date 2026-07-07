@@ -14,6 +14,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 
 export default function EventGraphWidget({
@@ -55,12 +56,14 @@ export default function EventGraphWidget({
   }
 
   return (
-    <EventGraphLoadedWidget
-      chartRef={chartRef}
-      event={event}
-      group={groupData}
-      pageFilters={pageFilters}
-    />
+    <GroupDataContextProvider group={groupData} project={groupData.project}>
+      <EventGraphLoadedWidget
+        chartRef={chartRef}
+        event={event}
+        group={groupData}
+        pageFilters={pageFilters}
+      />
+    </GroupDataContextProvider>
   );
 }
 

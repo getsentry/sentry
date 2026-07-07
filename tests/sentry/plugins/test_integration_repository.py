@@ -41,12 +41,16 @@ class IntegrationRepositoryTestCase(TestCase):
         )
 
     @cached_property
-    def provider(self):
+    def provider(self) -> GitHubRepositoryProvider:
         return GitHubRepositoryProvider("integrations:github")
 
     def _create_repo(
-        self, external_id=None, name=None, status=ObjectStatus.ACTIVE, integration_id=None
-    ):
+        self,
+        external_id: str | None = None,
+        name: str | None = None,
+        status: int = ObjectStatus.ACTIVE,
+        integration_id: int | None = None,
+    ) -> Repository:
         if not name:
             name = self.repo_name
         return Repository.objects.create(

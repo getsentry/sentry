@@ -23,14 +23,9 @@ enum ModalColumnValue {
   SELECTED = 'selected',
 }
 
-enum ModalColumnFormat {
-  CSV = 'csv',
-  JSONL = 'jsonl',
-}
-
 const exportModalFormSchema = z.object({
   columns: z.enum(ModalColumnValue),
-  format: z.enum(ModalColumnFormat),
+  format: z.enum(['csv', 'jsonl']),
   limit: z.number(),
 });
 
@@ -55,7 +50,6 @@ export function ExploreExportModal({
     estimatedRowCount,
     localDownload,
     localRowCount,
-    queryInfo,
     supportsAllColumns,
     title,
     trackExportSubmit,
@@ -69,7 +63,7 @@ export function ExploreExportModal({
 
   const defaultValues: ExportModalFormValues = {
     columns: ModalColumnValue.SELECTED,
-    format: availableFormats[0] as ModalColumnFormat,
+    format: availableFormats[0] ?? 'csv',
     limit: rowCountDefault.value,
   };
 
@@ -80,7 +74,8 @@ export function ExploreExportModal({
       onDynamic: exportModalFormSchema,
     },
     onSubmit: async ({value}) => {
-      const isAllColumns = supportsAllColumns && value.columns === ModalColumnValue.ALL;
+      const isAllColumns =
+        config.supportsAllColumns && value.columns === ModalColumnValue.ALL;
       // The local download can only serve rows already loaded in the browser, so
       // anything beyond that must go through the server export.
       const exceedsLocalData = value.limit > localRowCount;
@@ -92,27 +87,41 @@ export function ExploreExportModal({
 
       trackExportSubmit({format, limit: value.limit, isAllColumns, exportType});
 
-      if (useServerExport) {
-        try {
-          // The shared modal is generic across query types, so the payload is
-          // assembled dynamically rather than matching a single union member.
-          await handleDataExport({
-            format,
-            queryInfo: isAllColumns ? {...queryInfo, field: []} : queryInfo,
-            queryType: isAllColumns
-              ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
-              : config.asyncQueryType,
-            limit: value.limit,
-          } as DataExportPayload);
-        } catch {
-          // The error message is surfaced by useDataExport's onError handler.
-        }
-      } else {
+      if (!useServerExport) {
         localDownload({format, limit: value.limit});
         addSuccessMessage(t('Downloading file to your browser.'));
+        closeModal();
+        return;
       }
 
-      closeModal();
+      const payload: DataExportPayload =
+        config.asyncQueryType === ExportQueryType.DISCOVER
+          ? {
+              format,
+              limit: value.limit,
+              queryType: ExportQueryType.DISCOVER,
+              queryInfo: config.queryInfo,
+            }
+          : isAllColumns
+            ? {
+                format,
+                limit: value.limit,
+                queryType: ExportQueryType.TRACE_ITEM_FULL_EXPORT,
+                queryInfo: {...config.queryInfo, field: []},
+              }
+            : {
+                format,
+                limit: value.limit,
+                queryType: ExportQueryType.EXPLORE,
+                queryInfo: config.queryInfo,
+              };
+
+      try {
+        await handleDataExport(payload);
+        closeModal();
+      } catch {
+        // The error message is surfaced by useDataExport's onError handler.
+      }
     },
   });
 
@@ -125,11 +134,38 @@ export function ExploreExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>{t('Large data export files will be sent to your email address.')}</Text>
+          <Text>
+            {t(
+              'When a high number of rows is selected and events are large, the results may be sent to your email.'
+            )}
+          </Text>
+          {showFormatRadio && (
+            <form.AppField name="format">
+              {field => (
+                <field.Radio.Group
+                  value={
+                    columnsValue === ModalColumnValue.ALL ? 'jsonl' : field.state.value
+                  }
+                  onChange={value =>
+                    field.handleChange(value as ExportModalFormValues['format'])
+                  }
+                  disabled={columnsValue === ModalColumnValue.ALL}
+                >
+                  <field.Layout.Stack label={t('Format')}>
+                    <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
+                    <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
+                  </field.Layout.Stack>
+                </field.Radio.Group>
+              )}
+            </form.AppField>
+          )}
           {supportsAllColumns && (
             <form.AppField name="columns">
               {field => (
-                <field.Layout.Stack label={t('All Columns?')}>
+                <field.Layout.Stack
+                  hintText={t('All columns are only supported by JSONL.')}
+                  label={t('All Columns?')}
+                >
                   <field.Switch
                     checked={field.state.value === ModalColumnValue.ALL}
                     onChange={checked =>
@@ -139,32 +175,6 @@ export function ExploreExportModal({
                     }
                   />
                 </field.Layout.Stack>
-              )}
-            </form.AppField>
-          )}
-          {showFormatRadio && (
-            <form.AppField name="format">
-              {field => (
-                <field.Radio.Group
-                  value={
-                    columnsValue === ModalColumnValue.ALL
-                      ? ModalColumnFormat.JSONL
-                      : field.state.value
-                  }
-                  onChange={value =>
-                    field.handleChange(value as ExportModalFormValues['format'])
-                  }
-                  disabled={columnsValue === ModalColumnValue.ALL}
-                >
-                  <field.Layout.Stack label={t('Format')}>
-                    <field.Radio.Item value={ModalColumnFormat.CSV}>
-                      {t('CSV')}
-                    </field.Radio.Item>
-                    <field.Radio.Item value={ModalColumnFormat.JSONL}>
-                      {t('JSONL')}
-                    </field.Radio.Item>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
               )}
             </form.AppField>
           )}

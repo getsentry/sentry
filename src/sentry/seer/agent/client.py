@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+import uuid
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, overload
@@ -19,6 +20,7 @@ from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
+from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
@@ -105,9 +107,7 @@ def _trigger_explorer_indexes_if_needed(
 def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
-    return features.has(
-        "organizations:seat-based-seer-enabled", organization, actor=user
-    ) or features.has("organizations:seer-added", organization, actor=user)
+    return True
 
 
 def get_monitoring_provider_connections(
@@ -120,12 +120,13 @@ def get_monitoring_provider_connections(
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
         provider = identity_manager.get(provider_type)
+        is_oauth_provider = isinstance(provider, OAuth2Provider)
         if not isinstance(provider, McpIdentityProvider):
             continue
 
         try:
-            identities = identity_service.get_user_identities_by_provider_type(
-                user_id=user_id, provider_type=provider_type
+            identities = identity_service.get_org_user_identities_by_provider_type(
+                organization_id=organization.id, user_id=user_id, provider_type=provider_type
             )
         except RpcException:
             # Monitoring providers are optional enrichment. A control-silo RPC failure
@@ -145,20 +146,23 @@ def get_monitoring_provider_connections(
             access_token = identity.data.get("access_token")
             if not access_token:
                 continue
-            url = provider.build_mcp_url(identity.data)
-            if not url:
+            urls = provider.build_mcp_urls(identity.data)
+            if not urls:
                 continue
             encrypted_access_token = encrypt_access_token_for_seer(access_token)
             if not encrypted_access_token:
                 continue
-            connections.append(
-                {
-                    "provider_key": provider_type,
-                    "url": url,
-                    "encrypted_access_token": encrypted_access_token,
-                    "identity_id": identity.id,
-                }
-            )
+            auth_method = "oauth" if is_oauth_provider else "pat"
+            for url in urls:
+                connections.append(
+                    {
+                        "provider_key": provider_type,
+                        "url": url,
+                        "encrypted_access_token": encrypted_access_token,
+                        "identity_id": identity.id,
+                        "auth_method": auth_method,
+                    }
+                )
 
     return connections
 
@@ -322,6 +326,7 @@ class SeerAgentClient:
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
         enable_coding: bool = False,
+        enable_pr_context_tools: bool = False,
         enable_code_mode_tools: str = "off",
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
@@ -345,6 +350,13 @@ class SeerAgentClient:
             raise SeerPermissionError("Seer coding is not enabled for this organization")
 
         self.enable_coding = enable_coding
+
+        if enable_pr_context_tools and not features.has(
+            "organizations:autofix-pr-iteration", organization, actor=user
+        ):
+            raise SeerPermissionError("PR context tools are not enabled for this organization")
+
+        self.enable_pr_context_tools = enable_pr_context_tools
 
         self.viewer_context = self._build_viewer_context()
 
@@ -407,6 +419,7 @@ class SeerAgentClient:
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
+            "enable_pr_context_tools": self.enable_pr_context_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -465,51 +478,9 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        if _has_context_engine(self.organization, self.user):
-            if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                agent_run_options["is_context_engine_enabled"] = True
-
-        if features.has(
-            "organizations:seer-explorer-context-engine-allow-fe-override",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["is_context_engine_enabled"] = override_ce_enable
-
-        if features.has(
-            "organizations:seer-agent-source-code-search",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["enable_frontend_code_search"] = True
-
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["use_agent_sandbox"] = True
-
-        if features.has(
-            "organizations:seer-explorer-thinking-summary",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["enable_tool_summary"] = True
-
-        if features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["embed_widgets"] = get_embed_widgets()
-
-        if features.has(
-            "organizations:seer-explorer-stream",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["enable_streaming"] = True
+        agent_run_options.update(
+            self._build_agent_run_options(override_ce_enable=override_ce_enable)
+        )
 
         user_id = (
             self.user.id
@@ -544,6 +515,7 @@ class SeerAgentClient:
             on_run_created=_create_agent_run,
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=metadata.get("referrer") if metadata else None,
             flush=True,
         )
 
@@ -551,12 +523,16 @@ class SeerAgentClient:
         self,
         feature_id: str,
         payload: dict[str, Any],
+        title: str,
         flush: bool = True,
+        extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
         `payload`; the result is pushed back via deliver_feature_result.
+        Also creates a SeerAgentRun mirror (source=feature_id, title=title)
+        so the run shows up in the Explorer session-history listing.
 
         on_run_created(run), if given, runs in the same transaction as the
         SeerRun + outbox — use it to link associated rows atomically (e.g. a
@@ -573,15 +549,85 @@ class SeerAgentClient:
             if self.user and hasattr(self.user, "id") and self.user.id is not None
             else None
         )
+
+        def _create_agent_run(run: SeerRun) -> None:
+            SeerAgentRun.objects.create(
+                run=run,
+                title=title[:255] + "…" if len(title) > 256 else title,
+                source=feature_id,
+                project=self.project,
+                group=self.group,
+                extras=extras or {},
+            )
+            if on_run_created is not None:
+                on_run_created(run)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
-            on_run_created=on_run_created,
-            body=SeerFeatureRunRequest(feature_id=feature_id, payload=payload),
+            on_run_created=_create_agent_run,
+            body=SeerFeatureRunRequest(
+                feature_id=feature_id,
+                payload=payload,
+                agent_run_options=self._build_agent_run_options(),
+            ),
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=feature_id,
             flush=flush,
         )
+
+    def _build_agent_run_options(self, override_ce_enable: bool = True) -> dict[str, Any]:
+        """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
+        opts: dict[str, Any] = {}
+
+        if _has_context_engine(self.organization, self.user):
+            if random.random() < options.get("seer.explorer.context-engine-rollout"):
+                opts["is_context_engine_enabled"] = True
+
+        if features.has(
+            "organizations:seer-explorer-context-engine-allow-fe-override",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["is_context_engine_enabled"] = override_ce_enable
+
+        if features.has(
+            "organizations:seer-agent-source-code-search",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_frontend_code_search"] = True
+
+        if features.has(
+            "organizations:seer-use-agent-sandbox",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["use_agent_sandbox"] = True
+
+        if features.has(
+            "organizations:seer-explorer-thinking-summary",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_tool_summary"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_streaming"] = True
+
+        return opts
 
     def continue_run(
         self,
@@ -621,6 +667,7 @@ class SeerAgentClient:
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
+            "enable_pr_context_tools": self.enable_pr_context_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -884,7 +931,14 @@ class SeerAgentClient:
             raise SeerPermissionError("Code generation is disabled for this organization")
 
         # Trigger PR creation
-        payload: dict[str, Any] = {"type": "create_pr", "ready_for_review": ready_for_review}
+        payload: dict[str, Any] = {
+            "type": "create_pr",
+            "ready_for_review": ready_for_review,
+            # Include an idempotency key in the request so that if
+            # the request is retried by anything, it will not create duplicate PRs
+            # This is regenerated per attempt to permit retries.
+            "idempotency_key": uuid.uuid4().hex,
+        }
         if repo_name:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
@@ -933,6 +987,7 @@ class SeerAgentClient:
         provider: str | None = None,
         user_id: int | None = None,
         issue_short_id: str | None = None,
+        issue_url: str | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an agent run.
@@ -950,6 +1005,7 @@ class SeerAgentClient:
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
             user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
             issue_short_id: Optional Sentry issue short ID for coding agent session naming
+            issue_url: Optional full URL to the Sentry issue for linking in PRs
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -965,4 +1021,5 @@ class SeerAgentClient:
             provider=provider,
             user_id=user_id,
             issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )

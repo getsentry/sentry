@@ -577,6 +577,166 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.query).toEqual(['event.type:test']);
     });
 
+    it('keeps only aggregates and clears sort when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Columns are dropped; only the aggregate ("Visualize") remains.
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('drops equations when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['count()', 'equation|count() * 2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Only the non-equation aggregate survives.
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('normalizes the aggregate to count() when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,distribution,none)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // The metric is preserved but the function becomes count() — heat maps
+      // always count the metric's value, so the chosen function is irrelevant.
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['count', 'value', 'test_metric', 'distribution', 'none'],
+          alias: undefined,
+        },
+      ]);
+    });
+
+    it('drops non-distribution metrics when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,counter,none)'],
+            dataset: WidgetType.TRACEMETRICS,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Counters can't be heat-mapped, so the metric is dropped and the slot
+      // falls back to the metric-less default (the picker then auto-selects a
+      // distribution metric).
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+        },
+      ]);
+    });
+
+    it('selects the first filter when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()'],
+            query: ['event.type:test', 'event.type:test2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test']);
+    });
+
     it('resets selectedAggregate when the display type is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({query: {selectedAggregate: '0'}})
@@ -1652,6 +1812,37 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.limit).toBe(5);
+    });
+
+    it('preserves the breakdown legend type when there are multiple group bys', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['testField'],
+            yAxis: ['count()'],
+            legendType: 'breakdown',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendType).toBe('breakdown');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'testField', kind: FieldValueKind.FIELD},
+            {field: 'testField2', kind: FieldValueKind.FIELD},
+          ],
+        });
+      });
+
+      expect(result.current.state.legendType).toBe('breakdown');
     });
   });
 

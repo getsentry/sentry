@@ -33,6 +33,8 @@ class TestCompatibleActivityTypes:
             ActivityType.SEER_CODING_STARTED,
             ActivityType.SEER_CODING_COMPLETED,
             ActivityType.SEER_PR_CREATED,
+            ActivityType.SEER_ITERATION_STARTED,
+            ActivityType.SEER_ITERATION_COMPLETED,
         ]
         for handler in [
             SlackActivityHandler,

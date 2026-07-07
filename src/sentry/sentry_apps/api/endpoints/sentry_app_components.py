@@ -20,6 +20,7 @@ from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.sentry_apps.components")
 
@@ -61,14 +62,19 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         components = []
         errors = {}
 
-        with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
-            with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
+        with start_span(name="sentry.api.sentry_app_components.get", transaction=True):
+            with start_span(
+                op="sentry-app-components.get_installs", name="sentry-app-components.get_installs"
+            ):
                 installs = SentryAppInstallation.objects.get_installed_for_organization(
                     organization.id
                 ).order_by("pk")
 
             for install in installs:
-                with sentry_sdk.start_span(op="sentry-app-components.filter_components"):
+                with start_span(
+                    op="sentry-app-components.filter_components",
+                    name="sentry-app-components.filter_components",
+                ):
                     _components = SentryAppComponent.objects.filter(
                         sentry_app_id=install.sentry_app_id
                     ).order_by("pk")
@@ -77,7 +83,10 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                         _components = _components.filter(type=request.GET["filter"])
 
                 for component in _components:
-                    with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
+                    with start_span(
+                        op="sentry-app-components.prepare_components",
+                        name="sentry-app-components.prepare_components",
+                    ):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
 

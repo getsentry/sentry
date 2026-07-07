@@ -41,9 +41,10 @@ function mockEstimatedRowCount(count: number) {
   });
 }
 
-function renderButton() {
+function renderButton({disabled}: {disabled?: boolean} = {}) {
   render(
     <DiscoverExportModalButton
+      disabled={disabled}
       error={null}
       eventView={eventView}
       isLoading={false}
@@ -80,6 +81,43 @@ describe('DiscoverExportModalButton', () => {
       'discover_v2.results.download_csv',
       expect.objectContaining({organization: organization.id})
     );
+  });
+
+  it('disables the export button when disabled is true', async () => {
+    mockEstimatedRowCount(1);
+    renderButton({disabled: true});
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled()
+    );
+  });
+
+  it('downloads the loaded rows locally when the row-count estimate fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-meta/`,
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
+    renderButton();
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Export Data'})).toBeEnabled()
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(downloadAsCsv).toHaveBeenCalledTimes(1);
+    });
+    expect(dataExportMock).not.toHaveBeenCalled();
   });
 
   it('disables the export button until the row-count estimate resolves', async () => {

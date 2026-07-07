@@ -8,6 +8,7 @@ from sentry.search.eap.ourlogs.attributes import (
     ourlog_column_to_custom_alias,
     ourlog_custom_alias_to_column,
 )
+from sentry.search.eap.ourlogs.filter_aliases import OURLOG_FILTER_ALIAS_DEFINITIONS
 
 OURLOG_DEFINITIONS = ColumnDefinitions(
     aggregates=LOG_AGGREGATE_DEFINITIONS,
@@ -15,7 +16,7 @@ OURLOG_DEFINITIONS = ColumnDefinitions(
     columns=OURLOG_ATTRIBUTE_DEFINITIONS,
     contexts=OURLOG_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
-    filter_aliases={},
+    filter_aliases=OURLOG_FILTER_ALIAS_DEFINITIONS,
     alias_to_column=ourlog_custom_alias_to_column,
     column_to_alias=ourlog_column_to_custom_alias,
 )

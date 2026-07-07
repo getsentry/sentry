@@ -7,11 +7,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Access} from 'sentry/components/acl/access';
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
-import {Confirm} from 'sentry/components/confirm';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -22,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
-  PluginWithProjectList,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -30,13 +26,12 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -65,18 +60,9 @@ const makeIntegrationQuery = (
   ];
 };
 
-const makePluginQuery = (organization: Organization): ApiQueryKey => {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
-};
-
 function ConfigureIntegration() {
   const location = useLocation();
   const navigate = useNavigate();
-  const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {integrationId, providerKey} = useParams<{
@@ -107,14 +93,6 @@ function ConfigureIntegration() {
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
-  const {
-    data: plugins,
-    isPending: isLoadingPlugins,
-    isError: isErrorPlugins,
-    refetch: refetchPlugins,
-  } = useApiQuery<PluginWithProjectList[] | null>(makePluginQuery(organization), {
-    staleTime: 0,
-  });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
   const {projects} = useProjects();
@@ -152,11 +130,11 @@ function ConfigureIntegration() {
     }
   }, [navigate, organization, providerKey]);
 
-  if (isLoadingConfig || isLoadingIntegration || isLoadingPlugins) {
+  if (isLoadingConfig || isLoadingIntegration) {
     return <LoadingIndicator />;
   }
 
-  if (isErrorConfig || isErrorIntegration || isErrorPlugins) {
+  if (isErrorConfig || isErrorIntegration) {
     return <LoadingError />;
   }
 
@@ -229,9 +207,6 @@ function ConfigureIntegration() {
    * Refetch everything, this could be improved to reload only the right thing
    */
   const onUpdateIntegration = () => {
-    queryClient.removeQueries({queryKey: makePluginQuery(organization)});
-    refetchPlugins();
-
     queryClient.removeQueries({
       queryKey: [`/organizations/${organization.slug}/config/integrations/`],
     });
@@ -241,58 +216,6 @@ function ConfigureIntegration() {
       queryKey: makeIntegrationQuery(organization, integrationId),
     });
     refetchIntegration();
-  };
-
-  const handleOpsgenieMigration = async () => {
-    try {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/integrations/${integrationId}/migrate-opsgenie/`,
-        {
-          method: 'PUT',
-        }
-      );
-      setApiQueryData<PluginWithProjectList[] | null>(
-        queryClient,
-        makePluginQuery(organization),
-        oldData => {
-          return oldData?.filter(({id}) => id === 'opsgenie') ?? [];
-        }
-      );
-      addSuccessMessage(t('Migration in progress.'));
-    } catch (error) {
-      addErrorMessage(t('Something went wrong! Please try again.'));
-    }
-  };
-
-  const handleJiraMigration = async () => {
-    try {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/integrations/${integrationId}/issues/`,
-        {
-          method: 'PUT',
-          data: {},
-        }
-      );
-      setApiQueryData<PluginWithProjectList[] | null>(
-        queryClient,
-        makePluginQuery(organization),
-        oldData => {
-          return oldData?.filter(({id}) => id === 'jira') ?? [];
-        }
-      );
-      addSuccessMessage(t('Migration in progress.'));
-    } catch (error) {
-      addErrorMessage(t('Something went wrong! Please try again.'));
-    }
-  };
-
-  const isOpsgeniePluginInstalled = () => {
-    return (plugins || []).some(
-      p =>
-        p.id === 'opsgenie' &&
-        p.projectList.length >= 1 &&
-        p.projectList.some(({enabled}) => enabled)
-    );
   };
 
   const getAction = () => {
@@ -315,89 +238,6 @@ function ConfigureIntegration() {
         >
           {t('Open in Discord')}
         </LinkButton>
-      );
-    }
-
-    const canMigrateJiraPlugin =
-      ['jira', 'jira_server'].includes(provider.key) &&
-      (plugins || []).find(({id}) => id === 'jira');
-    if (canMigrateJiraPlugin) {
-      return (
-        <Access access={['org:integrations']}>
-          {({hasAccess}) => (
-            <Confirm
-              disabled={!hasAccess}
-              header="Migrate Linked Issues from Jira Plugins"
-              renderMessage={() => (
-                <Fragment>
-                  <p>
-                    {t(
-                      'This will automatically associate all the Linked Issues of your Jira Plugins to this integration.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'If the Jira Plugins had the option checked to automatically create a Jira ticket for every new Sentry issue checked, you will need to create alert rules to recreate this behavior. Jira Server does not have this feature.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'Once the migration is complete, your Jira Plugins will be disabled.'
-                    )}
-                  </p>
-                </Fragment>
-              )}
-              onConfirm={() => {
-                handleJiraMigration();
-              }}
-            >
-              <Button variant="primary" disabled={!hasAccess}>
-                {t('Migrate Plugin')}
-              </Button>
-            </Confirm>
-          )}
-        </Access>
-      );
-    }
-
-    const canMigrateOpsgeniePlugin =
-      provider.key === 'opsgenie' && isOpsgeniePluginInstalled();
-    if (canMigrateOpsgeniePlugin) {
-      return (
-        <Access access={['org:integrations']}>
-          {({hasAccess}) => (
-            <Confirm
-              disabled={!hasAccess}
-              header="Migrate API Keys and Alert Rules from Opsgenie"
-              renderMessage={() => (
-                <Fragment>
-                  <p>
-                    {t(
-                      'This will automatically associate all the API keys and Alert Rules of your Opsgenie Plugins to this integration.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'API keys will be automatically named after one of the projects with which they were associated.'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'Once the migration is complete, your Opsgenie Plugins will be disabled.'
-                    )}
-                  </p>
-                </Fragment>
-              )}
-              onConfirm={() => {
-                handleOpsgenieMigration();
-              }}
-            >
-              <Button variant="primary" disabled={!hasAccess}>
-                {t('Migrate Plugin')}
-              </Button>
-            </Confirm>
-          )}
-        </Access>
       );
     }
 

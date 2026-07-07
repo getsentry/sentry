@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
@@ -126,31 +126,12 @@ export function InlineIssueTrackerActions({
 
           return (
             <ErrorBoundary key={integration.key} mini>
-              {action.href ? (
-                // Exclusively used for group.pluginActions
-                <IssueActionLinkButton
-                  size="zero"
-                  icon={
-                    integration.displayIcon ? (
-                      <IssueTrackerIcon>{integration.displayIcon}</IssueTrackerIcon>
-                    ) : undefined
-                  }
-                  disabled={isDisabled}
-                  tooltipProps={{title: tooltipTitle}}
-                  onClick={onAction}
-                  href={action.href}
-                  external
-                >
-                  <IssueActionName>{integration.displayName}</IssueActionName>
-                </IssueActionLinkButton>
-              ) : (
-                <IssueActionButton
-                  {...sharedButtonProps}
-                  disabled={isDisabled}
-                  tooltipProps={{title: tooltipTitle}}
-                  onClick={onAction}
-                />
-              )}
+              <IssueActionButton
+                {...sharedButtonProps}
+                disabled={isDisabled}
+                tooltipProps={{title: tooltipTitle}}
+                onClick={onAction}
+              />
             </ErrorBoundary>
           );
         }
@@ -262,26 +243,7 @@ export function IssueTrackerActionDropdown({
   const issueTrackerActions = issueTrackerActionGroups.flatMap(group => group.actions);
 
   if (issueTrackerActions.length === 1) {
-    const {action, isDisabled, onAction, tooltipTitle} = issueTrackerActions[0]!;
-
-    if (action.href) {
-      const LinkButtonComponent = fullWidth ? FullWidthLinkButton : LinkButton;
-
-      return (
-        <LinkButtonComponent
-          disabled={isDisabled}
-          external
-          href={action.href}
-          icon={<HeaderIssueTrackerIcon />}
-          onClick={onAction}
-          size="zero"
-          tooltipProps={{title: tooltipTitle}}
-          variant="transparent"
-        >
-          {issueTrackerActionLabel}
-        </LinkButtonComponent>
-      );
-    }
+    const {isDisabled, onAction, tooltipTitle} = issueTrackerActions[0]!;
 
     const ButtonComponent = fullWidth ? FullWidthButton : Button;
 
@@ -333,7 +295,6 @@ export function IssueTrackerActionDropdown({
                 {integration.displayIcon}
               </IssueTrackerIcon>
             ),
-            externalHref: action.href,
             disabled: isDisabled,
             onAction,
           })
@@ -351,15 +312,6 @@ const IssueActionWrapper = styled('span')`
 `;
 
 const IssueActionButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border: 1px dashed ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  font-weight: normal;
-`;
-
-const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
@@ -394,10 +346,6 @@ const fullWidthButtonStyles = (p: {theme: Theme}) => `
 `;
 
 const FullWidthButton = styled(Button)`
-  ${fullWidthButtonStyles}
-`;
-
-const FullWidthLinkButton = styled(LinkButton)`
   ${fullWidthButtonStyles}
 `;
 

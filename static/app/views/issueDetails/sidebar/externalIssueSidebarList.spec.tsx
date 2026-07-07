@@ -4,7 +4,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
@@ -25,18 +24,10 @@ import {ExternalIssueSidebarList} from './externalIssueSidebarList';
 
 describe('ExternalIssueSidebarList', () => {
   const organization = OrganizationFixture();
-  const organizationWithLinkedPullRequestsFeature = OrganizationFixture({
-    features: ['issue-details-linked-pull-requests'],
-  });
   const event = EventFixture();
   const group = GroupFixture();
-  const project = ProjectFixture();
 
-  function mockLinkedPullRequestsFeatureRequests(integrations: GroupIntegration[]) {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
-      body: {pullRequests: []},
-    });
+  function mockExternalLinkRequests(integrations: GroupIntegration[]) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: integrations,
@@ -49,6 +40,10 @@ describe('ExternalIssueSidebarList', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
@@ -87,10 +82,9 @@ describe('ExternalIssueSidebarList', () => {
       method: 'DELETE',
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
-    expect(await screen.findByRole('button', {name: issueKey})).toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('button', {name: issueKey}));
+    expect(await screen.findByRole('link', {name: issueKey})).toBeInTheDocument();
 
     // Integrations are refetched, remove the external issue from the object
     const refetchMock = MockApiClient.addMockResponse({
@@ -103,10 +97,12 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Unlink issue'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: `Unlink ${issueKey}`})
+    );
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', {name: issueKey})).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: issueKey})).not.toBeInTheDocument();
     });
     expect(unlinkMock).toHaveBeenCalledTimes(1);
     expect(refetchMock).toHaveBeenCalledTimes(1);
@@ -149,17 +145,18 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(
-      await screen.findByRole('button', {name: 'ClickUp: hello#1'})
+      await screen.findByRole('link', {name: 'ClickUp: hello#1'})
     ).toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('button', {name: 'ClickUp: hello#1'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Unlink issue'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Unlink ClickUp: hello#1'})
+    );
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('button', {name: 'ClickUp: hello#1'})
+        screen.queryByRole('link', {name: 'ClickUp: hello#1'})
       ).not.toBeInTheDocument();
     });
     expect(unlinkMock).toHaveBeenCalledTimes(1);
@@ -188,10 +185,10 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
-    expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
+    expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));
 
     // Both items are listed inside the dropdown
     expect(
@@ -216,7 +213,7 @@ describe('ExternalIssueSidebarList', () => {
         app: asanaComponent.sentryApp,
       }),
     ]);
-    mockLinkedPullRequestsFeatureRequests([
+    mockExternalLinkRequests([
       GitHubIntegrationFixture({
         status: 'active',
         externalIssues: [],
@@ -231,9 +228,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
-      organization: organizationWithLinkedPullRequestsFeature,
-    });
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByText('External Links')).toBeInTheDocument();
     expect(screen.queryByText('Issue Tracking')).not.toBeInTheDocument();
@@ -256,7 +251,7 @@ describe('ExternalIssueSidebarList', () => {
   });
 
   it('should open the integration modal directly when there is one issue tracker action', async () => {
-    mockLinkedPullRequestsFeatureRequests([
+    mockExternalLinkRequests([
       GitHubIntegrationFixture({
         id: '1',
         status: 'active',
@@ -270,10 +265,8 @@ describe('ExternalIssueSidebarList', () => {
       body: {createIssueConfig: [], linkIssueConfig: []},
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
-      organization: organizationWithLinkedPullRequestsFeature,
-    });
-    renderGlobalModal({organization: organizationWithLinkedPullRequestsFeature});
+    render(<ExternalIssueSidebarList event={event} group={group} />);
+    renderGlobalModal({organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));
 
@@ -295,7 +288,7 @@ describe('ExternalIssueSidebarList', () => {
       url: 'https://linear.app/example/issue/DE-1275',
     };
     const linkedIssues = [issue, prefixedIssue];
-    mockLinkedPullRequestsFeatureRequests(
+    mockExternalLinkRequests(
       linkedIssues.map((linkedIssue, index) =>
         GitHubIntegrationFixture({
           id: String(index + 1),
@@ -314,9 +307,7 @@ describe('ExternalIssueSidebarList', () => {
       )
     );
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
-      organization: organizationWithLinkedPullRequestsFeature,
-    });
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     const linkedIssueList = await screen.findByRole('list', {name: 'Linked issues'});
     expect(within(linkedIssueList).getByRole('link', {name: issue.key})).toHaveAttribute(
@@ -337,7 +328,7 @@ describe('ExternalIssueSidebarList', () => {
   });
 
   it('should render an external links empty state', async () => {
-    mockLinkedPullRequestsFeatureRequests([
+    mockExternalLinkRequests([
       GitHubIntegrationFixture({
         status: 'active',
         externalIssues: [],
@@ -345,9 +336,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
-      organization: organizationWithLinkedPullRequestsFeature,
-    });
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     expect(
@@ -369,9 +358,7 @@ describe('ExternalIssueSidebarList', () => {
       body: [],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
-      organization: organizationWithLinkedPullRequestsFeature,
-    });
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
@@ -407,10 +394,10 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
-    expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));
+    expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));
 
     // Item with different name and subtext should show both
     const menuItem = await screen.findByRole('menuitemradio', {
@@ -420,35 +407,5 @@ describe('ExternalIssueSidebarList', () => {
 
     // Item with name matching integration name should only show subtext
     expect(screen.getByRole('menuitemradio', {name: 'example.com'})).toBeInTheDocument();
-  });
-
-  it('should render links to group.pluginActions', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
-      body: [],
-    });
-
-    const groupWithPluginActions = GroupFixture({
-      pluginActions: [['Create Redmine Issue', '/path/to/redmine']],
-    });
-    render(
-      <ExternalIssueSidebarList
-        event={event}
-        group={groupWithPluginActions}
-        project={project}
-      />
-    );
-
-    expect(
-      await screen.findByRole('button', {name: 'Create Redmine Issue'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create Redmine Issue'})).toHaveAttribute(
-      'href',
-      '/path/to/redmine'
-    );
   });
 });

@@ -11,6 +11,7 @@ import {
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const organization = OrganizationFixture({features: ['discover-query']});
 
@@ -18,7 +19,13 @@ function makeConfig(): ExploreExportConfig {
   return {
     title: 'Test Export',
     filenameBase: 'test',
-    queryInfo: {field: ['message'], project: [1], query: '', sort: []},
+    queryInfo: {
+      dataset: TraceItemDataset.LOGS,
+      field: ['message'],
+      project: [1],
+      query: '',
+      sort: [],
+    },
     asyncQueryType: ExportQueryType.EXPLORE,
     supportsAllColumns: true,
     availableFormats: ['csv', 'jsonl'],

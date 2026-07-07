@@ -250,6 +250,10 @@ class User(Model, AbstractBaseUser):
                     if self.pk is None and not is_relocated_user:
                         # new users should set email_unique
                         self.email_unique = self.email
+                    elif self.pk is None and is_relocated_user and self.email_unique:
+                        # If the user is new, relocated and has email_unique blank email_unique
+                        # to dodge integrity errors.
+                        self.email_unique = None
                     else:
                         # existing users with shared email addresses + relocated users should be able to save without fail
                         self.email_unique = (
@@ -264,7 +268,7 @@ class User(Model, AbstractBaseUser):
         except IntegrityError:
             logger.info(
                 "Attempted to save user with non-unique primary email address",
-                extra={"email": self.email},
+                extra={"email": self.email, "is_relocated_user": is_relocated_user},
             )
             raise
 

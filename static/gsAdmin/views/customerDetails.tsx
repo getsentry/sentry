@@ -236,8 +236,8 @@ export function CustomerDetails() {
     if (!subscription?.planDetails) {
       return {};
     }
-    // We display all categories that are in either checkoutCategories or onDemandCategories,
-    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // We display all plan categories that are giftable (have a freeEventsMultiple),
+    // then disable the button if the category cannot be gifted on this particular subscription (ie. unlimited quota).
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
@@ -331,7 +331,6 @@ export function CustomerDetails() {
     localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
       level: 'danger',
@@ -431,18 +430,6 @@ export function CustomerDetails() {
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
           },
           {
-            key: 'changeSoftCap',
-            name: subscription.hasSoftCap
-              ? 'Remove Legacy Soft Cap'
-              : 'Add Legacy Soft Cap',
-            help: subscription.hasSoftCap
-              ? 'Remove the legacy soft cap from this account.'
-              : 'Add legacy soft cap to this account.',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, softCap: !subscription.hasSoftCap}),
-            ...actionRequiresBillingAdmin,
-          },
-          {
             key: 'changeBalance',
             name: 'Add or Remove Credit',
             help: 'Add or remove credit from this account.',
@@ -465,23 +452,6 @@ export function CustomerDetails() {
                 orgId,
                 subscription,
                 onSuccess: reloadData,
-              }),
-            ...actionRequiresBillingAdmin,
-          },
-          {
-            key: 'changeOverageNotification',
-            name: subscription.hasOverageNotificationsDisabled
-              ? 'Enable Overage Notification'
-              : 'Disable Overage Notification',
-            help: subscription.hasOverageNotificationsDisabled
-              ? 'Enable overage notifications on this account.'
-              : 'Disable overage notifications on this account.',
-            visible: subscription.hasSoftCap,
-            onAction: params =>
-              onUpdateMutation.mutate({
-                ...params,
-                overageNotificationsDisabled:
-                  !subscription.hasOverageNotificationsDisabled,
               }),
             ...actionRequiresBillingAdmin,
           },
@@ -528,7 +498,7 @@ export function CustomerDetails() {
             name: 'Terminate Contract',
             help: 'Terminate the contract (charges an early termination fee for contracts with 3 or more months remaining).',
             visible:
-              subscription.contractInterval === 'annual' &&
+              subscription.billingInterval === 'annual' &&
               subscription.canCancel &&
               !subscription.cancelAtPeriodEnd,
             onAction: params =>

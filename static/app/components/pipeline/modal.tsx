@@ -26,8 +26,12 @@ interface PipelineModalProps<
 > extends ModalRenderProps {
   provider: P;
   type: T;
+  /** Overrides the step's default descriptive copy. */
+  description?: string;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  /** Overrides the header title (defaults to the pipeline's `actionTitle`). */
+  title?: string;
 }
 
 function PipelineModal<
@@ -41,6 +45,8 @@ function PipelineModal<
   provider,
   initialData,
   onComplete,
+  title,
+  description,
 }: PipelineModalProps<T, P>) {
   const handleComplete = (data: CompletionDataFor<T, P>) => {
     onComplete?.(data);
@@ -50,6 +56,7 @@ function PipelineModal<
   const pipeline = usePipeline(type, provider, {
     onComplete: handleComplete,
     initialData,
+    description,
   });
   const {stepDefinition} = pipeline;
 
@@ -69,7 +76,7 @@ function PipelineModal<
   return (
     <Fragment>
       <Header closeButton>
-        <Text size="lg">{pipeline.definition.actionTitle}</Text>
+        <Text size="lg">{title ?? pipeline.definition.actionTitle}</Text>
       </Header>
       <Body>
         <Stack gap="2xl">
@@ -142,15 +149,25 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
+  description?: string;
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  title?: string;
 }
 
 export function openPipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
->({type, provider, initialData, onComplete, onClose}: OpenPipelineModalOptions<T, P>) {
+>({
+  type,
+  provider,
+  initialData,
+  onComplete,
+  onClose,
+  title,
+  description,
+}: OpenPipelineModalOptions<T, P>) {
   openModal(
     deps => (
       <PipelineModal
@@ -159,6 +176,8 @@ export function openPipelineModal<
         provider={provider}
         initialData={initialData}
         onComplete={onComplete}
+        title={title}
+        description={description}
       />
     ),
     {onClose, closeEvents: 'none'}

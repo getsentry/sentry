@@ -11,7 +11,8 @@ import {
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import type {TraceItemExportConfig} from 'sentry/views/explore/components/exports/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const mockAddSuccessMessage = jest.fn();
 
@@ -25,14 +26,16 @@ const organization = OrganizationFixture({features: ['discover-query']});
 const closeModal = jest.fn();
 
 const queryInfo = {
-  dataset: 'logs',
+  dataset: TraceItemDataset.LOGS,
   field: ['message'],
   project: [1],
   query: 'level:error',
   sort: ['-timestamp'],
 };
 
-function makeConfig(overrides: Partial<ExploreExportConfig> = {}): ExploreExportConfig {
+function makeConfig(
+  overrides: Partial<TraceItemExportConfig> = {}
+): TraceItemExportConfig {
   return {
     title: 'Test Export',
     filenameBase: 'test',
@@ -48,7 +51,7 @@ function makeConfig(overrides: Partial<ExploreExportConfig> = {}): ExploreExport
   };
 }
 
-function renderModal(config: ExploreExportConfig, onCancel = jest.fn()) {
+function renderModal(config: TraceItemExportConfig, onCancel = jest.fn()) {
   render(
     <ExploreExportModal
       Body={ModalBody}

@@ -29,9 +29,9 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
   return (
     <Grid
       columns={{
-        '2xs': '0.6fr 1.5fr 0.6fr',
-        xs: '0.6fr 2fr 0.6fr',
-        sm: '0.6fr 2fr 1fr 0.4fr',
+        'screen:2xs': '0.6fr 1.5fr 0.6fr',
+        'screen:xs': '0.6fr 2fr 0.6fr',
+        'screen:sm': '0.6fr 2fr 1fr 0.4fr',
       }}
       borderBottom={isLast ? undefined : 'primary'}
       padding="sm md"
@@ -57,7 +57,7 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
       <Flex
         align="center"
         minWidth="0"
-        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+        display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
         padding="sm md"
       >
         {unwind_status || debug_status ? (

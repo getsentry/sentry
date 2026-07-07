@@ -6,9 +6,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
@@ -16,7 +15,6 @@ from django.db.models import Min, prefetch_related_objects
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import LOG_LEVELS
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
@@ -50,7 +48,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
+from sentry.types.group import SUBSTATUS_TO_STR, GroupPriorityStr, GroupSubStatusStr, PriorityLevel
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -59,6 +57,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxDetails
@@ -124,13 +123,13 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     culprit: str | None
     permalink: str
     logger: str | None
-    level: str
-    status: str
+    level: GroupLevelStr
+    status: GroupStatusStr
     statusDetails: GroupStatusDetailsResponseOptional
-    substatus: str | None
+    substatus: GroupSubStatusStr | None
     isPublic: bool
     platform: str | None
-    priority: str | None
+    priority: GroupPriorityStr | None
     priorityLockedAt: datetime | None
     seerFixabilityScore: float | None
     seerAutofixLastTriggered: datetime | None
@@ -167,9 +166,6 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
     activity: list[dict[str, Any]]
     seenBy: list[dict[str, Any]]
-    pluginActions: list[Any]
-    pluginIssues: list[dict[str, Any]]
-    pluginContexts: list[dict[str, Any]]
     userReportCount: int
     participants: list[dict[str, Any]]
 
@@ -202,30 +198,49 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
     }
 
 
-def get_status_label(group: Group):
+GroupStatusStr = Literal[
+    "resolved",
+    "ignored",
+    "pending_deletion",
+    "pending_merge",
+    "reprocessing",
+    "unresolved",
+]
+
+
+def _get_status_label(group: Group) -> GroupStatusStr:
     status = group.get_status()
 
     if status == GroupStatus.RESOLVED:
-        status_label = "resolved"
+        return "resolved"
     elif status == GroupStatus.IGNORED:
-        status_label = "ignored"
+        return "ignored"
     elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
-        status_label = "pending_deletion"
+        return "pending_deletion"
     elif status == GroupStatus.PENDING_MERGE:
-        status_label = "pending_merge"
+        return "pending_merge"
     elif status == GroupStatus.REPROCESSING:
-        status_label = "reprocessing"
+        return "reprocessing"
     else:
-        status_label = "unresolved"
-
-    return status_label
+        return "unresolved"
 
 
-def get_substatus_label(group: Group):
+def _get_substatus_label(group: Group) -> GroupSubStatusStr | None:
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
-def _get_level_label(group: Group):
+GroupLevelStr = Literal[
+    "sample",
+    "debug",
+    "info",
+    "warning",
+    "error",
+    "fatal",
+    "unknown",
+]
+
+
+def _get_level_label(group: Group) -> GroupLevelStr:
     return LOG_LEVELS.get(group.level, "unknown")
 
 
@@ -369,9 +384,7 @@ class GroupSerializerBase(Serializer, ABC):
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
-                "annotations": self._resolve_and_extend_plugin_annotation(
-                    item, annotations_by_group_id[item.id]
-                ),
+                "annotations": annotations_by_group_id[item.id],
                 "ignore_until": ignore_item,
                 "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
                 "resolution": resolution,
@@ -411,7 +424,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": _get_level_label(obj),
             "status": status_label,
             "statusDetails": status_details,
-            "substatus": get_substatus_label(obj),
+            "substatus": _get_substatus_label(obj),
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
@@ -501,6 +514,8 @@ class GroupSerializerBase(Serializer, ABC):
             if obj.issue_type.enable_auto_resolve:
                 status = GroupStatus.RESOLVED
                 status_details["autoResolved"] = True
+
+        status_label: GroupStatusStr
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
@@ -755,29 +770,11 @@ class GroupSerializerBase(Serializer, ABC):
         return integration_annotations
 
     @staticmethod
-    def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: list[Any]
-    ) -> Sequence[Any]:
-        from sentry.plugins.base import plugins
-
-        annotations_for_group = []
-        annotations_for_group.extend(current_annotations)
-
-        # add the annotations for plugins
-        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
-        # `get_attrs`, so these for loops doesn't make a bunch of queries
-        for plugin in plugins.for_project(project=item.project, version=1):
-            if is_plugin_deprecated(plugin, item.project):
-                continue
-            safe_execute(plugin.tags, None, item, annotations_for_group)
-        for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
-
-        return annotations_for_group
-
-    @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+        with start_span(
+            op="GroupSerializerBase.serialize.permalink.build",
+            name="GroupSerializerBase.serialize.permalink.build",
+        ):
             return obj.get_absolute_url()
 
     @staticmethod
@@ -1199,9 +1196,9 @@ class SimpleGroupSerializerResponse(TypedDict):
     title: str
     culprit: str | None
     shortId: str | None
-    level: str
-    status: str
-    substatus: str | None
+    level: GroupLevelStr
+    status: GroupStatusStr
+    substatus: GroupSubStatusStr | None
     platform: str | None
     project: GroupProjectResponse
     type: str
@@ -1234,8 +1231,8 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             culprit=obj.culprit,
             shortId=obj.qualified_short_id,
             level=_get_level_label(obj),
-            status=get_status_label(obj),
-            substatus=get_substatus_label(obj),
+            status=_get_status_label(obj),
+            substatus=_get_substatus_label(obj),
             platform=obj.platform,
             project=_make_group_project_response(obj.project),
             type=obj.get_event_type(),

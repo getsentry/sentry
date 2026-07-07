@@ -53,9 +53,11 @@ export function LogsExportModalButton({
   const queryInfo = useLogsQueryInfo();
   const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
 
+  const filenameBase = 'logs';
+
   const config: ExploreExportConfig = {
     title: t('Logs Export'),
-    filenameBase: 'logs',
+    filenameBase,
     queryInfo: {...queryInfo, dataset: TraceItemDataset.LOGS},
     asyncQueryType: ExportQueryType.EXPLORE,
     supportsAllColumns: true,
@@ -66,7 +68,7 @@ export function LogsExportModalButton({
       downloadLogs({
         rows: tableData.slice(0, limit),
         fields: queryInfo.field,
-        filename: 'logs',
+        filename: filenameBase,
         format,
       }),
     trackExportSubmit: args =>

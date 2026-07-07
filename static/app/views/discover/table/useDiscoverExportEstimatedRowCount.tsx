@@ -34,7 +34,7 @@ export function useDiscoverExportEstimatedRowCount({
 
   const payload = eventView.getEventsAPIPayload(location);
 
-  const {data, isLoading} = useQuery({
+  const {data, isLoading, isError} = useQuery({
     ...apiOptions.as<EventsMetaResponse>()(
       '/organizations/$organizationIdOrSlug/events-meta/',
       {
@@ -46,8 +46,15 @@ export function useDiscoverExportEstimatedRowCount({
     enabled,
   });
 
+  // When the count can't be fetched we only know about the rows already loaded,
+  // so estimate from those rather than fabricating a large total that would push
+  // even a tiny, fully-loaded result into the async (email) export.
+  const estimatedRowCount = isError
+    ? loadedRowCount
+    : Math.max(loadedRowCount, data?.count ?? 0);
+
   return {
-    estimatedRowCount: Math.max(loadedRowCount, data?.count ?? 0),
+    estimatedRowCount,
     isPending: isLoading,
   };
 }
