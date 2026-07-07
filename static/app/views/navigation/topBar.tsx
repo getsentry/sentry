@@ -76,10 +76,18 @@ function TopBarContent() {
          * as the page heading. The Heading uses variant="inherit" so it carries
          * the TopBar typography (no visual weight of its own), and Flex's render
          * function applies the layout className to that same <h1> element.
+         *
+         * flexGrow={1} lets the <h1> occupy the available inline space (the
+         * header is justify="between", so this just absorbs the empty middle;
+         * content stays left-aligned, actions stay pinned right). This is
+         * required by any title-slot child that establishes a container query
+         * (e.g. BreadcrumbList's `container-type: inline-size`): without a
+         * definite inline size to resolve against, size containment collapses
+         * the child to 0 width and its container queries always read as narrow.
          */}
         <Slot.Outlet name="title">
           {props => (
-            <Flex align="center" gap="sm" minWidth="0">
+            <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
               {flexProps => (
                 <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
               )}
