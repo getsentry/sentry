@@ -26,7 +26,32 @@ class EmbedWidget(BaseModel):
     level: list[Literal["inline", "block"]]
 
 
-SEER_EMBED_WIDGETS: list[EmbedWidget] = []
+DOCS_LINK_WIDGET = EmbedWidget(
+    name="docs-link",
+    description=(
+        "Render a rich inline link to a page in the Sentry documentation. Use this "
+        "whenever you reference a Sentry feature, concept, or setup step that has "
+        "official docs so the user can jump straight to it. The url must be an "
+        "absolute https://docs.sentry.io/... URL; links to any other host are ignored."
+    ),
+    body=EmbedWidgetBody(
+        properties={
+            "url": {
+                "type": "string",
+                "description": ("Absolute docs URL, e.g. https://docs.sentry.io/product/issues/."),
+            },
+            "title": {
+                "type": "string",
+                "description": "Short human-readable label for the link.",
+            },
+        },
+        required=["url", "title"],
+    ),
+    level=["inline", "block"],
+)
+
+
+SEER_EMBED_WIDGETS: list[EmbedWidget] = [DOCS_LINK_WIDGET]
 
 
 def get_embed_widgets() -> list[dict[str, Any]]:
