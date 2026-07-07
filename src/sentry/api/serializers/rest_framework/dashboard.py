@@ -607,37 +607,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     raise serializers.ValidationError(
                         {"queries": "Heatmap widgets cannot have multiple queries"}
                     )
-                heatmap_query = data.get("queries")[0]
-                if heatmap_query.get("aggregates"):
-                    if len(heatmap_query.get("aggregates")) > 1:
-                        query_errors.append(
-                            {"aggregates": "Heatmap widgets support one aggregate."}
-                        )
-                        has_query_error = True
-
-                    heatmap_aggregate = heatmap_query.get("aggregates")[0]
-                    trace_metric = extract_trace_metric_from_aggregate(heatmap_aggregate)
-                    if not trace_metric:
-                        query_errors.append(
-                            {
-                                "aggregates": "Heatmap widgets are only supported by metric aggregates"
-                            }
-                        )
-                        has_query_error = True
-
-                    elif trace_metric.metric_type != "distribution":
-                        query_errors.append(
-                            {
-                                "aggregates": "Heatmap widgets are only supported by distribution type metrics"
-                            }
-                        )
-                        has_query_error = True
-
-                if heatmap_query.get("columns") and len(heatmap_query.get("columns")) > 0:
-                    query_errors.append(
-                        {"columns": "Heatmap widgets don't support group-by columns"}
-                    )
-                    has_query_error = True
 
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
@@ -660,6 +629,46 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
+
+                # Heatmap widgets aggregates and columns validation
+                elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+                    if query.get("aggregates"):
+                        if len(query.get("aggregates")) > 1:
+                            query_errors.append(
+                                {"aggregates": "Heatmap widgets support one aggregate."}
+                            )
+                            has_query_error = True
+
+                        heatmap_aggregate = query.get("aggregates")[0]
+                        try:
+                            trace_metric = extract_trace_metric_from_aggregate(heatmap_aggregate)
+                            if not trace_metric:
+                                query_errors.append(
+                                    {
+                                        "aggregates": "Heatmap widgets are only supported by metric aggregates"
+                                    }
+                                )
+                                has_query_error = True
+
+                            elif trace_metric.metric_type != "distribution":
+                                query_errors.append(
+                                    {
+                                        "aggregates": "Heatmap widgets are only supported by distribution type metrics"
+                                    }
+                                )
+                                has_query_error = True
+                        except InvalidSearchQuery:
+                            query_errors.append(
+                                {"aggregates": f"Invalid aggregate: {heatmap_aggregate}"}
+                            )
+                            has_query_error = True
+
+                    if query.get("columns") and len(query.get("columns")) > 0:
+                        query_errors.append(
+                            {"columns": "Heatmap widgets don't support group-by columns"}
+                        )
+                        has_query_error = True
+
                 else:
                     query_errors.append({})
 
