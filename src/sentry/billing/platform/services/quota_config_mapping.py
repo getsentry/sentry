@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaConfig as ProtoQuotaConfig
 from sentry_protos.billing.v1.quota_config_pb2 import QuotaScope as ProtoQuotaScope
 
@@ -9,6 +11,8 @@ from sentry.billing.platform.services.category_mapping import (
 )
 from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
+
+logger = logging.getLogger(__name__)
 
 
 def sentry_to_proto_quota_config(quota: QuotaConfig) -> ProtoQuotaConfig:
@@ -34,13 +38,29 @@ def sentry_to_proto_quota_config(quota: QuotaConfig) -> ProtoQuotaConfig:
 
 def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig:
     """Convert a proto QuotaConfig to its sentry equivalent."""
-    categories = [DataCategory(proto_to_sentry_category(c)) for c in proto_quota.categories]
+    categories: list[DataCategory] = []
+    for c in proto_quota.categories:
+        sentry_cat = proto_to_sentry_category(c)
+        try:
+            categories.append(DataCategory(sentry_cat))
+        except ValueError:
+            logger.warning(
+                "quota_config_mapping.unknown_category",
+                extra={"proto_category": c, "mapped_value": sentry_cat},
+            )
 
-    scope = (
-        QuotaScope(proto_quota.scope)
-        if proto_quota.scope != ProtoQuotaScope.QUOTA_SCOPE_UNSPECIFIED
-        else QuotaScope.ORGANIZATION
-    )
+    try:
+        scope = (
+            QuotaScope(proto_quota.scope)
+            if proto_quota.scope != ProtoQuotaScope.QUOTA_SCOPE_UNSPECIFIED
+            else QuotaScope.ORGANIZATION
+        )
+    except ValueError:
+        logger.warning(
+            "quota_config_mapping.unknown_scope",
+            extra={"proto_scope": proto_quota.scope},
+        )
+        scope = QuotaScope.ORGANIZATION
 
     return QuotaConfig(
         id=proto_quota.id or None,
