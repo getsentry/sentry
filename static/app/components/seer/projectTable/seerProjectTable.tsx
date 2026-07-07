@@ -355,7 +355,8 @@ function AgentSelectCell({
           menuPortalTarget={document.body}
           multiple={false}
           onMenuOpen={() => {
-            // Warm the cache so the on-change check below resolves instantly.
+            // Warm the cache so the on-change check below usually resolves from
+            // cache instead of blocking on a fetch.
             void prefetchAllSeerProjectRepos({
               organization,
               project: {slug: projectSlug},

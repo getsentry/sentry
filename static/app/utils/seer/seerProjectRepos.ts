@@ -360,8 +360,11 @@ export function prefetchAllSeerProjectRepos({
  * partial (e.g. page-1-only) entry left by another consumer — or a fetch
  * deduped against another consumer's in-flight single-page load — would
  * short-circuit the drain and hide non-GitHub repos on later pages. Guard
- * against that by re-fetching with `staleTime: 0` (forcing a real fetch, which
- * drains every page) whenever the result still has an un-fetched next page.
+ * against that by re-fetching with `staleTime: 0` whenever the result still has
+ * an un-fetched next page: on an empty/stale query this drains every page. The
+ * re-fetch is single-shot, so in the rare case where it dedupes onto another
+ * consumer's still-in-flight incremental drain it may resolve before every page
+ * lands; the next selection re-runs the check against a by-then-complete cache.
  */
 export async function fetchProjectHasNonGithubRepo({
   organization,
