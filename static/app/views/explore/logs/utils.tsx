@@ -267,12 +267,12 @@ export function getLogRowTimestampMillis(row: LogTableRowItem): number {
 function getLogRowSortValue(
   row: LogTableRowItem,
   field: OurLogFieldKey
-): string | number {
+): string | number | bigint {
   if (
     field === OurLogKnownFieldKey.TIMESTAMP ||
     field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
   ) {
-    return getLogRowTimestampMillis(row);
+    return BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
   }
   return (isRegularLogResponseItem(row) ? row[field] : undefined) ?? '';
 }

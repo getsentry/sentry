@@ -147,6 +147,22 @@ describe('compareLogRowsBySortBys', () => {
     expect(result).toEqual(['newer', 'older']);
   });
 
+  it('orders sub-microsecond nanosecond timestamps that collide as floats', () => {
+    const earlier = logRow('earlier', {
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1751852800123456700',
+    });
+    const later = logRow('later', {
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1751852800123456789',
+    });
+
+    const result = sortedIds(
+      [earlier, later],
+      [{field: OurLogKnownFieldKey.TIMESTAMP_PRECISE, kind: 'desc'}]
+    );
+
+    expect(result).toEqual(['later', 'earlier']);
+  });
+
   it('orders by a non-timestamp string field ascending', () => {
     const error = logRow('error', {[OurLogKnownFieldKey.SEVERITY]: 'error'});
     const info = logRow('info', {[OurLogKnownFieldKey.SEVERITY]: 'info'});
