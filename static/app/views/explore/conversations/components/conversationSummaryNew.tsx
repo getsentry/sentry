@@ -1,8 +1,9 @@
 import type React from 'react';
 import {Fragment, useMemo} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -14,43 +15,38 @@ import {IconOpen, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getUserDisplayName,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
-import {
-  calculateAggregates,
-  getConversationUser,
-  getTraceUrl,
-} from 'sentry/views/explore/conversations/components/conversationSummary';
+import {getTraceUrl} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
+import type {ConversationToolSummary} from 'sentry/views/explore/conversations/hooks/useConversationMeta';
+import {useConversationMeta} from 'sentry/views/explore/conversations/hooks/useConversationMeta';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface ConversationSummaryNewProps {
   conversationId: string;
-  nodes: AITraceSpanNode[];
-  isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
 }
 
 const VISIBLE_TOOL_COUNT = 6;
 
 export function ConversationSummaryNew({
-  nodes,
   conversationId,
-  isLoading,
   nodeTraceMap,
 }: ConversationSummaryNewProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
-  const user = useMemo(() => getConversationUser(nodes), [nodes]);
+  const {data: meta, isLoading} = useConversationMeta({conversationId});
+  const tools = meta?.tools ?? [];
+  const user = meta?.user ?? null;
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
   const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
@@ -87,6 +83,11 @@ export function ConversationSummaryNew({
         query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
         table: 'trace',
       });
+
+  const errorCount = meta?.errors ?? 0;
+  const totalTokens = meta?.totalTokens ?? 0;
+  const toolCalls = meta?.toolCalls ?? 0;
+  const totalCost = meta?.totalCost ?? 0;
 
   return (
     <Flex
@@ -127,13 +128,13 @@ export function ConversationSummaryNew({
                 <IconUser size="md" />
                 {userDisplayName ? (
                   <Tooltip title={userDisplayName} showOnlyOnOverflow skipWrapper>
-                    <Text size="xs" variant="muted" ellipsis>
+                    <Text size="sm" variant="muted" ellipsis>
                       {userDisplayName}
                     </Text>
                   </Tooltip>
                 ) : (
                   <InfoText
-                    size="xs"
+                    size="sm"
                     variant="muted"
                     title={<UserNotInstrumentedTooltip />}
                   >
@@ -152,39 +153,35 @@ export function ConversationSummaryNew({
                 >
                   <Flex align="center" gap="xs">
                     <IconOpen size="xs" />
-                    <Text size="xs" variant="inherit" wrap="nowrap">
+                    <Text size="sm" variant="inherit" wrap="nowrap">
                       {tn('Trace', 'Traces', traces.length)}
                     </Text>
                   </Flex>
                 </Link>
               )}
-              {aggregates.toolNames.length > 0 && (
+              {tools.length > 0 && (
                 <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-                  {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                    <ToolTag
-                      key={name}
-                      name={name}
-                      hasError={aggregates.erroredToolNames.has(name)}
-                    />
+                  {tools.slice(0, VISIBLE_TOOL_COUNT).map(tool => (
+                    <ToolTag key={tool.name} name={tool.name} hasError={tool.hasError} />
                   ))}
-                  {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+                  {tools.length > VISIBLE_TOOL_COUNT && (
                     <InfoText
                       size="sm"
                       variant="muted"
                       wrap="nowrap"
                       title={
                         <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
-                          {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                          {tools.slice(VISIBLE_TOOL_COUNT).map(tool => (
                             <ToolTag
-                              key={name}
-                              name={name}
-                              hasError={aggregates.erroredToolNames.has(name)}
+                              key={tool.name}
+                              name={tool.name}
+                              hasError={tool.hasError}
                             />
                           ))}
                         </Flex>
                       }
                     >
-                      {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                      {t('+%s more', tools.length - VISIBLE_TOOL_COUNT)}
                     </InfoText>
                   )}
                 </Flex>
@@ -196,15 +193,21 @@ export function ConversationSummaryNew({
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
           label={t('LLM Calls')}
-          value={<Count value={aggregates.llmCalls} />}
+          value={<Count value={meta?.llmCalls ?? 0} />}
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Tool Calls')}
+          value={<Count value={toolCalls} />}
+          tooltip={toolCalls > 0 ? <ToolCallsBreakdown tools={tools} /> : undefined}
           isLoading={isLoading}
         />
         <Stat
           label={t('Errors')}
-          value={<Count value={aggregates.errorCount} />}
-          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
+          value={<Count value={errorCount} />}
+          to={errorCount > 0 ? errorsUrl : undefined}
           onClick={
-            aggregates.errorCount > 0
+            errorCount > 0
               ? () =>
                   trackAnalytics('conversations.detail.click-errors-link', {organization})
               : undefined
@@ -213,16 +216,25 @@ export function ConversationSummaryNew({
         />
         <Stat
           label={t('Tokens')}
-          value={<Count value={aggregates.totalTokens} />}
+          value={<Count value={totalTokens} />}
+          tooltip={
+            totalTokens > 0 ? (
+              <TokensBreakdown
+                inputTokens={meta?.inputTokens ?? 0}
+                outputTokens={meta?.outputTokens ?? 0}
+                totalTokens={totalTokens}
+              />
+            ) : undefined
+          }
           isLoading={isLoading}
         />
         <Stat
           label={t('Cost')}
           value={
-            aggregates.totalCost < 0 ? (
-              <NegativeCostInfo cost={aggregates.totalCost} />
+            totalCost < 0 ? (
+              <NegativeCostInfo cost={totalCost} />
             ) : (
-              formatLLMCosts(aggregates.totalCost)
+              formatLLMCosts(totalCost)
             )
           }
           isLoading={isLoading}
@@ -238,12 +250,14 @@ function Stat({
   isLoading,
   to,
   onClick,
+  tooltip,
 }: {
   label: string;
   value: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
   to?: string;
+  tooltip?: React.ReactNode;
 }) {
   const isInteractive = !!to && !isLoading;
 
@@ -261,10 +275,70 @@ function Stat({
           </Text>
         </Link>
       ) : (
-        <Text size="xl" tabular wrap="nowrap">
+        <InfoText size="xl" tabular wrap="nowrap" maxWidth={400} title={tooltip}>
           {value}
-        </Text>
+        </InfoText>
       )}
     </Stack>
+  );
+}
+
+function ToolCallsBreakdown({tools}: {tools: ConversationToolSummary[]}) {
+  return (
+    <Grid columns="1fr max-content max-content" gap="md xl" align="center">
+      {tools.map(tool => (
+        <Fragment key={tool.name}>
+          <Tag
+            variant={tool.hasError ? 'danger' : 'muted'}
+            title={tool.name}
+            // Cap long tool names; the inner Text truncates with an ellipsis.
+            style={{justifySelf: 'start', maxWidth: 200, minWidth: 0}}
+          >
+            <Text ellipsis variant="inherit">
+              {tool.name}
+            </Text>
+          </Tag>
+          <Text size="sm" tabular>
+            <Count value={tool.calls} /> {tn('call', 'calls', tool.calls)}
+          </Text>
+          <Text size="sm" align="right" tabular>
+            {getDuration(tool.duration / 1000, 1, true)}
+          </Text>
+        </Fragment>
+      ))}
+    </Grid>
+  );
+}
+
+function TokensBreakdown({
+  inputTokens,
+  outputTokens,
+  totalTokens,
+}: {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}) {
+  return (
+    <Grid columns="1fr max-content" gap="md xl" align="center">
+      <Text size="sm" align="left">
+        {t('Input')}
+      </Text>
+      <Text size="sm" align="right" tabular>
+        <Count value={inputTokens} />
+      </Text>
+      <Text size="sm" align="left">
+        {t('Output')}
+      </Text>
+      <Text size="sm" align="right" tabular>
+        <Count value={outputTokens} />
+      </Text>
+      <Text size="sm" align="left">
+        {t('Total')}
+      </Text>
+      <Text size="sm" align="right" tabular>
+        <Count value={totalTokens} />
+      </Text>
+    </Grid>
   );
 }

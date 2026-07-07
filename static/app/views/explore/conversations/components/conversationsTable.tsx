@@ -170,7 +170,7 @@ function ConversationsTableInner() {
   );
 }
 
-export function normalizeUserField(value: string | null | undefined): string | null {
+function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
     return null;
   }

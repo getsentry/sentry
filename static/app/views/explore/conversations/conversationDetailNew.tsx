@@ -38,7 +38,7 @@ export function ConversationDetailPageNew() {
 
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const {nodes, nodeTraceMap} = useConversation(conversation);
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -69,10 +69,8 @@ export function ConversationDetailPageNew() {
       </TopBar.Slot>
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummaryNew
-          nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
-          isLoading={isLoading}
         />
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">

@@ -23,8 +23,6 @@ import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {normalizeUserField} from 'sentry/views/explore/conversations/components/conversationsTable';
-import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
@@ -71,7 +69,7 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
+function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
@@ -113,28 +111,6 @@ export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggre
     totalCost,
     toolNames: Array.from(toolNameSet).sort(),
   };
-}
-
-/**
- * Derives the conversation's user from the first span node that carries any
- * user identity attribute. Returns null when the spans aren't user-instrumented.
- */
-export function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
-  for (const node of nodes) {
-    const email = normalizeUserField(getStringAttr(node, SpanFields.USER_EMAIL));
-    const username = normalizeUserField(getStringAttr(node, SpanFields.USER_USERNAME));
-    const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
-    const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
-    if (email || username || ipAddress || id) {
-      return {
-        email,
-        username,
-        ip_address: ipAddress,
-        id,
-      };
-    }
-  }
-  return null;
 }
 
 /**
