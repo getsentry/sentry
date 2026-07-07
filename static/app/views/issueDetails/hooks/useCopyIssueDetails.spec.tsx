@@ -137,6 +137,33 @@ describe('useCopyIssueDetails', () => {
       }
     });
 
+    it('falls back to dateReceived when dateCreated is absent', () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = false;
+      ConfigStore.set('user', user);
+
+      // Transaction/performance events (e.g. N+1 DB) carry dateReceived but not
+      // dateCreated.
+      const performanceEvent = EventFixture({
+        id: '123456',
+        dateCreated: undefined,
+        dateReceived: '2023-01-01T00:00:00Z',
+      });
+
+      try {
+        const result = issueAndEventToMarkdown({
+          group: performanceGroup,
+          event: performanceEvent,
+          organization,
+        });
+
+        expect(result).toContain('**Date:** Dec 31, 2022 7:00:00 PM EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
+    });
+
     it('includes autofix data when provided', () => {
       const result = issueAndEventToMarkdown({
         group,
