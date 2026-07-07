@@ -207,6 +207,8 @@ const slowConditions = new Set<DataConditionType>([
   DataConditionType.EVENT_FREQUENCY_PERCENT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_COUNT,
+  DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT,
   DataConditionType.PERCENT_SESSIONS_COUNT,
   DataConditionType.PERCENT_SESSIONS_PERCENT,
 ]);
@@ -306,23 +308,25 @@ function findConflictingPriorityConditions(
   return conflictingConditions;
 }
 
+const ANY_LOGIC_TYPES = new Set([
+  DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+  DataConditionGroupLogicType.ANY,
+]);
+
 function findSeerActivityIncompatibleConditions(
   conditionGroup: DataConditionGroup
 ): Set<string> {
-  const allIncompatibleConditions = new Set([
-    ...eventRequiredConditions,
-    ...slowConditions,
-  ]);
-  const anyLogicTypes = new Set([
-    DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-    DataConditionGroupLogicType.ANY,
-  ]);
+  const incompatibleSet =
+    conditionGroup.logicType === DataConditionGroupLogicType.NONE
+      ? slowConditions
+      : slowConditions.union(eventRequiredConditions);
+
   const incompatibleConditions = conditionGroup.conditions.filter(c =>
-    allIncompatibleConditions.has(c.type)
+    incompatibleSet.has(c.type)
   );
   // With ANY logic, if at least one condition is compatible, the filter can still pass
   if (
-    anyLogicTypes.has(conditionGroup.logicType) &&
+    ANY_LOGIC_TYPES.has(conditionGroup.logicType) &&
     incompatibleConditions.length !== conditionGroup.conditions.length
   ) {
     return new Set<string>();
