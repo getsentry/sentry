@@ -159,8 +159,10 @@ function buildCrossEvents(item: SeerRawResponseItem): CrossEvent[] {
     crossEvents.push(makeCrossEvent('logs', item.log_query));
   }
   if (item.metric_query) {
-    // cross event metric query can only be in samples mode. If aggregate-mode,
-    // cross-event query should be dropped.
+    // A metric cross-event needs a parseable metric identity (metric.name/type)
+    // in the query. parseTraceMetricFromQuery returns no metric when it's absent
+    // (e.g. an aggregate-mode sibling whose identity lives in the visualization),
+    // and we drop the cross-event in that case.
     const {metric, rest} = parseTraceMetricFromQuery(item.metric_query);
     if (metric) {
       crossEvents.push({type: 'metrics', query: rest, metric});

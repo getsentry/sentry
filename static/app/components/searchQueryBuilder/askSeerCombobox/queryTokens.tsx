@@ -10,6 +10,7 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const MAX_PROJECT_CHIPS = 3;
 
@@ -161,12 +162,15 @@ export function QueryTokens({
   return (
     <Fragment>
       <TokenContainer>{tokens}</TokenContainer>
-      {crossEvents && crossEvents.length > 0 ? (
+      {crossEvents?.length ? (
         <CrossEventSection>
           {crossEvents.map((crossEvent, idx) => {
             const filterQuery =
               crossEvent.type === 'metrics'
-                ? [`metric.name:${crossEvent.metric.name}`, crossEvent.query]
+                ? [
+                    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
+                    crossEvent.query,
+                  ]
                     .filter(Boolean)
                     .join(' ')
                 : crossEvent.query;
