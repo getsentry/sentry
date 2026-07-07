@@ -11,8 +11,6 @@ explore: 0010_remove_last_received_from_attribute_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
-feedback: 0007_cleanup_failed_safe_deletes
-
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
 hybridcloud: 0001_squashed_0030_remove_orgslugreservationreplica_delete
@@ -31,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0023_add_seer_run_pull_request
+seer: 0025_add_seerrun_referrer_index
 
-sentry: 1124_weeklyreportprojectexclusion
+sentry: 1127_discover_to_explore_queries_self_hosted
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

@@ -72,6 +72,15 @@ class TestCursorWebhook(APITestCase):
             "summary": summary,
         }
 
+    def _skip_log_extra(self, mock_logger: Any) -> dict[str, Any]:
+        calls = [
+            c
+            for c in mock_logger.info.call_args_list
+            if c.args and c.args[0] == "cursor_webhook.attribution_skipped"
+        ]
+        assert len(calls) == 1
+        return calls[0].kwargs["extra"]
+
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_happy_path_finished(self, mock_update_state):
         mock_update_state.return_value = True
@@ -164,6 +173,32 @@ class TestCursorWebhook(APITestCase):
 
         assert response.status_code == 204
         assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.logger")
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_completed_without_attribution_logs_skip_reason(self, mock_update_state, mock_logger):
+        # A completed agent that we don't attribute must leave a breadcrumb naming the
+        # gate that blocked it, otherwise a missing SEER_DELEGATED_CURSOR row is invisible.
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+
+        # Seer didn't recognize the agent: known_to_seer=False, but a PR is present.
+        mock_update_state.return_value = False
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        with self.feature("organizations:pr-metrics-attribution"):
+            assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
+        extra = self._skip_log_extra(mock_logger)
+        assert extra["known_to_seer"] is False
+        assert extra["has_pr_url"] is True
+
+        # Seer knew the agent but there's no PR to attribute: known_to_seer=True, pr_url absent.
+        mock_logger.reset_mock()
+        mock_update_state.return_value = True
+        body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
+        with self.feature("organizations:pr-metrics-attribution"):
+            assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
+        extra = self._skip_log_extra(mock_logger)
+        assert extra["known_to_seer"] is True
+        assert extra["has_pr_url"] is False
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_finished_records_no_attribution_when_flag_disabled(self, mock_update_state):

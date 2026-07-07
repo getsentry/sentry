@@ -414,7 +414,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
-    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[assignment,method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:

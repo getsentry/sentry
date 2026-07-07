@@ -1,12 +1,8 @@
 import {useCallback, useImperativeHandle, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  Container,
-  Flex,
-  type Responsive,
-  useResponsivePropValue,
-} from '@sentry/scraps/layout';
+import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
+import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';

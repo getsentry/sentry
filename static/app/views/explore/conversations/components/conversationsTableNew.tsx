@@ -23,14 +23,16 @@ import {IconEdit, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {
+  CellContent,
   getConversationDetailUrl,
   getUserDisplayName,
-  InputOutputTooltipCell,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
@@ -41,6 +43,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
 import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
+import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
 import {
   type ConversationColumnKey,
   CONVERSATION_COLUMNS,
@@ -52,6 +55,7 @@ import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/ne
 export function ConversationsTableNew() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const {selection} = usePageFilters();
   const {openModal} = useModal();
   const {columns, setColumns} = useConversationsTableColumns();
@@ -129,11 +133,11 @@ export function ConversationsTableNew() {
           justify={RIGHT_ALIGNED_CONVERSATION_COLUMNS.has(column.key) ? 'end' : 'start'}
         >
           {column.name}
-          {/* Raise the user column's growth-limit so it absorbs the leftover
+          {/* Raise the input column's growth-limit so it absorbs the leftover
               width instead of the last column stretching. The panel's
               horizontal scroll (and the `minWidth: 0` wrapper) keeps this from
               overflowing when there are too many columns to fit. */}
-          {column.key === 'user' && <Container width="100vw" />}
+          {column.key === 'input' && <Container width="100vw" />}
         </Flex>
       );
     },
@@ -159,9 +163,11 @@ export function ConversationsTableNew() {
 
   const handleRowClick = useCallback(
     (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects), {
+        state: getConversationsListLocationState(location.query),
+      });
     },
-    [navigate, organization, selection.projects]
+    [navigate, organization, selection.projects, location.query]
   );
 
   return (
@@ -208,12 +214,14 @@ const BodyCell = memo(function BodyCell({
   organization: Organization;
   projects: number[];
 }) {
+  const location = useLocation();
   switch (column.key) {
     case 'conversationId': {
       const detailUrl = getConversationDetailUrl(organization.slug, dataRow, projects);
       return (
         <Link
           to={detailUrl}
+          state={getConversationsListLocationState(location.query)}
           onClick={event => {
             // Let the link handle navigation; don't also trigger the row click.
             event.stopPropagation();
@@ -303,13 +311,13 @@ const BodyCell = memo(function BodyCell({
       );
     case 'input':
       return dataRow.firstInput ? (
-        <InputOutputTooltipCell text={dataRow.firstInput} />
+        <CellContent text={dataRow.firstInput} />
       ) : (
         <Text>&mdash;</Text>
       );
     case 'output':
       return dataRow.lastOutput ? (
-        <InputOutputTooltipCell text={dataRow.lastOutput} />
+        <CellContent text={dataRow.lastOutput} />
       ) : (
         <Text>&mdash;</Text>
       );
@@ -347,11 +355,7 @@ function ToolCallsCell({
   });
 
   if (dataRow.toolCalls === 0) {
-    return (
-      <Text as="div">
-        <Count value={dataRow.toolCalls} />
-      </Text>
-    );
+    return <Text as="div">{formatAbbreviatedNumber(dataRow.toolCalls)}</Text>;
   }
 
   return (
@@ -360,7 +364,7 @@ function ToolCallsCell({
         maxWidth={400}
         title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
       >
-        <Count value={dataRow.toolCalls} />
+        {formatAbbreviatedNumber(dataRow.toolCalls)}
       </InfoText>
     </Text>
   );

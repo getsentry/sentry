@@ -497,17 +497,14 @@ export function getGroupActivityItem(
         const {pullRequest} = data;
         return {
           title: t('Pull Request Closed'),
-          message: tct(' by [author]: [pullRequest]', {
-            author,
-            pullRequest: pullRequest ? (
-              <PullRequestLink
-                pullRequest={pullRequest}
-                repository={pullRequest.repository}
-              />
-            ) : (
-              t('PR not available')
-            ),
-          }),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
         };
       }
       case GroupActivityType.SET_UNRESOLVED: {

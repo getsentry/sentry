@@ -63,7 +63,7 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
         assert attribution.is_valid is True
         assert attribution.signal_details == {
             "run_id": 123,
-            "group_id": self.group.id,
+            "group_ids": [self.group.id],
             "pr_url": "https://github.com/getsentry/sentry/pull/42",
         }
 
@@ -325,10 +325,10 @@ class RecordAttributionSignalTest(TestCase):
 
     def test_updates_details_on_redelivery(self) -> None:
         first = self._record_seer_signal(
-            signal_details={"run_id": 1, "group_id": 2, "pr_url": "https://x/1"}
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
         )
         second = self._record_seer_signal(
-            signal_details={"run_id": 1, "group_id": 2, "pr_url": "https://x/2"}
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/2"}
         )
 
         assert first.id == second.id

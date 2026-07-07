@@ -69,6 +69,11 @@ interface ControlContextValue {
   searchable: boolean;
   disabled?: boolean;
   /**
+   * Whether the matched substring of each option's label should be highlighted
+   * as the user types.
+   */
+  highlightSearch?: boolean;
+  /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
@@ -252,6 +257,7 @@ export function Control({
   const searchEnabled = normalizedSearch !== undefined;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
+  const highlightSearch = normalizedSearch?.highlight ?? false;
 
   /**
    * Search/filter value, used to filter out the list of displayed elements
@@ -484,8 +490,18 @@ export function Control({
       size,
       disabled,
       searchMatcher: searchFilter,
+      highlightSearch,
     };
-  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
+  }, [
+    overlayState,
+    overlayIsOpen,
+    search,
+    searchEnabled,
+    size,
+    disabled,
+    searchFilter,
+    highlightSearch,
+  ]);
 
   const theme = useTheme();
 

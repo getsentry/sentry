@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import random
 from collections.abc import AsyncGenerator, AsyncIterator
 from urllib.parse import urljoin
 
@@ -16,7 +15,6 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry import options
 from sentry.objectstore.endpoints.organization import get_raw_body_async
 from sentry.silo.util import (
     PRESERVE_CONTENT_ENCODING_URL_NAMES,
@@ -120,12 +118,7 @@ async def proxy_cell_request(
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
     host = cell.address
-    rollout_option = await sync_to_async(options.get)("apigateway.proxy.cell-rollout")
-    if (
-        cell.api_gateway_address
-        and isinstance(rollout_option, dict)
-        and random.random() < rollout_option.get(cell.name, 0.0)
-    ):
+    if cell.api_gateway_address:
         host = cell.api_gateway_address
 
     metric_tags = {

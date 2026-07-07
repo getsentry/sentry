@@ -413,10 +413,9 @@ def make_oneshot_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
-        "/v1/automation/agent/oneshot/run",
+        "/v1/automation/oneshot/run",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
-        metric_tags={"oneshot_id": body["oneshot_id"]},
         viewer_context=viewer_context,
     )
 
