@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from sentry import options as real_options
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.tasks.backfill_group_action_log import backfill_group_action_log_for_org
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
@@ -13,7 +18,7 @@ TEST_BATCH_SIZE = 5
 
 
 class BackfillGroupActionLogForOrgTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event = self.store_event(
             data={"message": "test error", "level": "error"},
@@ -21,7 +26,12 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         )
         self.group = self.event.group
 
-    def _options(self, killswitch=False, batch_size=TEST_BATCH_SIZE, delay=0):
+    def _options(
+        self,
+        killswitch: bool = False,
+        batch_size: int = TEST_BATCH_SIZE,
+        delay: int = 0,
+    ) -> Any:
         overrides = {
             "issues.backfill_group_action_log.killswitch": killswitch,
             "issues.backfill_group_action_log.batch_size": batch_size,
@@ -29,14 +39,21 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         }
         original_get = real_options.get
 
-        def side_effect(key, *args, **kwargs):
+        def side_effect(key: str, *args: Any, **kwargs: Any) -> Any:
             if key in overrides:
                 return overrides[key]
             return original_get(key, *args, **kwargs)
 
         return patch("sentry.tasks.backfill_group_action_log.options.get", side_effect=side_effect)
 
-    def _create_activity(self, activity_type, data=None, user_id=None, group=None, project=None):
+    def _create_activity(
+        self,
+        activity_type: ActivityType,
+        data: dict[str, Any] | None = None,
+        user_id: int | None = None,
+        group: Group | None = None,
+        project: Project | None = None,
+    ) -> Activity:
         return Activity.objects.create(
             project=project or self.project,
             group=group or self.group,
@@ -46,7 +63,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
             datetime=datetime.now(UTC) - timedelta(days=1),
         )
 
-    def test_converts_activities_to_action_log_entries(self):
+    def test_converts_activities_to_action_log_entries(self) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
         self._create_activity(
             ActivityType.ASSIGNED,
@@ -65,13 +82,14 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         assert resolve_entry.actor_type == GroupActorType.USER.value
         assert resolve_entry.actor_id == self.user.id
         assert resolve_entry.source == "unknown"
+        assert resolve_entry.idempotency_key is not None
         assert resolve_entry.idempotency_key.startswith("activity:")
 
         assign_entry = entries[1]
         assert assign_entry.type == GroupActionType.ASSIGN.value
         assert assign_entry.data["assignee_type"] == "user"
 
-    def test_skips_activities_without_group(self):
+    def test_skips_activities_without_group(self) -> None:
         Activity.objects.create(
             project=self.project,
             group=None,
@@ -85,7 +103,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
 
         assert GroupActionLogEntry.objects.filter(project_id=self.project.id).count() == 0
 
-    def test_skips_first_seen(self):
+    def test_skips_first_seen(self) -> None:
         self._create_activity(ActivityType.FIRST_SEEN)
 
         with self._options(), patch.object(backfill_group_action_log_for_org, "apply_async"):
@@ -93,7 +111,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
-    def test_idempotent_rerun(self):
+    def test_idempotent_rerun(self) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_org, "apply_async"):
@@ -102,7 +120,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
-    def test_respects_killswitch(self):
+    def test_respects_killswitch(self) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(killswitch=True):
@@ -110,7 +128,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
-    def test_self_chains_between_batches(self):
+    def test_self_chains_between_batches(self) -> None:
         for _ in range(3):
             self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
@@ -125,7 +143,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         assert call_kwargs["last_project_id"] == self.project.id
         assert call_kwargs["last_activity_id"] > 0
 
-    def test_moves_to_next_project(self):
+    def test_moves_to_next_project(self) -> None:
         project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
             data={"message": "test2", "level": "error"},
@@ -153,7 +171,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         assert chain_kwargs["last_project_id"] == self.project.id + 1
         assert chain_kwargs["last_activity_id"] == 0
 
-    def test_completes_when_all_projects_exhausted(self):
+    def test_completes_when_all_projects_exhausted(self) -> None:
         with (
             self._options(),
             patch.object(backfill_group_action_log_for_org, "apply_async") as mock_apply,
@@ -165,7 +183,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
 
         mock_apply.assert_not_called()
 
-    def test_actor_mapping_user(self):
+    def test_actor_mapping_user(self) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_org, "apply_async"):
@@ -175,7 +193,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         assert entry.actor_type == GroupActorType.USER.value
         assert entry.actor_id == self.user.id
 
-    def test_actor_mapping_system(self):
+    def test_actor_mapping_system(self) -> None:
         self._create_activity(ActivityType.AUTO_SET_ONGOING, data={"after_days": 7})
 
         with self._options(), patch.object(backfill_group_action_log_for_org, "apply_async"):
@@ -185,7 +203,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         assert entry.actor_type == GroupActorType.SYSTEM.value
         assert entry.actor_id == 0
 
-    def test_date_added_from_activity_datetime(self):
+    def test_date_added_from_activity_datetime(self) -> None:
         activity = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_org, "apply_async"):
@@ -194,7 +212,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
         assert entry.date_added == activity.datetime
 
-    def test_resumes_from_cursor(self):
+    def test_resumes_from_cursor(self) -> None:
         a1 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
@@ -209,7 +227,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
         assert entry.idempotency_key != f"activity:{a1.id}"
 
-    def test_handles_validation_errors(self):
+    def test_handles_validation_errors(self) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
         self._create_activity(ActivityType.SET_PRIORITY, data={})
 
@@ -221,7 +239,7 @@ class BackfillGroupActionLogForOrgTest(TestCase):
         assert entries[0].type == GroupActionType.RESOLVE.value
 
     @patch("sentry.issues.derived.tasks.process_group_log_task.delay")
-    def test_does_not_trigger_derived_processing(self, mock_derived_task):
+    def test_does_not_trigger_derived_processing(self, mock_derived_task: Any) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_org, "apply_async"):
