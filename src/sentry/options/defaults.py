@@ -3796,14 +3796,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out the new TaskProducer to track_outcome in tasks
-register(
-    "tasks.producer.track_outcome.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rolls out the new TaskProducer to preprod tasks
 register(
     "tasks.producer.preprod.rollout",
