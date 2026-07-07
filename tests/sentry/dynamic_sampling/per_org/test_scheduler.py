@@ -6,9 +6,11 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
+    schedule_per_org_calculations,
 )
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
@@ -30,6 +32,38 @@ def _assert_called_once_with_config(
 
 def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
     return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
+
+
+class SchedulePerOrgCalculationsTest(TestCase):
+    """Tests for the scheduling wrapper: rollout gating and active-org filtering."""
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_dispatches_only_active_orgs(self) -> None:
+        active = self.create_organization()
+        pending_deletion = self.create_organization()
+        pending_deletion.status = 1  # PENDING_DELETION
+        pending_deletion.save()
+
+        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+            mock_instance = MockScheduler.return_value
+            mock_instance.tick.return_value = False
+            schedule_per_org_calculations()
+
+            queryset = MockScheduler.call_args.kwargs["queryset"]
+            org_ids = set(queryset.values_list("id", flat=True))
+
+        assert active.id in org_ids
+        assert pending_deletion.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_org_in_rollout_is_dispatched(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is True
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
+    def test_org_not_in_rollout_is_skipped(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is False
 
 
 class RunCalculationsPerOrgTest(TestCase):

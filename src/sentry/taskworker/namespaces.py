@@ -284,10 +284,6 @@ telemetry_experience_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
-dynamic_sampling_tasks = app.taskregistry.create_namespace(
-    "dynamic-sampling",
-    app_feature="transactions",
-)
 
 tempest_tasks = app.taskregistry.create_namespace(
     "tempest",

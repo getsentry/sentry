@@ -38,7 +38,7 @@ from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import dynamic_sampling_tasks, telemetry_experience_tasks
+from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.utils.cursored_scheduler import CursoredScheduler
 
 # How long a full pass through all organizations should take.
@@ -47,9 +47,8 @@ CYCLE_DURATION = timedelta(minutes=10)
 
 @instrumented_task(
     name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
-    namespace=dynamic_sampling_tasks,
+    namespace=telemetry_experience_tasks,
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
-    expires=10 * 60,  # discard if not picked up within one cycle
     silo_mode=SiloMode.CELL,
 )
 def run_calculations_per_org_task_entry(org_id: OrganizationId) -> None:
