@@ -89,4 +89,5 @@ class TestProjectRuleCreator(TestCase):
         assert data_condition.comparison == {"key": "foo", "match": "is"}
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
-        assert action.type == Action.Type.PLUGIN
+        assert action.type == Action.Type.WEBHOOK
+        assert action.config.get("target_identifier") == "webhooks"

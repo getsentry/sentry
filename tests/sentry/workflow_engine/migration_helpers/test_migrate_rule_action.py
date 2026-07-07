@@ -643,7 +643,9 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_plugin_action_migration(self) -> None:
+    def test_notify_event_action_migration(self) -> None:
+        # NotifyEventAction dual-writes to a WEBHOOK action targeting the legacy webhooks service.
+        # Runtime delivery stays gated by send_legacy_webhooks_for_invocation (webhooks:enabled/urls).
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -653,30 +655,18 @@ class TestNotificationActionMigrationUtils(TestCase):
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
                 "uuid": "0202a169-326b-4575-8887-afe69cc58040",
             },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "ad671f12-6bb7-4b9d-a4fe-f32e985fe08e",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "efe1841d-d33a-460a-8d65-7697893ec7f1",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "8c0c2fc9-5d89-4974-9d3c-31b1d602a065",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "e63c387c-94f4-4284-bef8-c08b218654a3",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "0269d028-9466-4826-8ab9-18cd47fb08d2",
-            },
         ]
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
-        self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
+        assert len(actions) == len(action_data)
+        for action in actions:
+            action.refresh_from_db()
+            assert action.type == Action.Type.WEBHOOK
+            assert action.config.get("target_identifier") == "webhooks"
+            assert action.config.get("target_display") is None
+            assert action.config.get("target_type") is None
+            assert action.integration_id is None
+            assert action.data == {}
 
     def test_webhook_action_migration(self) -> None:
         action_data = WEBHOOK_ACTION_DATA_BLOBS
@@ -757,7 +747,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             ),
             (
                 "sentry.rules.actions.notify_event.NotifyEventAction",
-                ActionType.PLUGIN,
+                ActionType.WEBHOOK,
             ),
             (
                 "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
@@ -867,13 +857,13 @@ class TestNotificationActionMigrationUtils(TestCase):
                 },
                 Action.Type.EMAIL,
             ),
-            # Plugin
+            # NotifyEventAction (legacy webhooks) -> WEBHOOK
             (
                 {
                     "id": "sentry.rules.actions.notify_event.NotifyEventAction",
                     "uuid": "test-uuid",
                 },
-                Action.Type.PLUGIN,
+                Action.Type.WEBHOOK,
             ),
             # Webhook
             (

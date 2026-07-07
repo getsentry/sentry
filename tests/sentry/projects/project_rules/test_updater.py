@@ -184,7 +184,8 @@ class TestUpdater(TestCase):
         assert data_condition.comparison == {"key": "foo", "match": "is"}
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
-        assert action.type == Action.Type.PLUGIN
+        assert action.type == Action.Type.WEBHOOK
+        assert action.config.get("target_identifier") == "webhooks"
 
     def test_dual_create_workflow_engine__errors_on_invalid_conditions(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()

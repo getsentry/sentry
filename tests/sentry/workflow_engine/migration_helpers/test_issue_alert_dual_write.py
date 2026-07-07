@@ -197,7 +197,9 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
 
         dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
         action = dcg_actions.action
-        assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
+        # tested fully in test_migrate_rule_action.py
+        assert action.type == Action.Type.WEBHOOK
+        assert action.config.get("target_identifier") == "webhooks"
 
     def test_update_issue_alert__none_match(self) -> None:
         conditions_payload = [
