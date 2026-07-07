@@ -40,7 +40,7 @@ export function BreadcrumbItemPageTitle({
   trailingActions,
 }: BreadcrumbItemPageTitleProps) {
   return (
-    <Flex as="span" align="center" gap="sm" height="32px" flexShrink={0}>
+    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
       {pagination && (
         <Flex as="span" align="center">
           <Tooltip
@@ -71,8 +71,10 @@ export function BreadcrumbItemPageTitle({
         </Flex>
       )}
       {leadingGraphic}
-      <Tooltip title={label} disabled={!labelTooltip}>
-        <Container maxWidth="200px" width="auto">
+      {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> so the label
+          can shrink. The visible-width floor lives on the outer Flex above. */}
+      <Tooltip title={label} disabled={!labelTooltip} style={{minWidth: 0}}>
+        <Container minWidth={0} width="auto">
           {styleProps => (
             // Rendered as inline text (a <span>), not a heading: the surrounding
             // context (e.g. the TopBar title <h1>) owns the page heading, so the

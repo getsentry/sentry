@@ -18,6 +18,12 @@ function collectCssRules(): string[] {
   return rules;
 }
 
+/** CSS rule texts (from inserted stylesheets) that target any of `element`'s classes. */
+function rulesForElement(element: Element): string[] {
+  const classes = (element.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
+  return collectCssRules().filter(r => classes.some(c => r.includes(`.${c}`)));
+}
+
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
  * a base `display: none` plus an `@container (min-width: 800px) { display: flex }`
@@ -176,5 +182,35 @@ describe('BreadcrumbList container-query collapse', () => {
     const current = screen.getByTestId('breadcrumb-item');
     expect(current).toHaveTextContent('Client Keys');
     expect(hidesBelowSm(current.closest('li')!)).toBe(false);
+  });
+
+  it('gives crumbs a visible-width floor and never collapses them to 0', () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+          {type: 'page-title', props: {label: 'General'}},
+        ]}
+      />
+    );
+
+    const link = screen.getByTestId('breadcrumb-link');
+    const current = screen.getByTestId('breadcrumb-item');
+    const parentLi = link.closest('li')!;
+
+    // The fixed max-width caps are gone, so labels size to content when there's
+    // room. (jsdom can't compute layout — this guards the CSS intent, not pixels.)
+    expect(rulesForElement(link).some(r => /max-width:\s*132px/.test(r))).toBe(false);
+    expect(rulesForElement(current).some(r => /max-width:\s*200px/.test(r))).toBe(false);
+
+    // Regression guard: the parent <li> must not carry min-width:0 — that let it
+    // collapse to 0 width when the current page's label was very long.
+    expect(rulesForElement(parentLi).join(' ')).not.toContain('min-width: 0');
+
+    // A positive-px min-width floor is emitted so a crumb never shrinks to nothing.
+    expect(collectCssRules().some(r => /min-width:\s*[1-9]\d*px/.test(r))).toBe(true);
+
+    // Parents give up width first (high flex-shrink) so the current page truncates last.
+    expect(rulesForElement(parentLi).some(r => /flex-shrink:\s*999/.test(r))).toBe(true);
   });
 });

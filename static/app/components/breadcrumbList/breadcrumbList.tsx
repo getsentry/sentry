@@ -88,7 +88,7 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
        * below resolves against it either way.
        */}
       <Container containerType="inline-size" width="100%">
-        <Flex as="ol" align="center" gap="xs" padding="md 0" wrap="nowrap">
+        <Flex as="ol" align="center" gap="xs" padding="md 0" margin="0" wrap="nowrap">
           {parentItems.map((item, index) => (
             // Wide: show every parent item. Narrow: hide them all — 'link' parents
             // reappear in the overflow menu below; other types (e.g. 'select-projects')
