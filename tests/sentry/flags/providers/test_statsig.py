@@ -191,6 +191,42 @@ def test_handle_additional_fields() -> None:
     assert logs[0]["organization_id"] == org_id
 
 
+def test_handle_unexpected_field_formats() -> None:
+    """Statsig webhooks may include fields with unexpected formats (nested
+    dicts in user, empty value strings, non-UUID timeUUID). These unused
+    fields should not cause deserialization errors."""
+    org_id = 123
+    logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
+        {
+            "data": [
+                {
+                    "user": {
+                        "userID": "abc",
+                        "custom": {"nested": "object"},
+                    },
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "type": "Gate",
+                        "name": "gate1",
+                        "action": "updated",
+                    },
+                    "value": "",
+                    "timeUUID": "not-a-uuid",
+                    "statsigMetadata": {"nested": {"deep": 123}},
+                    "unitID": "",
+                }
+            ]
+        }
+    )
+
+    assert len(logs) == 1
+    assert logs[0]["action"] == 2
+    assert logs[0]["flag"] == "gate1"
+    assert logs[0]["created_by"] == "abc"
+    assert logs[0]["created_by_type"] == 1
+
+
 def test_handle_created_by_id() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
