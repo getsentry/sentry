@@ -45,9 +45,7 @@ export function TraceAiConversations({
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
   const hasRedesign = hasGenAiConversationsRedesignFeature(organization);
-  const [activeSubTab, setActiveSubTab] = useState(() =>
-    hasRedesign && conversationIds.length > 0 ? `chat-${conversationIds[0]}` : 'spans'
-  );
+  const [activeSubTab, setActiveSubTab] = useState('spans');
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
   const handleTabChange = useCallback((key: Key) => {
@@ -102,9 +100,7 @@ export function TraceAiConversations({
       conversationId: id,
     }));
 
-    return hasRedesign
-      ? [...conversationTabs, spansTab]
-      : [spansTab, ...conversationTabs];
+    return [spansTab, ...conversationTabs];
   }, [conversationIds, hasRedesign]);
 
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
