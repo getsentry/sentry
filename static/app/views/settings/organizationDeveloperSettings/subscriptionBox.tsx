@@ -8,7 +8,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {
+  PERMISSIONS_MAP,
+  RESOURCE_EVENTS,
+  webhookEventLabel,
+} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
@@ -55,13 +59,7 @@ export function SubscriptionBox({
     message = t('Cannot enable webhook subscription without specifying a webhook url');
   }
 
-  const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
-    issue: 'created, resolved, assigned, archived, unresolved',
-    error: 'created',
-    comment: 'created, edited, deleted',
-    seer: 'root_cause_started, root_cause_completed, solution_started, solution_completed, coding_started, coding_completed, pr_created',
-    preprod_artifact: 'size_analysis_completed, build_distribution_completed',
-  };
+  const description = RESOURCE_EVENTS[resource].map(webhookEventLabel).join(', ');
 
   return (
     <Tooltip disabled={!disabled} title={message} key={resource}>
@@ -71,7 +69,7 @@ export function SubscriptionBox({
             {resource}
             {isNew && <FeatureBadge type="new" />}
           </SubscriptionTitle>
-          <SubscriptionDescription>{DESCRIPTIONS[resource]}</SubscriptionDescription>
+          <SubscriptionDescription>{description}</SubscriptionDescription>
         </Stack>
         <Checkbox
           key={`${resource}${checked}`}
