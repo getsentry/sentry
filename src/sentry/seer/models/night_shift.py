@@ -59,15 +59,6 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["run", "kind"]),
         ]
-        constraints = [
-            # One verdict row per group per run, so redelivered shard results
-            # can't duplicate rows.
-            models.UniqueConstraint(
-                fields=["run", "group"],
-                condition=models.Q(group__isnull=False),
-                name="seer_nightshiftrunresult_unique_run_group",
-            )
-        ]
 
     __repr__ = sane_repr("run_id", "kind", "group_id")
 
