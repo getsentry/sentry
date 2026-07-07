@@ -642,6 +642,8 @@ const workerConfig: Configuration = {
     ],
   },
   plugins: [
+    // Disable progress bar
+    new rspack.ProgressPlugin(() => {}),
     /**
      * Without this, webpack will chunk the locales but attempt to load them all
      * eagerly.
