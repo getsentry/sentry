@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from django.db import router, transaction
+from django.db import connections, router, transaction
 
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -23,7 +23,7 @@ from sentry.issues.action_log.types import (
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
 logger = logging.getLogger(__name__)
@@ -58,8 +58,7 @@ def backfill_actions(
     with the earliest new entry's timestamp so that derived state is recomputed
     from that point forward.
 
-    Returns the number of entries submitted (an upper bound; duplicates
-    are silently skipped at the DB level).
+    Returns the number of rows actually inserted.
     """
     if not entries:
         return 0
@@ -68,39 +67,54 @@ def backfill_actions(
         if entries[i].date_added < entries[i - 1].date_added:
             raise ValueError("entries must be sorted by date_added ascending")
 
-    objects = [
-        GroupActionLogEntry(
-            group_id=group_id,
-            project_id=project_id,
-            type=entry.action.get_type().value,
-            actor_type=entry.actor.actor_type.value,
-            actor_id=entry.actor.actor_id,
-            source=entry.source,
-            data=entry.action.dict(),
-            date_added=entry.date_added,
-            idempotency_key=entry.idempotency_key,
+    # Use raw SQL so Postgres RETURNING gives us exact inserted count.
+    # Django's bulk_create with ignore_conflicts swallows RETURNING.
+    sql = """
+        INSERT INTO sentry_groupactionlogentry
+            (group_id, project_id, type, actor_type, actor_id, source, data,
+             date_added, date_updated, idempotency_key)
+        VALUES %s
+        ON CONFLICT (group_id, idempotency_key)
+            WHERE idempotency_key IS NOT NULL
+        DO NOTHING
+        RETURNING id
+    """
+    values_template = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    params: list[int | str | datetime] = []
+    for entry in entries:
+        params.extend(
+            [
+                group_id,
+                project_id,
+                entry.action.get_type().value,
+                entry.actor.actor_type.value,
+                entry.actor.actor_id,
+                entry.source,
+                json.dumps(entry.action.dict()),
+                entry.date_added,
+                entry.date_added,  # date_updated
+                entry.idempotency_key,
+            ]
         )
-        for entry in entries
-    ]
 
+    values_clause = ", ".join(values_template for _ in entries)
     using = router.db_for_write(GroupActionLogEntry)
     with transaction.atomic(using=using):
-        GroupActionLogEntry.objects.bulk_create(
-            objects,
-            ignore_conflicts=True,
-            unique_fields=["group_id", "idempotency_key"],
-        )
+        cursor = connections[using].cursor()
+        cursor.execute(sql % values_clause, params)
+        inserted = cursor.rowcount
 
     metrics.incr(
         "issues.action_log.backfill",
-        amount=len(entries),
+        amount=inserted,
         tags={"actor_type": entries[0].actor.actor_type.name.lower()},
     )
 
-    # entries are sorted ascending, so [0] is the earliest.
-    invalidate_group_derived_data(group_id, cursor=(entries[0].date_added, 0))
+    if inserted:
+        # entries are sorted ascending, so [0] is the earliest.
+        invalidate_group_derived_data(group_id, cursor=(entries[0].date_added, 0))
 
-    return len(entries)
+    return inserted
 
 
 def backfill_group_activities(

@@ -79,8 +79,14 @@ class BackfillActionsTest(TestCase):
 
     def test_skips_duplicates(self) -> None:
         entries = [self._entry(key="dup")]
-        backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
-        backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
+        assert (
+            backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
+            == 1
+        )
+        assert (
+            backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
+            == 0
+        )
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_skips_only_conflicting_entries(self) -> None:
@@ -93,7 +99,10 @@ class BackfillActionsTest(TestCase):
             self._entry(minutes_ago=2, key="existing"),
             self._entry(minutes_ago=1, key="new"),
         ]
-        backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
+        count = backfill_actions(
+            entries=entries, group_id=self.group.id, project_id=self.project.id
+        )
+        assert count == 1
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
 
     def test_same_key_different_group_no_conflict(self) -> None:
@@ -128,12 +137,15 @@ class BackfillActionsTest(TestCase):
         mock_invalidate.assert_called_once_with(self.group.id, cursor=(entries[0].date_added, 0))
 
     @patch("sentry.issues.action_log.backfill.invalidate_group_derived_data")
-    def test_always_invalidates_conservatively(self, mock_invalidate: MagicMock) -> None:
+    def test_no_invalidation_when_all_duplicates(self, mock_invalidate: MagicMock) -> None:
         entries = [self._entry(key="x")]
         backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
         mock_invalidate.reset_mock()
-        backfill_actions(entries=entries, group_id=self.group.id, project_id=self.project.id)
-        mock_invalidate.assert_called_once()
+        count = backfill_actions(
+            entries=entries, group_id=self.group.id, project_id=self.project.id
+        )
+        assert count == 0
+        mock_invalidate.assert_not_called()
 
 
 class BackfillGroupActivitiesTest(TestCase):
