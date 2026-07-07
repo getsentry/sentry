@@ -483,7 +483,7 @@ class SanitizeJsonStringsTest(TestCase):
         }
 
     def test_strips_lone_surrogates(self) -> None:
-        assert _sanitize_json_strings("bad\ud83dvalue") == "badvalue"
+        assert _sanitize_json_strings({"title": "bad\ud83dvalue"}) == {"title": "badvalue"}
 
     def test_leaves_clean_values_untouched(self) -> None:
         value = {"title": "plain", "count": 5, "flags": [True, None]}

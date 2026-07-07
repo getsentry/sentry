@@ -227,17 +227,21 @@ def make_feature_run_request(
     )
 
 
-def _sanitize_json_strings(value: Any) -> Any:
+def _sanitize_json_strings(payload: dict[str, Any]) -> dict[str, Any]:
     """Postgres jsonb rejects \\u0000 and lone surrogates, which show up in run
     bodies built from customer event data (e.g. exception titles). The outbox
     payload is a JSONField, so scrub strings recursively before saving."""
-    if isinstance(value, str):
-        return strip_lone_surrogates(value).replace("\x00", "")
-    if isinstance(value, dict):
-        return {_sanitize_json_strings(k): _sanitize_json_strings(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_sanitize_json_strings(v) for v in value]
-    return value
+
+    def scrub(value: object) -> object:
+        if isinstance(value, str):
+            return strip_lone_surrogates(value).replace("\x00", "")
+        if isinstance(value, dict):
+            return {scrub(k): scrub(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [scrub(v) for v in value]
+        return value
+
+    return {k: scrub(v) for k, v in payload.items()}
 
 
 def enqueue_seer_run(
