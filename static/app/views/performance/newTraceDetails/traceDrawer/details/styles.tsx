@@ -1318,6 +1318,9 @@ const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-size: ${p => p.theme.font.size.sm};
   /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
   min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
+  /* Reserve horizontal space so the absolutely-positioned Pretty/Raw control doesn't
+   * overlap the content when the object is narrow (e.g. inside a fit-content bubble). */
+  min-width: 210px;
   pre {
     margin: 0;
     padding: 0;
