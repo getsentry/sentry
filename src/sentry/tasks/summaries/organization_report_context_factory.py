@@ -98,52 +98,68 @@ class OrganizationReportContextFactory:
             project_ids = list(ctx.projects_context_map.keys())
             cached = read_project_metrics(ctx.organization.id, project_ids)
 
+            # Track per-source cache misses: a cache entry may exist but lack
+            # keys added in newer versions (e.g. "i" was added after "e"/"t").
+            # Each fallback only runs for projects actually missing its keys.
+            event_missed_project_ids: set[int] = set()
+            issue_missed_project_ids: set[int] = set()
+
             for project_id, values in cached.items():
                 project_ctx = ctx.projects_context_map[project_id]
-                project_ctx.prev_week_accepted_error_count = values.get("e", 0)
-                project_ctx.prev_week_accepted_transaction_count = values.get("t", 0)
-                project_ctx.prev_week_total_substatus_count = values.get("i", 0)
+                if "e" in values:
+                    project_ctx.prev_week_accepted_error_count = values["e"]
+                if "t" in values:
+                    project_ctx.prev_week_accepted_transaction_count = values["t"]
+                if "e" not in values or "t" not in values:
+                    event_missed_project_ids.add(project_id)
+                if "i" in values:
+                    project_ctx.prev_week_total_substatus_count = values["i"]
+                else:
+                    issue_missed_project_ids.add(project_id)
 
-            missed_project_ids = set(project_ids) - set(cached.keys())
-            if not missed_project_ids:
-                return
+            no_cache_project_ids = set(project_ids) - set(cached.keys())
+            event_missed_project_ids |= no_cache_project_ids
+            issue_missed_project_ids |= no_cache_project_ids
 
-            # Snuba fallback for cache misses (e.g. new projects, first report run)
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
-            event_counts = project_event_counts_for_organization(
-                start=prev_start,
-                end=prev_end,
-                ctx=ctx,
-                referrer=Referrer.REPORTS_OUTCOMES.value,
-            )
-            for data in event_counts:
-                project_id = data["project_id"]
-                if project_id not in missed_project_ids:
-                    continue
-                if project_id not in ctx.projects_context_map:
-                    continue
-                project_ctx = ctx.projects_context_map[project_id]
-                total = data["total"]
-                if data["outcome"] != Outcome.ACCEPTED:
-                    continue
-                if data["category"] == DataCategory.TRANSACTION:
-                    project_ctx.prev_week_accepted_transaction_count += total
-                elif data["category"] in DataCategory.error_categories():
-                    project_ctx.prev_week_accepted_error_count += total
 
-            # Django ORM fallback for previous-week issue counts
-            issue_data = organization_project_issue_counts_by_day(
-                start=prev_start, end=prev_end, ctx=ctx
-            )
-            for item in issue_data:
-                project_id = item["project_id"]
-                if project_id not in missed_project_ids:
-                    continue
-                if project_id in ctx.projects_context_map:
-                    ctx.projects_context_map[project_id].prev_week_total_substatus_count += item[
-                        "total"
-                    ]
+            if event_missed_project_ids:
+                # Snuba fallback for cache misses (e.g. new projects, first report run)
+                event_counts = project_event_counts_for_organization(
+                    start=prev_start,
+                    end=prev_end,
+                    ctx=ctx,
+                    referrer=Referrer.REPORTS_OUTCOMES.value,
+                )
+                for data in event_counts:
+                    project_id = data["project_id"]
+                    if project_id not in event_missed_project_ids:
+                        continue
+                    if project_id not in ctx.projects_context_map:
+                        continue
+                    project_ctx = ctx.projects_context_map[project_id]
+                    total = data["total"]
+                    if data["outcome"] != Outcome.ACCEPTED:
+                        continue
+                    if data["category"] == DataCategory.TRANSACTION:
+                        project_ctx.prev_week_accepted_transaction_count += total
+                    elif data["category"] in DataCategory.error_categories():
+                        project_ctx.prev_week_accepted_error_count += total
+
+            if issue_missed_project_ids:
+                # Django ORM fallback for previous-week issue counts
+                issue_data = organization_project_issue_counts_by_day(
+                    start=prev_start, end=prev_end, ctx=ctx
+                )
+                for item in issue_data:
+                    project_id = item["project_id"]
+                    if project_id not in issue_missed_project_ids:
+                        continue
+                    if project_id in ctx.projects_context_map:
+                        ctx.projects_context_map[
+                            project_id
+                        ].prev_week_total_substatus_count += item["total"]
 
     @metrics.wraps("weekly_report.create_context.issue_substatus_summaries")
     def _append_organization_project_issue_substatus_summaries(

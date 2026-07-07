@@ -666,7 +666,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         )
         .select_related("project")
         .values("project_id", "substatus")
-        .annotate(total=Count("substatus"))
+        .annotate(total=Count("id"))
     )
     for item in substatus_counts:
         project_ctx = ctx.projects_context_map[item["project_id"]]

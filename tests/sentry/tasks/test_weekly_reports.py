@@ -1280,6 +1280,76 @@ class WeeklyReportsTest(
             context = call_args.kwargs["context"]
             assert context["trends"]["issue_pct_change"] == "▲ 100%"
 
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_partial_cache_falls_back_per_key(
+        self, message_builder: mock.MagicMock
+    ) -> None:
+        """Cache entries missing keys should trigger fallbacks only for those keys."""
+        from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
+
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=20,
+            category=DataCategory.TRANSACTION,
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "current week issue",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["partial-cw"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event1.group.substatus = GroupSubStatus.NEW
+        event1.group.save()
+
+        prev_week = self.three_days_ago - timedelta(days=7)
+        self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            last_seen=prev_week,
+            first_seen=prev_week,
+        )
+        self.create_group(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            last_seen=prev_week,
+            first_seen=prev_week,
+        )
+
+        # Cache only has "e"/"t", missing "i" — ORM fallback should fill issues
+        cache_project_metrics(
+            self.organization.id,
+            {self.project.id: {"e": 5, "t": 40}},
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            # e/t come from cache: current 10 vs prev 5, current 20 vs prev 40
+            assert context["trends"]["error_pct_change"] == "▲ 100%"
+            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            # i comes from ORM fallback: current 1 vs prev 2
+            assert context["trends"]["issue_pct_change"] == "▼ 50%"
+
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_multi_project(self, message_builder: mock.MagicMock) -> None:
         """Verify issue data aggregates correctly across multiple projects."""
