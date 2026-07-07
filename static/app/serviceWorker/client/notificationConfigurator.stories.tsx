@@ -231,6 +231,7 @@ function buildPayload(
   return {
     name: 'trigger.test-notification',
     type: 'request',
+    timeout_ms: 1_000,
     data: {title: values.title, options},
   };
 }

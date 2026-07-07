@@ -39,6 +39,7 @@ export default Storybook.story('ServiceWorker', story => {
                 const result = await controller.postMessage({
                   name: 'trigger.test-notification',
                   type: 'request',
+                  timeout_ms: 1_000,
                   data: {
                     title: 'Test Notification',
                     options: {

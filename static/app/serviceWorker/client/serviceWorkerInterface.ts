@@ -62,7 +62,7 @@ export class ServiceWorkerController {
    */
   private async getWorker(): Promise<ServiceWorker | null> {
     if (!supportsServiceWorker) {
-      return null;
+      throw new Error('Service workers are not supported in this browser');
     }
     // For more read: https://web.dev/articles/service-worker-lifecycle
     const registration = await navigator.serviceWorker.ready;
@@ -79,7 +79,7 @@ export class ServiceWorkerController {
       async () => {
         const worker = await this.getWorker();
         if (!worker) {
-          return;
+          throw new Error('Service worker not found');
         }
         switch (message.type) {
           case 'event': {
@@ -90,6 +90,11 @@ export class ServiceWorkerController {
             const messageId = crypto.randomUUID();
             Sentry.getActiveSpan()?.setAttribute('messageId', messageId);
             return new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                this._outstandingRequests.delete(messageId);
+                reject(new Error('Request timed out'));
+              }, message.timeout_ms ?? 10_000); // 10 seconds
+
               this._outstandingRequests.set(messageId, (error, result) =>
                 Sentry.startSpan(
                   {
@@ -103,6 +108,7 @@ export class ServiceWorkerController {
                     },
                   },
                   () => {
+                    clearTimeout(timeout);
                     if (error) {
                       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
                       reject(error);
