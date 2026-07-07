@@ -289,6 +289,61 @@ export function getSeerProjectReposInfiniteQueryOptions({
   );
 }
 
+// `fetchInfiniteQuery`/`prefetchInfiniteQuery` only paginate when the query
+// actually fetches; a large `pages` cap drains every page because
+// `getNextPageParam` returns null once the `Link` header has no `next` cursor,
+// stopping the fetch well before this bound. Prefetch and fetch must both use
+// it — otherwise a fresh single-page cache (warmed by the prefetch) would be
+// returned as-is and the drain would be skipped.
+const DRAIN_ALL_PAGES = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Prefetch every page of a project's Seer repos to warm the cache.
+ *
+ * Pairs with {@link fetchProjectHasNonGithubRepo}: warming all pages up front
+ * lets the later gating check resolve from cache instead of re-fetching.
+ */
+export function prefetchAllSeerProjectRepos({
+  organization,
+  project,
+  queryClient,
+}: {
+  organization: Organization;
+  project: AvatarProject;
+  queryClient: QueryClient;
+}) {
+  return queryClient.prefetchInfiniteQuery({
+    ...getSeerProjectReposInfiniteQueryOptions({organization, project}),
+    pages: DRAIN_ALL_PAGES,
+  });
+}
+
+/**
+ * Fetch every page of a project's Seer repos and report whether any of them is
+ * not a GitHub repo.
+ *
+ * Coding-agent handoff only works for GitHub, so callers use this to gate
+ * non-Seer agent selection. This is the imperative counterpart to the
+ * `useFetchAllPages` + `isGitHubProvider` pattern in the Seer drawer's
+ * `useCodingAgents` hook — a non-GitHub repo on a later page must still be
+ * caught, so we drain all pages rather than inspecting only the first.
+ */
+export async function fetchProjectHasNonGithubRepo({
+  organization,
+  project,
+  queryClient,
+}: {
+  organization: Organization;
+  project: AvatarProject;
+  queryClient: QueryClient;
+}): Promise<boolean> {
+  const {pages} = await queryClient.fetchInfiniteQuery({
+    ...getSeerProjectReposInfiniteQueryOptions({organization, project}),
+    pages: DRAIN_ALL_PAGES,
+  });
+  return pages.flatMap(page => page.json).some(repo => !isGitHubProvider(repo.provider));
+}
+
 export function getMutateSeerProjectReposOptionsAddRepo({
   organization,
   project,

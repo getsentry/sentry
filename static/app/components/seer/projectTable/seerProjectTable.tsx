@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import {
   infiniteQueryOptions,
@@ -44,8 +44,8 @@ import {
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
-  getSeerProjectReposInfiniteQueryOptions,
-  isGitHubProvider,
+  fetchProjectHasNonGithubRepo,
+  prefetchAllSeerProjectRepos,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
@@ -56,6 +56,7 @@ import {
   coaleseStoppingPoint,
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
+import type {AgentIntegration, AutofixAgentSelectOption} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -261,79 +262,16 @@ export function SeerProjectTable() {
                         <Text tabular>{item.reposCount}</Text>
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell overflow="visible">
-                        <AutoSaveForm
-                          name="agentOption"
-                          schema={seerProjectSettingsSchema}
+                        <AgentSelectCell
+                          projectSlug={item.projectSlug}
                           initialValue={coalesePreferredAgent(
                             item.agent,
                             item.integrationId
                           )}
-                          mutationOptions={getMutateSeerProjectSettingsOptions({
-                            organization,
-                            project: {slug: item.projectSlug},
-                            queryClient,
-                            knownAgents,
-                          })}
-                        >
-                          {field => (
-                            <field.Select
-                              disabled={!canWrite}
-                              menuPortalTarget={document.body}
-                              multiple={false}
-                              onMenuOpen={() => {
-                                // Warm the cache so the on-change check below
-                                // resolves instantly.
-                                void queryClient.prefetchInfiniteQuery(
-                                  getSeerProjectReposInfiniteQueryOptions({
-                                    organization,
-                                    project: {slug: item.projectSlug},
-                                  })
-                                );
-                              }}
-                              onChange={async newValue => {
-                                // Coding-agent handoff only works for GitHub
-                                // repos. Verify before committing so a project
-                                // with any non-GitHub repo stays on Seer (and
-                                // nothing is persisted).
-                                if (newValue !== 'seer') {
-                                  let hasNonGithubRepo: boolean;
-                                  try {
-                                    const reposData =
-                                      await queryClient.fetchInfiniteQuery(
-                                        getSeerProjectReposInfiniteQueryOptions({
-                                          organization,
-                                          project: {slug: item.projectSlug},
-                                        })
-                                      );
-                                    hasNonGithubRepo = reposData.pages
-                                      .flatMap(page => page.json)
-                                      .some(repo => !isGitHubProvider(repo.provider));
-                                  } catch {
-                                    addErrorMessage(
-                                      t(
-                                        'Could not verify repositories. Please try again.'
-                                      )
-                                    );
-                                    return;
-                                  }
-                                  if (hasNonGithubRepo) {
-                                    addErrorMessage(
-                                      t(
-                                        'Non-GitHub repositories only support handing off to Seer.'
-                                      )
-                                    );
-                                    return;
-                                  }
-                                }
-                                field.handleChange(newValue);
-                              }}
-                              options={agentSelectOptions}
-                              // @ts-expect-error: Select component does not have a size prop defined
-                              size="xs"
-                              value={field.state.value}
-                            />
-                          )}
-                        </AutoSaveForm>
+                          agentSelectOptions={agentSelectOptions}
+                          knownAgents={knownAgents}
+                          disabled={!canWrite}
+                        />
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell>
                         <Stack align="stretch" flex="1">
@@ -374,6 +312,93 @@ export function SeerProjectTable() {
         </InfiniteTable.Table>
       </ListItemCheckboxProvider>
     </Fragment>
+  );
+}
+
+interface AgentSelectCellProps {
+  agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
+  disabled: boolean;
+  initialValue: AutofixAgentSelectOption;
+  knownAgents: AgentIntegration[] | undefined;
+  projectSlug: string;
+}
+
+function AgentSelectCell({
+  agentSelectOptions,
+  disabled,
+  initialValue,
+  knownAgents,
+  projectSlug,
+}: AgentSelectCellProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  // Tracks the most recent selection so a slow repo check can't commit a value
+  // the user has since changed away from (stale async race).
+  const latestSelectionRef = useRef<AutofixAgentSelectOption | null>(null);
+
+  return (
+    <AutoSaveForm
+      name="agentOption"
+      schema={seerProjectSettingsSchema}
+      initialValue={initialValue}
+      mutationOptions={getMutateSeerProjectSettingsOptions({
+        organization,
+        project: {slug: projectSlug},
+        queryClient,
+        knownAgents,
+      })}
+    >
+      {field => (
+        <field.Select
+          disabled={disabled}
+          menuPortalTarget={document.body}
+          multiple={false}
+          onMenuOpen={() => {
+            // Warm the cache so the on-change check below resolves instantly.
+            void prefetchAllSeerProjectRepos({
+              organization,
+              project: {slug: projectSlug},
+              queryClient,
+            });
+          }}
+          onChange={async newValue => {
+            latestSelectionRef.current = newValue;
+            // Coding-agent handoff only works for GitHub repos. Verify before
+            // committing so a project with any non-GitHub repo stays on Seer
+            // (and nothing is persisted).
+            if (newValue !== 'seer') {
+              let hasNonGithubRepo: boolean;
+              try {
+                hasNonGithubRepo = await fetchProjectHasNonGithubRepo({
+                  organization,
+                  project: {slug: projectSlug},
+                  queryClient,
+                });
+              } catch {
+                addErrorMessage(t('Could not verify repositories. Please try again.'));
+                return;
+              }
+              // Bail if the user picked something else while we were verifying.
+              if (latestSelectionRef.current !== newValue) {
+                return;
+              }
+              if (hasNonGithubRepo) {
+                addErrorMessage(
+                  t('Non-GitHub repositories only support handing off to Seer.')
+                );
+                return;
+              }
+            }
+            field.handleChange(newValue);
+          }}
+          options={agentSelectOptions}
+          // @ts-expect-error: Select component does not have a size prop defined
+          size="xs"
+          value={field.state.value}
+        />
+      )}
+    </AutoSaveForm>
   );
 }
 

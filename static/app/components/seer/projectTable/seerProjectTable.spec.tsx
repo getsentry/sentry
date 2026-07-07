@@ -57,24 +57,26 @@ describe('SeerProjectTable', () => {
     });
   }
 
+  function makeRepo(provider: string, id: string) {
+    return {
+      id,
+      repositoryId: id,
+      branchName: '',
+      branchOverrides: [],
+      instructions: '',
+      externalId: `10${id}`,
+      integrationId: `20${id}`,
+      name: 'sentry',
+      organizationId: '',
+      owner: 'getsentry',
+      provider,
+    };
+  }
+
   function mockProjectRepos(provider: string) {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
-      body: [
-        {
-          id: '1',
-          repositoryId: '1',
-          branchName: '',
-          branchOverrides: [],
-          instructions: '',
-          externalId: '101',
-          integrationId: '201',
-          name: 'sentry',
-          organizationId: '',
-          owner: 'getsentry',
-          provider,
-        },
-      ],
+      body: [makeRepo(provider, '1')],
     });
   }
 
@@ -123,6 +125,48 @@ describe('SeerProjectTable', () => {
     expect(settingsPut).not.toHaveBeenCalled();
     expect(screen.getByText('Seer')).toBeInTheDocument();
     expect(screen.queryByText('Cursor Cloud Agent')).not.toBeInTheDocument();
+  });
+
+  it('blocks handoff when a non-GitHub repo is only on a later page', async () => {
+    const reposUrl = `/projects/${organization.slug}/${project.slug}/seer/repos/`;
+    // Page 1 is all GitHub and points to a `next` page via the Link header.
+    MockApiClient.addMockResponse({
+      url: reposUrl,
+      body: [makeRepo('github', '1')],
+      headers: {
+        Link: `<${reposUrl}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+    // Page 2 carries the GitLab repo and terminates pagination.
+    MockApiClient.addMockResponse({
+      url: reposUrl,
+      body: [makeRepo('gitlab', '2')],
+      headers: {
+        Link: `<${reposUrl}?cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"`,
+      },
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
+    const settingsPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
+    });
+    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+
+    renderTable();
+
+    await userEvent.click(await screen.findByText('Seer'));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+    );
+
+    // The guard drains every page, so the second-page GitLab repo still blocks.
+    await waitFor(() =>
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Non-GitHub repositories only support handing off to Seer.'
+      )
+    );
+    expect(settingsPut).not.toHaveBeenCalled();
+    expect(screen.getByText('Seer')).toBeInTheDocument();
   });
 
   it('allows coding-agent handoff for a GitHub-only project', async () => {
