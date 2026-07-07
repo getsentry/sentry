@@ -140,9 +140,6 @@ function ToolOutputSize({
   traceId: string | undefined;
 }) {
   const bytes = useToolOutputBytes(node, traceId);
-  if (!bytes) {
-    return null;
-  }
   return (
     <Text size="xs" variant="muted" tabular align="right">
       {formatBytesBase10(bytes)}

@@ -212,12 +212,23 @@ const TimelineRow = memo(function TimelineRow({
                   >
                     {metric}
                   </Text>
-                ) : isTool && traceId ? (
-                  <ToolOutputSizeMetric
-                    node={node}
-                    traceId={traceId}
-                    isSelected={isSelected}
-                  />
+                ) : isTool ? (
+                  traceId ? (
+                    <ToolOutputSizeMetric
+                      node={node}
+                      traceId={traceId}
+                      isSelected={isSelected}
+                    />
+                  ) : (
+                    <Text
+                      size="sm"
+                      variant={isSelected ? 'primary' : 'muted'}
+                      align="right"
+                      tabular
+                    >
+                      {formatBytesBase10(0)}
+                    </Text>
+                  )
                 ) : null}
               </Flex>
               <Flex flexShrink={0} width="56px" justify="end">
@@ -277,10 +288,6 @@ function ToolOutputSizeMetric({
   traceId: string;
 }) {
   const bytes = useToolOutputBytes(node, traceId);
-
-  if (!bytes) {
-    return null;
-  }
 
   return (
     <Text size="sm" variant={isSelected ? 'primary' : 'muted'} align="right" tabular>
