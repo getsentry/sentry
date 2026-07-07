@@ -284,7 +284,7 @@ export function DocIntegrationModal(props: Props) {
               type="docIntegration"
               supportedTypes={['upload']}
               endpoint={`/doc-integrations/${docIntegration.slug}/avatar/`}
-              model={docIntegration.avatar ? docIntegration : {}}
+              model={docIntegration}
               onSave={() => {}}
               title="Logo"
               help="The company's logo"
