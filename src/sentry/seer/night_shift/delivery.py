@@ -23,7 +23,7 @@ from sentry.seer.models.night_shift import (
 )
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowStrategy
-from sentry.seer.night_shift.models import TriageResponse
+from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 
@@ -136,24 +136,21 @@ def _process_verdicts(
             "group_id", flat=True
         )
     )
-    verdicts = [
-        v
-        for v in triage_response.verdicts
-        if v.group_id in groups_by_id and v.group_id not in recorded_group_ids
-    ]
 
     # SKIP and ROOT_CAUSE_ONLY are both suppressed from future runs via the skip
     # cache. ROOT_CAUSE_ONLY keeps its own action value for tracking, but is
     # otherwise treated identically to SKIP (it does not trigger autofix).
-    for v in verdicts:
+    verdicts: list[TriageVerdict] = []
+    fixable_candidates: list[TriageResult] = []
+    for v in triage_response.verdicts:
+        group = groups_by_id.get(v.group_id)
+        if group is None or v.group_id in recorded_group_ids:
+            continue
+        verdicts.append(v)
         if v.action in (TriageAction.SKIP, TriageAction.ROOT_CAUSE_ONLY):
             mark_skipped(v.group_id)
-
-    fixable_candidates = [
-        TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
-        for v in verdicts
-        if v.action == TriageAction.AUTOFIX
-    ]
+        elif v.action == TriageAction.AUTOFIX:
+            fixable_candidates.append(TriageResult(group=group, action=v.action, reason=v.reason))
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_candidates))
     if not fixable_candidates:
