@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useAutoOpenPermissionsModal} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
 
 interface Params {
-  isConfigurationsPending: boolean;
+  isConfigurationsLoading: boolean;
   organization: Organization;
   outdatedConfigurations: Integration[];
   provider: IntegrationProvider | undefined;
@@ -22,7 +22,7 @@ function makeProps(overrides: Partial<Params> = {}): Params {
     provider: GitHubIntegrationProviderFixture(),
     organization: OrganizationFixture(),
     outdatedConfigurations: [GitHubIntegrationFixture()],
-    isConfigurationsPending: false,
+    isConfigurationsLoading: false,
     ...overrides,
   };
 }
@@ -80,13 +80,32 @@ describe('useAutoOpenPermissionsModal', () => {
     });
   });
 
-  it('does not open while configurations are pending', () => {
+  it('does not open while configurations are loading', () => {
     renderHookWithProviders(useAutoOpenPermissionsModal, {
       ...withParam,
-      initialProps: makeProps({isConfigurationsPending: true}),
+      initialProps: makeProps({isConfigurationsLoading: true}),
     });
 
     expect(openModalSpy).not.toHaveBeenCalled();
+  });
+
+  it('waits for refetched configurations before clearing the param', async () => {
+    const {rerender, router} = renderHookWithProviders(useAutoOpenPermissionsModal, {
+      ...withParam,
+      initialProps: makeProps({
+        isConfigurationsLoading: true,
+        outdatedConfigurations: [],
+      }),
+    });
+
+    expect(openModalSpy).not.toHaveBeenCalled();
+    expect(router.location.query.showPermsModal).toBe('1');
+
+    rerender(makeProps({outdatedConfigurations: [GitHubIntegrationFixture({id: 'fresh'})]}));
+
+    await waitFor(() => {
+      expect(openModalSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('no-ops for non-github providers', async () => {

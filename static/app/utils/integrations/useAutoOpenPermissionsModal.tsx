@@ -39,7 +39,7 @@ interface Props {
    * otherwise we'd strip `showPermsModal` before the data arrives and the
    * modal would never open.
    */
-  isConfigurationsPending: boolean;
+  isConfigurationsLoading: boolean;
   organization: Organization;
   /** Installations flagged as requiring a permissions upgrade. */
   outdatedConfigurations: Integration[];
@@ -59,7 +59,7 @@ export function useAutoOpenPermissionsModal({
   provider,
   organization,
   outdatedConfigurations,
-  isConfigurationsPending,
+  isConfigurationsLoading,
 }: Props) {
   const [showPermsModal, setShowPermsModal] = useQueryState('showPermsModal');
   const hasAutoOpenedRef = useRef(false);
@@ -77,7 +77,7 @@ export function useAutoOpenPermissionsModal({
       setShowPermsModal(null);
       return;
     }
-    if (isConfigurationsPending || !provider || hasAutoOpenedRef.current) {
+    if (isConfigurationsLoading || !provider || hasAutoOpenedRef.current) {
       return;
     }
 
@@ -91,7 +91,7 @@ export function useAutoOpenPermissionsModal({
   }, [
     showPermsModal,
     setShowPermsModal,
-    isConfigurationsPending,
+    isConfigurationsLoading,
     provider,
     organization,
     outdatedConfigurations,

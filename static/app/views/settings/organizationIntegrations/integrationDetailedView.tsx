@@ -146,6 +146,7 @@ export default function IntegrationDetailedView() {
   const {
     data: configurations = [],
     isPending: isConfigurationsPending,
+    isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
   } = useApiQuery<Integration[]>(
     makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
@@ -245,7 +246,7 @@ export default function IntegrationDetailedView() {
     provider,
     organization,
     outdatedConfigurations,
-    isConfigurationsPending,
+    isConfigurationsLoading: isConfigurationsPending || isConfigurationsFetching,
   });
 
   const onInstall = useCallback(
