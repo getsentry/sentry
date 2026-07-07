@@ -1518,6 +1518,124 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "",
                     "conditions": "metric.name:foo",
+                    "fields": ["sum(value,foo,distribution,none)"],
+                    "columns": [],
+                    "aggregates": ["sum(value,foo,distribution,none)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 200, response.data
+
+    def test_heatmap_rejects_equation_aggregate(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["equation|sum(value,foo,distribution,none) * 2"],
+                    "columns": [],
+                    "aggregates": ["equation|sum(value,foo,distribution,none) * 2"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert response.data["queries"] == ["Heatmap widgets don't support equations."], (
+            response.data
+        )
+
+    def test_heatmap_rejects_multiple_queries(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["sum(value,foo,distribution,none)"],
+                    "columns": [],
+                    "aggregates": ["sum(value,foo,distribution,none)"],
+                },
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["sum(value,bar,distribution,none)"],
+                    "columns": [],
+                    "aggregates": ["sum(value,bar,distribution,none)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert response.data["queries"] == ["Heatmap widgets cannot have multiple queries"], (
+            response.data
+        )
+
+    def test_heatmap_rejects_multiple_aggregates(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "sum(value,foo,distribution,none)",
+                        "avg(value,foo,distribution,none)",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "sum(value,foo,distribution,none)",
+                        "avg(value,foo,distribution,none)",
+                    ],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["queries"][0]["aggregates"] == "Heatmap widgets support one aggregate."
+        ), response.data
+
+    def test_heatmap_rejects_non_metric_aggregate(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
                     "fields": ["sum(value)"],
                     "columns": [],
                     "aggregates": ["sum(value)"],
@@ -1531,7 +1649,98 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 self.url(),
                 data=data,
             )
-        assert response.status_code == 200, response.data
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["queries"][0]["aggregates"]
+            == "Heatmap widgets are only supported by metric aggregates"
+        ), response.data
+
+    def test_heatmap_rejects_non_distribution_metric(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["sum(value,foo,counter,none)"],
+                    "columns": [],
+                    "aggregates": ["sum(value,foo,counter,none)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["queries"][0]["aggregates"]
+            == "Heatmap widgets are only supported by distribution type metrics"
+        ), response.data
+
+    def test_heatmap_rejects_group_by_columns(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["sum(value,foo,distribution,none)", "environment"],
+                    "columns": ["environment"],
+                    "aggregates": ["sum(value,foo,distribution,none)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["queries"][0]["columns"]
+            == "Heatmap widgets don't support group-by columns"
+        ), response.data
+
+    def test_heatmap_rejects_thresholds(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "thresholds": {
+                "max_values": {"max1": 100, "max2": 200},
+                "unit": "count",
+            },
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["sum(value,foo,distribution,none)"],
+                    "columns": [],
+                    "aggregates": ["sum(value,foo,distribution,none)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert response.data["thresholds"] == ["Heatmap widgets do not support thresholds."], (
+            response.data
+        )
 
     def test_widget_type_tracemetrics_line_chart_allows_single_equation(self) -> None:
         data = {
