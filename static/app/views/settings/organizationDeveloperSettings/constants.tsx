@@ -9,7 +9,11 @@ export const EVENT_CHOICES = [
   'preprod_artifact',
 ] as const satisfies readonly WebhookEvent[];
 
-// Mirrors EVENT_EXPANSION on the backend (sentry_apps/utils/webhooks.py)
+// The subscribable webhook vocabulary, mirroring EVENT_EXPANSION on the
+// backend (sentry_apps/utils/webhooks.py). A subscription is a whole resource
+// ("issue") or, with granular events enabled, an individual event
+// ("issue.created"). Needs to be backwards compatible with old stored
+// subscriptions.
 export const RESOURCE_EVENTS = {
   issue: [
     'issue.created',
@@ -38,6 +42,33 @@ export const RESOURCE_EVENTS = {
 } as const satisfies Record<WebhookEvent, readonly string[]>;
 
 export type WebhookGranularEvent = (typeof RESOURCE_EVENTS)[WebhookEvent][number];
+
+export type WebhookSubscription = WebhookEvent | WebhookGranularEvent;
+
+export const WEBHOOK_GRANULAR_EVENT_CHOICES = [
+  ...RESOURCE_EVENTS.issue,
+  ...RESOURCE_EVENTS.error,
+  ...RESOURCE_EVENTS.comment,
+  ...RESOURCE_EVENTS.seer,
+  ...RESOURCE_EVENTS.preprod_artifact,
+] as const;
+
+const LEGACY_EVENT_ALIASES: Record<string, WebhookGranularEvent> = {
+  'issue.archived': 'issue.ignored',
+};
+
+/** An app's stored subscriptions (`webhookEvents`) mapped onto today's vocabulary. */
+export function granularWebhookEvents(webhookEvents: string[]): WebhookGranularEvent[] {
+  const known = new Set<string>(WEBHOOK_GRANULAR_EVENT_CHOICES);
+  const canonical = webhookEvents.map(event => LEGACY_EVENT_ALIASES[event] ?? event);
+  return [...new Set(canonical)].filter((event): event is WebhookGranularEvent =>
+    known.has(event)
+  );
+}
+
+export function resourceOf(subscription: WebhookSubscription): WebhookEvent {
+  return subscription.split('.')[0] as WebhookEvent;
+}
 
 // Display names the token transform in webhookEventLabel can't produce
 const EVENT_LABELS: Partial<Record<WebhookGranularEvent, string>> = {
