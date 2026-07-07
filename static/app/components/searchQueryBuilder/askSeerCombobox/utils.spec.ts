@@ -1,4 +1,10 @@
-import {generateQueryTokensString, getExpandedProjectIds} from './utils';
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+
+import {
+  formatQueryToNaturalLanguage,
+  generateQueryTokensString,
+  getExpandedProjectIds,
+} from './utils';
 
 describe('getExpandedProjectIds', () => {
   it.each([null, undefined, []])('returns undefined when projects is %s', input => {
@@ -41,5 +47,44 @@ describe('generateQueryTokensString', () => {
     expect(generateQueryTokensString({expandedProjectIds: [1]})).toBe(
       'search expanded to 1 project'
     );
+  });
+
+  it('formats wildcard operators without private unicode markers', () => {
+    expect(
+      generateQueryTokensString({
+        query: `browser.name:${WildcardOperators.CONTAINS}FireFox`,
+      })
+    ).toBe("Filter is 'browser.name contains FireFox '");
+  });
+});
+
+describe('formatQueryToNaturalLanguage', () => {
+  it.each([
+    {
+      query: `browser.name:${WildcardOperators.CONTAINS}FireFox`,
+      expected: 'browser.name contains FireFox ',
+    },
+    {
+      query: `url:${WildcardOperators.STARTS_WITH}/api`,
+      expected: 'url starts with /api ',
+    },
+    {
+      query: `path:${WildcardOperators.ENDS_WITH}.js`,
+      expected: 'path ends with .js ',
+    },
+    {
+      query: `!browser.name:${WildcardOperators.CONTAINS}FireFox`,
+      expected: 'browser.name does not contain FireFox ',
+    },
+    {
+      query: `!url:${WildcardOperators.STARTS_WITH}/api`,
+      expected: 'url does not start with /api ',
+    },
+    {
+      query: `!path:${WildcardOperators.ENDS_WITH}.js`,
+      expected: 'path does not end with .js ',
+    },
+  ])('formats $query as $expected', ({query, expected}) => {
+    expect(formatQueryToNaturalLanguage(query)).toBe(expected);
   });
 });

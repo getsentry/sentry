@@ -3,18 +3,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+import {Switch} from '@sentry/scraps/switch';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import BooleanField from 'sentry/components/deprecatedforms/booleanField';
-import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
-import {Form} from 'sentry/components/deprecatedforms/form';
-import {InputField} from 'sentry/components/deprecatedforms/inputField';
-import NumberField, {
-  NumberField as NumberFieldNoContext,
-} from 'sentry/components/deprecatedforms/numberField';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
-import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
@@ -43,68 +38,6 @@ import {
 
 const CPE_DECIMAL_PRECISION = 8;
 
-// TODO: replace with modern fields so we don't need these workarounds
-class DateFieldNoContext extends DateTimeField {
-  getType() {
-    return 'date';
-  }
-}
-
-const DateField = withFormContext(DateFieldNoContext);
-
-type DollarsAndCentsFieldProps = {
-  max?: number;
-  min?: number;
-  step?: any;
-} & NumberFieldNoContext['props'];
-
-class DollarsFieldNoContext extends NumberFieldNoContext {
-  getField() {
-    return (
-      <div className="dollars-field-container">
-        <span className="dollar-sign">$</span>
-        {super.getField()}
-      </div>
-    );
-  }
-}
-
-const DollarsField = withFormContext(DollarsFieldNoContext);
-
-// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps> {
-  getField() {
-    return (
-      <div className="dollars-cents-field-container">
-        <span className="dollar-sign">$</span>
-        {super.getField()}
-      </div>
-    );
-  }
-  coerceValue(value: any): number | '' {
-    const floatValue = parseFloat(value);
-    if (isNaN(floatValue)) {
-      return '';
-    }
-    return floatValue;
-  }
-
-  getType() {
-    return 'number';
-  }
-
-  getAttributes() {
-    return {
-      min: this.props.min || undefined,
-      max: this.props.max || undefined,
-      step: this.props.step || undefined,
-    };
-  }
-}
-
-const DollarsAndCentsField = withFormContext(DollarsAndCentsFieldNoContext);
-
 type Props = {
   api: Client;
   billingConfig: BillingConfig | null;
@@ -119,6 +52,7 @@ type ModalState = {
   data: any;
   // TODO(ts)
   effectiveAtDisabled: boolean;
+  errorMessage: string | null;
   isLoading: boolean;
   provisionablePlans: Record<string, Plan>;
 };
@@ -174,12 +108,69 @@ function toCents(dollars: number | null | undefined, decimals = 0) {
   return parseFloat((dollars * 100).toFixed(decimals));
 }
 
+/**
+ * Minimal field wrapper that replicates the deprecated FormField's DOM structure.
+ * Renders: label[htmlFor] -> input[id] association for accessibility.
+ */
+function FormFieldWrapper({
+  label,
+  name,
+  help,
+  children,
+}: {
+  children: React.ReactNode;
+  label: string;
+  name: string;
+  help?: string;
+}) {
+  return (
+    <div className="control-group">
+      <div className="controls">
+        <label htmlFor={`id-${name}`} className="control-label">
+          {label}
+        </label>
+        {children}
+        {help ? <p className="help-block">{help}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Select field wrapper - does NOT use htmlFor since react-select has its own
+ * labeling via aria-label on the internal input.
+ */
+function SelectFieldWrapper({
+  label,
+  name,
+  help,
+  children,
+}: {
+  children: React.ReactNode;
+  label: string;
+  name: string;
+  help?: string;
+}) {
+  return (
+    <div className="control-group">
+      <div className="controls">
+        <label htmlFor={`id-${name}`} className="control-label">
+          {label}
+        </label>
+        {children}
+        {help ? <p className="help-block">{help}</p> : null}
+      </div>
+    </div>
+  );
+}
+
 class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   state: ModalState = {
     isLoading: true,
     data: {},
     effectiveAtDisabled: false,
     provisionablePlans: {},
+    errorMessage: null,
   };
 
   componentDidMount() {
@@ -367,13 +358,47 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     );
   };
 
-  onSubmit: Form['props']['onSubmit'] = (formData, _onSubmitSuccess, onSubmitError) => {
+  onSubmitError = (errorData: {responseJSON: Record<string, any>}) => {
+    // Display first error message found
+    const errors = errorData.responseJSON;
+    if (errors) {
+      const firstKey = Object.keys(errors)[0];
+      if (firstKey) {
+        const errorValue = errors[firstKey];
+        const message = Array.isArray(errorValue)
+          ? errorValue[0]
+          : typeof errorValue === 'string'
+            ? errorValue
+            : JSON.stringify(errorValue);
+        this.setState({errorMessage: message});
+      }
+    }
+  };
+
+  handleSubmit = () => {
+    this.setState({errorMessage: null});
     const postData: Record<string, any> = {...this.state.data};
 
-    for (const k in formData) {
-      if (formData[k] !== '' && formData[k] !== null) {
-        postData[k] = formData[k];
+    // Ensure numeric fields are numbers, not strings (Input onChange gives strings)
+    for (const key of Object.keys(postData)) {
+      const val = postData[key];
+      if (typeof val === 'string' && val !== '' && !isNaN(Number(val))) {
+        if (
+          key.startsWith('reserved') ||
+          key.startsWith('customPrice') ||
+          key.startsWith('paygCpe') ||
+          key.startsWith('reservedCpe') ||
+          key === 'seerBudget'
+        ) {
+          postData[key] = Number(val);
+        }
       }
+    }
+
+    // Ensure managed reflects the displayed value (plan selected = managed)
+    const hasCustomSkuPricesForManaged = Boolean(postData.plan);
+    if (hasCustomSkuPricesForManaged) {
+      postData.managed = true;
     }
 
     // clear conflicting fields regarding when the changes take effect
@@ -469,14 +494,14 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     Object.entries(postData).forEach(([key, value]) => {
       if (
         (key.startsWith('paygCpe') || key.startsWith('reservedCpe')) &&
-        !isNaN(value as number)
+        typeof value === 'number'
       ) {
-        postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
+        postData[key] = toCpeCents(value);
       } else if (
         (key.startsWith('customPrice') || key === 'seerBudget') &&
-        !isNaN(value as number)
+        typeof value === 'number'
       ) {
-        postData[key] = toCents(value as number); // price should be in cents
+        postData[key] = toCents(value);
       }
     });
 
@@ -494,7 +519,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }, 0);
 
       if (hasCustomSkuPrices && postData.customPrice !== skuSum) {
-        onSubmitError({
+        this.onSubmitError({
           responseJSON: {
             customPrice: ['Custom Price must be equal to sum of SKU prices'],
           },
@@ -551,7 +576,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         this.props.closeModal();
       },
       error: error => {
-        onSubmitError({
+        this.onSubmitError({
           responseJSON: error.responseJSON,
         });
       },
@@ -575,176 +600,234 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       <Fragment>
         <Header>Provision Subscription Changes</Header>
         <Body>
-          <Form
-            onSubmit={this.onSubmit}
-            onCancel={closeModal}
-            submitLabel="Submit"
-            cancelLabel="Cancel"
-            footerClass="modal-footer"
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              this.handleSubmit();
+            }}
           >
+            {this.state.errorMessage ? (
+              <div className="alert alert-error">{this.state.errorMessage}</div>
+            ) : null}
             <Columns>
               <div>
-                <SelectField
-                  label="Plan"
-                  name="plan"
-                  clearable={false}
-                  choices={Object.entries(this.state.provisionablePlans)
-                    .reverse()
-                    .map(([id, plan]) => [id, `${plan.name} (${plan.id})`])}
-                  onChange={v => {
-                    // Reset reserved CPEs when changing plans
-                    const nextReservedCpes = Object.keys(this.state.data)
-                      .filter(key => key.startsWith('reservedCpe'))
-                      .reduce((acc, key) => {
-                        return {...acc, [key]: null};
-                      }, {});
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        plan: v,
-                        ...nextReservedCpes,
-                      },
-                    }));
-                  }}
-                  value={this.state.data.plan}
-                />
-                <BooleanField
-                  label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
-                    this.props.subscription.billingPeriodEnd
-                  )})`}
-                  name="atPeriodEnd"
-                  disabled={this.state.data.coterm}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      effectiveAtDisabled: !!v,
-                      data: {...state.data, atPeriodEnd: v},
-                    }))
-                  }
-                />
-                <BooleanField
-                  label="Apply Changes To Current Subscription"
-                  name="coterm"
-                  disabled={this.state.data.atPeriodEnd}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {...state.data, coterm: v},
-                      effectiveAtDisabled: !!v,
-                    }))
-                  }
-                />
-                <DateField
-                  label="Start Date"
-                  name="effectiveAt"
-                  help="The date at which this change should take effect."
-                  disabled={this.state.effectiveAtDisabled}
-                  required={!this.state.effectiveAtDisabled}
-                />
-                <SelectField
-                  label="Billing Interval"
-                  name="billingInterval"
-                  choices={[
-                    ['annual', 'Annual'],
-                    ['monthly', 'Monthly'],
-                  ]}
-                  disabled={!this.state.data.plan}
-                  required={!!this.state.data.plan}
-                  value={this.state.data.billingInterval}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...this.state.data,
-                        billingInterval: v,
-                      },
-                    }))
-                  }
-                />
-                <BooleanField
-                  label="Managed Subscription"
-                  name="managed"
-                  value={hasCustomSkuPrices || this.state.data.managed}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        managed: v,
-                        customPrice: v ? state.data.customPrice : '',
-                      },
-                    }))
-                  }
-                />
-
-                <SelectField
-                  label="Billing Type"
-                  name="type"
-                  choices={[
-                    ['invoiced', 'Invoiced'],
-                    ['credit_card', 'Credit Card'],
-                  ]}
-                  onChange={v => {
-                    if (v === 'credit_card') {
-                      this.setState(state => ({
-                        ...state,
-                        data: {...state.data, onDemandInvoicedManual: ''},
-                      }));
-                    }
-                    this.setState(state => ({...state, data: {...state.data, type: v}}));
-                  }}
-                  value={this.state.data.type}
-                />
-                {this.state.data.type === 'invoiced' && (
-                  <StyledSelectFieldWithHelpText
-                    label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
-                    name="onDemandInvoicedManual"
-                    choices={
-                      // per-category max spend is only available on plans
-                      // with on-demand budget modes
-                      selectedPlan && !selectedPlan.hasOnDemandModes
-                        ? [
-                            ['SHARED', 'Shared'],
-                            ['DISABLE', 'Disable'],
-                          ]
-                        : [
-                            ['SHARED', 'Shared'],
-                            ['PER_CATEGORY', 'Per Category'],
-                            ['DISABLE', 'Disable'],
-                          ]
-                    }
-                    help={`Used to enable (Shared or Per Category) or disable ${selectedPlan ? displayBudgetName(selectedPlan) : 'pay-as-you-go'} max spend for invoiced customers. Cannot be provisioned with soft cap.`}
-                    clearable
-                    disabled={
-                      this.state.data.type === 'credit_card' || this.isEnablingSoftCap()
-                    }
-                    value={this.state.data.onDemandInvoicedManual}
-                    onChange={v => {
-                      this.setState(state => ({
-                        ...state,
-                        data: {...state.data, onDemandInvoicedManual: v ? v : null},
-                      }));
-                    }}
-                  />
-                )}
-
-                {!this.disableRetainOnDemand() && (
-                  <BooleanField
-                    label={`Retain ${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Budget`}
-                    name="retainOnDemandBudget"
-                    value={this.state.data.retainOnDemandBudget}
-                    help={`Check to retain the customer's current ${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Budget. Otherwise, the customer's ${selectedPlan ? displayBudgetName(selectedPlan) : 'Pay-as-you-go'} Budget will be set based on the default calculations (0.5 times the monthly plan price).`}
-                    onChange={v =>
+                <SelectFieldWrapper label="Plan" name="plan">
+                  <Select
+                    name="plan"
+                    inputId="id-plan"
+                    aria-label="Plan"
+                    clearable={false}
+                    choices={Object.entries(this.state.provisionablePlans)
+                      .reverse()
+                      .map(
+                        ([id, plan]) =>
+                          [id, `${plan.name} (${plan.id})`] as [string, string]
+                      )}
+                    onChange={(option: any) => {
+                      const v = option?.value;
+                      // Reset reserved CPEs when changing plans
+                      const nextReservedCpes = Object.keys(this.state.data)
+                        .filter(key => key.startsWith('reservedCpe'))
+                        .reduce<Record<string, null>>((acc, key) => {
+                          return {...acc, [key]: null};
+                        }, {});
                       this.setState(state => ({
                         ...state,
                         data: {
                           ...state.data,
-                          retainOnDemandBudget: v,
+                          plan: v,
+                          ...nextReservedCpes,
                         },
+                      }));
+                    }}
+                    value={this.state.data.plan}
+                  />
+                </SelectFieldWrapper>
+                <FormFieldWrapper
+                  label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
+                    this.props.subscription.billingPeriodEnd
+                  )})`}
+                  name="atPeriodEnd"
+                >
+                  <Switch
+                    id="id-atPeriodEnd"
+                    disabled={this.state.data.coterm}
+                    checked={!!this.state.data.atPeriodEnd}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = e.target.checked;
+                      this.setState(state => ({
+                        ...state,
+                        effectiveAtDisabled: !!v,
+                        data: {...state.data, atPeriodEnd: v},
+                      }));
+                    }}
+                  />
+                </FormFieldWrapper>
+                <FormFieldWrapper
+                  label="Apply Changes To Current Subscription"
+                  name="coterm"
+                >
+                  <Switch
+                    id="id-coterm"
+                    disabled={this.state.data.atPeriodEnd}
+                    checked={!!this.state.data.coterm}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = e.target.checked;
+                      this.setState(state => ({
+                        ...state,
+                        data: {...state.data, coterm: v},
+                        effectiveAtDisabled: !!v,
+                      }));
+                    }}
+                  />
+                </FormFieldWrapper>
+                <FormFieldWrapper
+                  label="Start Date"
+                  name="effectiveAt"
+                  help="The date at which this change should take effect."
+                >
+                  <Input
+                    id="id-effectiveAt"
+                    type="date"
+                    name="effectiveAt"
+                    disabled={this.state.effectiveAtDisabled}
+                    required={!this.state.effectiveAtDisabled}
+                    value={this.state.data.effectiveAt ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      this.setState(state => ({
+                        ...state,
+                        data: {...state.data, effectiveAt: e.target.value},
                       }))
                     }
                   />
+                </FormFieldWrapper>
+                <SelectFieldWrapper label="Billing Interval" name="billingInterval">
+                  <Select
+                    name="billingInterval"
+                    inputId="id-billingInterval"
+                    aria-label="Billing Interval"
+                    choices={[
+                      ['annual', 'Annual'],
+                      ['monthly', 'Monthly'],
+                    ]}
+                    disabled={!this.state.data.plan}
+                    value={this.state.data.billingInterval}
+                    onChange={(option: any) => {
+                      const v = option?.value;
+                      this.setState(state => ({
+                        ...state,
+                        data: {
+                          ...this.state.data,
+                          billingInterval: v,
+                        },
+                      }));
+                    }}
+                  />
+                </SelectFieldWrapper>
+                <FormFieldWrapper label="Managed Subscription" name="managed">
+                  <Switch
+                    id="id-managed"
+                    checked={!!(hasCustomSkuPrices || this.state.data.managed)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const v = e.target.checked;
+                      this.setState(state => ({
+                        ...state,
+                        data: {
+                          ...state.data,
+                          managed: v,
+                          customPrice: v ? state.data.customPrice : '',
+                        },
+                      }));
+                    }}
+                  />
+                </FormFieldWrapper>
+
+                <SelectFieldWrapper label="Billing Type" name="type">
+                  <Select
+                    name="type"
+                    inputId="id-type"
+                    aria-label="Billing Type"
+                    choices={[
+                      ['invoiced', 'Invoiced'],
+                      ['credit_card', 'Credit Card'],
+                    ]}
+                    onChange={(option: any) => {
+                      const v = option?.value;
+                      if (v === 'credit_card') {
+                        this.setState(state => ({
+                          ...state,
+                          data: {...state.data, onDemandInvoicedManual: ''},
+                        }));
+                      }
+                      this.setState(state => ({
+                        ...state,
+                        data: {...state.data, type: v},
+                      }));
+                    }}
+                    value={this.state.data.type}
+                  />
+                </SelectFieldWrapper>
+                {this.state.data.type === 'invoiced' && (
+                  <SelectFieldWrapper
+                    label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
+                    name="onDemandInvoicedManual"
+                    help={`Used to enable (Shared or Per Category) or disable ${selectedPlan ? displayBudgetName(selectedPlan) : 'pay-as-you-go'} max spend for invoiced customers. Cannot be provisioned with soft cap.`}
+                  >
+                    <Select
+                      name="onDemandInvoicedManual"
+                      inputId="id-onDemandInvoicedManual"
+                      aria-label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
+                      choices={
+                        // per-category max spend is only available on plans
+                        // with on-demand budget modes
+                        selectedPlan && !selectedPlan.hasOnDemandModes
+                          ? [
+                              ['SHARED', 'Shared'],
+                              ['DISABLE', 'Disable'],
+                            ]
+                          : [
+                              ['SHARED', 'Shared'],
+                              ['PER_CATEGORY', 'Per Category'],
+                              ['DISABLE', 'Disable'],
+                            ]
+                      }
+                      clearable
+                      disabled={
+                        this.state.data.type === 'credit_card' || this.isEnablingSoftCap()
+                      }
+                      value={this.state.data.onDemandInvoicedManual}
+                      onChange={(option: any) => {
+                        const v = option?.value;
+                        this.setState(state => ({
+                          ...state,
+                          data: {...state.data, onDemandInvoicedManual: v ? v : null},
+                        }));
+                      }}
+                    />
+                  </SelectFieldWrapper>
+                )}
+
+                {!this.disableRetainOnDemand() && (
+                  <FormFieldWrapper
+                    label={`Retain ${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Budget`}
+                    name="retainOnDemandBudget"
+                    help={`Check to retain the customer's current ${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Budget. Otherwise, the customer's ${selectedPlan ? displayBudgetName(selectedPlan) : 'Pay-as-you-go'} Budget will be set based on the default calculations (0.5 times the monthly plan price).`}
+                  >
+                    <Switch
+                      id="id-retainOnDemandBudget"
+                      checked={!!this.state.data.retainOnDemandBudget}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const v = e.target.checked;
+                        this.setState(state => ({
+                          ...state,
+                          data: {
+                            ...state.data,
+                            retainOnDemandBudget: v,
+                          },
+                        }));
+                      }}
+                    />
+                  </FormFieldWrapper>
                 )}
                 {selectedPlan && (selectedPlan?.categories.length ?? 0) > 0 && (
                   <Fragment>
@@ -768,162 +851,212 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       );
                       return (
                         <Fragment key={categoryInfo.plural}>
-                          <NumberField
+                          <FormFieldWrapper
                             label={`Reserved ${titleName}${suffix}`}
                             name={`reserved${capitalizedApiName}`}
-                            required
-                            disabled={this.state.data[`reservedCpe${capitalizedApiName}`]}
-                            value={this.state.data[`reserved${capitalizedApiName}`]}
-                            onChange={v =>
-                              this.setState(state => ({
-                                ...state,
-                                data: {
-                                  ...state.data,
-                                  [`reserved${capitalizedApiName}`]: v,
-                                },
-                              }))
-                            }
-                          />
-                          <SelectField
-                            label={`Soft Cap Type ${titleName}`}
-                            name={`softCapType${capitalizedApiName}`}
-                            clearable
-                            required={false}
-                            choices={[
-                              ['ON_DEMAND', 'On Demand'],
-                              ['TRUE_FORWARD', 'True Forward'],
-                            ]}
-                            disabled={this.isEnablingOnDemandMaxSpend()}
-                            value={this.state.data[`softCapType${capitalizedApiName}`]}
-                            onChange={v =>
-                              this.setState(state => ({
-                                ...state,
-                                data: {
-                                  ...state.data,
-                                  [`softCapType${capitalizedApiName}`]: v ? v : null,
-                                },
-                              }))
-                            }
-                          />
-                          {this.isReservedBudgetCategory(category) && (
-                            <StyledDollarsAndCentsField
-                              label={`Reserved Cost-Per-Event ${titleName}`}
-                              name={`reservedCpe${capitalizedApiName}`}
-                              value={data[`reservedCpe${capitalizedApiName}`]}
-                              step={0.00000001}
-                              min={0}
-                              max={1}
-                              onChange={v => {
-                                // Normalize and validate CPE value before updating state
-                                const normalizedValue =
-                                  typeof v === 'number'
-                                    ? v
-                                    : parseFloat(String(v || '').trim());
-
-                                this.setState(state => {
-                                  const updates: Record<string, any> = {
-                                    [`reservedCpe${capitalizedApiName}`]: v,
-                                  };
-
-                                  if (
-                                    Number.isFinite(normalizedValue) &&
-                                    normalizedValue > 0
-                                  ) {
-                                    // Set reserved to RESERVED_BUDGET_QUOTA when CPE has a valid positive value
-                                    // This indicates the category should use budget-based billing
-                                    updates[`reserved${capitalizedApiName}`] =
-                                      RESERVED_BUDGET_QUOTA;
-                                  } else if (
-                                    state.data[`reserved${capitalizedApiName}`] ===
-                                    RESERVED_BUDGET_QUOTA
-                                  ) {
-                                    // Clear reserved field when CPE is invalid to maintain consistency
-                                    // and allow manual reserved quantity input
-                                    updates[`reserved${capitalizedApiName}`] = '';
-                                  }
-                                  // Otherwise, leave reserved unchanged
-
-                                  return {
-                                    ...state,
-                                    data: {
-                                      ...state.data,
-                                      ...updates,
-                                    },
-                                  };
-                                });
-                              }}
-                              onBlur={() => {
-                                const currentValue = parseFloat(
+                          >
+                            <Input
+                              id={`id-reserved${capitalizedApiName}`}
+                              type="number"
+                              name={`reserved${capitalizedApiName}`}
+                              required
+                              disabled={
+                                Number(
                                   this.state.data[`reservedCpe${capitalizedApiName}`]
-                                );
-                                if (!isNaN(currentValue)) {
-                                  this.setState(state => ({
-                                    ...state,
-                                    data: {
-                                      ...state.data,
-                                      [`reservedCpe${capitalizedApiName}`]:
-                                        currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                                    },
-                                  }));
-                                }
-                              }}
-                            />
-                          )}
-                          {this.isEnablingOnDemandMaxSpend() && (
-                            <StyledDollarsAndCentsField
-                              label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Cost-Per-Event ${titleName}`}
-                              name={`paygCpe${capitalizedApiName}`}
-                              value={data[`paygCpe${capitalizedApiName}`]}
-                              step={0.00000001}
-                              min={0.00000001}
-                              max={1}
-                              onChange={v =>
+                                ) > 0
+                              }
+                              value={
+                                this.state.data[`reserved${capitalizedApiName}`] ?? ''
+                              }
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 this.setState(state => ({
                                   ...state,
                                   data: {
                                     ...state.data,
-                                    [`paygCpe${capitalizedApiName}`]: v,
+                                    [`reserved${capitalizedApiName}`]: e.target.value
+                                      ? Number(e.target.value)
+                                      : '',
                                   },
                                 }))
                               }
-                              required
-                              onBlur={() => {
-                                const currentValue = parseFloat(
-                                  this.state.data[`paygCpe${capitalizedApiName}`]
-                                );
-                                if (!isNaN(currentValue)) {
-                                  this.setState(state => ({
-                                    ...state,
-                                    data: {
-                                      ...state.data,
-                                      [`paygCpe${capitalizedApiName}`]:
-                                        currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                                    },
-                                  }));
-                                }
+                            />
+                          </FormFieldWrapper>
+                          <SelectFieldWrapper
+                            label={`Soft Cap Type ${titleName}`}
+                            name={`softCapType${capitalizedApiName}`}
+                          >
+                            <Select
+                              name={`softCapType${capitalizedApiName}`}
+                              inputId={`id-softCapType${capitalizedApiName}`}
+                              aria-label={`Soft Cap Type ${titleName}`}
+                              clearable
+                              choices={[
+                                ['ON_DEMAND', 'On Demand'],
+                                ['TRUE_FORWARD', 'True Forward'],
+                              ]}
+                              disabled={this.isEnablingOnDemandMaxSpend()}
+                              value={this.state.data[`softCapType${capitalizedApiName}`]}
+                              onChange={(option: any) => {
+                                const v = option?.value;
+                                this.setState(state => ({
+                                  ...state,
+                                  data: {
+                                    ...state.data,
+                                    [`softCapType${capitalizedApiName}`]: v ? v : null,
+                                  },
+                                }));
                               }}
                             />
+                          </SelectFieldWrapper>
+                          {this.isReservedBudgetCategory(category) && (
+                            <FormFieldWrapper
+                              label={`Reserved Cost-Per-Event ${titleName}`}
+                              name={`reservedCpe${capitalizedApiName}`}
+                            >
+                              <DollarsAndCentsContainer>
+                                <span className="dollar-sign">$</span>
+                                <Input
+                                  id={`id-reservedCpe${capitalizedApiName}`}
+                                  type="number"
+                                  name={`reservedCpe${capitalizedApiName}`}
+                                  step={0.00000001}
+                                  min={0}
+                                  max={1}
+                                  value={data[`reservedCpe${capitalizedApiName}`] ?? ''}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                    const v = e.target.value;
+                                    // Normalize and validate CPE value before updating state
+                                    const normalizedValue =
+                                      typeof v === 'number'
+                                        ? v
+                                        : parseFloat(String(v || '').trim());
+
+                                    this.setState(state => {
+                                      const updates: Record<string, any> = {
+                                        [`reservedCpe${capitalizedApiName}`]: v,
+                                      };
+
+                                      if (
+                                        Number.isFinite(normalizedValue) &&
+                                        normalizedValue > 0
+                                      ) {
+                                        // Set reserved to RESERVED_BUDGET_QUOTA when CPE has a valid positive value
+                                        // This indicates the category should use budget-based billing
+                                        updates[`reserved${capitalizedApiName}`] =
+                                          RESERVED_BUDGET_QUOTA;
+                                      } else if (
+                                        state.data[`reserved${capitalizedApiName}`] ===
+                                        RESERVED_BUDGET_QUOTA
+                                      ) {
+                                        // Clear reserved field when CPE is invalid to maintain consistency
+                                        // and allow manual reserved quantity input
+                                        updates[`reserved${capitalizedApiName}`] = '';
+                                      }
+                                      // Otherwise, leave reserved unchanged
+
+                                      return {
+                                        ...state,
+                                        data: {
+                                          ...state.data,
+                                          ...updates,
+                                        },
+                                      };
+                                    });
+                                  }}
+                                  onBlur={() => {
+                                    const currentValue = parseFloat(
+                                      this.state.data[`reservedCpe${capitalizedApiName}`]
+                                    );
+                                    if (!isNaN(currentValue)) {
+                                      this.setState(state => ({
+                                        ...state,
+                                        data: {
+                                          ...state.data,
+                                          [`reservedCpe${capitalizedApiName}`]:
+                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                        },
+                                      }));
+                                    }
+                                  }}
+                                />
+                              </DollarsAndCentsContainer>
+                            </FormFieldWrapper>
+                          )}
+                          {this.isEnablingOnDemandMaxSpend() && (
+                            <FormFieldWrapper
+                              label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Cost-Per-Event ${titleName}`}
+                              name={`paygCpe${capitalizedApiName}`}
+                            >
+                              <DollarsAndCentsContainer>
+                                <span className="dollar-sign">$</span>
+                                <Input
+                                  id={`id-paygCpe${capitalizedApiName}`}
+                                  type="number"
+                                  name={`paygCpe${capitalizedApiName}`}
+                                  step={0.00000001}
+                                  min={0.00000001}
+                                  max={1}
+                                  required
+                                  value={data[`paygCpe${capitalizedApiName}`] ?? ''}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                    this.setState(state => ({
+                                      ...state,
+                                      data: {
+                                        ...state.data,
+                                        [`paygCpe${capitalizedApiName}`]: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  onBlur={() => {
+                                    const currentValue = parseFloat(
+                                      this.state.data[`paygCpe${capitalizedApiName}`]
+                                    );
+                                    if (!isNaN(currentValue)) {
+                                      this.setState(state => ({
+                                        ...state,
+                                        data: {
+                                          ...state.data,
+                                          [`paygCpe${capitalizedApiName}`]:
+                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                        },
+                                      }));
+                                    }
+                                  }}
+                                />
+                              </DollarsAndCentsContainer>
+                            </FormFieldWrapper>
                           )}
                         </Fragment>
                       );
                     })}
                     {this.isSettingSeerBudget() && (
-                      <StyledDollarsField
+                      <FormFieldWrapper
                         label="Seer Budget"
                         name="seerBudget"
                         help="Monthly reserved budget for Seer"
-                        required={this.isSettingSeerBudget()}
-                        value={data.seerBudget}
-                        onChange={v =>
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              seerBudget: v,
-                            },
-                          }))
-                        }
-                      />
+                      >
+                        <DollarsContainer>
+                          <span className="dollar-sign">$</span>
+                          <Input
+                            id="id-seerBudget"
+                            type="number"
+                            name="seerBudget"
+                            required={this.isSettingSeerBudget()}
+                            value={data.seerBudget ?? ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              this.setState(state => ({
+                                ...state,
+                                data: {
+                                  ...state.data,
+                                  seerBudget: e.target.value
+                                    ? Number(e.target.value)
+                                    : '',
+                                },
+                              }))
+                            }
+                          />
+                        </DollarsContainer>
+                      </FormFieldWrapper>
                     )}
                   </Fragment>
                 )}
@@ -946,7 +1079,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   const settingReservedBudget = this.isSettingReservedBudget(category);
                   const isDisabled =
                     settingReservedBudget && category === DataCategory.SEER_SCANNER;
-                  const suffix =
+                  const priceSuffix =
                     settingReservedBudget && category === DataCategory.SEER_AUTOFIX
                       ? ` (${toTitleCase(
                           Object.values(
@@ -960,62 +1093,100 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     categoryInfo.plural
                   );
                   return (
-                    <StyledDollarsField
+                    <FormFieldWrapper
                       key={`customPrice${capitalizedApiName}`}
-                      label={`Price for ${titleName}${suffix}`}
+                      label={`Price for ${titleName}${priceSuffix}`}
                       name={`customPrice${capitalizedApiName}`}
-                      disabled={!hasCustomSkuPrices || isDisabled}
+                    >
+                      <DollarsContainer>
+                        <span className="dollar-sign">$</span>
+                        <Input
+                          id={`id-customPrice${capitalizedApiName}`}
+                          type="number"
+                          name={`customPrice${capitalizedApiName}`}
+                          disabled={!hasCustomSkuPrices || isDisabled}
+                          required={hasCustomSkuPrices}
+                          value={
+                            isDisabled
+                              ? 0
+                              : (data[`customPrice${capitalizedApiName}`] ?? '')
+                          }
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                [`customPrice${capitalizedApiName}`]: e.target.value
+                                  ? Number(e.target.value)
+                                  : '',
+                              },
+                            }))
+                          }
+                        />
+                      </DollarsContainer>
+                    </FormFieldWrapper>
+                  );
+                })}
+                <FormFieldWrapper label="Price for PCSS" name="customPricePcss">
+                  <DollarsContainer>
+                    <span className="dollar-sign">$</span>
+                    <Input
+                      id="id-customPricePcss"
+                      type="number"
+                      name="customPricePcss"
+                      disabled={!hasCustomSkuPrices}
                       required={hasCustomSkuPrices}
-                      value={isDisabled ? 0 : data[`customPrice${capitalizedApiName}`]}
-                      onChange={v =>
+                      value={data.customPricePcss ?? ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         this.setState(state => ({
                           ...state,
                           data: {
                             ...state.data,
-                            [`customPrice${capitalizedApiName}`]: v,
+                            customPricePcss: e.target.value ? Number(e.target.value) : '',
                           },
                         }))
                       }
                     />
-                  );
-                })}
-                <StyledDollarsField
-                  label="Price for PCSS"
-                  name="customPricePcss"
-                  disabled={!hasCustomSkuPrices}
-                  required={hasCustomSkuPrices}
-                  value={data.customPricePcss}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPricePcss: v,
-                      },
-                    }))
-                  }
-                />
+                  </DollarsContainer>
+                </FormFieldWrapper>
 
-                <StyledDollarsField
+                <FormFieldWrapper
                   label="Annual Contract Value"
                   name="customPrice"
                   help="Used as a checksum, must be equal to sum of prices above"
-                  required={hasCustomPrice}
-                  disabled={!hasCustomPrice}
-                  value={data.customPrice}
-                  onChange={v =>
-                    this.setState(state => ({
-                      ...state,
-                      data: {
-                        ...state.data,
-                        customPrice: v,
-                      },
-                    }))
-                  }
-                />
+                >
+                  <DollarsContainer>
+                    <span className="dollar-sign">$</span>
+                    <Input
+                      id="id-customPrice"
+                      type="number"
+                      name="customPrice"
+                      required={hasCustomPrice}
+                      disabled={!hasCustomPrice}
+                      value={data.customPrice ?? ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        this.setState(state => ({
+                          ...state,
+                          data: {
+                            ...state.data,
+                            customPrice: e.target.value ? Number(e.target.value) : '',
+                          },
+                        }))
+                      }
+                    />
+                  </DollarsContainer>
+                </FormFieldWrapper>
               </div>
             </Columns>
-          </Form>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-default" onClick={closeModal}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Submit
+              </button>
+            </div>
+          </form>
         </Body>
       </Fragment>
     );
@@ -1042,28 +1213,16 @@ const modalCss = css`
   max-width: 1200px;
 `;
 
-const StyledSelectFieldWithHelpText = styled(SelectField)`
-  margin-bottom: 15px;
-
-  div[class*='StyledSelectControl'] {
-    margin-bottom: 0;
-  }
-`;
-
-const StyledDollarsField = styled(DollarsField)`
-  div[class='dollars-field-container'] {
-    display: flex;
-  }
+const DollarsContainer = styled('div')`
+  display: flex;
 
   span[class='dollar-sign'] {
     padding: 12px;
   }
 `;
 
-const StyledDollarsAndCentsField = styled(DollarsAndCentsField)`
-  div[class='dollars-cents-field-container'] {
-    display: flex;
-  }
+const DollarsAndCentsContainer = styled('div')`
+  display: flex;
 
   span[class='dollar-sign'] {
     padding: 12px;
