@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
@@ -10,9 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -29,12 +27,15 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   canManageIntegrations,
   getAlertText,
-  getGithubPermissionsUpdateUrl,
   getIntegrationStatus,
   integrationRequiresUpgrade,
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
+import {
+  openGithubPermissionsUpdateModal,
+  useAutoOpenPermissionsModal,
+} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
 import {
   fetchMutation,
   getApiQueryData,
@@ -240,63 +241,12 @@ export default function IntegrationDetailedView() {
     );
   }, [provider, activeTab, onTabChange]);
 
-  const openGithubPermissionsUpdateModal = useCallback((integration: Integration) => {
-    const installationUrl = integration.externalId
-      ? getGithubPermissionsUpdateUrl(integration.externalId)
-      : undefined;
-
-    openModal(deps => (
-      <AutofixGithubAppPermissionsModal
-        {...deps}
-        installationUrl={installationUrl}
-        description={t(
-          'This GitHub App installation is missing permissions required for the latest features. Update the installation to grant the required permissions.'
-        )}
-      />
-    ));
-  }, []);
-
-  const openOutdatedGithubPermissionsModal = useCallback(() => {
-    const [outdatedConfiguration] = outdatedConfigurations;
-    if (outdatedConfiguration) {
-      openGithubPermissionsUpdateModal(outdatedConfiguration);
-    }
-  }, [openGithubPermissionsUpdateModal, outdatedConfigurations]);
-
-  // Auto-opens the update-permissions modal when the detail page is loaded with
-  // `?showPermsModal=1` (e.g. from the outdated-integration "click here" link).
-  // The param is stripped after opening so refresh / back-button don't re-trigger
-  // it. Only GitHub has a permissions modal; for other providers this no-ops.
-  const [showPermsModal, setShowPermsModal] = useQueryState('showPermsModal');
-  useEffect(() => {
-    if (showPermsModal !== '1' || !canManageIntegrations(organization)) {
-      return;
-    }
-    // Wait until configurations have loaded before deciding whether to open the
-    // modal or clear the param, otherwise we'd strip `showPermsModal` before the
-    // data arrives and the modal would never open.
-    if (isConfigurationsPending || !provider) {
-      return;
-    }
-    switch (provider.key) {
-      case 'github':
-        if (outdatedConfigurations.length === 1) {
-          openOutdatedGithubPermissionsModal();
-        }
-        break;
-      default:
-        break;
-    }
-    setShowPermsModal(null);
-  }, [
-    showPermsModal,
-    setShowPermsModal,
-    isConfigurationsPending,
+  useAutoOpenPermissionsModal({
     provider,
     organization,
     outdatedConfigurations,
-    openOutdatedGithubPermissionsModal,
-  ]);
+    isConfigurationsPending,
+  });
 
   const onInstall = useCallback(
     (integration: Integration) => {
