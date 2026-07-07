@@ -48,7 +48,7 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig |
         try:
             categories.append(DataCategory(sentry_cat))
         except ValueError:
-            logger.warning(
+            logger.error(
                 "quota_config_mapping.unknown_category",
                 extra={"proto_category": c, "mapped_value": sentry_cat},
             )
@@ -67,7 +67,7 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig |
             else QuotaScope.ORGANIZATION
         )
     except ValueError:
-        logger.warning(
+        logger.error(
             "quota_config_mapping.unknown_scope",
             extra={"proto_scope": proto_quota.scope},
         )
