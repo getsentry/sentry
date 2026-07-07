@@ -99,7 +99,7 @@ class TestProtoToSentryQuotaConfig:
 
     def test_unknown_category_skipped(self):
         """Unmapped proto category values are skipped instead of raising."""
-        unmapped_value = 9999
+        unmapped_value = ProtoDataCategory.ValueType(9999)
         proto = ProtoQuotaConfig(
             id="q",
             categories=[
@@ -121,7 +121,7 @@ class TestProtoToSentryQuotaConfig:
         """If all categories are unmapped, return None to avoid broadening quota."""
         proto = ProtoQuotaConfig(
             id="q",
-            categories=[9999, 9998],
+            categories=[ProtoDataCategory.ValueType(9999), ProtoDataCategory.ValueType(9998)],
             scope=ProtoQuotaScope.QUOTA_SCOPE_ORGANIZATION,
             limit=100,
             window=60,
@@ -150,7 +150,7 @@ class TestProtoToSentryQuotaConfig:
         proto = ProtoQuotaConfig(
             id="q",
             categories=[ProtoDataCategory.DATA_CATEGORY_ERROR],
-            scope=999,
+            scope=ProtoQuotaScope.ValueType(999),
             limit=100,
             window=60,
             reason_code="limit",
