@@ -66,7 +66,7 @@ import {
 import {
   formatProgressState,
   getProgressIcon,
-  ProgressState,
+  type ProgressState,
 } from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
@@ -753,7 +753,7 @@ export function StreamGroup({
               {progressState ? (
                 <Container position="relative">
                   <ProgressActivityTooltip group={group}>
-                    <Stack direction="row" align="center" gap="sm">
+                    <Stack direction="row" align="center" gap="sm" wrap="nowrap">
                       {getProgressIcon(progressState)}
                       {formatProgressState(progressState)}
                     </Stack>

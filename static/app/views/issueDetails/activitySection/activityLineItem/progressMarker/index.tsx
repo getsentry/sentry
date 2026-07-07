@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import type {GroupActivity} from 'sentry/types/group';
 
-import {ProgressMarker} from './progressMarker';
-import {getProgressMarkerVariant} from './variant';
+import {ActivityProgressMarker} from './progressMarker';
+import {getActivityMarkerState} from './variant';
 
 export function ActivityLineMarker({item}: {item: GroupActivity}) {
   return (
     <MarkerCell>
-      <ProgressMarker variant={getProgressMarkerVariant(item)} />
+      <ActivityProgressMarker state={getActivityMarkerState(item)} />
     </MarkerCell>
   );
 }

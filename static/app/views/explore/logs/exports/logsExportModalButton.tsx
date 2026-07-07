@@ -1,28 +1,21 @@
-import {Button} from '@sentry/scraps/button';
-import {useModal} from '@sentry/scraps/modal';
-
 import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
+import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
-import {LogsExportModal} from 'sentry/views/explore/logs/exports/logsExportModal';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
+import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
+import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
+import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/useLogsExportEstimatedRowCount';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
   useQueryParamsSearch,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-
-const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
-  'backdrop-click': 'backdrop_click',
-  'close-button': 'close_button',
-  'escape-key': 'escape_key',
-} as const;
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsExportModalButtonProps = {
   isLoading: boolean;
@@ -56,55 +49,51 @@ export function LogsExportModalButton({
   isLoading,
   tableData,
 }: LogsExportModalButtonProps) {
-  const {openModal} = useModal();
-
   const organization = useOrganization();
   const queryInfo = useLogsQueryInfo();
-  const disabledTooltip = getExportDisabledTooltip({
-    isDataEmpty: !tableData?.length,
-    isDataError: error !== null,
-    isDataLoading: isLoading,
-  });
+  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
+
+  const filenameBase = 'logs';
+
+  const config: ExploreExportConfig = {
+    title: t('Logs Export'),
+    filenameBase,
+    queryInfo: {...queryInfo, dataset: TraceItemDataset.LOGS},
+    asyncQueryType: ExportQueryType.EXPLORE,
+    supportsAllColumns: true,
+    availableFormats: ['csv', 'jsonl'],
+    estimatedRowCount,
+    localRowCount: tableData.length,
+    localDownload: ({format, limit}) =>
+      downloadLogs({
+        rows: tableData.slice(0, limit),
+        fields: queryInfo.field,
+        filename: filenameBase,
+        format,
+      }),
+    trackExportSubmit: args =>
+      trackExploreTableExported({
+        ...args,
+        organization,
+        traceItemDataset: TraceItemDataset.LOGS,
+        queryInfo,
+      }),
+  };
 
   return (
-    <Button
-      disabled={!!disabledTooltip}
-      size="xs"
-      variant="secondary"
-      icon={<IconDownload />}
-      onClick={() => {
+    <ExploreExportModalButton
+      config={config}
+      isDataEmpty={!tableData?.length}
+      isDataError={error !== null}
+      isDataLoading={isLoading}
+      onOpen={() => trackAnalytics('logs.export_modal', {organization, action: 'open'})}
+      onClose={reason =>
         trackAnalytics('logs.export_modal', {
           organization,
-          action: 'open',
-        });
-        openModal(
-          deps => (
-            <LogsQueryParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              source="location"
-            >
-              <LogsExportModal {...deps} queryInfo={queryInfo} tableData={tableData} />
-            </LogsQueryParamsProvider>
-          ),
-          {
-            onClose: reason => {
-              if (reason) {
-                trackAnalytics('logs.export_modal', {
-                  organization,
-                  action: 'cancel',
-                  close_reason: GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON[reason],
-                });
-              }
-            },
-          }
-        );
-      }}
-      tooltipProps={{
-        title:
-          disabledTooltip ?? t('Configure export options before starting your export.'),
-      }}
-    >
-      {t('Export Data')}
-    </Button>
+          action: 'cancel',
+          close_reason: reason,
+        })
+      }
+    />
   );
 }

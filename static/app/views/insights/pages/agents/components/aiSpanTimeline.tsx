@@ -8,8 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
+import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -22,8 +21,9 @@ import {
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   type ColorByOpType,
-  getFirstToolInputValue,
+  getToolInputPreview,
   getGenAiOpType,
+  getGenAiOpTypeIcon,
   getIsAiAgentNode,
   getNumberAttr,
   getSpanColor,
@@ -212,12 +212,23 @@ const TimelineRow = memo(function TimelineRow({
                   >
                     {metric}
                   </Text>
-                ) : isTool && traceId ? (
-                  <ToolOutputSizeMetric
-                    node={node}
-                    traceId={traceId}
-                    isSelected={isSelected}
-                  />
+                ) : isTool ? (
+                  traceId ? (
+                    <ToolOutputSizeMetric
+                      node={node}
+                      traceId={traceId}
+                      isSelected={isSelected}
+                    />
+                  ) : (
+                    <Text
+                      size="sm"
+                      variant={isSelected ? 'primary' : 'muted'}
+                      align="right"
+                      tabular
+                    >
+                      {formatBytesBase10(0)}
+                    </Text>
+                  )
                 ) : null}
               </Flex>
               <Flex flexShrink={0} width="56px" justify="end">
@@ -278,10 +289,6 @@ function ToolOutputSizeMetric({
 }) {
   const bytes = useToolOutputBytes(node, traceId);
 
-  if (!bytes) {
-    return null;
-  }
-
   return (
     <Text size="sm" variant={isSelected ? 'primary' : 'muted'} align="right" tabular>
       {formatBytesBase10(bytes)}
@@ -314,7 +321,7 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
       return {
-        icon: <IconBot size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: name || op,
@@ -325,7 +332,7 @@ function getSpanPresentation(
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
       return {
-        icon: <IconChat size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title,
@@ -334,18 +341,18 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
-        icon: <IconFix size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: true,
         title: toolName || op,
-        secondary: firstInputValue || '',
+        secondary: inputPreview || '',
       };
     }
     case GenAiOperationType.HANDOFF:
       return {
-        icon: <IconChevron size="md" isDouble direction="right" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -353,7 +360,7 @@ function getSpanPresentation(
       };
     default:
       return {
-        icon: <IconCode size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,

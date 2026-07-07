@@ -73,6 +73,7 @@ sw.addEventListener('message', event => {
           // eslint-disable-next-line no-console
           console.log('service-worker.worker.onMessage');
         }
+
         switch (event.data.type) {
           case 'event': {
             await handleInboundEvent(sw, event.data);
