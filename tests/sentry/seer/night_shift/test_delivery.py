@@ -239,10 +239,10 @@ class TestDeliverNightShiftResult(TestCase):
         finally:
             redis.delete(skip_cache_key(group.id))
 
-        result = SeerNightShiftRunResult.objects.get(run=run)
-        assert result.group_id == group.id
-        assert result.seer_run_id is None
-        assert result.extras["action"] == TriageAction.ROOT_CAUSE_ONLY.value
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert result_row.group_id == group.id
+        assert result_row.seer_run_id is None
+        assert result_row.extras["action"] == TriageAction.ROOT_CAUSE_ONLY.value
 
     def test_dry_run_skips_autofix(self) -> None:
         """Dry run mode should not trigger autofix but still persist verdict rows."""
