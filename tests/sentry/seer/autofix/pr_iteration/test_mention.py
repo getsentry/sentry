@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
+from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.testutils.cases import TestCase
 
 MENTION_PATH = "sentry.seer.autofix.pr_iteration.mention"
@@ -42,18 +43,22 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event())
 
-        mock_delay.assert_called_once_with(
-            organization_id=self.organization.id,
-            repo_id=self.repo.id,
-            integration_id=self.integration.id,
-            pr_number=7,
-            comment={
-                "id": 999,
-                "body": "@sentry fix it",
-                "user": {"login": "octocat"},
-                "html_url": "https://github.com/getsentry/sentry/pull/7#issuecomment-999",
-            },
-        )
+        mock_delay.assert_called_once()
+        _, kwargs = mock_delay.call_args
+        assert kwargs["organization_id"] == self.organization.id
+        assert kwargs["repo_id"] == self.repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["pr_number"] == 7
+
+        # The feedback is serialized once here, carrying the parsed feedback and
+        # the raw comment the task reads back for the username / reaction.
+        feedback = Feedback.parse_raw(kwargs["feedback"])
+        source = feedback.source
+        assert isinstance(source, GithubPrCommentFeedbackSource)
+        assert feedback.text == "fix it"
+        assert source.comment_feedback == "fix it"
+        assert source.comment["id"] == 999
+        assert source.comment["user"]["login"] == "octocat"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:

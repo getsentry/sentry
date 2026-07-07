@@ -1,4 +1,5 @@
-import json
+import pytest
+from pydantic import ValidationError
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.pr_iteration.types import (
@@ -9,6 +10,7 @@ from sentry.seer.autofix.pr_iteration.types import (
     serialize_feedback,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 def _run_state(*, blocks=None, repo_pr_states=None, status="completed") -> SeerRunState:
@@ -146,22 +148,45 @@ class FeedbackBackwardsCompatTest(TestCase):
         assert parsed[0].ui_text == "new format"
 
 
+class GithubPrCommentTextTest(TestCase):
+    def test_derives_feedback_from_comment(self) -> None:
+        # The validator turns the comment into feedback once; text reads it back.
+        source = GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry parsed"})
+        assert source.comment_feedback == "parsed"
+        assert source.text == "parsed"
+
+    def test_ignores_supplied_comment_feedback(self) -> None:
+        # `comment` is the source of truth; a passed-in value is overwritten.
+        source = GithubPrCommentFeedbackSource(
+            comment={"id": 1, "body": "@sentry real"}, comment_feedback="fake"
+        )
+        assert source.text == "real"
+
+    def test_raises_when_comment_is_not_iterate_command(self) -> None:
+        with pytest.raises(ValidationError):
+            GithubPrCommentFeedbackSource(comment={"id": 1, "body": "just a comment"})
+
+
 class GithubPrCommentShouldConsumeTest(TestCase):
     def test_false_when_comment_already_processed(self) -> None:
-        processed = Feedback(source=GithubPrCommentFeedbackSource(comment={"id": 555}))
+        processed = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry a"})
+        )
         state = _run_state(blocks=[_feedback_block(processed)])
-        source = GithubPrCommentFeedbackSource(comment={"id": 555})
+        source = GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry a"})
 
         assert source.should_consume(state) is False
 
     def test_true_when_comment_unseen(self) -> None:
-        processed = Feedback(source=GithubPrCommentFeedbackSource(comment={"id": 555}))
+        processed = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry a"})
+        )
         state = _run_state(blocks=[_feedback_block(processed)])
-        source = GithubPrCommentFeedbackSource(comment={"id": 777})
+        source = GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry b"})
 
         assert source.should_consume(state) is True
 
     def test_true_when_comment_id_missing(self) -> None:
-        source = GithubPrCommentFeedbackSource(comment={})
+        source = GithubPrCommentFeedbackSource(comment={"body": "@sentry a"})
 
         assert source.should_consume(_run_state()) is True

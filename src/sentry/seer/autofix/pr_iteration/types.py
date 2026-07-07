@@ -70,15 +70,23 @@ class UserUIFeedbackSource(FeedbackSourceBase):
 class GithubPrCommentFeedbackSource(FeedbackSourceBase):
     type: Literal["github-pr-comment"] = "github-pr-comment"
     comment: Mapping[str, Any]
+    # Derived from `comment` by `_parse_comment` — the single place a comment is
+    # turned into feedback. Declared as a field (default "") so it serializes,
+    # mirroring `CheckSuiteFeedbackSource.app_name`.
+    comment_feedback: str = ""
+
+    @root_validator
+    def _parse_comment(cls, values: dict[str, Any]) -> dict[str, Any]:
+        comment = values.get("comment") or {}
+        command = sentry_command(comment.get("body"))
+        if not isinstance(command, SentryIterateCommand):
+            raise ValueError("github-pr-comment feedback comment is not a @sentry iterate command")
+        values["comment_feedback"] = command.feedback
+        return values
 
     @property
     def text(self) -> str:
-        # Derive the prompt text from the stored comment so the comment payload
-        # is the single source of truth. Mirrors the parse done at mention time.
-        command = sentry_command(self.comment.get("body"))
-        if isinstance(command, SentryIterateCommand):
-            return command.feedback
-        return ""
+        return self.comment_feedback
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         comment_id = self.comment.get("id")

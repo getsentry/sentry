@@ -34,6 +34,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             name="owner/repo",
         )
         self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
+        self.feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=self.comment))
 
     def _agent_state(self) -> SeerRunState:
         return SeerRunState(
@@ -62,7 +63,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             repo_id=self.repo.id,
             integration_id=42,
             pr_number=7,
-            comment=self.comment,
+            feedback=self.feedback.json(),
         )
 
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
@@ -98,7 +99,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
         assert kwargs["run_state"] is agent_state
         assert kwargs["feedback"].text == "fix it"
-        assert isinstance(kwargs["feedback"].source, GithubPrCommentFeedbackSource)
+        source = kwargs["feedback"].source
+        assert isinstance(source, GithubPrCommentFeedbackSource)
+        # The comment was parsed into feedback once at mention time and threaded
+        # through, so the source stores it rather than re-parsing the body.
+        assert source.comment_feedback == "fix it"
 
         mock_trigger_consume.assert_called_once()
         _, consume_kwargs = mock_trigger_consume.call_args
@@ -275,7 +280,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        stale = Feedback(source=GithubPrCommentFeedbackSource(comment={"id": 555}))
+        stale = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry stale"})
+        )
         block = MemoryBlock(
             id="b1",
             message=Message(role="assistant", metadata={"feedback": serialize_feedback([stale])}),
@@ -302,7 +309,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        stale = Feedback(source=GithubPrCommentFeedbackSource(comment={"id": 555}))
+        stale = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry stale"})
+        )
         block = MemoryBlock(
             id="b1",
             message=Message(role="assistant", metadata={"feedback": serialize_feedback([stale])}),

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -215,7 +213,7 @@ def trigger_pr_iteration_from_comment(
     repo_id: int,
     integration_id: int,
     pr_number: int,
-    comment: Mapping[str, Any],
+    feedback: str,
 ) -> None:
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
@@ -223,7 +221,20 @@ def trigger_pr_iteration_from_comment(
     Runs async because it makes external GitHub and Seer calls: it fetches the
     PR to recover its GitHub id, looks up the agent run state keyed on that id,
     and triggers the iteration with the comment as feedback.
+
+    ``feedback`` is a serialized :class:`Feedback` built at mention time; the raw
+    comment is read back off ``source.comment`` for the username and reaction.
     """
+    feedback_obj = Feedback.parse_raw(feedback)
+    source = feedback_obj.source
+    if not isinstance(source, GithubPrCommentFeedbackSource):
+        logger.error(
+            "autofix.pr_iteration.comment_trigger.unexpected_source",
+            extra={"organization_id": organization_id, "source_type": source.type},
+        )
+        return None
+
+    comment = source.comment
     comment_user = comment.get("user", {})
     github_username = comment_user.get("login")
     if not github_username:
@@ -288,11 +299,6 @@ def trigger_pr_iteration_from_comment(
     group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
-
-    # `source.text` is derived from the stored comment body.
-    feedback_obj = Feedback(
-        source=GithubPrCommentFeedbackSource(comment=comment),
-    )
 
     try_enqueue_autofix_feedback(
         run_id=agent_state.run_id,

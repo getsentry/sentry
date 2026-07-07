@@ -14,11 +14,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from pydantic import ValidationError
+
 from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.webhooks import SentryIterateCommand, sentry_command
+from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_comment
 
 logger = logging.getLogger(__name__)
@@ -50,14 +52,19 @@ def handle_issue_comment_for_autofix_iteration(
         )
         return None
 
+    # The source derives its feedback from the comment; the task deserializes it
+    # and reads the comment back off the source for the username / reaction. The
+    # source validator rejects comments that aren't a @sentry iterate command,
+    # so this doubles as the command filter — no-op on any comment it rejects.
+    try:
+        feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=comment))
+    except ValidationError:
+        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
+        return None
+
     issue = event.get("issue", {})
     if not issue.get("pull_request"):
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_pr", extra=log_extra)
-        return None
-
-    command = sentry_command(comment.get("body"))
-    if not isinstance(command, SentryIterateCommand):
-        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
 
     pr_number = issue.get("number")
@@ -98,6 +105,6 @@ def handle_issue_comment_for_autofix_iteration(
         repo_id=repo.id,
         integration_id=integration.id,
         pr_number=pr_number,
-        comment=comment,
+        feedback=feedback.json(),
     )
     return None
