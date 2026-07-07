@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
@@ -24,7 +24,7 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
-from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
+from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 
 logger = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ def _process_verdicts(
     # cache. ROOT_CAUSE_ONLY keeps its own action value for tracking, but is
     # otherwise treated identically to SKIP (it does not trigger autofix).
     verdicts: list[TriageVerdict] = []
-    fixable_candidates: list[TriageResult] = []
+    fixable_groups: list[Group] = []
     for v in triage_response.verdicts:
         group = groups_by_id.get(v.group_id)
         if group is None or v.group_id in recorded_group_ids:
@@ -150,23 +150,24 @@ def _process_verdicts(
         if v.action in (TriageAction.SKIP, TriageAction.ROOT_CAUSE_ONLY):
             mark_skipped(v.group_id)
         elif v.action == TriageAction.AUTOFIX:
-            fixable_candidates.append(TriageResult(group=group, action=v.action, reason=v.reason))
+            fixable_groups.append(group)
 
-    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_candidates))
-    if not fixable_candidates:
+    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_groups))
+    if not fixable_groups:
         logger.info(
             "night_shift.no_fixable_candidates",
             extra={**log_extra, "num_candidates": len(verdicts)},
         )
 
+    reason_by_group_id = {v.group_id: v.reason for v in verdicts}
     state_id_by_group: dict[int, int] = {}
-    if not dry_run and fixable_candidates:
+    if not dry_run and fixable_groups:
         # Cache organization on each group's project to avoid N+1 queries
         for group in groups_by_id.values():
             group.project.organization = organization
 
         # Build stopping_point_by_project_id from project preferences (bulk query)
-        project_ids = {c.group.project_id for c in fixable_candidates}
+        project_ids = {group.project_id for group in fixable_groups}
         preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_ids))
         default_stopping_point = AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)
         stopping_point_by_project_id = {
@@ -178,11 +179,29 @@ def _process_verdicts(
             for pid in project_ids
         }
 
-        state_id_by_group = _trigger_autofix_for_candidates(
-            candidates=fixable_candidates,
-            stopping_point_by_project_id=stopping_point_by_project_id,
-            log_extra=log_extra,
-        )
+        referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
+        for group in fixable_groups:
+            reason = reason_by_group_id[group.id]
+            user_context = (
+                f"Night-shift triage already investigated this issue and concluded:\n{reason}"
+                if reason
+                else None
+            )
+            try:
+                state_id_by_group[group.id] = trigger_autofix_agent(
+                    group=group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=referrer,
+                    stopping_point=stopping_point_by_project_id[group.project_id],
+                    user_context=user_context,
+                )
+            except Exception:
+                logger.exception(
+                    "night_shift.autofix_trigger_failed",
+                    extra={**log_extra, "group_id": group.id},
+                )
+
+        sentry_sdk.metrics.count("night_shift.autofix_triggered", len(state_id_by_group))
 
     # TODO: have trigger_autofix_agent return the SeerRun directly to avoid this lookup.
     seer_run_by_state_id = {
@@ -238,42 +257,3 @@ def _process_verdicts(
             ],
         },
     )
-
-
-def _trigger_autofix_for_candidates(
-    candidates: Sequence[TriageResult],
-    stopping_point_by_project_id: Mapping[int, AutofixStoppingPoint],
-    log_extra: Mapping[str, object],
-) -> dict[int, int]:
-    """Trigger a Seer autofix run for each candidate and return the resulting
-    seer_run_state_id keyed by group id. Groups whose trigger failed are absent.
-    """
-    referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
-
-    state_id_by_group: dict[int, int] = {}
-    for c in candidates:
-        stopping_point = stopping_point_by_project_id[c.group.project_id]
-
-        user_context = (
-            f"Night-shift triage already investigated this issue and concluded:\n{c.reason}"
-            if c.reason
-            else None
-        )
-
-        try:
-            state_id_by_group[c.group.id] = trigger_autofix_agent(
-                group=c.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=referrer,
-                stopping_point=stopping_point,
-                user_context=user_context,
-            )
-        except Exception:
-            logger.exception(
-                "night_shift.autofix_trigger_failed",
-                extra={**log_extra, "group_id": c.group.id},
-            )
-
-    sentry_sdk.metrics.count("night_shift.autofix_triggered", len(state_id_by_group))
-
-    return state_id_by_group
