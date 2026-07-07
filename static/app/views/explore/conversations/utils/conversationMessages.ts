@@ -328,9 +328,13 @@ export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
   if (!messages) {
     return {totalMessageCount: 0, userMessageCount: 0};
   }
+  // System prompts are not conversation history; exclude them so a
+  // non-cumulative SDK that always prepends a system message is still
+  // recognised as single-message (non-cumulative) input.
+  const nonSystem = messages.filter(m => m.role !== 'system');
   return {
-    totalMessageCount: messages.length,
-    userMessageCount: messages.filter(m => m.role === 'user').length,
+    totalMessageCount: nonSystem.length,
+    userMessageCount: nonSystem.filter(m => m.role === 'user').length,
   };
 }
 

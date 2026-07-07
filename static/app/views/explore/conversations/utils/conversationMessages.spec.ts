@@ -257,6 +257,14 @@ describe('conversationMessages utilities', () => {
         expected: {totalMessageCount: 1, userMessageCount: 1},
       },
       {
+        name: 'excludes system messages from counts',
+        input: JSON.stringify([
+          {role: 'system', content: 'You are a helpful assistant'},
+          {role: 'user', content: 'Hello'},
+        ]),
+        expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
         name: 'returns zeroes when input is scrubbed',
         input: '[Filtered]',
         expected: {totalMessageCount: 0, userMessageCount: 0},
@@ -1143,6 +1151,34 @@ describe('conversationMessages utilities', () => {
       const messages = extractMessagesFromNodes([node1, node2] as any);
 
       expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
+    });
+
+    it('keeps repeated user messages from non-cumulative inputs with a system prompt', () => {
+      const sysInput = (userText: string) =>
+        JSON.stringify([
+          {role: 'system', content: 'You are helpful'},
+          {role: 'user', content: userText},
+        ]);
+
+      const node1 = createMockNode({
+        id: 'span-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: sysInput(Q),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R1',
+        },
+      });
+      const node2 = createMockNode({
+        id: 'span-2',
+        startTimestamp: 2000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: sysInput(Q),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R2',
+        },
+      });
+
+      const messages = extractMessagesFromNodes([node1, node2] as any);
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(2);
     });
 
     it('returns empty array for empty input', () => {
