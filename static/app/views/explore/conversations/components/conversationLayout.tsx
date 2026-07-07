@@ -83,6 +83,69 @@ export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   );
 }
 
+/**
+ * Two-column shell for the redesigned timeline view: a fluid left card holding
+ * the span timeline (or its skeleton) and a fixed-width right card for the span
+ * detail. Both the live content and the loading skeleton render into this so the
+ * two layouts can't drift.
+ */
+export function ConversationTimelineLayout({
+  left,
+  right,
+  leftPadding = 'md',
+}: {
+  left: React.ReactNode;
+  leftPadding?: React.ComponentProps<typeof Container>['padding'];
+  right?: React.ReactNode;
+}) {
+  return (
+    <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
+      <ConversationLeftPanel>
+        <Container
+          containerType="inline-size"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          background="secondary"
+        >
+          <Flex
+            direction={{xs: 'column', sm: 'row'}}
+            height="100%"
+            width="100%"
+            gap="md"
+            minHeight="0"
+            overflowY="auto"
+            overflowX="hidden"
+          >
+            <Container
+              flex={{xs: '0 0 auto', sm: '1'}}
+              minWidth="0"
+              minHeight={{xs: 'auto', sm: '0'}}
+              padding={leftPadding}
+              background="primary"
+              border="primary"
+              radius="md"
+              overflowX="hidden"
+              overflowY={{xs: 'hidden', sm: 'auto'}}
+            >
+              {left}
+            </Container>
+            {right ? (
+              <Flex
+                width={{xs: '100%', sm: '430px'}}
+                flex="0 0 auto"
+                minHeight={{xs: 'auto', sm: '0'}}
+              >
+                {right}
+              </Flex>
+            ) : null}
+          </Flex>
+        </Container>
+      </ConversationLeftPanel>
+    </Flex>
+  );
+}
+
 export function ConversationDetailPanel({
   selectedNode,
   nodeTraceMap,

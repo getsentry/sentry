@@ -1,7 +1,7 @@
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {ConversationLeftPanel} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationTimelineLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 
 const TIMELINE_SKELETON_ROWS: Array<{
   indent: boolean;
@@ -20,48 +20,10 @@ const TIMELINE_SKELETON_ROWS: Array<{
 
 export function ConversationViewSkeletonNew() {
   return (
-    <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
-      <ConversationLeftPanel>
-        <Container
-          containerType="inline-size"
-          flex="1"
-          minHeight="0"
-          width="100%"
-          background="secondary"
-        >
-          <Flex
-            direction={{xs: 'column', sm: 'row'}}
-            height="100%"
-            width="100%"
-            gap="md"
-            minHeight="0"
-            overflowY="auto"
-            overflowX="hidden"
-          >
-            <Container
-              flex={{xs: '0 0 auto', sm: '1'}}
-              minWidth="0"
-              minHeight={{xs: 'auto', sm: '0'}}
-              padding="md"
-              background="primary"
-              border="primary"
-              radius="md"
-              overflowX="hidden"
-              overflowY={{xs: 'hidden', sm: 'auto'}}
-            >
-              <TimelineSkeleton />
-            </Container>
-            <Flex
-              width={{xs: '100%', sm: '430px'}}
-              flex="0 0 auto"
-              minHeight={{xs: 'auto', sm: '0'}}
-            >
-              <SpanDetailSkeleton />
-            </Flex>
-          </Flex>
-        </Container>
-      </ConversationLeftPanel>
-    </Flex>
+    <ConversationTimelineLayout
+      left={<TimelineSkeleton />}
+      right={<SpanDetailSkeleton />}
+    />
   );
 }
 
@@ -69,7 +31,11 @@ function TimelineSkeleton() {
   return (
     <Stack gap="xs">
       {TIMELINE_SKELETON_ROWS.map((row, index) => (
-        <Container key={index} padding="xs" paddingLeft={row.indent ? 'xl' : 'xs'}>
+        <Container
+          key={`${row.title}-${index}`}
+          padding="xs"
+          paddingLeft={row.indent ? 'xl' : 'xs'}
+        >
           <Stack gap="xs">
             <Flex align="center" gap="md">
               <Placeholder height="16px" width="16px" />
@@ -101,7 +67,7 @@ function SpanDetailSkeleton() {
       minHeight="0"
       height={{xs: 'auto', sm: '100%'}}
     >
-      <Flex align="center" gap="md" flexShrink={0}>
+      <Flex align="center" gap="lg" flexShrink={0}>
         <Placeholder height="16px" width="16px" />
         <Placeholder height="16px" width="180px" />
       </Flex>
