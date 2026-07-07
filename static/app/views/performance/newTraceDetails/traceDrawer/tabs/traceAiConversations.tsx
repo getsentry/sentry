@@ -324,15 +324,13 @@ function TraceConversationTranscript({
         }
         right={
           selectedNode ? (
-            <Flex flex="1" minHeight="0" background="primary">
-              <ConversationSpanDetail
-                node={selectedNode}
-                traceId={nodeTraceMap.get(selectedNode.id) ?? ''}
-                activeTab={detailTab}
-                onTabChange={setDetailTab}
-                embedded
-              />
-            </Flex>
+            <ConversationSpanDetail
+              node={selectedNode}
+              traceId={nodeTraceMap.get(selectedNode.id) ?? ''}
+              activeTab={detailTab}
+              onTabChange={setDetailTab}
+              embedded
+            />
           ) : (
             <EmptyMessage>{t('Select a span to see its details')}</EmptyMessage>
           )
