@@ -22,7 +22,7 @@ import {
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   type ColorByOpType,
-  getFirstToolInputValue,
+  getToolInputPreview,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -334,13 +334,13 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
         icon: <IconFix size="md" />,
         color,
         isTool: true,
         title: toolName || op,
-        secondary: firstInputValue || '',
+        secondary: inputPreview || '',
       };
     }
     case GenAiOperationType.HANDOFF:
