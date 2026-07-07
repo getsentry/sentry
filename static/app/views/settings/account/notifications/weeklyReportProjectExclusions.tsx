@@ -97,10 +97,8 @@ export function WeeklyReportProjectExclusions({
     }),
   });
 
-  const featureEnabled = orgDetails?.features.includes(
-    'weekly-report-project-exclusions'
-  );
-  const featureDisabled = orgDetails !== undefined && !featureEnabled;
+  const featureEnabled =
+    orgDetails?.features.includes('weekly-report-project-exclusions') ?? false;
 
   const {
     data: projects,
@@ -120,7 +118,7 @@ export function WeeklyReportProjectExclusions({
   });
 
   const exclusionsOpts = exclusionsApiOptions(
-    featureEnabled ? (organization?.slug ?? skipToken) : skipToken,
+    orgDetails && featureEnabled ? (organization?.slug ?? skipToken) : skipToken,
     organization?.links?.regionUrl
   );
 
@@ -226,8 +224,8 @@ export function WeeklyReportProjectExclusions({
   };
 
   const isPending =
-    orgDetailsPending || projectsPending || (!featureDisabled && exclusionsPending);
-  const isError = projectsError || (!featureDisabled && exclusionsError);
+    orgDetailsPending || projectsPending || (featureEnabled && exclusionsPending);
+  const isError = projectsError || (featureEnabled && exclusionsError);
 
   const sortedProjects = [...(projects ?? [])]
     .filter(project => project.isMember)
@@ -284,12 +282,12 @@ export function WeeklyReportProjectExclusions({
                     <LoadingError onRetry={refetchProjects} />
                   </PanelBody>
                 )}
-                {!featureDisabled && isPending && !projectsPending && (
+                {featureEnabled && isPending && !projectsPending && (
                   <PanelBody>
                     <LoadingIndicator />
                   </PanelBody>
                 )}
-                {!featureDisabled && isError && !projectsError && (
+                {featureEnabled && isError && !projectsError && (
                   <PanelBody>
                     <LoadingError
                       onRetry={() => {
@@ -301,14 +299,14 @@ export function WeeklyReportProjectExclusions({
                 )}
                 {!isPending && !isError && !projectsPending && !projectsError && (
                   <Fragment>
-                    {!featureDisabled && allExcluded && (
+                    {featureEnabled && allExcluded && (
                       <StyledAlert variant="warning">
                         {t(
                           "You won't receive a weekly report for this organization if all projects are excluded."
                         )}
                       </StyledAlert>
                     )}
-                    <DisabledOverlay disabled={featureDisabled}>
+                    <DisabledOverlay disabled={!featureEnabled}>
                       <StyledPanelBody>
                         {sortedProjects.length === 0 ? (
                           <EmptyStateWarning withIcon={false}>
@@ -326,10 +324,10 @@ export function WeeklyReportProjectExclusions({
                               <Switch
                                 size="lg"
                                 checked={
-                                  featureDisabled ||
+                                  !featureEnabled ||
                                   !excludedProjectIds.has(String(project.id))
                                 }
-                                disabled={featureDisabled}
+                                disabled={!featureEnabled}
                                 onChange={() => handleToggle(String(project.id))}
                                 aria-label={t(
                                   'Toggle weekly report for %s',
