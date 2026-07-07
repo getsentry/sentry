@@ -5,8 +5,6 @@ import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
 
-const supportsServiceWorker = 'serviceWorker' in navigator;
-
 const DEBUG_LOGGING = false;
 
 function log(message: string, options?: Sentry.metrics.MetricOptions) {
@@ -50,10 +48,10 @@ export function useServiceWorker() {
 /**
  * Register a service worker and send event `worker.init` to the newest worker
  * available.
-    if (!isServiceWorkerSupported()) {
+ */
 function useRegisterServiceWorker() {
   useEffect(() => {
-    if (!supportsServiceWorker) {
+    if (!isServiceWorkerSupported()) {
       log('not-supported');
       return;
     }
@@ -90,10 +88,10 @@ function useRegisterServiceWorker() {
 }
 
 function useServiceWorkerUpdateCheck() {
-    if (!isServiceWorkerSupported() || state === 'current') {
+  const {state} = useFrontendVersion();
 
   useEffect(() => {
-    if (!supportsServiceWorker || state === 'current') {
+    if (!isServiceWorkerSupported() || state === 'current') {
       return;
     }
 
@@ -119,10 +117,10 @@ function useServiceWorkerUpdateCheck() {
     };
   }, [state]);
 }
-    if (!isServiceWorkerSupported()) {
+
 function useLogControllerChangeEvent() {
   useEffect(() => {
-    if (!supportsServiceWorker) {
+    if (!isServiceWorkerSupported()) {
       return;
     }
 

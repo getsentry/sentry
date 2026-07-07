@@ -11,9 +11,10 @@ export function isServiceWorkerSupported(): boolean {
   try {
     return 'serviceWorker' in navigator && Boolean(navigator.serviceWorker);
   } catch (error) {
+    // When browser APIs throw security-related errors, they throw a DOMException
+    // object with its name property set to "SecurityError" (and historically, a
+    // code property of 18).
     if (error instanceof DOMException && error.name === 'SecurityError') {
-      // SecurityError is thrown when accessing navigator.serviceWorker in a
-      // sandboxed iframe that lacks the `allow-same-origin` flag.
       return false;
     }
     throw error;
