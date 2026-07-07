@@ -98,7 +98,7 @@ const SliderThumbWrap = styled('div')<{
       z-index: 1;
     `}
 
-    ${p =>
+  ${p =>
     p.isDisabled &&
     css`
       cursor: initial;
