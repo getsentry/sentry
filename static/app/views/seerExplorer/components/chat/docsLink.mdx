@@ -1,0 +1,58 @@
+---
+title: Docs Link
+description: Renders an inline link to the Sentry documentation, embedded in Seer Explorer markdown via a docs-link tag.
+source: 'sentry/views/seerExplorer/components/chat/docsLink'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/views/seerExplorer/components/chat/docsLink.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+import {DocsLink} from 'sentry/views/seerExplorer/components/chat/docsLink';
+import {SeerMarkdown} from 'sentry/views/seerExplorer/components/chat/shared';
+
+`<DocsLink>` renders a link to a page in the Sentry documentation. Seer Explorer emits it as an embed inside its markdown so that references to Sentry features become rich, clickable links instead of bare URLs.
+
+The component takes a `url` and a `title` and renders an external link.
+
+<Storybook.Demo>
+  <DocsLink url="https://docs.sentry.io/product/issues/" title="Issues" />
+</Storybook.Demo>
+
+```jsx
+<DocsLink url="https://docs.sentry.io/product/issues/" title="Issues" />
+```
+
+## Markdown tag
+
+`<DocsLink>` is wired into Seer's markdown as the `docs-link` [tag](/stories/core/markdown/#tags). Seer references the docs by emitting the tag inline; `<SeerMarkdown>` renders it.
+
+Two syntax forms are supported.
+
+**Block** — with a JSON body carrying `url` and `title`:
+
+<Storybook.Demo>
+  <SeerMarkdown
+    raw={`Group similar events with {% docs-link %}{"url": "https://docs.sentry.io/product/issues/grouping-and-fingerprints/", "title": "fingerprints"}{% /docs-link %}, then tune alerts from the {% docs-link %}{"url": "https://docs.sentry.io/product/alerts/", "title": "Alerts"}{% /docs-link %} docs.`}
+  />
+</Storybook.Demo>
+
+```
+Group similar events with {% docs-link %}{"url": "https://docs.sentry.io/product/issues/grouping-and-fingerprints/", "title": "fingerprints"}{% /docs-link %}.
+```
+
+**Self-closing** — with the `url` and `title` as opening-tag attributes:
+
+<Storybook.Demo>
+  <SeerMarkdown
+    raw={`Read the {% docs-link url="https://docs.sentry.io/platforms/" title="Platforms" /%} overview.`}
+  />
+</Storybook.Demo>
+
+```
+Read the {% docs-link url="https://docs.sentry.io/platforms/" title="Platforms" /%} overview.
+```
+
+> [!NOTE]
+> Only absolute `https://docs.sentry.io` URLs render. An embed pointing at any other host — or one missing a `url` — renders nothing, so Seer can't surface off-brand or unsafe links.
+
+`<DocsLink>` is registered as the `docs-link` embed via an adapter that parses the tag's `attrs`/`data` into its props. See the [Seer Markdown](/stories/product/views/seerexplorer/components/chat/seermarkdown/) story for how embeds are registered and rendered.

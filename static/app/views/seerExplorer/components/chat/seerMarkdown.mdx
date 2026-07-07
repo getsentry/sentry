@@ -1,0 +1,116 @@
+---
+title: Seer Markdown
+description: Renders Seer Explorer assistant output as markdown, adding issue linkification, relative links, and embeds on top of the core Markdown component.
+source: 'sentry/views/seerExplorer/components/chat/shared'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/views/seerExplorer/components/chat/shared.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+import {SeerMarkdown} from 'sentry/views/seerExplorer/components/chat/shared';
+
+import {SeerEmbedTable} from './__stories__/seerEmbeds';
+
+`<SeerMarkdown>` wraps the core [`<Markdown>`](/stories/core/markdown/) component with the overrides Seer Explorer uses when rendering streamed assistant responses. It takes the same `raw` (and `variant`) props but fixes the component set, so callers can't override rendering.
+
+<Storybook.Demo>
+  <SeerMarkdown
+    raw={`## Root cause
+
+The token expiration check uses **UTC timestamps** but the session store uses
+_local time_, causing a mismatch during DST transitions.`}
+/>
+
+</Storybook.Demo>
+
+```jsx
+<SeerMarkdown
+  raw={`## Root cause
+
+The token expiration check uses **UTC timestamps** but the session store uses
+_local time_, causing a mismatch during DST transitions.`}
+/>
+```
+
+## Issue linkification
+
+Issue short IDs are turned into links to the issue, both in plain text and inside inline code — so Seer can mention an issue without emitting an explicit markdown link.
+
+<Storybook.Demo>
+  <SeerMarkdown
+    raw={`The regression was traced to SENTRY-1234, related to the earlier fix in \`SENTRY-5678\`.`}
+  />
+</Storybook.Demo>
+
+```
+The regression was traced to SENTRY-1234, related to the earlier fix in `SENTRY-5678`.
+```
+
+## Relative links
+
+Links back to Sentry itself are rewritten to relative paths, so they navigate client-side instead of triggering a full page load. Links to other hosts are left untouched.
+
+## Embeds
+
+Seer can emit embed tags that render as rich inline components. Embeds are looked up by tag name in the `SeerComponentRegistry`; an unrecognized tag renders nothing. See the core [Markdown](/stories/core/markdown/#tags) story for the underlying tag syntax and parser.
+
+### Available embeds
+
+Every embed registered in the `SeerComponentRegistry`, rendered from its example. The `docs-link` embed links into the Sentry documentation — see the [Docs Link](/stories/product/views/seerexplorer/components/chat/docslink/) story for details.
+
+<SeerEmbedTable />
+
+### Adding an embed
+
+1. Add (or reuse) a normal component with real props.
+2. Add an `*Embed` adapter that maps the generic tag props into the component's props.
+3. Register the adapter with the `SeerComponentRegistry`, and make sure its module is imported in `seerComponents.tsx` so the registration runs.
+4. Register the matching embed widget on the backend (see the note below).
+
+Every embed receives the same generic props from the markdown `Tag` renderer:
+
+```tsx
+// seerComponentRegistry.tsx
+interface SeerEmbedProps {
+  attrs: Record<string, string>; // key="value" pairs from the opening tag
+  data: unknown; // parsed JSON body, or undefined for self-closing tags
+  level: 'block' | 'inline';
+  name: string;
+}
+```
+
+The component itself stays a plain component with real props and an adapter maps the generic props onto them:
+
+```tsx
+// docsLink.tsx
+interface DocsLinkProps {
+  title: string;
+  url: string;
+}
+
+// A normal component with real props. Kept separate from the tag format so it
+// can be rendered anywhere, not just inside SeerMarkdown.
+export function DocsLink({url, title}: DocsLinkProps) {
+  /* ...renders the link... */
+}
+
+// Adapter: parses the generic tag props into DocsLink's real props.
+function DocsLinkEmbed({attrs, data}: SeerEmbedProps) {
+  const props = parseDocsLink(attrs, data); // validate + adapt, or null
+  return props ? <DocsLink {...props} /> : null;
+}
+
+// Registering here (rather than in SeerMarkdown's Tag renderer) means adding an
+// embed only touches this one file — no central switch to edit.
+SeerComponentRegistry.register('docs-link', DocsLinkEmbed);
+```
+
+Registration runs when the module is imported, so add the embed's import to `seerComponents.tsx`:
+
+```tsx
+// seerComponents.tsx
+import 'sentry/views/seerExplorer/components/chat/docsLink';
+```
+
+> [!NOTE]
+> Registering the frontend component is only half of an embed. Seer won't emit the tag unless a matching embed widget is registered on the backend in [`src/sentry/seer/agent/embed_widgets.py`](https://github.com/getsentry/sentry/blob/master/src/sentry/seer/agent/embed_widgets.py). Add the tag in both places.

@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {SeerComponentRegistry} from 'sentry/views/seerExplorer/components/chat/seerComponents';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
@@ -118,6 +119,13 @@ function toRelativeHref(href: string): string {
 }
 
 const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Tag: ({name, attrs, data, level, Default}) => {
+    const Embed = SeerComponentRegistry.get(name);
+    if (Embed) {
+      return <Embed name={name} attrs={attrs} data={data} level={level} />;
+    }
+    return <Default name={name} attrs={attrs} data={data} level={level} />;
+  },
   Link: ({children, Default, href, title}) => (
     <IsInsideLinkContext.Provider value>
       <Default href={toRelativeHref(href)} title={title}>
