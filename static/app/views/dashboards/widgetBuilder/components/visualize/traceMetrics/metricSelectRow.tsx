@@ -1,12 +1,15 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {t} from 'sentry/locale';
 import {
   type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
@@ -18,10 +21,12 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
   DEFAULT_YAXIS_BY_TYPE,
+  doesMetricSupportHeatMapVisualization,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
+import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 
 function getUpdatedAggregatesMultiMetric(
   aggregateSource: Column[],
@@ -79,12 +84,31 @@ export function MetricSelectRow({
     ? extractTraceMetricFromColumn(aggregateSource[index])
     : undefined) ?? {name: '', type: ''};
 
+  // Dashboards is visualization-first: once Heat Map is chosen, restrict the
+  // metric picker to distributions (the only type a heat map can render).
+  const getDisabledOptionReason = useCallback(
+    (option: MetricSelectorOption) =>
+      doesMetricSupportHeatMapVisualization({
+        name: option.metricName,
+        type: option.metricType,
+        unit: option.metricUnit,
+      })
+        ? undefined
+        : t('Heat maps can only visualize distribution metrics.'),
+    []
+  );
+
   return (
     <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper>
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
+          getDisabledOptionReason={
+            state.displayType === DisplayType.HEATMAP
+              ? getDisabledOptionReason
+              : undefined
+          }
           onChange={newTraceMetric => {
             if (field.kind !== 'function' || !newTraceMetric) {
               return;

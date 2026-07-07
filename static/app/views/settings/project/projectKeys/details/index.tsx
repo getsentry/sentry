@@ -14,6 +14,7 @@ import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';
+import {RelayDsnOverrideAlert} from 'sentry/views/settings/project/projectKeys/relayDsnOverrideAlert';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -77,6 +78,7 @@ export default function ProjectKeyDetails() {
       <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
         <ProjectPermissionAlert project={project} />
+        <RelayDsnOverrideAlert />
         <KeyStats />
         <KeySettings
           data={projKeyData}

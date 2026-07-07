@@ -45,7 +45,11 @@ class GroupNotesEndpoint(GroupEndpoint):
             )
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-notes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-notes",
+        url_names=["sentry-api-0-group-notes"],
+    )
     def get(self, request: Request, group: Group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
@@ -63,7 +67,11 @@ class GroupNotesEndpoint(GroupEndpoint):
             201: inline_sentry_response_serializer("CreateGroupNote", ActivitySerializerResponse)
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-notes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-notes",
+        url_names=["sentry-api-0-group-notes"],
+    )
     def post(self, request: Request, group: Group) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to create Note")

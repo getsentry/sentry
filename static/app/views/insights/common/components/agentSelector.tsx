@@ -1,143 +1,73 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import debounce from 'lodash/debounce';
+import {useMemo} from 'react';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
-import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {
   AGENT_NAME_FIELDS,
   resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getHasAgentNameFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {
-  getAgentNameSearchFilter,
-  getHasAgentNameFilter,
-} from 'sentry/views/insights/pages/agents/utils/query';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+  FilterUrlParams,
+  TableUrlParams,
+} from 'sentry/views/insights/pages/agents/utils/urlParams';
 
+// Fetch the most active agents once and filter them client-side. EAP substring
+// search on the agent-name attributes is unreliable, and this list is small
+// enough that the built-in fuzzy search over the fetched options is a better fit.
 const LIMIT = 100;
-const AGENT_URL_PARAM = 'agent';
 
 interface AgentSelectorProps {
   referrer: string;
-  storageKeyPrefix: string;
 }
 
-export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) {
+export function AgentSelector({referrer}: AgentSelectorProps) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
 
-  // Project-scoped storage key - automatically resets when projects change
-  const projectKey = [...pageFilters.selection.projects].sort().join(',');
-  const storageKey = `${storageKeyPrefix}:${organization.slug}:${projectKey}`;
-
-  const [storedAgents, setStoredAgents] = useLocalStorageState<string[]>(storageKey, []);
-
-  // Use nuqs to manage both agent and cursor state
   const [{agent: urlAgents}, setQueryStates] = useQueryStates(
     {
-      [AGENT_URL_PARAM]: parseAsArrayOf(parseAsString),
+      [FilterUrlParams.AGENT]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
     },
     {history: 'replace'}
   );
 
-  // On mount: restore stored agents to URL if URL is empty
-  const hasInitialized = useRef(false);
-  useEffect(() => {
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      if (!urlAgents?.length && storedAgents.length > 0) {
-        setQueryStates({[AGENT_URL_PARAM]: storedAgents});
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const selectedAgents = useMemo(() => urlAgents ?? [], [urlAgents]);
 
-  // Reset when project changes, but preserve agent if it was set via URL
-  // (e.g. navigating to a saved query that includes both project and agent)
-  const prevProjectKey = useRef(projectKey);
-  useEffect(() => {
-    if (prevProjectKey.current !== projectKey) {
-      prevProjectKey.current = projectKey;
-      if (urlAgents?.length) {
-        setQueryStates({[TableUrlParams.CURSOR]: null});
-      } else {
-        setQueryStates({[AGENT_URL_PARAM]: null, [TableUrlParams.CURSOR]: null});
-      }
-    }
-  }, [projectKey, urlAgents, setQueryStates]);
-
-  const selectedAgents = useMemo(() => {
-    // Prevent cache pollution during project transitions
-    if (prevProjectKey.current !== projectKey) {
-      return [];
-    }
-    return urlAgents ?? [];
-  }, [urlAgents, projectKey]);
-
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSetSearch = useCallback(
-    debounce(newSearch => {
-      setSearchQuery(newSearch);
-    }, 500),
-    []
-  );
-
-  const query = useMemo(() => {
-    const parts = [getHasAgentNameFilter()];
-    if (searchQuery) {
-      parts.push(getAgentNameSearchFilter(searchQuery));
-    }
-    return parts.join(' ');
-  }, [searchQuery]);
-
-  const {
-    data: agentData,
-    isPending,
-    pageLinks,
-  } = useSpans(
+  const {data: agentData, isPending} = useSpans(
     {
       limit: LIMIT,
-      search: query,
+      search: getHasAgentNameFilter(),
       sorts: [{field: 'count()', kind: 'desc'}],
       fields: [...AGENT_NAME_FIELDS, 'count()'],
     },
     referrer
   );
 
-  const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
-    query: searchQuery,
-    isLoading: isPending,
-    pageLinks,
-  });
-
-  const agentList = useMemo(() => {
-    const uniqueAgents = new Set<string>();
+  const options = useMemo(() => {
+    const seen = new Set<string>();
     const list: Array<{label: string; value: string}> = [];
 
     agentData?.forEach(row => {
       const agentName = resolveAgentName(row);
-      if (!agentName || uniqueAgents.has(agentName)) {
+      if (!agentName || seen.has(agentName)) {
         return;
       }
-      uniqueAgents.add(agentName);
+      seen.add(agentName);
       list.push({label: agentName, value: agentName});
     });
 
-    // Ensure selected values are in the list
+    // Keep selected agents visible even when they aren't in the fetched results
+    // (e.g. loaded from a saved query).
     selectedAgents.forEach(agent => {
-      if (agent && !uniqueAgents.has(agent)) {
+      if (agent && !seen.has(agent)) {
+        seen.add(agent);
         list.push({label: agent, value: agent});
       }
     });
@@ -145,24 +75,15 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
     return list;
   }, [agentData, selectedAgents]);
 
-  const cacheKey = [...pageFilters.selection.projects].sort().join(' ');
-  const {options} = useCompactSelectOptionsCache(agentList, cacheKey);
-
   return (
     <CompactSelect
       multiple
+      search
       style={{maxWidth: '200px'}}
       value={selectedAgents}
       options={options}
       emptyMessage={t('No agents found')}
       loading={isPending}
-      search={{
-        onChange: newValue => {
-          if (!wasSearchSpaceExhausted) {
-            debouncedSetSearch(newValue);
-          }
-        },
-      }}
       menuTitle={t('Agent')}
       data-test-id="agent-selector"
       trigger={triggerProps => (
@@ -170,9 +91,8 @@ export function AgentSelector({storageKeyPrefix, referrer}: AgentSelectorProps) 
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);
-        setStoredAgents(values);
         setQueryStates({
-          [AGENT_URL_PARAM]: values.length > 0 ? values : null,
+          [FilterUrlParams.AGENT]: values.length > 0 ? values : null,
           [TableUrlParams.CURSOR]: null,
         });
         trackAnalytics('agent-monitoring.page-filter-change', {
