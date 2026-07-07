@@ -428,9 +428,8 @@ class User(Model, AbstractBaseUser):
             )
 
             # Update all organization control models that don't use user_id
-            with enforce_constraints(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
-            ):
+            txn = transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            with enforce_constraints(txn), outbox_context(txn, flush=False):
                 # Update records individually as OrgAuthToken has outboxes
                 for token in OrgAuthToken.objects.filter(
                     organization_id=organization_id, created_by_id=from_user_id
