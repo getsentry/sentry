@@ -89,14 +89,11 @@ sw.addEventListener('message', event => {
                 data,
               } satisfies ResponseMessage);
             } catch (error) {
-              client?.postMessage(
-                {
-                  type: 'response',
-                  messageId: event.data.messageId,
-                  error,
-                } satisfies ResponseMessage,
-                {transfer: [error as Transferable]}
-              );
+              client?.postMessage({
+                type: 'response',
+                messageId: event.data.messageId,
+                error,
+              } satisfies ResponseMessage);
             }
             break;
           }

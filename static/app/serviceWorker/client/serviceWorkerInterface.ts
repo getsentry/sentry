@@ -4,6 +4,8 @@ import type {EventMessage, RequestMessage} from 'sentry/serviceWorker/types';
 
 type RequestCallback = (error: unknown, result: unknown) => void;
 
+const supportsServiceWorker = 'serviceWorker' in navigator;
+
 /**
  * Sends messages from the page to the service worker.
  *
@@ -15,13 +17,16 @@ export class ServiceWorkerController {
   _outstandingRequests = new Map<string, RequestCallback>();
 
   constructor() {
-    if (!('serviceWorker' in navigator)) {
+    if (!supportsServiceWorker) {
       return;
     }
     navigator.serviceWorker.addEventListener('message', this._onMessage);
   }
 
   public dispose() {
+    if (!supportsServiceWorker) {
+      return;
+    }
     navigator.serviceWorker.removeEventListener('message', this._onMessage);
   }
 
@@ -56,7 +61,7 @@ export class ServiceWorkerController {
    * We don't need to wait for the page to be controlled by the worker.
    */
   private async getWorker(): Promise<ServiceWorker | null> {
-    if (!('serviceWorker' in navigator)) {
+    if (!supportsServiceWorker) {
       return null;
     }
     // For more read: https://web.dev/articles/service-worker-lifecycle
