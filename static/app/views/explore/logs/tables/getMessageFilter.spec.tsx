@@ -47,6 +47,25 @@ describe('getMessageFilter', () => {
     });
   });
 
+  it('uses the message value when the template is null', () => {
+    const row = {
+      ...baseRow,
+      [OurLogKnownFieldKey.MESSAGE]: 'User 123 logged in',
+      [OurLogKnownFieldKey.TEMPLATE]: null,
+    };
+
+    const filter = getMessageFilter(
+      OurLogKnownFieldKey.MESSAGE,
+      row,
+      'User 123 logged in'
+    );
+
+    expect(filter).toEqual({
+      key: OurLogKnownFieldKey.MESSAGE,
+      value: 'User 123 logged in',
+    });
+  });
+
   it('uses the field and cell value when filtering on a non-message field', () => {
     const row = {
       ...baseRow,

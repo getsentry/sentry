@@ -102,8 +102,8 @@ export function BreadcrumbWebVital({
   }
 
   return (
-    <Flex gap="lg" justify="between" align="start">
-      <NoMarginWrapper flex="1">
+    <Flex direction="column" gap="sm" align="start">
+      <NoMarginWrapper>
         <StructuredEventData
           initialExpandedPaths={expandPaths ?? []}
           onToggleExpand={(expandedPaths, path) => {
@@ -156,6 +156,7 @@ const SelectorButton = styled(Button)`
 `;
 
 const NoMarginWrapper = styled(Flex)`
+  width: 100%;
   pre {
     margin: 0;
     flex: 1;

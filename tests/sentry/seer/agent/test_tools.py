@@ -562,6 +562,43 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert "logQuery" not in params
         assert "metricQuery" not in params
 
+    def test_table_query_returns_validation_errors(self) -> None:
+        """When validate=True, invalid queries from events/validate are agent-readable errors."""
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=["hello"],
+            query="",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+            validate=True,
+        )
+
+        assert result is not None
+        assert "error" in result
+        assert "data" not in result
+        assert "Query validation failed:" in result["error"]
+        assert "field 'hello': Unknown attribute" in result["error"]
+
+    def test_table_query_validate_passes_for_valid_query(self) -> None:
+        """When validate=True and the query is valid, the events query still runs."""
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+            validate=True,
+        )
+
+        assert result is not None
+        assert "data" in result
+        assert "error" not in result
+        assert len(result["data"]) == 4
+
     def test_spans_timeseries_with_groupby(self) -> None:
         """Test timeseries query with group_by parameter for aggregates"""
         result = execute_timeseries_query(

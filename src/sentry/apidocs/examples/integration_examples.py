@@ -26,6 +26,7 @@ class IntegrationExamples:
                         "team:read",
                         "users:read",
                     ],
+                    "outOfDate": False,
                     "status": "active",
                     "provider": {
                         "key": "slack",
@@ -79,6 +80,7 @@ class IntegrationExamples:
                     "team:read",
                     "users:read",
                 ],
+                "outOfDate": False,
                 "status": "active",
                 "provider": {
                     "key": "slack",
@@ -804,6 +806,7 @@ class IntegrationExamples:
                 "domainName": "example.atlassian.net",
                 "accountType": None,
                 "scopes": None,
+                "outOfDate": None,
                 "status": "active",
                 "provider": {
                     "key": "jira",
@@ -844,6 +847,7 @@ class IntegrationExamples:
                 "domainName": "example.atlassian.net",
                 "accountType": None,
                 "scopes": None,
+                "outOfDate": None,
                 "status": "active",
                 "provider": {
                     "key": "jira",

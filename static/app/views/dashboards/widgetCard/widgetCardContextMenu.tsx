@@ -323,7 +323,7 @@ export function getMenuOptions(
       menuOptions.push({
         key: 'create-alert',
         label: newAlertLabel,
-        isSubmenu: true,
+        submenu: true,
         children: alertMenuOptions,
       });
     }

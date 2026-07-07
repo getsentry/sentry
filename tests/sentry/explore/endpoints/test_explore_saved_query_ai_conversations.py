@@ -91,6 +91,29 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
             starred=True,
         ).exists()
 
+    def test_post_preserves_agent_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.list_url,
+                {
+                    "name": "Agent-filtered query",
+                    "projects": [self.project.id],
+                    "dataset": "ai_conversations",
+                    "range": "24h",
+                    "agent": ["my-agent", "other-agent"],
+                    "query": [{"fields": [], "mode": "samples"}],
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        assert response.data["agent"] == ["my-agent", "other-agent"]
+
+        # Verify round-trip through detail endpoint
+        with self.feature(self.features):
+            detail = self.client.get(self._detail_url(int(response.data["id"])))
+        assert detail.status_code == 200
+        assert detail.data["agent"] == ["my-agent", "other-agent"]
+
     # ── Read ────────────────────────────────────────────────────────────
 
     def test_get_returns_ai_conversations_query(self) -> None:

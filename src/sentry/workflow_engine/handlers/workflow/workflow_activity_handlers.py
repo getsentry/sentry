@@ -1,6 +1,5 @@
 import logging
 
-from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.types.activity import ActivityType
@@ -28,6 +27,10 @@ SEER_WORKFLOW_ACTIVITIES = [
 # Activity types handled by the generic activity_handler.
 SUPPORTED_ACTIVITIES = [
     ActivityType.SET_RESOLVED,
+    ActivityType.SET_RESOLVED_IN_RELEASE,
+    ActivityType.SET_RESOLVED_BY_AGE,
+    ActivityType.SET_RESOLVED_IN_COMMIT,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
 ]
 
 
@@ -53,11 +56,6 @@ def seer_activity_handler(
     logging_ctx["activity_name"] = activity_type.name
 
     if activity_type not in SEER_WORKFLOW_ACTIVITIES:
-        return
-
-    if not features.has(
-        "organizations:workflow-engine-evaluate-seer-activities", group.organization
-    ):
         return
 
     event_data = WorkflowEventData(event=activity, group=group)
