@@ -1650,8 +1650,9 @@ class _IssueCommitters:
                 # for issues without spans (the common case for error issues), which
                 # would silently drop frame blame. Fall back to the latest event so the
                 # failing frames are still available. Frame paths are stable across an
-                # issue's events, so this is a safe source for blame.
-                event = self.group.get_latest_event()
+                # issue's events, so this is a safe source for blame. Thread the window
+                # through so a caller-supplied start/end is still honored (no-op when empty).
+                event = self.group.get_latest_event(start=self.start_dt, end=self.end_dt)
             if event is None:
                 return []
             sdk_name = (event.data.get("sdk") or {}).get("name")
