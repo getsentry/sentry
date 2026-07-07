@@ -13,12 +13,6 @@ import {
 } from 'getsentry/views/seerAutomation/components/connectorStatus';
 import type {MonitoringProvider} from 'getsentry/views/seerAutomation/connectors';
 
-const PROVIDER_ICON_MAP: Record<string, string> = {
-  datadog: 'datadog',
-  datadog_pat: 'datadog',
-  gcp: 'gcp',
-};
-
 // TODO(CW-1583): currently we show only Connected or Not Connected (the backend does not give us more information than this)
 function getConnectorStatus(provider: MonitoringProvider): ConnectorStatusType {
   return provider.connected ? 'connected' : 'not_connected';
@@ -44,7 +38,7 @@ export function ConnectorRow({
   isDisconnecting,
 }: ConnectorRowProps) {
   const status = getConnectorStatus(provider);
-  const pluginId = PROVIDER_ICON_MAP[provider.provider] ?? 'placeholder';
+  const pluginId = provider.provider;
 
   return (
     <PanelItem center>
