@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -180,6 +180,39 @@ describe('MessagesPanelNew', () => {
     );
 
     expect(screen.getByText('weather')).toBeInTheDocument();
+  });
+
+  it('selects assistant messages on click but not user messages', async () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hello there'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Assistant response',
+      },
+    });
+
+    render(
+      <MessagesPanelNew
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+        nodeTraceMap={new Map()}
+      />
+    );
+
+    // User messages are not interactive
+    await userEvent.click(screen.getByText('Hello there'));
+    expect(mockOnSelectNode).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: /Hello there/})).not.toBeInTheDocument();
+
+    // Assistant messages select the corresponding node
+    await userEvent.click(screen.getByText('Assistant response'));
+    expect(mockOnSelectNode).toHaveBeenCalledWith(node);
+    expect(
+      screen.getByText('Assistant response').closest('[role="button"]')
+    ).toBeInTheDocument();
   });
 
   it('keeps reasoning text in the DOM inside a collapsed details element', () => {
