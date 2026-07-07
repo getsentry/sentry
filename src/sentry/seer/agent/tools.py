@@ -36,8 +36,10 @@ from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.models.team import Team, TeamStatus
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
@@ -78,11 +80,14 @@ from sentry.seer.sentry_data_models import (
     IssueAndEventDetailsResponse,
     IssueCommittersResponse,
     IssueDetailsResponse,
+    IssueOwner,
+    IssueOwnershipResponse,
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
     ProfileFlamegraphSuccessResponse,
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
+    TeamMembersResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
 )
@@ -95,6 +100,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.committers import (
     get_event_file_committers,
@@ -1749,6 +1755,15 @@ class _IssueCommitters:
                 self.group, self.organization, self.start_dt, self.end_dt
             )
             if event is None:
+                # Frame blame only needs a stacktrace, not a span/trace.
+                # _get_recommended_event requires a span-bearing event and returns None
+                # for issues without spans (the common case for error issues), which
+                # would silently drop frame blame. Fall back to the latest event so the
+                # failing frames are still available. Frame paths are stable across an
+                # issue's events, so this is a safe source for blame. Thread the window
+                # through so a caller-supplied start/end is still honored (no-op when empty).
+                event = self.group.get_latest_event(start=self.start_dt, end=self.end_dt)
+            if event is None:
                 return []
             sdk_name = (event.data.get("sdk") or {}).get("name")
             author_commits = get_event_file_committers(
@@ -1841,6 +1856,200 @@ class _IssueCommitters:
             )
             return []
         return release_commits
+
+
+def get_issue_ownership(
+    *,
+    organization_id: int,
+    issue_id: str,
+) -> IssueOwnershipResponse | None:
+    """
+    Get the configured code owners for an issue from Sentry's Ownership Rules / CODEOWNERS.
+
+    This answers "who is RESPONSIBLE for this area of code", which is independent of who
+    authored any commit (``get_issue_committers``). It matches the files in the issue's
+    stacktrace against the project's ownership schema and returns the resolved owners.
+
+    Use it when commit signals are weak or absent (e.g. infra/transient errors that still
+    fall inside an owned area), or to corroborate a commit-based suggestion. The
+    ``auto_assignment`` flag tells you whether Sentry already auto-assigns from these
+    rules: when it is False, the owners are configured but nothing acts on them, which is
+    exactly the gap a suggested assignee fills.
+
+    Args:
+        organization_id: The ID of the organization.
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123). The
+            project is derived from the issue, so no project identifier is needed.
+
+    Returns:
+        An ``IssueOwnershipResponse`` with ``owners`` (ordered users/teams), ``matched_rules``
+        (the rule patterns that matched), ``auto_assignment``, ``project_id``, and
+        ``project_slug``. ``owners`` may be empty when no rule covers the failing files.
+        Returns ``None`` if the project/issue cannot be resolved.
+    """
+    try:
+        ownership = _IssueOwnership(
+            organization_id=organization_id,
+            issue_id=issue_id,
+        )
+    except Group.DoesNotExist:
+        return None
+    return ownership.get()
+
+
+# ``ProjectOwnership.get_issue_owners`` defaults to 2 (suggested-assignee sizing); the
+# ownership tool wants the full set of responsible owners, so we cap higher.
+_OWNERSHIP_RULE_LIMIT = 25
+
+
+class _IssueOwnership:
+    """Resolves the configured code owners for an issue.
+
+    Backs :func:`get_issue_ownership`. Mirrors :class:`_IssueCommitters`: the shared
+    inputs (resolved group, organization) are computed once in ``__init__`` and reused by
+    the per-signal helpers, and each signal isolates its own failures so one failing
+    lookup doesn't blank out the others.
+    """
+
+    def __init__(
+        self,
+        *,
+        organization_id: int,
+        issue_id: str,
+    ) -> None:
+        self.organization_id = organization_id
+        self.issue_id = issue_id
+        self.organization = Organization.objects.get(id=organization_id)
+        # Lets ``Group.DoesNotExist`` propagate so ``get_issue_ownership`` can map it to
+        # ``None`` (the shared "issue not found" signal for the seer issue methods).
+        self.group = _resolve_seer_group(organization_id=organization_id, issue_id=issue_id)
+
+    def get(self) -> IssueOwnershipResponse:
+        owners, matched_rules = self._resolve_owners()
+        return IssueOwnershipResponse(
+            owners=owners,
+            matched_rules=matched_rules,
+            auto_assignment=self._auto_assignment_enabled(),
+            project_id=self.group.project_id,
+            project_slug=self.group.project.slug,
+        )
+
+    @property
+    def _log_extra(self) -> dict[str, Any]:
+        return {"organization_id": self.organization_id, "issue_id": self.issue_id}
+
+    def _resolve_owners(self) -> tuple[list[IssueOwner], list[str]]:
+        """Match the issue's stacktrace files against the project ownership schema.
+
+        Delegates to ``ProjectOwnership.get_issue_owners`` — the same resolution Sentry
+        runs in post-processing to populate ``GroupOwner`` — so owners come back already
+        resolved to teams/users (control-silo user lookups included) and grouped under the
+        rule that matched. ``get_issue_owners`` caps its result at ``limit`` rules that
+        resolved to at least one owner (default 2, tuned for suggested assignees); we raise
+        it so the agent gets a fuller picture of who's responsible.
+        """
+        try:
+            event = self.group.get_latest_event()
+            if event is None:
+                return [], []
+            issue_owners = ProjectOwnership.get_issue_owners(
+                self.group.project_id, event.data, limit=_OWNERSHIP_RULE_LIMIT
+            )
+        except Exception:
+            metrics.incr("seer.get_issue_ownership.error", tags={"step": "get_owners"})
+            logger.exception(
+                "get_issue_ownership: Failed to resolve owners",
+                extra=self._log_extra,
+            )
+            return [], []
+
+        owners: list[IssueOwner] = []
+        seen: set[tuple[str, int]] = set()  # the same owner can match multiple rules
+        matched_rules: set[str] = set()
+        for rule, rule_owners, _rule_type in issue_owners:
+            if rule.matcher:
+                matched_rules.add(str(rule.matcher.pattern))
+            for owner in rule_owners:
+                if isinstance(owner, Team):
+                    if ("team", owner.id) in seen:
+                        continue
+                    seen.add(("team", owner.id))
+                    owners.append(IssueOwner(type="team", slug=owner.slug, name=owner.name))
+                else:  # RpcUser
+                    if ("user", owner.id) in seen:
+                        continue
+                    seen.add(("user", owner.id))
+                    owners.append(
+                        IssueOwner(type="user", email=owner.email, name=owner.get_display_name())
+                    )
+
+        return owners, sorted(matched_rules)
+
+    def _auto_assignment_enabled(self) -> bool:
+        """Whether Sentry already auto-assigns issues from these ownership rules."""
+        try:
+            ownership = ProjectOwnership.get_ownership_cached(self.group.project_id)
+        except Exception:
+            metrics.incr("seer.get_issue_ownership.error", tags={"step": "auto_assignment"})
+            logger.exception(
+                "get_issue_ownership: Failed to read auto-assignment flag",
+                extra=self._log_extra,
+            )
+            return False
+        return bool(ownership and ownership.auto_assignment)
+
+
+def get_team_members(
+    *,
+    organization_id: int,
+    team_slug: str,
+) -> TeamMembersResponse | None:
+    """
+    Get the active users on a team.
+
+    Pairs with ``get_issue_ownership``: that tool may resolve an issue's owner to a
+    *team*, which on its own isn't an actionable assignee. Call this with the team's slug
+    to expand it into the individual users on it, so the agent can get down to a specific
+    person to suggest.
+
+    Args:
+        organization_id: The ID of the organization.
+        team_slug: The slug of the team (e.g. the ``slug`` of a ``team`` owner returned by
+            ``get_issue_ownership``).
+
+    Returns:
+        A ``TeamMembersResponse`` with ``team_id``/``team_slug``/``team_name`` and
+        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``email``, ``name``).
+        ``members`` is empty when the team has no active members. Returns ``None`` if the
+        team cannot be found in the organization.
+    """
+    try:
+        team = Team.objects.get(
+            organization_id=organization_id,
+            slug=team_slug,
+            status=TeamStatus.ACTIVE,
+        )
+    except Team.DoesNotExist:
+        return None
+
+    # ``User`` lives in the control silo, so resolve the team's member ids (a region
+    # query) through the user service to get emails/display names from the region the RPC
+    # runs in.
+    user_ids = list(team.get_member_user_ids())
+    members = (
+        [
+            IssueOwner(type="user", email=user.email, name=user.get_display_name())
+            for user in user_service.get_many(filter={"user_ids": user_ids})
+        ]
+        if user_ids
+        else []
+    )
+    return TeamMembersResponse(
+        team_id=team.id,
+        team_slug=team.slug,
+        team_name=team.name,
+        members=members,
+    )
 
 
 def get_event_details(

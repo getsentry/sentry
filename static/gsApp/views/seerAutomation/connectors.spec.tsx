@@ -11,9 +11,9 @@ import {
 
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-import {MonitoringProvidersSection} from 'getsentry/views/seerAutomation/components/monitoringProviders';
+import SeerConnectors from 'getsentry/views/seerAutomation/connectors';
 
-describe('MonitoringProvidersSection', () => {
+describe('SeerConnectors', () => {
   const organization = OrganizationFixture({
     features: ['seer-infra-telemetry'],
   });
@@ -22,7 +22,7 @@ describe('MonitoringProvidersSection', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders providers list', async () => {
+  it('renders page with header and provider list', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/`,
       body: {
@@ -33,15 +33,15 @@ describe('MonitoringProvidersSection', () => {
       },
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
 
     expect(await screen.findByText('Datadog')).toBeInTheDocument();
     expect(screen.getByText('Google Cloud Platform')).toBeInTheDocument();
-    expect(screen.getAllByText('Not connected')).toHaveLength(2);
+    expect(screen.getAllByText('Not Connected')).toHaveLength(2);
     expect(screen.getAllByRole('button', {name: 'Connect'})).toHaveLength(2);
   });
 
-  it('shows connected status', async () => {
+  it('shows correct status for connected and not-connected providers', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/`,
       body: {
@@ -52,15 +52,15 @@ describe('MonitoringProvidersSection', () => {
       },
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
 
     expect(await screen.findByText('Connected')).toBeInTheDocument();
-    expect(screen.getByText('Not connected')).toBeInTheDocument();
+    expect(screen.getByText('Not Connected')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Disconnect'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Connect'})).toBeInTheDocument();
   });
 
-  it('connect button redirects to OAuth URL', async () => {
+  it('connect button redirects to OAuth URL for GCP', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/`,
       body: {
@@ -74,7 +74,7 @@ describe('MonitoringProvidersSection', () => {
       body: {redirectUrl: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=test'},
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
 
@@ -99,7 +99,7 @@ describe('MonitoringProvidersSection', () => {
       match: [MockApiClient.matchData({site: 'datadoghq.com'})],
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
 
@@ -107,6 +107,34 @@ describe('MonitoringProvidersSection', () => {
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://mcp.datadoghq.com/authorize'
     );
+  });
+
+  it('connect on PAT provider opens modal', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitoring-providers/`,
+      body: {
+        providers: [
+          {
+            provider: 'datadog_pat',
+            name: 'Datadog (Personal Access Token)',
+            connected: false,
+          },
+        ],
+      },
+    });
+
+    render(<SeerConnectors />, {organization});
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText('Connect Datadog (Personal Access Token)')
+    ).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Access Token')).toBeInTheDocument();
+    expect(within(dialog).getByText('Datadog Site')).toBeInTheDocument();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
 
   it('disconnect button deletes identity after confirmation', async () => {
@@ -123,12 +151,10 @@ describe('MonitoringProvidersSection', () => {
       statusCode: 204,
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Disconnect'}));
-
-    // Confirm the modal
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
@@ -140,71 +166,11 @@ describe('MonitoringProvidersSection', () => {
       statusCode: 500,
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
 
     expect(
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
-  });
-});
-
-describe('Datadog PAT flow', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-infra-telemetry'],
-  });
-
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
-  it('renders PAT provider in list', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/monitoring-providers/`,
-      body: {
-        providers: [
-          {
-            provider: 'datadog_pat',
-            name: 'Datadog (Personal Access Token)',
-            connected: false,
-          },
-        ],
-      },
-    });
-
-    render(<MonitoringProvidersSection />, {organization});
-
-    expect(
-      await screen.findByText('Datadog (Personal Access Token)')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Not connected')).toBeInTheDocument();
-  });
-
-  it('connect on PAT provider opens modal instead of redirecting', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/monitoring-providers/`,
-      body: {
-        providers: [
-          {
-            provider: 'datadog_pat',
-            name: 'Datadog (Personal Access Token)',
-            connected: false,
-          },
-        ],
-      },
-    });
-
-    render(<MonitoringProvidersSection />, {organization});
-    renderGlobalModal();
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
-
-    const dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByText('Connect Datadog (Personal Access Token)')
-    ).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Access Token')).toBeInTheDocument();
-    expect(within(dialog).getByText('Datadog Site')).toBeInTheDocument();
-    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
 
   it('PAT modal submits token and shows success', async () => {
@@ -230,7 +196,7 @@ describe('Datadog PAT flow', () => {
       ],
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
@@ -238,7 +204,6 @@ describe('Datadog PAT flow', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText('Access Token'), 'my-pat-token');
 
-    // Override GET mock before submit so refetch returns updated state
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/`,
       body: {
@@ -279,7 +244,7 @@ describe('Datadog PAT flow', () => {
       body: {detail: 'Failed to verify token with provider.'},
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
@@ -314,7 +279,7 @@ describe('Datadog PAT flow', () => {
       body: {detail: 'This account is already connected.'},
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));
@@ -348,7 +313,7 @@ describe('Datadog PAT flow', () => {
       statusCode: 204,
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Disconnect'}));
@@ -357,7 +322,7 @@ describe('Datadog PAT flow', () => {
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
   });
 
-  it('cancel closes modal without submitting', async () => {
+  it('cancel closes PAT modal without submitting', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/`,
       body: {
@@ -377,7 +342,7 @@ describe('Datadog PAT flow', () => {
       statusCode: 204,
     });
 
-    render(<MonitoringProvidersSection />, {organization});
+    render(<SeerConnectors />, {organization});
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Connect'}));

@@ -136,6 +136,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
+        ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -146,6 +147,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
+        ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
       trackAnalytics('ai_query.applied', {
         organization,
