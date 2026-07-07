@@ -25,6 +25,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
+  openGithubPermissionsUpdateModal,
+  useAutoOpenPermissionsModal,
+} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
+import {
   canManageIntegrations,
   getAlertText,
   getIntegrationStatus,
@@ -32,10 +36,6 @@ import {
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  openGithubPermissionsUpdateModal,
-  useAutoOpenPermissionsModal,
-} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
 import {
   fetchMutation,
   getApiQueryData,
