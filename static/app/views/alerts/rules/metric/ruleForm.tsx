@@ -133,7 +133,6 @@ type Props = {
   routes: PlainRoute[];
   rule: MetricRule;
   theme: Theme;
-  userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
   isDuplicateRule?: boolean;
@@ -1505,12 +1504,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               >
                 <List symbol="colored-numeric">
                   <RuleConditionsForm
-                    aggregate={aggregate}
                     alertType={alertType}
                     allowChangeEventTypes={
                       dataset === Dataset.ERRORS || alertType === 'custom_transactions'
                     }
-                    comparisonDelta={comparisonDelta}
                     comparisonType={comparisonType}
                     dataset={dataset}
                     disableProjectSelector={disableProjectSelector}
@@ -1520,9 +1517,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     isExtrapolatedChartData={isExtrapolatedChartData}
                     isOnDemandLimitReached={isOnDemandLimitReached}
                     isTransactionMigration={isMigration && !showErrorMigrationWarning}
-                    onComparisonDeltaChange={value =>
-                      this.handleFieldChange('comparisonDelta', value)
-                    }
                     onFilterSearch={this.handleFilterUpdate}
                     onTimeWindowChange={value =>
                       this.handleFieldChange('timeWindow', value)

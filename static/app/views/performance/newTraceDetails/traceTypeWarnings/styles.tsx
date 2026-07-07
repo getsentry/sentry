@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 type BannerProps = {
@@ -16,7 +15,6 @@ type BannerProps = {
   localStorageKey: string;
   onPrimaryButtonClick: () => void;
   onSecondaryButtonClick: () => void;
-  organization: Organization;
   primaryButtonText: string;
   title: React.ReactNode;
 };

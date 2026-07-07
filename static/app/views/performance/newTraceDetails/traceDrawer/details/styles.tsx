@@ -344,7 +344,6 @@ const getDurationComparison = (
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: BaseNode;
   baseDescription?: string;
   precision?: number;
   ratio?: number;
@@ -948,7 +947,6 @@ function NodeActions(props: {
   node: BaseNode;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
-  eventSize?: number | undefined;
   profileId?: string;
   profilerId?: string;
   showJSONLink?: boolean;
