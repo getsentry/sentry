@@ -1,7 +1,6 @@
 from io import BytesIO
 from typing import TypedDict
 
-import sentry_sdk
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -17,6 +16,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
+from sentry.utils.tracing import start_span
 
 
 class _SegmentMetadataResponse(TypedDict):
@@ -84,7 +84,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
             return self.respond(body)
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        with sentry_sdk.start_span(
+        with start_span(
             op="download_segment",
             name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:

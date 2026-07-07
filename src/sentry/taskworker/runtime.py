@@ -4,16 +4,16 @@ from taskbroker_client.app import TaskbrokerApp
 
 from sentry.taskworker.adapters import (
     DjangoCacheAtMostOnceStore,
-    SentryMetricsBackend,
     SentryRouter,
     ViewerContextHook,
+    make_metrics,
     make_producer,
 )
 
 app = TaskbrokerApp(
     name="sentry",
     producer_factory=make_producer,
-    metrics_class=SentryMetricsBackend(),
+    metrics_class=make_metrics(),
     router_class=SentryRouter(),
     at_most_once_store=DjangoCacheAtMostOnceStore(cache),
     context_hooks=[ViewerContextHook()],

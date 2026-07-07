@@ -133,7 +133,7 @@ function WebhookProjectRow({project}: {project: WebhookProject}) {
         <LinkButton
           variant="transparent"
           icon={<IconSettings />}
-          to={`/settings/${organization.slug}/projects/${project.projectSlug}/plugins/webhooks/`}
+          to={`/settings/${organization.slug}/projects/${project.projectSlug}/legacy-webhooks/`}
           data-test-id="integration-configure-button"
         >
           {projectAccess ? t('Configure') : t('View')}

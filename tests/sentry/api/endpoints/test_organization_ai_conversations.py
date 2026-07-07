@@ -14,6 +14,8 @@ from sentry.testutils.helpers.datetime import before_now
 
 from .test_organization_ai_conversations_base import (
     LLM_COST,
+    LLM_INPUT_TOKENS,
+    LLM_OUTPUT_TOKENS,
     LLM_TOKENS,
     BaseAIConversationsTestCase,
 )
@@ -181,6 +183,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             tokens=LLM_TOKENS,
+            input_tokens=LLM_INPUT_TOKENS,
+            output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
             messages=first_messages,
@@ -212,6 +216,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             status="internal_error",
             operation_type="ai_client",
             tokens=LLM_TOKENS,
+            input_tokens=LLM_INPUT_TOKENS,
+            output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Thanks"}],
@@ -234,6 +240,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 2
         assert conversation["toolCalls"] == 1
         assert conversation["totalTokens"] == LLM_TOKENS * 2
+        assert conversation["inputTokens"] == LLM_INPUT_TOKENS * 2
+        assert conversation["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
@@ -427,6 +435,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 1
         assert conversation["toolCalls"] == 0
         assert conversation["totalTokens"] == 0
+        assert conversation["inputTokens"] == 0
+        assert conversation["outputTokens"] == 0
         assert conversation["totalCost"] == 0.0
         assert conversation["flow"] == []
         assert len(conversation["traceIds"]) == 1
@@ -458,6 +468,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 status=span_status,
                 trace_id=trace_id,
                 **extra_kwargs,
@@ -549,6 +560,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             tokens=50,
+            input_tokens=35,
+            output_tokens=15,
             cost=0.005,
             trace_id=trace_id,
             messages=[{"role": "user", "content": "recent request"}],
@@ -569,6 +582,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["conversationId"] == conversation_id
         assert conversation["llmCalls"] == 1
         assert conversation["totalTokens"] == 50
+        assert conversation["inputTokens"] == 35
+        assert conversation["outputTokens"] == 15
         assert conversation["totalCost"] == 0.005
 
     def test_first_input_last_output(self) -> None:
@@ -633,17 +648,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == first_user_content
         assert conversation["lastOutput"] == last_response_text
 
-    def test_no_ai_client_spans_filtered_out(self) -> None:
-        """Test conversations without input/output are filtered out"""
+    def test_conversation_without_ai_client_spans_included(self) -> None:
+        """Conversations are surfaced based on gen_ai.operation.type, even without LLM I/O"""
         now = before_now(days=12).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Only invoke_agent spans, no ai_client spans with input/output
+        # Only invoke_agent and tool spans, no ai_client spans with input/output
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
             agent_name="Test Agent",
             trace_id=trace_id,
         )
@@ -653,6 +669,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.execute_tool",
             operation_type="tool",
+            tool_name="weather",
             trace_id=trace_id,
         )
 
@@ -664,7 +681,57 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert len(response.data) == 0
+        assert len(response.data) == 1
+        conversation = response.data[0]
+        assert conversation["conversationId"] == conversation_id
+        assert conversation["toolNames"] == ["weather"]
+        assert conversation["firstInput"] is None
+        assert conversation["lastOutput"] is None
+
+    def test_query_filter_by_tool_name(self) -> None:
+        """Test that a tool-name query filters conversations by the tools they used"""
+        now = before_now(days=24).replace(microsecond=0)
+        conversation_with_tool = uuid4().hex
+        conversation_without_tool = uuid4().hex
+
+        # Conversation that uses the weather tool
+        self.store_ai_span(
+            conversation_id=conversation_with_tool,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "What is the weather?"}],
+            response_text="Let me check",
+        )
+        self.store_ai_span(
+            conversation_id=conversation_with_tool,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+
+        # Conversation that does not use the weather tool
+        self.store_ai_span(
+            conversation_id=conversation_without_tool,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "Tell me a joke"}],
+            response_text="Here is one",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "gen_ai.tool.name:weather",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == conversation_with_tool
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
@@ -1246,6 +1313,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             agent_name="Test Agent",
             trace_id=trace_id,
             tokens=500,
+            input_tokens=350,
+            output_tokens=150,
             cost=0.05,
         )
 
@@ -1257,6 +1326,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             operation_type="ai_client",
             trace_id=trace_id,
             tokens=100,
+            input_tokens=70,
+            output_tokens=30,
             cost=0.01,
             messages=[{"role": "user", "content": "test"}],
             response_text="test response",
@@ -1276,6 +1347,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         # Tokens and cost should only come from ai_client span (100, 0.01)
         # NOT the sum of both spans (600, 0.06) which would be double counting
         assert conversation["totalTokens"] == 100
+        assert conversation["inputTokens"] == 70
+        assert conversation["outputTokens"] == 30
         assert conversation["totalCost"] == 0.01
         # Verify counts are correct
         assert conversation["llmCalls"] == 1

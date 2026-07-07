@@ -64,7 +64,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
       <PanelBody>
         <Flex align="start" width="100%" padding="3xl" gap="xl">
           <Container flex={1} minWidth={0}>
-            <Heading as="h1" size="2xl">
+            <Heading as="h2" size="2xl">
               {t('Upload Mobile Builds to Sentry')}
             </Heading>
             <Text as="p" size="md" style={{marginBottom: theme.space.md}}>
@@ -102,7 +102,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
             </Flex>
           </Container>
           <Container
-            display={{xs: 'none', md: 'block'}}
+            display={{'screen:xs': 'none', 'screen:md': 'block'}}
             flex={1}
             minWidth={0}
             borderLeft="muted"

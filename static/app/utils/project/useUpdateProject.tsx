@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetailedProject, Project} from 'sentry/types/project';
@@ -32,18 +32,7 @@ function isDetailedProject(
   );
 }
 
-type Context =
-  | {
-      previousProject: ProjectWithOptions;
-      error?: never;
-      previousDetailedProject?: DetailedProject;
-    }
-  | {
-      error: Error;
-      previousProject?: never;
-    };
-
-export function useUpdateProject(project: Project) {
+export function useUpdateProjectMutationOptions(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
@@ -52,8 +41,25 @@ export function useUpdateProject(project: Project) {
     projectSlug: project.slug,
   });
 
-  return useMutation<DetailedProject, Error, Partial<DetailedProject>, Context>({
+  return mutationOptions({
+    mutationFn: (data: Partial<DetailedProject>) => {
+      return fetchMutation<DetailedProject>({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        data: {...data},
+      });
+    },
     onMutate: data => {
+      // A slug change re-keys the detailed-project query and triggers URL
+      // canonicalization (see projectRouteContext's redirect effect). An
+      // optimistic write would flip the cached slug before the server confirms
+      // it — popping the "project moved" redirect and masking backend errors
+      // (e.g. a duplicate slug). Only update optimistically when the slug is
+      // unchanged; for slug changes we wait for the server response.
+      if (data.slug !== undefined && data.slug !== project.slug) {
+        return;
+      }
+
       const previousCachedDetailedProject = queryClient.getQueryData(queryKey)?.json;
       const storeProject = ProjectsStore.getById(project.id);
 
@@ -111,13 +117,6 @@ export function useUpdateProject(project: Project) {
 
       return {previousProject, previousDetailedProject};
     },
-    mutationFn: data => {
-      return fetchMutation<DetailedProject>({
-        method: 'PUT',
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        data: {...data},
-      });
-    },
     onSuccess: updatedProject => {
       ProjectsStore.onUpdateSuccess(updatedProject);
       queryClient.setQueryData(queryKey, prev =>
@@ -142,4 +141,10 @@ export function useUpdateProject(project: Project) {
       queryClient.invalidateQueries({queryKey});
     },
   });
+}
+
+export function useUpdateProject(project: Project) {
+  const updateProjectMutationOptions = useUpdateProjectMutationOptions(project);
+
+  return useMutation(updateProjectMutationOptions);
 }

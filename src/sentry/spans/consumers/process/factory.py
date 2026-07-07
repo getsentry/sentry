@@ -2,10 +2,8 @@ import logging
 import time
 from collections.abc import Mapping
 from functools import partial
-from typing import Any, cast
 
 import msgspec
-import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -14,22 +12,15 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import killswitches
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.options.rollout import in_random_rollout
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
-from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
-
-SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.INGEST_SPANS)
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -166,7 +157,6 @@ def process_batch(
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
-    use_msgspec_decoder = in_random_rollout("spans.buffer.use-msgspec-decoder")
     min_timestamp = None
     decode_time = 0.0
     spans = []
@@ -179,38 +169,34 @@ def process_batch(
             if min_timestamp is None or timestamp < min_timestamp:
                 min_timestamp = timestamp
 
+            # Decoding into the typed struct validates the fields the buffer relies on (presence
+            # and types); malformed spans raise here and are routed to the DLQ below. See also:
+            # INC-1453, INC-1458.
             decode_start = time.monotonic()
-            if use_msgspec_decoder:
-                val = cast(SpanEvent, decode_process_span_event(payload.value))
-            else:
-                val = cast(SpanEvent, orjson.loads(payload.value))
+            span_event = _PROCESS_SPAN_DECODER.decode(payload.value)
             decode_time += time.monotonic() - decode_start
 
             if killswitches.value_matches(
                 "spans.drop-in-buffer",
                 killswitch_config,
                 {
-                    "org_id": val.get("organization_id"),
-                    "project_id": val.get("project_id"),
-                    "trace_id": val.get("trace_id"),
+                    "org_id": span_event.organization_id,
+                    "project_id": span_event.project_id,
+                    "trace_id": span_event.trace_id,
                     "partition_id": value.partition.index,
                 },
                 emit_metrics=False,
             ):
                 continue
 
-            # Adding schema validation to avoid crashing the consumer downstream
-            segment_id = cast(str | None, attribute_value(val, "sentry.segment.id"))
-            validate_span_event(val, segment_id)
-
             span = Span(
-                trace_id=val["trace_id"],
-                span_id=val["span_id"],
-                parent_span_id=val.get("parent_span_id"),
-                segment_id=segment_id,
-                project_id=val["project_id"],
+                trace_id=span_event.trace_id,
+                span_id=span_event.span_id,
+                parent_span_id=span_event.parent_span_id,
+                segment_id=span_event.segment_id,
+                project_id=span_event.project_id,
                 payload=payload.value,
-                is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_segment")),
+                is_segment_span=span_event.is_segment_span,
                 partition=value.partition.index,
             )
 
@@ -240,20 +226,6 @@ def process_batch(
     return min_timestamp
 
 
-def validate_span_event(span_event: SpanEvent, segment_id: str | None) -> None:
-    """
-    Checks whether the span is valid based on the ingest spans schema.
-    All spans that do not conform to the schema validation rules are discarded.
-
-    There are several other assertions to protect against downstream crashes, see also: INC-1453, INC-1458.
-    """
-    if in_random_rollout("spans.process-segments.schema-validation"):
-        SPANS_CODEC.validate(span_event)
-    assert isinstance(span_event["trace_id"], str), "trace_id must be str"
-    assert isinstance(span_event["span_id"], str), "span_id must be str"
-    assert segment_id is None or isinstance(segment_id, str), "segment_id must be str or None"
-
-
 class SpanAttributeValue(msgspec.Struct, gc=False):
     value: str | None = None
 
@@ -277,35 +249,19 @@ class ProcessSpanEvent(msgspec.Struct, gc=False):
     is_segment: bool | None = None
     attributes: SpanAttributes | None = None
 
+    @property
+    def segment_id(self) -> str | None:
+        if self.attributes is None or self.attributes.segment_id is None:
+            return None
+        return self.attributes.segment_id.value
+
+    @property
+    def is_segment_span(self) -> bool:
+        return self.parent_span_id is None or bool(self.is_segment)
+
 
 _PROCESS_SPAN_DECODER = msgspec.json.Decoder(type=ProcessSpanEvent)
 
 
-def decode_process_span_event(buf: bytes) -> dict[str, Any]:
-    process_span_event = _PROCESS_SPAN_DECODER.decode(buf)
-
-    attributes: dict[str, Any] = {}
-    if process_span_event.attributes:
-        if process_span_event.attributes.segment_id:
-            attributes["sentry.segment.id"] = {
-                "value": process_span_event.attributes.segment_id.value,
-                "type": "string",
-            }
-
-    # TODO: Emulating the old behavior for now while we test the rollout. Remove this and
-    #       return ProcessSpanEvent after validation.
-    return {
-        "organization_id": process_span_event.organization_id,
-        "project_id": process_span_event.project_id,
-        "trace_id": process_span_event.trace_id,
-        "span_id": process_span_event.span_id,
-        "parent_span_id": process_span_event.parent_span_id,
-        "start_timestamp": process_span_event.start_timestamp,
-        "end_timestamp": process_span_event.end_timestamp,
-        "received": process_span_event.received,
-        "retention_days": process_span_event.retention_days,
-        "name": process_span_event.name,
-        "status": process_span_event.status,
-        "is_segment": process_span_event.is_segment,
-        "attributes": attributes,
-    }
+def decode_process_span_event(buf: bytes) -> ProcessSpanEvent:
+    return _PROCESS_SPAN_DECODER.decode(buf)

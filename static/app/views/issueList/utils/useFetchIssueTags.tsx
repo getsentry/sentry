@@ -393,7 +393,7 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_PROGRESS]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_PROGRESS]!,
       name: 'Issue Progress',
-      values: ['identified', 'triaged', 'diagnosed', 'fix_proposed', 'fix_applied'],
+      values: ['identified', 'assigned', 'diagnosed', 'fix_proposed', 'fix_applied'],
       predefined: true,
     },
     [FieldKey.ISSUE_SEER_ACTIONABILITY]: {

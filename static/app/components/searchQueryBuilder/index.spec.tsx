@@ -29,6 +29,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import * as analytics from 'sentry/utils/analytics';
 import {
   FieldKey,
   FieldKind,
@@ -233,6 +234,87 @@ describe('SearchQueryBuilder', () => {
     ).toBeInTheDocument();
   });
 
+  describe('severity value indicators', () => {
+    const severityFilterKeys: TagCollection = {
+      ...FILTER_KEYS,
+      severity: {
+        key: 'severity',
+        name: 'Severity',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: ['error', 'warn', 'info'],
+      },
+    };
+
+    it('renders a severity indicator next to each severity value option', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={severityFilterKeys}
+          initialQuery="severity:error"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: severity'})
+      );
+
+      const errorOption = await screen.findByRole('option', {name: 'error'});
+      expect(within(errorOption).getByTestId('severity-indicator')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('option', {name: 'warn'})).getByTestId(
+          'severity-indicator'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('renders a severity indicator next to each level value option', async () => {
+      const levelFilterKeys: TagCollection = {
+        ...FILTER_KEYS,
+        level: {
+          key: 'level',
+          name: 'Level',
+          kind: FieldKind.FIELD,
+          predefined: true,
+          values: ['fatal', 'error', 'warning', 'info', 'sample'],
+        },
+      };
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={levelFilterKeys}
+          initialQuery="level:error"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: level'})
+      );
+
+      const errorOption = await screen.findByRole('option', {name: 'error'});
+      expect(within(errorOption).getByTestId('severity-indicator')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('option', {name: 'warning'})).getByTestId(
+          'severity-indicator'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not render a severity indicator for non-severity value options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+      expect(within(option).queryByTestId('severity-indicator')).not.toBeInTheDocument();
+    });
+  });
+
   describe('rendering search query builder', () => {
     it('does not show the size-limit prompt after the user searches filter keys', async () => {
       const manyMatchingFilterKeys = Object.fromEntries(
@@ -275,8 +357,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('does not display footer when disallowWildcard is true', async () => {
@@ -292,7 +375,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -306,7 +389,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'me'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -345,8 +428,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: nullable_string'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('renders swap to is for * when using a wildcard operator', async () => {
@@ -360,9 +444,9 @@ describe('SearchQueryBuilder', () => {
           })
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
         await userEvent.keyboard('{escape}');
 
         await userEvent.click(
@@ -2748,10 +2832,20 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
-      it('renders escaped asterisks as a bare asterisk in the filter chip', async () => {
+      it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
         );
+
+        expect(
+          await within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).findByText('foo\\*')
+        ).toBeInTheDocument();
+      });
+
+      it('renders a wildcard asterisk without an escape in the filter chip', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo*" />);
 
         expect(
           await within(
@@ -3287,6 +3381,64 @@ describe('SearchQueryBuilder', () => {
           .getAllByRole('option')
           .map(option => option.textContent);
         expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('tracks an analytics event when selecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:firefox"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: true,
+            selected_count: 2,
+          })
+        );
+      });
+
+      it('tracks an analytics event when deselecting a value via its checkbox', async () => {
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            searchSource="ourlogs"
+            initialQuery="browser.name:[firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'search.multi_value_selected',
+          expect.objectContaining({
+            search_source: 'ourlogs',
+            filter_key: 'browser.name',
+            selected: false,
+            selected_count: 1,
+          })
+        );
       });
 
       it('sorts value suggestions by fuzzy match relevance', async () => {
@@ -5134,6 +5286,31 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('should support configured filters named like Object prototype keys', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowUnsupportedFilters
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            constructor: {
+              key: 'constructor',
+              name: 'Constructor',
+              kind: FieldKind.TAG,
+            },
+          }}
+          initialQuery="constructor:value"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'constructor:value'})).not.toHaveAttribute(
+          'aria-invalid',
+          'true'
+        );
+      });
+    });
+
     describe('secondary aliases provided', () => {
       it('should not mark secondary aliases as invalid', async () => {
         render(
@@ -5621,7 +5798,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it('escapes * for is op but not contains op', async () => {
+    it('renders the escaped asterisk for the contains suggestion but a wildcard for the is suggestion', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -5635,7 +5812,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test*');
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 

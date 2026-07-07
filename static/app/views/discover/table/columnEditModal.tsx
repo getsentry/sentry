@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -42,8 +42,6 @@ type Props = {
 } & ModalRenderProps;
 
 export function ColumnEditModal(props: Props) {
-  const theme = useTheme();
-
   const {
     Header,
     Body,
@@ -158,7 +156,6 @@ export function ColumnEditModal(props: Props) {
           )}
         </Instruction>
         <ColumnEditCollection
-          theme={theme}
           columns={columns}
           fieldOptions={fieldOptions}
           filterAggregateParameters={option =>

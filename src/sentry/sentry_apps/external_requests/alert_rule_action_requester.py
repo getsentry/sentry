@@ -9,9 +9,12 @@ from django.utils.functional import cached_property
 from requests import RequestException
 from requests.models import Response
 
-from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
+from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.external_requests.utils import (
+    send_and_save_sentry_app_request,
+    validate_outbound_url,
+)
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,
@@ -79,7 +82,7 @@ class SentryAppAlertRuleActionRequester:
                     message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
                     error_type=SentryAppErrorType.INTEGRATOR,
                     webhook_context={"error_type": halt_reason, **extras},
-                    status_code=500,
+                    status_code=e.response.status_code if e.response is not None else 502,
                 )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
@@ -125,8 +128,11 @@ class SentryAppAlertRuleActionRequester:
             )
 
         urlparts = list(urlparse(self.sentry_app.webhook_url))
+        expected_netloc = urlparts[1]
         urlparts[2] = self.uri
-        return urlunparse(urlparts)
+        url = urlunparse(urlparts)
+        validate_outbound_url(url, expected_netloc, self.uri)
+        return url
 
     def _build_headers(self) -> dict[str, str]:
         request_uuid = uuid4().hex

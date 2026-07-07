@@ -108,7 +108,6 @@ export function useMetricOptions({
 
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: false,
     enabled,
   });
 

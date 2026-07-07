@@ -1,25 +1,17 @@
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {IssuePreviewDrawer} from 'sentry/views/issueDetails/issuePreview/issuePreviewDrawer';
 
 /**
  * Query param holding the id of the issue whose preview drawer is open.
  * Presence opens the drawer; absence closes it.
  */
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
-
-function IssuePreviewDrawer() {
-  return (
-    <Fragment>
-      <DrawerHeader />
-      <DrawerBody />
-    </Fragment>
-  );
-}
 
 /**
  * Opens a lightweight issue preview drawer.
@@ -53,7 +45,7 @@ export function useIssuePreviewDrawer({enabled = true}: {enabled?: boolean} = {}
     }
 
     lastOpenedIdRef.current = selectedIssueId;
-    openDrawer(() => <IssuePreviewDrawer />, {
+    openDrawer(() => <IssuePreviewDrawer groupId={selectedIssueId} />, {
       ariaLabel: t('Issue preview'),
       drawerKey: 'issue-preview-drawer',
       mode: 'passive',

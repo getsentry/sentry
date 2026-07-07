@@ -23,7 +23,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
-    get_by_short_id,
+    get_by_short_ids,
     schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
@@ -406,21 +406,23 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                     return Response(by_event)
 
-            group = get_by_short_id(
+            short_id_groups = get_by_short_ids(
                 organization.id,
                 request.GET.get("shortIdLookup") or "0",
                 query,
                 project_ids=None,
             )
-            if group is not None:
-                # check all projects user has access to
-                if request.access.has_project_access(group.project):
-                    by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
-                        [group], request.user, serializer(), request=request
-                    )
-                    response = Response(by_short_id)
+            accessible = [
+                g for g in short_id_groups if request.access.has_project_access(g.project)
+            ]
+            if accessible:
+                by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                    accessible, request.user, serializer(), request=request
+                )
+                response = Response(by_short_id)
+                if len(accessible) == 1:
                     response["X-Sentry-Direct-Hit"] = "1"
-                    return response
+                return response
 
         # If group ids specified, just ignore any query components
         try:

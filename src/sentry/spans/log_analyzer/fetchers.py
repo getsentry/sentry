@@ -24,13 +24,13 @@ class TraceSpans:
     """Parsed operation from top_slow_operations field.
 
     Format: {project_id}:{trace_id}:{count}:{cumulative_latency_ms}
-    Example: "123123123:6a499a5de1f6e3b412adb0ef12345678:2303:26557"
+    Example: "123123123:6a499a5de1f6e3b412adb0ef12345678:2303:26557.000"
     """
 
     project_id: str
     trace_id: str
     count: int
-    cumulative_latency_ms: int
+    cumulative_latency_ms: float
 
 
 @dataclass
@@ -97,7 +97,7 @@ def parse_top_traces(operations_list: list[str]) -> list[TraceSpans]:
                         project_id=parts[0],
                         trace_id=parts[1],
                         count=int(parts[2]),
-                        cumulative_latency_ms=int(parts[3]),
+                        cumulative_latency_ms=float(parts[3]),
                     )
                 )
             else:

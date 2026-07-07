@@ -48,7 +48,8 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="Get the latest installable build for a project",
+        operation_id="getProjectInstallableBuildLatest",
+        summary="Get the latest installable build for a project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

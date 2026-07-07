@@ -86,6 +86,7 @@ const sentryAppFormSchema = z
     name: z.string(),
     author: z.string(),
     webhookUrl: z.string(),
+    webhookHeaders: z.string(),
     redirectUrl: z.string(),
     verifyInstall: z.boolean(),
     isAlertable: z.boolean(),
@@ -197,6 +198,7 @@ type SaveSentryAppPayload = {
   author?: string | null;
   overview?: string;
   redirectUrl?: string;
+  webhookHeaders?: string[];
   webhookUrl?: string;
 };
 
@@ -514,6 +516,9 @@ function SentryApplicationForm({
     schema: getSchemaFieldValue(app?.schema),
     overview: app?.overview ?? '',
     allowedOrigins: convertMultilineFieldValue(app?.allowedOrigins ?? []),
+    // Masked values (Header-Name: ***) round-trip safely: the backend preserves
+    // the stored value for any entry resubmitted with the mask sentinel.
+    webhookHeaders: convertMultilineFieldValue(app?.webhookHeaders ?? []),
     organization: organization.slug,
     isInternal,
     scopes: app ? [...app.scopes] : [],
@@ -553,6 +558,7 @@ function SentryApplicationForm({
         scopes: value.scopes,
         events: value.events,
         allowedOrigins: extractMultilineFields(value.allowedOrigins),
+        webhookHeaders: extractMultilineFields(value.webhookHeaders),
         schema: value.schema.trim() === '' ? {} : JSON.parse(value.schema),
         // The author parser doesn't allow_blank, so send null for empty
         // (covers internal apps with no author).
@@ -689,6 +695,26 @@ function SentryApplicationForm({
           )}
         </form.AppField>
 
+        {organization.features.includes('sentry-apps-custom-webhook-headers') && (
+          <form.AppField name="webhookHeaders">
+            {field => (
+              <field.Layout.Row
+                label={t('Webhook Headers')}
+                hintText={t(
+                  'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
+                )}
+              >
+                <field.TextArea
+                  autosize
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        )}
+
         {!isInternal && (
           <form.AppField name="redirectUrl">
             {field => (
@@ -724,9 +750,9 @@ function SentryApplicationForm({
         <form.AppField name="isAlertable">
           {field => (
             <field.Layout.Row
-              label={t('Alert Rule Action')}
+              label={t('Alert Action')}
               hintText={tct(
-                'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
+                'If enabled, this integration will be available as an action in alerts in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
                 {
                   learnMore: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
@@ -741,7 +767,7 @@ function SentryApplicationForm({
                     onChange={field.handleChange}
                     disabled={
                       webhookDisabled
-                        ? t('Cannot enable alert rule action without a webhook url')
+                        ? t('Cannot enable alert action without a webhook url')
                         : false
                     }
                   />

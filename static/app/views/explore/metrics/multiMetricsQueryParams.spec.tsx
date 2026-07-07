@@ -18,6 +18,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function TestableMetricComponent() {
   const metricQueries = useMultiMetricsQueryParams();
@@ -191,6 +192,42 @@ describe('MultiMetricsQueryParamsProvider', () => {
         }),
       }),
     ]);
+  });
+
+  it('falls back from heat map when changing to a non-distribution metric', () => {
+    const metricQuery = JSON.stringify({
+      metric: {name: 'test_metric', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {
+          yAxes: ['count(value,test_metric,distribution,none)'],
+          chartType: ChartType.HEATMAP,
+        },
+      ],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: [metricQuery]},
+        },
+      },
+    });
+
+    expect(result.current[0]!.queryParams.aggregateFields[0]).toEqual(
+      expect.objectContaining({chartType: ChartType.HEATMAP})
+    );
+
+    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'counter'}));
+
+    // The counter can't be a heat map, so the chart type falls back.
+    const counterVisualize = result.current[0]!.queryParams
+      .aggregateFields[0] as VisualizeFunction;
+    expect(counterVisualize.chartType).not.toBe(ChartType.HEATMAP);
   });
 
   it('parses multiple visualizes from URL params', () => {

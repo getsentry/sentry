@@ -16,6 +16,8 @@ import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
+const nonRetryCodes = new Set<number | undefined>([400, 401, 403, 404]);
+
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v5/docs/framework/react/guides/important-defaults
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
@@ -24,8 +26,8 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
       refetchOnReconnect: false,
       refetchOnWindowFocus: false,
       retry: (failureCount, err) => {
-        // Disable retries for 400 status code
-        if (err instanceof RequestError && err.status === 400) {
+        // Disable retries for client errors that won't succeed on retry
+        if (err instanceof RequestError && nonRetryCodes.has(err.status)) {
           return false;
         }
 
@@ -148,7 +150,10 @@ type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
   data?: Record<string, unknown>;
-  options?: Pick<QueryKeyEndpointOptions, 'query' | 'headers' | 'host'>;
+  options?: Pick<
+    QueryKeyEndpointOptions,
+    'includeAllArgs' | 'query' | 'headers' | 'host'
+  >;
 };
 
 /**
@@ -160,6 +165,7 @@ export function fetchMutation<TResponseData = unknown>(
   const {method, url, options, data} = variables;
 
   return QUERY_API_CLIENT.requestPromise(url, {
+    includeAllArgs: options?.includeAllArgs,
     method,
     query: options?.query,
     headers: options?.headers,

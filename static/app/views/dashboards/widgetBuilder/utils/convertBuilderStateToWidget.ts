@@ -80,7 +80,8 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const fields =
     state.displayType === DisplayType.TABLE ||
     state.displayType === DisplayType.DETAILS ||
-    state.displayType === DisplayType.BIG_NUMBER
+    state.displayType === DisplayType.BIG_NUMBER ||
+    state.displayType === DisplayType.HEATMAP
       ? state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 
@@ -128,12 +129,17 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       name: legendAlias[index] ?? '',
       selectedAggregate: state.selectedAggregate,
       linkedDashboards: state.linkedDashboards ?? [],
-      // Big number widgets don't support sorting, so always ignore the sort state
-      orderby: state.displayType === DisplayType.BIG_NUMBER ? '' : sort,
+      // Big number and heat map widgets don't support sorting, so always ignore
+      // the sort state
+      orderby:
+        state.displayType === DisplayType.BIG_NUMBER ||
+        state.displayType === DisplayType.HEATMAP
+          ? ''
+          : sort,
     };
   });
 
-  const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
+  const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE, DisplayType.HEATMAP].includes(
     state.displayType ?? DisplayType.TABLE
   )
     ? null

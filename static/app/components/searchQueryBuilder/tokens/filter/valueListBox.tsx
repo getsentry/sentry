@@ -97,7 +97,6 @@ function Footer({
   return (
     <FooterContainer>
       {isMultiSelect ? <Label>{t('Use the checkboxes to select multiple')}</Label> : null}
-      <Label>{t('Type to search suggestions')}</Label>
       <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
     </FooterContainer>
   );

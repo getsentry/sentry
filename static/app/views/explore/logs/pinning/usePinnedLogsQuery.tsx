@@ -1,9 +1,11 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -11,6 +13,7 @@ import {
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {logItemIdToTimestamp} from 'sentry/views/explore/logs/pinning/logItemId';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   OurLogKnownFieldKey,
@@ -27,8 +30,15 @@ interface PinnedLogsOptions {
 /**
  * Practically-infinite period so the wide step finds any log still in retention,
  * regardless of the selected range. The backend clamps it to the org's retention.
+ * Only used as a fallback when a pin's timestamp can't be derived from its id.
  */
 const WIDE_STATS_PERIOD = '9999d';
+
+/**
+ * Padding around the timestamps decoded from pin ids, to absorb clock skew
+ * between when the SDK minted the id and when the log was ingested.
+ */
+const WINDOW_BUFFER_MS = 5 * 60 * 1000;
 
 export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
@@ -79,10 +89,26 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     return missingIds.filter(id => !foundIds.has(id));
   }, [inRangeQuery.isSuccess, inRangeQuery.isError, inRangeQuery.data?.json, missingIds]);
 
+  // Pin ids are UUIDv7, so we can derive a tight window from their timestamps and
+  // avoid scanning the org's full retention (which gets downsampled to a partial
+  // scan for high-volume orgs, missing the pinned log). Fall back to the wide
+  // period if any id isn't a decodable timestamp.
+  const wideDateParams = useMemo(() => {
+    const timestamps = stillMissingIds.map(logItemIdToTimestamp);
+    if (timestamps.length === 0 || timestamps.includes(null)) {
+      return {statsPeriod: WIDE_STATS_PERIOD};
+    }
+    const decoded = timestamps as number[];
+    return {
+      start: getUtcDateString(moment(Math.min(...decoded) - WINDOW_BUFFER_MS)),
+      end: getUtcDateString(moment(Math.max(...decoded) + WINDOW_BUFFER_MS)),
+    };
+  }, [stillMissingIds]);
+
   const wideQuery = useQuery({
     ...usePinnedLogsEventsQueryOptions({
       ids: stillMissingIds,
-      dateParams: {statsPeriod: WIDE_STATS_PERIOD},
+      dateParams: wideDateParams,
       baseQuery,
       canFetch,
       staleTime: Infinity,
@@ -116,11 +142,20 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     [inRangeQuery.data, wideQuery.data]
   );
 
+  const {refetch: refetchInRange} = inRangeQuery;
+  const {refetch: refetchWide} = wideQuery;
+  const refetch = useCallback(() => {
+    refetchInRange();
+    refetchWide();
+  }, [refetchInRange, refetchWide]);
+
   return {
     fetchedRows,
     isPending:
       missingIds.length > 0 &&
       (inRangeQuery.isPending || (stillMissingIds.length > 0 && wideQuery.isPending)),
+    isError: inRangeQuery.isError || wideQuery.isError,
+    refetch,
   };
 }
 
