@@ -15,6 +15,9 @@ export class ServiceWorkerController {
   _outstandingRequests = new Map<string, RequestCallback>();
 
   constructor() {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
     navigator.serviceWorker.addEventListener('message', this._onMessage);
   }
 

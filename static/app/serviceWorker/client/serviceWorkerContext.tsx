@@ -33,6 +33,7 @@ export function ServiceWorkerProvider({children}: {children: React.ReactNode}) {
 }
 
 /**
+ * @public
  * Use the service worker controller to send messages to the service worker.
  *
  * @example
