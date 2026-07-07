@@ -77,16 +77,16 @@ export class ServiceWorkerController {
         attributes: {type: message.type, name: message.name},
       },
       async () => {
-        const worker = await this.getWorker();
-        if (!worker) {
-          throw new Error('Service worker not found');
-        }
         switch (message.type) {
           case 'event': {
-            worker.postMessage(message);
+            (await this.getWorker())?.postMessage(message);
             return;
           }
           case 'request': {
+            const worker = await this.getWorker();
+            if (!worker) {
+              throw new Error('Service worker not found');
+            }
             const messageId = crypto.randomUUID();
             Sentry.getActiveSpan()?.setAttribute('messageId', messageId);
             return new Promise((resolve, reject) => {
@@ -118,6 +118,7 @@ export class ServiceWorkerController {
                   }
                 )
               );
+
               worker.postMessage({...message, messageId});
             });
           }
