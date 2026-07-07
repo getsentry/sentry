@@ -421,6 +421,7 @@ function MetricToolbar({
             traceMetric={traceMetric}
             projectIds={projectIds}
             environments={environments}
+            disableValidation
           />
           <DeleteMetricButton disabledReason={deleteDisabledReason} />
         </Fragment>
@@ -437,6 +438,7 @@ function MetricToolbar({
             skipTraceMetricFilter
             projectIds={projectIds}
             environments={environments}
+            disableValidation
           />
           <DeleteMetricButton />
         </Fragment>

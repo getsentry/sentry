@@ -2,6 +2,9 @@ from collections.abc import Sequence
 
 import pytest
 
+from fixtures.sdk_crash_detection.crash_event_android import (
+    get_crash_event as get_android_crash_event,
+)
 from fixtures.sdk_crash_detection.crash_event_cocoa import (
     get_crash_event,
     get_crash_event_with_frames,
@@ -84,55 +87,81 @@ def test_strip_event_data_strips_context(store_and_strip_event) -> None:
             "name": "iOS",
             "version": "16.3",
             "build": "20D47",
+            "kernel_version": "Darwin Kernel Version 22.3.0: Wed Jan  4 21:25:19 PST 2023; root:xnu-8792.82.2~1/RELEASE_ARM64_T8110",
+            "rooted": False,
         },
         "device": {
             "family": "iOS",
             "model": "iPhone14,8",
+            "model_id": "D28AP",
             "arch": "arm64e",
             "simulator": True,
+            "memory_size": 5944508416,
         },
+        "app": {},
     }
 
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_art_context(store_and_strip_event) -> None:
-    """ART (Android Runtime) memory and GC context from ANR thread dumps must survive stripping."""
-    event_data = get_crash_event()
-    set_path(
-        event_data,
-        "contexts",
-        "art",
-        value={
-            "gc.total_count": 42,
-            "gc.total_time": 123.4,
-            "gc.blocking_count": 5,
-            "gc.blocking_time": 50.1,
-            "gc.pre_oome_count": 1,
-            "gc.waiting_time": 10.0,
-            "memory.free": 1024,
-            "memory.free_until_gc": 2048,
-            "memory.free_until_oome": 512,
-            "memory.total": 4096,
-            "memory.max": 8192,
-            "some_private_field": "should_be_stripped",
-        },
+def test_strip_event_data_keeps_android_device_os_app_fields(
+    configs, store_and_strip_event
+) -> None:
+    """Android-specific device, os, and app context fields must survive stripping."""
+    event_data = get_android_crash_event(
+        contexts={
+            "device": {
+                "family": "Pixel",
+                "model": "Pixel 7",
+                "model_id": "GVU6C",
+                "arch": "arm64-v8a",
+                "simulator": False,
+                "manufacturer": "Google",
+                "brand": "google",
+                "memory_size": 8053063680,
+                "processor_count": 8,
+                "processor_frequency": 2800.0,
+                "name": "John's Pixel",  # PII — must be stripped
+                "id": "abc123",  # PII — must be stripped
+            },
+            "os": {
+                "name": "Android",
+                "version": "14",
+                "build": "UP1A.231005.007",
+                "kernel_version": "6.1.21-android14-3-00001",
+                "rooted": False,
+            },
+            "app": {
+                "in_foreground": True,
+                "app_name": "ExampleApp",  # PII — must be stripped
+                "app_identifier": "com.example.myapp",  # PII — must be stripped
+            },
+        }
     )
+    java_config = configs[2]
+    stripped = store_and_strip_event(data=event_data, config=java_config)
 
-    stripped_event_data = store_and_strip_event(data=event_data)
-
-    assert stripped_event_data["contexts"]["art"] == {
-        "gc.total_count": 42,
-        "gc.total_time": 123.4,
-        "gc.blocking_count": 5,
-        "gc.blocking_time": 50.1,
-        "gc.pre_oome_count": 1,
-        "gc.waiting_time": 10.0,
-        "memory.free": 1024,
-        "memory.free_until_gc": 2048,
-        "memory.free_until_oome": 512,
-        "memory.total": 4096,
-        "memory.max": 8192,
+    assert stripped["contexts"]["device"] == {
+        "family": "Pixel",
+        "model": "Pixel 7",
+        "model_id": "GVU6C",
+        "arch": "arm64-v8a",
+        "simulator": False,
+        "manufacturer": "Google",
+        "brand": "google",
+        "memory_size": 8053063680,
+        "processor_count": 8,
+        "processor_frequency": 2800.0,
+    }
+    assert stripped["contexts"]["os"] == {
+        "name": "Android",
+        "version": "14",
+        "build": "UP1A.231005.007",
+        "kernel_version": "6.1.21-android14-3-00001",
+        "rooted": False,
+    }
+    assert stripped["contexts"]["app"] == {
+        "in_foreground": True,
     }
 
 
@@ -177,7 +206,9 @@ def test_strip_event_data_keeps_simple_types(store_event, configs) -> None:
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_simple_exception_properties(store_and_strip_event) -> None:
+def test_strip_event_data_keeps_simple_exception_properties(
+    store_and_strip_event,
+) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 
     assert get_path(stripped_event_data, "exception", "values", 0, "type") == "EXC_BAD_ACCESS"
@@ -192,7 +223,15 @@ def test_strip_event_data_keeps_exception_mechanism(store_event, configs) -> Non
     # set extra data that should be stripped
     set_path(event.data, "exception", "values", 0, "mechanism", "foo", value="bar")
     set_path(
-        event.data, "exception", "values", 0, "mechanism", "meta", "signal", "foo", value="bar"
+        event.data,
+        "exception",
+        "values",
+        0,
+        "mechanism",
+        "meta",
+        "signal",
+        "foo",
+        value="bar",
     )
     set_path(
         event.data,
@@ -215,7 +254,12 @@ def test_strip_event_data_keeps_exception_mechanism(store_event, configs) -> Non
         "synthetic": False,
         "type": "mach",
         "meta": {
-            "signal": {"number": 11, "code": 0, "name": "SIGSEGV", "code_name": "SEGV_NOOP"},
+            "signal": {
+                "number": 11,
+                "code": 0,
+                "name": "SIGSEGV",
+                "code_name": "SEGV_NOOP",
+            },
             "mach_exception": {
                 "exception": 1,
                 "code": 1,
@@ -498,7 +542,9 @@ def test_strip_event_without_frames_returns_empty_dict(store_and_strip_event) ->
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_with_multiple_exceptions_only_keep_last_one(store_and_strip_event) -> None:
+def test_strip_event_with_multiple_exceptions_only_keep_last_one(
+    store_and_strip_event,
+) -> None:
     event_data = get_crash_event()
 
     exception_values = list(get_path(event_data, "exception", "values"))

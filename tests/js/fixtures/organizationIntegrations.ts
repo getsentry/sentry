@@ -17,14 +17,7 @@ export function OrganizationIntegrationsFixture(
       canAdd: true,
       canDisable: false,
       features: ['alert-rule', 'chat-unfurl'],
-      aspects: {
-        alerts: [
-          {
-            variant: 'info',
-            text: 'The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.',
-          },
-        ],
-      },
+      aspects: {},
     },
     configOrganization: [],
     configData: {

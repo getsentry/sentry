@@ -34,7 +34,7 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch, Visibility
+from sentry.models.savedsearch import SavedSearch
 from sentry.models.search_common import SearchType
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
@@ -67,9 +67,7 @@ class UserHybridCloudDeletionTest(TestCase):
         self.organization = self.create_organization(cell=_TEST_CELLS[0])
         self.create_member(user=self.user, organization=self.organization)
 
-        self.create_saved_search(
-            name="some-search", owner=self.user, organization=self.organization
-        )
+        self.create_dashboard(organization=self.organization, created_by=self.user)
 
     @assume_test_silo_mode(SiloMode.CELL)
     def user_tombstone_exists(self, user_id: int) -> bool:
@@ -78,8 +76,8 @@ class UserHybridCloudDeletionTest(TestCase):
         ).exists()
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def get_user_saved_search_count(self) -> int:
-        return SavedSearch.objects.filter(owner_id=self.user_id).count()
+    def get_user_dashboard_count(self) -> int:
+        return Dashboard.objects.filter(created_by_id=self.user_id).count()
 
     def test_simple(self) -> None:
         assert not self.user_tombstone_exists(user_id=self.user_id)
@@ -88,21 +86,19 @@ class UserHybridCloudDeletionTest(TestCase):
         assert not User.objects.filter(id=self.user_id).exists()
         assert self.user_tombstone_exists(user_id=self.user_id)
 
-        # cascade is asynchronous, ensure there is still related search,
-        assert self.get_user_saved_search_count() == 1
+        # cascade is asynchronous, ensure there is still related dashboard,
+        assert self.get_user_dashboard_count() == 1
 
         with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
 
         # Ensure they are all now gone.
-        assert self.get_user_saved_search_count() == 0
+        assert self.get_user_dashboard_count() == 0
 
-    def test_unrelated_saved_search_is_not_deleted(self) -> None:
+    def test_unrelated_dashboard_is_not_deleted(self) -> None:
         another_user = self.create_user()
         self.create_member(user=another_user, organization=self.organization)
-        self.create_saved_search(
-            name="another-search", owner=another_user, organization=self.organization
-        )
+        self.create_dashboard(organization=self.organization, created_by=another_user)
 
         with outbox_runner():
             self.user.delete()
@@ -110,20 +106,20 @@ class UserHybridCloudDeletionTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         with assume_test_silo_mode(SiloMode.CELL):
-            assert SavedSearch.objects.filter(owner_id=another_user.id).exists()
+            assert Dashboard.objects.filter(created_by_id=another_user.id).exists()
 
     def test_cascades_to_multiple_cells(self) -> None:
         eu_org = self.create_organization(cell=_TEST_CELLS[1])
         self.create_member(user=self.user, organization=eu_org)
-        self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
+        self.create_dashboard(organization=eu_org, created_by=self.user)
 
         with outbox_runner():
             self.user.delete()
 
-        assert self.get_user_saved_search_count() == 2
+        assert self.get_user_dashboard_count() == 2
         with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
-        assert self.get_user_saved_search_count() == 0
+        assert self.get_user_dashboard_count() == 0
 
     def test_deletions_create_tombstones_in_cells_for_user_with_no_orgs(self) -> None:
         # Create a user with no org memberships
@@ -137,8 +133,8 @@ class UserHybridCloudDeletionTest(TestCase):
     def test_cascades_to_cells_even_if_user_ownership_revoked(self) -> None:
         eu_org = self.create_organization(cell=_TEST_CELLS[1])
         self.create_member(user=self.user, organization=eu_org)
-        self.create_saved_search(name="eu-search", owner=self.user, organization=eu_org)
-        assert self.get_user_saved_search_count() == 2
+        self.create_dashboard(organization=eu_org, created_by=self.user)
+        assert self.get_user_dashboard_count() == 2
 
         with outbox_runner(), assume_test_silo_mode_of(OrganizationMember):
             for member in OrganizationMember.objects.filter(user_id=self.user.id):
@@ -149,10 +145,10 @@ class UserHybridCloudDeletionTest(TestCase):
         with outbox_runner():
             self.user.delete()
 
-        assert self.get_user_saved_search_count() == 2
+        assert self.get_user_dashboard_count() == 2
         with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
-        assert self.get_user_saved_search_count() == 0
+        assert self.get_user_dashboard_count() == 0
 
     def test_update_purge_cell_cache(self) -> None:
         user = self.create_user()
@@ -369,56 +365,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             assert not RecentSearch.objects.filter(id=from_search.id).exists()
             assert RecentSearch.objects.filter(id=to_search.id, user_id=to_user.id).exists()
             assert not RecentSearch.objects.filter(user_id=from_user.id).exists()
-
-    def test_merge_savedsearch_unique_condition_preserved(self) -> None:
-        # SharedSearch has a conditional unique constraint.
-        # from_user and to_user both have saved searches that don't meet that condition,
-        # and both should be preserved, while the searches matching the condition should only
-        # have one retained.
-        from_user = self.create_user("from@example.com")
-        to_user = self.create_user("to@example.com")
-        org = self.create_organization()
-        self.create_member(user=from_user, organization=org)
-        self.create_member(user=to_user, organization=org)
-
-        with assume_test_silo_mode(SiloMode.CELL):
-            from_user_org = SavedSearch.objects.create(
-                organization=org,
-                owner_id=from_user.id,
-                type=SearchType.ISSUE.value,
-                query="duplicate query should be retained",
-                visibility=Visibility.ORGANIZATION,
-            )
-            from_user_pinned = SavedSearch.objects.create(
-                organization=org,
-                owner_id=from_user.id,
-                type=SearchType.ISSUE.value,
-                query="should be deleted because of visiblilty",
-                visibility=Visibility.OWNER_PINNED,
-            )
-            to_user_org = SavedSearch.objects.create(
-                organization=org,
-                owner_id=to_user.id,
-                type=SearchType.ISSUE.value,
-                query="duplicate query should be retained",
-                visibility=Visibility.ORGANIZATION,
-            )
-            to_user_pinned = SavedSearch.objects.create(
-                organization=org,
-                owner_id=to_user.id,
-                type=SearchType.ISSUE.value,
-                query="should be retained",
-                visibility=Visibility.OWNER_PINNED,
-            )
-
-        with outbox_runner():
-            from_user.merge_to(to_user)
-
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert SavedSearch.objects.filter(id=from_user_org.id, owner_id=to_user.id).exists()
-            assert SavedSearch.objects.filter(id=to_user_org.id, owner_id=to_user.id).exists()
-            assert SavedSearch.objects.filter(id=to_user_pinned.id, owner_id=to_user.id).exists()
-            assert not SavedSearch.objects.filter(id=from_user_pinned.id).exists()
 
     @expect_models(
         ORG_MEMBER_MERGE_TESTED,

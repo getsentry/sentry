@@ -1,40 +1,34 @@
 import styled from '@emotion/styled';
 
-import {IconCircle} from 'sentry/icons/iconCircle';
-import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
-import {IconPieHalf} from 'sentry/icons/iconPieHalf';
-import {IconPieQuarter} from 'sentry/icons/iconPieQuarter';
-import {IconPieThreeQuarters} from 'sentry/icons/iconPieThreeQuarters';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import type {ProgressMarkerVariant} from './variant';
+import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
-export function ProgressMarker({variant}: {variant: ProgressMarkerVariant}) {
-  if (variant === 'dot') {
-    return (
-      <ProgressDotFrame>
-        <ProgressDot />
-      </ProgressDotFrame>
-    );
-  }
+import {formatActivityMarkerState, type ActivityMarkerState} from './variant';
 
-  return <ProgressIconFrame>{getProgressMarkerIcon(variant)}</ProgressIconFrame>;
+interface ProgressMarkerProps {
+  state: ActivityMarkerState;
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'>;
 }
 
-function getProgressMarkerIcon(variant: ProgressMarkerVariant) {
-  switch (variant) {
-    case 'routed':
-      return <IconPieQuarter size="md" variant="muted" />;
-    case 'diagnosed':
-      return <IconPieHalf size="md" variant="warning" />;
-    case 'fix-applied':
-      return <IconCircleCheckmark size="md" variant="success" />;
-    case 'fix-proposed':
-      return <IconPieThreeQuarters size="md" variant="success" />;
-    case 'identified':
-      return <IconCircle size="md" variant="muted" />;
-    default:
-      return null;
-  }
+export function ActivityProgressMarker({state, tooltipProps}: ProgressMarkerProps) {
+  const label = formatActivityMarkerState(state);
+  const marker =
+    state === 'activity' ? (
+      <ProgressDotFrame aria-label={label} role="img">
+        <ProgressDot />
+      </ProgressDotFrame>
+    ) : (
+      <ProgressIconFrame aria-label={label} role="img">
+        {getProgressIcon(state)}
+      </ProgressIconFrame>
+    );
+
+  return (
+    <Tooltip title={label} {...tooltipProps} skipWrapper>
+      {marker}
+    </Tooltip>
+  );
 }
 
 const ProgressIconFrame = styled('span')`
@@ -47,10 +41,6 @@ const ProgressIconFrame = styled('span')`
   border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-radius: 100%;
   background: ${p => p.theme.tokens.background.primary};
-
-  svg {
-    display: block;
-  }
 `;
 
 const ProgressDotFrame = styled('span')`

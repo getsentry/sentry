@@ -6,6 +6,12 @@ import type {
   NoneOfTheseItem,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  TermOperator,
+  type WildcardOperator,
+  wildcardOperators,
+} from 'sentry/components/searchSyntax/parser';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
@@ -91,9 +97,49 @@ export function getExpandedProjectIds(
   return hasExtraProjects ? returnedProjectIds : undefined;
 }
 
+const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {
+  [TermOperator.CONTAINS]: OP_LABELS[TermOperator.DOES_NOT_CONTAIN],
+  [TermOperator.STARTS_WITH]: OP_LABELS[TermOperator.DOES_NOT_START_WITH],
+  [TermOperator.ENDS_WITH]: OP_LABELS[TermOperator.DOES_NOT_END_WITH],
+};
+
+function getWildcardOperatorLabel(
+  operator: WildcardOperator,
+  isNegated: boolean
+): string {
+  if (isNegated) {
+    return NEGATED_WILDCARD_OPERATOR_LABELS[operator] ?? `not ${OP_LABELS[operator]}`;
+  }
+
+  return OP_LABELS[operator];
+}
+
+function formatWildcardToken(token: string, isNegated: boolean): string | null {
+  for (const operator of wildcardOperators) {
+    const operatorIndex = token.indexOf(operator);
+
+    if (operatorIndex === -1) {
+      continue;
+    }
+
+    const key = token.slice(0, operatorIndex).replace(/:$/, '').trim();
+    const value = token.slice(operatorIndex + operator.length).trim();
+    const description = getWildcardOperatorLabel(operator, isNegated);
+
+    return `${key} ${description} ${value}`.replace(/\s+/g, ' ').trim();
+  }
+
+  return null;
+}
+
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
   const actualToken = isNegated ? token.slice(1) : token;
+  const wildcardToken = formatWildcardToken(actualToken, isNegated);
+
+  if (wildcardToken) {
+    return wildcardToken;
+  }
 
   const operators = [
     [':>=', 'greater than or equal to'],
@@ -244,6 +290,17 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
   if (args?.expandedProjectIds && args.expandedProjectIds.length > 0) {
     const count = args.expandedProjectIds.length;
     parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);
+  }
+
+  if (args?.crossEvents && args.crossEvents.length > 0) {
+    const crossEventText = args.crossEvents
+      .map(crossEvent =>
+        crossEvent.type === 'metrics'
+          ? `${crossEvent.type} ${crossEvent.metric.name}`
+          : `${crossEvent.type} ${crossEvent.query}`
+      )
+      .join(', ');
+    parts.push(`cross-event filters are '${crossEventText}'`);
   }
 
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';

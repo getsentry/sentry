@@ -10,7 +10,7 @@ from sentry.notifications.platform.types import (
     NotificationSection,
     NotificationSource,
     NotificationTextBlock,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
@@ -54,7 +54,7 @@ def get_issue_description(group: Group) -> list[NotificationSection]:
         if blocks:
             blocks.append(PlainTextBlock(text="—"))
         blocks.append(CodeTextBlock(text=culprit))
-    return [ParagraphBlock(blocks=blocks)]
+    return [ParagraphSection(blocks=blocks)]
 
 
 def get_subject(label: str, group: Group) -> list[NotificationTextBlock]:
@@ -98,7 +98,7 @@ def build_template(
 
 def get_example_issue_description() -> list[NotificationSection]:
     return [
-        ParagraphBlock(
+        ParagraphSection(
             blocks=[
                 PlainTextBlock(text="ExampleError: something went wrong"),
                 PlainTextBlock(text="—"),

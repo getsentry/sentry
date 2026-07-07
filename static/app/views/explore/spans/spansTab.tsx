@@ -58,11 +58,12 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
 import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {SpansExport} from 'sentry/views/explore/spans/spansExport';
+import {SpansExportSwitch} from 'sentry/views/explore/spans/spansExportSwitch';
 import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -220,13 +221,11 @@ function SpanTabContentSectionInner({
           ? 'attribute_breakdowns'
           : 'samples';
 
-  const limit = 50;
-
   const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
-    limit,
+    limit: SPANS_TABLE_LIMIT,
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
@@ -235,7 +234,7 @@ function SpanTabContentSectionInner({
   });
   const spansTableResult = useExploreSpansTable({
     query,
-    limit,
+    limit: SPANS_TABLE_LIMIT,
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
@@ -245,7 +244,7 @@ function SpanTabContentSectionInner({
   const tracesTableQuery = useQuery({
     ...useExploreTracesTableApiOptions({
       query,
-      limit,
+      limit: SPANS_TABLE_LIMIT,
       queryExtras: {
         caseInsensitive,
         ...crossEventQueries,
@@ -324,9 +323,10 @@ function SpanTabContentSectionInner({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <SpansExport
+          <SpansExportSwitch
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
+            rawSpanCounts={rawSpanCounts}
           />
           <SettingsDropdown />
         </Flex>
