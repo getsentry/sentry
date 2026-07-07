@@ -1,5 +1,3 @@
-import moment from 'moment-timezone';
-
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 
 import {IconBusiness} from 'sentry/icons';
@@ -21,9 +19,9 @@ export function ProductTrialTag({
   variant,
   showTrialEnded = false,
 }: ProductTrialTagProps) {
-  const now = moment();
+  const daysLeft = -1 * getDaysSinceDate(trial.endDate ?? '');
 
-  if (moment(trial.endDate).add(1, 'days').isBefore(now)) {
+  if (daysLeft < 0) {
     if (!showTrialEnded) {
       return null;
     }
@@ -42,8 +40,6 @@ export function ProductTrialTag({
       </Tag>
     );
   }
-
-  const daysLeft = -1 * getDaysSinceDate(trial.endDate ?? '');
 
   return (
     <Tag icon={<IconClock />} variant={variant ?? (daysLeft <= 7 ? 'warning' : 'info')}>
