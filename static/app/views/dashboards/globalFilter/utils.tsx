@@ -172,7 +172,7 @@ export const NO_VALUE_SUPPORTED_OPERATORS = new Set<TermOperator>([
 ]);
 
 /** Negated operators flip "(no value)" from "tag absent" to "tag present". */
-export function isNegatedNoValueOperator(operator: TermOperator): boolean {
+function isNegatedNoValueOperator(operator: TermOperator): boolean {
   return (
     operator === TermOperator.NOT_EQUAL || operator === TermOperator.DOES_NOT_CONTAIN
   );

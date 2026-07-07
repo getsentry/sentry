@@ -265,6 +265,29 @@ describe('FilterSelector', () => {
     });
   });
 
+  it('rewrites the value without corrupting the query when editing a combined value + "(no value)" filter', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: '(browser:chrome OR !has:browser)'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    expect(await screen.findByRole('checkbox', {name: 'Select chrome'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select (no value)'})).toBeChecked();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    const emittedValue = mockOnUpdateFilter.mock.calls.at(-1)?.[0]?.value as string;
+    expect(emittedValue).toBe('(browser:[chrome,firefox] OR !has:browser)');
+  });
+
   it('allows searching for values over 70 characters', async () => {
     // Create a long transaction name that exceeds 70 characters
     const longValue =

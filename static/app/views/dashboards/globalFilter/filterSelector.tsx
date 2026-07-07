@@ -394,12 +394,14 @@ export function FilterSelector({
           .map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false}))
           .join(',')
       );
+      const isolatedToken = parseFilterValue(filterToken.text, globalFilter)[0];
+      const valueToRewrite = isolatedToken ?? filterToken;
       // Always rebuild the token with the operator the UI is showing.
       // The synthetic filterToken used for "(no value)" defaults to the string
       // CONTAINS wildcard, so patching only the value would leak that operator.
       valueQuery = modifyFilterValue(
-        filterToken.text,
-        filterToken,
+        valueToRewrite.text,
+        valueToRewrite,
         cleanedValue,
         stagedOperator
       );
