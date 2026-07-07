@@ -167,14 +167,14 @@ class Outcome(IntEnum):
 def _get_outcomes_producer(name: str = "sentry.utils.outcomes") -> KafkaProducer:
     return get_arroyo_producer(
         name,
-        Topic.OUTCOMES,
+        Topic.OUTCOMES.value,
     )
 
 
 def _get_billing_producer(name: str = "sentry.utils.outcomes.billing") -> KafkaProducer:
     return get_arroyo_producer(
         name,
-        Topic.OUTCOMES_BILLING,
+        Topic.OUTCOMES_BILLING.value,
     )
 
 
