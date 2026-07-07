@@ -13,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {getFirstToolInputValue} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 
@@ -148,13 +148,13 @@ function ToolOutputSize({
 }
 
 function ToolInputPreview({node}: {node: AITraceSpanNode}) {
-  const firstInputValue = getFirstToolInputValue(node);
-  if (!firstInputValue) {
+  const inputPreview = getToolInputPreview(node);
+  if (!inputPreview) {
     return null;
   }
   return (
     <Text size="xs" monospace variant="muted" ellipsis>
-      {firstInputValue}
+      {inputPreview}
     </Text>
   );
 }
