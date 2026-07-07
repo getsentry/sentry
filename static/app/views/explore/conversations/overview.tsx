@@ -24,6 +24,7 @@ import {
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableNew} from 'sentry/views/explore/conversations/components/conversationsTableNew';
+import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
@@ -56,6 +57,20 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
+  useEffect(() => {
+    if (!isOnboardingLoading) {
+      if (showOnboarding) {
+        trackAnalytics('conversations.onboarding.page-view', {
+          organization,
+        });
+      } else {
+        trackAnalytics('conversations.table.page-view', {
+          organization,
+        });
+      }
+    }
+  }, [showOnboarding, isOnboardingLoading, organization]);
+
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -86,7 +101,7 @@ function ConversationsOverviewPage() {
         <Layout.Main width="full">
           <Stack gap="md">
             <Flex gap="md" align="center" wrap="wrap">
-              <Flex gap="md" align="center">
+              <Flex gap="md" align="center" wrap="wrap">
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
                   <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
@@ -105,12 +120,18 @@ function ConversationsOverviewPage() {
                   <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                 </Flex>
               )}
+              {!showOnboarding && !isOnboardingLoading && <SaveConversationQueryButton />}
             </Flex>
           </Stack>
         </Layout.Main>
       </ExploreBodySearch>
       <ExploreBodyContent>
-        <Stack flex={1} padding="xl" gap="md">
+        <Stack
+          flex={1}
+          minWidth={showConversationsTableNew ? '0' : undefined}
+          padding="xl"
+          gap="md"
+        >
           {isOnboardingLoading ? (
             <LoadingIndicator />
           ) : showOnboarding ? (

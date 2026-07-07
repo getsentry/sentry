@@ -7,6 +7,7 @@ import time
 from collections.abc import Callable, Mapping
 from concurrent.futures import Future
 from functools import partial
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -21,8 +22,10 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.consumers.process_segments.tasks import process_segment_task
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -280,7 +283,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         logger.info("Flusher process started for shards %s", shard_tag)
 
         try:
-            producer_futures = []
+            producer_futures: list[tuple[int, Any, int]] = []
 
             if produce_to_pipe is not None:
 
@@ -351,6 +354,11 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 },
                             )
 
+                        produce_to_process_segment_task = (
+                            produce_to_pipe is None
+                            and in_random_rollout("spans.buffer.process-segments-task-rollout-rate")
+                        )
+
                         for message in flushed_segment.to_messages():
                             kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
                             metrics.timing(
@@ -358,11 +366,24 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 len(kafka_payload.value),
                                 tags={"shard": shard_tag},
                             )
-                            produce(
-                                flushed_segment.project_id,
-                                kafka_payload,
-                                len(message["spans"]),
-                            )
+                            if produce_to_process_segment_task:
+                                task_produce_future = process_segment_task.apply_async_with_future(
+                                    args=[kafka_payload.value]
+                                )
+                                if task_produce_future is not None:
+                                    producer_futures.append(
+                                        (
+                                            flushed_segment.project_id,
+                                            task_produce_future,
+                                            len(message["spans"]),
+                                        )
+                                    )
+                            else:
+                                produce(
+                                    flushed_segment.project_id,
+                                    kafka_payload,
+                                    len(message["spans"]),
+                                )
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for project_id, future, dropped in producer_futures:

@@ -110,10 +110,10 @@ export interface Block {
 }
 
 export interface ExplorerSession {
-  created_at: string;
-  last_triggered_at: string;
-  run_id: number;
-  title: string;
+  dateCreated: string;
+  id: string;
+  lastTriggeredAt: string;
+  title: string | null;
 }
 
 export interface Artifact<T = Record<string, unknown>> {
@@ -145,8 +145,16 @@ export function isExplorerCodingAgentState(
 export type PendingUserInput = {
   data: Record<string, any>;
   id: string;
-  input_type: 'file_change_approval' | 'ask_user_question';
+  input_type: 'file_change_approval' | 'ask_user_question' | 'reauth_monitoring_provider';
 };
+
+export interface ReauthMonitoringProviderData {
+  auth_method: 'oauth' | 'pat';
+  identity_id: number;
+  provider_key: string;
+}
+
+export type SeerExplorerRunId = number | string;
 
 export type SeerExplorerResponse = {
   session: {
@@ -156,6 +164,6 @@ export type SeerExplorerResponse = {
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
-    run_id?: number;
   } | null;
+  sentry_run_id?: string | null;
 };

@@ -1,4 +1,4 @@
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -92,32 +92,29 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   return (
     <TraceHeaderComponents.HeaderLayout>
-      <TraceHeaderComponents.HeaderContent>
-        <TraceHeaderComponents.HeaderRow>
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={getTraceViewBreadcrumbs({
-                organization: props.organization,
-                location,
-                moduleURLBuilder,
-                traceSlug: props.traceSlug,
-                project,
-                view,
-              })}
-            />
-          </TopBar.Slot>
-          <Grid flow="column" align="center" gap="md">
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                feedbackOptions={traceViewFeedbackOptions}
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Grid>
-        </TraceHeaderComponents.HeaderRow>
+      <TraceHeaderComponents.HeaderContent gap="xs">
+        <TopBar.Slot name="title">
+          <Breadcrumbs
+            crumbs={getTraceViewBreadcrumbs({
+              organization: props.organization,
+              location,
+              moduleURLBuilder,
+              traceSlug: props.traceSlug,
+              project,
+              view,
+            })}
+          />
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={traceViewFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+
         <TraceHeaderComponents.HeaderRow>
           <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
           <Meta
@@ -131,7 +128,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             metricsEnabled={metricsEnabled}
           />
         </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.StyledBreak />
         <TraceHeaderComponents.HeaderRow>
           <Highlights
             rootEventResults={props.rootEventResults}

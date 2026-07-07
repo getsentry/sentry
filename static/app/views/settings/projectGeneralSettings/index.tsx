@@ -1,9 +1,22 @@
-import {useCallback} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useCallback, useMemo} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {PlatformIcon} from 'platformicons';
+import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import {ExternalLink} from '@sentry/scraps/link';
+import {CodeBlock} from '@sentry/scraps/code';
+import {
+  AutoSaveForm,
+  defaultFormOptions,
+  FieldGroup,
+  FormSearch,
+  setFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -13,32 +26,33 @@ import {
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
-import type {FormProps} from 'sentry/components/forms/form';
 import {Form} from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {FieldObject} from 'sentry/components/forms/types';
+import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Override} from 'sentry/components/override';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {consoles} from 'sentry/data/platformCategories';
-import {t, tct} from 'sentry/locale';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
+import {t, tct, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
+import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -53,6 +67,44 @@ type Props = {
   onChangeSlug: (slug: string) => void;
   project: DetailedProject;
 };
+
+const ORG_DISABLED_REASON = t(
+  "This option is enforced by your organization's settings and cannot be customized per-project."
+);
+
+const INHERIT_DEBUG_FILES_ROLE = '__inherit__';
+
+function getResolveAgeAllowedValues() {
+  let i = 0;
+  const values: number[] = [];
+  while (i <= 720) {
+    values.push(i);
+    if (i < 12) {
+      i += 1;
+    } else if (i < 24) {
+      i += 3;
+    } else if (i < 36) {
+      i += 6;
+    } else if (i < 48) {
+      i += 12;
+    } else {
+      i += 24;
+    }
+  }
+  return values;
+}
+
+const RESOLVE_AGE_ALLOWED_VALUES = getResolveAgeAllowedValues();
+
+function formatResolveAge(value: number): string {
+  if (!value) {
+    return t('Disabled');
+  }
+  if (value > 23 && value % 24 === 0) {
+    return tn('%s day', '%s days', value / 24);
+  }
+  return tn('%s hour', '%s hours', value);
+}
 
 function isPlatformAllowed({
   isSelfHosted,
@@ -70,22 +122,377 @@ function isPlatformAllowed({
   return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
 }
 
+const slugSchema = z.object({
+  slug: z.string().min(1, t('Slug is required')),
+});
+
+const projectIdSchema = z.object({
+  projectId: z.string(),
+});
+
+const resolveAgeSchema = z.object({
+  resolveAge: z.number(),
+});
+
+const securityTokenSchema = z.object({
+  securityToken: z.string(),
+});
+
+const securityTokenHeaderSchema = z.object({
+  securityTokenHeader: z.string(),
+});
+
+const projectSettingsSchema = z.object({
+  // The full platform list is large, so skip the enum and just carry the
+  // PlatformKey type rather than a plain string.
+  platform: z.custom<PlatformKey>().optional(),
+  subjectPrefix: z.string(),
+  allowedDomains: z.string(),
+  scrapeJavaScript: z.boolean(),
+  scmSourceContextEnabled: z.boolean(),
+  verifySSL: z.boolean(),
+  debugFilesRole: z.string().nullable(),
+});
+
+function ProjectSlugForm({
+  project,
+  disabled,
+  onChangeSlug,
+}: {
+  disabled: boolean;
+  onChangeSlug: (slug: string) => void;
+  project: DetailedProject;
+}) {
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {slug: project.slug},
+    validators: {onDynamic: slugSchema},
+    onSubmit: ({value, formApi}) =>
+      updateProject
+        .mutateAsync({slug: value.slug})
+        .then(updatedProject => {
+          if (project.slug !== updatedProject.slug) {
+            changeProjectSlug(project.slug, updatedProject.slug);
+            // Container will redirect after stores get updated with new slug
+            onChangeSlug(updatedProject.slug);
+          }
+        })
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <FormSearch route="/settings/:orgId/projects/:projectId/">
+        <form.AppField name="slug">
+          {field => (
+            <field.Layout.Row
+              label={t('Slug')}
+              hintText={t('A unique ID used to identify this project')}
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={value => field.handleChange(slugify(value))}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+
+        {!disabled && (
+          <form.Subscribe selector={state => !state.isDefaultValue}>
+            {isDirty =>
+              isDirty ? (
+                <Container paddingTop="lg">
+                  <Alert variant="warning">
+                    {t(
+                      "Changing a project's slug can break your build scripts! Please proceed carefully."
+                    )}
+                  </Alert>
+                  <Flex gap="sm" justify="end" paddingTop="lg">
+                    <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                    <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                  </Flex>
+                </Container>
+              ) : null
+            }
+          </form.Subscribe>
+        )}
+      </FormSearch>
+    </form.AppForm>
+  );
+}
+
+function ProjectIdField({project}: {project: DetailedProject}) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {projectId: project.id},
+    validators: {onDynamic: projectIdSchema},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="projectId">
+        {field => (
+          <field.Layout.Row
+            label={t('Project ID')}
+            hintText={t('The unique identifier for this project. It cannot be modified.')}
+          >
+            <field.Input
+              value={field.state.value}
+              onChange={field.handleChange}
+              disabled
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
+function AutoResolveForm({
+  project,
+  disabled,
+}: {
+  disabled: boolean;
+  project: DetailedProject;
+}) {
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {resolveAge: project.resolveAge ?? 0},
+    validators: {onDynamic: resolveAgeSchema},
+    onSubmit: ({value, formApi}) =>
+      updateProject
+        .mutateAsync({resolveAge: value.resolveAge})
+        .then(() => formApi.reset(value))
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <FormSearch route="/settings/:orgId/projects/:projectId/">
+        <form.AppField name="resolveAge">
+          {field => {
+            const index = Math.max(
+              0,
+              RESOLVE_AGE_ALLOWED_VALUES.indexOf(field.state.value)
+            );
+            return (
+              <field.Layout.Row
+                label={t('Auto Resolve')}
+                hintText={t(
+                  "Automatically resolve an issue if it hasn't been seen for this amount of time"
+                )}
+              >
+                <Stack gap="xs">
+                  <Text variant="muted" bold>
+                    {formatResolveAge(field.state.value)}
+                  </Text>
+                  <field.Range
+                    aria-label={t('Auto Resolve')}
+                    value={index}
+                    onChange={newIndex =>
+                      field.handleChange(RESOLVE_AGE_ALLOWED_VALUES[newIndex] ?? 0)
+                    }
+                    min={0}
+                    max={RESOLVE_AGE_ALLOWED_VALUES.length - 1}
+                    step={1}
+                    formatOptions="hidden"
+                    disabled={disabled}
+                  />
+                </Stack>
+              </field.Layout.Row>
+            );
+          }}
+        </form.AppField>
+
+        {!disabled && (
+          <form.Subscribe selector={state => !state.isDefaultValue}>
+            {isDirty =>
+              isDirty ? (
+                <Container paddingTop="lg">
+                  <Alert variant="warning">
+                    {tct(
+                      '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
+                      {strong: <strong />}
+                    )}
+                  </Alert>
+                  <Flex gap="sm" justify="end" paddingTop="lg">
+                    <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                    <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                  </Flex>
+                </Container>
+              ) : null
+            }
+          </form.Subscribe>
+        )}
+      </FormSearch>
+    </form.AppForm>
+  );
+}
+
+const SECURITY_TOKEN_HELP = t(
+  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
+);
+
+function SecurityTokenForm({
+  project,
+  disabled,
+}: {
+  disabled: boolean;
+  project: DetailedProject;
+}) {
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      securityToken: getDynamicText({
+        value: project.securityToken ?? '',
+        fixed: '__SECURITY_TOKEN__',
+      }),
+    },
+    validators: {onDynamic: securityTokenSchema},
+    onSubmit: ({value, formApi}) =>
+      updateProject
+        .mutateAsync({securityToken: value.securityToken})
+        .then(() => formApi.reset(value))
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <FormSearch route="/settings/:orgId/projects/:projectId/">
+        <form.AppField name="securityToken">
+          {field => (
+            <field.Layout.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+
+        {!disabled && (
+          <form.Subscribe selector={state => !state.isDefaultValue}>
+            {isDirty =>
+              isDirty ? (
+                <Container paddingTop="lg">
+                  <Alert variant="warning">
+                    {t('Ensure you update usages of your security token.')}
+                  </Alert>
+                  <Flex gap="sm" justify="end" paddingTop="lg">
+                    <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                    <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                  </Flex>
+                </Container>
+              ) : null
+            }
+          </form.Subscribe>
+        )}
+      </FormSearch>
+    </form.AppForm>
+  );
+}
+
+function SecurityTokenHeaderForm({
+  project,
+  disabled,
+}: {
+  disabled: boolean;
+  project: DetailedProject;
+}) {
+  const updateProject = useMutation(useUpdateProjectMutationOptions(project));
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {securityTokenHeader: project.securityTokenHeader ?? ''},
+    validators: {onDynamic: securityTokenHeaderSchema},
+    onSubmit: ({value, formApi}) =>
+      updateProject
+        .mutateAsync({securityTokenHeader: value.securityTokenHeader})
+        .then(() => formApi.reset(value))
+        .catch(error => {
+          if (error instanceof RequestError) {
+            setFieldErrors(formApi, error);
+          }
+        }),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <FormSearch route="/settings/:orgId/projects/:projectId/">
+        <form.AppField name="securityTokenHeader">
+          {field => (
+            <field.Layout.Row
+              label={t('Security Token Header')}
+              hintText={SECURITY_TOKEN_HELP}
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('X-Sentry-Token')}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+
+        {!disabled && (
+          <form.Subscribe selector={state => !state.isDefaultValue}>
+            {isDirty =>
+              isDirty ? (
+                <Container paddingTop="lg">
+                  <Alert variant="warning">
+                    {t('Ensure you update usages of the security token header.')}
+                  </Alert>
+                  <Flex gap="sm" justify="end" paddingTop="lg">
+                    <form.ResetButton>{t('Cancel')}</form.ResetButton>
+                    <form.SubmitButton>{t('Save')}</form.SubmitButton>
+                  </Flex>
+                </Container>
+              ) : null
+            }
+          </form.Subscribe>
+        )}
+      </FormSearch>
+    </form.AppForm>
+  );
+}
+
 export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
-  const form: Record<string, FieldValue> = {};
-  const queryClient = useQueryClient();
+  const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 
-  const projectSettingsQueryKey = makeDetailedProjectQueryKey({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
+  const disabled = !hasEveryAccess(['project:write'], {organization, project});
+
+  const projectMutationOptions = useUpdateProjectMutationOptions(project);
+  const updateProject = useMutation(projectMutationOptions);
 
   const handleTransferFieldChange = (id: string, value: FieldValue) => {
-    form[id] = value;
+    transferForm[id] = value;
   };
 
   const handleRemoveProject = async () => {
@@ -115,12 +522,12 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     if (!project) {
       return;
     }
-    if (typeof form.email !== 'string' || form.email.length < 1) {
+    if (typeof transferForm.email !== 'string' || transferForm.email.length < 1) {
       return;
     }
 
     try {
-      await transferProject(api, organization.slug, project, form.email);
+      await transferProject(api, organization.slug, project, transferForm.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
     } catch (err: any) {
@@ -138,7 +545,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     const {isInternal} = project;
 
     return (
-      <FieldGroup
+      <SettingsFieldGroup
         label={t('Remove Project')}
         help={tct(
           'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
@@ -179,7 +586,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             </div>
           </Confirm>
         )}
-      </FieldGroup>
+      </SettingsFieldGroup>
     );
   };
 
@@ -190,7 +597,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     });
 
     return (
-      <FieldGroup
+      <SettingsFieldGroup
         label={t('Transfer Project')}
         help={tct(
           'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
@@ -255,152 +662,315 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             </div>
           </Confirm>
         )}
-      </FieldGroup>
+      </SettingsFieldGroup>
     );
   };
 
-  const endpoint = `/projects/${organization.slug}/${project.slug}/`;
-  const access = new Set(organization.access.concat(project.access));
+  const platformOptions = useMemo(
+    () =>
+      platforms
+        .filter(
+          ({id}) =>
+            project.platform === id ||
+            isPlatformAllowed({isSelfHosted, organization, platform: id})
+        )
+        .map(({id, name}) => ({
+          value: id,
+          label: (
+            <Flex align="center" gap="md">
+              <PlatformIcon platform={id} />
+              {name}
+            </Flex>
+          ),
+        })),
+    [isSelfHosted, organization, project.platform]
+  );
 
-  const jsonFormProps = {
-    additionalFieldProps: {
-      organization,
-      project,
-    },
-    features: new Set(organization.features),
-    access,
-    disabled: !hasEveryAccess(['project:write'], {organization, project}),
-  };
+  const platformFilter = useMemo(
+    () =>
+      createFilter({
+        stringify: option => {
+          const matchedPlatform = platforms.find(({id}) => id === option.value);
+          return `${matchedPlatform?.name} ${option.value}`;
+        },
+      }),
+    []
+  );
 
-  const team = project.teams?.[0];
+  const orgDebugFilesRoleName =
+    organization.orgRoleList?.find(r => r.id === organization.debugFilesRole)?.name ??
+    organization.debugFilesRole;
+  const debugFilesRoleOptions = [
+    {
+      value: INHERIT_DEBUG_FILES_ROLE,
+      label: tct('Inherit organization setting ([organizationValue])', {
+        organizationValue: orgDebugFilesRoleName,
+      }),
+    },
+    ...(organization.orgRoleList?.map(r => ({value: r.id, label: r.name})) ?? []),
+  ];
 
-  // XXX: HACK
-  //
-  // The <Form /> component applies its props to its children meaning the
-  // hooked component would need to conform to the form settings applied in a
-  // separate repository. This is not feasible to maintain and may introduce
-  // compatibility errors if something changes in either repository. For that
-  // reason, the Form component is split in two, since the fields do not
-  // depend on one another, allowing for the Hook to manage its own state.
-  const formProps: FormProps = {
-    saveOnBlur: true,
-    allowUndo: true,
-    initialData: {
-      ...project,
-      team,
-    },
-    apiMethod: 'PUT' as const,
-    apiEndpoint: endpoint,
-    onSubmitSuccess: resp => {
-      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
-        headers: prev?.headers ?? {},
-        json: resp,
-      }));
-      if (project.slug !== resp.slug) {
-        changeProjectSlug(project.slug, resp.slug);
-        // Container will redirect after stores get updated with new slug
-        onChangeSlug(resp.slug);
-      }
-      // This will update our project context
-      ProjectsStore.onUpdateSuccess(resp);
-    },
-  };
+  const orgScrapeJavaScript = Boolean(organization.scrapeJavaScript);
 
-  const projectIdField: FieldObject = {
-    name: 'projectId',
-    type: 'string',
-    disabled: true,
-    label: t('Project ID'),
-    setValue(_, _name) {
-      return project.id;
-    },
-    help: t('The unique identifier for this project. It cannot be modified.'),
-  };
-
-  // Create filtered platform field without mutating the shared fields object
-  const platformField = {
-    ...fields.platform,
-    options: fields.platform.options.filter(({value}) => {
-      // Always include the current project's platform to display its icon and label
-      if (project.platform === value) {
-        return true;
-      }
-      return isPlatformAllowed({isSelfHosted, organization, platform: value});
-    }),
-    isOptionDisabled: (option: SelectOptionWithKey<string>) => {
-      // Mark the current platform as disabled if it's no longer allowed
-      return (
-        option.value === project.platform &&
-        !isPlatformAllowed({isSelfHosted, organization, platform: option.value})
-      );
-    },
-  };
+  const allowedDomainsHelp = tct('Separate multiple entries with a newline. [examples]', {
+    examples: (
+      <Hovercard
+        body={
+          <CodeBlock hideCopyButton>
+            {'https://example.com\n*.example.com\n*:80\n*'}
+          </CodeBlock>
+        }
+      >
+        <Button variant="link" size="xs">
+          {t('View Examples')}
+        </Button>
+      </Hovercard>
+    ),
+  });
 
   return (
     <div>
       <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
       <SettingsPageHeader title={t('Project Settings')} />
       <ProjectPermissionAlert project={project} />
-      <Form {...formProps}>
-        <JsonForm
-          {...jsonFormProps}
-          title={t('Project Details')}
-          fields={[fields.slug, projectIdField, platformField]}
-        />
-        <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
-      </Form>
-      <Override
-        name="spend-visibility:spike-protection-project-settings"
-        project={project}
-      />
-      <Form {...formProps}>
-        <JsonForm
-          {...jsonFormProps}
-          title={t('Event Settings')}
-          fields={[fields.resolveAge]}
+
+      <FormSearch route="/settings/:orgId/projects/:projectId/">
+        <FieldGroup title={t('Project Details')}>
+          <ProjectSlugForm
+            project={project}
+            disabled={disabled}
+            onChangeSlug={onChangeSlug}
+          />
+
+          <ProjectIdField project={project} />
+
+          <AutoSaveForm
+            name="platform"
+            schema={projectSettingsSchema}
+            initialValue={project.platform}
+            mutationOptions={projectMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Platform')}
+                hintText={t('The primary platform for this project')}
+              >
+                <field.Select
+                  value={field.state.value ?? null}
+                  onChange={field.handleChange}
+                  options={platformOptions}
+                  filterOption={platformFilter}
+                  isOptionDisabled={option =>
+                    option.value === project.platform &&
+                    !isPlatformAllowed({
+                      isSelfHosted,
+                      organization,
+                      platform: option.value,
+                    })
+                  }
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+
+        <FieldGroup title={t('Email')}>
+          <AutoSaveForm
+            name="subjectPrefix"
+            schema={projectSettingsSchema}
+            initialValue={project.subjectPrefix ?? ''}
+            mutationOptions={projectMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Subject Prefix')}
+                hintText={t('Choose a custom prefix for emails from this project')}
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('e.g. [my-org]')}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+
+        <Override
+          name="spend-visibility:spike-protection-project-settings"
+          project={project}
         />
 
-        <JsonForm
-          {...jsonFormProps}
-          title={t('Membership')}
-          fields={[fields.debugFilesRole]}
-        />
+        <FieldGroup title={t('Event Settings')}>
+          <AutoResolveForm project={project} disabled={disabled} />
+        </FieldGroup>
 
-        <JsonForm
-          {...jsonFormProps}
-          title={t('Client Security')}
-          fields={[
-            fields.allowedDomains,
-            fields.scrapeJavaScript,
-            fields.scmSourceContextEnabled,
-            fields.securityToken,
-            fields.securityTokenHeader,
-            fields.verifySSL,
-          ]}
-          renderHeader={() => (
-            <PanelAlert variant="info">
-              <TextBlock noMargin>
-                {tct(
-                  'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+        <FieldGroup title={t('Membership')}>
+          <AutoSaveForm
+            name="debugFilesRole"
+            schema={projectSettingsSchema}
+            initialValue={project.debugFilesRole ?? null}
+            mutationOptions={projectMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Debug Files Access')}
+                hintText={tct(
+                  'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
                   {
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-javascript">
-                        sentry-javascript
-                      </ExternalLink>
+                    organizationSettingsLink: (
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/`,
+                          hash: 'debugFilesRole',
+                        }}
+                      />
                     ),
                   }
-                )}{' '}
-                {tct(
-                  'This will restrict requests based on the [code:Origin] and [code:Referer] headers.',
-                  {
-                    code: <code />,
-                  }
                 )}
-              </TextBlock>
-            </PanelAlert>
-          )}
-        />
-      </Form>
+              >
+                <field.Select
+                  value={field.state.value ?? INHERIT_DEBUG_FILES_ROLE}
+                  onChange={value =>
+                    field.handleChange(value === INHERIT_DEBUG_FILES_ROLE ? null : value)
+                  }
+                  options={debugFilesRoleOptions}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+
+        <FieldGroup title={t('Client Security')}>
+          <Alert variant="info" system>
+            <TextBlock noMargin>
+              {tct(
+                'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
+                {
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-javascript">
+                      sentry-javascript
+                    </ExternalLink>
+                  ),
+                }
+              )}{' '}
+              {tct(
+                'This will restrict requests based on the [code:Origin] and [code:Referer] headers.',
+                {code: <code />}
+              )}
+            </TextBlock>
+          </Alert>
+
+          <AutoSaveForm
+            name="allowedDomains"
+            schema={projectSettingsSchema}
+            initialValue={convertMultilineFieldValue(project.allowedDomains)}
+            mutationOptions={{
+              mutationFn: (data: {allowedDomains: string}) =>
+                updateProject.mutateAsync({
+                  allowedDomains: extractMultilineFields(data.allowedDomains),
+                }),
+            }}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Allowed Domains')}
+                hintText={allowedDomainsHelp}
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  autosize
+                  rows={1}
+                  maxRows={10}
+                  placeholder={t('https://example.com or example.com')}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+
+          <AutoSaveForm
+            name="scrapeJavaScript"
+            schema={projectSettingsSchema}
+            initialValue={orgScrapeJavaScript && Boolean(project.scrapeJavaScript)}
+            mutationOptions={projectMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Enable JavaScript source fetching')}
+                hintText={t(
+                  'Allow Sentry to scrape missing JavaScript source context when possible'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={orgScrapeJavaScript ? disabled : ORG_DISABLED_REASON}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+
+          <AutoSaveForm
+            name="scmSourceContextEnabled"
+            schema={projectSettingsSchema}
+            initialValue={Boolean(project.scmSourceContextEnabled)}
+            mutationOptions={projectMutationOptions}
+            confirm={value =>
+              value
+                ? t(
+                    'Enabling this will allow all members with access to this project to view source code from the connected SCM integration via code mappings. Are you sure you want to enable this?'
+                  )
+                : undefined
+            }
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Enable SCM Source Context')}
+                hintText={t(
+                  "Fetch source code from your connected SCM integration (e.g. GitHub, GitLab) to display in stack traces. When enabled, any project member can view source code for files matched by this project's code mappings."
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+
+          <SecurityTokenForm project={project} disabled={disabled} />
+
+          <SecurityTokenHeaderForm project={project} disabled={disabled} />
+
+          <AutoSaveForm
+            name="verifySSL"
+            schema={projectSettingsSchema}
+            initialValue={Boolean(project.verifySSL)}
+            mutationOptions={projectMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Verify TLS/SSL')}
+                hintText={t(
+                  'Outbound requests will verify TLS (sometimes known as SSL) connections'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+      </FormSearch>
 
       <Panel>
         <PanelHeader>{t('Project Administration')}</PanelHeader>

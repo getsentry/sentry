@@ -9,10 +9,6 @@ export function AutofixSetupFixture(
       reason: null,
     },
     seerReposLinked: true,
-    githubWriteIntegration: {
-      ok: true,
-      repos: [],
-    },
     billing: {
       hasAutofixQuota: true,
     },

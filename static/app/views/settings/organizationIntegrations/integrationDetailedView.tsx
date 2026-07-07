@@ -4,8 +4,10 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -23,8 +25,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
+  canManageIntegrations,
   getAlertText,
   getIntegrationStatus,
+  integrationRequiresUpgrade,
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
@@ -34,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
   IntegrationTab,
@@ -173,6 +178,7 @@ export default function IntegrationDetailedView() {
     }
     return alertList;
   }, [provider]);
+  const alertText = getAlertText(configurations);
   const installationStatus = useMemo(() => {
     const statusList = configurations?.map(getIntegrationStatus);
     // if we have conflicting statuses, we have a priority order
@@ -378,15 +384,8 @@ export default function IntegrationDetailedView() {
       );
     }
 
-    const alertText = getAlertText(configurations);
-
     return (
       <Fragment>
-        {alertText && (
-          <Alert.Container>
-            <Alert variant="warning">{alertText}</Alert>
-          </Alert.Container>
-        )}
         <Panel>
           {configurations.map(integration => (
             <PanelItem key={integration.id}>
@@ -406,7 +405,7 @@ export default function IntegrationDetailedView() {
                     organization,
                   });
                 }}
-                requiresUpgrade={!!alertText}
+                requiresUpgrade={integrationRequiresUpgrade(integration)}
               />
             </PanelItem>
           ))}
@@ -504,6 +503,50 @@ export default function IntegrationDetailedView() {
     return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
+  const renderUpgradeButton = () => {
+    if (!canManageIntegrations(organization)) {
+      return (
+        <Tooltip
+          title={t('You must be an organization owner, manager or admin to update')}
+        >
+          <Button size="xs" variant="primary" disabled>
+            {t('Update')}
+          </Button>
+        </Tooltip>
+      );
+    }
+
+    const outdatedConfigurations = configurations.filter(integrationRequiresUpgrade);
+
+    if (outdatedConfigurations.length !== 1 || !provider) {
+      return (
+        <Button
+          size="xs"
+          variant="primary"
+          onClick={() => setActiveTab('configurations')}
+        >
+          {t('Update')}
+        </Button>
+      );
+    }
+
+    return (
+      <AddIntegrationButton
+        provider={provider}
+        organization={organization}
+        onAddIntegration={onInstall}
+        analyticsParams={{
+          view: 'integrations_directory_integration_detail',
+          already_installed: true,
+        }}
+        buttonText={t('Update now')}
+        variant="primary"
+        size="xs"
+        data-test-id="integration-upgrade-button"
+      />
+    );
+  };
+
   return (
     <SentryDocumentTitle title={integrationName}>
       <IntegrationLayout.Body
@@ -535,6 +578,15 @@ export default function IntegrationDetailedView() {
               integrationSlug={integrationSlug}
               description={description}
               alerts={alerts}
+              upgradeAlert={
+                alertText && (
+                  <Alert.Container>
+                    <Alert variant="warning" trailingItems={renderUpgradeButton()}>
+                      {alertText}
+                    </Alert>
+                  </Alert.Container>
+                )
+              }
               featureData={featureData}
               author={author}
               resourceLinks={resourceLinks}
