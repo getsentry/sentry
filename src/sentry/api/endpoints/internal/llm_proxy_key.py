@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import time
 
@@ -17,11 +16,14 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.seer_setup import has_seer_access
+from sentry.viewer_context import _key_id
 
 logger = logging.getLogger(__name__)
 
 LLM_PROXY_JWT_TTL = 3600
 
+# Per-feature flags checked *in addition to* the base gen-ai-features gate.
+# An empty list means only the base gate is required.
 FEATURE_FLAGS: dict[str, list[str]] = {
     "anomaly_detection": [],
     "assisted_query": [],
@@ -36,10 +38,6 @@ FEATURE_FLAGS: dict[str, list[str]] = {
     "summarization": [],
     "workflows": [],
 }
-
-
-def _key_id(key: str) -> str:
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
 
 
 class MakeLlmProxyKeyResponse(BaseModel):
@@ -58,6 +56,10 @@ def make_llm_proxy_key(
     Signed with SEER_API_SHARED_SECRET. The proxy verifies locally
     using the same secret, so no per-request RPC callback is needed.
     """
+    extra_flags = FEATURE_FLAGS.get(feature)
+    if extra_flags is None:
+        return MakeLlmProxyKeyResponse(error="unknown_feature")
+
     secret = settings.SEER_API_SHARED_SECRET
     if not secret:
         return MakeLlmProxyKeyResponse(error="signing_secret_not_configured")
@@ -66,10 +68,6 @@ def make_llm_proxy_key(
         organization = Organization.objects.get(id=org_id, status=OrganizationStatus.ACTIVE)
     except Organization.DoesNotExist:
         return MakeLlmProxyKeyResponse(error="organization_not_found")
-
-    extra_flags = FEATURE_FLAGS.get(feature)
-    if extra_flags is None:
-        return MakeLlmProxyKeyResponse(error="unknown_feature")
 
     if not has_seer_access(organization):
         return MakeLlmProxyKeyResponse(error="feature_not_enabled")
@@ -97,6 +95,9 @@ def make_llm_proxy_key(
     return MakeLlmProxyKeyResponse(token=token)
 
 
+_SERVER_ERRORS = frozenset({"signing_secret_not_configured"})
+
+
 @internal_cell_silo_endpoint
 class InternalLlmProxyKeyEndpoint(Endpoint):
     publish_status = {
@@ -113,6 +114,8 @@ class InternalLlmProxyKeyEndpoint(Endpoint):
         ):
             raise PermissionDenied
 
+        vc = getattr(request, "_seer_rpc_viewer_context", None)
+
         org_id = request.data.get("org_id")
         project_id = request.data.get("project_id")
         feature = request.data.get("feature")
@@ -125,6 +128,15 @@ class InternalLlmProxyKeyEndpoint(Endpoint):
         except (TypeError, ValueError):
             return Response({"detail": "org_id must be an integer"}, status=400)
 
+        if vc is not None and (vc.organization_id is None or org_id != int(vc.organization_id)):
+            raise PermissionDenied
+
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except (TypeError, ValueError):
+                return Response({"detail": "project_id must be an integer"}, status=400)
+
         result = make_llm_proxy_key(
             org_id=org_id,
             project_id=project_id,
@@ -132,6 +144,7 @@ class InternalLlmProxyKeyEndpoint(Endpoint):
         )
 
         if result.error:
-            return Response({"detail": result.error}, status=400)
+            status = 500 if result.error in _SERVER_ERRORS else 400
+            return Response({"detail": result.error}, status=status)
 
         return Response({"token": result.token})
