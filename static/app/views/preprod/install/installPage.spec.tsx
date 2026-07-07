@@ -80,4 +80,22 @@ describe('InstallPage', () => {
     expect(within(topbarSlot).getByText('v1.0.0 (123)')).toBeInTheDocument();
     expect(within(topbarSlot).queryByText('Install')).not.toBeInTheDocument();
   });
+
+  it('keeps the Releases breadcrumb clickable when build details fail to load', async () => {
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    renderInstallPage();
+
+    expect(await screen.findByText('Install')).toBeInTheDocument();
+
+    const topbarSlot = screen.getByTestId('topbar-title-slot');
+
+    expect(within(topbarSlot).getByRole('link', {name: 'Releases'})).toBeInTheDocument();
+    expect(within(topbarSlot).getByText('Install')).toBeInTheDocument();
+  });
 });

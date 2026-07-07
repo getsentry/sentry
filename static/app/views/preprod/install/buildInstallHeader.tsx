@@ -85,10 +85,13 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   }
 
   if (isBuildDetailsError || !buildDetailsData) {
+    const crumbs: Crumb[] = [releasesCrumb, {label: t('Install')}];
     return (
-      <TopBar.Slot name="title">
-        <StyledBreadcrumbs crumbs={[releasesCrumb]} />
-      </TopBar.Slot>
+      <Layout.HeaderContent>
+        <TopBar.Slot name="title">
+          <StyledBreadcrumbs crumbs={crumbs} />
+        </TopBar.Slot>
+      </Layout.HeaderContent>
     );
   }
 
