@@ -28,7 +28,9 @@ class SafeRolloutComparator:
 
     In particular, it can (with callsite-by-callsite granularity) help to track rate at which the
     experimental branch both exactly matches and "reasonably" matches the control branch. (What
-    counts as a "reasonable" (close enough) match is definable by providing a comparison function.)
+    counts as an exact match and as a "reasonable" (close enough) match is definable by providing a
+    callback for each comparison.)
+
     Once a callsite looks correct enough, you can switch the code behavior to actually use the data
     from the experimental branch by adding the callsite indentifier to the "use experimental data"
     allowlist option provided by the class. It's also possible to run the comparison separate from
@@ -323,6 +325,7 @@ class SafeRolloutComparator:
         callsite: str,
         source_of_truth: SourceOfTruth = "neither",
         is_experimental_data_nullish: bool | None = None,
+        exact_match_comparator: Callable[[TData, TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
@@ -344,6 +347,8 @@ class SafeRolloutComparator:
             should pass "both".
         * is_experimental_data_nullish: Whether the result is a "null result" (e.g. empty array).
             This helps to determine whether a "match" is significant.
+        * exact_match_comparator: Optional function to determine if the control data and
+            experimental data are considered a match. If not provided, strict equality will be used.
         * reasonable_match_comparator: Optional function to determine if the control data and
             experimental data are "reasonably the same." An example might be checking whether the
             experimental data is a subset of the control data (useful in case of migrating something
@@ -367,12 +372,24 @@ class SafeRolloutComparator:
         if is_experimental_data_nullish is not None:
             tags["is_null_result"] = str(is_experimental_data_nullish)
 
+        if exact_match_comparator is not None:
+            try:
+                is_exact_match = exact_match_comparator(control_data, experimental_data)
+            except Exception:
+                logger.exception(
+                    "saferollout.exact_match_comparator_error",
+                    extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
+                )
+                is_exact_match = control_data == experimental_data
+            else:
+                tags["exact_match"] = str(is_exact_match)
+
         if reasonable_match_comparator is not None:
             try:
                 is_reasonable_match = reasonable_match_comparator(control_data, experimental_data)
             except Exception:
                 logger.exception(
-                    "saferollout.comparator_error",
+                    "saferollout.reasonable_match_comparator_error",
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
                 is_reasonable_match = None
@@ -417,6 +434,7 @@ class SafeRolloutComparator:
         experimental_data: TData,
         callsite: str,
         is_experimental_data_nullish: bool | None = None,
+        exact_match_comparator: Callable[[TData, TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
@@ -435,6 +453,7 @@ class SafeRolloutComparator:
             callsite=callsite,
             source_of_truth="experimental" if use_experimental_data else "control",
             is_experimental_data_nullish=is_experimental_data_nullish,
+            exact_match_comparator=exact_match_comparator,
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
@@ -449,6 +468,7 @@ class SafeRolloutComparator:
         experimental_data_func: Callable[[], TData],
         callsite: str,
         null_result_determiner: Callable[[TData], bool] | None = None,
+        exact_match_comparator: Callable[[TData, TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
@@ -497,6 +517,7 @@ class SafeRolloutComparator:
             experimental_data=experimental_data,
             callsite=callsite,
             is_experimental_data_nullish=is_experimental_data_nullish,
+            exact_match_comparator=exact_match_comparator,
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
