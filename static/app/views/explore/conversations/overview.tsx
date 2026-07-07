@@ -24,6 +24,7 @@ import {
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableNew} from 'sentry/views/explore/conversations/components/conversationsTableNew';
+import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
@@ -119,6 +120,7 @@ function ConversationsOverviewPage() {
                   <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                 </Flex>
               )}
+              {!showOnboarding && !isOnboardingLoading && <SaveConversationQueryButton />}
             </Flex>
           </Stack>
         </Layout.Main>

@@ -50,16 +50,13 @@ from sentry.pr_metrics.activity_types import (
     AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
-    ClosedPayload,
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
-    EditedPayload,
     EnqueuedPayload,
     LabeledPayload,
     OpenedPayload,
     ReadyForReviewPayload,
-    ReopenedPayload,
     ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
@@ -84,6 +81,7 @@ from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
     is_activity_tracking_enabled,
+    org_has_coding_agent_for_provider,
     resolved_group_ids,
 )
 from sentry.seer.autofix.utils import (
@@ -99,10 +97,7 @@ logger = logging.getLogger("sentry.webhooks")
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
-        "closed",
-        "reopened",
         "synchronize",
-        "edited",
         "labeled",
         "unlabeled",
         "review_requested",
@@ -122,9 +117,7 @@ _ACTIVITY_ACTIONS = frozenset(
 # "closed" is absent because it forks on pull_request.merged — handled in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
-    "reopened": PullRequestActivityType.REOPENED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
-    "edited": PullRequestActivityType.EDITED,
     "labeled": PullRequestActivityType.LABELED,
     "unlabeled": PullRequestActivityType.UNLABELED,
     "review_requested": PullRequestActivityType.REVIEW_REQUESTED,
@@ -174,8 +167,10 @@ def handle_attribution(
         _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if action == "opened" and pull_request is not None and has_seer_access(organization):
-        _detect_delegated_agent(pr, pull_request, repo)
+    if action == "opened" and pull_request is not None:
+        provider_hint = _is_delegated_agent_candidate(pull_request)
+        if provider_hint and org_has_coding_agent_for_provider(organization, provider_hint):
+            _detect_delegated_agent(pr, pull_request, repo, provider_hint=provider_hint)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -378,9 +373,9 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; only
-    the webhook-sourced columns are written, leaving the Seer-derived ones
-    (verdict, participants_count, reviews_count) untouched.
+    reflects the final counts. Gated by the emit flag, the sole consumer; it
+    writes only the webhook-sourced counters, leaving the other columns to their
+    own producers.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -690,13 +685,9 @@ def handle_check_suite(
         return
 
     check_suite = event.get("check_suite") or {}
-    sender = event.get("sender") or {}
     app = check_suite.get("app") or {}
     payload = asdict(
         CheckSuiteCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_suite.get("head_sha"),
             conclusion=check_suite.get("conclusion") or "",
             app_slug=app.get("slug", ""),
             check_runs_count=check_suite.get("latest_check_runs_count") or 0,
@@ -736,13 +727,9 @@ def handle_check_run(
         return
 
     check_run = event.get("check_run") or {}
-    sender = event.get("sender") or {}
     app = check_run.get("app") or {}
     payload = asdict(
         CheckRunCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_run.get("head_sha"),
             check_name=check_run.get("name", ""),
             conclusion=check_run.get("conclusion") or "",
             app_slug=app.get("slug", ""),
@@ -996,7 +983,10 @@ def _write_author_attribution(
 
 
 def _detect_delegated_agent(
-    pr: PullRequest, webhook_pull_request: Mapping[str, Any], repository: Repository
+    pr: PullRequest,
+    webhook_pull_request: Mapping[str, Any],
+    repository: Repository,
+    provider_hint: str,
 ) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
@@ -1004,9 +994,8 @@ def _detect_delegated_agent(
 
     Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
     """
-    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
     group_ids = resolved_group_ids(pr)
-    if provider_hint is None or not group_ids:
+    if not group_ids:
         return
 
     repo_name_sections = repository.name.split("/")
@@ -1141,17 +1130,10 @@ def _write_activity(
         # Without a delivery ID idempotency cannot be guaranteed — skip.
         return
 
-    if action == "closed":
-        event_type = (
-            PullRequestActivityType.MERGED
-            if pull_request.get("merged")
-            else PullRequestActivityType.CLOSED
-        )
-    else:
-        mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
-        if mapped is None:
-            return
-        event_type = mapped
+    mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
+    if mapped is None:
+        return
+    event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
     _write_activity_row(pr, webhook_id, event_type, payload)
@@ -1166,42 +1148,18 @@ def _build_activity_payload(
     base = pull_request.get("base") or {}
     sender = event.get("sender") or pull_request.get("user") or {}
 
-    base_kw: dict[str, Any] = dict(
+    sender_kw: dict[str, Any] = dict(
         sender_login=sender.get("login", ""),
         sender_type=sender.get("type", ""),
-        head_sha=head.get("sha"),
-        base_sha=base.get("sha"),
     )
 
     match action:
         case "opened":
             return asdict(
                 OpenedPayload(
-                    **base_kw,
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                )
-            )
-        case "closed":
-            return asdict(
-                ClosedPayload(
-                    **base_kw,
-                    merged=pull_request.get("merged", False),
-                    additions=pull_request.get("additions", 0),
-                    deletions=pull_request.get("deletions", 0),
-                    changed_files=pull_request.get("changed_files", 0),
-                    commits=pull_request.get("commits", 0),
-                    comments=pull_request.get("comments", 0),
-                    review_comments=pull_request.get("review_comments", 0),
-                    merged_by=(pull_request.get("merged_by") or {}).get("login"),
-                )
-            )
-        case "reopened":
-            return asdict(
-                ReopenedPayload(
-                    **base_kw,
+                    **sender_kw,
+                    head_sha=head.get("sha"),
+                    base_sha=base.get("sha"),
                     additions=pull_request.get("additions", 0),
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
@@ -1211,54 +1169,49 @@ def _build_activity_payload(
         case "synchronize":
             return asdict(
                 SynchronizePayload(
-                    **base_kw,
+                    **sender_kw,
                     before_sha=event.get("before"),
                     after_sha=event.get("after"),
                 )
             )
-        case "edited":
-            changes = event.get("changes") or {}
-            return asdict(EditedPayload(**base_kw, changed_fields=sorted(changes.keys())))
         case "labeled":
             label = event.get("label") or {}
-            return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "unlabeled":
             label = event.get("label") or {}
-            return asdict(UnlabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(UnlabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "review_requested":
             return asdict(
                 ReviewRequestedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "review_request_removed":
             return asdict(
                 ReviewRequestRemovedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "assigned":
             assignee = event.get("assignee") or {}
-            return asdict(AssignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(AssignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "unassigned":
             assignee = event.get("assignee") or {}
-            return asdict(UnassignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(UnassignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "converted_to_draft":
-            return asdict(ConvertedToDraftPayload(**base_kw))
+            return asdict(ConvertedToDraftPayload(**sender_kw))
         case "ready_for_review":
-            return asdict(ReadyForReviewPayload(**base_kw))
+            return asdict(ReadyForReviewPayload(**sender_kw))
         case "auto_merge_enabled":
             auto_merge = pull_request.get("auto_merge") or {}
             return asdict(
-                AutoMergeEnabledPayload(
-                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
-                )
+                AutoMergeEnabledPayload(merge_method=auto_merge.get("merge_method") or "")
             )
         case "auto_merge_disabled":
-            return asdict(AutoMergeDisabledPayload(**base_kw))
+            return asdict(AutoMergeDisabledPayload())
         case "enqueued":
-            return asdict(EnqueuedPayload(**base_kw))
+            return asdict(EnqueuedPayload())
         case "dequeued":
-            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
+            return asdict(DequeuedPayload(reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")

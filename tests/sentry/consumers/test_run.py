@@ -29,13 +29,6 @@ def test_dlq(consumer_def) -> None:
         "post-process-forwarder-transactions",
         "post-process-forwarder-issue-platform",
     ]
-    subscription_result_consumers = [
-        "events-subscription-results",
-        "transactions-subscription-results",
-        "generic-metrics-subscription-results",
-        "metrics-subscription-results",
-        "subscription-results-eap-items",
-    ]
     consumers_that_should_have_dlq_but_dont = [
         "process-spans",
         "process-segments",
@@ -54,11 +47,7 @@ def test_dlq(consumer_def) -> None:
 
     consumer_name, defn = consumer_def
 
-    if consumer_name not in (
-        post_process_forwarders
-        + subscription_result_consumers
-        + consumers_that_should_have_dlq_but_dont
-    ):
+    if consumer_name not in (post_process_forwarders + consumers_that_should_have_dlq_but_dont):
         assert defn.get("dlq_topic") is not None, f"{consumer_name} consumer is missing DLQ"
 
 

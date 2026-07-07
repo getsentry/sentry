@@ -34,6 +34,7 @@ interface DiffImageDisplayProps {
   overlayColor: string;
   pair: SnapshotDiffPair;
   headLabel?: string;
+  overlayOpacity?: number;
 }
 
 export function DiffImageDisplay({
@@ -41,6 +42,7 @@ export function DiffImageDisplay({
   imageBaseUrl,
   diffImageBaseUrl,
   overlayColor,
+  overlayOpacity,
   diffMode,
   headLabel = t('Head'),
 }: DiffImageDisplayProps) {
@@ -61,6 +63,7 @@ export function DiffImageDisplay({
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffMaskUrl={diffMaskUrl}
           maskSize={maskSize}
           headLabel={headLabel}
@@ -95,6 +98,7 @@ interface SplitViewProps {
   headLabel: string;
   maskSize: string;
   overlayColor: string;
+  overlayOpacity?: number;
 }
 
 function SplitView({
@@ -102,6 +106,7 @@ function SplitView({
   headImageUrl,
   headLabel,
   overlayColor,
+  overlayOpacity,
   diffMaskUrl,
   maskSize,
 }: SplitViewProps) {
@@ -166,6 +171,7 @@ function SplitView({
                   {showOverlay && (
                     <DiffOverlay
                       $overlayColor={overlayColor}
+                      $opacity={overlayOpacity}
                       $maskUrl={displayMaskUrl}
                       $maskSize={maskSize}
                     />

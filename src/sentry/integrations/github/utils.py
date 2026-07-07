@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import calendar
 import datetime
-import logging
 import time
 from urllib.parse import urlparse
 
@@ -10,8 +9,6 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.utils import jwt
-
-logger = logging.getLogger(__name__)
 
 
 def get_jwt(github_id: str | None = None, github_private_key: str | None = None) -> str:

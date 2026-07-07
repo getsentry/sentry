@@ -15,7 +15,6 @@ from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
-from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -48,7 +47,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import set_span_tag, start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -183,73 +182,80 @@ def prepare_organization_report(
     target_user: int | None = None,
     email_override: str | None = None,
 ):
-    batch_id = str(batch_id)
-    if email_override and not isinstance(target_user, int):
-        logger.error(
-            "Target user must have an ID",
-            extra={
-                "batch_id": str(batch_id),
-                "organization": organization_id,
-                "target_user": target_user,
-                "email_override": email_override,
-            },
-        )
-        return
-    organization = Organization.objects.get(id=organization_id)
-    set_tag("org.slug", organization.slug)
-    sentry_sdk.set_attribute("org.slug", organization.slug)
-    set_tag("org.id", organization_id)
-    sentry_sdk.set_attribute("org.id", organization_id)
-    with WeeklyReportSLO(
-        operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
-    ).capture() as lifecycle:
-        lifecycle.add_extras(
-            {
-                "batch_id": batch_id,
-                "organization_id": organization_id,
-                "timestamp": timestamp,
-                "duration": duration,
-            }
-        )
-        ctx = OrganizationReportContextFactory(
-            timestamp=timestamp, duration=duration, organization=organization
-        ).create_context()
-
-        with start_span(
-            op="weekly_reports.check_if_ctx_is_empty", name="weekly_reports.check_if_ctx_is_empty"
-        ):
-            report_is_available = not ctx.is_empty()
-        set_tag("report.available", report_is_available)
-        sentry_sdk.set_attribute("report.available", report_is_available)
-
-        if not report_is_available:
-            lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
+    with start_span(
+        name="weekly_reports.prepare_organization_report",
+        op="weekly_reports.prepare_organization_report",
+        transaction=True,
+        custom_sampling_context={"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING},
+    ) as span:
+        batch_id = str(batch_id)
+        if email_override and not isinstance(target_user, int):
+            logger.error(
+                "Target user must have an ID",
+                extra={
+                    "batch_id": str(batch_id),
+                    "organization": organization_id,
+                    "target_user": target_user,
+                    "email_override": email_override,
+                },
+            )
             return
-
-    # Deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
-        logger.info(
-            "weekly_reports.deliver_reports",
-            extra={"batch_id": str(batch_id), "organization": organization_id},
-        )
-        with metrics.timer("weekly_report.deliver_reports.duration"):
-            batch.deliver_reports()
-
-    # Cache after delivery so a failed attempt doesn't poison the
-    # previous-week lookup on retry.
-    if not dry_run:
-        try:
-            project_metrics: dict[int, dict[str, int]] = {}
-            for project_id, project_ctx in ctx.projects_context_map.items():
-                project_metrics[project_id] = {
-                    "e": project_ctx.accepted_error_count,
-                    "t": project_ctx.accepted_transaction_count,
+        organization = Organization.objects.get(id=organization_id)
+        set_span_tag(span, "org.slug", organization.slug)
+        sentry_sdk.set_attribute("org.slug", organization.slug)
+        set_span_tag(span, "org.id", organization_id)
+        sentry_sdk.set_attribute("org.id", organization_id)
+        with WeeklyReportSLO(
+            operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "batch_id": batch_id,
+                    "organization_id": organization_id,
+                    "timestamp": timestamp,
+                    "duration": duration,
                 }
-            if project_metrics:
-                cache_project_metrics(organization_id, project_metrics)
-        except Exception:
-            sentry_sdk.capture_exception()
+            )
+            ctx = OrganizationReportContextFactory(
+                timestamp=timestamp, duration=duration, organization=organization
+            ).create_context()
+
+            with start_span(
+                op="weekly_reports.check_if_ctx_is_empty",
+                name="weekly_reports.check_if_ctx_is_empty",
+            ):
+                report_is_available = not ctx.is_empty()
+            set_span_tag(span, "report.available", report_is_available)
+            sentry_sdk.set_attribute("report.available", report_is_available)
+
+            if not report_is_available:
+                lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
+                return
+
+        # Deliver the reports
+        batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
+        with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
+            logger.info(
+                "weekly_reports.deliver_reports",
+                extra={"batch_id": str(batch_id), "organization": organization_id},
+            )
+            with metrics.timer("weekly_report.deliver_reports.duration"):
+                batch.deliver_reports()
+
+        # Cache after delivery so a failed attempt doesn't poison the
+        # previous-week lookup on retry.
+        if not dry_run:
+            try:
+                project_metrics: dict[int, dict[str, int]] = {}
+                for project_id, project_ctx in ctx.projects_context_map.items():
+                    project_metrics[project_id] = {
+                        "e": project_ctx.accepted_error_count,
+                        "t": project_ctx.accepted_transaction_count,
+                    }
+                if project_metrics:
+                    cache_project_metrics(organization_id, project_metrics)
+            except Exception:
+                sentry_sdk.capture_exception()
 
 
 @dataclass(frozen=True)

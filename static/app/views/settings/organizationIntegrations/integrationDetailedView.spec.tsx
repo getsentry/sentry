@@ -212,6 +212,88 @@ describe('IntegrationDetailedView', () => {
     expect(screen.getAllByTestId('integration-upgrade-button')).toHaveLength(1);
   });
 
+  describe('overview upgrade button', () => {
+    const slackProvider = {
+      aspects: {},
+      canAdd: true,
+      canDisable: false,
+      features: ['alert-rule', 'chat-unfurl'],
+      key: 'slack',
+      name: 'Slack',
+      slug: 'slack',
+    };
+
+    const outdatedWorkspace = {
+      id: '10',
+      name: 'Outdated Workspace',
+      domainName: 'outdated.slack.com',
+      provider: slackProvider,
+      status: 'active',
+      // Missing app_mentions:read -> outdated install.
+      scopes: ['commands', 'chat:write'],
+    };
+
+    it('renders the reinstall button for a single outdated workspace with access', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+        body: [outdatedWorkspace],
+      });
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('slack', {tab: 'overview'}),
+        organization,
+      });
+
+      expect(await screen.findByTestId('integration-upgrade-button')).toBeInTheDocument();
+    });
+
+    it('disables the update button for members without integration access', async () => {
+      const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${lowerAccessOrg.slug}/config/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack'})],
+        body: {
+          providers: [
+            {
+              canAdd: true,
+              canDisable: false,
+              features: ['alert-rule', 'chat-unfurl'],
+              key: 'slack',
+              metadata: {
+                aspects: {},
+                author: 'The Sentry Team',
+                description: 'Connect your Sentry organization to Slack.',
+                features: [],
+                issue_url: 'https://github.com/getsentry/sentry/issues/new',
+                noun: 'Installation',
+                source_url:
+                  'https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
+              },
+              name: 'Slack',
+              slug: 'slack',
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${lowerAccessOrg.slug}/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+        body: [outdatedWorkspace],
+      });
+
+      render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('slack', {tab: 'overview'}),
+        organization: lowerAccessOrg,
+      });
+
+      // The reinstall button (which auto-opens the install modal) must never
+      // render for members without access; a disabled Update button shows instead.
+      expect(await screen.findByRole('button', {name: 'Update'})).toBeDisabled();
+      expect(screen.queryByTestId('integration-upgrade-button')).not.toBeInTheDocument();
+    });
+  });
+
   it('disables configure for members without access', async () => {
     const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
     render(<IntegrationDetailedView />, {

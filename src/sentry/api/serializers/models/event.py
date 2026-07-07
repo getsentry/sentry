@@ -18,6 +18,7 @@ from sentry.api.serializers.models.userreport import UserReportSerializerRespons
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
 from sentry.grouping.api import GroupingConfig
 from sentry.interfaces.user import EventUserApiContext
+from sentry.issues.issue_occurrence import IssueOccurrenceResponse
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
 from sentry.models.release import Release
@@ -165,7 +166,7 @@ class BaseEventSerializerResponse(TypedDict):
     type: str
     metadata: Any
     errors: list[Any]
-    occurrence: Any
+    occurrence: IssueOccurrenceResponse | None
     _meta: dict[str, Any]
 
 
