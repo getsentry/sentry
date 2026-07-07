@@ -57,7 +57,7 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         type_value: int | None = ActionService.get_value(obj.type)
         target = attrs.get("target")
 
-        target_type: int = obj.config.get("target_type")
+        target_type: int | None = obj.config.get("target_type")
         target_identifier: str | None = obj.config.get("target_identifier")
         target_display: str | None = obj.config.get("target_display")
 
@@ -75,7 +75,9 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             ),
             "alertRuleTriggerId": str(alert_rule_trigger_id),
             "type": obj.type,
-            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)]
+            if target_type is not None
+            else None,
             "targetIdentifier": get_identifier_from_action(
                 type_value, str(target_identifier), target_display
             ),
