@@ -1,14 +1,50 @@
 import * as Sentry from '@sentry/react';
 
-import type {EventMessage} from 'sentry/serviceWorker/types';
+import type {EventMessage, RequestMessage} from 'sentry/serviceWorker/types';
+
+type RequestCallback = (error: unknown, result: unknown) => void;
 
 /**
  * Sends messages from the page to the service worker.
  *
- * Every message must be an `EventMessage` (see `sentry/serviceWorker/types`).
- * Use to notify the worker that something has happened on the page.
+ * Every message must be an `EventMessage` or `RequestMessage` (see `sentry/serviceWorker/types`).
+ * Use to notify the worker that something has happened on the page. Or to
+ * request something from the worker and wait for a response.
  */
 export class ServiceWorkerController {
+  _outstandingRequests = new Map<string, RequestCallback>();
+
+  constructor() {
+    navigator.serviceWorker.addEventListener('message', this._onMessage);
+  }
+
+  public dispose() {
+    navigator.serviceWorker.removeEventListener('message', this._onMessage);
+  }
+
+  private _onMessage = (event: MessageEvent) => {
+    Sentry.startSpan(
+      {
+        name: 'service-worker.controller',
+        op: 'sw.onmessage',
+        attributes: {
+          type: event.data.type,
+          name: event.data.name,
+          messageId: event.data.messageId,
+        },
+      },
+      () => {
+        if (event.data.type === 'response' && event.data.messageId) {
+          this._outstandingRequests.get(event.data.messageId)?.(
+            event.data.error,
+            event.data.data
+          );
+          this._outstandingRequests.delete(event.data.messageId);
+        }
+      }
+    );
+  };
+
   /**
    * Find the service worker that this page should send messages to.
    *
@@ -25,7 +61,7 @@ export class ServiceWorkerController {
     return registration.installing ?? registration.waiting ?? registration.active;
   }
 
-  public postMessage(message: EventMessage): Promise<unknown> {
+  public postMessage(message: EventMessage | RequestMessage): Promise<unknown> {
     return Sentry.startSpan(
       {
         name: 'service-worker.controller',
@@ -37,9 +73,40 @@ export class ServiceWorkerController {
         if (!worker) {
           return;
         }
-        if (message.type === 'event') {
-          worker.postMessage(message);
-          return;
+        switch (message.type) {
+          case 'event': {
+            worker.postMessage(message);
+            return;
+          }
+          case 'request': {
+            const messageId = crypto.randomUUID();
+            Sentry.getActiveSpan()?.setAttribute('messageId', messageId);
+            return new Promise((resolve, reject) => {
+              this._outstandingRequests.set(messageId, (error, result) =>
+                Sentry.startSpan(
+                  {
+                    name: 'service-worker.controller',
+                    op: 'sw.postMessage.request.callback',
+                    attributes: {
+                      name: message.name,
+                      messageId,
+                      hasError: Boolean(error),
+                      hasResult: Boolean(result),
+                    },
+                  },
+                  () => {
+                    if (error) {
+                      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                      reject(error);
+                    } else {
+                      resolve(result);
+                    }
+                  }
+                )
+              );
+              worker.postMessage({...message, messageId});
+            });
+          }
         }
       }
     );

@@ -33,8 +33,8 @@ export function ServiceWorkerProvider({children}: {children: React.ReactNode}) {
 }
 
 /**
- * @public
- * @returns The service worker context.
+ * Use the service worker controller to send messages to the service worker.
+ *
  * @example
  * const {controller} = useServiceWorker();
  * controller.postMessage({name: 'ping', type: 'event'});
