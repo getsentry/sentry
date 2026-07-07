@@ -342,9 +342,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Several tests here use the legacy NotifyEventAction, which only dual-writes a WEBHOOK
-        # action when the project has the legacy webhook enabled. Enable it so the workflow-engine
-        # serializer produces a comparable action for the dual-read parity checks.
+        # NotifyEventAction (used by several tests) only dual-writes a WEBHOOK action when webhooks
+        # are enabled; enable it so the parity checks have a comparable action to compare.
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     def mock_conversations_info(self, channel):

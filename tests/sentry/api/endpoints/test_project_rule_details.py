@@ -125,11 +125,9 @@ def assert_serializer_results_match(
             del rule_action_data["legacy_rule_id"]
         if rule_action_data.get("workflow_id"):
             del rule_action_data["workflow_id"]
-        # The legacy NotifyEventAction dual-writes to a WEBHOOK("webhooks") action, which the
-        # workflow-engine serializer renders as the equivalent NotifyEventServiceAction(service=
-        # "webhooks"). This divergence is intentional -- NotifyEventAction ("Send a notification for
-        # all legacy integrations") is being deprecated in favor of the explicit webhooks service
-        # action -- so treat the two forms as equal here.
+        # NotifyEventAction dual-writes to WEBHOOK("webhooks"), which serializes back as
+        # NotifyEventServiceAction(service="webhooks"). This divergence is intentional, so treat the
+        # two forms as equal.
         if (
             rule_action_data.get("id") == "sentry.rules.actions.notify_event.NotifyEventAction"
             and workflow_action_data.get("id")
@@ -314,9 +312,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # Several tests here use the legacy NotifyEventAction, which only dual-writes a WEBHOOK
-        # action when the project has the legacy webhook enabled. Enable it so the workflow-engine
-        # serializer produces a comparable action for the dual-read parity checks.
+        # NotifyEventAction (used by several tests) only dual-writes a WEBHOOK action when webhooks
+        # are enabled; enable it so the parity checks have a comparable action to compare.
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     def mock_conversations_list(self, channels):

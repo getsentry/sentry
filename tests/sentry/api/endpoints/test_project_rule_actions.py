@@ -61,8 +61,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
     )
     def test_actions(self, mock_send) -> None:
-        # NotifyEventAction only dual-writes a WEBHOOK action (routed to the legacy webhook path)
-        # when the project has the legacy webhook enabled.
+        # NotifyEventAction only dual-writes a WEBHOOK action when webhooks are enabled.
         self.project.update_option("webhooks:enabled", True)
         action_data = [
             {

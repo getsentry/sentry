@@ -656,8 +656,7 @@ class TestNotificationActionMigrationUtils(TestCase):
     ]
 
     def test_notify_event_action_migration_webhooks_enabled(self) -> None:
-        # NotifyEventAction dual-writes to a WEBHOOK action targeting the legacy webhooks service,
-        # but only when the project has the legacy webhook enabled.
+        # NotifyEventAction dual-writes a WEBHOOK("webhooks") action when webhooks are enabled.
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         actions = build_notification_actions_from_rule_data_actions(
@@ -674,15 +673,14 @@ class TestNotificationActionMigrationUtils(TestCase):
             assert action.data == {}
 
     def test_notify_event_action_migration_webhooks_disabled(self) -> None:
-        # Without the legacy webhook enabled, NotifyEventAction delivers nothing, so it is skipped
-        # (no action written) rather than persisted as a dead webhook action.
+        # Webhooks disabled: skip the action instead of writing a dead one.
         actions = build_notification_actions_from_rule_data_actions(
             self.NOTIFY_EVENT_ACTION_DATA, project=self.project
         )
         assert actions == []
 
     def test_notify_event_action_migration_no_project(self) -> None:
-        # Without a project to gate on, the NotifyEventAction dual-write is skipped.
+        # No project to gate on: skip.
         actions = build_notification_actions_from_rule_data_actions(self.NOTIFY_EVENT_ACTION_DATA)
         assert actions == []
 

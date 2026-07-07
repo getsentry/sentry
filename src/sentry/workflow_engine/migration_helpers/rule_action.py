@@ -65,10 +65,8 @@ def translate_rule_data_actions_to_notification_actions(
                 f"Action translator not found for action with registry ID: {registry_id}, uuid: {action.get('uuid')}"
             ) from e
 
-        # The legacy NotifyEventAction dual-writes to a WEBHOOK("webhooks") action delivered by the
-        # legacy webhook path. Only emit it when the project has the legacy webhook enabled;
-        # otherwise it would deliver nothing, so skip it (leaving a valid "No actions" automation)
-        # rather than persist a dead action.
+        # NotifyEventAction delivers legacy webhooks; skip it unless the project has them enabled so
+        # we don't persist a dead action.
         if isinstance(translator, NotifyEventActionTranslator) and not (
             project is not None and is_legacy_webhook_enabled(project)
         ):

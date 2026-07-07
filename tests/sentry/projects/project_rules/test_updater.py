@@ -122,8 +122,7 @@ class TestUpdater(TestCase):
         assert self.rule.data["frequency"] == 5
 
     def test_dual_update_workflow_engine(self) -> None:
-        # NotifyEventAction dual-writes to a WEBHOOK action only when the project has the legacy
-        # webhook enabled.
+        # NotifyEventAction dual-writes a WEBHOOK action only when webhooks are enabled.
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         conditions = [
@@ -193,8 +192,7 @@ class TestUpdater(TestCase):
         assert action.config.get("target_identifier") == "webhooks"
 
     def test_dual_update_workflow_engine__notify_event_webhooks_disabled(self) -> None:
-        # Without the legacy webhook enabled, the NotifyEventAction is skipped and no action is
-        # written; the workflow is left as a valid "No actions" automation.
+        # Webhooks disabled: no action written; the workflow is a valid "No actions" automation.
         new_user_id = self.create_user().id
 
         ProjectRuleUpdater(

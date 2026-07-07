@@ -134,8 +134,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert workflow.enabled is True
 
     def test_update_issue_alert(self) -> None:
-        # NotifyEventAction dual-writes to a WEBHOOK action only when the project has the legacy
-        # webhook enabled.
+        # NotifyEventAction dual-writes a WEBHOOK action only when webhooks are enabled.
         assert self.issue_alert.project
         ProjectOption.objects.set_value(self.issue_alert.project, "webhooks:enabled", True)
 
@@ -208,8 +207,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert action.config.get("target_identifier") == "webhooks"
 
     def test_update_issue_alert__notify_event_webhooks_disabled(self) -> None:
-        # Without the legacy webhook enabled, the NotifyEventAction is skipped and no action is
-        # written -- the workflow is left as a valid "No actions" automation.
+        # Webhooks disabled: no action written; the workflow is a valid "No actions" automation.
         rule_data = self.issue_alert.data
         rule_data.update(
             {

@@ -55,8 +55,7 @@ class TestProjectRuleCreator(TestCase):
         )
 
     def test_create_rule_and_workflow(self) -> None:
-        # NotifyEventAction dual-writes to a WEBHOOK action only when the project has the legacy
-        # webhook enabled.
+        # NotifyEventAction dual-writes a WEBHOOK action only when webhooks are enabled.
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         rule = self.creator.run()
@@ -98,8 +97,7 @@ class TestProjectRuleCreator(TestCase):
         assert action.config.get("target_identifier") == "webhooks"
 
     def test_create_rule_and_workflow__notify_event_webhooks_disabled(self) -> None:
-        # Without the legacy webhook enabled, the NotifyEventAction is skipped and no action is
-        # written; the workflow is left as a valid "No actions" automation.
+        # Webhooks disabled: no action written; the workflow is a valid "No actions" automation.
         rule = self.creator.run()
 
         workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
