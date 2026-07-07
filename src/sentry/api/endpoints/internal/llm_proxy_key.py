@@ -5,6 +5,7 @@ import time
 import jwt as pyjwt
 from django.conf import settings
 from pydantic import BaseModel
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,15 +14,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.seer.auth import SeerRpcSignatureAuthentication
+from sentry.models.project import Project
+from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.seer_setup import has_seer_access
 
 logger = logging.getLogger(__name__)
 
 LLM_PROXY_JWT_TTL = 3600
 
-# Per-feature flags checked *in addition to* the base gen-ai-features gate.
-# An empty list means only the base gate is required.
 FEATURE_FLAGS: dict[str, list[str]] = {
     "anomaly_detection": [],
     "assisted_query": [],
@@ -55,11 +55,11 @@ def make_llm_proxy_key(
 ) -> MakeLlmProxyKeyResponse:
     """Generate a short-lived HS256 JWT for authenticating to the LLM proxy.
 
-    Signed with the first SEER_RPC_SHARED_SECRET. The proxy verifies locally
+    Signed with SEER_API_SHARED_SECRET. The proxy verifies locally
     using the same secret, so no per-request RPC callback is needed.
     """
-    secrets = settings.SEER_RPC_SHARED_SECRET
-    if not secrets:
+    secret = settings.SEER_API_SHARED_SECRET
+    if not secret:
         return MakeLlmProxyKeyResponse(error="signing_secret_not_configured")
 
     try:
@@ -78,6 +78,10 @@ def make_llm_proxy_key(
         if not features.has(flag, organization):
             return MakeLlmProxyKeyResponse(error="feature_not_enabled")
 
+    if project_id is not None:
+        if not Project.objects.filter(id=project_id, organization=organization).exists():
+            return MakeLlmProxyKeyResponse(error="project_not_found")
+
     now = time.time()
     payload = {
         "org_id": org_id,
@@ -89,7 +93,6 @@ def make_llm_proxy_key(
     if project_id is not None:
         payload["project_id"] = project_id
 
-    secret = secrets[0]
     token = pyjwt.encode(payload, secret, algorithm="HS256", headers={"kid": _key_id(secret)})
     return MakeLlmProxyKeyResponse(token=token)
 
@@ -100,17 +103,27 @@ class InternalLlmProxyKeyEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    authentication_classes = (SeerRpcSignatureAuthentication,)
+    authentication_classes = (SeerRpcViewerContextAuthentication,)
     permission_classes = ()
     enforce_rate_limit = False
 
     def post(self, request: Request) -> Response:
+        if not request.auth or not isinstance(
+            request.successful_authenticator, SeerRpcViewerContextAuthentication
+        ):
+            raise PermissionDenied
+
         org_id = request.data.get("org_id")
         project_id = request.data.get("project_id")
         feature = request.data.get("feature")
 
         if not org_id or not feature:
             return Response({"detail": "org_id and feature are required"}, status=400)
+
+        try:
+            org_id = int(org_id)
+        except (TypeError, ValueError):
+            return Response({"detail": "org_id must be an integer"}, status=400)
 
         result = make_llm_proxy_key(
             org_id=org_id,
