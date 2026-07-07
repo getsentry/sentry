@@ -110,6 +110,7 @@ export function IssueListSortOptions({
                 type="new"
                 tooltipProps={{
                   position: 'bottom',
+                  overlayStyle: {textAlign: 'left'},
                   title: t(
                     "Issues now default to the Recommended sort. Pick a different sort and we'll remember your choice."
                   ),
