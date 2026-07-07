@@ -192,6 +192,10 @@ describe('groupDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/repos/`,
       body: {},
     });

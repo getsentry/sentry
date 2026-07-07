@@ -5,7 +5,7 @@ from typing import Any
 
 from django import forms
 
-from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS, parse_log_level
 from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules import EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
@@ -42,9 +42,8 @@ class LevelCondition(EventCondition):
         desired_level = int(desired_level_raw)
         # Fetch the event level from the tags since event.level is
         # event.group.level which may have changed
-        try:
-            level: int = LOG_LEVELS_MAP[level_name]
-        except KeyError:
+        level = parse_log_level(level_name)
+        if level is None:
             return False
 
         if desired_match == MatchType.EQUAL:

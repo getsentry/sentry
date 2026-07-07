@@ -47,6 +47,7 @@ from sentry.seer.autofix.autofix_agent import (
     NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
+    get_iterations,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -60,10 +61,14 @@ from sentry.seer.autofix.feedback_queue import (
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
 )
+from sentry.seer.autofix.github_perms import (
+    get_out_of_date_github_permissions,
+)
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
     AutofixStateResponse,
+    GithubAppPermissionsWarning,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -476,6 +481,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
+        iteration_blocks = [
+            block for iteration in get_iterations(state) for block in iteration.blocks
+        ]
+        missing_perms = get_out_of_date_github_permissions(group.organization, iteration_blocks)
+        warnings = [
+            GithubAppPermissionsWarning(
+                repo_name=repo_name,
+                installation_id=info.installation_id,
+            ).dict()
+            for repo_name, info in missing_perms.items()
+        ]
         queued_feedback = [
             item.feedback.dict() for item in peek_queued_autofix_feedback(state.run_id)
         ]
@@ -500,6 +516,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         "organizations:autofix-pr-iteration", group.organization
                     ),
                     "queued_feedback": queued_feedback,
+                    "warnings": warnings,
                 }
             }
         )

@@ -1,7 +1,9 @@
 import {useMemo} from 'react';
 
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_YAXIS_BY_TYPE,
+  doesMetricSupportHeatMapVisualization,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
@@ -24,6 +26,7 @@ import {
   isVisualizeFunction,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function syncUpdatedMetricQueries(
   previousMetricQueries: BaseMetricQuery[],
@@ -114,23 +117,31 @@ export function useMetricQueriesController({
             if (visualize && isVisualizeFunction(visualize)) {
               const selectedAggregation = visualize.parsedFunction?.name;
               const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
-
-              if (
+              const aggregation =
                 selectedAggregation &&
                 allowedAggregations?.find(option => option.value === selectedAggregation)
+                  ? selectedAggregation
+                  : DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
+
+              let updatedVisualize = updateVisualizeYAxis(
+                visualize,
+                aggregation,
+                newTraceMetric
+              );
+
+              if (
+                visualize.chartType === ChartType.HEATMAP &&
+                !doesMetricSupportHeatMapVisualization(newTraceMetric)
               ) {
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              } else {
-                const defaultAggregation =
-                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
+                updatedVisualize = updatedVisualize.replace({
+                  chartType: determineDefaultChartType([updatedVisualize.yAxis]),
+                });
               }
+
+              aggregateFields = [
+                updatedVisualize,
+                ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+              ];
             }
 
             return {

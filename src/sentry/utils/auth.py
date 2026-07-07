@@ -234,6 +234,14 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
     return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
 
 
+def is_valid_relative_redirect(url: object) -> bool:
+    return (
+        isinstance(url, str)
+        and url.startswith("/")
+        and url_has_allowed_host_and_scheme(url, allowed_hosts=set())
+    )
+
+
 def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
     """
     Store sso session status in the django session per org, with the value being the timestamp of when they logged in,

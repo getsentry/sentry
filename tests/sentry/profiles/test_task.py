@@ -37,6 +37,7 @@ from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -551,6 +552,7 @@ def test_calculate_profile_duration(profile, duration_ms, request) -> None:
 
 @pytest.mark.django_db(transaction=True)
 @thread_leak_allowlist(reason="django dev server", issue=97036)
+@debug_files_test_both_backends
 class DeobfuscationViaSymbolicator(TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):

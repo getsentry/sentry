@@ -33,7 +33,12 @@ from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.exceptions import StaffRequired, SuperuserRequired
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    InsufficientScope,
+    StaffRequired,
+    SuperuserRequired,
+)
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
@@ -272,6 +277,11 @@ class Endpoint(APIView):
         and the only permission class is SuperuserPermission. Otherwise, raises
         the appropriate exception according to parent DRF function.
         """
+        required_scopes = getattr(request, INSUFFICIENT_SCOPE_ATTR, None)
+        if required_scopes:
+            # A token was denied for insufficient scope; surface the RFC 6750 challenge.
+            raise InsufficientScope(required_scopes)
+
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]

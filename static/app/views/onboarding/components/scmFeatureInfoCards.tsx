@@ -55,7 +55,7 @@ export function ScmFeatureInfoCards({
 
       <Grid
         gap="2xl"
-        columns={{xs: '1fr', sm: '1fr 1fr'}}
+        columns={{'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}}
         border="secondary"
         radius="lg"
         padding="2xl"

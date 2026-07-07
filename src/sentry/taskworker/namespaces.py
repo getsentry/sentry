@@ -92,6 +92,11 @@ ingest_transactions_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+spans_process_segments_tasks = app.taskregistry.create_namespace(
+    "spans.process_segments",
+    app_feature="spans",
+)
+
 ingest_attachments_tasks = app.taskregistry.create_namespace(
     "ingest.attachments",
     app_feature="attachments",
@@ -278,6 +283,7 @@ telemetry_experience_tasks = app.taskregistry.create_namespace(
     "telemetry-experience",
     app_feature="transactions",
 )
+
 
 tempest_tasks = app.taskregistry.create_namespace(
     "tempest",
