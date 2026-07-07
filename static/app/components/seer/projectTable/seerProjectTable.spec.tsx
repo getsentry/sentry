@@ -118,7 +118,7 @@ describe('SeerProjectTable', () => {
 
     await waitFor(() =>
       expect(errorSpy).toHaveBeenCalledWith(
-        'Non-GitHub repositories only support handing off to Seer.'
+        'Only the Seer agent is supported for non-GitHub repositories.'
       )
     );
     // The change is never committed or persisted.
@@ -162,7 +162,7 @@ describe('SeerProjectTable', () => {
     // The guard drains every page, so the second-page GitLab repo still blocks.
     await waitFor(() =>
       expect(errorSpy).toHaveBeenCalledWith(
-        'Non-GitHub repositories only support handing off to Seer.'
+        'Only the Seer agent is supported for non-GitHub repositories.'
       )
     );
     expect(settingsPut).not.toHaveBeenCalled();

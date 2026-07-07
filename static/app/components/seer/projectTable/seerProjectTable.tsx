@@ -41,6 +41,7 @@ import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
+  NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
@@ -336,6 +337,12 @@ function AgentSelectCell({
   // Tracks the most recent selection so a slow repo check can't commit a value
   // the user has since changed away from (stale async race).
   const latestSelectionRef = useRef<AutofixAgentSelectOption | null>(null);
+  // The table keys rows by index, so this component instance can be recycled
+  // for a different project (re-filter to cached data, project add/remove)
+  // while a repo check is in flight. Track the mounted project so a resolved
+  // check for one project never commits onto another row's form.
+  const projectSlugRef = useRef(projectSlug);
+  projectSlugRef.current = projectSlug;
 
   return (
     <AutoSaveForm
@@ -380,14 +387,16 @@ function AgentSelectCell({
                 addErrorMessage(t('Could not verify repositories. Please try again.'));
                 return;
               }
-              // Bail if the user picked something else while we were verifying.
-              if (latestSelectionRef.current !== newValue) {
+              // Bail if the user picked something else, or this row was
+              // recycled for a different project, while we were verifying.
+              if (
+                latestSelectionRef.current !== newValue ||
+                projectSlugRef.current !== projectSlug
+              ) {
                 return;
               }
               if (hasNonGithubRepo) {
-                addErrorMessage(
-                  t('Non-GitHub repositories only support handing off to Seer.')
-                );
+                addErrorMessage(NON_GITHUB_HANDOFF_WARNING);
                 return;
               }
             }
