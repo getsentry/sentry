@@ -5,12 +5,12 @@ import pytest
 from sentry_conventions.attributes import (
     ATTRIBUTE_METADATA,
     ATTRIBUTE_NAMES,
+    ApplyScrubbing,
+    ApplyScrubbingInfo,
     AttributeMetadata,
     AttributeType,
     DeprecationInfo,
     DeprecationStatus,
-    IsPii,
-    PiiInfo,
     Visibility,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -1116,7 +1116,7 @@ def _make_deprecated_metadata(
     return AttributeMetadata(
         brief="",
         type=attr_type,
-        pii=PiiInfo(isPii=IsPii.FALSE),
+        apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
         deprecation=DeprecationInfo(replacement=replacement, status=status),

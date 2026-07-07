@@ -16,6 +16,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 interface EmptyStateProps {
+  displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
   isError?: boolean;
   isLoading?: boolean;
@@ -27,6 +28,7 @@ export function EmptyState({
   isLoading = false,
   isError = false,
   errorStatusCode = null,
+  displaySlackAgentReminder = false,
   runId,
   onSuggestionClick,
 }: EmptyStateProps) {
@@ -67,6 +69,11 @@ export function EmptyState({
                 </SuggestionButton>
               ))}
             </Flex>
+          )}
+          {displaySlackAgentReminder && (
+            <Text>
+              {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
+            </Text>
           )}
         </Fragment>
       )}

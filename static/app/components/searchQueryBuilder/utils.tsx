@@ -92,7 +92,7 @@ function getSearchConfigFromKeys({
     sizeKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
-  for (const key in keys) {
+  for (const key of Object.keys(keys)) {
     addKeyToSearchConfig(config, key, getFieldDefinition);
   }
 

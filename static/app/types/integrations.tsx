@@ -422,6 +422,7 @@ interface CommonIntegration {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  outOfDate?: boolean | null;
 }
 
 export interface Integration extends CommonIntegration {
@@ -433,6 +434,8 @@ export interface Integration extends CommonIntegration {
       uninstallationUrl?: string;
     };
   };
+  // Present on OrganizationIntegration; for GitHub this is the App installation id.
+  externalId?: string;
   scopes?: string[];
 }
 

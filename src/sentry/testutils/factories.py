@@ -126,7 +126,6 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
@@ -2152,14 +2151,6 @@ class Factories:
             user_id=user.id,
             data=data,
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_saved_search(name: str, **kwargs):
-        if "owner" in kwargs:
-            owner = kwargs.pop("owner")
-            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
-        return SavedSearch.objects.create(name=name, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

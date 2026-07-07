@@ -104,6 +104,7 @@ class Topic(Enum):
     TASKWORKER_LIMITED_DLQ = "taskworker-limited-dlq"
     TASKWORKER_LONG = "taskworker-long"
     TASKWORKER_LONG_DLQ = "taskworker-long-dlq"
+    TASKWORKER_PROCESS_SEGMENTS = "taskworker-process-segments"
     TASKWORKER_PRODUCTS = "taskworker-products"
     TASKWORKER_PRODUCTS_DLQ = "taskworker-products-dlq"
     TASKWORKER_SENTRYAPP = "taskworker-sentryapp"

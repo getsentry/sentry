@@ -7,7 +7,6 @@ from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
-from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,
@@ -53,18 +52,15 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         ):
             return execute_via_metric_alert_handler(invocation)
 
-        organization_id = invocation.detector.project.organization_id
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
-            if features.has("organizations:workflow-engine-evaluate-seer-activities", organization):
-                return execute_via_activity_type_registry(invocation=invocation)
-        except (Exception, Organization.DoesNotExist):
+            return execute_via_activity_type_registry(invocation=invocation)
+        except Exception:
             logger.exception(
                 "Error executing via activity type registry",
                 extra={
                     "action_id": invocation.action.id,
                     "detector_id": invocation.detector.id,
-                    "organization_id": organization_id,
+                    "organization_id": invocation.detector.project.organization_id,
                 },
             )
         return invocation.event_data.event.send_notification()

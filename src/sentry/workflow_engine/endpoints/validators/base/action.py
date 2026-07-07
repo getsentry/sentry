@@ -12,6 +12,8 @@ from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
+DEPRECATED_ACTION_TYPES: frozenset[Action.Type] = frozenset({Action.Type.PLUGIN})
+
 ActionData = dict[str, Any]
 ActionConfig = dict[str, Any]
 
@@ -63,6 +65,10 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
             action_type = Action.Type(value)
         except ValueError:
             raise serializers.ValidationError(f"Invalid action type: {value}")
+        if action_type in DEPRECATED_ACTION_TYPES:
+            raise serializers.ValidationError(
+                f"Action type {value} is deprecated and cannot be created."
+            )
         self._check_action_type(action_type)
         return value
 

@@ -1,12 +1,32 @@
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.sentry_apps.utils.webhooks import SentryAppResourceType, is_subscribed, resource_of
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
+
+
+def test_resource_of() -> None:
+    assert resource_of("issue.resolved") is SentryAppResourceType.ISSUE
+    assert resource_of("comment.deleted") is SentryAppResourceType.COMMENT
+    assert resource_of("seer.root_cause_started") is SentryAppResourceType.SEER
+    # Events outside the subscribable taxonomy (e.g. alerts) resolve to None.
+    assert resource_of("metric_alert.critical") is None
+    assert resource_of("bogus.thing") is None
+
+
+def test_is_subscribed_matches_at_resource_level() -> None:
+    # Subscribing to one issue event subscribes the install to every issue event.
+    assert is_subscribed(["issue.ignored"], "issue.resolved")
+    # A different resource, or nothing, does not match.
+    assert not is_subscribed(["error.created"], "issue.resolved")
+    assert not is_subscribed([], "issue.resolved")
+    # Events whose resource has no subscribable events never match.
+    assert not is_subscribed(["metric_alert.open"], "metric_alert.critical")
 
 
 @cell_silo_test
@@ -141,8 +161,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    def test_broadcast_filters_by_consolidated_events(self, mock_installations, mock_send_webhook):
-        """Test that installations are filtered based on consolidated events."""
+    def test_broadcast_filters_by_subscription(self, mock_installations, mock_send_webhook):
+        """Only installations subscribed to the event's resource are notified."""
         # Create an app that doesn't subscribe to the event resource
         sentry_app_5 = self.create_sentry_app(
             name="App5",
@@ -227,36 +247,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         # No webhook tasks should be queued
         mock_send_webhook.delay.assert_not_called()
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    def test_broadcast_consolidate_events_integration(self, mock_installations, mock_send_webhook):
-        """Test that consolidate_events function is used correctly for filtering."""
-        # Mock installation with specific events
-        mock_installation = Mock()
-        mock_installation.sentry_app.events = ["issue.created", "issue.assigned"]
-        mock_installations.return_value = [mock_installation]
-
-        payload = {"event": "data"}
-
-        # Mock consolidate_events to return the expected resource categories
-        with patch("sentry.sentry_apps.logic.consolidate_events") as mock_consolidate:
-            mock_consolidate.return_value = ["issue"]
-
-            broadcast_webhooks_for_organization(
-                resource_name="issue",
-                event_name="created",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-            # Verify consolidate_events was called with the installation's events
-            mock_consolidate.assert_called_once_with(mock_installation.sentry_app.events)
-
-            # Webhook task should be queued since "issue" is in consolidated events
-            mock_send_webhook.delay.assert_called_once_with(
-                mock_installation.id, "issue.created", payload
-            )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
@@ -460,26 +450,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         payload = {"event": "data"}
 
         with pytest.raises(Exception, match="App service unavailable"):
-            broadcast_webhooks_for_organization(
-                resource_name="issue",
-                event_name="created",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.logic.consolidate_events")
-    def test_broadcast_consolidate_events_exception(
-        self, mock_consolidate, mock_installations, mock_send_webhook
-    ):
-        """Test handling of exceptions from consolidate_events."""
-        mock_installations.return_value = [self.installation_1]
-        mock_consolidate.side_effect = Exception("Consolidation failed")
-
-        payload = {"event": "data"}
-
-        with pytest.raises(Exception, match="Consolidation failed"):
             broadcast_webhooks_for_organization(
                 resource_name="issue",
                 event_name="created",

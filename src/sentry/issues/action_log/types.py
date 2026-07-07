@@ -7,7 +7,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any, Literal, Optional, TypedDict
 
 from pydantic import BaseModel
 
@@ -58,22 +58,13 @@ class GroupActionType(IntEnum):
     """
 
     VIEW = 0
-    RESOLVE = 1
-    UNRESOLVE = 2
-    ARCHIVE = 3
-    ASSIGN = 4
-    UNASSIGN = 5
-    SET_PRIORITY = 6
     MERGE_INTO_OTHER = 7
-    MERGE_FROM_OTHER = 8
     DELETE = 9
     BOOKMARK = 10
-    COMMENT = 11
     COMMENT_EDIT = 12
     COMMENT_DELETE = 13
     SUBSCRIBE = 14
     UNSUBSCRIBE = 15
-    MARK_REVIEWED = 16
     TRIGGER_AUTOFIX = 17
     CREATE_EXTERNAL_ISSUE = 18
     LINK_EXTERNAL_ISSUE = 19
@@ -82,11 +73,50 @@ class GroupActionType(IntEnum):
     LINK_PLATFORM_EXTERNAL_ISSUE = 22
     UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
     AUTOFIX_PR_CREATED = 24
-    RESOLVED_IN_PULL_REQUEST = 25
     ROOT_CAUSE_IDENTIFIED = 26
     AUTOFIX_CODING_COMPLETE = 27
-    SET_REGRESSED = 28
     PULL_REQUEST_CLOSED = 29
+
+    # Certain GroupActions are mirrors of Activity records.
+    # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
+    # By convention, those GroupActionTypes are set to 1000 + the ActivityType value.
+
+    RESOLVE = 1001
+    UNRESOLVE = 1002
+    ARCHIVE = 1003
+    SET_PUBLIC = 1004
+    SET_PRIVATE = 1005
+    SET_REGRESSED = 1006
+    CREATE_ISSUE = 1007
+    COMMENT = 1008
+    # Note that ActivityTypes 9 & 10 are not Group-level, so they are not carried here.
+    ASSIGN = 1011
+    UNASSIGN = 1012
+    SET_RESOLVED_IN_RELEASE = 1013
+    MERGE_FROM_OTHER = 1014
+    SET_RESOLVED_BY_AGE = 1015
+    SET_RESOLVED_IN_COMMIT = 1016
+    DEPLOY = 1017
+    NEW_PROCESSING_ISSUES = 1018
+    UNMERGE_SOURCE = 1019
+    UNMERGE_DESTINATION = 1020
+    RESOLVED_IN_PULL_REQUEST = 1021
+    REPROCESS = 1022
+    MARK_REVIEWED = 1023
+    AUTO_SET_ONGOING = 1024
+    SET_ESCALATING = 1025
+    SET_PRIORITY = 1026
+    DELETED_ATTACHMENT = 1027
+    REFERENCED_IN_COMMIT = 1028
+    SEER_RCA_STARTED = 1029
+    SEER_RCA_COMPLETED = 1030
+    SEER_SOLUTION_STARTED = 1031
+    SEER_SOLUTION_COMPLETED = 1032
+    SEER_CODING_STARTED = 1033
+    SEER_CODING_COMPLETED = 1034
+    SEER_PR_CREATED = 1035
+    SEER_ITERATION_STARTED = 1036
+    SEER_ITERATION_COMPLETED = 1037
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -113,18 +143,35 @@ class ResolveAction(GroupAction):
 
 
 class UnresolveAction(GroupAction):
+    event_id: Optional[str] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNRESOLVE
 
 
 class ArchiveAction(GroupAction):
+    ignore_count: Optional[int] = None
+    ignore_duration: Optional[int] = None
+    ignore_until: Optional[str] = None
+    ignore_user_count: Optional[int] = None
+    ignore_user_window: Optional[int] = None
+    ignore_window: Optional[int] = None
+    ignore_until_escalating: Optional[bool] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.ARCHIVE
 
 
 class AssignAction(GroupAction):
+    assignee: Optional[str] = None
+    assignee_email: Optional[str] = None
+    assignee_name: Optional[str] = None
+    assignee_type: Optional[str] = None
+    integration: Optional[str] = None
+    rule: Optional[str] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.ASSIGN
@@ -138,6 +185,7 @@ class UnassignAction(GroupAction):
 
 class SetPriorityAction(GroupAction):
     priority: str
+    reason: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -172,8 +220,16 @@ class BookmarkAction(GroupAction):
         return GroupActionType.BOOKMARK
 
 
+class SentryActorRef(BaseModel):
+    id: int
+    actor_type: Literal["User", "Team"]
+    slug: str | None
+
+
 class CommentAction(GroupAction):
     comment_id: int
+    text: Optional[str] = None
+    mentions: Optional[list[SentryActorRef]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -316,6 +372,9 @@ class AutofixCodingCompleteAction(GroupAction):
 
 
 class SetRegressedAction(GroupAction):
+    event_id: Optional[str] = None
+    version: Optional[str] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SET_REGRESSED
@@ -340,3 +399,222 @@ class GroupActionLogPayload(TypedDict):
     source: str
     data: dict[str, Any]
     force_async_derived: bool
+
+
+class SetPublicAction(GroupAction):
+    # No activity data.
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_PUBLIC
+
+
+class SetPrivateAction(GroupAction):
+    # No activity data.
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_PRIVATE
+
+
+class CreateIssueAction(GroupAction):
+    title: str
+    provider: str
+    location: str
+    label: str
+    new: Optional[bool] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.CREATE_ISSUE
+
+
+class SetResolvedInReleaseAction(GroupAction):
+    version: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_RESOLVED_IN_RELEASE
+
+
+class SetResolvedByAgeAction(GroupAction):
+    auto_resolve_age_threshold: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_RESOLVED_BY_AGE
+
+
+class SetResolvedInCommitAction(GroupAction):
+    commit: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_RESOLVED_IN_COMMIT
+
+
+class DeployAction(GroupAction):
+    deploy_id: int
+    version: str
+    environment: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.DEPLOY
+
+
+class NewProcessingIssuesAction(GroupAction):
+    reprocessing_active: bool
+    # TODO Break out as separate model?
+    issues: list[dict[str, str | dict[str, str]]]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.NEW_PROCESSING_ISSUES
+
+
+class UnmergeSourceAction(GroupAction):
+    destination_id: int
+    fingerprints: list[str]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNMERGE_SOURCE
+
+
+class UnmergeDestinationAction(GroupAction):
+    source_id: int
+    fingerprints: list[str]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNMERGE_DESTINATION
+
+
+class ReprocessAction(GroupAction):
+    event_count: int
+    old_group_id: int
+    new_group_id: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.REPROCESS
+
+
+class AutoSetOngoingAction(GroupAction):
+    after_days: Optional[int] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.AUTO_SET_ONGOING
+
+
+class SetEscalatingAction(GroupAction):
+    event_id: Optional[str] = None
+    forecast: Optional[int] = None
+    expired_snooze: Optional[dict[str, int | str]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SET_ESCALATING
+
+
+class DeletedAttachmentAction(GroupAction):
+    # No activity data.
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.DELETED_ATTACHMENT
+
+
+class ReferencedInCommitAction(GroupAction):
+    commit: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.REFERENCED_IN_COMMIT
+
+
+class SeerRCAStartedAction(GroupAction):
+    run_id: Optional[int] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_RCA_STARTED
+
+
+class SeerRCACompletedAction(GroupAction):
+    run_id: Optional[int] = None
+    summary: Optional[str] = None
+    # TODO Break out as separate model?
+    root_cause: Optional[dict[str, str | list[str]]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_RCA_COMPLETED
+
+
+class SeerSolutionStartedAction(GroupAction):
+    run_id: Optional[int] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_SOLUTION_STARTED
+
+
+class SeerSolutionCompletedAction(GroupAction):
+    run_id: Optional[int] = None
+    # TODO Break out as separate model?
+    solution: Optional[dict[str, str | list[dict[str, str]]]] = None
+    summary: Optional[str] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_SOLUTION_COMPLETED
+
+
+class SeerCodingStartedAction(GroupAction):
+    run_id: Optional[int] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_CODING_STARTED
+
+
+class SeerCodingCompletedAction(GroupAction):
+    run_id: Optional[int] = None
+    changes: Optional[list[dict[str, str | int]]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_CODING_COMPLETED
+
+
+class SeerPRCreatedAction(GroupAction):
+    run_id: Optional[int] = None
+    # TODO Break out as separate model?
+    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_PR_CREATED
+
+
+class SeerIterationStartedAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_ITERATION_STARTED
+
+
+class SeerIterationCompletedAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_ITERATION_COMPLETED
+
+
+class RelatedPullRequestClosedAction(GroupAction):
+    pull_request: Optional[int | str] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_CLOSED
