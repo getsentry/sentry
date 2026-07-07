@@ -80,16 +80,15 @@ sw.addEventListener('message', event => {
           }
           case 'request': {
             const source = event.source as Client;
-            const client = await sw.clients.get(source.id);
             try {
               const data = await handleInboundRequest(sw, event.data);
-              client?.postMessage({
+              source.postMessage({
                 type: 'response',
                 messageId: event.data.messageId,
                 data,
               } satisfies ResponseMessage);
             } catch (error) {
-              client?.postMessage({
+              source.postMessage({
                 type: 'response',
                 messageId: event.data.messageId,
                 error,
