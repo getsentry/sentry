@@ -8,6 +8,15 @@ from sentry.search.eap.columns import (
     project_term_resolver,
 )
 
+_PROJECT_FIELD_CONTEXTS: dict[str, AttributeContext] = {
+    "project": AttributeContext(
+        brief=(
+            "The name of the project. In some pages of sentry.io, you can also "
+            "filter on project using a dropdown."
+        )
+    ),
+}
+
 _PROJECT_VIRTUAL_CONTEXTS: dict[str, VirtualColumnDefinition] = {
     key: VirtualColumnDefinition(
         constructor=project_context_constructor(key),
@@ -15,6 +24,7 @@ _PROJECT_VIRTUAL_CONTEXTS: dict[str, VirtualColumnDefinition] = {
         filter_column="project.id",
         search_type="string",
         secondary_alias=key != "project",
+        context=_PROJECT_FIELD_CONTEXTS.get(key),
     )
     for key in constants.PROJECT_FIELDS
 }
