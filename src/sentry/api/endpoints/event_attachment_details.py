@@ -79,7 +79,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.FOUNDATIONAL_STORAGE
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PUBLIC,
