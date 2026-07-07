@@ -27,16 +27,20 @@ function getConnectorStatus(provider: MonitoringProvider): ConnectorStatusType {
 interface ConnectorRowProps {
   isConnecting: boolean;
   isDisconnecting: boolean;
+  isReconnecting: boolean;
   onConnect: (provider: MonitoringProvider) => void;
   onDisconnect: (provider: MonitoringProvider) => void;
+  onReconnect: (provider: MonitoringProvider) => void;
   provider: MonitoringProvider;
 }
 
 export function ConnectorRow({
   provider,
   onConnect,
+  onReconnect,
   onDisconnect,
   isConnecting,
+  isReconnecting,
   isDisconnecting,
 }: ConnectorRowProps) {
   const status = getConnectorStatus(provider);
@@ -66,8 +70,8 @@ export function ConnectorRow({
           variant="primary"
           size="sm"
           icon={<IconRefresh />}
-          onClick={() => onConnect(provider)}
-          busy={isConnecting}
+          onClick={() => onReconnect(provider)}
+          busy={isReconnecting}
         >
           {t('Reconnect')}
         </Button>

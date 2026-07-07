@@ -114,6 +114,28 @@ function SeerConnectorsContent() {
     },
   });
 
+  const reconnectMutation = useMutation({
+    mutationFn: (provider: string) =>
+      fetchMutation<{redirectUrl: string}>({
+        method: 'PUT',
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              providerKey: provider,
+            },
+          }
+        ),
+      }),
+    onSuccess: responseData => {
+      testableWindowLocation.assign(responseData.redirectUrl);
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to start reconnection.'));
+    },
+  });
+
   function handleConnect(provider: MonitoringProvider) {
     if (PAT_PROVIDERS.has(provider.provider)) {
       openModal(modalProps => (
@@ -137,6 +159,27 @@ function SeerConnectorsContent() {
       params.site = 'datadoghq.com';
     }
     connectMutation.mutate(params);
+  }
+
+  function handleReconnect(provider: MonitoringProvider) {
+    if (PAT_PROVIDERS.has(provider.provider)) {
+      openModal(modalProps => (
+        <DatadogPatConnectModal
+          {...modalProps}
+          orgSlug={organization.slug}
+          isReauth
+          onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: monitoringProvidersQueryOptions(organization.slug).queryKey,
+            });
+            addSuccessMessage(t('Provider reconnected.'));
+          }}
+        />
+      ));
+      return;
+    }
+
+    reconnectMutation.mutate(provider.provider);
   }
 
   function handleDisconnect(provider: MonitoringProvider) {
@@ -168,10 +211,15 @@ function SeerConnectorsContent() {
                 key={provider.provider}
                 provider={provider}
                 onConnect={handleConnect}
+                onReconnect={handleReconnect}
                 onDisconnect={handleDisconnect}
                 isConnecting={
                   connectMutation.isPending &&
                   connectMutation.variables.provider === provider.provider
+                }
+                isReconnecting={
+                  reconnectMutation.isPending &&
+                  reconnectMutation.variables === provider.provider
                 }
                 isDisconnecting={
                   disconnectMutation.isPending &&
