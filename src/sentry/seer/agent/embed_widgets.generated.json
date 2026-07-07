@@ -11,11 +11,12 @@
           "type": "string"
         },
         "format": {
+          "default": "absolute",
           "type": "string",
-          "enum": ["relative"]
+          "enum": ["absolute", "relative"]
         }
       },
-      "required": ["value"],
+      "required": ["value", "format"],
       "additionalProperties": false
     }
   }

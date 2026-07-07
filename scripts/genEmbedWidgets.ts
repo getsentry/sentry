@@ -2,7 +2,7 @@
 
 /**
  * Generates src/sentry/seer/agent/embed_widgets.generated.json from the
- * frontend SeerTag schema definitions.
+ * frontend Seer embed schema definitions.
  *
  * Usage:
  *   pnpm gen:embed-widgets
@@ -13,7 +13,7 @@ import {fileURLToPath} from 'node:url';
 
 // @ts-expect-error — Node --experimental-transform-types requires .ts extension
 // eslint-disable-next-line boundaries/dependencies -- codegen script
-import {seerTagsToJsonSchemas} from '../static/app/views/seerExplorer/components/chat/seerTags.ts';
+import {seerEmbedsToJsonSchemas} from '../static/app/components/seer/markdown/embeds/schemas.ts';
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.resolve(
@@ -21,9 +21,8 @@ const OUT_PATH = path.resolve(
   '../src/sentry/seer/agent/embed_widgets.generated.json'
 );
 
-const widgets = seerTagsToJsonSchemas();
+const widgets = seerEmbedsToJsonSchemas();
 
 writeFileSync(OUT_PATH, JSON.stringify(widgets, null, 2) + '\n');
 
-// eslint-disable-next-line no-console
 console.log(`Wrote ${widgets.length} embed widget(s) to ${OUT_PATH}`);
