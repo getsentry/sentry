@@ -16,6 +16,7 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
@@ -125,6 +126,16 @@ def assert_serializer_results_match(
             del rule_action_data["legacy_rule_id"]
         if rule_action_data.get("workflow_id"):
             del rule_action_data["workflow_id"]
+        # NotifyEventAction dual-writes to WEBHOOK("webhooks"), which serializes back as
+        # NotifyEventServiceAction(service="webhooks"). This divergence is intentional, so treat the
+        # two forms as equal.
+        if (
+            rule_action_data.get("id") == "sentry.rules.actions.notify_event.NotifyEventAction"
+            and workflow_action_data.get("id")
+            == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+            and workflow_action_data.get("service") == "webhooks"
+        ):
+            continue
         assert rule_action_data == workflow_action_data
 
     # XXX: actionMatch is always coerced to 'any-short' for a Workflow as it is the only acceptable value
@@ -333,6 +344,12 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # NotifyEventAction (used by several tests) only dual-writes a WEBHOOK action when webhooks
+        # are enabled; enable it so the parity checks have a comparable action to compare.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     def mock_conversations_list(self, channels):
         return patch(

@@ -137,8 +137,12 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
             try:
                 notification_actions_data = translate_rule_data_actions_to_notification_actions(
-                    [action_blob], skip_failures=False
+                    [action_blob], skip_failures=False, project=rule.project
                 )
+                # An action can translate to nothing (e.g. a NotifyEventAction on a project without
+                # legacy webhooks enabled), leaving no action to test-fire, so skip it.
+                if not notification_actions_data:
+                    continue
                 actions = [Action(**action_data) for action_data in notification_actions_data]
                 action = actions[0]
                 action.id = TEST_NOTIFICATION_ID
