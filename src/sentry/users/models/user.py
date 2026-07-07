@@ -428,7 +428,6 @@ class User(Model, AbstractBaseUser):
             )
 
             # Update all organization control models that don't use user_id
-            #
             with enforce_constraints(
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
             ):
@@ -438,6 +437,10 @@ class User(Model, AbstractBaseUser):
                 ):
                     token.created_by_id = to_user_id
                     token.save()
+
+        # Update any member map records where the the merged user was the inviter
+        queryset = OrganizationMemberMapping.objects.filter(inviter_id=from_user_id)
+        queryset.update(inviter_id=to_user_id)
 
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
