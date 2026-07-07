@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -151,18 +151,18 @@ function LegacyTimelineItem({
   return (
     <ActivityTimelineItem
       title={
-        <Flex gap="xs" align="center" justify="start">
-          <TitleTooltip title={title} showOnlyOnOverflow>
-            {title}
-          </TitleTooltip>
-          {item.type === GroupActivityType.NOTE && !editing && (
+        <TitleRow>
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+            <TitleText>{title}</TitleText>
+          </Tooltip>
+          {item.type === GroupActivityType.NOTE && !editing ? (
             <CommentActionsDropdown
               onDelete={() => handleDelete(item)}
               onEdit={() => setEditing(true)}
               user={item.user}
             />
-          )}
-        </Flex>
+          ) : null}
+        </TitleRow>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
       icon={
@@ -382,15 +382,43 @@ export function ActivitySection({
   );
 }
 
-const TitleTooltip = styled(Tooltip)`
-  justify-self: start;
+const TitleRow = styled('span')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  max-width: 100%;
+`;
+
+const TitleText = styled('span')`
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  > * {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: start;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+
+  ${Timeline.TitleRow} {
+    min-width: 0;
+  }
+
+  ${Timeline.Title} {
+    min-width: 0;
+    max-width: 100%;
+  }
 `;
 
 const Timestamp = styled(TimeSince)`
