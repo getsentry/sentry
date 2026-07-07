@@ -127,6 +127,7 @@ function SeerConnectorsContent() {
             },
           }
         ),
+        data: {return_url: monitoringProvidersSettingsPath(organization)},
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);
