@@ -65,6 +65,10 @@ describe('useIssuePreviewDrawer', () => {
       url: '/organizations/org-slug/issues/42/integrations/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/pull-requests/',
+      body: {pullRequests: []},
+    });
   });
 
   it('sets the preview query param when opening a preview', async () => {

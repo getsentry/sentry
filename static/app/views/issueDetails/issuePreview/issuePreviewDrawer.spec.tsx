@@ -52,6 +52,10 @@ describe('IssuePreviewDrawer', () => {
       url: '/organizations/org-slug/issues/123/integrations/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/pull-requests/',
+      body: {pullRequests: []},
+    });
   });
 
   it('renders the issue short ID and title', async () => {
@@ -199,6 +203,10 @@ describe('IssuePreviewDrawer', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
 
     const updateRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
@@ -275,7 +283,7 @@ describe('IssuePreviewDrawer', () => {
 
     render(<IssuePreviewDrawer groupId={group.id} />);
 
-    expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();

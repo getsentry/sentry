@@ -87,7 +87,11 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
 function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
-  const {data: event} = useGroupEvent({groupId: group.id, eventId: 'recommended'});
+  const {data: event} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'recommended',
+    options: {enabled: true},
+  });
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [

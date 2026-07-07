@@ -113,6 +113,10 @@ describe('AwaitingInputPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/integrations/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
 
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
