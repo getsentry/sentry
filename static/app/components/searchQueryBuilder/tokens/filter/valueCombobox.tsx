@@ -217,7 +217,8 @@ export function getPredefinedValues({
     return null;
   }
 
-  const definedValues = Array.isArray(key?.values) ? key.values : fieldDefinition?.values;
+  const keyValues = Array.isArray(key?.values) ? key.values : undefined;
+  const definedValues = keyValues ?? fieldDefinition?.values;
   const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {

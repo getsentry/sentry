@@ -24,7 +24,7 @@ export function useAggregateParamVisual({token}: UseAggregateParamVisualOptions)
             ? filterKeys[argumentText]
             : undefined;
           if (argumentKey) {
-            const argumentDefinition = getFieldDefinition(arg.value?.text ?? '');
+            const argumentDefinition = getFieldDefinition(argumentText);
             argumentText = getKeyLabel(argumentKey, argumentDefinition);
           }
         }
