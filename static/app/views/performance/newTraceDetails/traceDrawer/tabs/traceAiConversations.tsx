@@ -16,8 +16,16 @@ import {
   ConversationSplitLayout,
   ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
+import {
+  ConversationSpanDetail,
+  type DetailTab,
+} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+import {
+  MessagesPanelNew,
+  MessagesPanelSkeleton,
+} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -40,6 +48,7 @@ export function TraceAiConversations({
   traceSlug,
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
+  const hasRedesign = hasGenAiConversationsRedesignFeature(organization);
   const [activeSubTab, setActiveSubTab] = useState('spans');
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
@@ -73,29 +82,30 @@ export function TraceAiConversations({
     [conversationNodes, nodeTraceMap, traceSlug]
   );
 
-  const hasRedesign = hasGenAiConversationsRedesignFeature(organization);
+  const tabItems = useMemo((): Array<{
+    conversationId: string | null;
+    key: string;
+    label: string;
+  }> => {
+    const spansTab = {
+      key: 'spans',
+      label: hasRedesign ? t('Timeline') : t('Spans'),
+      conversationId: null,
+    };
+    const conversationTabs = conversationIds.map(id => ({
+      key: `chat-${id}`,
+      label: hasRedesign
+        ? conversationIds.length === 1
+          ? t('Transcript')
+          : t('Transcript %s', id.slice(0, 8))
+        : conversationIds.length === 1
+          ? t('Chat')
+          : t('Chat %s', id.slice(0, 8)),
+      conversationId: id,
+    }));
 
-  const tabItems = useMemo(
-    (): Array<{conversationId: string | null; key: string; label: string}> => [
-      {
-        key: 'spans',
-        label: hasRedesign ? t('Timeline') : t('Spans'),
-        conversationId: null,
-      },
-      ...conversationIds.map(id => ({
-        key: `chat-${id}`,
-        label: hasRedesign
-          ? conversationIds.length === 1
-            ? t('Transcript')
-            : t('Transcript %s', id.slice(0, 8))
-          : conversationIds.length === 1
-            ? t('Chat')
-            : t('Chat %s', id.slice(0, 8)),
-        conversationId: id,
-      })),
-    ],
-    [conversationIds, hasRedesign]
-  );
+    return [spansTab, ...conversationTabs];
+  }, [conversationIds, hasRedesign]);
 
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
   const conversationUrl = linkConversationId
@@ -140,14 +150,25 @@ export function TraceAiConversations({
             {tabItems.map(item =>
               item.conversationId ? (
                 <TabPanels.Item key={item.key}>
-                  <TraceConversationChat
-                    nodes={traceNodes}
-                    nodeTraceMap={nodeTraceMap}
-                    isLoading={isLoading}
-                    error={error}
-                    selectedSpanId={selectedSpanId}
-                    onSelectSpan={handleSelectSpan}
-                  />
+                  {hasRedesign ? (
+                    <TraceConversationTranscript
+                      nodes={traceNodes}
+                      nodeTraceMap={nodeTraceMap}
+                      isLoading={isLoading}
+                      error={error}
+                      selectedSpanId={selectedSpanId}
+                      onSelectSpan={handleSelectSpan}
+                    />
+                  ) : (
+                    <TraceConversationChat
+                      nodes={traceNodes}
+                      nodeTraceMap={nodeTraceMap}
+                      isLoading={isLoading}
+                      error={error}
+                      selectedSpanId={selectedSpanId}
+                      onSelectSpan={handleSelectSpan}
+                    />
+                  )}
                 </TabPanels.Item>
               ) : (
                 <TabPanels.Item key={item.key}>
@@ -240,6 +261,81 @@ function TraceConversationChat({
             selectedNode={selectedNode}
             nodeTraceMap={nodeTraceMap}
           />
+        }
+      />
+    </TraceStateProvider>
+  );
+}
+
+function TraceConversationTranscript({
+  nodes,
+  nodeTraceMap,
+  isLoading,
+  error,
+  selectedSpanId,
+  onSelectSpan,
+}: {
+  error: boolean;
+  isLoading: boolean;
+  nodeTraceMap: Map<string, string>;
+  nodes: AITraceSpanNode[];
+  onSelectSpan: (spanId: string) => void;
+  selectedSpanId: string | null;
+}) {
+  const {selectedNode, handleSelectNode} = useConversationSelection({
+    nodes,
+    selectedSpanId,
+    onSelectSpan,
+    isLoading,
+    autoSelectDefaultNode: false,
+  });
+
+  const [detailTab, setDetailTab] = useState<DetailTab>('input');
+
+  if (isLoading) {
+    return <MessagesPanelSkeleton />;
+  }
+
+  if (error) {
+    return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
+  }
+
+  if (nodes.length === 0) {
+    return (
+      <EmptyMessage>
+        {t('No chat messages in this portion of the conversation')}
+      </EmptyMessage>
+    );
+  }
+
+  return (
+    <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+      <ConversationSplitLayout
+        sizeStorageKey="trace-conversation-split-size"
+        left={
+          <ConversationLeftPanel>
+            <Flex flex="1" minHeight="0" overflowY="auto">
+              <MessagesPanelNew
+                nodes={nodes}
+                selectedNodeId={selectedNode?.id ?? null}
+                onSelectNode={handleSelectNode}
+                nodeTraceMap={nodeTraceMap}
+              />
+            </Flex>
+          </ConversationLeftPanel>
+        }
+        right={
+          selectedNode ? (
+            <ConversationSpanDetail
+              node={selectedNode}
+              traceId={nodeTraceMap.get(selectedNode.id) ?? ''}
+              activeTab={detailTab}
+              onTabChange={setDetailTab}
+              embedded
+            />
+          ) : (
+            <EmptyMessage>{t('Select a span to see its details')}</EmptyMessage>
+          )
         }
       />
     </TraceStateProvider>

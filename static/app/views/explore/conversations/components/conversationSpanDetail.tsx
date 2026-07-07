@@ -20,6 +20,8 @@ import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetail
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {
+  getGenAiOpType,
+  getGenAiOpTypeIcon,
   getSpanColor,
   getTimelineColorByOpType,
   getTraceNodeAttribute,
@@ -132,13 +134,9 @@ export function ConversationSpanDetail({
     >
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
-          <Container
-            width="16px"
-            height="16px"
-            flexShrink={0}
-            radius="2xs"
-            style={{backgroundColor: squareColor}}
-          />
+          <Flex flexShrink={0} style={{color: squareColor}}>
+            {getGenAiOpTypeIcon(getGenAiOpType(node))}
+          </Flex>
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <Text size="md" bold ellipsis>
               {title}
