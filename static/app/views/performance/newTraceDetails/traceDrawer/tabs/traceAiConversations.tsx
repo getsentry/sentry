@@ -21,7 +21,10 @@ import {
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
-import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+import {
+  MessagesPanelNew,
+  MessagesPanelSkeleton,
+} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -284,7 +287,7 @@ function TraceConversationTranscript({
   const [detailTab, setDetailTab] = useState<DetailTab>('input');
 
   if (isLoading) {
-    return <ConversationViewSkeleton />;
+    return <MessagesPanelSkeleton />;
   }
 
   if (error) {
