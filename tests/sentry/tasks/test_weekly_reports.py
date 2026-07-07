@@ -1054,12 +1054,16 @@ class WeeklyReportsTest(
             "color": "#7553FF",
             "accepted_error_count": 1,
             "accepted_transaction_count": 3,
+            "new_substatus_count": 0,
+            "escalating_substatus_count": 0,
+            "regression_substatus_count": 0,
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
             "color": "#7553FF",
             "error_count": 1,
             "transaction_count": 3,
+            "issue_count": 0,
         }
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")

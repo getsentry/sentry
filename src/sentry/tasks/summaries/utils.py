@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 from django.db.models import Count
+from django.db.models.functions import TruncDay
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -82,6 +83,7 @@ class ProjectContext:
     escalating_substatus_count = 0
     regression_substatus_count = 0
     total_substatus_count = 0
+    prev_week_total_substatus_count = 0
 
     def __init__(self, project):
         self.project = project
@@ -99,6 +101,8 @@ class ProjectContext:
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
         self.transaction_count_by_day = {}
+        # Dictionary of { timestamp: count }
+        self.issue_count_by_day = {}
 
     def __repr__(self) -> str:
         return "\n".join(
@@ -675,6 +679,22 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         if item["substatus"] == GroupSubStatus.REGRESSED:
             project_ctx.regression_substatus_count = item["total"]
         project_ctx.total_substatus_count += item["total"]
+
+
+def organization_project_issue_counts_by_day(start, end, ctx) -> list[dict[str, Any]]:
+    """Count unique unresolved issues per project per day, bucketed by last_seen date."""
+    daily_counts = (
+        Group.objects.filter(
+            project__organization_id=ctx.organization.id,
+            last_seen__gte=start,
+            last_seen__lt=end,
+            status=GroupStatus.UNRESOLVED,
+        )
+        .annotate(day=TruncDay("last_seen"))
+        .values("project_id", "day")
+        .annotate(total=Count("id"))
+    )
+    return list(daily_counts)
 
 
 PAST_ISSUES_CANDIDATE_LIMIT = 50
