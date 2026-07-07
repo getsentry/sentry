@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +26,6 @@ import type {ToolUseBlockProps} from './shared';
 import {
   type BlockStatus,
   MessagePlaceholder,
-  SeerMarkdown,
   Spinner,
   getBlockStatus,
   hasValidContent,
