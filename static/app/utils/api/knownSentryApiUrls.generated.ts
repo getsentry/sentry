@@ -47,6 +47,7 @@ export type KnownSentryApiUrls =
   | '/internal/frontend-version/'
   | '/internal/health/'
   | '/internal/integration-proxy/'
+  | '/internal/llm-proxy/key/'
   | '/internal/mail/'
   | '/internal/notifications/registered-templates/'
   | '/internal/options/'
