@@ -196,7 +196,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             {
                 "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {"target_type": 4},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -223,7 +223,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             {
                 "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {"target_type": 4},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -245,7 +245,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             {
                 "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {"target_type": 4},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
