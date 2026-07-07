@@ -172,6 +172,7 @@ export function ConversationViewContentNew({
                   minHeight={{xs: 'auto', sm: '0'}}
                 >
                   <ConversationSpanDetail
+                    scrollResetKey={activeTab}
                     node={selectedNode}
                     traceId={nodeTraceMap?.get(selectedNode.id) ?? ''}
                     activeTab={detailState.detailTab}

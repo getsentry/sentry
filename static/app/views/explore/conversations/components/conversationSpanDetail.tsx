@@ -71,6 +71,8 @@ interface ConversationSpanDetailProps {
   embedded?: boolean;
   /** When provided, a close button is shown in the header. */
   onClose?: () => void;
+  /** Scrolls the panel back to the top whenever this value changes. */
+  scrollResetKey?: string;
 }
 
 export function ConversationSpanDetail({
@@ -81,26 +83,14 @@ export function ConversationSpanDetail({
   onClose,
   avgDuration,
   embedded,
+  scrollResetKey,
 }: ConversationSpanDetailProps) {
   const theme = useTheme();
-  const tabContentRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset the scroll position to the top when switching tabs, otherwise the
-  // shared scroll container keeps the previous tab's offset. In the fixed-height
-  // layout the tab container is its own scroll region; on narrow screens it
-  // flows into the page's scroll container, so scrolling it is a no-op — bring
-  // its top back into view instead.
   useEffect(() => {
-    const el = tabContentRef.current;
-    if (!el) {
-      return;
-    }
-    if (getComputedStyle(el).overflowY === 'visible') {
-      el.scrollIntoView({block: 'start'});
-    } else {
-      el.scrollTo({top: 0});
-    }
-  }, [activeTab]);
+    scrollContainerRef.current?.scrollTo({top: 0});
+  }, [scrollResetKey]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
   // returned by the conversation list endpoint, so they're fetched per span.
@@ -127,6 +117,7 @@ export function ConversationSpanDetail({
 
   return (
     <Stack
+      ref={scrollContainerRef}
       background="primary"
       border={embedded ? undefined : 'primary'}
       radius={embedded ? undefined : 'md'}
@@ -135,7 +126,9 @@ export function ConversationSpanDetail({
       flex="1"
       minWidth="0"
       minHeight="0"
-      height={embedded ? '100%' : {xs: 'auto', md: '100%'}}
+      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
+      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
+      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
     >
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
@@ -189,12 +182,11 @@ export function ConversationSpanDetail({
         </Flex>
 
         <Container
-          ref={tabContentRef}
-          flex={embedded ? '1' : {xs: '0 0 auto', md: '1'}}
+          flex="0 0 auto"
           minHeight="0"
           width="100%"
-          overflowY={embedded ? 'auto' : {xs: 'visible', md: 'auto'}}
-          overflowX={embedded ? 'hidden' : {xs: 'visible', md: 'hidden'}}
+          overflowX="visible"
+          overflowY="visible"
           // Gutter so the scroll container doesn't clip a focused input's focus ring.
           padding="xs"
         >

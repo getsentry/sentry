@@ -101,7 +101,7 @@ function ConversationsOverviewPage() {
         <Layout.Main width="full">
           <Stack gap="md">
             <Flex gap="md" align="center" wrap="wrap">
-              <Flex gap="md" align="center">
+              <Flex gap="md" align="center" wrap="wrap">
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
                   <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
