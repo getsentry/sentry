@@ -1,3 +1,5 @@
+from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -84,3 +86,87 @@ class OrganizationGroupIndexProgressTest(APITestCase):
                 groups=[group.id],
                 status_code=404,
             )
+
+
+@with_feature("organizations:issue-stream-progress-ui")
+class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-index-progress"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_param_opt_in(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupDerivedData.objects.create(group=group, progress=IssueProgressState.DIAGNOSED)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            groups=[group.id],
+            use_derived_data="true",
+        )
+        assert response.data == {"results": {str(group.id): {"progress": "diagnosed"}}}
+
+    def test_default_uses_activity(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupDerivedData.objects.create(group=group, progress=IssueProgressState.DIAGNOSED)
+
+        # No param → defaults to false → Activity-based. No activities → "identified".
+        response = self.get_success_response(
+            self.organization.slug,
+            groups=[group.id],
+        )
+        assert response.data == {"results": {str(group.id): {"progress": "identified"}}}
+
+    def test_closed_issue_maps_to_fix_applied(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupDerivedData.objects.create(group=group, progress=None)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            groups=[group.id],
+            use_derived_data="true",
+        )
+        assert response.data == {"results": {str(group.id): {"progress": "fix_applied"}}}
+
+    def test_missing_row_defaults_to_identified(self) -> None:
+        group = self.create_group(project=self.project)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            groups=[group.id],
+            use_derived_data="true",
+        )
+        assert response.data == {"results": {str(group.id): {"progress": "identified"}}}
+
+    def test_mixed_groups(self) -> None:
+        group_a = self.create_group(project=self.project)
+        group_b = self.create_group(project=self.project)
+        GroupDerivedData.objects.create(group=group_a, progress=IssueProgressState.FIX_PROPOSED)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            groups=[group_a.id, group_b.id],
+            use_derived_data="true",
+        )
+        assert response.data == {
+            "results": {
+                str(group_a.id): {"progress": "fix_proposed"},
+                str(group_b.id): {"progress": "identified"},
+            }
+        }
+
+    def test_all_progress_states(self) -> None:
+        groups = {}
+        for state in IssueProgressState:
+            g = self.create_group(project=self.project)
+            GroupDerivedData.objects.create(group=g, progress=state)
+            groups[state] = g
+
+        response = self.get_success_response(
+            self.organization.slug,
+            groups=[g.id for g in groups.values()],
+            use_derived_data="true",
+        )
+        for state, g in groups.items():
+            assert response.data["results"][str(g.id)] == {"progress": state.value}
