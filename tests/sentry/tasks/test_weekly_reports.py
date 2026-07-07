@@ -38,6 +38,7 @@ from sentry.tasks.summaries.utils import (
     _project_key_performance_issues_snuba,
     fetch_past_resolved_issue_links,
     org_key_errors,
+    organization_project_issue_counts_by_day,
     organization_project_issue_substatus_summaries,
     project_key_errors,
     project_past_resolved_issues,
@@ -1065,6 +1066,344 @@ class WeeklyReportsTest(
             "transaction_count": 3,
             "issue_count": 0,
         }
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_issue_counts_in_trends(self, message_builder: mock.MagicMock) -> None:
+        """Verify non-zero issue data flows through trends when unresolved groups exist."""
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=1
+        )
+
+        three_days_ago = self.three_days_ago.isoformat()
+        two_days_ago = self.two_days_ago.isoformat()
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "new issue",
+                "timestamp": three_days_ago,
+                "fingerprint": ["issue-new"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event1.group.substatus = GroupSubStatus.NEW
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "escalating issue",
+                "timestamp": three_days_ago,
+                "fingerprint": ["issue-escalating"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2.group.substatus = GroupSubStatus.ESCALATING
+        event2.group.save()
+
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "regressed issue",
+                "timestamp": two_days_ago,
+                "fingerprint": ["issue-regressed"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event3.group.substatus = GroupSubStatus.REGRESSED
+        event3.group.save()
+
+        event4 = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "ongoing issue",
+                "timestamp": two_days_ago,
+                "fingerprint": ["issue-ongoing"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event4.group.substatus = GroupSubStatus.ONGOING
+        event4.group.save()
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            ctx = call_args.kwargs["context"]
+            trends = ctx["trends"]
+
+            assert trends["total_issue_count"] == 4
+            assert trends["issue_maximum"] > 0
+
+            legend = trends["legend"][0]
+            assert legend["new_substatus_count"] == 1
+            assert legend["escalating_substatus_count"] == 1
+            assert legend["regression_substatus_count"] == 1
+
+            has_nonzero_issue_day = any(
+                entry["issue_count"] > 0
+                for _, project_series in trends["series"]
+                for entry in project_series
+            )
+            assert has_nonzero_issue_day
+
+    def test_organization_project_issue_counts_by_day_query(self) -> None:
+        """Verify organization_project_issue_counts_by_day returns non-zero daily counts."""
+        three_days_ago = self.three_days_ago.isoformat()
+        two_days_ago = self.two_days_ago.isoformat()
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "issue A",
+                "timestamp": three_days_ago,
+                "fingerprint": ["group-a"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event1.group.substatus = GroupSubStatus.NEW
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "issue B",
+                "timestamp": two_days_ago,
+                "fingerprint": ["group-b"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2.group.substatus = GroupSubStatus.ESCALATING
+        event2.group.save()
+
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "issue C",
+                "timestamp": two_days_ago,
+                "fingerprint": ["group-c"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event3.group.substatus = GroupSubStatus.REGRESSED
+        event3.group.save()
+
+        # Resolved issues should NOT be counted
+        event4 = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "resolved issue",
+                "timestamp": two_days_ago,
+                "fingerprint": ["group-d"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event4.group.status = GroupStatus.RESOLVED
+        event4.group.substatus = None
+        event4.group.save()
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        results = organization_project_issue_counts_by_day(start=ctx.start, end=ctx.end, ctx=ctx)
+
+        by_day = {}
+        for row in results:
+            assert row["project_id"] == self.project.id
+            by_day[row["day"]] = row["total"]
+
+        assert len(by_day) == 2
+        total = sum(by_day.values())
+        assert total == 3
+
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_issue_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
+        """Verify issue WoW percentage change uses non-zero values from both weeks."""
+        from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
+
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=1
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "current week issue 1",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["cw-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event1.group.substatus = GroupSubStatus.NEW
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "current week issue 2",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["cw-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2.group.substatus = GroupSubStatus.ESCALATING
+        event2.group.save()
+
+        cache_project_metrics(
+            self.organization.id,
+            {self.project.id: {"e": 1, "t": 0, "i": 1}},
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["issue_pct_change"] == "▲ 100%"
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_issue_counts_multi_project(self, message_builder: mock.MagicMock) -> None:
+        """Verify issue data aggregates correctly across multiple projects."""
+        project2 = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            date_added=self.now - timedelta(days=90),
+        )
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=1
+        )
+        self.store_event_outcomes(
+            self.organization.id, project2.id, self.three_days_ago, num_times=1
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "project1 issue",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["p1-issue"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event1.group.substatus = GroupSubStatus.NEW
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "project2 issue 1",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["p2-issue-1"],
+            },
+            project_id=project2.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2.group.substatus = GroupSubStatus.ESCALATING
+        event2.group.save()
+
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "project2 issue 2",
+                "timestamp": self.two_days_ago.isoformat(),
+                "fingerprint": ["p2-issue-2"],
+            },
+            project_id=project2.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event3.group.substatus = GroupSubStatus.REGRESSED
+        event3.group.save()
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            ctx = call_args.kwargs["context"]
+            trends = ctx["trends"]
+
+            assert trends["total_issue_count"] == 3
+
+            legend_substatus_total = sum(
+                entry["new_substatus_count"]
+                + entry["escalating_substatus_count"]
+                + entry["regression_substatus_count"]
+                for entry in trends["legend"]
+                if not entry["slug"].startswith("Total")
+            )
+            assert legend_substatus_total == 3
+
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_issue_cache_round_trip(self, message_builder: mock.MagicMock) -> None:
+        """Verify the 'i' key in cache is written and read correctly for WoW."""
+        from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
+
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=1
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "an issue",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["cache-issue-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event1.group.substatus = GroupSubStatus.NEW
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "another issue",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["cache-issue-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2.group.substatus = GroupSubStatus.ONGOING
+        event2.group.save()
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        cached = read_project_metrics(self.organization.id, [self.project.id])
+        assert self.project.id in cached
+        assert cached[self.project.id]["i"] == 2
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_empty_report(self, mock_send_email: mock.MagicMock) -> None:
