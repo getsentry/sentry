@@ -29,6 +29,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_transaction_volumes,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
+    SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     DynamicSamplingStatus,
     emit_status,
     track_dynamic_sampling,
@@ -37,18 +38,18 @@ from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.namespaces import dynamic_sampling_tasks, telemetry_experience_tasks
 from sentry.utils.cursored_scheduler import CursoredScheduler
 
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
-SCHEDULER_METRIC = "dynamic_sampling.schedule_per_org_calculations.org_status"
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
-    namespace=telemetry_experience_tasks,
+    namespace=dynamic_sampling_tasks,
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
+    expires=10 * 60,  # discard if not picked up within one cycle
     silo_mode=SiloMode.CELL,
 )
 def run_calculations_per_org_task_entry(org_id: OrganizationId) -> None:
@@ -134,9 +135,16 @@ def schedule_per_org_calculations() -> None:
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
-        jitter=True,
     )
     scheduler.tick()
 
-    emit_status(SCHEDULER_METRIC, DynamicSamplingStatus.DISPATCHED, amount=dispatched)
-    emit_status(SCHEDULER_METRIC, DynamicSamplingStatus.ROLLOUT_EXCLUDED, amount=skipped)
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        DynamicSamplingStatus.DISPATCHED,
+        amount=dispatched,
+    )
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        DynamicSamplingStatus.ROLLOUT_EXCLUDED,
+        amount=skipped,
+    )
