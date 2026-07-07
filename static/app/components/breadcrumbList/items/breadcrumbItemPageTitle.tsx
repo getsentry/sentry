@@ -80,6 +80,7 @@ export function BreadcrumbItemPageTitle({
             // inside it. Mirrors the legacy breadcrumb's current-crumb rendering.
             <Text
               ellipsis
+              bold
               variant="primary"
               data-test-id="breadcrumb-item"
               {...styleProps}
