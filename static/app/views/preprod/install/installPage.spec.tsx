@@ -95,7 +95,11 @@ describe('InstallPage', () => {
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
 
-    expect(within(topbarSlot).getByRole('link', {name: 'Releases'})).toBeInTheDocument();
+    const releasesLink = within(topbarSlot).getByRole('link', {name: 'Releases'});
+    expect(releasesLink).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/releases/?tab=mobile-builds&display=distribution&query=installable%3Atrue`
+    );
     expect(within(topbarSlot).getByText('Install')).toBeInTheDocument();
   });
 });

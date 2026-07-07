@@ -9,13 +9,10 @@ export function makeReleasesUrl(
   projectId: string | undefined,
   {display, query, tab = 'mobile-builds'}: ReleasesUrlParams = {}
 ): string {
-  // Not knowing the projectId should be transient.
-  if (projectId === undefined) {
-    return '#';
-  }
-
   const params = new URLSearchParams();
-  params.set('project', projectId);
+  if (projectId !== undefined) {
+    params.set('project', projectId);
+  }
   params.set('tab', tab);
 
   if (display) {
