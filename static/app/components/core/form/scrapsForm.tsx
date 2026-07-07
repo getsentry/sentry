@@ -1,4 +1,3 @@
-import {createContext, useContext} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {
   createFormHook,
@@ -25,12 +24,13 @@ import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
-import {fieldContext, formContext, useFormContext} from './formContext';
-
-// Safari doesn't submit a form when the button has an explicit `form` attribute
-// pointing at its own parent form. Only set the attribute when the button is
-// rendered outside the <form> element.
-const InsideFormElement = createContext(false);
+import {
+  FormElementContext,
+  fieldContext,
+  formContext,
+  useFormContext,
+  useIsInsideFormElement,
+} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
@@ -79,7 +79,7 @@ const {useAppForm, withFieldGroup, withForm} = createFormHook({
 
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
-  const isInsideForm = useContext(InsideFormElement);
+  const isInsideForm = useIsInsideFormElement();
   return (
     <form.Subscribe selector={state => state.isSubmitting}>
       {isSubmitting => (
@@ -136,7 +136,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
         form.handleSubmit();
       }}
     >
-      <InsideFormElement.Provider value>{children}</InsideFormElement.Provider>
+      <FormElementContext.Provider value>{children}</FormElementContext.Provider>
     </form>
   );
 }
