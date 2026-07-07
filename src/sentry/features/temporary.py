@@ -190,8 +190,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Emit group activity when a linked pull request is closed
-    manager.add("organizations:pr-group-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
     manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Record PullRequestAttribution from webhook and seer.pr_created events
@@ -363,8 +361,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI-powered assertion suggestions for uptime monitors
     manager.add("organizations:uptime-ai-assertion-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable storing HTTP response captures for uptime monitor failures
-    manager.add("organizations:uptime-response-capture", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
