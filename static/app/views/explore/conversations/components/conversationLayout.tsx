@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, useContainerBreakpoint} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -16,8 +16,11 @@ const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
+const CONTENT_MIN_HEIGHT = 180;
 const DETAIL_MIN_WIDTH = 360;
+const DETAIL_MIN_HEIGHT = 200;
 const DETAIL_DEFAULT_WIDTH = 430;
+const DETAIL_DEFAULT_HEIGHT = 320;
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
@@ -119,8 +122,9 @@ export function SpanDetailCard({
 
 /**
  * Layout for the conversation content (transcript/timeline) and the span detail.
- * When a detail is shown it's a resizable side-by-side split whose detail width
- * persists to localStorage. With no detail, content fills the whole area.
+ * When a detail is shown it's a resizable split: side by side on wide panels,
+ * stacked on narrow ones. The side-by-side detail width persists to localStorage.
+ * With no detail, content fills the whole area.
  */
 export function ConversationTimelineLayout({
   left,
@@ -177,6 +181,11 @@ function ConversationDetailSplit({
   content: React.ReactNode;
   detail: React.ReactNode;
 }) {
+  // Stack the panes below md so neither is crushed on a narrow screen.
+  const isRow = !['2xs', 'xs', 'sm'].includes(useContainerBreakpoint());
+
+  // Persist only the side-by-side width; the stacked height stays session-only
+  // so the stored value never mixes a width with a height.
   const [storedWidth, setStoredWidth] = useLocalStorageState(
     SPLIT_LAYOUT_STORAGE_KEY,
     DETAIL_DEFAULT_WIDTH
@@ -184,20 +193,38 @@ function ConversationDetailSplit({
 
   return (
     <SplitPanel
-      orientation="horizontal"
+      orientation={isRow ? 'horizontal' : 'vertical'}
       placement="end"
-      defaultSize={DETAIL_DEFAULT_WIDTH}
-      initialSize={storedWidth}
-      minSize={DETAIL_MIN_WIDTH}
-      fillMinSize={CONTENT_MIN_WIDTH}
-      onResizeEnd={({endSize}) => setStoredWidth(endSize)}
+      defaultSize={isRow ? DETAIL_DEFAULT_WIDTH : DETAIL_DEFAULT_HEIGHT}
+      initialSize={isRow ? storedWidth : DETAIL_DEFAULT_HEIGHT}
+      minSize={isRow ? DETAIL_MIN_WIDTH : DETAIL_MIN_HEIGHT}
+      fillMinSize={isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT}
+      onResizeEnd={({endSize}) => {
+        if (isRow) {
+          setStoredWidth(endSize);
+        }
+      }}
       fill={
-        <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingRight="md">
+        <Flex
+          direction="column"
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          paddingRight={isRow ? 'md' : undefined}
+          paddingBottom={isRow ? undefined : 'md'}
+        >
           {content}
         </Flex>
       }
       sized={
-        <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingLeft="md">
+        <Flex
+          direction="column"
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          paddingLeft={isRow ? 'md' : undefined}
+          paddingTop={isRow ? undefined : 'md'}
+        >
           {detail}
         </Flex>
       }
