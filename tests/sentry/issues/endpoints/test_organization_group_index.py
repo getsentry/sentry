@@ -234,6 +234,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(sort="recommended", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
+        # Explicit escape hatches force a scorer regardless of the flag.
+        response = self.get_success_response(sort="recommended_v2", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            response = self.get_success_response(sort="recommended_v1", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
     def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
             data={
