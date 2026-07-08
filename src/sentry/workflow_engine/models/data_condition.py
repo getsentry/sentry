@@ -9,15 +9,15 @@ from jsonschema import ValidationError, validate
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.utils import metrics, registry
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionEvaluation,
+    DataConditionEvaluationException,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
-
-
-class DataConditionEvaluationException(Exception):
-    pass
 
 
 class Condition(StrEnum):
@@ -172,10 +172,13 @@ class DataCondition(DefaultFieldsModel):
                 return ConditionError(msg="Invalid condition result")
 
     def _evaluate_operator(
-        self, condition_type: Condition, value: T
+        self,
+        condition_type: Condition,
+        value: T,
     ) -> DataConditionResult | ConditionError:
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
+
         try:
             return op(cast(Any, value), self.comparison)
         except TypeError:
@@ -226,29 +229,32 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
-    def evaluate_value(self, value: T) -> DataConditionResult | ConditionError:
+    def evaluate_value(self, value: T) -> DataConditionEvaluation:
         try:
             condition_type = Condition(self.type)
-        except ValueError:
-            logger.exception(
-                "Invalid condition type",
-                extra={"type": self.type, "id": self.id},
-            )
-            return ConditionError(msg="Invalid condition type")
 
-        result: DataConditionResult | ConditionError
-        if condition_type in CONDITION_OPS:
-            result = self._evaluate_operator(condition_type, value)
-        else:
-            result = self._evaluate_condition(condition_type, value)
+            if condition_type in CONDITION_OPS:
+                result = self._evaluate_operator(condition_type, value)
+            else:
+                result = self._evaluate_condition(condition_type, value)
+        except ValueError as ve:
+            # TODO - Determine if we want to catch other exceptions here to have generic
+            # handling of DataConditionEvaluationExceptions.
+            raise DataConditionEvaluationException("Unable to evaluate condition") from ve
 
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
         if isinstance(result, bool):
-            # If the result is True, get the result from `.condition_result`
-            return self.get_condition_result() if result else None
+            is_condition_met = result
+            result = self.get_condition_result() if result else None
+        else:
+            is_condition_met = False if isinstance(result, ConditionError) else bool(result)
 
-        return result
+        return DataConditionEvaluation(
+            value=value,
+            condition_met=is_condition_met,
+            result=result,
+        )
 
 
 def is_slow_condition(condition: DataCondition) -> bool:

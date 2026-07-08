@@ -294,15 +294,19 @@ def evaluate_data_conditions(
         return ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[])
 
     for condition, value in conditions_to_evaluate:
-        evaluation_result = condition.evaluate_value(value)
+        condition_evaluation = condition.evaluate_value(value)
         cleaned_result: DataConditionResult
-        if isinstance(evaluation_result, ConditionError):
+
+        if isinstance(condition_evaluation.result, ConditionError):
             cleaned_result = None
         else:
-            cleaned_result = evaluation_result
+            cleaned_result = condition_evaluation.result
+
         trigger_result = TriggerResult(
             triggered=cleaned_result is not None,
-            error=evaluation_result if isinstance(evaluation_result, ConditionError) else None,
+            error=condition_evaluation.result
+            if isinstance(condition_evaluation.result, ConditionError)
+            else None,
         )
 
         if trigger_result.triggered:
