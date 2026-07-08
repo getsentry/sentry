@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, NamedTuple
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -26,7 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.autofix_agent import Feedback
+from sentry.seer.autofix.autofix_agent import Feedback, GithubPrCommentFeedbackSource
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
 from sentry.seer.webhooks import SentryIterateCommand, sentry_command
@@ -81,6 +81,110 @@ def _github_commenter_has_repo_write_access(
     return result["data"]["perms"] in ("write", "admin")
 
 
+class CreatedCommentContext(NamedTuple):
+    comment: Mapping[str, Any]
+    log_extra: dict[str, Any]
+
+
+def _created_comment_context(
+    *,
+    event: Mapping[str, Any],
+    organization: Organization,
+) -> CreatedCommentContext | None:
+    """
+    Shared head for the comment processors: pull the comment off the event and
+    build ``log_extra``, then filter to ``action == "created"``.
+    """
+    comment = event.get("comment", {})
+    log_extra = {"organization_id": organization.id, "comment_id": comment.get("id")}
+
+    action = event.get("action")
+    if action != "created":
+        logger.debug(
+            "autofix.pr_iteration.comment_trigger.skipped_action",
+            extra={**log_extra, "action": action},
+        )
+        return None
+
+    return CreatedCommentContext(comment=comment, log_extra=log_extra)
+
+
+def _dispatch_autofix_iteration_from_comment(
+    *,
+    comment: Mapping[str, Any],
+    pr_number: int | None,
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None,
+    log_extra: Mapping[str, Any],
+) -> None:
+    command = sentry_command(comment.get("body"))
+    if not isinstance(command, SentryIterateCommand):
+        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
+        return None
+
+    log_extra = {**log_extra, "pr_number": pr_number}
+
+    # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
+    # log at info to make any silent drop debuggable.
+    logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
+
+    if not features.has("organizations:autofix-pr-iteration", organization):
+        logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
+        return None
+
+    if integration is None:
+        logger.info("autofix.pr_iteration.comment_trigger.no_integration", extra=log_extra)
+        return None
+
+    if pr_number is None:
+        logger.info("autofix.pr_iteration.comment_trigger.no_pr_number", extra=log_extra)
+        return None
+
+    if not comment.get("html_url"):
+        raise ValueError("GitHub PR comment is missing html_url")
+
+    logger.info("autofix.pr_iteration.comment_trigger.scheduled", extra=log_extra)
+    trigger_pr_iteration_from_comment.delay(
+        organization_id=organization.id,
+        repo_id=repo.id,
+        integration_id=integration.id,
+        pr_number=pr_number,
+        feedback=command.feedback,
+        comment=comment,
+    )
+    return None
+
+
+def handle_pull_request_review_comment_for_autofix_iteration(
+    *,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """
+    Webhook processor for ``pull_request_review_comment`` events that triggers
+    an Autofix PR iteration when a user leaves an inline ``@sentry`` comment.
+    """
+    context = _created_comment_context(event=event, organization=organization)
+    # No need to check whether this is a pr vs. issue as this webhook only fires in a pr
+    if context is None:
+        return None
+
+    pull_request = event.get("pull_request", {})
+    _dispatch_autofix_iteration_from_comment(
+        comment=context.comment,
+        pr_number=pull_request.get("number"),
+        organization=organization,
+        repo=repo,
+        integration=integration,
+        log_extra=context.log_extra,
+    )
+    return None
+
+
 def handle_issue_comment_for_autofix_iteration(
     *,
     event: Mapping[str, Any],
@@ -93,72 +197,24 @@ def handle_issue_comment_for_autofix_iteration(
     Webhook processor for ``issue_comment`` events that triggers an Autofix PR
     iteration when a user comments ``@sentry``.
     """
-    action = event.get("action")
-    comment = event.get("comment", {})
-    comment_id = comment.get("id")
-    log_extra = {"organization_id": organization.id, "comment_id": comment_id}
-
-    # These two filters fire on essentially every issue_comment webhook, so they
-    # log at debug to avoid spamming prod. Enable debug logging locally to see them.
-    if action != "created":
-        logger.debug(
-            "autofix.pr_iteration.comment_trigger.skipped_action",
-            extra={**log_extra, "action": action},
-        )
+    context = _created_comment_context(event=event, organization=organization)
+    if context is None:
         return None
 
+    # issue_comment fires on every issue too, so guard that this is a PR. Logs at
+    # debug (like the action filter) to avoid spamming prod on non-PR comments.
     issue = event.get("issue", {})
     if not issue.get("pull_request"):
-        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_pr", extra=log_extra)
+        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_pr", extra=context.log_extra)
         return None
 
-    command = sentry_command(comment.get("body"))
-    if not isinstance(command, SentryIterateCommand):
-        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
-        return None
-
-    feedback = command.feedback
-
-    pr_number = issue.get("number")
-    # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
-    # log at info to make any silent drop debuggable.
-    logger.info(
-        "autofix.pr_iteration.comment_trigger.received",
-        extra={**log_extra, "pr_number": pr_number},
-    )
-
-    if not features.has("organizations:autofix-pr-iteration", organization):
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.feature_disabled",
-            extra={**log_extra, "pr_number": pr_number},
-        )
-        return None
-
-    if integration is None:
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.no_integration",
-            extra={**log_extra, "pr_number": pr_number},
-        )
-        return None
-
-    if pr_number is None:
-        logger.info("autofix.pr_iteration.comment_trigger.no_pr_number", extra=log_extra)
-        return None
-
-    if not comment.get("html_url"):
-        raise ValueError("GitHub PR comment is missing html_url")
-
-    logger.info(
-        "autofix.pr_iteration.comment_trigger.scheduled",
-        extra={**log_extra, "pr_number": pr_number},
-    )
-    trigger_pr_iteration_from_comment.delay(
-        organization_id=organization.id,
-        repo_id=repo.id,
-        integration_id=integration.id,
-        pr_number=pr_number,
-        feedback=feedback,
-        comment=comment,
+    _dispatch_autofix_iteration_from_comment(
+        comment=context.comment,
+        pr_number=issue.get("number"),
+        organization=organization,
+        repo=repo,
+        integration=integration,
+        log_extra=context.log_extra,
     )
     return None
 
@@ -238,10 +294,14 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    feedback_obj = Feedback(
-        text=feedback,
-        source={"type": "github-pr-comment", "comment": comment},
-    )
+    source: GithubPrCommentFeedbackSource = {"type": "github-pr-comment", "comment": comment}
+    # ``pull_request_review_comment`` payloads are line-anchored (``path`` is
+    # required); ``issue_comment`` payloads have neither.
+    if "path" in comment:
+        source["file_path"] = comment.get("path")
+        source["line"] = comment.get("line")
+
+    feedback_obj = Feedback(text=feedback, source=source)
 
     enqueue_autofix_feedback(
         run_id=agent_state.run_id,
