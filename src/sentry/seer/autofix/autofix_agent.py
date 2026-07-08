@@ -478,7 +478,7 @@ def trigger_autofix_agent(
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
 
-    if step == AutofixStep.CODE_CHANGES and pr_iteration_enabled:
+    if step == AutofixStep.ROOT_CAUSE:
         base_shas = _build_base_shas_metadata(group, referrer)
         if base_shas:
             prompt_metadata["base_shas"] = base_shas

@@ -70,13 +70,27 @@ export function IntegrationRow(props: Props) {
   const hasIntegrationAccess = canManageIntegrations(organization);
 
   // When exactly one workspace is outdated there's nothing to disambiguate, so
-  // auto-open the install/upgrade modal instead of making the user pick on the
-  // config page. With multiple outdated workspaces we send them to the config
-  // tab to choose which one to update. Members who can't manage integrations
-  // never get the auto-open param, since they can't act on the reinstall flow.
-  const resolveNowHref =
-    `${baseUrl}?tab=configurations&referrer=directory_resolve_now` +
-    (hasIntegrationAccess && outdatedConfigurations === 1 ? '&showInstallModal=1' : '');
+  // auto-open the relevant modal instead of making the user pick on the config
+  // page. With multiple outdated workspaces we send them to the config tab to
+  // choose which one to update. Members who can't manage integrations never get
+  // the auto-open param, since they can't act on the reinstall flow.
+  //
+  // GitHub's outdated state means missing app permissions, not a reinstall, so
+  // it opens the update-permissions modal (showPermsModal) rather than the
+  // install modal (showInstallModal).
+  const getAutoOpenParam = () => {
+    if (!hasIntegrationAccess || outdatedConfigurations !== 1) {
+      return '';
+    }
+
+    switch (slug) {
+      case 'github':
+        return '&showPermsModal=1';
+      default:
+        return '&showInstallModal=1';
+    }
+  };
+  const resolveNowHref = `${baseUrl}?tab=configurations&referrer=directory_resolve_now${getAutoOpenParam()}`;
 
   const renderDetails = () => {
     if (type === 'sentryApp') {

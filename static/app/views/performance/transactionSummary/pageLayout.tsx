@@ -45,19 +45,16 @@ import {
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
-import {tagsRouteWithQuery} from './transactionTags/utils';
 import {TransactionHeader} from './header';
 import {Tab} from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
-  | 'performance_views.tags.tags_tab_clicked'
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
 export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
 };
 
@@ -112,7 +109,6 @@ export function PageLayout(props: Props) {
       case Tab.REPLAYS:
         return [DataCategory.REPLAYS];
       case Tab.EVENTS:
-      case Tab.TAGS:
       case Tab.TRANSACTION_SUMMARY:
         return [DataCategory.SPANS];
       default:
@@ -139,8 +135,6 @@ export function PageLayout(props: Props) {
       };
 
       switch (newTab) {
-        case Tab.TAGS:
-          return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
         case Tab.REPLAYS:

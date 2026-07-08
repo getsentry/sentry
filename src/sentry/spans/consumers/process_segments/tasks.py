@@ -36,6 +36,7 @@ _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_t
 @instrumented_task(
     name="sentry.spans.process_segments.process_segment",
     namespace=spans_process_segments_tasks,
+    processing_deadline_duration=65,
     at_most_once=True,
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,

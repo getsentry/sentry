@@ -1992,6 +1992,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.trace-item-details-timebuffer-minutes",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # minutes
+register(
     "performance.traces.query_timestamp_projects",
     type=Bool,
     default=False,
@@ -3748,14 +3754,6 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
-register(
-    "tasks.producer.occurrences.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Rolls out the new TaskProducer to the clock_pulse task

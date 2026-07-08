@@ -15,7 +15,11 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-reprocessing"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-reprocessing",
+        url_names=["sentry-api-0-group-reprocessing"],
+    )
     def post(self, request: Request, group) -> Response:
         """
         Reprocess a group

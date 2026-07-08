@@ -20,9 +20,11 @@ export function useAggregateParamVisual({token}: UseAggregateParamVisualOptions)
 
         let argumentText = arg.value?.text ?? '';
         if (argumentKind === 'column') {
-          const argumentKey = filterKeys[argumentText];
+          const argumentKey = Object.hasOwn(filterKeys, argumentText)
+            ? filterKeys[argumentText]
+            : undefined;
           if (argumentKey) {
-            const argumentDefinition = getFieldDefinition(arg.value?.text ?? '');
+            const argumentDefinition = getFieldDefinition(argumentText);
             argumentText = getKeyLabel(argumentKey, argumentDefinition);
           }
         }

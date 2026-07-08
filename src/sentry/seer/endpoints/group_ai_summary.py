@@ -38,7 +38,11 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
         }
     )
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-ai-summary"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-ai-summary",
+        url_names=["sentry-api-0-group-ai-summary"],
+    )
     def post(self, request: Request, group: Group) -> Response:
         data = orjson.loads(request.body) if request.body else {}
         force_event_id = data.get("event_id", None)

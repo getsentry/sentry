@@ -24,7 +24,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedImage,
     NotificationRenderedTemplate,
     NotificationTargetResourceType,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
@@ -97,7 +97,7 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_chart(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Chart",
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test without chart")])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text="test without chart")])],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -118,7 +118,7 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_footer(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Footer",
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test without footer")])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text="test without footer")])],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -142,7 +142,7 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_actions(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Actions",
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test without actions")])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text="test without actions")])],
             actions=[],  # No actions
             footer="Test footer",
             chart=NotificationRenderedImage(
@@ -172,7 +172,7 @@ class DiscordRendererTest(TestCase):
         # Create a custom rendered template with multiple actions
         rendered_template = NotificationRenderedTemplate(
             subject="Test Multiple Actions",
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text="test with multiple actions")])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text="test with multiple actions")])],
             actions=actions,
             footer="Test footer",
             chart=NotificationRenderedImage(

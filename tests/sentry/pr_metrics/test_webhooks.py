@@ -102,7 +102,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
-    def test_app_attribution_only_written_on_opened(self) -> None:
+    def test_app_attribution_not_written_on_non_terminal_actions(self) -> None:
         self._call(action="synchronize", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
         self._call(action="labeled", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
@@ -111,12 +111,34 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.SENTRY_APP,
         ).exists()
 
+    def test_app_attribution_written_on_closed(self) -> None:
+        # A Sentry-authored PR that never got a row at open (e.g. opened before the
+        # flag, or resolving no issues) is still attributed at the terminal close
+        # event so it can be tracked for emission.
+        self._call(action="closed", user_id=settings.SENTRY_GITHUB_APP_USER_ID)
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_type == PullRequestAttributionSignalType.SENTRY_APP
+        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
+        assert attr.is_valid is True
+
+    def test_app_attribution_idempotent_across_open_then_close(self) -> None:
+        self._call(action="opened", user_id=settings.SENTRY_GITHUB_APP_USER_ID)
+        self._call(action="closed", user_id=settings.SENTRY_GITHUB_APP_USER_ID)
+
+        assert (
+            PullRequestAttribution.objects.filter(
+                pull_request=self.pr,
+                signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            ).count()
+            == 1
+        )
+
     # --- Action gate ---
 
     def test_irrelevant_actions_skipped(self) -> None:
         for action in (
             "synchronize",
-            "closed",
             "labeled",
             "assigned",
         ):

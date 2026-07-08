@@ -51,6 +51,7 @@ export function MessagesPanelNew({
   nodeTraceMap,
   isLoading,
 }: MessagesPanelNewProps) {
+  const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
@@ -73,6 +74,14 @@ export function MessagesPanelNew({
     return map;
   }, [nodes]);
 
+  const handleMessageClick = (message: ConversationMessage) => {
+    trackAnalytics('conversations.message.click', {organization});
+    const node = nodeMap.get(message.nodeId);
+    if (node) {
+      onSelectNode(node);
+    }
+  };
+
   if (isLoading) {
     return <MessagesPanelSkeleton />;
   }
@@ -90,6 +99,7 @@ export function MessagesPanelNew({
       <Stack gap="0" width="100%">
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
+          const isSelected = message.nodeId === selectedNodeId;
 
           if (message.role === 'user') {
             return (
@@ -111,10 +121,12 @@ export function MessagesPanelNew({
               key={message.id}
               message={message}
               hasXmlTags={hasXmlTags}
+              isSelected={message.role === 'assistant' && isSelected}
               selectedNodeId={selectedNodeId}
               nodeMap={nodeMap}
               nodeTraceMap={nodeTraceMap}
               onSelectNode={onSelectNode}
+              onClick={() => handleMessageClick(message)}
             />
           );
         })}
@@ -125,9 +137,11 @@ export function MessagesPanelNew({
 
 interface AssistantTurnProps {
   hasXmlTags: boolean;
+  isSelected: boolean;
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
   nodeTraceMap: Map<string, string>;
+  onClick: () => void;
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
 }
@@ -135,10 +149,12 @@ interface AssistantTurnProps {
 function AssistantTurn({
   message,
   hasXmlTags,
+  isSelected,
   selectedNodeId,
   nodeMap,
   nodeTraceMap,
   onSelectNode,
+  onClick,
 }: AssistantTurnProps) {
   const generationNode = nodeMap.get(message.nodeId);
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
@@ -172,13 +188,18 @@ function AssistantTurn({
         // Tool/reasoning-only turn: still surface the turn's cost and duration.
         hasMeta && <MessageBlock justify="end">{meta}</MessageBlock>
       ) : message.content === EMPTY_TEXT_CONTENT ? (
-        <AssistantMessageBlock meta={meta}>
+        <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={onClick}>
           <MessageText align="left" variant="muted">
             {message.content}
           </MessageText>
         </AssistantMessageBlock>
       ) : (
-        <AssistantMessageBlock expand={hasXmlTags} meta={meta}>
+        <AssistantMessageBlock
+          expand={hasXmlTags}
+          meta={meta}
+          isSelected={isSelected}
+          onClick={onClick}
+        >
           <MessageText align="left">
             <AIContentRenderer
               text={message.content}
@@ -256,7 +277,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * user bubbles and left-aligned assistant bubbles with a metadata column — so
  * the skeleton reads as a conversation rather than a generic list.
  */
-function MessagesPanelSkeleton() {
+export function MessagesPanelSkeleton() {
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">

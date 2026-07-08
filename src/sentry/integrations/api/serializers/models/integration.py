@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.constants import SlackScope
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import (
@@ -16,6 +17,7 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -30,6 +32,7 @@ class OrganizationIntegrationResponse(TypedDict):
     domainName: str | None
     accountType: str | None
     scopes: list[str] | None
+    outOfDate: bool | None
     status: str
     provider: Any
     configOrganization: Any
@@ -70,6 +73,7 @@ class IntegrationSerializerResponse(TypedDict):
     domainName: str | None
     accountType: str | None
     scopes: list[str] | None
+    outOfDate: bool | None
     status: str
     provider: IntegrationProviderInfo
 
@@ -84,6 +88,15 @@ class IntegrationSerializer(Serializer):
         **kwargs: Any,
     ) -> IntegrationSerializerResponse:
         provider = obj.get_provider()
+
+        out_of_date = None
+
+        match provider.key:
+            case "github":
+                out_of_date = bool(get_missing_github_app_permissions(obj.metadata))
+            case "slack":
+                out_of_date = SlackScope.APP_MENTIONS_READ not in (obj.metadata.get("scopes") or [])
+
         return {
             "id": str(obj.id),
             "name": obj.name,
@@ -91,6 +104,7 @@ class IntegrationSerializer(Serializer):
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
             "scopes": obj.metadata.get("scopes"),
+            "outOfDate": out_of_date,
             "status": obj.get_status_display(),
             "provider": serialize_provider(provider),
         }
