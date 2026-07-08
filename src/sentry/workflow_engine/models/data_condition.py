@@ -237,8 +237,10 @@ class DataCondition(DefaultFieldsModel):
                 result = self._evaluate_operator(condition_type, value)
             else:
                 result = self._evaluate_condition(condition_type, value)
-        except Exception as e:
-            raise DataConditionEvaluationException("Unable to evaluate condition") from e
+        except ValueError as ve:
+            # TODO - Determine if we want to catch other exceptions here to have generic
+            # handling of DataConditionEvaluationExceptions.
+            raise DataConditionEvaluationException("Unable to evaluate condition") from ve
 
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
@@ -246,7 +248,7 @@ class DataCondition(DefaultFieldsModel):
             is_condition_met = result
             result = self.get_condition_result() if result else None
         else:
-            is_condition_met = bool(result)
+            is_condition_met = False if isinstance(result, ConditionError) else bool(result)
 
         return DataConditionEvaluation(
             value=value,
