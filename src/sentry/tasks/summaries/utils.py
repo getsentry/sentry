@@ -131,7 +131,7 @@ def org_top_issues(
     projects: Sequence[Project],
     sort_by: str,
     referrer: str,
-    limit: int = 50,
+    limit: int = 100,
 ) -> tuple[dict[int, list[tuple[int, int]]], dict[int, list[tuple[Group, int]]]]:
     """
     Fetch top issues (error + performance) for all org projects using the search backend.
@@ -226,6 +226,7 @@ def _count_error_events(
             Condition(Column("timestamp"), Op.LT, ctx.end),
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("group_id"), Op.IN, group_ids),
+            Condition(Column("level"), Op.EQ, "error"),
         ],
         groupby=[Column("group_id")],
         limit=Limit(len(group_ids)),
