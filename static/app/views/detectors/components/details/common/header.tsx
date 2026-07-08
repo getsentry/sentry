@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -25,6 +26,25 @@ type DetectorDetailsHeaderProps = {
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();
+
+  if (!organization.features.includes('ui-migration-breadcrumbs')) {
+    return (
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+          {label: detector.name},
+        ]}
+      />
+    );
+  }
+
   return (
     <BreadcrumbList
       items={[

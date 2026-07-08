@@ -90,9 +90,9 @@ describe('ReplayDetails', () => {
     expect(mockUseLoadReplayReader).toHaveBeenCalled();
   });
 
-  it('renders pagination chevrons and a copy action in the replay crumb', () => {
+  it('renders pagination chevrons and a copy action in the replay crumb (flag on)', () => {
     const organization = OrganizationFixture({
-      features: ['session-replay'],
+      features: ['session-replay', 'ui-migration-breadcrumbs'],
     });
 
     render(<ReplayDetails />, {

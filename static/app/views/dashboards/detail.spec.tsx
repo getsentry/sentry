@@ -592,10 +592,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the linked dashboard breadcrumb in the top bar', async () => {
+    it('renders the redesigned dashboard breadcrumb in the top bar (flag on)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
       });
 
       render(
@@ -625,6 +625,36 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.queryByRole('heading', {name: 'Custom Errors'})
       ).not.toBeInTheDocument();
+    });
+
+    it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: organization.features,
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      // Without the flag, the legacy Breadcrumbs render: the Dashboards link and
+      // the (view-only) title are still present.
+      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
+      expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/dashboards/'
+      );
+      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
     });
 
     it('hides add widget option', async () => {

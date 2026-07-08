@@ -26,6 +26,7 @@ import {
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
@@ -1194,37 +1195,59 @@ class DashboardDetail extends Component<Props, State> {
               {this.isEmbedded ? null : (
                 <Fragment>
                   <TopBar.Slot name="title">
-                    <BreadcrumbList
-                      items={[
-                        {
-                          type: 'link',
-                          props: {
+                    {organization.features.includes('ui-migration-breadcrumbs') ? (
+                      <BreadcrumbList
+                        items={[
+                          {
+                            type: 'link',
+                            props: {
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                          },
+                          {
+                            type: 'editable-title',
+                            props: {
+                              title: (
+                                <BreadcrumbList.EditableTitle
+                                  value={(modifiedDashboard ?? dashboard).title}
+                                  onChange={newTitle =>
+                                    this.setModifiedDashboard({
+                                      ...(modifiedDashboard ?? dashboard),
+                                      title: newTitle,
+                                    })
+                                  }
+                                  isDisabled={!this.isEditingDashboard}
+                                  errorMessage={t(
+                                    'Please set a title for this dashboard'
+                                  )}
+                                  autoSelect
+                                  aria-label={t('Edit Dashboard Name')}
+                                />
+                              ),
+                            },
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <Breadcrumbs
+                        crumbs={[
+                          {
                             label: t('Dashboards'),
                             to: `/organizations/${organization.slug}/dashboards/`,
                           },
-                        },
-                        {
-                          type: 'editable-title',
-                          props: {
-                            title: (
-                              <BreadcrumbList.EditableTitle
-                                value={(modifiedDashboard ?? dashboard).title}
-                                onChange={newTitle =>
-                                  this.setModifiedDashboard({
-                                    ...(modifiedDashboard ?? dashboard),
-                                    title: newTitle,
-                                  })
-                                }
-                                isDisabled={!this.isEditingDashboard}
-                                errorMessage={t('Please set a title for this dashboard')}
-                                autoSelect
-                                aria-label={t('Edit Dashboard Name')}
+                          {
+                            label: (
+                              <DashboardTitle
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onUpdate={this.setModifiedDashboard}
+                                isEditingDashboard={this.isEditingDashboard}
                               />
                             ),
                           },
-                        },
-                      ]}
-                    />
+                        ]}
+                      />
+                    )}
                   </TopBar.Slot>
                   <TopBar.Slot name="actions">
                     <Controls
