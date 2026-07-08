@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 
 from django.utils import timezone
 from pydantic import BaseModel, Field
@@ -19,6 +19,7 @@ from sentry.preprod.build_distribution_utils import (
 from sentry.preprod.models import (
     Platform,
     PreprodArtifact,
+    PreprodArtifactMobileAppInfoExtras,
     PreprodArtifactSizeMetrics,
     PreprodComparisonApproval,
 )
@@ -211,7 +212,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         version=(mobile_app_info.build_version if mobile_app_info else None),
         build_number=(mobile_app_info.build_number if mobile_app_info else None),
         build_number_raw=(
-            mobile_app_info.extras.get("build_number_raw")
+            cast(PreprodArtifactMobileAppInfoExtras, mobile_app_info.extras).get("build_number_raw")
             if mobile_app_info and mobile_app_info.extras
             else None
         ),

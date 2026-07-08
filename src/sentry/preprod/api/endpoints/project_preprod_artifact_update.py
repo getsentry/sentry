@@ -24,6 +24,7 @@ from sentry.preprod.authentication import (
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactMobileAppInfo,
+    PreprodArtifactMobileAppInfoExtras,
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
@@ -297,10 +298,10 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 .values_list("extras", flat=True)
                 .first()
             ) or {}
-            mobile_app_info_updates["extras"] = {
-                **existing_extras,
-                "build_number_raw": data["build_number_raw"],
+            extras_update: PreprodArtifactMobileAppInfoExtras = {
+                "build_number_raw": data["build_number_raw"]
             }
+            mobile_app_info_updates["extras"] = {**existing_extras, **extras_update}
 
         if mobile_app_info_updates:
             PreprodArtifactMobileAppInfo.objects.update_or_create(
