@@ -6,6 +6,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   AGENT_NAME_FIELDS,
+  getIsEmbeddingNode,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -77,6 +78,10 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   const toolSpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
+    if (getIsEmbeddingNode(node)) {
+      continue;
+    }
+
     const opType = getGenAiOpType(node);
     if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
@@ -159,13 +164,20 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
       result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
       pendingToolCalls = [];
       pendingToolSpanNodes = [];
+    } else if (!turn.userContent) {
+      result.push({
+        ...turn,
+        assistantContent: EMPTY_TEXT_CONTENT,
+        toolCalls: allToolCalls,
+        toolSpanNodes: allToolSpanNodes,
+      });
+      pendingToolCalls = [];
+      pendingToolSpanNodes = [];
     } else if (allToolCalls.length > 0 || allToolSpanNodes.length > 0) {
-      if (turn.userContent) {
-        result.push({...turn, toolCalls: [], toolSpanNodes: []});
-      }
+      result.push({...turn, toolCalls: [], toolSpanNodes: []});
       pendingToolCalls = allToolCalls;
       pendingToolSpanNodes = allToolSpanNodes;
-    } else if (turn.userContent) {
+    } else {
       result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
       pendingToolCalls = [];
       pendingToolSpanNodes = [];
@@ -176,18 +188,16 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
   const lastTurn = result.at(-1);
   if (pendingToolCalls.length > 0) {
     if (lastTurn) {
-      result[result.length - 1] = {
+      result.splice(-1, 1, {
         ...lastTurn,
         toolCalls: [...lastTurn.toolCalls, ...pendingToolCalls],
         toolSpanNodes: [...(lastTurn.toolSpanNodes ?? []), ...pendingToolSpanNodes],
-      };
+      });
     } else if (lastSeenTurn) {
-      // All generation spans had no content; surface the orphaned tool calls
-      // as a tool-call-only assistant turn anchored on the last generation span.
       result.push({
         ...lastSeenTurn,
         userContent: null,
-        assistantContent: null,
+        assistantContent: EMPTY_TEXT_CONTENT,
         toolCalls: pendingToolCalls,
         toolSpanNodes: pendingToolSpanNodes,
       });

@@ -1,6 +1,6 @@
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {getToolInputPreview, hasError} from './aiTraceNodes';
+import {getIsEmbeddingNode, getToolInputPreview, hasError} from './aiTraceNodes';
 import type {AITraceSpanNode} from './types';
 
 function makeToolNode(toolInput?: unknown): AITraceSpanNode {
@@ -73,6 +73,40 @@ describe('getToolInputPreview', () => {
 
   it('returns undefined for an empty object', () => {
     expect(getToolInputPreview(makeToolNode({}))).toBeUndefined();
+  });
+});
+
+describe('getIsEmbeddingNode', () => {
+  it('detects embedding spans from operation name, span name, or embeddings input', () => {
+    expect(
+      getIsEmbeddingNode({
+        attributes: {[SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings'},
+        errors: new Set(),
+      } as unknown as AITraceSpanNode)
+    ).toBe(true);
+    expect(
+      getIsEmbeddingNode({
+        attributes: {},
+        value: {name: 'gen_ai.embeddings'},
+        errors: new Set(),
+      } as unknown as AITraceSpanNode)
+    ).toBe(true);
+    expect(
+      getIsEmbeddingNode({
+        attributes: {'gen_ai.embeddings.input': 'text to embed'},
+        errors: new Set(),
+      } as unknown as AITraceSpanNode)
+    ).toBe(true);
+  });
+
+  it('does not treat chat generations as embedding spans', () => {
+    expect(
+      getIsEmbeddingNode({
+        attributes: {[SpanFields.GEN_AI_OPERATION_NAME]: 'chat'},
+        value: {name: 'gen_ai.chat'},
+        errors: new Set(),
+      } as unknown as AITraceSpanNode)
+    ).toBe(false);
   });
 });
 

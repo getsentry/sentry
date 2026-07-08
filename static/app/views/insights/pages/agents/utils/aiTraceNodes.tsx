@@ -103,6 +103,21 @@ export function getStringAttr(node: AITraceSpanNode, field: string): string | un
   return typeof val === 'string' ? val : undefined;
 }
 
+export function getIsEmbeddingNode(node: AITraceSpanNode): boolean {
+  const operationName = getStringAttr(node, SpanFields.GEN_AI_OPERATION_NAME);
+  const spanName =
+    node.value && 'name' in node.value && typeof node.value.name === 'string'
+      ? node.value.name
+      : undefined;
+
+  return (
+    operationName === 'embeddings' ||
+    operationName === 'gen_ai.embeddings' ||
+    spanName === 'gen_ai.embeddings' ||
+    getTraceNodeAttribute('gen_ai.embeddings.input', node) !== undefined
+  );
+}
+
 /**
  * Agent name fallback resolution.
  *

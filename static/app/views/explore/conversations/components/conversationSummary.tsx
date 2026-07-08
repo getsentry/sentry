@@ -29,6 +29,7 @@ import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/t
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
+  getIsEmbeddingNode,
   getNumberAttr,
   getStringAttr,
   hasError,
@@ -81,6 +82,10 @@ export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggre
   const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
+    if (getIsEmbeddingNode(node)) {
+      continue;
+    }
+
     const opType = getGenAiOpType(node);
     const nodeHasError = hasError(node);
 

@@ -1,3 +1,4 @@
+import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {
@@ -507,6 +508,20 @@ describe('conversationMessages utilities', () => {
       expect(result.generationSpans).toHaveLength(1);
       expect(result.toolSpans).toHaveLength(0);
     });
+
+    it('filters embedding spans out of conversation messages', () => {
+      const embeddingNode = createMockNode({
+        id: 'embedding-1',
+        attributes: {
+          [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
+        },
+      });
+      const genNode = createMockNode({id: 'gen-1'});
+
+      const result = partitionSpansByType([embeddingNode, genNode] as any);
+
+      expect(result.generationSpans.map(span => span.id)).toEqual(['gen-1']);
+    });
   });
 
   describe('buildConversationTurns', () => {
@@ -568,7 +583,7 @@ describe('conversationMessages utilities', () => {
       expect(merged[1]?.toolCalls.map(t => t.name)).toEqual(['search', 'calc']);
     });
 
-    it('chains multiple empty turns', () => {
+    it('surfaces empty LLM calls while carrying pending tool calls to them', () => {
       const turns = [
         makeTurn({
           generation: {id: 'gen-1'} as any,
@@ -589,19 +604,14 @@ describe('conversationMessages utilities', () => {
 
       const merged = mergeEmptyTurns(turns);
 
-      // Turn 1 keeps user content but no tool calls (they moved to turn 3)
-      // Turn 2 is skipped (no user content, no assistant content)
-      // Turn 3 has all tool calls merged
-      expect(merged).toHaveLength(2);
-      expect(merged[1]?.toolCalls).toHaveLength(3);
-      expect(merged[1]?.toolCalls.map(t => t.name)).toEqual([
-        'tool-a',
-        'tool-b',
-        'tool-c',
-      ]);
+      expect(merged).toHaveLength(3);
+      expect(merged[0]?.toolCalls).toHaveLength(0);
+      expect(merged[1]?.assistantContent).toBe(EMPTY_TEXT_CONTENT);
+      expect(merged[1]?.toolCalls.map(t => t.name)).toEqual(['tool-a', 'tool-b']);
+      expect(merged[2]?.toolCalls.map(t => t.name)).toEqual(['tool-c']);
     });
 
-    it('creates a synthetic turn for orphaned tool calls when result is empty', () => {
+    it('creates a placeholder turn for an LLM call with no input/output', () => {
       const turns = [
         makeTurn({
           generation: {
@@ -615,12 +625,13 @@ describe('conversationMessages utilities', () => {
       const merged = mergeEmptyTurns(turns);
 
       expect(merged).toHaveLength(1);
+      expect(merged[0]?.assistantContent).toBe(EMPTY_TEXT_CONTENT);
       expect(merged[0]?.toolCalls).toHaveLength(1);
       expect(merged[0]?.toolCalls[0]?.name).toBe('search');
       expect(merged[0]?.generation.id).toBe('gen-1');
     });
 
-    it('flushes pending tool calls onto last turn when no subsequent turn has content', () => {
+    it('keeps trailing empty LLM calls visible', () => {
       const turns = [
         makeTurn({
           generation: {id: 'gen-1'} as any,
@@ -635,10 +646,10 @@ describe('conversationMessages utilities', () => {
 
       const merged = mergeEmptyTurns(turns);
 
-      // The pending tool call should be flushed onto the last result turn
-      expect(merged).toHaveLength(1);
-      expect(merged[0]?.toolCalls).toHaveLength(1);
-      expect(merged[0]?.toolCalls[0]?.name).toBe('search');
+      expect(merged).toHaveLength(2);
+      expect(merged[0]?.toolCalls).toHaveLength(0);
+      expect(merged[1]?.assistantContent).toBe(EMPTY_TEXT_CONTENT);
+      expect(merged[1]?.toolCalls[0]?.name).toBe('search');
     });
 
     it('preserves user content turns even without assistant response', () => {
@@ -1210,9 +1221,7 @@ describe('conversationMessages utilities', () => {
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
     });
 
-    it('surfaces tool calls from generation spans with no message content', () => {
-      // Generation spans exist but have no input/output. Tool spans between
-      // them should still appear as a tool-call-only assistant message.
+    it('surfaces every generation span with no input/output as a placeholder', () => {
       const gen1 = createMockNode({id: 'gen-1', startTimestamp: 1000});
       const tool = createMockToolNode({
         id: 'tool-1',
@@ -1224,10 +1233,13 @@ describe('conversationMessages utilities', () => {
       const messages = extractMessagesFromNodes([gen1, tool, gen2] as any);
 
       const assistantMessages = messages.filter(m => m.role === 'assistant');
-      expect(assistantMessages).toHaveLength(1);
-      expect(assistantMessages[0]?.content).toBe('');
-      expect(assistantMessages[0]?.toolCalls).toHaveLength(1);
-      expect(assistantMessages[0]?.toolCalls?.[0]?.name).toBe('search');
+      expect(assistantMessages).toHaveLength(2);
+      expect(assistantMessages.map(m => m.content)).toEqual([
+        EMPTY_TEXT_CONTENT,
+        EMPTY_TEXT_CONTENT,
+      ]);
+      expect(assistantMessages[1]?.toolCalls).toHaveLength(1);
+      expect(assistantMessages[1]?.toolCalls?.[0]?.name).toBe('search');
     });
   });
 

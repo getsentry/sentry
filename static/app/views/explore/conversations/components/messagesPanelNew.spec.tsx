@@ -72,20 +72,23 @@ describe('MessagesPanelNew', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows placeholder bubbles when generation spans have no message content', () => {
-    const genNode = createMockNode({id: 'gen-1', startTimestamp: 1000});
+  it('shows one placeholder bubble for each generation span without input/output', () => {
+    const genNode1 = createMockNode({id: 'gen-1', startTimestamp: 1000});
+    const genNode2 = createMockNode({id: 'gen-2', startTimestamp: 2000});
 
     render(
       <MessagesPanelNew
-        nodes={[genNode] as any}
+        nodes={[genNode1, genNode2] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
         nodeTraceMap={new Map()}
       />
     );
 
-    // Two "(not captured)" placeholders: one user bubble, one assistant bubble
-    expect(screen.getAllByText('(not captured)')).toHaveLength(2);
+    expect(screen.getAllByText(EMPTY_TEXT_CONTENT)).toHaveLength(2);
+    expect(
+      screen.queryByText('Message inputs and outputs were not captured')
+    ).not.toBeInTheDocument();
   });
 
   it('shows tool calls and notice when there are only tool spans and no generation spans', () => {
