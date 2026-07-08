@@ -17,7 +17,8 @@ const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
 const DETAIL_MIN_WIDTH = 400;
-const DETAIL_DEFAULT_WIDTH = 430;
+// Figma content ≈ 707; pixels for now, swap for a percentage once SplitPanel takes one.
+const CONTENT_DEFAULT_WIDTH = 700;
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
@@ -126,22 +127,6 @@ export function ConversationTimelineLayout({
   leftPadding?: React.ComponentProps<typeof Container>['padding'];
   right?: React.ReactNode;
 }) {
-  const content = (
-    <Container
-      flex="1"
-      minWidth="0"
-      minHeight="0"
-      padding={leftPadding}
-      background="primary"
-      border="primary"
-      radius="md"
-      overflowX="hidden"
-      overflowY="auto"
-    >
-      {left}
-    </Container>
-  );
-
   return (
     <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
       <ConversationLeftPanel>
@@ -152,13 +137,24 @@ export function ConversationTimelineLayout({
           width="100%"
           background="secondary"
         >
-          {right ? (
-            <ResizableSplit content={content} detail={right} />
-          ) : (
-            <Flex height="100%" width="100%" minHeight="0" overflow="hidden">
-              {content}
-            </Flex>
-          )}
+          <ResizableSplit
+            detail={right}
+            content={
+              <Container
+                flex="1"
+                minWidth="0"
+                minHeight="0"
+                padding={leftPadding}
+                background="primary"
+                border="primary"
+                radius="md"
+                overflowX="hidden"
+                overflowY="auto"
+              >
+                {left}
+              </Container>
+            }
+          />
         </Container>
       </ConversationLeftPanel>
     </Flex>
@@ -170,7 +166,7 @@ function ResizableSplit({
   detail,
 }: {
   content: React.ReactNode;
-  detail: React.ReactNode;
+  detail?: React.ReactNode;
 }) {
   const [storedSize, setStoredSize] = useLocalStorageState<number | undefined>(
     SPLIT_LAYOUT_STORAGE_KEY,
@@ -180,35 +176,36 @@ function ResizableSplit({
   return (
     <SplitPanel
       orientation={{xs: 'vertical', md: 'horizontal'}}
-      placement="end"
-      defaultSize={DETAIL_DEFAULT_WIDTH}
+      defaultSize={CONTENT_DEFAULT_WIDTH}
       initialSize={storedSize}
-      minSize={DETAIL_MIN_WIDTH}
-      fillMinSize={CONTENT_MIN_WIDTH}
+      minSize={CONTENT_MIN_WIDTH}
+      fillMinSize={DETAIL_MIN_WIDTH}
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
-      fill={
-        <Flex
-          direction="column"
-          flex="1"
-          minWidth="0"
-          minHeight="0"
-          paddingRight={{xs: '0', md: 'md'}}
-          paddingBottom={{xs: 'md', md: '0'}}
-        >
-          {content}
-        </Flex>
-      }
       sized={
         <Flex
           direction="column"
           flex="1"
           minWidth="0"
           minHeight="0"
-          paddingLeft={{xs: '0', md: 'md'}}
-          paddingTop={{xs: 'md', md: '0'}}
+          paddingRight={detail ? {xs: '0', md: 'md'} : undefined}
+          paddingBottom={detail ? {xs: 'md', md: '0'} : undefined}
         >
-          {detail}
+          {content}
         </Flex>
+      }
+      fill={
+        detail ? (
+          <Flex
+            direction="column"
+            flex="1"
+            minWidth="0"
+            minHeight="0"
+            paddingLeft={{xs: '0', md: 'md'}}
+            paddingTop={{xs: 'md', md: '0'}}
+          >
+            {detail}
+          </Flex>
+        ) : undefined
       }
     />
   );
