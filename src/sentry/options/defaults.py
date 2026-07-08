@@ -612,6 +612,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Cooldown (seconds) between a PR's terminal close/merge webhook and emitting its
+# scm.pr.closed metrics row, so late attribution and activity can settle first.
+register(
+    "pr_metrics.emit_cooldown_seconds",
+    default=3600,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
