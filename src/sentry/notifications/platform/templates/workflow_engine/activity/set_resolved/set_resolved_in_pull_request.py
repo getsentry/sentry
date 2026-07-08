@@ -87,9 +87,10 @@ class SetResolvedInPullRequestActivityTemplate(NotificationTemplate[WorkflowEngi
                     resolution_blocks = [
                         PlainTextBlock(text=f"was resolved in {pr_label}."),
                     ]
-                    if pr.title or pr.message:
+                    pr_description = pr.title or pr.message
+                    if pr_description:
                         extra_body_sections.append(
-                            BlockQuoteSection(blocks=[PlainTextBlock(text=pr.title or pr.message)])
+                            BlockQuoteSection(blocks=[PlainTextBlock(text=pr_description)])
                         )
 
         return NotificationRenderedTemplate(

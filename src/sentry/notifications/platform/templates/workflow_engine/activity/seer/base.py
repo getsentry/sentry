@@ -2,46 +2,23 @@ from django.conf import settings
 
 from sentry.models.group import Group
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+    WorkflowEngineActivityAction,
     build_alert_footer,
     build_example_alert_footer,
 )
 from sentry.notifications.platform.types import (
     CodeTextBlock,
     LinkTextBlock,
-    NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSection,
-    NotificationSource,
     NotificationTextBlock,
     ParagraphSection,
     PlainTextBlock,
 )
-from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 
-ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
-    ActivityType.SEER_RCA_STARTED.value: NotificationSource.ACTIVITY_SEER_RCA_STARTED,
-    ActivityType.SEER_RCA_COMPLETED.value: NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
-    ActivityType.SEER_SOLUTION_STARTED.value: NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
-    ActivityType.SEER_SOLUTION_COMPLETED.value: NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED,
-    ActivityType.SEER_CODING_STARTED.value: NotificationSource.ACTIVITY_SEER_CODING_STARTED,
-    ActivityType.SEER_CODING_COMPLETED.value: NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
-    ActivityType.SEER_PR_CREATED.value: NotificationSource.ACTIVITY_SEER_PR_CREATED,
-    ActivityType.SEER_ITERATION_STARTED.value: NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
-    ActivityType.SEER_ITERATION_COMPLETED.value: NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
-}
-
 EXAMPLE_SEER_URL = "https://sentry.io/organizations/example/issues/1/?seerDrawer=true"
-
-
-class WorkflowEngineActivityAction(NotificationData):
-    source: NotificationSource
-    workflow_id: int
-    activity_id: int
-    activity_type: int
-    notification_uuid: str
-    detector_id: int
 
 
 def get_issue_description(group: Group) -> list[NotificationSection]:

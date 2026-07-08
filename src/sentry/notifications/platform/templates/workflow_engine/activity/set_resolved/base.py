@@ -22,8 +22,9 @@ def get_resolution_subject(activity: Activity, group: Group) -> list[Notificatio
         blocks.append(PlainTextBlock(text="A Sentry Issue was resolved"))
 
     if activity.user_id:
-        user = user_service.get_user(id=activity.user_id)
-        blocks.append(PlainTextBlock(text=f"by {user.get_display_name()}"))
+        user = user_service.get_user(user_id=activity.user_id)
+        if user:
+            blocks.append(PlainTextBlock(text=f"by {user.get_display_name()}"))
 
     return blocks
 

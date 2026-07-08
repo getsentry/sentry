@@ -56,7 +56,6 @@ class SetResolvedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAct
             activity_id=data.activity_id
         )
         return NotificationRenderedTemplate(
-            data=data,
             subject=get_resolution_subject(activity, group),
             body=[
                 ParagraphSection(
