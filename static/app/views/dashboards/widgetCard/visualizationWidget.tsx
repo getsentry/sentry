@@ -12,7 +12,7 @@ import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,7 +35,6 @@ import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLege
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
-  TabularColumn,
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
@@ -76,8 +75,6 @@ interface VisualizationWidgetProps {
     totalIssuesCount?: string;
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
-  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
-  onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];

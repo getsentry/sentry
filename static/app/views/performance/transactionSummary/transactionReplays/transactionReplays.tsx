@@ -49,7 +49,7 @@ function TransactionReplaysContent() {
   const location = useLocation();
 
   // Hard-code 90d to match the count query. There's no date selector for the replay tab.
-  const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
+  const {data, fetchError, isFetching} = useReplaysFromTransaction({
     replayIdsEventView,
     location: {
       ...location,
@@ -81,7 +81,6 @@ function TransactionReplaysContent() {
       eventView={replayRecordsEventView}
       events={events}
       organization={organization}
-      pageLinks={pageLinks}
     />
   );
 }
@@ -94,7 +93,6 @@ function ReplaysContent({
   eventView: EventView;
   events: EventSpanData[];
   organization: Organization;
-  pageLinks: string | null;
 }) {
   const location = useLocation();
 

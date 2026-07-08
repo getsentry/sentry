@@ -375,7 +375,6 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
                 <ErrorBoundary mini>
                   <UsageStatsProjects
                     dataCategory={this.dataCategoryInfo}
-                    dataCategoryName={this.dataCategoryInfo.titleName}
                     isSingleProject={this.isSingleProject}
                     projectIds={this.projectIds}
                     dataDatetime={this.dataDatetime}

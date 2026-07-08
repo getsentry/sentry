@@ -967,7 +967,6 @@ function IssueListOverviewInner({
           onActionTaken={onActionTaken}
         />
         <IssueViewsHeader
-          selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}
           realtimeActive={realtimeActive}
@@ -995,7 +994,6 @@ function IssueListOverviewInner({
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
               memberList={memberList}
-              selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading || supergroupsLoading}
               statsLoading={statsLoading}
               supergroupLookup={supergroupLookup}

@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -31,7 +30,6 @@ import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
-  confidences: Confidence[];
   setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;
   tab: Mode | Tab;
 }

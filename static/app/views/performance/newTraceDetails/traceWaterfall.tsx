@@ -554,9 +554,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
-  // Memoized because it requires tree traversal
-  const shape = useMemo(() => props.tree.shape, [props.tree]);
-
   useTraceTimelineChangeSync({
     tree: props.tree,
     traceScheduler,
@@ -688,7 +685,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   return (
     <Flex direction="column" flex={1}>
       <Flex gap="md">
-        <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceSearchInput onTraceSearch={onTraceSearch} />
         <TraceLinksNavigation
           rootEventResults={props.rootEventResults}
           source={props.source}
@@ -756,16 +753,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
         <TraceDrawer
           replay={props.replay}
-          meta={props.meta}
-          traceType={shape}
           trace={props.tree}
           traceId={props.traceSlug}
           traceGridRef={traceGridRef}
           manager={viewManager}
           scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}
-          onScrollToNode={onScrollToNode}
-          traceEventView={props.traceEventView}
         />
       </TraceGrid>
     </Flex>
