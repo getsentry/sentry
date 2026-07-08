@@ -537,6 +537,12 @@ export function useInfiniteLogsQuery({
 
   const seekToTimestamp = useCallback(
     (timestampPrecise: string | number) => {
+      // Anchoring only works when sorting by timestamp — otherwise the anchored page
+      // param is dropped and the seek would silently no-op. Bail so the caller doesn't
+      // show a loading state for a seek that can never resolve.
+      if (!getTimeBasedSortBy(sortBys)) {
+        return false;
+      }
       let value: bigint;
       try {
         value = BigInt(timestampPrecise);
@@ -546,7 +552,7 @@ export function useInfiniteLogsQuery({
       setSeekAnchor({baseQuerySignature, timestampPrecise: value});
       return true;
     },
-    [baseQuerySignature]
+    [baseQuerySignature, sortBys]
   );
 
   const getPreviousPageParam = useCallback(
@@ -896,6 +902,11 @@ function useRefetchQueryOnAnchorChange({
   }, [anchorTimestampPrecise, queryClient, queryKey]);
 }
 
+// Safety net for a newer-page request that never resolves: rather than pin the table
+// on the seek loader indefinitely (the only other escape is changing filters), release
+// the window after this long so it reveals whatever did load.
+const SEEK_WINDOW_MAX_WAIT_MS = 10_000;
+
 /**
  * Loads the page of newer rows above a "View in table" seek target so the anchored
  * window has context on both sides (the anchored initial page is `timestamp_precise:<=T`,
@@ -923,16 +934,20 @@ function useCenteredSeekWindow({
 }) {
   const [isSeekSettled, setIsSeekSettled] = useState(false);
   const balancedAnchorRef = useRef<bigint | null>(null);
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Tracks the live anchor so a slow fetchPreviousPage from a superseded seek can tell
   // it's stale and skip settling the window that's since moved on to a newer anchor.
+  // This guard is why a rapid second "View in table" is safe — keep it.
   const latestAnchorRef = useRef<bigint | null>(null);
   latestAnchorRef.current = anchorTimestampPrecise;
 
-  // A new anchor (or a cleared one) starts a fresh, not-yet-settled window.
+  // A new anchor (or a cleared one) starts a fresh, not-yet-settled window. Clearing the
+  // pending timeout here also covers unmount and a superseding seek.
   useEffect(() => {
     balancedAnchorRef.current = null;
     setIsSeekSettled(false);
+    return () => clearTimeout(settleTimeoutRef.current);
   }, [anchorTimestampPrecise]);
 
   useEffect(() => {
@@ -946,15 +961,31 @@ function useCenteredSeekWindow({
 
     balancedAnchorRef.current = anchorTimestampPrecise;
 
-    if (hasAnchoredRows && hasPreviousPage) {
-      Promise.resolve(fetchPreviousPage()).finally(() => {
-        if (latestAnchorRef.current === anchorTimestampPrecise) {
-          setIsSeekSettled(true);
-        }
-      });
-    } else {
-      setIsSeekSettled(true);
+    const settleIfCurrent = () => {
+      if (latestAnchorRef.current === anchorTimestampPrecise) {
+        setIsSeekSettled(true);
+      }
+    };
+
+    if (!hasAnchoredRows || !hasPreviousPage) {
+      settleIfCurrent();
+      return;
     }
+
+    const previousPage = fetchPreviousPage();
+    if (!(previousPage instanceof Promise)) {
+      // No newer-page request actually started (e.g. the query is erroring), so there's
+      // nothing to await — settle now instead of hanging on an already-resolved value.
+      settleIfCurrent();
+      return;
+    }
+
+    clearTimeout(settleTimeoutRef.current);
+    settleTimeoutRef.current = setTimeout(settleIfCurrent, SEEK_WINDOW_MAX_WAIT_MS);
+    previousPage.finally(() => {
+      clearTimeout(settleTimeoutRef.current);
+      settleIfCurrent();
+    });
   }, [
     anchorTimestampPrecise,
     isAnchoredPageSettled,

@@ -87,6 +87,7 @@ export type LogsAnalyticsEventParameters = {
   };
   'logs.table.pinned_row_view_in_table': {
     log_id: string;
+    organization: Organization;
     page_source: LogsAnalyticsPageSource;
   };
   'logs.table.row_copied_as_json': {
