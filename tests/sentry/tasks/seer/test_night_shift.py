@@ -20,7 +20,11 @@ from sentry.tasks.seer.night_shift.cron import (
     schedule_night_shift,
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.simple_triage import ScoredCandidate, fixability_score_strategy
+from sentry.tasks.seer.night_shift.simple_triage import (
+    ScoredCandidate,
+    fixability_score_strategy,
+    fixability_score_strategy_per_project,
+)
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -521,6 +525,72 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         mock_score.assert_called_once()
         assert [p.id for p in mock_score.call_args.args[0]] == [enabled.id]
 
+    def test_allowed_project_slugs_triggers_per_project_quotas(self) -> None:
+        org = self.create_organization()
+        keep = self.create_project(organization=org, slug="keep")
+        self._make_eligible(keep)
+
+        with (
+            self.options(
+                {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy_per_project",
+                return_value=[],
+            ) as mock_per_project,
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=[],
+            ) as mock_global,
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_per_project.assert_called_once()
+        mock_global.assert_not_called()
+
+    def test_without_allowed_project_slugs_uses_global_strategy(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy_per_project",
+                return_value=[],
+            ) as mock_per_project,
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=[],
+            ) as mock_global,
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_global.assert_called_once()
+        mock_per_project.assert_not_called()
+
+    def test_manual_run_ignores_allowed_project_slugs_for_quota_strategy(self) -> None:
+        org = self.create_organization()
+        keep = self.create_project(organization=org, slug="keep")
+        self._make_eligible(keep)
+
+        with (
+            self.options(
+                {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy_per_project",
+                return_value=[],
+            ) as mock_per_project,
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=[],
+            ) as mock_global,
+        ):
+            run_night_shift_for_org(org.id, options={"source": "manual"}, project_ids=[keep.id])
+
+        mock_global.assert_called_once()
+        mock_per_project.assert_not_called()
+
 
 @django_db_all
 class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCase):
@@ -924,6 +994,46 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         assert null.id in result_ids
         # Low-scored issue (below threshold) is excluded entirely
         assert len(result) == 3
+
+    def test_per_project_gives_each_project_its_own_quota(self) -> None:
+        noisy = self.create_project(slug="noisy")
+        quiet = self.create_project(slug="quiet")
+        for i in range(3):
+            self._store_event_and_update_group(
+                noisy, f"noisy-{i}", seer_fixability_score=0.9, times_seen=5
+            )
+        quiet_issue = self._store_event_and_update_group(
+            quiet, "quiet-issue", seer_fixability_score=0.5, times_seen=1
+        )
+
+        result = fixability_score_strategy_per_project([noisy, quiet], max_candidates=1)
+
+        # max_candidates=1 caps each project individually, not the combined total.
+        assert len(result) == 2
+        assert {c.group.project_id for c in result} == {noisy.id, quiet.id}
+        assert quiet_issue.id in [c.group.id for c in result]
+
+    def test_per_project_fetch_limit_scales_with_max_candidates(self) -> None:
+        project = self.create_project()
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = Mock(results=[])
+            fixability_score_strategy_per_project([project], max_candidates=5)
+
+        assert mock_query.call_args.kwargs["limit"] == 15
+
+    def test_per_project_fetch_limit_caps_at_global_fetch_limit(self) -> None:
+        project = self.create_project()
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = Mock(results=[])
+            fixability_score_strategy_per_project([project], max_candidates=40)
+
+        assert mock_query.call_args.kwargs["limit"] == 100
 
 
 class TestTriageActionFromFixabilityScore:
