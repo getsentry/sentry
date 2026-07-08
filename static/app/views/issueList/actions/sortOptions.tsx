@@ -64,8 +64,10 @@ export function IssueListSortOptions({
     // user with a stored non-recommended sort can't switch back to it.
     organization.features.includes('issue-stream-recommended-sort-default') ||
     sort === IssueSortOptions.RECOMMENDED;
+  // The experimental flag now serves recommended_v2 behind the regular Recommended
+  // sort server-side, so the separate option only renders for stale URLs that still
+  // carry the recommended_v2 sort value.
   const hasExperimentalRecommendedSort =
-    organization.features.includes('issue-stream-recommended-sort-experimental') ||
     sort === IssueSortOptions.RECOMMENDED_EXPERIMENTAL;
   const hasProgressSort =
     organization.features.includes('issue-stream-progress-sort') ||
