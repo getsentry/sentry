@@ -83,6 +83,11 @@ class NotificationSource(StrEnum):
     ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
     ACTIVITY_SEER_ITERATION_STARTED = "activity-seer-iteration-started"
     ACTIVITY_SEER_ITERATION_COMPLETED = "activity-seer-iteration-completed"
+    ACTIVITY_SET_RESOLVED = "activity-set-resolved"
+    ACTIVITY_SET_RESOLVED_IN_RELEASE = "activity-set-resolved-in-release"
+    ACTIVITY_SET_RESOLVED_BY_AGE = "activity-set-resolved-by-age"
+    ACTIVITY_SET_RESOLVED_IN_COMMIT = "activity-set-resolved-in-commit"
+    ACTIVITY_SET_RESOLVED_IN_PULL_REQUEST = "activity-set-resolved-in-pull-request"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -131,6 +136,11 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SEER_PR_CREATED,
         NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
         NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
+        NotificationSource.ACTIVITY_SET_RESOLVED,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
+        NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_PULL_REQUEST,
     ],
 }
 

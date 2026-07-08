@@ -1,6 +1,8 @@
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.seer_base import (
+from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
+)
+from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     build_template,
     get_example_issue_description,
     get_example_template,
@@ -72,5 +74,7 @@ class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityA
             body.append(ParagraphSection(blocks=pr_links))
 
         return build_template(
-            data=data, subject=get_subject("Pull Request Created", group), body=body
+            data=data,
+            subject=get_subject("Pull Request Created", group),
+            body=body,
         )

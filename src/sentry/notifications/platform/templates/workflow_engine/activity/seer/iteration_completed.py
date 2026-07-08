@@ -1,6 +1,8 @@
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.seer_base import (
+from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
+)
+from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     build_template,
     get_example_issue_description,
     get_example_template,
