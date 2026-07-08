@@ -165,7 +165,7 @@ export function ConversationSpanDetail({
         </Flex>
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
-        ) : isError ? null : (
+        ) : (
           <SpanMetadata node={node} attributes={attributes} />
         )}
       </Stack>
