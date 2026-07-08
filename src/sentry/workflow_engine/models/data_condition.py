@@ -172,10 +172,13 @@ class DataCondition(DefaultFieldsModel):
                 return ConditionError(msg="Invalid condition result")
 
     def _evaluate_operator(
-        self, condition_type: Condition, value: T
+        self,
+        condition_type: Condition,
+        value: T,
     ) -> DataConditionResult | ConditionError:
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
+
         try:
             return op(cast(Any, value), self.comparison)
         except TypeError:
@@ -229,7 +232,6 @@ class DataCondition(DefaultFieldsModel):
     def evaluate_value(self, value: T) -> DataConditionEvaluation:
         try:
             condition_type = Condition(self.type)
-            result: DataConditionResult
 
             if condition_type in CONDITION_OPS:
                 result = self._evaluate_operator(condition_type, value)

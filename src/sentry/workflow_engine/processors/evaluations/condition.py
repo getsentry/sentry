@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from sentry.workflow_engine.types import DataConditionResult
+from sentry.workflow_engine.types import ConditionError, DataConditionResult
 
 
 class DataConditionEvaluationException(Exception):
@@ -28,4 +28,4 @@ class DataConditionEvaluation:
 
     value: Any
     logic_result: bool
-    result: DataConditionResult
+    result: DataConditionResult | ConditionError

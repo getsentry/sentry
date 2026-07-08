@@ -44,14 +44,15 @@ class ConditionTestCase(BaseWorkflowTest):
         assert evaluation.result != data_condition.get_condition_result()
 
     def assert_slow_condition_passes(self, data_condition: DataCondition, value: list[int]) -> None:
-        assert data_condition.evaluate_value(value) == data_condition.get_condition_result()
+        evaluation = data_condition.evaluate_value(value)
+        assert evaluation.result == data_condition.get_condition_result()
 
     def assert_slow_condition_does_not_pass(
         self, data_condition: DataCondition, value: list[int]
     ) -> None:
-        assert data_condition.evaluate_value(value) != data_condition.get_condition_result()
-
-    # TODO: activity
+        evaluation = data_condition.evaluate_value(value)
+        assert evaluation.logic_result is False
+        assert evaluation.result != data_condition.get_condition_result()
 
 
 class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
