@@ -1,7 +1,6 @@
 import zoneinfo
 from datetime import timedelta
 from unittest import mock
-from uuid import uuid4
 
 import pytest
 from django.core import mail
@@ -32,14 +31,9 @@ from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
-    _project_key_errors_eap,
-    _project_key_errors_snuba,
-    _project_key_performance_issues_eap,
-    _project_key_performance_issues_snuba,
     fetch_past_resolved_issue_links,
-    org_key_errors,
+    org_top_issues,
     organization_project_issue_substatus_summaries,
-    project_key_errors,
     project_past_resolved_issues,
     user_project_ownership,
 )
@@ -54,7 +48,6 @@ from sentry.tasks.summaries.weekly_reports import (
     schedule_organizations,
 )
 from sentry.testutils.cases import (
-    OccurrenceTestCase,
     OutcomesSnubaTest,
     PerformanceIssueTestCase,
     SnubaTestCase,
@@ -75,9 +68,7 @@ from sentry.utils.outcomes import Outcome
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
-class WeeklyReportsTest(
-    OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestCase
-):
+class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
@@ -343,43 +334,7 @@ class WeeklyReportsTest(
         assert project_ctx.total_substatus_count == 2
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_status(self) -> None:
-        self.login_as(user=self.user)
-        self.project.first_event = self.now - timedelta(days=3)
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        group2 = event2.group
-        group2.status = GroupStatus.RESOLVED
-        group2.substatus = None
-        group2.resolved_at = self.now - timedelta(minutes=1)
-        group2.save()
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        user_project_ownership(ctx)
-        key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
-        assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
-
-    def test_org_key_errors_batched(self) -> None:
+    def test_org_top_issues_filters_resolved(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
@@ -411,182 +366,16 @@ class WeeklyReportsTest(
 
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        user_project_ownership(ctx)
-        result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
-        assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
-
-    @with_feature("organizations:weekly-report-batched-key-errors")
-    def test_message_builder_filter_resolved_batched(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
+        errors_by_project, _perf_by_project = org_top_issues(
+            ctx,
+            [self.project],
+            sort_by="freq",
+            referrer=Referrer.REPORTS_TOP_ISSUES.value,
         )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event3 = self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-3"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        group2 = event2.group
-        group2.status = GroupStatus.RESOLVED
-        group2.substatus = None
-        group2.resolved_at = self.now - timedelta(minutes=1)
-        group2.save()
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        user_project_ownership(ctx)
-
-        key_errors_by_project = org_key_errors(
-            ctx, project_ids=[self.project.id], referrer=Referrer.REPORTS_KEY_ERRORS.value
-        )
-        for project_id, key_errors in key_errors_by_project.items():
-            ctx.projects_context_map[project_id].key_errors_by_id = [
-                (e["events.group_id"], e["count()"]) for e in key_errors
-            ]
-
-        key_error_ids = {
-            group_id for group_id, _ in ctx.projects_context_map[self.project.id].key_errors_by_id
-        }
-        assert event1.group.id in key_error_ids
-        assert event3.group.id in key_error_ids
-        assert len(ctx.projects_context_map[self.project.id].key_errors_by_id) == 2
-
-    def test_project_key_errors_eap_matches_snuba(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-
-        ts = (self.now - timedelta(hours=1)).timestamp()
-
-        group_a = self.store_events_to_snuba_and_eap(
-            "key-errors-a",
-            count=3,
-            timestamp=ts,
-            extra_event_data={"level": "error"},
-        )[0].group
-        group_b = self.store_events_to_snuba_and_eap(
-            "key-errors-b",
-            count=2,
-            timestamp=ts,
-            extra_event_data={"level": "error"},
-        )[0].group
-        group_c = self.store_events_to_snuba_and_eap(
-            "key-errors-c",
-            count=4,
-            timestamp=ts,
-            extra_event_data={"level": "info"},
-        )[0].group
-        group_d = self.store_events_to_snuba_and_eap(
-            "key-errors-d",
-            count=1,
-            timestamp=ts,
-            extra_event_data={"level": "error"},
-        )[0].group
-        assert group_a is not None
-        assert group_b is not None
-        assert group_c is not None
-        assert group_d is not None
-
-        # Excluded in both paths due to unresolved filter
-        group_b.update(
-            status=GroupStatus.RESOLVED,
-            substatus=None,
-            resolved_at=self.now - timedelta(minutes=1),
-        )
-
-        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
-        referrer = Referrer.REPORTS_KEY_ERRORS.value
-
-        snuba_rows = _project_key_errors_snuba(ctx, self.project, referrer)
-        eap_rows = _project_key_errors_eap(ctx, self.project, referrer)
-
-        expected_rows = [
-            {"events.group_id": group_a.id, "count()": 3},
-            {"events.group_id": group_d.id, "count()": 1},
-        ]
-        assert snuba_rows == expected_rows
-        assert eap_rows == expected_rows
-
-    def test_project_key_performance_issues_eap_matches_snuba(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-
-        # Create 3 events for group1 and 1 for group2 in Snuba (via search_issues)
-        fingerprint_1 = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-        fingerprint_2 = f"{PerformanceNPlusOneGroupType.type_id}-group2"
-        perf_event_1a = self.create_performance_issue(fingerprint=fingerprint_1)
-        self.create_performance_issue(fingerprint=fingerprint_1)
-        self.create_performance_issue(fingerprint=fingerprint_1)
-        perf_event_2 = self.create_performance_issue(fingerprint=fingerprint_2)
-
-        assert perf_event_1a.group is not None
-        assert perf_event_2.group is not None
-        perf_group_1 = perf_event_1a.group
-        perf_group_2 = perf_event_2.group
-        perf_group_1.update(last_seen=self.now, times_seen=10)
-        perf_group_2.update(last_seen=self.now, times_seen=5)
-
-        # Store matching EAP occurrences for the same groups with the same counts
-        self.store_eap_items(
-            [
-                self.create_eap_occurrence(
-                    group_id=perf_group_1.id,
-                    project=self.project,
-                    timestamp=self.now - timedelta(minutes=i + 1),
-                    issue_occurrence_id=uuid4().hex,
-                )
-                for i in range(3)
-            ]
-            + [
-                self.create_eap_occurrence(
-                    group_id=perf_group_2.id,
-                    project=self.project,
-                    timestamp=self.now - timedelta(minutes=1),
-                    issue_occurrence_id=uuid4().hex,
-                ),
-            ]
-        )
-
-        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
-        group_ids = [perf_group_1.id, perf_group_2.id]
-        referrer = Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
-
-        snuba_rows = _project_key_performance_issues_snuba(ctx, self.project, referrer, group_ids)
-        eap_rows = _project_key_performance_issues_eap(ctx, self.project, referrer, group_ids)
-
-        assert len(snuba_rows) == 2
-        assert len(eap_rows) == 2
-        for snuba_row, eap_row in zip(snuba_rows, eap_rows):
-            assert int(snuba_row["group_id"]) == int(eap_row["group_id"])
-            assert int(snuba_row["count()"]) == int(eap_row["count()"])
-
-        assert int(snuba_rows[0]["group_id"]) == perf_group_1.id
-        assert int(snuba_rows[0]["count()"]) == 3
-        assert int(snuba_rows[1]["group_id"]) == perf_group_2.id
-        assert int(snuba_rows[1]["count()"]) == 1
+        assert self.project.id in errors_by_project
+        error_group_ids = {gid for gid, _ in errors_by_project[self.project.id]}
+        assert event1.group.id in error_group_ids
+        assert event2.group.id not in error_group_ids
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -829,7 +618,7 @@ class WeeklyReportsTest(
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
             }
-            assert len(context["key_errors"]) == 1
+            assert len(context["key_errors"]) == 2
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
