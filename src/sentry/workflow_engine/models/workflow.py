@@ -19,7 +19,7 @@ from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroup,
     DataConditionGroupSnapshot,
 )
-from sentry.workflow_engine.processors.data_condition_group import TriggerResult
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
