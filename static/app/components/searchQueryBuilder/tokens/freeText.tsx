@@ -478,11 +478,16 @@ function SearchQueryBuilderInputInternal({
           }
 
           if (option.type === 'convert-humanized') {
+            // Replace only the focused free-text token with the converted ESQ,
+            // leaving any other filters/tokens in the query intact.
             dispatch({
-              type: 'UPDATE_QUERY',
-              query: option.value,
-              focusOverride: {itemKey: 'end'},
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+              focusOverride: calculateNextFocusForInsertedToken(item),
             });
+            resetInputValue();
             return;
           }
 
