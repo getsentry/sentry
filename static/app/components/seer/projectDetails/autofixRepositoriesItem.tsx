@@ -284,9 +284,12 @@ export function AutofixRepositoriesItem({
                     ))}
                     <Flex align="center">
                       <Button
-                        disabled={!canWrite}
+                        disabled
                         size="xs"
                         icon={<IconAdd size="sm" />}
+                        tooltipProps={{
+                          title: t('Branch overrides are no longer supported'),
+                        }}
                         onClick={() =>
                           fieldApi.pushValue({
                             id: '',
