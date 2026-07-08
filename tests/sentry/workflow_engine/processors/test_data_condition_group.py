@@ -354,7 +354,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
                 "evaluate_value",
                 return_value=DataConditionEvaluation(
                     result=None,
-                    logic_result=False,
+                    condition_met=False,
                     value="error",
                 ),
             ),
@@ -363,7 +363,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
                 "evaluate_value",
                 return_value=DataConditionEvaluation(
                     result=error,
-                    logic_result=False,
+                    condition_met=False,
                     value="error",
                 ),
             ),

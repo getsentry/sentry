@@ -26,5 +26,5 @@ class DataConditionEvaluation(BaseWorkflowEngineEvaluation):
     """
 
     value: Any
-    logic_result: bool
+    condition_met: bool
     result: DataConditionResult | ConditionError

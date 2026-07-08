@@ -243,14 +243,14 @@ class DataCondition(DefaultFieldsModel):
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
         if isinstance(result, bool):
-            logic_result = result
+            is_condition_met = result
             result = self.get_condition_result() if result else None
         else:
-            logic_result = bool(result)
+            is_condition_met = bool(result)
 
         return DataConditionEvaluation(
             value=value,
-            logic_result=logic_result,
+            condition_met=is_condition_met,
             result=result,
         )
 
