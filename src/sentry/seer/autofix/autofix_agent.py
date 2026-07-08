@@ -88,11 +88,20 @@ class UserUIFeedbackSource(TypedDict):
 GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-comment"]
 
 
-class GithubPrCommentFeedbackSource(TypedDict):
-    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``)."""
-
+class _GithubPrCommentFeedbackSourceBase(TypedDict):
     type: GithubPrCommentFeedbackType
     comment: Mapping[str, Any]
+
+
+class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase, total=False):
+    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``).
+
+    ``file_path``/``line`` (the inline review-comment anchor) are optional via
+    ``total=False``: feedback enqueued under the pre-anchor schema omits them,
+    and ``NotRequired`` is not an option here because ``from __future__ import
+    annotations`` stringizes the annotations, hiding it from pydantic v1.
+    """
+
     file_path: str | None
     line: int | None
 

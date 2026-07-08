@@ -212,12 +212,7 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
             group_id=self.group.id,
             feedback=Feedback(
                 text=message,
-                source={
-                    "type": "github-pr-comment",
-                    "comment": {"id": comment_id},
-                    "file_path": None,
-                    "line": None,
-                },
+                source={"type": "github-pr-comment", "comment": {"id": comment_id}},
             ),
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
