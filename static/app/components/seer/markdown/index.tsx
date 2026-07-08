@@ -5,6 +5,8 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {SeerEmbedRegistry} from './embeds';
+
 const ISSUE_SHORT_ID_PATTERN =
   /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
 
@@ -47,6 +49,10 @@ function toRelativeHref(href: string): string {
 
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: ({name, data, level, Default, ...rest}) => {
+    const Embed = SeerEmbedRegistry.get(name);
+    if (Embed) {
+      return <Embed name={name} data={data} level={level} />;
+    }
     return <Default name={name} data={data} level={level} {...rest} />;
   },
   Link: ({children, Default, href, title}) => (
