@@ -292,11 +292,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             mobile_app_info_updates["app_name"] = data["app_name"]
 
         if "build_number_raw" in data:
-            # extras is a JSONField, so update_or_create's `defaults` would
-            # overwrite it wholesale on an update. Query it directly rather than
-            # via head_artifact.get_mobile_app_info(), which would cache a
-            # pre-update instance on head_artifact and go stale for the
-            # get_mobile_app_info() call later in this method.
             existing_extras = (
                 PreprodArtifactMobileAppInfo.objects.filter(preprod_artifact=head_artifact)
                 .values_list("extras", flat=True)
