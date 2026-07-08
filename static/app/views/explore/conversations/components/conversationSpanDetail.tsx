@@ -57,7 +57,6 @@ type SpanAttributes = Parameters<typeof getAIInputMessages>[1];
 
 interface ConversationSpanDetailProps {
   activeTab: DetailTab;
-  node: AITraceSpanNode;
   onTabChange: (tab: DetailTab) => void;
   traceId: string;
   /**
@@ -70,6 +69,10 @@ interface ConversationSpanDetailProps {
    * border and radius. Off, it renders as a standalone bordered card.
    */
   embedded?: boolean;
+  /** Renders the loading skeleton while the conversation is still fetching. */
+  isLoading?: boolean;
+  /** The span to show. May be undefined while loading. */
+  node?: AITraceSpanNode;
   /** When provided, a close button is shown in the header. */
   onClose?: () => void;
   /** Scrolls the panel back to the top whenever this value changes. */
@@ -84,6 +87,7 @@ export function ConversationSpanDetail({
   onClose,
   avgDuration,
   embedded,
+  isLoading,
   scrollResetKey,
 }: ConversationSpanDetailProps) {
   const theme = useTheme();
@@ -95,8 +99,12 @@ export function ConversationSpanDetail({
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
   // returned by the conversation list endpoint, so they're fetched per span.
-  const eapValue = isEAPSpanNode(node) ? node.value : null;
-  const {data, isLoading, isError} = useTraceItemDetails({
+  const eapValue = node && isEAPSpanNode(node) ? node.value : null;
+  const {
+    data,
+    isLoading: isAttributesLoading,
+    isError,
+  } = useTraceItemDetails({
     traceItemId: eapValue?.event_id ?? '',
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
@@ -105,6 +113,10 @@ export function ConversationSpanDetail({
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
+  if (isLoading || !node) {
+    return <SpanDetailSkeleton embedded={embedded} />;
+  }
+
   const attributes = data?.attributes;
 
   const title = node.op || node.description || t('Span');
@@ -187,7 +199,7 @@ export function ConversationSpanDetail({
               <InputTab
                 node={node}
                 attributes={attributes}
-                isLoading={isLoading}
+                isLoading={isAttributesLoading}
                 isError={isError}
               />
             </TabPanels.Item>
@@ -195,7 +207,7 @@ export function ConversationSpanDetail({
               <OutputTab
                 node={node}
                 attributes={attributes}
-                isLoading={isLoading}
+                isLoading={isAttributesLoading}
                 isError={isError}
               />
             </TabPanels.Item>
@@ -203,7 +215,7 @@ export function ConversationSpanDetail({
               <AttributesTab
                 node={node}
                 attributes={attributes}
-                isLoading={isLoading}
+                isLoading={isAttributesLoading}
                 isError={isError}
               />
             </TabPanels.Item>
@@ -447,5 +459,31 @@ function EmptyTab({message}: {message: string}) {
     <Flex flex="1" background="secondary" radius="md" padding="xl">
       <Text variant="muted">{message}</Text>
     </Flex>
+  );
+}
+
+function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
+  return (
+    <SpanDetailCard embedded={embedded}>
+      <Flex align="center" gap="lg" flexShrink={0}>
+        <Placeholder height="16px" width="16px" />
+        <Placeholder height="16px" width="180px" />
+      </Flex>
+      <Stack gap="md" flexShrink={0}>
+        <Placeholder height="16px" width="60px" />
+        <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
+          <Placeholder height="14px" width="80px" />
+          <Placeholder height="14px" width="200px" />
+          <Placeholder height="14px" width="60px" />
+          <Placeholder height="14px" width="160px" />
+        </Grid>
+      </Stack>
+      <Flex gap="lg" flexShrink={0}>
+        <Placeholder height="16px" width="44px" />
+        <Placeholder height="16px" width="56px" />
+        <Placeholder height="16px" width="96px" />
+      </Flex>
+      <Placeholder height="240px" width="100%" />
+    </SpanDetailCard>
   );
 }

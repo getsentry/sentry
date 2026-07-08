@@ -9,7 +9,6 @@ import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {ConversationViewSkeletonNew} from 'sentry/views/explore/conversations/components/conversationViewSkeleton';
 import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
@@ -92,11 +91,9 @@ export function ConversationViewContentNew({
 
   const isTranscript = !isTimeline;
 
-  // The transcript renders its own chat-shaped skeleton inside the layout below;
-  // the timeline tab renders the redesigned span-timeline skeleton.
-  if (isLoading && !isTranscript) {
-    return <ConversationViewSkeletonNew />;
-  }
+  // The timeline auto-selects a span, so its detail pane skeletons while loading.
+  const showSpanDetail =
+    detailState.detailOpen && (isLoading ? isTimeline : Boolean(selectedNode));
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
@@ -121,6 +118,7 @@ export function ConversationViewContentNew({
             />
           ) : (
             <AiSpanTimeline
+              isLoading={isLoading}
               nodes={nodes}
               selectedNodeKey={selectedNode?.id ?? ''}
               onSelectNode={handleSelectAndOpenDetail}
@@ -130,11 +128,12 @@ export function ConversationViewContentNew({
           )
         }
         right={
-          detailState.detailOpen && selectedNode ? (
+          showSpanDetail ? (
             <ConversationSpanDetail
+              isLoading={isLoading}
               scrollResetKey={activeTab}
-              node={selectedNode}
-              traceId={nodeTraceMap?.get(selectedNode.id) ?? ''}
+              node={selectedNode ?? undefined}
+              traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
               activeTab={detailState.detailTab}
               onTabChange={detailTab => setDetailState({detailTab})}
               onClose={() => setDetailState({detailOpen: false, detailTab: null})}

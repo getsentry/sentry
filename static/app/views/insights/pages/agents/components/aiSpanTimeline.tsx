@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
@@ -50,11 +51,13 @@ export function AiSpanTimeline({
   onSelectNode,
   nodeTraceMap,
   compressGaps = false,
+  isLoading = false,
 }: {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
   compressGaps?: boolean;
+  isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
 }) {
   const compressedBounds = useMemo(
@@ -80,6 +83,10 @@ export function AiSpanTimeline({
     return parents;
   }, [nodes]);
 
+  if (isLoading) {
+    return <TimelineSkeleton />;
+  }
+
   return (
     <Stack gap="xs">
       {nodes.map(node => {
@@ -98,6 +105,54 @@ export function AiSpanTimeline({
           />
         );
       })}
+    </Stack>
+  );
+}
+
+const TIMELINE_SKELETON_ROWS: Array<{
+  title: string;
+  indent?: boolean;
+  secondary?: string;
+}> = [
+  {title: '130px', secondary: '90px'},
+  {title: '90px', secondary: '60px', indent: true},
+  {title: '110px', indent: true},
+  {title: '80px', secondary: '100px', indent: true},
+  {title: '85px', secondary: '55px', indent: true},
+  {title: '120px', indent: true},
+  {title: '100px', secondary: '70px'},
+  {title: '95px', secondary: '85px', indent: true},
+];
+
+function TimelineSkeleton() {
+  return (
+    <Stack gap="xs">
+      {TIMELINE_SKELETON_ROWS.map((row, index) => (
+        <Container
+          key={`${row.title}-${index}`}
+          padding="xs"
+          paddingLeft={row.indent ? 'xl' : 'xs'}
+        >
+          <Stack gap="xs">
+            <Flex align="center" gap="md">
+              <Placeholder height="16px" width="16px" />
+              <Placeholder height="14px" width={row.title} />
+              <Flex flex="1" minWidth="0">
+                {row.secondary ? (
+                  <Placeholder height="14px" width={row.secondary} />
+                ) : null}
+              </Flex>
+              <Flex flexShrink={0} width="100px" justify="end">
+                <Placeholder height="14px" width="48px" />
+              </Flex>
+              <Flex flexShrink={0} width="56px" justify="end">
+                <Placeholder height="14px" width="40px" />
+              </Flex>
+            </Flex>
+            <Placeholder height="4px" width="100%" />
+          </Stack>
+        </Container>
+      ))}
     </Stack>
   );
 }
