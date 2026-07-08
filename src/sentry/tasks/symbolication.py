@@ -56,16 +56,16 @@ def get_symbolication_functions(
     from sentry.lang.java.utils import is_jvm_event
     from sentry.lang.javascript.utils import is_js_event
 
-    platforms = []
+    functions = []
 
     if is_jvm_event(data, stacktraces):
-        platforms.append(SymbolicatorFunction.jvm)
+        functions.append(SymbolicatorFunction.jvm)
     if is_js_event(data, stacktraces):
-        platforms.append(SymbolicatorFunction.js)
+        functions.append(SymbolicatorFunction.js)
 
-    platforms.extend(get_native_symbolication_functions(data, stacktraces))
+    functions.extend(get_native_symbolication_functions(data, stacktraces))
 
-    return platforms
+    return functions
 
 
 class SymbolicationTimeout(Exception):
@@ -250,7 +250,7 @@ def submit_symbolicate(
     task_fn_name = TASK_FNS.get(task_kind, "symbolicate_event")
     task_fn = globals()[task_fn_name]
 
-    # Pass symbolicate_platforms as strings—apparently we're not allowed to pickle
+    # Pass symbolicate_functions as strings—apparently we're not allowed to pickle
     # custom classes.
     symbolicate_function_names = (
         None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
@@ -261,7 +261,7 @@ def submit_symbolicate(
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
-        symbolicate_platforms=symbolicate_function_names,
+        symbolicate_functions=symbolicate_function_names,  # TODO: is changing params here OK, or will it interfer with inflight tasks?
     )
 
 
@@ -363,17 +363,17 @@ symbolicate_jvm_event = make_task_fn(
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorFunction.native, is_reprocessing=True),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native, is_reprocessing=True),
 )
 symbolicate_minidump_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_minidump_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorFunction.minidump, is_reprocessing=True),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=True),
 )
 symbolicate_applecrashreport_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_applecrashreport_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
     task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorFunction.applecrashreport, is_reprocessing=True
+        function=SymbolicatorFunction.applecrashreport, is_reprocessing=True
     ),
 )

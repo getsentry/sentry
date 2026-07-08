@@ -27,10 +27,10 @@ def mock_symbolicate_event():
         yield m
 
 
-@pytest.fixture
-def mock_get_symbolication_function_for_platform():
-    with mock.patch("sentry.tasks.symbolication.get_symbolication_function_for_platform") as m:
-        yield m
+# @pytest.fixture
+# mdef mock_get_symbolication_function_for_platform():
+#     with mock.patch("sentry.tasks.symbolication.get_symbolication_function_for_platform") as m:
+#         yield
 
 
 @pytest.fixture
@@ -62,7 +62,6 @@ def test_symbolicate_event_doesnt_call_process_inline(
     mock_event_processing_store,
     mock_process_event,
     mock_save_event,
-    mock_get_symbolication_function_for_platform,
 ):
     data = {
         "platform": "native",
@@ -73,10 +72,6 @@ def test_symbolicate_event_doesnt_call_process_inline(
     mock_event_processing_store.store.return_value = "e:1"
 
     symbolicated_data = {"type": "error"}
-
-    mock_get_symbolication_function_for_platform.return_value = (
-        lambda _symbolicator, _event: symbolicated_data
-    )
 
     with mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event:
         symbolicate_event(cache_key="e:1", start_time=1)

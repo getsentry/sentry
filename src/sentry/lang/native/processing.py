@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any, Generator
 
 import sentry_sdk
@@ -11,7 +11,7 @@ from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
 from sentry.lang.native.utils import (
     get_event_attachment,
     get_os_from_event,
@@ -622,17 +622,17 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
 
 def get_native_symbolication_functions(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> Generator[Callable[[Symbolicator, Any], Any]]:
+) -> Generator[SymbolicatorFunction]:
     """
     Returns the appropriate symbolication function (or `None`) that will process
     the event, based on the Event `data`, and the supplied `stacktraces`.
     """
     if is_minidump_event(data):
-        yield process_minidump
+        yield SymbolicatorFunction.minidump
     if is_applecrashreport_event(data):
-        yield process_applecrashreport
+        yield SymbolicatorFunction.applecrashreport
     elif is_native_event(data, stacktraces):
-        yield process_native_stacktraces
+        yield SymbolicatorFunction.native
 
 
 def get_required_attachment_types(data) -> Generator[str]:
