@@ -304,10 +304,8 @@ function SearchQueryBuilderInputInternal({
       includeSuggestions: true,
     });
 
-  // Best-effort local conversion of "humanized ESQ" (e.g. "is unresolved
-  // assigned is me") into real ESQ ("is:unresolved assigned:me"). Runs on every
-  // keystroke; returns null when the input isn't cleanly invertible (then we
-  // show nothing extra and the existing AI/Seer path stays available).
+  // Best-effort local conversion of "humanized ESQ".
+  // Runs on every keystroke; returns null when the input isn't cleanly invertible
   const humanizedEsqSuggestion = useMemo(() => {
     const trimmed = inputValue.trim();
     if (!trimmed) {
