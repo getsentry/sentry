@@ -189,7 +189,7 @@ describe('SpansTabContent', () => {
       expect(data.activeTab).toBe('aggregate');
       expect(data.sortBys).toEqual(['-count(span.duration)']);
     });
-  }, 20_000);
+  });
 
   it('inserts group bys from aggregate mode as fields in samples mode', async () => {
     let fields: readonly string[] = [];
