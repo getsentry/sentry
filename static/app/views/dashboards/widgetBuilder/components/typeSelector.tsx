@@ -174,7 +174,7 @@ export function WidgetBuilderTypeSelector({
         <CompactSelect
           value={state.displayType}
           options={displayTypeOrder.map(({type, label, details}) => {
-            const disabledReason = getDisabledReason(type, config);
+            const disabledReason = getVisualizationTypeDisabledReason(type, config);
             return {
               leadingItems: DISPLAY_TYPE_ICONS[type],
               label,
@@ -231,7 +231,7 @@ export function WidgetBuilderTypeSelector({
 
 // Returns why a display type is unavailable, or undefined when it's usable — so
 // the dropdown can both disable and explain the option from a single source.
-function getDisabledReason(
+function getVisualizationTypeDisabledReason(
   type: DisplayType,
   config: ReturnType<typeof getDatasetConfig>
 ): string | undefined {

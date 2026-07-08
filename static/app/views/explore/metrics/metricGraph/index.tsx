@@ -58,7 +58,7 @@ export function getMetricsChartTypeOptions(
   metric?: TraceMetric
 ) {
   if (canUseMetricsHeatMap(organization)) {
-    const disabledReason = getDisabledReason(isEquation, metric);
+    const disabledReason = getVisualizationTypeDisabledReason(isEquation, metric);
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
       {
@@ -72,7 +72,7 @@ export function getMetricsChartTypeOptions(
   return EXPLORE_CHART_TYPE_OPTIONS;
 }
 
-function getDisabledReason(
+function getVisualizationTypeDisabledReason(
   isEquation: boolean,
   metric?: TraceMetric
 ): string | undefined {
