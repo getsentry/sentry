@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -267,6 +268,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * the skeleton reads as a conversation rather than a generic list.
  */
 export function MessagesPanelSkeleton() {
+  const theme = useTheme();
+  const invertedPlaceholderStyle = {
+    backgroundColor: theme.tokens.background.primary,
+  };
+
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">
@@ -274,19 +280,19 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="320px" />
-            <Placeholder height="12px" width="260px" />
-            <Placeholder height="12px" width="180px" />
+          <Flex direction="column" gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
           </Flex>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="280px" />
-            <Placeholder height="12px" width="200px" />
+          <Flex direction="column" gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
           </Flex>
         </AssistantMessageBlock>
       </Stack>
