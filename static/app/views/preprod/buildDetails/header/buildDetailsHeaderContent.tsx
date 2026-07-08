@@ -105,7 +105,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   ];
 
   const version = buildDetailsData.app_info?.version;
-  const buildNumber = buildDetailsData.app_info?.build_number;
+  const buildNumber =
+    buildDetailsData.app_info?.build_number_raw ??
+    buildDetailsData.app_info?.build_number;
 
   if (version) {
     breadcrumbs.push({

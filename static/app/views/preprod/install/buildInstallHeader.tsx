@@ -98,7 +98,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   const appInfo = buildDetailsData.app_info;
   const labels = getLabels(appInfo.platform ?? undefined);
   const version = appInfo.version;
-  const buildNumber = appInfo.build_number;
+  const buildNumber = appInfo.build_number_raw ?? appInfo.build_number;
   const versionTitle = version
     ? `v${version}${buildNumber ? ` (${buildNumber})` : ''}`
     : undefined;

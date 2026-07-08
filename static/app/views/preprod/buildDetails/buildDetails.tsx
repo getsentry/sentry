@@ -124,7 +124,8 @@ export default function BuildDetails() {
   const buildDetails = buildDetailsQuery.data;
   const projectSlug = buildDetails?.project_slug;
   const version = buildDetails?.app_info?.version;
-  const buildNumber = buildDetails?.app_info?.build_number;
+  const buildNumber =
+    buildDetails?.app_info?.build_number_raw ?? buildDetails?.app_info?.build_number;
   const project = ProjectsStore.getBySlug(projectSlug);
   const projectType = project?.platform ?? null;
 

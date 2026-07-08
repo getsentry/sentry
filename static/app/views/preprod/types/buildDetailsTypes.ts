@@ -34,6 +34,7 @@ export interface BuildDetailsAppInfo {
   artifact_type?: BuildDetailsArtifactType | null;
   build_configuration?: string | null;
   build_number?: string | null;
+  build_number_raw?: string | null;
   date_added?: string;
   date_built?: string | null;
   name?: string | null;

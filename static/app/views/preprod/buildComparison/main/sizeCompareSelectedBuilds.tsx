@@ -29,7 +29,8 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
   const version = buildDetails.app_info?.version;
-  const buildNumber = buildDetails.app_info?.build_number;
+  const buildNumber =
+    buildDetails.app_info?.build_number_raw ?? buildDetails.app_info?.build_number;
   const dateBuilt = buildDetails.app_info?.date_built;
   const dateAdded = buildDetails.app_info?.date_added;
 

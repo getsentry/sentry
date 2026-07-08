@@ -91,4 +91,27 @@ describe('PreprodBuildsTable', () => {
       screen.queryByRole('link', {name: /Non Installable App/})
     ).not.toBeInTheDocument();
   });
+
+  it('prefers build_number_raw over the synthesized build_number', () => {
+    const buildWithRawNumber = {
+      ...baseBuild,
+      app_info: {
+        ...baseBuild.app_info,
+        build_number: '1000002000003',
+        build_number_raw: '1.2.3',
+      },
+    };
+
+    render(
+      <PreprodBuildsTable
+        builds={[buildWithRawNumber]}
+        isLoading={false}
+        organizationSlug={organization.slug}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('(1.2.3)')).toBeInTheDocument();
+    expect(screen.queryByText('(1000002000003)')).not.toBeInTheDocument();
+  });
 });

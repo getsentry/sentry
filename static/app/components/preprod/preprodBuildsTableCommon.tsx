@@ -50,6 +50,8 @@ export function PreprodBuildsRowCells({
   showProjectColumn,
   showInstallabilityIndicator = false,
 }: PreprodBuildsRowCellsProps) {
+  const buildNumber = build.app_info?.build_number_raw ?? build.app_info?.build_number;
+
   return (
     <Fragment>
       {showInteraction && <InteractionStateLayer />}
@@ -133,9 +135,9 @@ export function PreprodBuildsRowCells({
                 {build.app_info?.version}
               </Text>
             )}
-            {build.app_info?.build_number !== null && (
+            {buildNumber !== null && (
               <Text size="lg" variant="muted">
-                ({build.app_info?.build_number})
+                ({buildNumber})
               </Text>
             )}
             {build.state === 3 && <IconCheckmark size="sm" variant="success" />}

@@ -98,7 +98,7 @@ function BuildItemDetails({
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
   const version = build.app_info?.version;
-  const buildNumber = build.app_info?.build_number;
+  const buildNumber = build.app_info?.build_number_raw ?? build.app_info?.build_number;
 
   const hasGitInfo = Boolean(prNumber || branchName || commitHash);
   const versionInfo = formatVersionInfo(version, buildNumber);
