@@ -7,7 +7,6 @@ import type {
 } from 'echarts';
 import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
-import * as qs from 'query-string';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
@@ -22,6 +21,7 @@ import type {
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -170,10 +170,7 @@ class ChartZoom extends Component<Props> {
         pageStatsPeriod: period ?? undefined,
       };
 
-      // Only push new location if query params has changed because this will cause a heavy re-render
-      if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
-        navigate({pathname: location.pathname, query: newQuery});
-      }
+      navigateIfQueryChanged(navigate, location, {query: newQuery});
     } else {
       updateDateTime(
         {
