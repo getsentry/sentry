@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import os
 import signal
 import sys
 import time
+from types import FrameType
 
 import pytest
+from _pytest.config import Config
+from _pytest.reports import TestReport
 
 _in_flight: dict[str, float] = {}
 _original_stdout_fd: int | None = None
 
 
-def _on_sigterm(signum, frame):
+def _on_sigterm(signum: int, frame: FrameType | None) -> None:
     msg_parts = []
     if _in_flight:
         msg_parts.append(f"\n\n{'=' * 60}")
@@ -28,18 +33,18 @@ def _on_sigterm(signum, frame):
     os._exit(1)
 
 
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     global _original_stdout_fd
     _original_stdout_fd = os.dup(sys.stdout.fileno())
     signal.signal(signal.SIGTERM, _on_sigterm)
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_runtest_logstart(nodeid, location):
+def pytest_runtest_logstart(nodeid: str, location: tuple[str, int | None, str]) -> None:
     _in_flight[nodeid] = time.monotonic()
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_runtest_logreport(report):
+def pytest_runtest_logreport(report: TestReport) -> None:
     if report.when == "teardown":
         _in_flight.pop(report.nodeid, None)
