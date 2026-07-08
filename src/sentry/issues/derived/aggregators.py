@@ -1,4 +1,4 @@
-from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.action_log.types import GroupActionType, ReconcileStatusAction
 from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
     PROGRESS,
@@ -22,31 +22,43 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
+_RESOLVES: frozenset[GroupActionType] = frozenset(
+    {
+        GroupActionType.RESOLVE,
+        GroupActionType.RESOLVED_IN_PULL_REQUEST,
+        GroupActionType.ARCHIVE,
+    }
+)
+
+_REOPENS: frozenset[GroupActionType] = frozenset(
+    {
+        GroupActionType.UNRESOLVE,
+        GroupActionType.SET_REGRESSED,
+    }
+)
+
+
 @aggregator(
     (STATUS,),
     scope=(
-        GroupActionType.RESOLVE,
-        GroupActionType.UNRESOLVE,
-        GroupActionType.RESOLVED_IN_PULL_REQUEST,
-        GroupActionType.ARCHIVE,
-        GroupActionType.SET_REGRESSED,
+        *_RESOLVES,
+        *_REOPENS,
+        GroupActionType.RECONCILE_STATUS,
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[STATUS]
-    resolves = (
-        GroupActionType.RESOLVE.value,
-        GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
-        GroupActionType.ARCHIVE.value,
-    )
-    reopens = (
-        GroupActionType.UNRESOLVE.value,
-        GroupActionType.SET_REGRESSED.value,
-    )
-    if entry.type in resolves and current == IssueStatus.OPEN:
+
+    if entry.type == GroupActionType.RECONCILE_STATUS:
+        action = ReconcileStatusAction(**entry.data)
+        new_status = IssueStatus(action.status)
+        if new_status != current:
+            return emit(STATUS.value(new_status))
+    elif entry.type in _RESOLVES and current == IssueStatus.OPEN:
         return emit(STATUS.value(IssueStatus.CLOSED))
-    if entry.type in reopens and current == IssueStatus.CLOSED:
+    elif entry.type in _REOPENS and current == IssueStatus.CLOSED:
         return emit(STATUS.value(IssueStatus.OPEN))
+
     return None
 
 

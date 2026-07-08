@@ -262,6 +262,8 @@ def emit(*entries: FeatureEntry) -> AggregatorResult:
 
     >>> return emit(VIEW_COUNT.value(5), STATUS.value(IssueStatus.CLOSED))
     """
+    if not entries:
+        return None
     return StateUpdate(dict(entries))
 
 

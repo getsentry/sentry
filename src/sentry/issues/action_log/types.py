@@ -76,6 +76,7 @@ class GroupActionType(IntEnum):
     ROOT_CAUSE_IDENTIFIED = 26
     AUTOFIX_CODING_COMPLETE = 27
     PULL_REQUEST_CLOSED = 29
+    RECONCILE_STATUS = 30
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -618,3 +619,19 @@ class RelatedPullRequestClosedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_CLOSED
+
+
+class ReconcileStatusAction(GroupAction):
+    """Force-set the derived status to a known-correct value.
+
+    Used when out-of-log information (e.g. the Group model) disagrees with
+    the derived status computed from the action log.
+    """
+
+    # Must stay in sync with IssueStatus in sentry.issues.derived.features.
+    status: Literal["open", "closed"]
+    reason: Optional[str] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.RECONCILE_STATUS

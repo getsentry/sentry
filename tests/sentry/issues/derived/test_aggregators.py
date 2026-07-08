@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, get_args, get_type_hints
 
 import pytest
 
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.action_log.types import GroupActionType, GroupActorType, ReconcileStatusAction
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
@@ -66,6 +66,14 @@ def _ts(year: int = 2025, month: int = 1, day: int = 1, hour: int = 0) -> dateti
 def _resolved_pr_data(pr_id: int) -> dict[str, object]:
     """Build a ResolvedInPullRequestAction-shaped data dict."""
     return {"pull_request": pr_id}
+
+
+def _reconcile_entry(status: IssueStatus) -> FakeEntry:
+    action = ReconcileStatusAction(status=status.value)
+    return FakeEntry(
+        type=GroupActionType.RECONCILE_STATUS,
+        data=action.dict(),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +245,111 @@ def test_resolved_in_pr_when_already_closed_is_noop() -> None:
         )
         == IssueStatus.CLOSED
     )
+
+
+class TestReconcileStatus:
+    def test_literal_matches_issue_status(self) -> None:
+        literal_values = set(get_args(get_type_hints(ReconcileStatusAction)["status"]))
+        enum_values = {s.value for s in IssueStatus}
+        assert literal_values == enum_values
+
+    def test_action_roundtrips(self) -> None:
+        action = ReconcileStatusAction(
+            status=IssueStatus.CLOSED.value, reason="group model disagrees"
+        )
+        assert action.status == "closed"
+        assert action.reason == "group model disagrees"
+        assert IssueStatus(action.status) == IssueStatus.CLOSED
+        # reason survives serialization round-trip through dict
+        restored = ReconcileStatusAction(**action.dict())
+        assert restored.reason == "group model disagrees"
+
+    def test_overrides_status(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [
+                    FakeEntry(type=GroupActionType.RESOLVE),
+                    FakeEntry(type=GroupActionType.UNRESOLVE),
+                    _reconcile_entry(IssueStatus.CLOSED),
+                ],
+            )
+            == IssueStatus.CLOSED
+        )
+
+    def test_from_initial(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [_reconcile_entry(IssueStatus.CLOSED)],
+            )
+            == IssueStatus.CLOSED
+        )
+
+    def test_reopens_closed(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [
+                    FakeEntry(type=GroupActionType.RESOLVE),
+                    _reconcile_entry(IssueStatus.OPEN),
+                ],
+            )
+            == IssueStatus.OPEN
+        )
+
+    def test_same_value_is_noop(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [_reconcile_entry(IssueStatus.OPEN)],
+            )
+            == IssueStatus.OPEN
+        )
+
+    def test_normal_actions_continue_after(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [
+                    _reconcile_entry(IssueStatus.CLOSED),
+                    FakeEntry(type=GroupActionType.UNRESOLVE),
+                ],
+            )
+            == IssueStatus.OPEN
+        )
+
+    def test_to_closed_nulls_progress(self) -> None:
+        p = _pipeline()
+        state = p.run(
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+                _reconcile_entry(IssueStatus.CLOSED),
+            ]
+        )
+        assert state[STATUS] == IssueStatus.CLOSED
+        assert state[PROGRESS] is None
+
+    def test_updates_last_progressed_at(self) -> None:
+        p = _pipeline()
+        state = p.run(
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+                _reconcile_entry(IssueStatus.CLOSED),
+            ]
+        )
+        assert state[LAST_PROGRESSED_AT] is not None
+
+    def test_to_open_resets_progress(self) -> None:
+        p = _pipeline()
+        state = p.run(
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                _reconcile_entry(IssueStatus.OPEN),
+            ]
+        )
+        assert state[STATUS] == IssueStatus.OPEN
+        assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
 # ---------------------------------------------------------------------------
