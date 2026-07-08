@@ -46,14 +46,14 @@ function renderItem(item: BreadcrumbItem) {
 /**
  * Renders a horizontal breadcrumb trail. Uses a container query to collapse
  * parent link crumbs into an overflow (…) menu when the container is narrow
- * (below the 'sm' breakpoint — 800px).
+ * (below the 'xs' breakpoint — 500px).
  *
  * Consumers pass a typed `items` array so each breadcrumb slot has an explicit
  * variant — no implicit inference based on position.
  *
  * Overflow behaviour:
- * - Wide (≥ 800px): all items render individually
- * - Narrow (< 800px): every parent item is hidden, leaving only the last crumb.
+ * - Wide (≥ 500px): all items render individually
+ * - Narrow (< 500px): every parent item is hidden, leaving only the last crumb.
  *   'link' parents additionally collapse into a single BreadcrumbItemMenuBreadcrumbs
  *   overflow button; non-link parents (e.g. 'select-projects') just hide.
  *
@@ -78,9 +78,9 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
 
   // Responsive display values using container queries (bare breakpoint keys):
   //   '2xs' is the smallest breakpoint → applies as the base
-  //   'sm'  = 800px → overrides at container width ≥ 800px
-  const showWide = {sm: 'flex', '2xs': 'none'} as const;
-  const showNarrow = {sm: 'none', '2xs': 'flex'} as const;
+  //   'xs'  = 500px → overrides at container width ≥ 500px
+  const showWide = {xs: 'flex', '2xs': 'none'} as const;
+  const showNarrow = {xs: 'none', '2xs': 'flex'} as const;
 
   return (
     // Renders as inline content (no <nav> landmark, no own heading): breadcrumbs

@@ -26,7 +26,7 @@ function rulesForElement(element: Element): string[] {
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
- * a base `display: none` plus an `@container (min-width: 800px) { display: flex }`
+ * a base `display: none` plus an `@container (min-width: 500px) { display: flex }`
  * that reveals it only in wide containers.
  */
 function hidesBelowSm(element: Element): boolean {
@@ -36,7 +36,7 @@ function hidesBelowSm(element: Element): boolean {
     r => !r.includes('@container') && /display:\s*none/.test(r)
   );
   const revealsAtSm = own.some(
-    r => /@container[^{]*min-width:\s*800px/.test(r) && /display:\s*flex/.test(r)
+    r => /@container[^{]*min-width:\s*500px/.test(r) && /display:\s*flex/.test(r)
   );
   return hasBaseNone && revealsAtSm;
 }
@@ -82,8 +82,8 @@ describe('BreadcrumbList container-query collapse', () => {
     // (jsdom's getComputedStyle can't read `container-type`, so assert the rule.)
     expect(rules.some(r => /container-type:\s*inline-size/.test(r))).toBe(true);
 
-    // The collapse must be driven by a container query at the sm (800px) breakpoint.
-    expect(rules.some(r => /@container[^{]*min-width:\s*800px/.test(r))).toBe(true);
+    // The collapse must be driven by a container query at the xs (500px) breakpoint.
+    expect(rules.some(r => /@container[^{]*min-width:\s*500px/.test(r))).toBe(true);
 
     // Regression guard: the buggy path routed the show/hide toggle through `Flex`,
     // whose display resolver defaulted every unspecified slot to `flex`. That
@@ -149,7 +149,7 @@ describe('BreadcrumbList container-query collapse', () => {
     ).toBeInTheDocument();
   });
 
-  it('collapses non-link parents (select-projects) below the sm breakpoint', async () => {
+  it('collapses non-link parents (select-projects) below the xs breakpoint', async () => {
     render(
       <BreadcrumbList
         items={[
@@ -170,7 +170,7 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    // The <li> wrapping the project picker hides below 800px, same as link crumbs.
+    // The <li> wrapping the project picker hides below 500px, same as link crumbs.
     const trigger = await screen.findByRole('button', {
       name: 'Selected Project: javascript',
     });
