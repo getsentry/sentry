@@ -18,7 +18,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -181,6 +184,7 @@ function AssistantTurn({
       {message.reasoning && (
         <MessageBlock>
           <ReasoningSection reasoning={message.reasoning} />
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageBlock>
       )}
       {message.content === '' ? (
