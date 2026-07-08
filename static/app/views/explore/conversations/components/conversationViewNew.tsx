@@ -31,6 +31,7 @@ interface ConversationViewContentNewProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
+  onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
   selectedSpanId?: string | null;
 }
@@ -40,21 +41,12 @@ export function ConversationViewContentNew({
   activeTab,
   selectedSpanId,
   onSelectSpan,
+  onDeselectSpan,
   focusedTool,
 }: ConversationViewContentNewProps) {
   const isTimeline = activeTab === 'timeline';
 
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
-  const {selectedNode, handleSelectNode} = useConversationSelection({
-    nodes,
-    selectedSpanId,
-    onSelectSpan,
-    focusedTool,
-    isLoading,
-    // The transcript opens the span detail only on user action; the timeline
-    // still auto-selects a default span on load.
-    autoSelectDefaultNode: isTimeline,
-  });
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -63,6 +55,18 @@ export function ConversationViewContentNew({
     },
     {history: 'replace'}
   );
+
+  const {selectedNode, handleSelectNode} = useConversationSelection({
+    nodes,
+    selectedSpanId,
+    onSelectSpan,
+    focusedTool,
+    isLoading,
+    // The transcript opens the span detail only on user action; the timeline
+    // auto-selects a default span on load, but not once the user explicitly
+    // closes the detail (which deselects the span).
+    autoSelectDefaultNode: isTimeline && detailState.detailOpen,
+  });
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
       setDetailState({detailOpen: true});
@@ -133,7 +137,10 @@ export function ConversationViewContentNew({
               traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
               activeTab={detailState.detailTab}
               onTabChange={detailTab => setDetailState({detailTab})}
-              onClose={() => setDetailState({detailOpen: false, detailTab: null})}
+              onClose={() => {
+                setDetailState({detailOpen: false, detailTab: null});
+                onDeselectSpan?.();
+              }}
             />
           ) : null
         }
