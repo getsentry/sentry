@@ -1,5 +1,4 @@
 import dataclasses
-from datetime import datetime
 
 from sentry.issues.formatting.formatter import MarkdownFormatter, XmlFormatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT
@@ -17,7 +16,6 @@ from sentry.issues.formatting.models import (
 from sentry.issues.formatting.sections import (
     breadcrumbs_section,
     exceptions_section,
-    issue_meta_section,
     message_section,
     request_section,
     spans_section,
@@ -180,21 +178,3 @@ def test_spans_section() -> None:
     )
     out = spans_section(event, MD, LIMITS_DEFAULT)
     assert "db: SELECT 1 (12.5ms)" in out
-
-
-def test_issue_meta_present_fields() -> None:
-    event = EventObject(
-        title="t",
-        short_id="PROJ-1",
-        status="unresolved",
-        count=42,
-        first_seen=datetime(2024, 1, 1),
-    )
-    out = issue_meta_section(event, MD, LIMITS_DEFAULT)
-    assert "**Issue ID:** PROJ-1" in out
-    assert "**Events:** 42" in out
-    assert "Level" not in out  # absent field omitted
-
-
-def test_issue_meta_empty_for_bare_event() -> None:
-    assert issue_meta_section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
