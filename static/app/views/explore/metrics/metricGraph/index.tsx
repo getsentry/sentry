@@ -72,8 +72,6 @@ export function getMetricsChartTypeOptions(
   return EXPLORE_CHART_TYPE_OPTIONS;
 }
 
-// Returns why the option is unavailable, or undefined when it's usable — so the
-// dropdown can both disable and explain the option from a single source.
 function getDisabledReason(
   isEquation: boolean,
   metric?: TraceMetric
