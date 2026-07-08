@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {AGGREGATE_EXPORT_MAX_ROWS} from 'sentry/views/explore/logs/constants';
 import {
   formatExportSort,
@@ -16,11 +17,13 @@ type LogsAggregateExportModalButtonProps = {
   isLoading: boolean;
   tableData: OurLogsAggregateResponseItem[];
   error?: Error | null;
+  pageLinks?: string | null;
 };
 
 export function LogsAggregateExportModalButton({
   error,
   isLoading,
+  pageLinks,
   tableData,
 }: LogsAggregateExportModalButtonProps) {
   const groupBys = useQueryParamsGroupBys();
@@ -32,10 +35,15 @@ export function LogsAggregateExportModalButton({
     sort: aggregateSortBys.map(formatExportSort),
   });
 
+  // When there's no further page, the loaded rows are the entire result set, so the
+  // export can run locally in the browser. Otherwise fall back to the server-side cap.
+  const hasNextPage = parseLinkHeader(pageLinks ?? null).next?.results === true;
+  const estimatedRowCount = hasNextPage ? AGGREGATE_EXPORT_MAX_ROWS : tableData.length;
+
   return (
     <LogsExportModalButton
       error={error}
-      estimatedRowCount={AGGREGATE_EXPORT_MAX_ROWS}
+      estimatedRowCount={estimatedRowCount}
       isLoading={isLoading}
       queryInfo={queryInfo}
       supportsAllColumns={false}

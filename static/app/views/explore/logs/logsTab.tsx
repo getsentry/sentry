@@ -451,6 +451,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   isLoading={aggregatesTableResult.isPending}
                   tableData={aggregatesTableResult.data?.data ?? []}
                   error={aggregatesTableResult.error}
+                  pageLinks={aggregatesTableResult.pageLinks}
                 />
               ) : (
                 <LogsDirectExportModalButton
