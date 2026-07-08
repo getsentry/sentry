@@ -21,12 +21,17 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.webhook import (
+    CheckRunEventWebhook,
+    CheckSuiteWebhook,
     GitHubWebhook,
     InstallationEventWebhook,
     InstallationRepositoriesEventWebhook,
     IssueCommentEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
+    PullRequestReviewCommentEventWebhook,
+    PullRequestReviewEventWebhook,
+    PullRequestReviewThreadEventWebhook,
     PushEventWebhook,
     get_github_external_id,
 )
@@ -151,6 +156,32 @@ class GitHubEnterpriseIssueCommentEventWebhook(GitHubEnterpriseWebhook, IssueCom
     pass
 
 
+class GitHubEnterpriseCheckRunEventWebhook(GitHubEnterpriseWebhook, CheckRunEventWebhook):
+    pass
+
+
+class GitHubEnterpriseCheckSuiteWebhook(GitHubEnterpriseWebhook, CheckSuiteWebhook):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewEventWebhook
+):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewCommentEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewCommentEventWebhook
+):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewThreadEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewThreadEventWebhook
+):
+    pass
+
+
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -162,6 +193,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
         "issue_comment": GitHubEnterpriseIssueCommentEventWebhook,
+        "check_run": GitHubEnterpriseCheckRunEventWebhook,
+        "check_suite": GitHubEnterpriseCheckSuiteWebhook,
+        "pull_request_review": GitHubEnterprisePullRequestReviewEventWebhook,
+        "pull_request_review_comment": GitHubEnterprisePullRequestReviewCommentEventWebhook,
+        "pull_request_review_thread": GitHubEnterprisePullRequestReviewThreadEventWebhook,
     }
 
     def _get_host(self, request: HttpRequest) -> str | None:
