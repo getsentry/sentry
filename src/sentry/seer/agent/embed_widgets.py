@@ -20,7 +20,7 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
     Widgets without ``featureFlag`` are always included.
     """
     has_flags = any("featureFlag" in w for w in _WIDGETS)
-    if not has_flags or organization is None:
+    if not has_flags:
         return _WIDGETS
 
     from sentry import features
@@ -28,5 +28,6 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
     return [
         w
         for w in _WIDGETS
-        if "featureFlag" not in w or features.has(w["featureFlag"], organization, actor=actor)
+        if "featureFlag" not in w
+        or (organization is not None and features.has(w["featureFlag"], organization, actor=actor))
     ]
