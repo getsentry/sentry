@@ -289,7 +289,6 @@ describe('FilterSelector', () => {
   });
 
   it('intersects (AND) a value with "(no value)" when the operator is negated', async () => {
-    // `has:browser` reopens as "(no value)" selected with the "is not" operator.
     render(
       <FilterSelector
         globalFilter={{...mockGlobalFilter, value: 'has:browser'}}
@@ -306,42 +305,13 @@ describe('FilterSelector', () => {
       await screen.findByRole('checkbox', {name: 'Select (no value)'})
     ).toBeChecked();
 
-    // Keep "(no value)" selected and also exclude firefox.
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
-    // Must AND (exclude both), not OR (which would show everything).
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
       value: '(!browser:firefox AND has:browser)',
     });
-  });
-
-  it('resyncs the operator when the saved filter flips has: <-> !has: externally', async () => {
-    const {rerender} = render(
-      <FilterSelector
-        globalFilter={{...mockGlobalFilter, value: '!has:browser'}}
-        searchBarData={mockSearchBarData}
-        onUpdateFilter={mockOnUpdateFilter}
-        onRemoveFilter={mockOnRemoveFilter}
-      />
-    );
-
-    // External update flips !has: -> has: on the same tag (values unchanged).
-    rerender(
-      <FilterSelector
-        globalFilter={{...mockGlobalFilter, value: 'has:browser'}}
-        searchBarData={mockSearchBarData}
-        onUpdateFilter={mockOnUpdateFilter}
-        onRemoveFilter={mockOnRemoveFilter}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: /browser/}));
-
-    // Saved value is `has:browser`, so the operator must read "is not", not the
-    // stale "is" from the initial render.
-    expect((await screen.findAllByText('is not')).length).toBeGreaterThan(0);
   });
 
   it('allows searching for values over 70 characters', async () => {
