@@ -45,9 +45,9 @@ import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
+  classifyFilterValue,
   getFieldDefinitionForDataset,
   getFilterToken,
-  getNoValueInfo,
   NO_VALUE_SENTINEL,
   NO_VALUE_SUPPORTED_OPERATORS,
   parseFilterValue,
@@ -82,34 +82,40 @@ export function FilterSelector({
   const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
   const stagedValueRef = useRef<string[]>([]);
 
-  const {fieldDefinition, filterToken, valueToken, hasNoValue, noValueOperator} =
-    useMemo(() => {
-      const fieldDef = getFieldDefinitionForDataset(
-        globalFilter.tag,
-        globalFilter.dataset
-      );
+  const {fieldDefinition, filterToken, mode, noValueOperator} = useMemo(() => {
+    const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
 
-      const allTokens = globalFilter.value
-        ? parseFilterValue(globalFilter.value, globalFilter)
-        : [];
-      const noValueInfo = getNoValueInfo(allTokens);
-      const containsNoValue = noValueInfo.operator !== null;
-      const pairedValueToken = containsNoValue ? noValueInfo.valueToken : null;
+    const allTokens = globalFilter.value
+      ? parseFilterValue(globalFilter.value, globalFilter)
+      : [];
+    const parsed = classifyFilterValue(allTokens);
 
-      return {
-        fieldDefinition: fieldDef,
-        filterToken:
-          pairedValueToken ??
-          getFilterToken(
-            containsNoValue ? {...globalFilter, value: ''} : globalFilter,
-            fieldDef
-          ),
-        valueToken: pairedValueToken,
-        hasNoValue: containsNoValue,
-        noValueOperator:
-          containsNoValue && !pairedValueToken ? noValueInfo.operator : null,
-      };
-    }, [globalFilter]);
+    switch (parsed.mode) {
+      case 'valueAndNoValue':
+        return {
+          fieldDefinition: fieldDef,
+          filterToken: parsed.valueFilterToken,
+          mode: parsed.mode,
+          noValueOperator: null,
+        };
+      case 'noValue':
+        return {
+          fieldDefinition: fieldDef,
+          filterToken: getFilterToken({...globalFilter, value: ''}, fieldDef),
+          mode: parsed.mode,
+          noValueOperator: parsed.noValueOperator,
+        };
+      case 'value':
+      case 'empty':
+      default:
+        return {
+          fieldDefinition: fieldDef,
+          filterToken: getFilterToken(globalFilter, fieldDef),
+          mode: parsed.mode,
+          noValueOperator: null,
+        };
+    }
+  }, [globalFilter]);
 
   // Get initial selected values from the filter token
   const initialValues = useMemo(() => {
@@ -118,7 +124,7 @@ export function FilterSelector({
     }
 
     const tokenForParsing =
-      valueToken ?? (globalFilter.value && !hasNoValue ? filterToken : null);
+      mode === 'value' || mode === 'valueAndNoValue' ? filterToken : null;
     const initialValue = tokenForParsing
       ? getInitialInputValue(tokenForParsing, true)
       : '';
@@ -126,12 +132,12 @@ export function FilterSelector({
     const selectedValues = getSelectedValuesFromText(initialValue);
     const values = selectedValues.map(item => item.value);
 
-    if (hasNoValue) {
+    if (mode === 'noValue' || mode === 'valueAndNoValue') {
       values.push(NO_VALUE_SENTINEL);
     }
 
     return values;
-  }, [filterToken, valueToken, hasNoValue, globalFilter.value]);
+  }, [filterToken, mode]);
 
   // Get operator info from the filter token
   const {initialOperator, operatorDropdownItems} = useMemo(() => {

@@ -163,7 +163,6 @@ export function newNumericFilterQuery(
 
 /** Sentinel for the "(no value)" option; never sent to the backend. */
 export const NO_VALUE_SENTINEL = '__no_value__';
-
 export const NO_VALUE_SUPPORTED_OPERATORS = new Set<TermOperator>([
   TermOperator.DEFAULT,
   TermOperator.NOT_EQUAL,
@@ -171,37 +170,56 @@ export const NO_VALUE_SUPPORTED_OPERATORS = new Set<TermOperator>([
   TermOperator.DOES_NOT_CONTAIN,
 ]);
 
-/** Negated operators flip "(no value)" from "tag absent" to "tag present". */
-function isNegatedNoValueOperator(operator: TermOperator): boolean {
+function isNegatedOperator(operator: TermOperator): boolean {
   return (
-    operator === TermOperator.NOT_EQUAL || operator === TermOperator.DOES_NOT_CONTAIN
+    operator === TermOperator.NOT_EQUAL ||
+    operator === TermOperator.DOES_NOT_CONTAIN ||
+    operator === TermOperator.DOES_NOT_END_WITH
   );
 }
 
-type NoValueInfo = {
-  operator: TermOperator.DEFAULT | TermOperator.NOT_EQUAL | null;
-  valueToken: TokenResult<Token.FILTER> | null;
-};
-
 /**
- * Inspects parsed tokens for the `has:`/`!has:` clause that backs the
- * "(no value)" option. A `null` operator means no such clause exists.
+ * A parsed global filter value, classified by what it represents:
+ * - `empty`: no value set yet
+ * - `value`: a plain tag value (e.g. `browser:chrome`)
+ * - `noValue`: only "(no value)" (e.g. `!has:browser`)
+ * - `valueAndNoValue`: a value combined with "(no value)"
+ *   (e.g. `(browser:chrome OR !has:browser)`)
+ *
+ * Each variant only carries the fields that are meaningful for it:
+ * `valueFilterToken` exists only when there's a real value clause, and
+ * `noValueOperator` only when the "(no value)" option is selected.
  */
-export function getNoValueInfo(
+export type ParsedFilterValue =
+  | {mode: 'empty'}
+  | {mode: 'value'; valueFilterToken: TokenResult<Token.FILTER>}
+  | {mode: 'noValue'; noValueOperator: TermOperator.DEFAULT | TermOperator.NOT_EQUAL}
+  | {
+      mode: 'valueAndNoValue';
+      noValueOperator: TermOperator.DEFAULT | TermOperator.NOT_EQUAL;
+      valueFilterToken: TokenResult<Token.FILTER>;
+    };
+
+export function classifyFilterValue(
   filterTokens: Array<TokenResult<Token.FILTER>>
-): NoValueInfo {
+): ParsedFilterValue {
   const hasToken = filterTokens.find(token => token.filter === FilterType.HAS);
-  return {
-    operator: hasToken
-      ? hasToken.negated
-        ? TermOperator.DEFAULT
-        : TermOperator.NOT_EQUAL
-      : null,
-    valueToken: filterTokens.find(token => token.filter !== FilterType.HAS) ?? null,
-  };
+  const valueFilterToken =
+    filterTokens.find(token => token.filter !== FilterType.HAS) ?? null;
+
+  if (!hasToken) {
+    return valueFilterToken ? {mode: 'value', valueFilterToken} : {mode: 'empty'};
+  }
+
+  const noValueOperator = hasToken.negated
+    ? TermOperator.DEFAULT
+    : TermOperator.NOT_EQUAL;
+
+  return valueFilterToken
+    ? {mode: 'valueAndNoValue', noValueOperator, valueFilterToken}
+    : {mode: 'noValue', noValueOperator};
 }
 
-/** Removes the "(no value)" sentinel when the operator can't express it. */
 export function stripUnsupportedNoValue(
   values: string[],
   operator: TermOperator
@@ -216,11 +234,11 @@ export function buildNoValueFilterQuery(
   operator: TermOperator,
   valueQuery?: string
 ): string {
-  const noValuePart = isNegatedNoValueOperator(operator)
-    ? `has:${tagKey}`
-    : `!has:${tagKey}`;
+  const negated = isNegatedOperator(operator);
+  const noValuePart = negated ? `has:${tagKey}` : `!has:${tagKey}`;
   if (!valueQuery) {
     return noValuePart;
   }
-  return `(${valueQuery} OR ${noValuePart})`;
+  const joiner = negated ? 'AND' : 'OR';
+  return `(${valueQuery} ${joiner} ${noValuePart})`;
 }
