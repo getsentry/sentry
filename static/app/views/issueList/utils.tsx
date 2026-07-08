@@ -55,11 +55,9 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.RECOMMENDED:
-      return t('Recommended');
     case IssueSortOptions.RECOMMENDED_V1:
-      return t('Recommended (v1)');
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t('Recommended (v2)');
+      return t('Recommended');
     case IssueSortOptions.PROGRESS:
       return t('Progress');
     case IssueSortOptions.DATE:
