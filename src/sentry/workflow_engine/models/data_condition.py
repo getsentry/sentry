@@ -9,15 +9,15 @@ from jsonschema import ValidationError, validate
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.utils import metrics, registry
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionEvaluation,
+    DataConditionEvaluationException,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
-
-
-class DataConditionEvaluationException(Exception):
-    pass
 
 
 class Condition(StrEnum):
@@ -226,29 +226,24 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
-    def evaluate_value(self, value: T) -> DataConditionResult | ConditionError:
-        try:
-            condition_type = Condition(self.type)
-        except ValueError:
-            logger.exception(
-                "Invalid condition type",
-                extra={"type": self.type, "id": self.id},
-            )
-            return ConditionError(msg="Invalid condition type")
+    def evaluate_value(self, value: T) -> DataConditionEvaluation:
+        condition_type = Condition(self.type)
+        result: DataConditionResult
 
-        result: DataConditionResult | ConditionError
-        if condition_type in CONDITION_OPS:
-            result = self._evaluate_operator(condition_type, value)
-        else:
-            result = self._evaluate_condition(condition_type, value)
+        try:
+            if condition_type in CONDITION_OPS:
+                result = self._evaluate_operator(condition_type, value)
+            else:
+                result = self._evaluate_condition(condition_type, value)
+        except Exception as e:
+            raise DataConditionEvaluationException("Unable to evaluate condition") from e
 
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
-        if isinstance(result, bool):
-            # If the result is True, get the result from `.condition_result`
-            return self.get_condition_result() if result else None
-
-        return result
+        return DataConditionEvaluation(
+            evaluation=result,
+            result=self.get_condition_result() if isinstance(result, bool) and result else None,
+        )
 
 
 def is_slow_condition(condition: DataCondition) -> bool:
