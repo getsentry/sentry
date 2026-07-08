@@ -15,6 +15,16 @@ const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
+const CONTENT_MIN_WIDTH = 400;
+const CONTENT_MIN_HEIGHT = 180;
+const DETAIL_MIN_WIDTH = 360;
+const DETAIL_MIN_HEIGHT = 200;
+const DETAIL_DEFAULT_WIDTH = 430;
+// Row (side-by-side) width and column (stacked) height persist separately so
+// switching orientation doesn't mix a width value into a height and vice versa.
+const DETAIL_WIDTH_STORAGE_KEY = 'conversation-detail-size';
+const DETAIL_HEIGHT_STORAGE_KEY = 'conversation-detail-height';
+
 /**
  * Resizable two-column layout for conversation views.
  * Left panel holds messages/spans, right panel holds span details.
@@ -103,15 +113,24 @@ export function SpanDetailCard({
       flex="1"
       minWidth="0"
       minHeight="0"
-      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
-      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
-      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
+      height="100%"
+      overflowY="auto"
+      overflowX="hidden"
     >
       {children}
     </Stack>
   );
 }
 
+/**
+ * Layout for the conversation content (transcript/timeline) and the span detail.
+ * When a detail is shown it's a resizable split, mirroring the replay layout:
+ * side by side when the area is landscape-ish, stacked (still draggable,
+ * top/bottom) when portrait-ish — so resize isn't dropped on narrow screens.
+ * The detail's size persists to localStorage. With no detail, content fills the
+ * whole area. Loading skeletons come from the `left`/`right` components' own
+ * `isLoading` states, so the split shows skeletons without extra code.
+ */
 export function ConversationTimelineLayout({
   left,
   right,
@@ -121,6 +140,22 @@ export function ConversationTimelineLayout({
   leftPadding?: React.ComponentProps<typeof Container>['padding'];
   right?: React.ReactNode;
 }) {
+  const content = (
+    <Container
+      flex="1"
+      minWidth="0"
+      minHeight="0"
+      padding={leftPadding}
+      background="primary"
+      border="primary"
+      radius="md"
+      overflowX="hidden"
+      overflowY="auto"
+    >
+      {left}
+    </Container>
+  );
+
   return (
     <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
       <ConversationLeftPanel>
@@ -131,41 +166,106 @@ export function ConversationTimelineLayout({
           width="100%"
           background="secondary"
         >
-          <Flex
-            direction={{xs: 'column', sm: 'row'}}
-            height="100%"
-            width="100%"
-            gap="md"
-            minHeight="0"
-            overflowY="auto"
-            overflowX="hidden"
-          >
-            <Container
-              flex={{xs: '0 0 auto', sm: '1'}}
-              minWidth="0"
-              minHeight={{xs: 'auto', sm: '0'}}
-              padding={leftPadding}
-              background="primary"
-              border="primary"
-              radius="md"
-              overflowX="hidden"
-              overflowY={{xs: 'hidden', sm: 'auto'}}
-            >
-              {left}
-            </Container>
-            {right ? (
-              <Flex
-                width={{xs: '100%', sm: '430px'}}
-                flex="0 0 auto"
-                minHeight={{xs: 'auto', sm: '0'}}
-              >
-                {right}
-              </Flex>
-            ) : null}
-          </Flex>
+          {right ? (
+            <ConversationDetailSplit content={content} detail={right} />
+          ) : (
+            <Flex height="100%" width="100%" minHeight="0" overflow="hidden">
+              {content}
+            </Flex>
+          )}
         </Container>
       </ConversationLeftPanel>
     </Flex>
+  );
+}
+
+function ConversationDetailSplit({
+  content,
+  detail,
+}: {
+  content: React.ReactNode;
+  detail: React.ReactNode;
+}) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width, height} = useDimensions({elementRef: measureRef});
+
+  return (
+    <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
+      {width + height > 0 ? (
+        <MeasuredDetailSplit
+          width={width}
+          height={height}
+          content={content}
+          detail={detail}
+        />
+      ) : null}
+    </Flex>
+  );
+}
+
+function MeasuredDetailSplit({
+  width,
+  height,
+  content,
+  detail,
+}: {
+  content: React.ReactNode;
+  detail: React.ReactNode;
+  height: number;
+  width: number;
+}) {
+  // Landscape-ish → side by side; portrait-ish → stacked (still resizable).
+  const isRow = width >= height;
+
+  const [storedWidth, setStoredWidth] = useLocalStorageState(
+    DETAIL_WIDTH_STORAGE_KEY,
+    DETAIL_DEFAULT_WIDTH
+  );
+  const halfHeight = Math.max(
+    DETAIL_MIN_HEIGHT,
+    Math.round((height - DIVIDER_WIDTH) * 0.5)
+  );
+  const [storedHeight, setStoredHeight] = useLocalStorageState(
+    DETAIL_HEIGHT_STORAGE_KEY,
+    halfHeight
+  );
+
+  const setDetailSize = isRow ? setStoredWidth : setStoredHeight;
+
+  return (
+    <SplitPanel
+      orientation={isRow ? 'horizontal' : 'vertical'}
+      placement="end"
+      defaultSize={isRow ? DETAIL_DEFAULT_WIDTH : halfHeight}
+      initialSize={isRow ? storedWidth : storedHeight}
+      minSize={isRow ? DETAIL_MIN_WIDTH : DETAIL_MIN_HEIGHT}
+      fillMinSize={isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT}
+      onResizeEnd={({endSize}) => setDetailSize(endSize)}
+      fill={
+        <Flex
+          direction="column"
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          paddingRight={isRow ? 'md' : undefined}
+          paddingBottom={isRow ? undefined : 'md'}
+        >
+          {content}
+        </Flex>
+      }
+      sized={
+        <Flex
+          direction="column"
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          paddingLeft={isRow ? 'md' : undefined}
+          paddingTop={isRow ? undefined : 'md'}
+        >
+          {detail}
+        </Flex>
+      }
+    />
   );
 }
 
