@@ -6,7 +6,7 @@ action_log.types — safe to import from models and other dependency-sensitive c
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -24,6 +24,12 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
+
+# Test-only hook: notified on every publish_action() call.
+_PublishCallback = Callable[["GroupAction", str, int, "Project", "GroupActionActor"], None]
+_publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
+    "_publish_callbacks", default=()
+)
 
 # Group Action Log — tracks who did what to an issue and how.
 #
@@ -95,6 +101,9 @@ def publish_action(
     from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
     from sentry.utils import metrics
+
+    for callback in _publish_callbacks.get():
+        callback(action, source, group_id, project, actor)
 
     action_name = action.get_type().name.lower()
     metrics.incr(
