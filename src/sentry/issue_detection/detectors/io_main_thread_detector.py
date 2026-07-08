@@ -195,14 +195,17 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
                         "issue_detectors.io_main_thread_detector.callstack_json_parse_error"
                     )
                     callstack = []
-            for item in callstack:
-                module = self._deobfuscate_module(item.get("module", ""))
-                function = self._deobfuscate_function(item)
-                call_stack_strings.append(f"{module}.{function}")
-            # Use set to remove dupes, and list index to preserve order
-            overall_stack.append(
-                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
-            )
+            if isinstance(callstack, list):  # Insurance - by this point should always be true
+                for item in callstack:
+                    module = self._deobfuscate_module(item.get("module", ""))
+                    function = self._deobfuscate_function(item)
+                    call_stack_strings.append(f"{module}.{function}")
+                # Use set to remove dupes, and list index to preserve order
+                overall_stack.append(
+                    ".".join(
+                        sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c))
+                    )
+                )
         call_stack = "-".join(sorted(set(overall_stack), key=lambda s: overall_stack.index(s)))
         hashed_stack = hashlib.sha1(call_stack.encode("utf8")).hexdigest()
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
