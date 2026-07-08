@@ -451,23 +451,8 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              tsgo: true,
               configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              configOverwrite: {
-                compilerOptions: {
-                  allowJs: false,
-                  checkJs: false,
-                },
-                exclude: [
-                  'node_modules/**/*',
-                  'tests/**/*',
-                  '**/*.spec.*',
-                  '**/*.snapshots.*',
-                  'static/eslint/**/*',
-                  'static/app/serviceWorker/worker/**/*',
-                  'scripts/**/*',
-                ],
-              },
+              typescriptPath: require.resolve('typescript-7/package.json'),
             },
             devServer: false,
           }),

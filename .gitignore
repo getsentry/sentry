@@ -17,6 +17,7 @@ pip-log.txt
 celerybeat-schedule
 sentry-package.json
 /.artifacts
+*.tsbuildinfo
 /coverage/
 /cover
 /build
