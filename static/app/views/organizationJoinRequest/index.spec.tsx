@@ -8,6 +8,7 @@ import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
 jest.mock('sentry/utils/analytics', () => ({
   trackAdhocEvent: jest.fn(),
+  trackAnalytics: jest.fn(),
 }));
 
 jest.mock('sentry/actionCreators/indicator');

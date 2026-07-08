@@ -1,43 +1,66 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {EmailField} from 'sentry/components/forms/fields/emailField';
-import {Form} from 'sentry/components/forms/form';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+
+const joinRequestSchema = z.object({
+  email: z.string().email(t('Please enter a valid email address')),
+});
 
 export default function OrganizationJoinRequest() {
   const {orgId} = useParams<{orgId: string}>();
   const location = useLocation();
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleSubmitSuccess = useCallback(() => {
-    setSubmitSuccess(true);
-    trackAnalytics('join_request.created', {
-      organization: orgId,
-      referrer: decodeScalar(location.query.referrer, ''),
-    });
-  }, [orgId, location.query.referrer]);
+  const mutation = useMutation({
+    mutationFn: (data: {email: string}) =>
+      fetchMutation({
+        url: `/organizations/${orgId}/join-request/`,
+        method: 'POST',
+        data,
+      }),
+  });
 
-  const handleSubmitError = useCallback(() => {
-    addErrorMessage(t('Request to join failed'));
-  }, []);
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {email: ''},
+    validators: {onDynamic: joinRequestSchema},
+    onSubmit: async ({value}) => {
+      try {
+        await mutation.mutateAsync(value);
+      } catch {
+        addErrorMessage(t('Request to join failed'));
+        return;
+      }
 
-  const handleCancel = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      testableWindowLocation.assign(`/auth/login/${orgId}/`);
+      setSubmitSuccess(true);
+      trackAnalytics('join_request.created', {
+        organization: orgId,
+        referrer: decodeScalar(location.query.referrer, ''),
+      });
     },
-    [orgId]
-  );
+  });
+
+  const handleCancel = (e: MouseEvent) => {
+    e.preventDefault();
+    testableWindowLocation.assign(`/auth/login/${orgId}/`);
+  };
 
   if (submitSuccess) {
     return (
@@ -63,22 +86,32 @@ export default function OrganizationJoinRequest() {
           orgId,
         })}
       </StyledText>
-      <Form
-        requireChanges
-        apiEndpoint={`/organizations/${orgId}/join-request/`}
-        apiMethod="POST"
-        submitLabel={t('Request to Join')}
-        onSubmitSuccess={handleSubmitSuccess}
-        onSubmitError={handleSubmitError}
-        onCancel={handleCancel}
-      >
-        <StyledEmailField
-          name="email"
-          inline={false}
-          label={t('Email Address')}
-          placeholder="name@example.com"
-        />
-      </Form>
+      <form.AppForm form={form}>
+        <FieldWrapper>
+          <form.AppField name="email">
+            {field => (
+              <field.Layout.Stack label={t('Email Address')}>
+                <field.Input
+                  type="email"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="name@example.com"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </FieldWrapper>
+        <form.Subscribe selector={state => state.isDirty}>
+          {isDirty => (
+            <Flex gap="md" justify="end">
+              <Button onClick={handleCancel}>{t('Cancel')}</Button>
+              <form.SubmitButton disabled={!isDirty}>
+                {t('Request to Join')}
+              </form.SubmitButton>
+            </Flex>
+          )}
+        </form.Subscribe>
+      </form.AppForm>
     </NarrowLayout>
   );
 }
@@ -107,7 +140,7 @@ const ReceiveEmailMessage = styled(StyledText)`
   max-width: 250px;
 `;
 
-const StyledEmailField = styled(EmailField)`
+const FieldWrapper = styled('div')`
   padding-top: ${p => p.theme.space.xl};
-  padding-left: 0;
+  padding-bottom: ${p => p.theme.space.xl};
 `;
