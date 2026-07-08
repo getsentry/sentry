@@ -924,6 +924,11 @@ function useCenteredSeekWindow({
   const [isSeekSettled, setIsSeekSettled] = useState(false);
   const balancedAnchorRef = useRef<bigint | null>(null);
 
+  // Tracks the live anchor so a slow fetchPreviousPage from a superseded seek can tell
+  // it's stale and skip settling the window that's since moved on to a newer anchor.
+  const latestAnchorRef = useRef<bigint | null>(null);
+  latestAnchorRef.current = anchorTimestampPrecise;
+
   // A new anchor (or a cleared one) starts a fresh, not-yet-settled window.
   useEffect(() => {
     balancedAnchorRef.current = null;
@@ -942,7 +947,11 @@ function useCenteredSeekWindow({
     balancedAnchorRef.current = anchorTimestampPrecise;
 
     if (hasAnchoredRows && hasPreviousPage) {
-      Promise.resolve(fetchPreviousPage()).finally(() => setIsSeekSettled(true));
+      Promise.resolve(fetchPreviousPage()).finally(() => {
+        if (latestAnchorRef.current === anchorTimestampPrecise) {
+          setIsSeekSettled(true);
+        }
+      });
     } else {
       setIsSeekSettled(true);
     }
