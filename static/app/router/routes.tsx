@@ -1775,13 +1775,6 @@ function buildRoutes(): RouteObject[] {
             ),
           },
           {
-            path: 'tags/',
-            handle: {tab: TransactionSummaryTab.TAGS},
-            component: make(
-              () => import('sentry/views/performance/transactionSummary/transactionTags')
-            ),
-          },
-          {
             path: 'events/',
             handle: {tab: TransactionSummaryTab.EVENTS},
             component: make(
@@ -2364,6 +2357,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'snapshots/:snapshotId/',
       component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
+    },
+    {
+      path: 'snapshots/latest-base/:projectId/:appId/',
+      component: make(
+        () => import('sentry/views/preprod/snapshots/latestBaseSnapshotResolver')
+      ),
     },
     // TODO(EME-735): Remove old routes after backend deployment
     {

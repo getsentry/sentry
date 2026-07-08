@@ -124,6 +124,13 @@ export function ScmPlatformFeaturesCore({
     isDetectionError,
   } = useScmResolvedPlatform({selectedPlatform, selectedRepository});
 
+  // Whether the active platform is one of the detected ones. Gates the
+  // detected-cards view below, and lets "Back to recommended" keep a detected
+  // selection (including a non-top one) rather than forcing the top detection.
+  const currentPlatformIsDetected = resolvedPlatforms.some(
+    p => p.platform === currentPlatformKey
+  );
+
   // Adopt the first detected platform once per repo when the user hasn't
   // explicitly chosen one: commit it to the host so flows without a Continue
   // boundary (single-view project creation) get a platform without an explicit
@@ -276,11 +283,32 @@ export function ScmPlatformFeaturesCore({
 
   function handleBackToRecommended() {
     setShowManualPicker(false);
-    if (detectedPlatformKey) {
-      setPlatform(detectedPlatformKey);
-      onFeaturesChange(DEFAULT_SCM_FEATURES);
-      onClearProjectDetailsForm();
+    // If the host already has a detected platform committed, just reopen the
+    // cards view with it still selected. The user may have committed a non-top
+    // detection (or the auto-adopted default), so forcing the top detection here
+    // would clear a valid selection and wipe the derived features/form for no
+    // reason. Check selectedPlatform, not currentPlatformKey: the latter falls
+    // back to the top detection even when nothing is committed, so using it here
+    // would skip the commit below and strand Create behind an empty
+    // selectedPlatform while the cards still look selected.
+    const selectedIsDetected = resolvedPlatforms.some(
+      p => p.platform === selectedPlatform?.key
+    );
+    if (selectedIsDetected || !detectedPlatformKey) {
+      return;
     }
+    setPlatform(detectedPlatformKey);
+    onFeaturesChange(DEFAULT_SCM_FEATURES);
+    onClearProjectDetailsForm();
+    // Leaving a manual pick for the detected platform is itself a platform
+    // selection, so record it as the detected source (mirrors the auto-adopt
+    // path and handleSelectDetectedPlatform, which were the only detected-source
+    // emitters before).
+    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
+      organization,
+      platform: detectedPlatformKey,
+      source: 'detected',
+    });
   }
 
   // Shared by both manual-picker variants. A null option is the clear action,
@@ -316,11 +344,8 @@ export function ScmPlatformFeaturesCore({
     ];
   }, [currentPlatformKey]);
 
-  // If the user previously selected a platform manually (not in the detected
-  // list), show the manual picker so their selection is visible.
-  const currentPlatformIsDetected = resolvedPlatforms.some(
-    p => p.platform === currentPlatformKey
-  );
+  // When the active platform is a manual (non-detected) pick, show the manual
+  // picker so the selection stays visible (see showDetectedPlatforms below).
   const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
   // Fall through to manual picker on detection error
   const showDetectedPlatforms =
@@ -358,7 +383,10 @@ export function ScmPlatformFeaturesCore({
           <Grid
             columns={{
               'screen:xs': '1fr',
-              'screen:md': `repeat(${resolvedPlatforms.length}, .5fr)`,
+              'screen:md':
+                resolvedPlatforms.length < 3
+                  ? 'repeat(2, minmax(0, 1fr))'
+                  : 'repeat(3, minmax(0, 1fr))',
             }}
             width="100%"
             justify="start"

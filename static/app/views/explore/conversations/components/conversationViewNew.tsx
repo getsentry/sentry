@@ -1,30 +1,22 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConversationTimelineLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
-  ConversationDetailPanel,
-  ConversationLeftPanel,
-  ConversationSplitLayout,
-  ConversationViewSkeleton,
-} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+  CONVERSATION_SPAN_DETAIL_TABS,
+  ConversationSpanDetail,
+} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -43,8 +35,6 @@ interface ConversationViewContentNewProps {
   selectedSpanId?: string | null;
 }
 
-// WIP: redesigned conversation view. Reuses the existing panels for now; the
-// content treatment is still being designed.
 export function ConversationViewContentNew({
   conversation,
   activeTab,
@@ -52,7 +42,8 @@ export function ConversationViewContentNew({
   onSelectSpan,
   focusedTool,
 }: ConversationViewContentNewProps) {
-  const organization = useOrganization();
+  const isTimeline = activeTab === 'timeline';
+
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
@@ -60,9 +51,35 @@ export function ConversationViewContentNew({
     onSelectSpan,
     focusedTool,
     isLoading,
+    // The transcript opens the span detail only on user action; the timeline
+    // still auto-selects a default span on load.
+    autoSelectDefaultNode: isTimeline,
   });
 
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const [detailState, setDetailState] = useQueryStates(
+    {
+      detailOpen: parseAsBoolean.withDefault(true),
+      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
+    },
+    {history: 'replace'}
+  );
+  const handleSelectAndOpenDetail = useCallback(
+    (node: AITraceSpanNode) => {
+      setDetailState({detailOpen: true});
+      handleSelectNode(node);
+    },
+    [handleSelectNode, setDetailState]
+  );
+
+  // Open the span detail whenever the user enters the timeline view, so the
+  // auto-selected span's detail shows without an extra click.
+  const wasTimeline = useRef(false);
+  useEffect(() => {
+    if (isTimeline && !wasTimeline.current) {
+      setDetailState({detailOpen: true});
+    }
+    wasTimeline.current = isTimeline;
+  }, [isTimeline, setDetailState]);
 
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
@@ -72,87 +89,53 @@ export function ConversationViewContentNew({
     }
   }, [isLoading, error, nodes.length]);
 
-  if (isLoading) {
-    return <ConversationViewSkeleton />;
-  }
+  const isTranscript = !isTimeline;
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (nodes.length === 0) {
+  if (!isLoading && nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationSplitLayout
+      <ConversationTimelineLayout
+        leftPadding={isTranscript ? '0' : 'md'}
         left={
-          <ConversationLeftPanel>
-            <Flex
-              direction="column"
-              flex="1"
-              minHeight="0"
-              width="100%"
-              overflow="hidden"
-            >
-              {activeTab === 'transcript' && messages.length > 0 && (
-                <Flex
-                  flexShrink={0}
-                  justify="end"
-                  align="center"
-                  padding="xs sm"
-                  borderBottom="primary"
-                  background="primary"
-                >
-                  <CopyAsDropdown
-                    size="xs"
-                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                      markdown: () => {
-                        trackAnalytics('conversations.detail.copy-conversation', {
-                          organization,
-                        });
-                        return messagesToMarkdown(messages);
-                      },
-                      text: undefined,
-                      json: undefined,
-                    })}
-                  />
-                </Flex>
-              )}
-              <Flex
-                flex="1"
-                minHeight="0"
-                width="100%"
-                overflowX="hidden"
-                overflowY="auto"
-                background="secondary"
-              >
-                {activeTab === 'transcript' ? (
-                  <MessagesPanel
-                    nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
-                    onSelectNode={handleSelectNode}
-                  />
-                ) : (
-                  <Container padding="md lg md lg" width="100%">
-                    <AISpanList
-                      nodes={nodes}
-                      selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                      onSelectNode={handleSelectNode}
-                      compressGaps
-                    />
-                  </Container>
-                )}
-              </Flex>
-            </Flex>
-          </ConversationLeftPanel>
+          isTranscript ? (
+            <MessagesPanelNew
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeId={selectedNode?.id ?? null}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+            />
+          ) : (
+            <AiSpanTimeline
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeKey={selectedNode?.id ?? ''}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+              compressGaps
+            />
+          )
         }
         right={
-          <ConversationDetailPanel
-            selectedNode={selectedNode}
-            nodeTraceMap={nodeTraceMap}
-          />
+          // The timeline auto-selects a span, so its detail pane skeletons while loading.
+          detailState.detailOpen && (isLoading ? isTimeline : Boolean(selectedNode)) ? (
+            <ConversationSpanDetail
+              isLoading={isLoading}
+              scrollResetKey={activeTab}
+              node={selectedNode ?? undefined}
+              traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
+              activeTab={detailState.detailTab}
+              onTabChange={detailTab => setDetailState({detailTab})}
+              onClose={() => setDetailState({detailOpen: false, detailTab: null})}
+            />
+          ) : null
         }
       />
     </TraceStateProvider>

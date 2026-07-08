@@ -8,7 +8,6 @@ from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -174,13 +173,6 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
     }
 
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
-        if not features.has(
-            "organizations:issue-details-linked-pull-requests",
-            group.organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         organization_id = group.project.organization_id
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:

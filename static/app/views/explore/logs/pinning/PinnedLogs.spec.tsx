@@ -2,10 +2,10 @@ import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   screen,
   userEvent,
-  waitFor,
   type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -30,12 +30,14 @@ const allRows: OurLogsResponseItem[] = [
     [OurLogKnownFieldKey.PROJECT_ID]: '1',
     [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
     [OurLogKnownFieldKey.MESSAGE]: 'first pinned log',
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 2_000_000_000_000_000_000,
   }),
   LogFixture({
     [OurLogKnownFieldKey.ID]: 'log-2',
     [OurLogKnownFieldKey.PROJECT_ID]: '1',
     [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
     [OurLogKnownFieldKey.MESSAGE]: 'second pinned log',
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1_000_000_000_000_000_000,
   }),
 ];
 
@@ -148,47 +150,11 @@ describe('PinnedLogs', () => {
     expect(screen.queryByTestId('pinned-row-missing-log')).not.toBeInTheDocument();
   });
 
-  it('drops a pin that is not found in either the selected range or the wide window', async () => {
+  it('renders an unavailable row and keeps the pin when a log is not found in either window', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
-    });
-
-    renderPinnedLogs({
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'missing-log'}},
-      },
-    });
-
-    await waitFor(() => expect(screen.queryByRole('toolbar')).not.toBeInTheDocument());
-    expect(screen.queryByTestId('pinned-row-missing-log')).not.toBeInTheDocument();
-  });
-
-  it('renders an unavailable row when a pinned log cannot be resolved and the scan was partial', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
-    });
-
-    renderPinnedLogs({
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'missing-log'}},
-      },
-    });
-
-    expect(
-      await screen.findByText('Pinned log unavailable in the selected time range')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Collapse 1 pinned'})).toBeInTheDocument();
-  });
-
-  it('keeps the pin in the url when a partial scan cannot resolve it', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
     });
 
     const {router} = renderPinnedLogs({
@@ -200,14 +166,50 @@ describe('PinnedLogs', () => {
     expect(
       await screen.findByText('Pinned log unavailable in the selected time range')
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Collapse 1 pinned'})).toBeInTheDocument();
     expect(router.location.query.logsPinned).toBe('missing-log');
+  });
+
+  it('keeps a resolved-unavailable pin shown while a newly pinned log is still loading', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({query: 'id:[log-a]'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      asyncDelay: Infinity,
+      body: {data: [], meta: {fields: {}, units: {}}},
+      match: [MockApiClient.matchQuery({query: 'id:[log-b]'})],
+    });
+
+    const {router} = renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'log-a'}},
+      },
+    });
+
+    expect(
+      await screen.findByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
+
+    act(() => {
+      router.navigate('/?logsPinned=log-a,log-b');
+    });
+
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(
+      screen.getByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
   });
 
   it('renders a count matching the rendered rows when some pins are unavailable', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {data: [], meta: {fields: {id: 'string'}, units: {}, dataScanned: 'partial'}},
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
     });
 
     renderPinnedLogs({
@@ -254,6 +256,23 @@ describe('PinnedLogs', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
     expect(await screen.findByTestId('pinned-row-missing-log')).toBeInTheDocument();
+  });
+
+  it('renders pinned rows in ascending order when sorted ascending', () => {
+    renderPinnedLogs({
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {logsPinned: 'log-1,log-2', logsSortBys: 'timestamp'},
+        },
+      },
+    });
+
+    const renderedIds = screen
+      .getAllByTestId(/^pinned-row-/)
+      .map(row => row.getAttribute('data-test-id'));
+
+    expect(renderedIds).toEqual(['pinned-row-log-2', 'pinned-row-log-1']);
   });
 
   it('shows the count of pinned rows in the collapse toggle label', () => {

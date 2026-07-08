@@ -311,7 +311,6 @@ from sentry.issues.endpoints import (
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
-    OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
     ProjectEventsEndpoint,
     ProjectGroupIndexEndpoint,
@@ -526,6 +525,7 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
+from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
 from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
@@ -768,7 +768,6 @@ from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
-from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunkAttachmentsEndpoint,
@@ -787,7 +786,6 @@ from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
     OrganizationSdkUpdatesEndpoint,
 )
-from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
@@ -800,6 +798,12 @@ from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_trace_logs import OrganizationTraceLogsEndpoint
 from .endpoints.organization_trace_meta import OrganizationTraceMetaEndpoint
 from .endpoints.organization_traces import OrganizationTracesEndpoint
+from .endpoints.organization_weekly_report_project_exclusion_details import (
+    OrganizationWeeklyReportProjectExclusionDetailsEndpoint,
+)
+from .endpoints.organization_weekly_report_project_exclusions import (
+    OrganizationWeeklyReportProjectExclusionsEndpoint,
+)
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
@@ -1703,6 +1707,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-traces",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/weekly-report-project-exclusions/$",
+        OrganizationWeeklyReportProjectExclusionsEndpoint.as_view(),
+        name="sentry-api-0-organization-weekly-report-project-exclusions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/weekly-report-project-exclusions/(?P<project_id_or_slug>[^/]+)/$",
+        OrganizationWeeklyReportProjectExclusionDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-weekly-report-project-exclusion-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/$",
         OrganizationAIConversationsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversations",
@@ -2108,24 +2122,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     # Pinned and saved search
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pinned-searches/$",
-        OrganizationPinnedSearchEndpoint.as_view(),
-        name="sentry-api-0-organization-pinned-searches",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/recent-searches/$",
         OrganizationRecentSearchesEndpoint.as_view(),
         name="sentry-api-0-organization-recent-searches",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/searches/(?P<search_id>[^/]+)/$",
-        OrganizationSearchDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-search-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/searches/$",
-        OrganizationSearchesEndpoint.as_view(),
-        name="sentry-api-0-organization-searches",
     ),
     # DSN Lookup
     re_path(
@@ -2358,6 +2357,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
         OrganizationSeerAgentRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-runs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
+        OrganizationSeerRunsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-runs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",

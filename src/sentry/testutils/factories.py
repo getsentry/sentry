@@ -126,9 +126,9 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -149,7 +149,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -2154,14 +2154,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_saved_search(name: str, **kwargs):
-        if "owner" in kwargs:
-            owner = kwargs.pop("owner")
-            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
-        return SavedSearch.objects.create(name=name, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_notification_action(
         organization: Organization | None = None,
         projects: list[Project] | None = None,
@@ -2193,6 +2185,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_weekly_report_project_exclusion(**kwargs):
+        return WeeklyReportProjectExclusion.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -2988,3 +2985,9 @@ class Factories:
     def create_seer_run(organization, type: str = SeerRunType.EXPLORER, **kwargs) -> SeerRun:
         kwargs.setdefault("last_triggered_at", timezone.now())
         return SeerRun.objects.create(organization=organization, type=type, **kwargs)
+
+    @staticmethod
+    def create_seer_agent_run(
+        run: SeerRun, title: str = "Test run", source: str = "chat", **kwargs
+    ) -> SeerAgentRun:
+        return SeerAgentRun.objects.create(run=run, title=title, source=source, **kwargs)
