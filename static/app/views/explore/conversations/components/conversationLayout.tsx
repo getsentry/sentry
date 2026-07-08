@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -16,11 +16,8 @@ const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
-const CONTENT_MIN_HEIGHT = 180;
 const DETAIL_MIN_WIDTH = 400;
-const DETAIL_MIN_HEIGHT = 200;
 const DETAIL_DEFAULT_WIDTH = 430;
-const DETAIL_DEFAULT_HEIGHT = 320;
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
@@ -156,7 +153,7 @@ export function ConversationTimelineLayout({
           background="secondary"
         >
           {right ? (
-            <ConversationDetailSplit content={content} detail={right} />
+            <ContentDetailSplit content={content} detail={right} />
           ) : (
             <Flex height="100%" width="100%" minHeight="0" overflow="hidden">
               {content}
@@ -168,45 +165,37 @@ export function ConversationTimelineLayout({
   );
 }
 
-function ConversationDetailSplit({
+function ContentDetailSplit({
   content,
   detail,
 }: {
   content: React.ReactNode;
   detail: React.ReactNode;
 }) {
-  // Stack the panes below md so neither is crushed on a narrow screen.
-  const isRow =
-    useResponsivePropValue({xs: 'vertical', md: 'horizontal'}) === 'horizontal';
-
-  // Persist only the side-by-side width; the stacked height stays session-only
-  // so the stored value never mixes a width with a height.
-  const [storedWidth, setStoredWidth] = useLocalStorageState(
+  // Side by side on wide panels, stacked below md so neither pane is crushed on
+  // a narrow screen; SplitPanel resolves the responsive orientation internally.
+  const [storedSize, setStoredSize] = useLocalStorageState(
     SPLIT_LAYOUT_STORAGE_KEY,
     DETAIL_DEFAULT_WIDTH
   );
 
   return (
     <SplitPanel
-      orientation={isRow ? 'horizontal' : 'vertical'}
+      orientation={{xs: 'vertical', md: 'horizontal'}}
       placement="end"
-      defaultSize={isRow ? DETAIL_DEFAULT_WIDTH : DETAIL_DEFAULT_HEIGHT}
-      initialSize={isRow ? storedWidth : DETAIL_DEFAULT_HEIGHT}
-      minSize={isRow ? DETAIL_MIN_WIDTH : DETAIL_MIN_HEIGHT}
-      fillMinSize={isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT}
-      onResizeEnd={({endSize}) => {
-        if (isRow) {
-          setStoredWidth(endSize);
-        }
-      }}
+      defaultSize={DETAIL_DEFAULT_WIDTH}
+      initialSize={storedSize}
+      minSize={DETAIL_MIN_WIDTH}
+      fillMinSize={CONTENT_MIN_WIDTH}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
       fill={
         <Flex
           direction="column"
           flex="1"
           minWidth="0"
           minHeight="0"
-          paddingRight={isRow ? 'md' : undefined}
-          paddingBottom={isRow ? undefined : 'md'}
+          paddingRight={{xs: '0', md: 'md'}}
+          paddingBottom={{xs: 'md', md: '0'}}
         >
           {content}
         </Flex>
@@ -217,8 +206,8 @@ function ConversationDetailSplit({
           flex="1"
           minWidth="0"
           minHeight="0"
-          paddingLeft={isRow ? 'md' : undefined}
-          paddingTop={isRow ? undefined : 'md'}
+          paddingLeft={{xs: '0', md: 'md'}}
+          paddingTop={{xs: 'md', md: '0'}}
         >
           {detail}
         </Flex>
