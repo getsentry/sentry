@@ -59,7 +59,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
+NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=1)
 
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
