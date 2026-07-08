@@ -4,7 +4,6 @@ from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +47,4 @@ def backfill_group_action_log_for_group(
             "project_id": group.project_id,
             "total_created": total,
         },
-    )
-    metrics.incr(
-        "issues.backfill_group_action_log.group_completed",
-        sample_rate=1.0,
     )
