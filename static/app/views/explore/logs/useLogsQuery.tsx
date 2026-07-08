@@ -346,7 +346,9 @@ function getInitialPageParam(
       sortByDirection: sortBy.kind,
       indexFromInitialPage: 0,
       querySortDirection: undefined,
-      autoRefresh,
+      // A seek is a point-in-time window, not live-tail: keep the ingest-delay cap off
+      // so a recent target within the ingest window isn't filtered out of its own page.
+      autoRefresh: false,
     };
   }
 

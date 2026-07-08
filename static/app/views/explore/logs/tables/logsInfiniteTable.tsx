@@ -515,7 +515,9 @@ export function LogsInfiniteTable({
             }
             const timestampPrecise = dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
             const timestamp = dataRow[OurLogKnownFieldKey.TIMESTAMP];
-            if (timestampPrecise && seekToTimestamp(timestampPrecise, timestamp)) {
+            // seekToTimestamp falls back to the ms timestamp and returns false when
+            // neither is usable, so let it decide rather than gating on the precise value.
+            if (seekToTimestamp(timestampPrecise, timestamp)) {
               requestSeekScroll(rowId);
             }
           }}
