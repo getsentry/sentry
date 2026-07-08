@@ -200,7 +200,7 @@ def org_top_issues(
             pid = group.project_id
             if pid not in errors_by_project:
                 errors_by_project[pid] = []
-            if len(errors_by_project[pid]) < 3:
+            if len(errors_by_project[pid]) < 5:
                 errors_by_project[pid].append((group.id, count))
 
         perf_by_project: dict[int, list[tuple[Group, int]]] = {}
@@ -209,7 +209,7 @@ def org_top_issues(
             pid = group.project_id
             if pid not in perf_by_project:
                 perf_by_project[pid] = []
-            if len(perf_by_project[pid]) < 3:
+            if len(perf_by_project[pid]) < 5:
                 perf_by_project[pid].append((group, count))
 
         return errors_by_project, perf_by_project
