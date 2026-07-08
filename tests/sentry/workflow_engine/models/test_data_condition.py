@@ -104,7 +104,8 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
             condition_result="wrong",
         )
         evaluation = dc.evaluate_value(2)
-        assert evaluation.result == ConditionError(msg="Invalid condition result")
+        assert evaluation.result is None
+        assert evaluation.error == ConditionError(msg="Invalid condition result")
 
     def test_condition_evaluation__data_condition_exception(self) -> None:
         def evaluate_value(value: int, comparison: int) -> bool:
