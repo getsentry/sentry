@@ -1,11 +1,7 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LeadingGraphicProps} from '@sentry/scraps/leadingGraphic';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {EditableText} from 'sentry/components/editableText';
-
-import type {BreadcrumbTitleActions} from './breadcrumbItemPageTitle';
-import {renderTrailingActions} from './breadcrumbItemPageTitle';
 
 export interface BreadcrumbEditableTitleProps {
   /** Accessible name for the editable input. */
@@ -36,39 +32,21 @@ export interface BreadcrumbItemPageTitleEditableProps {
   /** A `<BreadcrumbList.EditableTitle />` element. */
   title: React.ReactElement<BreadcrumbEditableTitleProps>;
   leadingGraphic?: React.ReactElement<LeadingGraphicProps>;
-  /** Trailing action slot — bounded to the component's compound parts. */
-  trailingActions?: BreadcrumbTitleActions;
 }
 
 export function BreadcrumbItemPageTitleEditable({
   title,
   leadingGraphic,
-  trailingActions,
 }: BreadcrumbItemPageTitleEditableProps) {
-  const actions = renderTrailingActions(trailingActions);
-
   return (
     // Mirrors BreadcrumbItemPageTitle's layout so the editable variant lines up
-    // with the static one. RevealOnHover (render-prop form) reveals hover-only
-    // trailing actions while keeping the inline `as="span"` element.
-    <RevealOnHover>
-      {({className}) => (
-        <Flex
-          as="span"
-          className={className}
-          align="center"
-          gap="sm"
-          height="32px"
-          minWidth="32px"
-          flexShrink={1}
-        >
-          {leadingGraphic}
-          <Container minWidth={0} width="auto" data-test-id="breadcrumb-item">
-            {title}
-          </Container>
-          {actions}
-        </Flex>
-      )}
-    </RevealOnHover>
+    // with the static one. No trailing-action slot: EditableText owns its own
+    // edit affordance, so (unlike page-title) there is nothing to reveal on hover.
+    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
+      {leadingGraphic}
+      <Container minWidth={0} width="auto" data-test-id="breadcrumb-item">
+        {title}
+      </Container>
+    </Flex>
   );
 }

@@ -26,17 +26,20 @@ export type BreadcrumbTitleAction =
   | React.ReactElement<BreadcrumbMenuActionProps>
   | React.ReactElement<ButtonProps | LinkButtonProps>;
 
-/** One action, or a list (falsy entries are dropped so consumers can inline conditionals). */
+/**
+ * One action, or a list (falsy entries are dropped so consumers can inline conditionals).
+ *
+ * @public Consumed once call sites migrate onto the typed API in a downstream PR.
+ */
 export type BreadcrumbTitleActions =
   | BreadcrumbTitleAction
   | Array<BreadcrumbTitleAction | false | null>;
 
 /**
- * Normalizes the `trailingActions` prop to a flat, keyed row. Shared by the
- * page-title and editable-title items so both render the slot identically.
+ * Normalizes the `trailingActions` prop to a flat, keyed row.
  * Returns null when there is nothing to render.
  */
-export function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
+function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
   if (!trailingActions) {
     return null;
   }

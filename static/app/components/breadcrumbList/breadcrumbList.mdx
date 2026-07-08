@@ -178,7 +178,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
 
 ## Editable title
 
-The `'editable-title'` item renders the current page as a click-to-edit field instead of static text — for pages that let you rename in place (dashboards, automations, detectors, Discover). Pass a `<BreadcrumbList.EditableTitle />` element as the `title` prop; it wraps `EditableText` in its compact variant so it inherits the crumb row's size and weight. It accepts the same `leadingGraphic` and `trailingActions` slots as `'page-title'`.
+The `'editable-title'` item renders the current page as a click-to-edit field instead of static text — for pages that let you rename in place (dashboards, automations, detectors, Discover). Pass a `<BreadcrumbList.EditableTitle />` element as the `title` prop; it wraps `EditableText` in its compact variant so it inherits the crumb row's size and weight. It also accepts a `leadingGraphic`. Unlike `'page-title'`, it has no `trailingActions` slot — `EditableText` provides its own edit affordance.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -256,7 +256,9 @@ By default trailing actions reveal on crumb hover/focus; pass `alwaysVisible` on
         type: 'page-title',
         props: {
           label: 'JAVASCRIPT-2X9',
-          leadingGraphic: <LeadingGraphic variant="icon" icon={<IconStar size="md" />} />,
+          leadingGraphic: (
+            <LeadingGraphic variant="badge-project" projectPlatforms={['javascript']} />
+          ),
           trailingActions: [
             <BreadcrumbList.CopyAction
               key="copy"
