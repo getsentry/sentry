@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import posixpath
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, Generator
 
 import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
@@ -620,27 +620,23 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         )
 
 
-def get_native_symbolication_function(
+def get_native_symbolication_functions(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> Callable[[Symbolicator, Any], Any] | None:
+) -> Generator[Callable[[Symbolicator, Any], Any]]:
     """
     Returns the appropriate symbolication function (or `None`) that will process
     the event, based on the Event `data`, and the supplied `stacktraces`.
     """
     if is_minidump_event(data):
-        return process_minidump
-    elif is_applecrashreport_event(data):
-        return process_applecrashreport
+        yield process_minidump
+    if is_applecrashreport_event(data):
+        yield process_applecrashreport
     elif is_native_event(data, stacktraces):
-        return process_native_stacktraces
-    else:
-        return None
+        yield process_native_stacktraces
 
 
-def get_required_attachment_types(data) -> set[str]:
+def get_required_attachment_types(data) -> Generator[str]:
     if is_minidump_event(data):
-        return {MINIDUMP_ATTACHMENT_TYPE}
-    elif is_applecrashreport_event(data):
-        return {APPLECRASHREPORT_ATTACHMENT_TYPE}
-    else:
-        return set()
+        yield MINIDUMP_ATTACHMENT_TYPE
+    if is_applecrashreport_event(data):
+        yield APPLECRASHREPORT_ATTACHMENT_TYPE
