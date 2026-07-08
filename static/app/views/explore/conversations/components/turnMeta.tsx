@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 /**
  * Fixed-width, right-aligned metric + duration columns, mirroring the spans
@@ -8,10 +8,18 @@ import {Grid} from '@sentry/scraps/layout';
  * across message bubbles and tool-call rows.
  */
 export function TurnMeta({metric, duration}: {duration: ReactNode; metric: ReactNode}) {
+  if (!metric && !duration) {
+    return null;
+  }
+
   return (
-    <Grid flexShrink={0} columns="100px 56px" gap="md" justifyItems="end">
-      {metric}
-      {duration}
-    </Grid>
+    <Flex flexShrink={0} gap="md">
+      <Flex width="12ch" justify="end">
+        {metric}
+      </Flex>
+      <Flex width="8ch" justify="end">
+        {duration}
+      </Flex>
+    </Flex>
   );
 }
