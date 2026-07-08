@@ -106,7 +106,7 @@ export function AIContentRenderer({
   inline = false,
   maxJsonDepth = 2,
   autoCollapseLimit,
-  collapsibleXmlTags,
+  collapsibleXmlTags = true,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
 

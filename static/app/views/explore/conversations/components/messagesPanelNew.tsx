@@ -103,7 +103,6 @@ export function MessagesPanelNew({
                     text={message.content}
                     inline
                     autoCollapseLimit={10}
-                    collapsibleXmlTags
                   />
                 </MessageText>
               </UserMessageBlock>
@@ -195,12 +194,7 @@ function AssistantTurn({
           onClick={onClick}
         >
           <MessageText align="left">
-            <AIContentRenderer
-              text={message.content}
-              inline
-              autoCollapseLimit={10}
-              collapsibleXmlTags
-            />
+            <AIContentRenderer text={message.content} inline autoCollapseLimit={10} />
           </MessageText>
         </AssistantMessageBlock>
       )}
@@ -254,12 +248,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
     >
       <Container padding="xs md">
         <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer
-            text={reasoning}
-            inline
-            autoCollapseLimit={10}
-            collapsibleXmlTags
-          />
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
       </Container>
     </CollapsibleContent>
