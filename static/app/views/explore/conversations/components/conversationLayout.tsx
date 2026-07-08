@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex, Stack, useContainerBreakpoint} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -120,12 +120,6 @@ export function SpanDetailCard({
   );
 }
 
-/**
- * Layout for the conversation content (transcript/timeline) and the span detail.
- * When a detail is shown it's a resizable split: side by side on wide panels,
- * stacked on narrow ones. The side-by-side detail width persists to localStorage.
- * With no detail, content fills the whole area.
- */
 export function ConversationTimelineLayout({
   left,
   right,
@@ -182,7 +176,8 @@ function ConversationDetailSplit({
   detail: React.ReactNode;
 }) {
   // Stack the panes below md so neither is crushed on a narrow screen.
-  const isRow = !['2xs', 'xs', 'sm'].includes(useContainerBreakpoint());
+  const isRow =
+    useResponsivePropValue({xs: 'vertical', md: 'horizontal'}) === 'horizontal';
 
   // Persist only the side-by-side width; the stacked height stays session-only
   // so the stored value never mixes a width with a height.
