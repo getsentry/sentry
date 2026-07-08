@@ -757,7 +757,7 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-        return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
+        return heapq.nlargest(5, all_key_errors(), lambda d: d["count"])
 
     def key_performance_issues():
         def all_key_performance_issues():
@@ -787,7 +787,7 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-        return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
+        return heapq.nlargest(5, all_key_performance_issues(), lambda d: d["count"])
 
     def past_issues():
         def all_past_issues():
