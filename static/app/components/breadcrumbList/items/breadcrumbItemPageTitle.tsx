@@ -5,7 +5,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LeadingGraphicProps} from '@sentry/scraps/leadingGraphic';
 import type {LinkProps} from '@sentry/scraps/link';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -104,77 +103,59 @@ export function BreadcrumbItemPageTitle({
   const actions = renderTrailingActions(trailingActions);
 
   return (
-    // The whole crumb is a RevealOnHover root (render-prop form so we keep the
-    // inline `as="span"` element) — hover-only trailing actions
-    // (`BreadcrumbList.CopyAction` without `alwaysVisible`) reveal on crumb hover.
-    <RevealOnHover>
-      {({className}) => (
-        <Flex
-          as="span"
-          className={className}
-          align="center"
-          gap="sm"
-          height="32px"
-          minWidth="32px"
-          flexShrink={1}
-        >
-          {pagination && (
-            <Flex as="span" align="center">
-              <Tooltip
-                title={pagination.previous.tooltip}
-                disabled={!pagination.previous.tooltip}
-              >
-                <LinkButton
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconChevron direction="left" size="xs" aria-hidden />}
-                  aria-label={pagination.previous.ariaLabel}
-                  disabled={pagination.previous.disabled || !pagination.previous.to}
-                  to={pagination.previous.to ?? ''}
-                  onClick={pagination.previous.onClick}
-                />
-              </Tooltip>
-              <Tooltip
-                title={pagination.next.tooltip}
-                disabled={!pagination.next.tooltip}
-              >
-                <LinkButton
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconChevron direction="right" size="xs" aria-hidden />}
-                  aria-label={pagination.next.ariaLabel}
-                  disabled={pagination.next.disabled || !pagination.next.to}
-                  to={pagination.next.to ?? ''}
-                  onClick={pagination.next.onClick}
-                />
-              </Tooltip>
-            </Flex>
-          )}
-          {leadingGraphic}
-          {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> so the
-              label can shrink. The visible-width floor lives on the Flex above. */}
-          <Tooltip title={tooltipTitle} disabled={tooltipDisabled} style={{minWidth: 0}}>
-            <Container minWidth={0} width="auto">
-              {styleProps => (
-                // Rendered as inline text (a <span>), not a heading: the
-                // surrounding context (e.g. the TopBar title <h1>) owns the page
-                // heading, so the current-page crumb must be phrasing content
-                // that nests cleanly inside it.
-                <Text
-                  ellipsis
-                  bold
-                  variant="primary"
-                  data-test-id="breadcrumb-item"
-                  {...styleProps}
-                >
-                  {label}
-                </Text>
-              )}
-            </Container>
+    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
+      {pagination && (
+        <Flex as="span" align="center">
+          <Tooltip
+            title={pagination.previous.tooltip}
+            disabled={!pagination.previous.tooltip}
+          >
+            <LinkButton
+              size="zero"
+              variant="transparent"
+              icon={<IconChevron direction="left" size="xs" aria-hidden />}
+              aria-label={pagination.previous.ariaLabel}
+              disabled={pagination.previous.disabled || !pagination.previous.to}
+              to={pagination.previous.to ?? ''}
+              onClick={pagination.previous.onClick}
+            />
           </Tooltip>
-          {actions}
+          <Tooltip title={pagination.next.tooltip} disabled={!pagination.next.tooltip}>
+            <LinkButton
+              size="zero"
+              variant="transparent"
+              icon={<IconChevron direction="right" size="xs" aria-hidden />}
+              aria-label={pagination.next.ariaLabel}
+              disabled={pagination.next.disabled || !pagination.next.to}
+              to={pagination.next.to ?? ''}
+              onClick={pagination.next.onClick}
+            />
+          </Tooltip>
         </Flex>
       )}
-    </RevealOnHover>
+      {leadingGraphic}
+      {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> so the label
+          can shrink. The visible-width floor lives on the outer Flex above. */}
+      <Tooltip title={tooltipTitle} disabled={tooltipDisabled} style={{minWidth: 0}}>
+        <Container minWidth={0} width="auto">
+          {styleProps => (
+            // Rendered as inline text (a <span>), not a heading: the surrounding
+            // context (e.g. the TopBar title <h1>) owns the page heading, so the
+            // current-page crumb must be phrasing content that nests cleanly
+            // inside it.
+            <Text
+              ellipsis
+              bold
+              variant="primary"
+              data-test-id="breadcrumb-item"
+              {...styleProps}
+            >
+              {label}
+            </Text>
+          )}
+        </Container>
+      </Tooltip>
+      {actions}
+    </Flex>
   );
 }

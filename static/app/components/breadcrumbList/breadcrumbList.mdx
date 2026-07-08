@@ -244,9 +244,9 @@ The `'page-title'` item accepts an optional `pagination` prop for pages where th
 
 ## Trailing actions
 
-The `'page-title'` and `'editable-title'` items accept a `trailingActions` slot rendered after the label — e.g. copy, share, or a page-level actions menu. The slot is **bounded**: it takes the component's own compound parts (`BreadcrumbList.CopyAction`, `BreadcrumbList.MenuAction`) or a plain `Button`/`LinkButton`, or an array of them (falsy entries are dropped so you can inline conditionals) — never an arbitrary node. This keeps the trailing area visually consistent across pages.
+The `'page-title'` item accepts a `trailingActions` slot rendered after the label — e.g. copy, share, or a page-level actions menu. The slot is **bounded**: it takes the component's own compound parts (`BreadcrumbList.CopyAction`, `BreadcrumbList.MenuAction`) or a plain `Button`/`LinkButton`, or an array of them (falsy entries are dropped so you can inline conditionals) — never an arbitrary node. This keeps the trailing area visually consistent across pages.
 
-By default trailing actions reveal on crumb hover/focus; pass `alwaysVisible` on a `CopyAction` to pin it. Clipboard and analytics wiring live in the consumer via `text`/`onCopy`.
+Trailing actions are always visible — a persistent, keyboard-accessible affordance rather than a hover-revealed one. Clipboard and analytics wiring live in the consumer via `text`/`onCopy`.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -264,7 +264,6 @@ By default trailing actions reveal on crumb hover/focus; pass `alwaysVisible` on
               key="copy"
               text="JAVASCRIPT-2X9"
               label="Copy Short-ID"
-              alwaysVisible
             />,
             <BreadcrumbList.MenuAction
               key="menu"
@@ -284,7 +283,6 @@ By default trailing actions reveal on crumb hover/focus; pass `alwaysVisible` on
     key="copy"
     text={group.shortId}
     label="Copy Short-ID"
-    alwaysVisible
     onCopy={() => trackAnalytics('issue.shortid_copied', {organization})}
   />,
   isPublic && shareUrl && (

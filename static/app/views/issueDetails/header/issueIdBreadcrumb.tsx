@@ -80,7 +80,6 @@ export function useIssueIdBreadcrumbItem({
           text={group.shortId}
           label={t('Copy Issue Short-ID')}
           tooltip={t('Copy Issue Short-ID')}
-          alwaysVisible
           onCopy={handleCopyShortId}
         />,
         group.isPublic && shareUrl ? (

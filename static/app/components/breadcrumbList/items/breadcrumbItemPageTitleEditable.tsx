@@ -42,7 +42,7 @@ export function BreadcrumbItemPageTitleEditable({
   return (
     // Mirrors BreadcrumbItemPageTitle's layout so the editable variant lines up
     // with the static one. No trailing-action slot: EditableText owns its own
-    // edit affordance, so (unlike page-title) there is nothing to reveal on hover.
+    // edit affordance.
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
       {leadingGraphic}
       {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's

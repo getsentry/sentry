@@ -256,11 +256,7 @@ describe('BreadcrumbList rich page-title items', () => {
             props: {
               label: 'JAVASCRIPT-2X9',
               trailingActions: (
-                <BreadcrumbList.CopyAction
-                  text="JAVASCRIPT-2X9"
-                  label="Copy Short-ID"
-                  alwaysVisible
-                />
+                <BreadcrumbList.CopyAction text="JAVASCRIPT-2X9" label="Copy Short-ID" />
               ),
             },
           },
@@ -285,7 +281,6 @@ describe('BreadcrumbList rich page-title items', () => {
                   key="copy"
                   text="JAVASCRIPT-2X9"
                   label="Copy Short-ID"
-                  alwaysVisible
                 />,
                 isPublic && (
                   <BreadcrumbList.MenuAction
