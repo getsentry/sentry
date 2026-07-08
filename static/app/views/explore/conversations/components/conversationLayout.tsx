@@ -118,7 +118,7 @@ export function SpanDetailCard({
   );
 }
 
-export function ConversationTimelineLayout({
+export function ConversationContentLayout({
   left,
   right,
   leftPadding = 'md',
