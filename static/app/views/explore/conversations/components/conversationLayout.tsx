@@ -16,14 +16,7 @@ const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
-const CONTENT_MIN_HEIGHT = 180;
 const DETAIL_MIN_WIDTH = 360;
-const DETAIL_MIN_HEIGHT = 200;
-const DETAIL_DEFAULT_WIDTH = 430;
-// Row (side-by-side) width and column (stacked) height persist separately so
-// switching orientation doesn't mix a width value into a height and vice versa.
-const DETAIL_WIDTH_STORAGE_KEY = 'conversation-detail-size';
-const DETAIL_HEIGHT_STORAGE_KEY = 'conversation-detail-height';
 
 /**
  * Resizable two-column layout for conversation views.
@@ -124,12 +117,10 @@ export function SpanDetailCard({
 
 /**
  * Layout for the conversation content (transcript/timeline) and the span detail.
- * When a detail is shown it's a resizable split, mirroring the replay layout:
- * side by side when the area is landscape-ish, stacked (still draggable,
- * top/bottom) when portrait-ish — so resize isn't dropped on narrow screens.
- * The detail's size persists to localStorage. With no detail, content fills the
- * whole area. Loading skeletons come from the `left`/`right` components' own
- * `isLoading` states, so the split shows skeletons without extra code.
+ * When a detail is shown it's a resizable side-by-side split. The content pane's
+ * width persists under the shared conversation-split key, so a size set here (or
+ * in the other conversation/trace views) carries over. With no detail, content
+ * fills the whole area.
  */
 export function ConversationTimelineLayout({
   left,
@@ -187,17 +178,14 @@ function ConversationDetailSplit({
   detail: React.ReactNode;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: measureRef});
+  const {width} = useDimensions({elementRef: measureRef});
 
+  // Measure first: useLocalStorageState captures its default on mount, so we
+  // need the width to seed a half-content default for fresh visits.
   return (
     <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
-      {width + height > 0 ? (
-        <MeasuredDetailSplit
-          width={width}
-          height={height}
-          content={content}
-          detail={detail}
-        />
+      {width > 0 ? (
+        <MeasuredDetailSplit width={width} content={content} detail={detail} />
       ) : null}
     </Flex>
   );
@@ -205,63 +193,36 @@ function ConversationDetailSplit({
 
 function MeasuredDetailSplit({
   width,
-  height,
   content,
   detail,
 }: {
   content: React.ReactNode;
   detail: React.ReactNode;
-  height: number;
   width: number;
 }) {
-  // Landscape-ish → side by side; portrait-ish → stacked (still resizable).
-  const isRow = width >= height;
-
-  const [storedWidth, setStoredWidth] = useLocalStorageState(
-    DETAIL_WIDTH_STORAGE_KEY,
-    DETAIL_DEFAULT_WIDTH
+  // Size the content pane and persist under the shared conversation-split key,
+  // so the width is interchangeable with the other conversation/trace views.
+  const defaultContent = Math.max(CONTENT_MIN_WIDTH, (width - DIVIDER_WIDTH) * 0.5);
+  const [storedSize, setStoredSize] = useLocalStorageState(
+    DEFAULT_STORAGE_KEY,
+    defaultContent
   );
-  const halfHeight = Math.max(
-    DETAIL_MIN_HEIGHT,
-    Math.round((height - DIVIDER_WIDTH) * 0.5)
-  );
-  const [storedHeight, setStoredHeight] = useLocalStorageState(
-    DETAIL_HEIGHT_STORAGE_KEY,
-    halfHeight
-  );
-
-  const setDetailSize = isRow ? setStoredWidth : setStoredHeight;
 
   return (
     <SplitPanel
-      orientation={isRow ? 'horizontal' : 'vertical'}
-      placement="end"
-      defaultSize={isRow ? DETAIL_DEFAULT_WIDTH : halfHeight}
-      initialSize={isRow ? storedWidth : storedHeight}
-      minSize={isRow ? DETAIL_MIN_WIDTH : DETAIL_MIN_HEIGHT}
-      fillMinSize={isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT}
-      onResizeEnd={({endSize}) => setDetailSize(endSize)}
-      fill={
-        <Flex
-          direction="column"
-          flex="1"
-          minWidth="0"
-          minHeight="0"
-          paddingRight={isRow ? 'md' : undefined}
-          paddingBottom={isRow ? undefined : 'md'}
-        >
+      orientation="horizontal"
+      defaultSize={defaultContent}
+      initialSize={storedSize}
+      minSize={CONTENT_MIN_WIDTH}
+      fillMinSize={DETAIL_MIN_WIDTH}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
+      sized={
+        <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingRight="md">
           {content}
         </Flex>
       }
-      sized={
-        <Flex
-          direction="column"
-          flex="1"
-          minWidth="0"
-          minHeight="0"
-          paddingLeft={isRow ? 'md' : undefined}
-          paddingTop={isRow ? undefined : 'md'}
-        >
+      fill={
+        <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingLeft="md">
           {detail}
         </Flex>
       }
