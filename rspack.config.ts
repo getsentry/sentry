@@ -99,7 +99,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
 
 const require = createRequire(import.meta.url);
-const TYPESCRIPT_7_PACKAGE_PATH = require.resolve('typescript-7/package.json');
 
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
@@ -453,7 +452,7 @@ const appConfig: Configuration = {
           new TsCheckerRspackPlugin({
             typescript: {
               configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              typescriptPath: TYPESCRIPT_7_PACKAGE_PATH,
+              typescriptPath: require.resolve('typescript-7/package.json'),
             },
             devServer: false,
           }),
