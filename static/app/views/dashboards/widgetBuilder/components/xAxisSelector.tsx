@@ -53,10 +53,14 @@ export function WidgetBuilderXAxisSelector() {
     search,
     WIDGET_BUILDER_ATTRIBUTE_SEARCH_DEBOUNCE_MS
   );
+  // Debounce only while typing. Clearing the search (e.g. on close) must take
+  // effect immediately, otherwise reopening within the debounce window briefly
+  // shows the previous query's attributes instead of the default list.
+  const attributeSearch = search ? debouncedSearch : '';
 
   const searchedTraceItemOptions = {
     ...traceItemOptions,
-    search: debouncedSearch,
+    search: attributeSearch,
     staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
   };
   const {attributes: stringSpanTags, isLoading: isLoadingStringTags} =
