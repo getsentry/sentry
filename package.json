@@ -258,7 +258,6 @@
     "@typescript-eslint/rule-tester": "8.58.0",
     "@typescript-eslint/utils": "8.58.0",
     "@typescript/native-preview": "7.0.0-dev.20260609.1",
-    "@volar/typescript": "^2.4.28",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
