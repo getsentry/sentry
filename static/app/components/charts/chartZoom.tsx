@@ -9,6 +9,7 @@ import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
+import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
@@ -46,6 +47,8 @@ export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
+  notMerge?: boolean;
+  replaceMerge?: string[];
   showTimeInTooltip?: boolean;
   start?: Date;
   toolBox?: ToolboxComponentOption;
@@ -326,13 +329,13 @@ class ChartZoom extends Component<Props> {
         utc,
         start,
         end,
-        isGroupedByDate: true,
+        ...CHART_ZOOM_MERGE_OPTIONS,
         ...props,
       });
     }
     const renderProps = {
-      // Zooming only works when grouped by date
-      isGroupedByDate: true,
+      ...props,
+      ...CHART_ZOOM_MERGE_OPTIONS,
       onChartReady: this.handleChartReady,
       utc,
       start,
@@ -360,7 +363,6 @@ class ChartZoom extends Component<Props> {
       onDataZoom: this.handleDataZoom,
       onFinished: this.handleChartFinished,
       onRestore: this.handleZoomRestore,
-      ...props,
     };
 
     return children(renderProps);

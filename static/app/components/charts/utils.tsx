@@ -468,11 +468,17 @@ export function isChartHovered(chartRef: ReactEchartsRef | null) {
  * without first clicking the (hidden) toolbox icon.
  */
 export function activateZoomAreaSelect(chart: ECharts) {
-  const toolboxView = (chart as any)._componentsViews?.find((view: any) =>
-    view._features?.get?.('dataZoom')
-  );
-  const dataZoomFeature = toolboxView?._features.get('dataZoom');
-  if (dataZoomFeature && !dataZoomFeature._isZoomActive) {
+  // ECharts can expose more than one toolbox dataZoom feature after option
+  // updates. Only re-arm the hidden selector when none are active, otherwise
+  // duplicate brush controllers can stack during drag selection.
+  const dataZoomFeatures = ((chart as any)._componentsViews ?? [])
+    .map((view: any) => view._features?.get?.('dataZoom'))
+    .filter(Boolean);
+
+  if (
+    dataZoomFeatures.length > 0 &&
+    dataZoomFeatures.every((feature: any) => !feature._isZoomActive)
+  ) {
     // Calling dispatchAction will re-trigger handleChartFinished
     chart.dispatchAction({
       type: 'takeGlobalCursor',
