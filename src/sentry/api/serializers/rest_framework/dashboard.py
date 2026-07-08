@@ -601,7 +601,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
                 self._validate_tracemetrics_equation_constraints(data)
 
-            # find other things to validate against
             if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
                 if len(data.get("queries")) > 1:
                     raise serializers.ValidationError(
@@ -635,30 +634,34 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     heatmap_query_errors: dict[str, str] = {}
                     if query.get("aggregates"):
                         if len(query.get("aggregates")) > 1:
-                            heatmap_query_errors["aggregates"] = (
-                                "Heatmap widgets support one aggregate"
-                            )
-                            has_query_error = True
-
-                        heatmap_aggregate = query.get("aggregates")[0]
-                        try:
-                            trace_metric = extract_trace_metric_from_aggregate(heatmap_aggregate)
-                            if not trace_metric:
-                                heatmap_query_errors["aggregates"] = (
-                                    "Heatmap widgets are only supported by metric aggregates"
+                            if query.get("selected_aggregate") is None:
+                                heatmap_query_errors["selected_aggregate"] = (
+                                    "Heatmap widgets with multiple aggregates must have a selected aggregate"
                                 )
                                 has_query_error = True
 
-                            elif trace_metric.metric_type != "distribution":
+                        heatmap_aggregates = query.get("aggregates")
+                        for heatmap_aggregate in heatmap_aggregates:
+                            try:
+                                trace_metric = extract_trace_metric_from_aggregate(
+                                    heatmap_aggregate
+                                )
+                                if not trace_metric:
+                                    heatmap_query_errors["aggregates"] = (
+                                        "Heatmap widgets are only supported by metric aggregates"
+                                    )
+                                    has_query_error = True
+
+                                elif trace_metric.metric_type != "distribution":
+                                    heatmap_query_errors["aggregates"] = (
+                                        "Heatmap widgets are only supported by distribution type metrics"
+                                    )
+                                    has_query_error = True
+                            except InvalidSearchQuery:
                                 heatmap_query_errors["aggregates"] = (
-                                    "Heatmap widgets are only supported by distribution type metrics"
+                                    f"Invalid aggregate: {heatmap_aggregate}"
                                 )
                                 has_query_error = True
-                        except InvalidSearchQuery:
-                            heatmap_query_errors["aggregates"] = (
-                                f"Invalid aggregate: {heatmap_aggregate}"
-                            )
-                            has_query_error = True
 
                     else:
                         heatmap_query_errors["aggregates"] = "Heatmap widgets require an aggregate"

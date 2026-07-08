@@ -1594,7 +1594,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             response.data
         )
 
-    def test_heatmap_rejects_multiple_aggregates(self) -> None:
+    def test_heatmap_rejects_multiple_aggregates_without_selected_aggregate(self) -> None:
         data = {
             "title": "Test Metrics Heat Map",
             "widgetType": "tracemetrics",
@@ -1624,7 +1624,74 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             )
         assert response.status_code == 400, response.data
         assert (
-            response.data["queries"][0]["aggregates"] == "Heatmap widgets support one aggregate"
+            response.data["queries"][0]["selectedAggregate"]
+            == "Heatmap widgets with multiple aggregates must have a selected aggregate"
+        ), response.data
+
+    def test_heatmap_allows_multiple_aggregates_with_selected_aggregate(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "sum(value,foo,distribution,none)",
+                        "avg(value,foo,distribution,none)",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "sum(value,foo,distribution,none)",
+                        "avg(value,foo,distribution,none)",
+                    ],
+                    "selectedAggregate": "0",
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 200, response.data
+
+    def test_heatmap_rejects_second_of_multiple_aggregates_when_invalid(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "sum(value,foo,distribution,none)",
+                        "sum(value)",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "sum(value,foo,distribution,none)",
+                        "sum(value)",
+                    ],
+                    "selectedAggregate": "0",
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["queries"][0]["aggregates"]
+            == "Heatmap widgets are only supported by metric aggregates"
         ), response.data
 
     def test_heatmap_rejects_non_metric_aggregate(self) -> None:
