@@ -10,13 +10,15 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.helpers.ai_conversations import (
     AI_CONVERSATION_AGGREGATION_COLUMNS,
-    AI_CONVERSATION_ENRICHMENT_COLUMNS,
     AI_CONVERSATION_TOOL_BREAKDOWN_COLUMNS,
     AI_CONVERSATION_TOOL_BREAKDOWN_ORDERBY,
+    AI_CONVERSATION_TRACE_COLUMNS,
+    AI_CONVERSATION_USER_COLUMNS,
     ConversationMeta,
-    extract_conversation_enrichment,
     parse_conversation_aggregates,
+    parse_conversation_user,
     parse_tool_breakdown,
+    parse_trace_ids,
     resolve_conversation_params,
 )
 from sentry.api.utils import handle_query_errors
@@ -56,7 +58,10 @@ class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
         conversation_filter = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
         resolver = Spans.get_resolver(snuba_params, SearchResolverConfig(auto_fields=True))
 
-        # Independent queries over the same conversation, batched into one RPC round-trip.
+        # Bounded aggregate queries over the conversation, batched into one RPC. No raw-span
+        # scan: the numbers and user ride on one grouped row, traces are a group-by, and the
+        # tool breakdown is per-tool — so this stays lightweight and independent of listing
+        # every span (which the paginated details endpoint does).
         results = Spans.run_bulk_table_queries(
             [
                 TableQuery(
@@ -65,6 +70,7 @@ class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
                     selected_columns=[
                         "gen_ai.conversation.id",
                         *AI_CONVERSATION_AGGREGATION_COLUMNS,
+                        *AI_CONVERSATION_USER_COLUMNS,
                     ],
                     orderby=None,
                     offset=0,
@@ -74,10 +80,10 @@ class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
                     resolver=resolver,
                 ),
                 TableQuery(
-                    name="enrichment",
-                    query_string=f"{conversation_filter} has:gen_ai.operation.type",
-                    selected_columns=[*AI_CONVERSATION_ENRICHMENT_COLUMNS],
-                    orderby=["timestamp"],
+                    name="traces",
+                    query_string=conversation_filter,
+                    selected_columns=AI_CONVERSATION_TRACE_COLUMNS,
+                    orderby=None,
                     offset=0,
                     limit=10000,
                     referrer=Referrer.API_AI_CONVERSATION_META.value,
@@ -99,12 +105,11 @@ class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
         )
 
         aggregation_rows = results["aggregation"].get("data", [])
-        aggregates = parse_conversation_aggregates(aggregation_rows[0] if aggregation_rows else {})
-        extracted = extract_conversation_enrichment(results["enrichment"].get("data", []))
+        aggregation_row = aggregation_rows[0] if aggregation_rows else {}
 
         return {
-            **aggregates,
-            "user": extracted["user"],
+            **parse_conversation_aggregates(aggregation_row),
+            "user": parse_conversation_user(aggregation_row),
             "tools": parse_tool_breakdown(results["tool_breakdown"].get("data", [])),
-            "traceIds": extracted["traceIds"],
+            "traceIds": parse_trace_ids(results["traces"].get("data", [])),
         }

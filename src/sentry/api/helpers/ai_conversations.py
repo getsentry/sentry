@@ -95,6 +95,42 @@ def build_user_response(
     }
 
 
+# User attributes pulled via any(), which skips nulls: a single conversation has one
+# user, so this returns it from whichever spans carry user data — spans without it
+# (agent/tool spans) don't blank it out. Lets the aggregation query carry the user
+# instead of scanning raw spans.
+_USER_ID = "any(user.id)"
+_USER_EMAIL = "any(user.email)"
+_USER_USERNAME = "any(user.username)"
+_USER_IP = "any(user.ip)"
+
+AI_CONVERSATION_USER_COLUMNS = [_USER_ID, _USER_EMAIL, _USER_USERNAME, _USER_IP]
+
+
+def parse_conversation_user(row: dict[str, Any]) -> UserResponse | None:
+    """Build the conversation user from any()-aggregated attributes (see above)."""
+    return build_user_response(
+        row.get(_USER_ID) or None,
+        row.get(_USER_EMAIL) or None,
+        row.get(_USER_USERNAME) or None,
+        row.get(_USER_IP) or None,
+    )
+
+
+# Distinct trace IDs, via a group-by on trace. One row per trace (not per span), so
+# the limit bounds trace count, not span count, and returns the complete set for any
+# realistic conversation.
+_TRACE = "trace"
+_TRACE_COUNT = "count(span.duration)"
+
+AI_CONVERSATION_TRACE_COLUMNS = [_TRACE, _TRACE_COUNT]
+
+
+def parse_trace_ids(rows: Iterable[dict[str, Any]]) -> list[str]:
+    """Collect distinct trace IDs from a trace group-by (see AI_CONVERSATION_TRACE_COLUMNS)."""
+    return [trace for row in rows if (trace := row.get(_TRACE))]
+
+
 # Per-span columns used to derive the conversation's user, tool names, agent flow, and
 # traces. Ordered by timestamp so the earliest span wins when picking the user.
 AI_CONVERSATION_ENRICHMENT_COLUMNS = [

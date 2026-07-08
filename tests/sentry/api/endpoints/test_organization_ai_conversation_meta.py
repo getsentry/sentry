@@ -58,6 +58,8 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
+        # First span carries no user data; the user must still be resolved from the
+        # later ai_client spans that do (any() skips spans without user attributes).
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=4),
@@ -91,10 +93,10 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
             output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
-            user_id="user-456",
-            user_email="other@example.com",
-            user_username="otheruser",
-            user_ip="10.0.0.1",
+            user_id="user-123",
+            user_email="test@example.com",
+            user_username="testuser",
+            user_ip="192.168.1.1",
         )
         # "search" called twice (both ok); "database" called once and errored.
         self.store_ai_span(
@@ -143,7 +145,8 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         assert meta["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert meta["totalCost"] == LLM_COST * 2
 
-        # User is taken from the first span (earliest timestamp) that carries one.
+        # Resolved from the ai_client spans that carry user data, even though the
+        # earliest span (the agent span) has none.
         assert meta["user"] == {
             "id": "user-123",
             "email": "test@example.com",
@@ -164,6 +167,33 @@ class OrganizationAIConversationMetaEndpointTest(BaseAIConversationsTestCase):
         assert by_name["search"]["duration"] >= 0
         assert by_name["database"]["calls"] == 1
         assert by_name["database"]["hasError"] is True
+
+    def test_returns_all_trace_ids(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_ids = [uuid4().hex for _ in range(3)]
+
+        # Multiple spans per trace: the group-by must return each trace once, not per span.
+        for trace_id in trace_ids:
+            for offset in range(2):
+                self.store_ai_span(
+                    conversation_id=conversation_id,
+                    timestamp=now - timedelta(seconds=offset),
+                    op="gen_ai.chat",
+                    operation_type="ai_client",
+                    tokens=LLM_TOKENS,
+                    trace_id=trace_id,
+                )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert sorted(response.data["traceIds"]) == sorted(trace_ids)
 
     def test_nonexistent_conversation_returns_empty_meta(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
