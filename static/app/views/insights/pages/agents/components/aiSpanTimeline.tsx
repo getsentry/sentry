@@ -114,14 +114,14 @@ const TIMELINE_SKELETON_ROWS: Array<{
   indent?: boolean;
   secondary?: string;
 }> = [
-  {title: '170px', secondary: '90px'},
-  {title: '130px', secondary: '60px', indent: true},
-  {title: '150px', indent: true},
-  {title: '120px', secondary: '100px', indent: true},
-  {title: '125px', secondary: '55px', indent: true},
-  {title: '160px', indent: true},
-  {title: '140px', secondary: '70px'},
-  {title: '135px', secondary: '85px', indent: true},
+  {title: '28%', secondary: '13%'},
+  {title: '26%', secondary: '12%', indent: true},
+  {title: '32%', indent: true},
+  {title: '24%', secondary: '20%', indent: true},
+  {title: '30%', secondary: '11%', indent: true},
+  {title: '33%', indent: true},
+  {title: '31%', secondary: '14%'},
+  {title: '28%', secondary: '15%', indent: true},
 ];
 
 function TimelineSkeleton() {
@@ -137,16 +137,13 @@ function TimelineSkeleton() {
             <Flex align="center" gap="md">
               <Placeholder height="16px" width="16px" />
               <Placeholder height="14px" width={row.title} />
-              <Flex flex="1" minWidth="0">
-                {row.secondary ? (
-                  <Placeholder height="14px" width={row.secondary} />
-                ) : null}
+              {row.secondary ? <Placeholder height="14px" width={row.secondary} /> : null}
+              <Flex flex="1" minWidth="0" />
+              <Flex flexShrink={0} width="64px" justify="end">
+                <Placeholder height="14px" width="44px" />
               </Flex>
-              <Flex flexShrink={0} width="100px" justify="end">
-                <Placeholder height="14px" width="48px" />
-              </Flex>
-              <Flex flexShrink={0} width="56px" justify="end">
-                <Placeholder height="14px" width="40px" />
+              <Flex flexShrink={0} width="44px" justify="end">
+                <Placeholder height="14px" width="36px" />
               </Flex>
             </Flex>
             <Placeholder height="4px" width="100%" />
