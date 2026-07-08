@@ -100,9 +100,9 @@ def backfill_actions(
     values_clause = ", ".join(values_template for _ in entries)
     using = router.db_for_write(GroupActionLogEntry)
     with transaction.atomic(using=using):
-        cursor = connections[using].cursor()
-        cursor.execute(sql % values_clause, params)
-        inserted = len(cursor.fetchall())
+        with connections[using].cursor() as cursor:
+            cursor.execute(sql % values_clause, params)
+            inserted = len(cursor.fetchall())
 
     metrics.incr("issues.action_log.backfill", amount=inserted, sample_rate=1.0)
 
@@ -127,6 +127,8 @@ def backfill_group_activities(
     Returns the total number of new entries created.
     """
     total_created = 0
+    total_skipped = 0
+    batch_num = 0
     cursor: int | None = None
 
     while True:
@@ -138,10 +140,21 @@ def backfill_group_activities(
         if not batch:
             break
 
+        batch_num += 1
         entries: list[BackfillEntry] = []
+        skipped = 0
         for act in batch:
-            action = activity_to_action(act)
+            try:
+                action = activity_to_action(act)
+            except Exception:
+                logger.exception(
+                    "backfill_group_activities.translation_error",
+                    extra={"activity_id": act.id, "activity_type": act.type, "group_id": group_id},
+                )
+                skipped += 1
+                continue
             if action is None:
+                skipped += 1
                 continue
             actor = GroupActionActor.user(act.user_id) if act.user_id else SYSTEM_ACTOR
             entries.append(
@@ -160,6 +173,19 @@ def backfill_group_activities(
                 entries=entries, group_id=group_id, project_id=project_id
             )
 
+        total_skipped += skipped
         cursor = batch[-1].id
+
+        logger.info(
+            "backfill_group_activities.batch_complete",
+            extra={
+                "group_id": group_id,
+                "batch_num": batch_num,
+                "batch_activities": len(batch),
+                "batch_converted": len(entries),
+                "batch_skipped": skipped,
+                "total_created": total_created,
+            },
+        )
 
     return total_created
