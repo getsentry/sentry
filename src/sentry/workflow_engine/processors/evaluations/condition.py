@@ -1,16 +1,23 @@
-from dataclasses import dataclass
-from typing import Any
+from __future__ import annotations
 
-from sentry.workflow_engine.processors.evaluations.base import BaseWorkflowEngineEvaluation
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
 from sentry.workflow_engine.types import ConditionError, DataConditionResult
+
+from .base import BaseWorkflowEngineEvaluation
+from .trigger_result import TriggerResult
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models.data_condition import DataCondition
 
 
 class DataConditionEvaluationException(Exception):
     pass
 
 
-@dataclass(frozen=True)
-class DataConditionEvaluation(BaseWorkflowEngineEvaluation):
+@dataclass(frozen=True, kw_only=True)
+class DataConditionEvaluation(BaseWorkflowEngineEvaluation[DataConditionResult, ConditionError]):
     """
     This class is used to track the evaluation of a DataCondition's logic.
 
@@ -20,11 +27,21 @@ class DataConditionEvaluation(BaseWorkflowEngineEvaluation):
     - value: Any - this is the value that was evaluated against.
     - evaluation: bool - this tracks the logical evaluation of the condition
     - result: DataConditionResult - this is the value that is expected to be the result of the evaluation, in general this is the `DataCondition.condition_result`
-
-    TODO
-    - Use this Evaluation to build DataConditionGroupEvaluation
     """
 
     value: Any
-    condition_met: bool
-    result: DataConditionResult | ConditionError
+    condition: DataCondition
+
+    @property
+    def outcome(self) -> TriggerResult:
+        """
+        TODO - @saponifi3d - The TriggerResult and the BaseWorkflowEngineEvaluation
+        can likely serve the same purpose, looking at the result / errors and providing
+        helpful interactions.
+
+        For now, using the `TriggerResult` to move a little faster through the refactoring.
+        """
+        return TriggerResult(
+            triggered=(self.result is not None),
+            error=self.error,
+        )
