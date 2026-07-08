@@ -18,8 +18,9 @@ interface AIContentRendererProps {
   text: string;
   autoCollapseLimit?: number;
   /**
-   * Clips tall text content behind a "Show More" button. Disable when the
-   * container scrolls on its own. Only applies to non-inline text.
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own. Only applies to non-inline content. When unset, text
+   * defaults to clipped and JSON defaults to flowing (matching prior behavior).
    */
   clip?: boolean;
   collapsibleXmlTags?: boolean;
@@ -112,9 +113,14 @@ export function AIContentRenderer({
   maxJsonDepth = 2,
   autoCollapseLimit,
   collapsibleXmlTags,
-  clip = true,
+  clip,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
+
+  // Preserve each branch's historical default when the caller doesn't specify:
+  // text was clipped, JSON flowed. Explicit `clip` always wins.
+  const clipText = clip ?? true;
+  const clipJson = clip ?? false;
 
   switch (detection.type) {
     case 'json':
@@ -124,7 +130,7 @@ export function AIContentRenderer({
           value={detection.parsedData}
           maxDefaultDepth={maxJsonDepth}
           autoCollapseLimit={autoCollapseLimit}
-          clip={clip}
+          clip={clipJson}
         />
       );
 
@@ -135,7 +141,7 @@ export function AIContentRenderer({
             value={detection.parsedData}
             maxDefaultDepth={maxJsonDepth}
             autoCollapseLimit={autoCollapseLimit}
-            clip={clip}
+            clip={clipJson}
           />
           <Text size="xs" variant="muted">
             {t('Truncated')}
@@ -151,7 +157,7 @@ export function AIContentRenderer({
       }
       return (
         <TraceDrawerComponents.MultilineText
-          clip={clip}
+          clip={clipText}
           renderFormatted={rawText => (
             <MarkdownWithXmlRenderer
               text={rawText}
@@ -168,7 +174,7 @@ export function AIContentRenderer({
         return <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={text} />;
       }
       return (
-        <TraceDrawerComponents.MultilineText clip={clip}>
+        <TraceDrawerComponents.MultilineText clip={clipText}>
           {text}
         </TraceDrawerComponents.MultilineText>
       );
@@ -179,7 +185,7 @@ export function AIContentRenderer({
         return <Fragment>{text}</Fragment>;
       }
       return (
-        <TraceDrawerComponents.MultilineText clip={clip}>
+        <TraceDrawerComponents.MultilineText clip={clipText}>
           {text}
         </TraceDrawerComponents.MultilineText>
       );
