@@ -145,7 +145,13 @@ export function WidgetBuilderXAxisSelector() {
     ) {
       return [
         ...fieldOptions,
-        {label: prettifyTagKey(currentXAxisField), value: currentXAxisField},
+        {
+          label: prettifyTagKey(currentXAxisField),
+          value: currentXAxisField,
+          // Match the search on the raw value, consistent with the fetched
+          // options, so the pinned selection isn't hidden by label prettifying.
+          textValue: currentXAxisField,
+        },
       ];
     }
     return fieldOptions;
