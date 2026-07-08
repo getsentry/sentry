@@ -7,6 +7,8 @@ import {useChartZoom} from './useChartZoom';
 const START_VALUE = Date.UTC(2026, 6, 3, 11, 1, 30);
 const END_VALUE = Date.UTC(2026, 6, 3, 16, 54, 30);
 
+type UseChartZoomProps = Parameters<typeof useChartZoom>[0];
+
 function dataZoomPayload(
   startValue = START_VALUE,
   endValue = END_VALUE
@@ -21,7 +23,10 @@ function dataZoomPayload(
 
 describe('useChartZoom', () => {
   it('keeps zoom merge props and the inside dataZoom model across disabled rerenders', () => {
-    const {result, rerender} = renderHookWithProviders(useChartZoom, {
+    const {result, rerender} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
       initialProps: {saveOnZoom: true},
     });
 
@@ -59,7 +64,10 @@ describe('useChartZoom', () => {
   });
 
   it('updates query params from a zoom event and no-ops while disabled', () => {
-    const {result, rerender, router} = renderHookWithProviders(useChartZoom, {
+    const {result, rerender, router} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
       initialProps: {
         usePageDate: true,
       },
