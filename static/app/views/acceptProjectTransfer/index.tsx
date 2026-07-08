@@ -1,11 +1,10 @@
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {Form} from 'sentry/components/forms/form';
-import type {Data} from 'sentry/components/forms/types';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -15,6 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,22 +24,108 @@ type TransferDetails = {
   project: Project;
 };
 
-function AcceptProjectTransfer() {
+const schema = z.object({
+  organization: z
+    .string()
+    .nullable()
+    .refine(value => value !== null, t('Please select an organization')),
+});
+
+// Because this route happens outside of OrganizationContext we need to use
+// initial data to decide which host to send the request to as
+// `/accept-transfer/` cannot be resolved to a region.
+function getRegionHost(): string | undefined {
+  const initialData = window.__initialData;
+  if (initialData && initialData.links?.regionUrl !== initialData.links?.sentryUrl) {
+    return initialData.links.regionUrl;
+  }
+  return undefined;
+}
+
+interface TransferFormProps {
+  regionHost: string | undefined;
+  transferData: unknown;
+  transferDetails: TransferDetails;
+}
+
+function AcceptProjectTransferForm({
+  transferDetails,
+  transferData,
+  regionHost,
+}: TransferFormProps) {
   const api = useApi({persistInFlight: true});
-  const location = useLocation();
 
-  const regionHost = (): string | undefined => {
-    // Because this route happens outside of OrganizationContext we
-    // need to use initial data to decide which host to send the request to
-    // as `/accept-transfer/` cannot be resolved to a region.
-    const initialData = window.__initialData;
-    let host: string | undefined = undefined;
-    if (initialData && initialData.links?.regionUrl !== initialData.links?.sentryUrl) {
-      host = initialData.links.regionUrl;
-    }
+  const options = transferDetails.organizations.map(org => ({
+    label: org.slug,
+    value: org.slug,
+  }));
 
-    return host;
+  const {mutateAsync: submitTransfer} = useMutation({
+    mutationFn: (payload: {data: unknown; organization: string}) =>
+      api.requestPromise('/accept-transfer/', {
+        method: 'POST',
+        host: regionHost,
+        data: payload,
+      }),
+    onSuccess: (_data, payload) => {
+      const orgSlug = payload.organization;
+      const projectSlug = transferDetails.project.slug;
+      const sentryUrl = ConfigStore.get('links').sentryUrl;
+      if (projectSlug) {
+        // done this way since we need to change subdomains
+        testableWindowLocation.assign(
+          `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`
+        );
+      } else {
+        testableWindowLocation.assign(`${sentryUrl}/organizations/${orgSlug}/projects/`);
+      }
+    },
+    onError: error => {
+      const errorMsg =
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
+          : '';
+
+      addErrorMessage(t('Unable to transfer project. %s', errorMsg));
+    },
+  });
+
+  // z.input accepts null; z.output (after refine) does not
+  const defaultValues: z.input<typeof schema> = {
+    organization: options[0]?.value ?? null,
   };
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      // schema.parse validates and narrows null away
+      const {organization} = schema.parse(value);
+      return submitTransfer({data: transferData, organization}).catch(() => {});
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="organization">
+        {field => (
+          <field.Layout.Stack label={t('Organization')} required>
+            <field.Select
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={options}
+            />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
+      <form.SubmitButton>{t('Transfer Project')}</form.SubmitButton>
+    </form.AppForm>
+  );
+}
+
+function AcceptProjectTransfer() {
+  const location = useLocation();
 
   const {
     data: transferDetails,
@@ -47,47 +133,11 @@ function AcceptProjectTransfer() {
     isError,
     error,
   } = useApiQuery<TransferDetails>(
-    [getApiUrl('/accept-transfer/'), {query: location.query, host: regionHost()}],
+    [getApiUrl('/accept-transfer/'), {query: location.query, host: getRegionHost()}],
     {
       staleTime: 0,
     }
   );
-
-  const handleSubmitMutation = useMutation({
-    mutationFn: (formData: Data) => {
-      return api.requestPromise('/accept-transfer/', {
-        method: 'POST',
-        host: regionHost(),
-        data: {
-          data: location.query.data,
-          organization: formData.organization,
-        },
-      });
-    },
-    onSuccess: (_, formData) => {
-      const orgSlug = formData.organization;
-      const projectSlug = transferDetails?.project.slug;
-      const sentryUrl = ConfigStore.get('links').sentryUrl;
-      if (projectSlug) {
-        testableWindowLocation.assign(
-          `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`
-        );
-        // done this way since we need to change subdomains
-      } else {
-        testableWindowLocation.assign(`${sentryUrl}/organizations/${orgSlug}/projects/`);
-      }
-    },
-    onError: () => {
-      const errorMsg =
-        error?.responseJSON && typeof error.responseJSON.detail === 'string'
-          ? error.responseJSON.detail
-          : '';
-
-      addErrorMessage(
-        tct('Unable to transfer project. [errorMsg]', {errorMsg: errorMsg ?? ''})
-      );
-    },
-  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -100,12 +150,6 @@ function AcceptProjectTransfer() {
       addErrorMessage(error.responseJSON.detail);
     }
   }
-
-  const options = transferDetails?.organizations.map(org => ({
-    label: org.slug,
-    value: org.slug,
-  }));
-  const organization = options?.[0]?.value;
 
   return (
     <NarrowLayout>
@@ -128,19 +172,13 @@ function AcceptProjectTransfer() {
           })}
         </p>
       )}
-      <Form
-        onSubmit={data => handleSubmitMutation.mutate(data)}
-        submitLabel={t('Transfer Project')}
-        submitVariant="danger"
-        initialData={organization ? {organization} : undefined}
-      >
-        <SelectField
-          options={options}
-          label={t('Organization')}
-          name="organization"
-          style={{borderBottom: 'none'}}
+      {transferDetails && (
+        <AcceptProjectTransferForm
+          transferDetails={transferDetails}
+          transferData={location.query.data}
+          regionHost={getRegionHost()}
         />
-      </Form>
+      )}
     </NarrowLayout>
   );
 }
