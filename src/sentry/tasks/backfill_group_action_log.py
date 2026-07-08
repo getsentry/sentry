@@ -59,6 +59,13 @@ def _backfill_org(
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
+    if batch_size <= 0:
+        logger.error(
+            "backfill_group_action_log.invalid_batch_size",
+            extra={"organization_id": organization_id, "batch_size": batch_size},
+        )
+        return
+
     project = (
         Project.objects.filter(
             organization_id=organization_id,
@@ -88,8 +95,8 @@ def _backfill_org(
 
     if not activities:
         backfill_group_action_log_for_org.apply_async(
-            args=[organization_id],
             kwargs={
+                "organization_id": organization_id,
                 "last_project_id": project.id + 1,
                 "last_activity_id": 0,
             },
@@ -149,6 +156,8 @@ def _backfill_org(
     if entries:
         GroupActionLogEntry.objects.bulk_create(entries, ignore_conflicts=True)
 
+    # May over-count on re-runs since bulk_create(ignore_conflicts=True)
+    # doesn't report actual inserts. Acceptable for a one-time backfill.
     converted_count = len(entries)
 
     metrics.incr(
@@ -180,8 +189,8 @@ def _backfill_org(
         next_activity_id = 0
 
     backfill_group_action_log_for_org.apply_async(
-        args=[organization_id],
         kwargs={
+            "organization_id": organization_id,
             "last_project_id": next_project_id,
             "last_activity_id": next_activity_id,
         },
