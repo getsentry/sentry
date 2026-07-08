@@ -23,10 +23,10 @@ describe('Breadcrumb', () => {
         ]}
       />
     );
-    expect(screen.getByText('Profiling')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Profiling'})).toHaveAttribute(
+    expect(screen.getByText('Profiles')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Profiles'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/explore/profiling/`
+      `/organizations/${organization.slug}/explore/profiles/`
     );
     expect(screen.getByText('foo')).toBeInTheDocument();
   });

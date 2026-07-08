@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -17,7 +18,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
+import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
@@ -27,14 +30,12 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Panel} from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
@@ -101,23 +102,21 @@ type Props = {
 };
 
 export function ReleasesPromo({organization, project}: Props) {
-  const {data, isPending} = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {status: 'internal'}},
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending} = useQuery(
+    sentryAppsApiOptions({orgSlug: organization.slug, status: 'internal'})
   );
 
   const api = useApi();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [tokenForApp, setTokenForApp] = useState<{slug: string; token: string} | null>(
+    null
+  );
   const [apps, setApps] = useState<SentryApp[]>([]);
   const [selectedApp, setSelectedApp] = useState<SentryApp | null>(null);
+  const inflightSlugRef = useRef<string | null>(null);
+
+  const token =
+    tokenForApp && tokenForApp.slug === selectedApp?.slug ? tokenForApp.token : null;
 
   useEffect(() => {
     if (!isPending && data) {
@@ -167,8 +166,23 @@ export function ReleasesPromo({organization, project}: Props) {
   }, [organization, project.id]);
 
   const generateAndSetNewToken = async (sentryAppSlug: string) => {
-    const newToken = await generateToken(sentryAppSlug);
-    return setToken(newToken);
+    inflightSlugRef.current = sentryAppSlug;
+    try {
+      const newToken = await generateToken(sentryAppSlug);
+      if (inflightSlugRef.current !== sentryAppSlug) {
+        return;
+      }
+      setTokenForApp({slug: sentryAppSlug, token: newToken});
+    } catch {
+      if (inflightSlugRef.current !== sentryAppSlug) {
+        return;
+      }
+      const app = apps.find(a => a.slug === sentryAppSlug);
+      addErrorMessage(
+        tct('Unable to generate token for [name].', {name: app?.name ?? sentryAppSlug})
+      );
+      setSelectedApp(null);
+    }
   };
 
   const generateToken = async (sentryAppSlug: string) => {
@@ -197,7 +211,9 @@ curl -sL https://sentry.io/get-cli/ | bash
 export SENTRY_AUTH_TOKEN=${
     token && selectedApp
       ? `${token} # From internal integration: ${selectedApp.name}`
-      : '[select an integration above]'
+      : selectedApp
+        ? '[generating token...]'
+        : '[select an integration above]'
   }
 export SENTRY_ORG=${organization.slug}
 export SENTRY_PROJECT=${project.slug}
@@ -213,6 +229,10 @@ sentry-cli releases finalize "$VERSION"`;
   }
 
   const canMakeIntegration = organization.access.includes('org:integrations');
+  const canGenerateToken = organization.access.includes('org:write');
+  const generateTokenDisabledReason = t(
+    'You must be an organization owner or manager to generate an integration token.'
+  );
 
   return (
     <Panel>
@@ -242,7 +262,7 @@ sentry-cli releases finalize "$VERSION"`;
             value={selectedApp?.slug}
             emptyMessage={t('No Integrations')}
             search
-            disabled={false}
+            disabled={!canGenerateToken}
             menuFooter={({closeOverlay}) => (
               <MenuComponents.CTAButton
                 tooltipProps={{
@@ -275,6 +295,9 @@ sentry-cli releases finalize "$VERSION"`;
               <OverlayTrigger.Button
                 {...triggerProps}
                 prefix={selectedApp ? t('Token From') : undefined}
+                tooltipProps={{
+                  title: canGenerateToken ? undefined : generateTokenDisabledReason,
+                }}
               >
                 {selectedApp ? triggerProps.children : t('Select Integration')}
               </OverlayTrigger.Button>

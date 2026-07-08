@@ -28,12 +28,20 @@ standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),
     ("email - with period", "maisey.thedog@dogsaregreat.com", "<email>"),
     ("email - with plus sign", "maisey+thedog@dogsaregreat.com", "<email>"),
+    ("email - 254-char local part", "a" * 254 + "@example.com", "<email>"),
+    ("email - 255-char local part partially matched", "a" * 255 + "@example.com", "a<email>"),
     ("url - no subdomain", "http://dogsaregreat.com", "<url>"),
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
     ("url - with path/trailing slash", "http://dogsaregreat.com/adopt/dont/shop/", "<url>"),
     ("url - with internal comma", "http://dogsaregreat.com?tricks=spin,kangaroo", "<url>"),
+    (
+        "url - with trailing comma",
+        "http://dogsaregreat.com, http://numberonedog.com",
+        "<url>, <url>",
+    ),
     ("url - with path/filename", "http://dogsaregreat.com/adopt/dont/shop.js", "<url>"),
+    ("url - with trailing period", "The URL is http://dogsaregreat.com.", "The URL is <url>."),
     (
         "url - with querystring",
         "http://dogsaregreat.com/adopt/dont/shop.js?command=sit&trick=spin",
@@ -44,12 +52,21 @@ standard_cases = [
     ("url - with encoding", "http://dogsaregreat.com/%F0%9F%90%B6", "<url>"),
     ("url - localhost", "http://localhost:8000", "<url>"),
     ("url - single-segment domain", "http://dogserver", "<url>"),
+    ("url - one-character path", "http://d ogsaregreat", "<url> ogsaregreat"),
+    ("url - tcp", "tcp://dogsaregreat.com:10", "<url>"),
+    ("url - filepath", "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg", "<url>"),
+    ("url - postgres", "postgresql:///dogdb", "<url>"),
+    ("url - app-specific scheme", "best-dogs-app://number-one-dog", "<url>"),
     ("url - ipv4", "http://11.21.12.31", "<url>"),
     ("url - ipv4 with port", "http://11.21.12.31:12", "<url>"),
     ("url - ipv6", "http://2001:db8::1", "<url>"),
     ("url - ipv6 with port", "http://[2001:db8::1]:80", "<url>"),
     ("hostname - no subdomain", "dogsaregreat.com", "<hostname>"),
     ("hostname - with subdomain", "dogs.squirrelchasers.net", "<hostname>"),
+    ("hostname - dashed", "dogs.squirrel-chasers.net", "<hostname>"),
+    ("hostname - non-traditional top-level domain", "dogs.are.great", "dogs.are.great"),
+    ("hostname - segment too long", ("dogs" * 100) + ".com", ("dogs" * 100) + ".com"),
+    ("hostname - hostname too long", ("dogs." * 100) + "com", ("dogs." * 100) + "com"),
     ("ip - v4", "11.21.12.31", "<ip>"),
     ("ip - v6 unspecified", "::", "<ip>"),
     ("ip - v6 loopback", "::1", "<ip>"),
@@ -60,6 +77,9 @@ standard_cases = [
     ("ip - v6 final compressed segment", "2012:d157::", "<ip>"),
     ("ip - v4 mapped to v6", "::ffff:192.168.1.1", "<ip>"),
     ("ip - v6 full", "1121:0c03:1231:130d:0000:16da:0908:da07", "<ip>"),
+    ("ip - v4 too many segments", "11.21.12.31.12", "<int>.<int>.<int>.<int>.<int>"),
+    ("ip - v4 segment > 255", "12.31.12.908", "<int>.<int>.<int>.<int>"),
+    ("ip - v4 leading zeros", "11.21.12.001", "<int>.<int>.<int>.<int>"),
     ("ip - double colon object property", "Option::unwrap()", "Option::unwrap()"),
     ("ip - double colon object property including hex", "Bee::buzz()", "Bee::buzz()"),
     (
@@ -162,6 +182,20 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
+    ("duration - 20-digit ms", "9" * 20 + "ms", "<duration>"),
+    ("duration - 20-digit s", "9" * 20 + "s", "<duration>"),
+    ("duration - 20-digit decimal s", "9" * 20 + "." + "9" * 20 + "s", "<duration>"),
+    ("duration - 21-digit ms not matched", "9" * 21 + "ms", "9" * 21 + "ms"),
+    ("duration - 21-digit s not matched", "9" * 21 + "s", "9" * 21 + "s"),
+    ("duration - s glued to preceding word", "retry10s", "retry10s"),
+    ("duration - ms glued to following word", "123msabc", "123msabc"),
+    ("duration - two durations glued together", "5ms10s", "<random_id>"),
+    ("duration - with surrounding spaces", "took 500ms to complete", "took <duration> to complete"),
+    (
+        "duration - with surrounding spaces s",
+        "took 1.5s to complete",
+        "took <duration> to complete",
+    ),
     # OpenStack Swift transaction IDs
     ("swift_txn_id - base", "tx274a77a8975c4a66aeb24-0052d95365", "<swift_txn_id>"),
     (
@@ -214,13 +248,27 @@ standard_cases = [
     ("random id", "k9Mtd2gDcgG", "<random_id>"),
     ("random id - too short ", "k9M", "k9M"),
     ("random id - insufficient letter/number switches", "k92MtdgDcgG", "k92MtdgDcgG"),
-    ("random id - no capitals", "k9mtd2gdcgg", "k9mtd2gdcgg"),
-    ("random id - no capitals until later", "k9mtd2gdcgg DOGS", "k9mtd2gdcgg DOGS"),
-    ("random id - no lowercase", "K9MTD2GDCGG", "K9MTD2GDCGG"),
-    ("random id - no lowercase until later", "K9MTD2GDCGG dogs", "K9MTD2GDCGG dogs"),
+    ("random id - no capitals, < 6 chars", "k9m2d", "k9m2d"),
+    ("random id - no capitals, 6+ chars", "k9m2gd", "<random_id>"),
+    ("random id - no capitals until later, < 6 chars", "k9m2d DOGS", "k9m2d DOGS"),
+    ("random id - no capitals until later, 6+ chars", "k9m2gd DOGS", "<random_id> DOGS"),
+    ("random id - no lowercase, < 6 chars", "K9M2D", "K9M2D"),
+    ("random id - no lowercase, 6+ chars", "K9M2GD", "<random_id>"),
+    ("random id - no lowercase until later, < 6 chars", "K9M2D dogs", "K9M2D dogs"),
+    ("random id - no lowercase until later, 6+ chars", "K9M2GD dogs", "<random_id> dogs"),
     ("random id - no numbers", "kMtdgDcgG", "kMtdgDcgG"),
     ("random id - no numbers until later", "kMtdgDcgG 1121", "kMtdgDcgG <int>"),
+    ("random id - leading underscore", "img_k9Mtd2gDcgG.jpg", "img_<random_id>.jpg"),
+    ("random id - trailing underscore", "k9Mtd2gDcgG_thumbnail.jpg", "<random_id>_thumbnail.jpg"),
+    ("random id - dash-separated", "k9Mt-d2vg-DcgG", "<random_id>"),
+    ("random id - dash-separated, variable length segments", "k9Mt-d2vg-DcgG", "<random_id>"),
+    ("random id - dash-separated, segment with no letters", "k9Mt-1121-DcgG", "<random_id>"),
+    ("random id - dash-separated, segment with no numbers", "k9Mt-dTvg-1cgG", "<random_id>"),
+    ("random id - dash-separated, no letters at all", "1121-1231-2012", "<int>-<int>-<int>"),
+    ("random id - dash-separated, no numbers at all", "dogs-are-great", "dogs-are-great"),
     ("float", "0.23", "<float>"),
+    ("float - postive, too many segments", "1.2.3", "<int>.<int>.<int>"),
+    ("float - negative, too many segments", "-1.2.3", "<int>.<int>.<int>"),
     ("int", "23", "<int>"),
     ("int - negative", "-23", "<int>"),
     ("int - separator", "0:17502", "<int>:<int>"),
@@ -312,18 +360,6 @@ incorrect_cases = [
         "<int>/Nov/<int>:<date>",
     ),
     (
-        "float - postive, too many segments",
-        "1.2.3",
-        "<int>.<int>.<int>",
-        "<float>.<int>",
-    ),
-    (
-        "float - negative, too many segments",
-        "-1.2.3",
-        "<int>.<int>.<int>",
-        "<float>.<int>",
-    ),
-    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -334,24 +370,6 @@ incorrect_cases = [
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
-    ),
-    (
-        "ip - v4, leading zeros",
-        "11.21.12.001",
-        "<int>.<int>.<int>.<int>",
-        "<float>.<float>",
-    ),
-    (
-        "ip - v4, segment > 255",
-        "12.31.12.908",
-        "<int>.<int>.<int>.<int>",
-        "<float>.<float>",
-    ),
-    (
-        "ip - v4, too many segments",
-        "11.21.12.31.12",
-        "<int>.<int>.<int>.<int>.<int>",
-        "<ip>.<int>",
     ),
     (
         "ip - short double colon object property including only hex",
@@ -372,48 +390,6 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
         "{'dogs are great': <bool>, 'dog_id': '<id>'}",
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
-    ),
-    (
-        "url - tcp",
-        "tcp://dogsaregreat.com:10",
-        "<url>",
-        "tcp://<hostname>:<int>",
-    ),
-    (
-        "url - one-character path",
-        "http://d ogsaregreat",
-        "<url> ogsaregreat",
-        "<url>",
-    ),
-    (
-        "url - filepath",
-        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
-        "<url>",
-        "file:///Users/Maisey/Documents/squirrel_chasing_trophy.jpg",
-    ),
-    (
-        "url - postgres",
-        "postgresql:///dogdb",
-        "<url>",
-        "postgresql:///dogdb",
-    ),
-    (
-        "url - app-specific scheme",
-        "best-dogs-app://number-one-dog",
-        "<url>",
-        "best-dogs-app://number-one-dog",
-    ),
-    (
-        "url - with trailing comma",
-        "http://dogsaregreat.com, http://numberonedog.com",
-        "<url>, <url>",
-        "<url> <url>",
-    ),
-    (
-        "url - with trailing period",
-        "The URL is http://dogsaregreat.com.",
-        "The URL is <url>.",
-        "The URL is <url>",
     ),
 ]
 
@@ -837,7 +813,7 @@ ip_false_positive_cases = [
     ("ip - too few segments", "12:31:99", True),
     ("ip - v4 leading zeros", "11.21.12.001", False),
     ("ip - v4 segment > 255", "12.31.12.908", False),
-    ("ip - v4 too many segments", "11.21.12.31.12", True),
+    ("ip - v4 too many segments", "11.21.12.31.12", False),
     ("date - colon btwn date and time", "21/Nov/2012:12:31:12", True),
 ]
 
@@ -883,3 +859,20 @@ def test_example_data_logging(mock_logger: MagicMock) -> None:
         )
         == 100
     )
+
+
+def test_parameterization_skips_long_input() -> None:
+    long_input = "error code 12345 " * 1000  # 18000 chars, well over the limit
+    assert len(long_input) > Parameterizer.MAX_INPUT_LENGTH
+    result = parameterizer.parameterize(long_input)
+    assert result == long_input
+
+
+def test_parameterization_at_max_length_still_works() -> None:
+    base = "error code 12345 "
+    repeats = Parameterizer.MAX_INPUT_LENGTH // len(base)
+    at_limit_input = base * repeats
+    assert len(at_limit_input) <= Parameterizer.MAX_INPUT_LENGTH
+    result = parameterizer.parameterize(at_limit_input)
+    assert result != at_limit_input
+    assert "<int>" in result

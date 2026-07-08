@@ -60,13 +60,13 @@ function renderFrameworkModalMockRequests({
     body: {slug: 'testProj'},
   });
 
-  const experimentalprojectCreationMockRequest = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/experimental/projects/`,
+  const orgProjectCreationMockRequest = MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/projects/`,
     method: 'POST',
     body: {slug: 'testProj', team: {slug: 'testTeam'}},
   });
 
-  return {projectCreationMockRequest, experimentalprojectCreationMockRequest};
+  return {projectCreationMockRequest, orgProjectCreationMockRequest};
 }
 
 describe('CreateProject', () => {
@@ -483,7 +483,7 @@ describe('CreateProject', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
 
     expect(
-      frameWorkModalMockRequests.experimentalprojectCreationMockRequest
+      frameWorkModalMockRequests.orgProjectCreationMockRequest
     ).toHaveBeenCalledTimes(1);
     expect(addSuccessMessage).toHaveBeenCalledWith(
       'Created testProj under new team #testTeam'
@@ -747,7 +747,9 @@ describe('CreateProject', () => {
       );
       expect(getSubmitButton()).toBeDisabled();
 
-      await userEvent.click(screen.getByText("I'll create my own alerts later"));
+      await userEvent.click(
+        screen.getByRole('radio', {name: /create my own alerts later/i})
+      );
       expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.click(getSubmitButton());
@@ -858,7 +860,9 @@ describe('CreateProject', () => {
         teamSlug: teamWithAccess.slug,
       });
       render(<CreateProject />, {organization});
-      expect(screen.getByLabelText(/Alert me on high priority issues/i)).toBeChecked();
+      expect(
+        screen.getByRole('radio', {name: /Alert me on high priority issues/i})
+      ).toBeChecked();
       await userEvent.click(screen.getByTestId('platform-javascript-react'));
       await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
       expect(projectCreationMockRequest).toHaveBeenCalledWith(
@@ -880,8 +884,12 @@ describe('CreateProject', () => {
         teamSlug: teamWithAccess.slug,
       });
       render(<CreateProject />, {organization});
-      await userEvent.click(screen.getByText(/create my own alerts later/i));
-      expect(screen.getByLabelText(/create my own alerts later/i)).toBeChecked();
+      await userEvent.click(
+        screen.getByRole('radio', {name: /create my own alerts later/i})
+      );
+      expect(
+        screen.getByRole('radio', {name: /create my own alerts later/i})
+      ).toBeChecked();
       await userEvent.click(screen.getByTestId('platform-javascript-react'));
       await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
       expect(projectCreationMockRequest).toHaveBeenCalledWith(

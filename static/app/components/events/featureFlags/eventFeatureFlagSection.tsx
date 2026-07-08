@@ -36,9 +36,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -73,7 +74,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     />
   );
 
-  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
+  const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -176,14 +177,16 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     });
     openDrawer(
       () => (
-        <EventFeatureFlagDrawer
-          group={group}
-          event={event}
-          project={project}
-          hydratedFlags={hydratedFlags}
-          initialOrderBy={orderBy}
-          focusControl={focusControl}
-        />
+        <GroupIdProvider groupId={group.id}>
+          <EventFeatureFlagDrawer
+            group={group}
+            event={event}
+            project={project}
+            hydratedFlags={hydratedFlags}
+            initialOrderBy={orderBy}
+            focusControl={focusControl}
+          />
+        </GroupIdProvider>
       ),
       {
         ariaLabel: t('Feature flags drawer'),
@@ -271,13 +274,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
 
   return (
-    <InterimSection
-      help={t(
-        "The last 100 flags evaluated in the user's session leading up to this event."
-      )}
-      isHelpHoverable
+    <FoldSection
+      sectionKey={SectionKey.FEATURE_FLAGS}
       title={t('Feature Flags')}
-      type={SectionKey.FEATURE_FLAGS}
       actions={actions}
     >
       {hasFlags ? (
@@ -302,7 +301,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           {label}
         </Button>
       )}
-    </InterimSection>
+    </FoldSection>
   );
 }
 

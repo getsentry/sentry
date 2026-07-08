@@ -100,7 +100,7 @@ describe('MetricAlertDetails', () => {
     expect(screen.getByText('Change alert status to Resolved')).toBeInTheDocument();
     expect(screen.getByText(`#${incident.identifier}`)).toBeInTheDocument();
     // Related issues
-    expect(screen.getByTestId('group')).toBeInTheDocument();
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
 
     expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rule_details.viewed',
@@ -148,7 +148,7 @@ describe('MetricAlertDetails', () => {
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
     // Related issues
-    expect(screen.getByTestId('group')).toBeInTheDocument();
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_rule_details.viewed',
       expect.objectContaining({

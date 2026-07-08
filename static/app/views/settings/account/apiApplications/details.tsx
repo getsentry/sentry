@@ -12,9 +12,9 @@ import {
   FieldGroup as FormFieldGroup,
   FormSearch,
 } from '@sentry/scraps/form';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -25,13 +25,9 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -60,6 +56,8 @@ const schema = z.object({
 });
 
 function ApiApplicationsDetails() {
+  const {openModal} = useModal();
+
   const api = useApi();
   const {appId} = useParams<{appId: string}>();
   const queryClient = useQueryClient();
@@ -119,6 +117,8 @@ function ApiApplicationsDetails() {
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
+    // Will be fixed soon when we get rid of setApiQueryData.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
     addSuccessMessage(t('Changes applied.'));
   };

@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import RouteError from 'sentry/views/routeError';
+import {RouteError} from 'sentry/views/routeError';
 
 type State = {
   error: Error | undefined;

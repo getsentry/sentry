@@ -1,6 +1,7 @@
 import posixpath
 
 from django.http import StreamingHttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +11,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExamples
+from sentry.apidocs.parameters import EventParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
@@ -19,6 +26,26 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.objectstore import parse_accept_encoding
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
+
+ATTACHMENT_ID_PARAM = OpenApiParameter(
+    name="attachment_id",
+    location="path",
+    required=True,
+    type=str,
+    description="The numeric ID of the attachment, as returned from the attachments list endpoint.",
+)
+
+DOWNLOAD_PARAM = OpenApiParameter(
+    name="download",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "If this parameter is present, the response will be a binary file download "
+        "instead of JSON metadata. The value does not matter — any value (including "
+        "empty) triggers the download."
+    ),
+)
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -49,12 +76,13 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         return om_role.priority >= required_role.priority
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.FOUNDATIONAL_STORAGE
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
@@ -76,20 +104,39 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response
 
+    @extend_schema(
+        operation_id="getProjectEventAttachment",
+        summary="Retrieve an Event Attachment",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            EventParams.EVENT_ID,
+            ATTACHMENT_ID_PARAM,
+            DOWNLOAD_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "EventAttachmentDetailsResponse", EventAttachmentSerializerResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventAttachmentExamples.EVENT_ATTACHMENT_DETAILS,
+    )
     def get(
         self, request: Request, project, event_id, attachment_id
-    ) -> Response | StreamingHttpResponse:
+    ) -> (
+        Response[EventAttachmentSerializerResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | StreamingHttpResponse
+    ):
         """
-        Retrieve an Attachment
-        ``````````````````````
+        Retrieve metadata for a single attachment on an event, or download its
+        contents by passing the `download` query parameter.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the event
-                                     belongs to.
-        :pparam string event_id: the id of the event.
-        :pparam string attachment_id: the id of the attachment.
-        :auth: required
+        Requires the `event-attachments` organization feature.
         """
         if not features.has(
             "organizations:event-attachments", project.organization, actor=request.user

@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -14,17 +15,14 @@ function initializeData(projects: Project[], query: any = {}) {
   });
   const initialData = initializeOrg({
     organization,
-    router: {
-      location: {
-        query: query || {},
-      },
-    },
     projects,
   });
-  const eventView = EventView.fromLocation(initialData.router.location);
+  const location = LocationFixture({query});
+  const eventView = EventView.fromLocation(location);
   ProjectsStore.loadInitialData(initialData.projects);
   return {
     ...initialData,
+    location,
     eventView,
   };
 }
@@ -34,14 +32,14 @@ describe('Utils', () => {
     it('returns all by default', () => {
       const projects = [ProjectFixture()];
       const data = initializeData(projects);
-      expect(getCurrentLandingDisplay(data.router.location, projects).label).toBe(
+      expect(getCurrentLandingDisplay(data.location, projects).label).toBe(
         'All Transactions'
       );
     });
     it('returns specific landing display if query is set', () => {
       const projects = [ProjectFixture()];
       const data = initializeData(projects, {landingDisplay: 'frontend_pageload'});
-      expect(getCurrentLandingDisplay(data.router.location, projects).label).toBe(
+      expect(getCurrentLandingDisplay(data.location, projects).label).toBe(
         'All Transactions'
       );
     });
@@ -49,28 +47,28 @@ describe('Utils', () => {
       const projects = [ProjectFixture({id: '22', platform: 'javascript-react'})];
       const data = initializeData(projects, {project: 22});
       expect(
-        getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
+        getCurrentLandingDisplay(data.location, projects, data.eventView).label
       ).toBe('Frontend');
     });
     it('returns backend display if project matches', () => {
       const projects = [ProjectFixture({id: '22', platform: 'php'})];
       const data = initializeData(projects, {project: 22});
       expect(
-        getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
+        getCurrentLandingDisplay(data.location, projects, data.eventView).label
       ).toBe('Backend');
     });
     it('returns all display for native platform', () => {
       const projects = [ProjectFixture({id: '22', platform: 'native'})];
       const data = initializeData(projects, {project: [22]});
       expect(
-        getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
+        getCurrentLandingDisplay(data.location, projects, data.eventView).label
       ).toBe('All Transactions');
     });
     it('returns all display if multiple projects', () => {
       const projects = [ProjectFixture()];
       const data = initializeData(projects, {project: [1, 2]});
       expect(
-        getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
+        getCurrentLandingDisplay(data.location, projects, data.eventView).label
       ).toBe('All Transactions');
     });
   });

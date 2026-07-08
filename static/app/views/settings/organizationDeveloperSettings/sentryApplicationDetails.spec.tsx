@@ -91,7 +91,7 @@ describe('Sentry Application Details', () => {
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Action'}));
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Member'}), 'Admin');
       await selectEvent.select(
@@ -124,13 +124,47 @@ describe('Sentry Application Details', () => {
         verifyInstall: true,
         isAlertable: true,
         allowedOrigins: [],
+        webhookHeaders: [],
         schema: {},
+        overview: '',
       };
 
       expect(createAppRequest).toHaveBeenCalledWith(
         '/sentry-apps/',
         expect.objectContaining({
           data,
+          method: 'POST',
+        })
+      );
+    });
+
+    it('saves webhook headers', async () => {
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-custom-webhook-headers'],
+        }),
+      });
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Webhook URL'}),
+        'https://webhook.com'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Webhook Headers'}),
+        'X-Example: value'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(createAppRequest).toHaveBeenCalledWith(
+        '/sentry-apps/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            webhookHeaders: ['X-Example: value'],
+          }),
           method: 'POST',
         })
       );
@@ -227,6 +261,25 @@ describe('Sentry Application Details', () => {
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
+    });
+
+    it('prefills webhook headers from the app', async () => {
+      sentryApp.webhookHeaders = ['X-Example: value', 'Another-Header: thing'];
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-custom-webhook-headers'],
+        }),
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'Webhook Headers'})).toHaveValue(
+        'X-Example: value\nAnother-Header: thing'
+      );
     });
   });
 
@@ -403,6 +456,14 @@ describe('Sentry Application Details', () => {
       });
     });
 
+    it('disables the new token button when user lacks org:write', async () => {
+      const organization = OrganizationFixture({access: ['org:read']});
+      render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+
+      const button = await screen.findByRole('button', {name: 'New Token'});
+      expect(button).toBeDisabled();
+    });
+
     it('removing token from list', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.id}/`,
@@ -424,9 +485,9 @@ describe('Sentry Application Details', () => {
     it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
-      expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeChecked();
       await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
-      expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).not.toBeChecked();
     });
   });
 
@@ -484,6 +545,31 @@ describe('Sentry Application Details', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             redirectUrl: 'https://hello.com/',
+            events: [],
+          }),
+          method: 'PUT',
+        })
+      );
+    });
+
+    it('strips events no longer backed by scopes on load, so saving succeeds', async () => {
+      // Scopes can be reduced through the API without resubmitting events,
+      // leaving a subscription the backend would reject on the next save.
+      sentryApp.scopes = ['project:read'];
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(editAppRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
             events: [],
           }),
           method: 'PUT',

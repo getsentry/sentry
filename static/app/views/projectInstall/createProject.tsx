@@ -12,7 +12,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
@@ -137,7 +137,7 @@ function getSubmitTooltipText({
 }
 
 export function CreateProject() {
-  const globalModal = useModal();
+  const {openModal, visible: isModalVisible} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
@@ -191,7 +191,7 @@ export function CreateProject() {
     };
   }, [autoFill, defaultTeam, createdProject]);
 
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const [formData, setFormData] = useState(initialData);
   const pickerKeyRef = useRef<'create-project' | 'auto-fill'>('create-project');
   const hasUserModifiedProjectName = useRef(false);
 
@@ -241,7 +241,7 @@ export function CreateProject() {
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
     isNotifyingViaIntegration && validateChannel.error,
-  ].filter(value => value).length;
+  ].filter(Boolean).length;
 
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannel.error
@@ -301,9 +301,9 @@ export function CreateProject() {
           organization,
           issue_alert: alertRuleConfig.shouldCreateCustomRule
             ? 'Custom'
-            : alertRuleConfig.shouldCreateRule === false
-              ? 'No Rule'
-              : 'Default',
+            : alertRuleConfig.shouldCreateRule
+              ? 'Default'
+              : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
@@ -419,7 +419,7 @@ export function CreateProject() {
         }
       );
     },
-    [configurePlatform, organization]
+    [configurePlatform, organization, openModal]
   );
 
   const debounceHandleProjectCreation = useMemo(
@@ -479,7 +479,7 @@ export function CreateProject() {
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <List symbol="colored-numeric">
-          <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
+          <Layout.Title>{t('Create a new project in 3 steps')}</Layout.Title>
           <HelpText>
             {tct(
               'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
@@ -593,7 +593,7 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {!globalModal.visible && (
+          {!isModalVisible && (
             <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
         </List>

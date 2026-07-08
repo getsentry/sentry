@@ -19,6 +19,7 @@ class ReactivateAccountView(BaseView):
             return self.handle_auth_required(request)
 
         if getattr(request.user, "is_suspended", False):
+            auth.record_suspended_user_rejection("reactivate_view")
             return self.respond("sentry/account-suspended.html")
 
         if request.POST.get("op") == "confirm":

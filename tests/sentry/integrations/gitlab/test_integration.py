@@ -178,7 +178,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         self,
         user_email: str = "foo@example.com",
         external_name: str = "@gitlab_user",
-        external_id: str = "123",
+        external_id: str | None = None,
         issue_key: str = "example.gitlab.com/group-x:cool-group/sentry#45",
         create_external_user: bool = True,
     ) -> tuple:
@@ -402,7 +402,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
     @responses.activate
     @with_feature("organizations:integrations-gitlab-project-management")
     def test_sync_assignee_outbound_no_external_actor(self) -> None:
-        """Test that sync fails gracefully when user has no GitLab account linked"""
+        """Test that sync no-ops when user has no GitLab account linked."""
         user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
             create_external_user=False
         )
@@ -490,6 +490,26 @@ class GitlabIssueSyncTest(GitLabTestCase):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should only call user search, not issue update
+        assert len(responses.calls) == 1
+        assert "users?username=gitlab_user" in responses.calls[0].request.url
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_assignee_outbound_user_search_failed(self) -> None:
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/users?username=gitlab_user",
+            json={"message": "Internal server error"},
+            status=500,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
         assert len(responses.calls) == 1
         assert "users?username=gitlab_user" in responses.calls[0].request.url
 

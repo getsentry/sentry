@@ -14,7 +14,7 @@ import {ProjectLatestReleases} from 'sentry/views/projectDetail/projectLatestRel
 describe('ProjectDetail > ProjectLatestReleases', () => {
   let endpointMock: jest.Mock;
   let endpointOlderReleasesMock: jest.Mock;
-  const {organization, project, router} = initializeOrg();
+  const {organization, project} = initializeOrg();
 
   beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
@@ -36,7 +36,7 @@ describe('ProjectDetail > ProjectLatestReleases', () => {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         project={project}
         isProjectStabilized
       />
@@ -68,7 +68,7 @@ describe('ProjectDetail > ProjectLatestReleases', () => {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         project={project}
         isProjectStabilized
       />
@@ -91,7 +91,7 @@ describe('ProjectDetail > ProjectLatestReleases', () => {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         project={project}
         isProjectStabilized
       />

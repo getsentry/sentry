@@ -87,8 +87,7 @@ export function getUploadSourceMapsStep({
   };
 }
 
-const SENTRY_FOR_AI_BASE_URL =
-  'https://github.com/getsentry/sentry-for-ai/blob/main/skills';
+const SENTRY_FOR_AI_BASE_URL = 'https://skills.sentry.dev';
 
 function CopyPromptButton({prompt}: {prompt: string}) {
   const {copy} = useCopyToClipboard();

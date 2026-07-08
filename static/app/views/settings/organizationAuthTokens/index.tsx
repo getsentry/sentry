@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -22,8 +22,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
@@ -66,7 +65,10 @@ function TokenList({
   const {data: projects, isPending: isLoadingProjects} = useQuery({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {query: idQueryParams},
+      query: {
+        query: idQueryParams,
+        collapse: ['latestDeploys', 'unusedFeatures'],
+      },
       staleTime: 0,
     }),
     enabled: hasProjects,
@@ -94,13 +96,9 @@ function TokenList({
   );
 }
 
-export function OrganizationAuthTokensIndex({
-  organization,
-}: {
-  organization: Organization;
-}) {
+function OrganizationAuthTokensIndex() {
+  const organization = useOrganization();
   const api = useApi();
-  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const {
@@ -153,7 +151,7 @@ export function OrganizationAuthTokensIndex({
   const createNewToken = (
     <LinkButton
       variant="primary"
-      size={hasPageFrame ? 'md' : 'sm'}
+      size="md"
       icon={<IconAdd />}
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
@@ -172,44 +170,23 @@ export function OrganizationAuthTokensIndex({
           />
           <SettingsPageHeader
             title={t('Organization Tokens')}
-            action={hasPageFrame ? undefined : createNewToken}
+            action={createNewToken}
             subtitle={
-              hasPageFrame ? (
-                <Flex justify="between" align="center" gap="md">
-                  <Stack gap="md">
-                    <div>
-                      {t(
-                        'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-                      )}
-                    </div>
-                    <div>
-                      {tct(
-                        'For more information on how to use the web API, see our [link:documentation].',
-                        {
-                          link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                        }
-                      )}
-                    </div>
-                  </Stack>
-                  {createNewToken}
-                </Flex>
-              ) : (
-                <Stack gap="md">
-                  <div>
-                    {t(
-                      'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-                    )}
-                  </div>
-                  <div>
-                    {tct(
-                      'For more information on how to use the web API, see our [link:documentation].',
-                      {
-                        link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                      }
-                    )}
-                  </div>
-                </Stack>
-              )
+              <Stack gap="md">
+                <div>
+                  {t(
+                    'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                  )}
+                </div>
+                <div>
+                  {tct(
+                    'For more information on how to use the web API, see our [link:documentation].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                    }
+                  )}
+                </div>
+              </Stack>
             }
           />
 
@@ -246,8 +223,6 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
   return `${tokenPrefix}************${tokenLastCharacters}`;
 }
 
-export default withOrganization(OrganizationAuthTokensIndex);
-
 const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
@@ -258,3 +233,5 @@ const ResponsivePanelTable = styled(PanelTable)`
     }
   }
 `;
+
+export default OrganizationAuthTokensIndex;

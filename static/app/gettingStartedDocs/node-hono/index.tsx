@@ -9,8 +9,9 @@ import {mcp} from './mcp';
 import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
+import {platformOptions, type PlatformOptions} from './utils';
 
-export const docs: Docs = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
@@ -19,5 +20,6 @@ export const docs: Docs = {
   profilingOnboarding: profiling,
   agentMonitoringOnboarding: agentMonitoring(),
   mcpOnboarding: mcp,
+  platformOptions,
   metricsOnboarding: metrics,
 };

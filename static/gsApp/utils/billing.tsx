@@ -5,7 +5,7 @@ import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -15,7 +15,6 @@ import {
   GIGABYTE,
   MILLION,
   RESERVED_BUDGET_QUOTA,
-  TRIAL_PLANS,
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
@@ -25,7 +24,6 @@ import {
   FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
   PlanName,
-  PlanTier,
   ReservedBudgetCategoryType,
 } from 'getsentry/types';
 import type {
@@ -315,14 +313,6 @@ function displayNumber(n: number, fractionDigits = 0) {
   return n.toFixed(fractionDigits).toLocaleString();
 }
 
-/**
- * Utility functions for Pricing Plans
- */
-export const isEnterprise = (plan: string) =>
-  ['e1', 'enterprise'].some(p => plan.startsWith(p)) || isAmEnterprisePlan(plan);
-
-export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
-
 export const hasPerformance = (plan?: Plan) => {
   return (
     // Older plans will have Transactions
@@ -351,30 +341,6 @@ export const isBusinessTrial = (subscription: Subscription) => {
     !subscription.isEnterpriseTrial
   );
 };
-
-export function isAmPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am');
-}
-
-export function isAm2Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am2');
-}
-
-export function isAm3Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3');
-}
-
-export function isAm3DsPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3') && planId.includes('_ds');
-}
-
-export function isAmEnterprisePlan(planId?: string) {
-  if (typeof planId !== 'string' || !isAmPlan(planId)) {
-    return false;
-  }
-
-  return planId.includes('_ent');
-}
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
@@ -441,20 +407,7 @@ export const getOnDemandCategories = ({
 };
 
 export const displayPlanName = (plan?: Plan | null) => {
-  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
-};
-
-export const getAmPlanTier = (plan: string) => {
-  if (isAm3Plan(plan)) {
-    return PlanTier.AM3;
-  }
-  if (isAm2Plan(plan)) {
-    return PlanTier.AM2;
-  }
-  if (isAmPlan(plan)) {
-    return PlanTier.AM1;
-  }
-  return null;
+  return plan?.isEnterprise ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
 export const isNewPayingCustomer = (
@@ -462,7 +415,7 @@ export const isNewPayingCustomer = (
   organization: Organization
 ) =>
   subscription.isFree ||
-  isTrialPlan(subscription.plan) ||
+  subscription.onTrialPlan ||
   hasPartnerMigrationFeature(organization);
 
 /**
@@ -478,7 +431,7 @@ export function getTrialDaysLeft(subscription: Subscription): number {
  */
 export function getContractDaysLeft(subscription: Subscription): number {
   // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.contractPeriodEnd ?? '');
+  return -1 * getDaysSinceDate(subscription.billingPeriodEnd ?? '');
 }
 
 /**
@@ -491,7 +444,7 @@ function sortPlansForUpgrade(billingConfig: BillingConfig, subscription: Subscri
   // contract interval. Sorted by price as features will become progressively
   // more available.
   let plans = billingConfig.planList
-    .sort((a, b) => a.price - b.price)
+    .sort((a, b) => a.totalPrice - b.totalPrice)
     .filter(p => p.userSelectable && p.billingInterval === subscription.billingInterval);
 
   // If we're dealing with plans that are *not part of a tier* Then we can
@@ -538,7 +491,7 @@ export function getBestActionToIncreaseEventLimits(
   organization: Organization,
   subscription: Subscription
 ) {
-  const isPaidPlan = subscription.planDetails?.price > 0;
+  const isPaidPlan = subscription.planDetails?.totalPrice > 0;
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   // free orgs can increase event limits by trialing
@@ -638,9 +591,6 @@ export function getSoftCapType(metricHistory: BillingMetricHistory): string | nu
     return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
       allowInnerUpperCase: true,
     }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
-  }
-  if (metricHistory.trueForward) {
-    return 'True Forward';
   }
   return null;
 }
@@ -784,7 +734,7 @@ export function partnerPlanEndingModalIsDismissed(
     return false;
   }
 
-  const lastDaysLeft = moment(subscription.contractPeriodEnd).diff(
+  const lastDaysLeft = moment(subscription.billingPeriodEnd).diff(
     moment.unix(time),
     'days'
   );
@@ -1041,9 +991,7 @@ export function productIsEnabled(
     return false;
   }
   const hasNonPaygAccess =
-    (metricHistory.prepaid ?? 0) !== 0 ||
-    !!metricHistory.softCapType ||
-    !!subscription.hasSoftCap;
+    (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;
   const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
@@ -1074,9 +1022,7 @@ export function normalizeMetricHistory(
       customPrice: null,
       order: 0,
       paygCpe: null,
-      sentUsageWarning: false,
       softCapType: null,
-      trueForward: false,
       usageExceeded: false,
     }
   );

@@ -196,7 +196,7 @@ class Tags extends Component<Props, State> {
               <Flex direction="column" align="center">
                 <Button
                   size="xs"
-                  priority="primary"
+                  variant="primary"
                   disabled={loading}
                   aria-label={t('Show More')}
                   onClick={() => {

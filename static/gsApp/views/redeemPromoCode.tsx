@@ -85,13 +85,13 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary">
+      <SubscriptionPageContainer>
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SubscriptionContext>
         <SentryDocumentTitle title={t('Redeem Promo Code')} orgSlug={organization.slug} />
         <SettingsPageHeader title={t('Redeem Promotional Code')} />

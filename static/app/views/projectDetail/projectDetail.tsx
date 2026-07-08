@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -24,7 +23,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -34,12 +33,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
-import ProjectCharts from './projectCharts';
+import {ProjectCharts} from './projectCharts';
 import {ProjectFilters} from './projectFilters';
 import {ProjectIssues} from './projectIssues';
 import {ProjectLatestAlerts} from './projectLatestAlerts';
@@ -50,7 +48,6 @@ import {ProjectTeamAccess} from './projectTeamAccess';
 export function ProjectDetail() {
   const api = useApi();
   const params = useParams<{orgId: string; projectId: string}>();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -158,75 +155,43 @@ export function ProjectDetail() {
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
-              <Layout.HeaderContent unified>
-                {hasPageFrameFeature ? (
-                  <TopBar.Slot name="title">
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          to: makeProjectsPathname({path: '/', organization}),
-                          label: t('Projects'),
-                        },
-                        {
-                          label: (
-                            <Flex align="center" gap="xs">
-                              {project ? (
-                                <IdBadge
-                                  project={project}
-                                  avatarSize={16}
-                                  hideOverflow="100%"
-                                  disableLink
-                                  hideName
-                                />
-                              ) : null}
-                              {project?.slug}
-                            </Flex>
-                          ),
-                        },
-                      ]}
-                    />
-                  </TopBar.Slot>
-                ) : (
-                  <Fragment>
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          to: makeProjectsPathname({path: '/', organization}),
-                          label: t('Projects'),
-                        },
-                        {label: t('Project Details')},
-                      ]}
-                    />
-                    <Layout.Title>
-                      {project ? (
-                        <IdBadge
-                          project={project}
-                          avatarSize={28}
-                          hideOverflow="100%"
-                          disableLink
-                          hideName
-                        />
-                      ) : null}
-                      {project?.slug}
-                    </Layout.Title>
-                  </Fragment>
-                )}
-              </Layout.HeaderContent>
+              <TopBar.Slot name="title">
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      to: makeProjectsPathname({path: '/', organization}),
+                      label: t('Projects'),
+                    },
+                    {
+                      label: (
+                        <Flex align="center" gap="xs">
+                          {project ? (
+                            <IdBadge
+                              project={project}
+                              avatarSize={16}
+                              hideOverflow="100%"
+                              disableLink
+                              hideName
+                            />
+                          ) : null}
+                          {project?.slug}
+                        </Flex>
+                      ),
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
 
               <Layout.HeaderActions>
-                <Grid flow="column" align="center" gap="md">
-                  {hasPageFrameFeature ? (
-                    <TopBar.Slot name="feedback">
-                      <FeedbackButton
-                        aria-label={t('Give Feedback')}
-                        tooltipProps={{title: t('Give Feedback')}}
-                      >
-                        {null}
-                      </FeedbackButton>
-                    </TopBar.Slot>
-                  ) : (
-                    <FeedbackButton />
-                  )}
+                <Grid flow="column" align="center" justify="end" gap="md">
+                  <TopBar.Slot name="feedback">
+                    <FeedbackButton
+                      aria-label={t('Give Feedback')}
+                      tooltipProps={{title: t('Give Feedback')}}
+                    >
+                      {null}
+                    </FeedbackButton>
+                  </TopBar.Slot>
                   <LinkButton
                     size="sm"
                     to={
@@ -256,7 +221,7 @@ export function ProjectDetail() {
 
             <Layout.Body noRowGap>
               <Layout.Main>
-                <ProjectFiltersWrapper>
+                <Container marginBottom="xl">
                   <ProjectFilters
                     query={query}
                     onSearch={handleSearch}
@@ -267,7 +232,7 @@ export function ProjectDetail() {
                     }
                     tagValueLoader={tagValueLoader}
                   />
-                </ProjectFiltersWrapper>
+                </Container>
 
                 <ProjectScoreCards
                   organization={organization}
@@ -333,7 +298,3 @@ export function ProjectDetail() {
     </SentryDocumentTitle>
   );
 }
-
-const ProjectFiltersWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;

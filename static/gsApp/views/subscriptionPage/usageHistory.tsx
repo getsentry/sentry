@@ -102,7 +102,7 @@ function UsageHistory({subscription}: Props) {
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Usage History')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Usage History')} />
       {isPending ? (
@@ -132,7 +132,7 @@ type RowProps = {
 
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
-  const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
+  const [expanded, setExpanded] = useState(history.isCurrent);
   const {projects, onSearch: onProjectSearch} = useProjects();
 
   function renderOnDemandUsage({
@@ -222,8 +222,8 @@ function UsageHistoryRow({history}: RowProps) {
   return (
     <StyledPanelItem>
       <Flex
-        justify={{xs: 'start', md: 'between'}}
-        direction={{xs: 'column', md: 'row'}}
+        justify={{'screen:xs': 'start', 'screen:md': 'between'}}
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
         gap="xl"
       >
         <Flex gap="lg">

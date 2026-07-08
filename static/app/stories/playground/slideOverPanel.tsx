@@ -9,7 +9,7 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Placeholder} from 'sentry/components/placeholder';
 
 export function SlideOverPanelPlayground() {
-  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   return (
     <Fragment>
@@ -27,7 +27,7 @@ export function SlideOverPanelPlayground() {
 }
 
 export function SlideOverPanelSkeletonPlayground() {
-  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const closePanel = useCallback(() => {
     setIsPanelOpen(false);

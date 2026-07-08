@@ -40,8 +40,8 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   parseFunction,
@@ -80,6 +80,7 @@ import {
   getAlertTypeFromAggregateDataset,
   getTraceItemTypeForDatasetAndEventType,
 } from 'sentry/views/alerts/wizard/utils';
+import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -125,6 +126,7 @@ type RuleTaskResponse = {
 type HistoricalDataset = ReturnType<typeof formatStatsToHistoricalDataset>;
 
 type Props = {
+  addAlert: AddAlert;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -137,7 +139,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
+} & RouteComponentProps & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 
@@ -210,7 +212,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {organization} = this.props;
     const {project} = this.state;
     // SearchBar gets its tags from Reflux.
-    fetchOrganizationTags(this.api, organization.slug, [project.id]);
+    fetchOrganizationTags(this.api, organization.slug, [project.id], this.props.addAlert);
   }
 
   componentWillUnmount() {
@@ -617,9 +619,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
-          fetchOrganizationTags(this.api, this.props.organization.slug, [
-            this.state.project.id,
-          ]);
+          fetchOrganizationTags(
+            this.api,
+            this.props.organization.slug,
+            [this.state.project.id],
+            this.props.addAlert
+          );
         }
       );
     }
@@ -723,7 +728,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         !validRule && t('name'),
         !validRule && !validTriggers && t('and'),
         !validTriggers && t('critical threshold'),
-      ].filter(x => x);
+      ].filter(Boolean);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return false;
@@ -789,10 +794,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       try {
         scope.setTag('type', AlertRuleType.METRIC);
         scope.setTag('operation', rule.id ? 'edit' : 'create');
+        scope.setAttributes({
+          type: AlertRuleType.METRIC,
+          operation: rule.id ? 'edit' : 'create',
+        });
         for (const trigger of sanitizedTriggers) {
           for (const action of trigger.actions) {
             if (action.type === 'slack' || action.type === 'discord') {
               scope.setTag(action.type, true);
+              scope.setAttribute(action.type, true);
             }
           }
         }
@@ -1671,4 +1681,11 @@ const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
-export default withProjects(RuleFormContainer);
+const RuleFormContainerWithProjects = withProjects(RuleFormContainer);
+
+export function RuleForm(
+  props: Omit<React.ComponentProps<typeof RuleFormContainerWithProjects>, 'addAlert'>
+) {
+  const {addAlert} = useGlobalAlerts();
+  return <RuleFormContainerWithProjects {...props} addAlert={addAlert} />;
+}

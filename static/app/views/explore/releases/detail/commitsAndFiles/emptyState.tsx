@@ -50,7 +50,7 @@ export function NoRepositories({orgSlug}: {orgSlug: string}) {
             icon={<IconCommit />}
             title={t('Releases are better with commit data!')}
             action={
-              <LinkButton priority="primary" to={`/settings/${orgSlug}/repos/`}>
+              <LinkButton variant="primary" to={`/settings/${orgSlug}/repos/`}>
                 {t('Connect a repository')}
               </LinkButton>
             }

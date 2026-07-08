@@ -243,6 +243,13 @@ class AppService(RpcService):
     ) -> RpcSentryAppComponent | None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def get_notification_emails_for_sentry_app(
+        self, *, organization_id: int, creator_label: str | None
+    ) -> list[str]:
+        pass
+
 
 @back_with_silo_cache("app_service.get_installation", SiloMode.CELL, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:

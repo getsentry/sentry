@@ -13,7 +13,9 @@ type FieldChange = {after: string; before: string; field: string};
 type FilterChange = {after: string; before: string; label: string};
 
 function formatTime(d: DashboardDetails): string | null {
-  if (d.period) return getRelativeSummary(d.period);
+  if (d.period) {
+    return getRelativeSummary(d.period);
+  }
   if (d.start && d.end) {
     const fmt = (s: string) => getFormattedDate(s, 'MMM D, YYYY', {local: !d.utc});
     return `${fmt(d.start)} – ${fmt(d.end)}`;
@@ -30,8 +32,12 @@ export function formatProjectIds(
   ids: number[] | undefined,
   resolveId: (id: number) => string | undefined
 ): string {
-  if (!ids?.length) return t('My Projects');
-  if (ids.includes(ALL_ACCESS_PROJECTS)) return t('All Projects');
+  if (!ids?.length) {
+    return t('My Projects');
+  }
+  if (ids.includes(ALL_ACCESS_PROJECTS)) {
+    return t('All Projects');
+  }
   return ids.map(id => resolveId(id) ?? String(id)).join(', ');
 }
 
@@ -90,8 +96,12 @@ export function diffFilters(
 }
 
 function truncateDescription(value: string): string {
-  if (!value) return t('(empty)');
-  if (value.length <= DESCRIPTION_PREVIEW_MAX_LENGTH) return value;
+  if (!value) {
+    return t('(empty)');
+  }
+  if (value.length <= DESCRIPTION_PREVIEW_MAX_LENGTH) {
+    return value;
+  }
   return value.slice(0, DESCRIPTION_PREVIEW_MAX_LENGTH) + '…';
 }
 
@@ -99,6 +109,19 @@ export type WidgetChange =
   | {status: 'added'; widget: Widget}
   | {status: 'removed'; widget: Widget}
   | {fields: FieldChange[]; layoutChanged: boolean; status: 'modified'; widget: Widget};
+
+function makeWidgetFingerprint(w: Widget): string {
+  const queryPart = w.queries
+    .map(
+      q =>
+        `${q.conditions}|${q.aggregates.join(',')}|${q.columns.join(',')}|${q.orderby}|${q.name}`
+    )
+    .join(';');
+  const layoutPart = w.layout
+    ? `${w.layout.x},${w.layout.y},${w.layout.w},${w.layout.h}`
+    : '';
+  return `${w.title}::${w.displayType}::${w.interval ?? ''}::${w.description ?? ''}::${queryPart}::${layoutPart}::${JSON.stringify(w.thresholds ?? null)}`;
+}
 
 function diffQueryFields(
   base: WidgetQuery,
@@ -162,17 +185,30 @@ export function diffWidgets(
 
   const baseById = new Map<string, Widget>();
   const titleCounts = new Map<string, number>();
+  const fingerprintCounts = new Map<string, number>();
   for (const w of base.widgets) {
-    if (w.id) baseById.set(w.id, w);
+    if (w.id) {
+      baseById.set(w.id, w);
+    }
     titleCounts.set(w.title, (titleCounts.get(w.title) ?? 0) + 1);
+    const fp = makeWidgetFingerprint(w);
+    fingerprintCounts.set(fp, (fingerprintCounts.get(fp) ?? 0) + 1);
   }
   // Only index titles that are unique — avoids wrong matches when two widgets share a title.
   // After a dashboard restore, widget IDs are reassigned, so title matching is the only way
   // to correlate widgets across the restore boundary.
   const baseByUniqueTitle = new Map<string, Widget>();
+  // Content-fingerprint fallback: handles dashboards where multiple widgets share a default
+  // title (e.g. "Custom Widget") but have distinct queries — common after a restore where
+  // IDs are reassigned and titles are non-unique.
+  const baseByUniqueFingerprint = new Map<string, Widget>();
   for (const w of base.widgets) {
     if (titleCounts.get(w.title) === 1) {
       baseByUniqueTitle.set(w.title, w);
+    }
+    const fp = makeWidgetFingerprint(w);
+    if (fingerprintCounts.get(fp) === 1) {
+      baseByUniqueFingerprint.set(fp, w);
     }
   }
 
@@ -180,7 +216,10 @@ export function diffWidgets(
 
   for (const snapshotWidget of snapshot.widgets) {
     const matchById = snapshotWidget.id ? baseById.get(snapshotWidget.id) : undefined;
-    const match = matchById ?? baseByUniqueTitle.get(snapshotWidget.title);
+    const match =
+      matchById ??
+      baseByUniqueTitle.get(snapshotWidget.title) ??
+      baseByUniqueFingerprint.get(makeWidgetFingerprint(snapshotWidget));
     const matchIndex = match ? base.widgets.indexOf(match) : -1;
 
     if (!match || matchIndex === -1 || matchedBaseIndices.has(matchIndex)) {
@@ -220,6 +259,18 @@ export function diffWidgets(
         field: isTextWidget ? t('content') : t('description'),
         before: truncateDescription(baseDescription),
         after: truncateDescription(snapshotDescription),
+      });
+    }
+
+    const baseThresholds = JSON.stringify(match.thresholds ?? null);
+    const snapshotThresholds = JSON.stringify(snapshotWidget.thresholds ?? null);
+    if (baseThresholds !== snapshotThresholds) {
+      fields.push({
+        field: 'thresholds',
+        before: match.thresholds ? JSON.stringify(match.thresholds) : t('(none)'),
+        after: snapshotWidget.thresholds
+          ? JSON.stringify(snapshotWidget.thresholds)
+          : t('(none)'),
       });
     }
 

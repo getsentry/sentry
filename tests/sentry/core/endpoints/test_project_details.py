@@ -126,27 +126,6 @@ class ProjectDetailsTest(APITestCase):
             "slug": self.project.organization.slug,
         }
 
-    def test_filters_disabled_plugins(self) -> None:
-        from sentry.plugins.base import plugins
-
-        self.create_group(project=self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert response.data["plugins"] == []
-
-        asana_plugin = plugins.get("asana")
-        asana_plugin.enable(self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert len(response.data["plugins"]) == 1
-        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
-
     def test_project_renamed_302(self) -> None:
         # Rename the project
         self.get_success_response(
@@ -813,12 +792,33 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
 
-    def test_preprod_snapshot_pr_comments_only_if_diff_option(self) -> None:
+    def test_preprod_snapshot_pr_comments_post_on_added_option(self) -> None:
         self.get_success_response(
-            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsOnlyIfDiff=True
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnAdded=True
         )
         project = Project.objects.get(id=self.project.id)
-        assert project.get_option("sentry:preprod_snapshot_pr_comments_only_if_diff") is True
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_added") is True
+
+    def test_preprod_snapshot_pr_comments_post_on_removed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnRemoved=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_removed") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_changed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnChanged=False
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_changed") is False
+
+    def test_preprod_snapshot_pr_comments_post_on_renamed_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsPostOnRenamed=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -1199,9 +1199,7 @@ class ProjectUpdateTest(APITestCase):
 
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
-        with Feature(
-            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-        ):
+        with Feature({"organizations:custom-symbol-sources": True}):
             config = {
                 "id": "honk",
                 "name": "honk source",
@@ -1254,9 +1252,7 @@ class ProjectUpdateTest(APITestCase):
     def test_redacted_symbol_source_secrets_unknown_secret(
         self, create_audit_entry: mock.MagicMock
     ) -> None:
-        with Feature(
-            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
-        ):
+        with Feature({"organizations:custom-symbol-sources": True}):
             config = {
                 "id": "honk",
                 "name": "honk source",

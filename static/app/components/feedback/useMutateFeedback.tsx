@@ -17,7 +17,6 @@ type TPayload =
 type TData = unknown;
 type TError = unknown;
 type TVariables = [TFeedbackIds, TPayload];
-type TContext = unknown;
 
 interface Props {
   feedbackIds: TFeedbackIds;
@@ -29,7 +28,7 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
   const {listApiOptions} = useFeedbackApiOptions();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables>({
     onMutate: ([ids, payload]) => {
       updateCached(ids, payload);
     },
@@ -58,17 +57,14 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
   });
 
   const markAsRead = useCallback(
-    (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) => {
+    (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables>) => {
       mutate([feedbackIds, {hasSeen}], options);
     },
     [mutate, feedbackIds]
   );
 
   const resolve = useCallback(
-    (
-      status: GroupStatus,
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+    (status: GroupStatus, options?: MutateOptions<TData, TError, TVariables>) => {
       mutate([feedbackIds, {status}], options);
     },
     [mutate, feedbackIds]

@@ -8,18 +8,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  HydratedReplayRecord,
-  ReplayListRecord,
-} from 'sentry/views/explore/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   deselectAll: () => void;
-  queryKeyRef: ListCheckboxQueryKeyRef;
+  endpointOptionsRef: ListCheckboxQueryKeyRef;
   replays: ReplayListRecord[];
   selectedIds: string[];
 }
@@ -28,7 +25,7 @@ export function ReplayBulkViewedActions({
   deselectAll,
   replays,
   selectedIds,
-  queryKeyRef,
+  endpointOptionsRef,
 }: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -55,10 +52,14 @@ export function ReplayBulkViewedActions({
     );
 
     if (succeededIds.size) {
-      if (queryKeyRef.current) {
-        // eslint-disable-next-line @sentry/no-query-data-type-parameters
-        queryClient.setQueryData<ApiResponse<{data: HydratedReplayRecord[]}>>(
-          queryKeyRef.current,
+      if (endpointOptionsRef.current) {
+        const replayListOptions = replayListApiOptions({
+          options: endpointOptionsRef.current,
+          organization,
+          queryReferrer: 'replayList',
+        });
+        queryClient.setQueryData(
+          replayListOptions.queryKey,
           old =>
             old && {
               ...old,

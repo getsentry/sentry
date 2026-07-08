@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -55,7 +56,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
 
@@ -83,8 +84,6 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
         """
         has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        ) or features.has(
-            "organizations:gen-ai-explore-metrics-search", organization, actor=request.user
         )
         if not has_feature:
             return Response(
@@ -105,30 +104,26 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        try:
-            run_id_int = int(run_id)
-        except ValueError:
-            return Response(
-                {"detail": "Invalid run_id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        resolved = resolve_seer_run(run_id, organization)
+        if isinstance(resolved, Response):
+            return resolved
+        seer_run_id = resolved.seer_run_state_id
 
         try:
             viewer_context = SeerViewerContext(
                 organization_id=organization.id, user_id=request.user.id
             )
             data = fetch_search_agent_state(
-                run_id_int, organization.id, viewer_context=viewer_context
+                seer_run_id, organization.id, viewer_context=viewer_context
             )
-
-            # Return the session data directly from Seer
+            data["sentry_run_id"] = resolved.uuid
             return Response(data)
 
         except SeerApiError as e:
             if e.status == 404:
                 logger.warning(
                     "search_agent.state_not_found",
-                    extra={"run_id": run_id_int},
+                    extra={"run_id": seer_run_id},
                 )
                 return Response(
                     {"session": None},
@@ -136,7 +131,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 )
             logger.exception(
                 "search_agent.state_error",
-                extra={"run_id": run_id_int, "status_code": e.status},
+                extra={"run_id": seer_run_id, "status_code": e.status},
             )
             return Response(
                 {"detail": "Failed to fetch run state"},
@@ -145,7 +140,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception(
                 "search_agent.state_error",
-                extra={"run_id": run_id_int},
+                extra={"run_id": seer_run_id},
             )
             return Response(
                 {"detail": "Failed to fetch run state"},

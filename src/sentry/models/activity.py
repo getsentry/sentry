@@ -29,6 +29,8 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.handlers.registry import invoke_workflow_activity_handlers
+from sentry.workflow_engine.types import DetectorId
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -44,11 +46,7 @@ class ActivityManager(BaseManager["Activity"]):
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
 
-        # Check if 'initial_priority' is available
-        initial_priority_value = group.get_event_metadata().get(
-            "initial_priority", None
-        ) or group.get_event_metadata().get("initial_priority", None)
-
+        initial_priority_value = group.get_event_metadata().get("initial_priority")
         initial_priority = (
             PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
         )
@@ -89,6 +87,8 @@ class ActivityManager(BaseManager["Activity"]):
         data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
         datetime: datetime | None = None,
+        detector_id: DetectorId | None = None,
+        ident: str | int | None = None,
     ) -> Activity:
         if user:
             user_id = user.id
@@ -102,10 +102,14 @@ class ActivityManager(BaseManager["Activity"]):
             activity_args["user_id"] = user_id
         if datetime is not None:
             activity_args["datetime"] = datetime
+        if ident is not None:
+            activity_args["ident"] = ident
         activity = self.create(**activity_args)
 
         if send_notification:
             activity.send_notification()
+
+        invoke_workflow_activity_handlers(group, activity, detector_id)
 
         return activity
 
@@ -129,7 +133,10 @@ class Activity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_activity"
-        indexes = (models.Index(fields=("project", "datetime")),)
+        indexes = (
+            models.Index(fields=("project", "datetime")),
+            models.Index(fields=("project", "type")),
+        )
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 

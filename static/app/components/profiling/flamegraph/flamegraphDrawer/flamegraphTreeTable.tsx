@@ -90,7 +90,7 @@ export function FlamegraphTreeTable({
 
   const onRowContextMenu = useCallback(
     (item: VirtualizedTreeNode<FlamegraphFrame>) => {
-      return (e: React.MouseEvent<Element, MouseEvent>) => {
+      return (e: React.MouseEvent) => {
         setClickedContextMenuNode(item);
         contextMenu.handleContextMenu(e);
       };

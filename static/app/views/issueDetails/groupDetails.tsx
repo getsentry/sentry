@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -9,7 +9,6 @@ import * as qs from 'query-string';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -26,8 +25,8 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {
   getAnalyticsDataForEvent,
   getAnalyticsDataForGroup,
@@ -53,34 +52,37 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-  useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -233,7 +235,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const navigate = useNavigate();
   const {projects} = useProjects();
 
-  const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
+  const [allProjectChanged, setAllProjectChanged] = useState(false);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
@@ -564,13 +566,48 @@ function GroupDetailsContentError({
   }
 }
 
-function GroupDetailsContent({
+type IssueView =
+  | 'specific-event'
+  | 'events-list'
+  | 'issue-overview'
+  | 'replays'
+  | 'attachments'
+  | 'distributions'
+  | 'distributions-tag-detail';
+
+const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
+  'specific-event':
+    'Sentry issue detail page. The user is viewing a specific event — You can get event details with the eventId below to see what they see.',
+  'events-list':
+    'Sentry issue events list. The user is browsing all events for this issue. You can search live telemetry to query events matching this issue.',
+  replays:
+    'Sentry issue replays tab. The user is viewing session replays where this issue occurred. You can search replays to find sessions that encountered this error, or get replay details for a specific session.',
+  attachments:
+    'Sentry issue attachments tab. The user is viewing files attached to events for this issue (screenshots, crash reports, minidumps). You can get event attachments to inspect specific files.',
+  distributions:
+    'Sentry issue distributions (tags) tab. The user is viewing how this issue is distributed across tag values. You can get issue tag values for breakdown by browser, environment, URL, release, OS, device, or any other tag.',
+  'distributions-tag-detail':
+    'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
+  'issue-overview':
+    'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+};
+
+function getIssueDetailContextHint(view: IssueView): string {
+  const preamble = ISSUE_VIEW_PREAMBLES[view];
+  const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
+  const tools =
+    'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
+    'and search live telemetry for related spans/errors/logs/metrics. ' +
+    "If an autofix section appears in the page context below, Sentry's Autofix has already analyzed this issue — use that analysis as a starting point if needed.";
+  return `${preamble} ${shortIdNote}${tools}`;
+}
+
+function GroupDetailsContentInner({
   children,
   group,
   project,
   event,
 }: GroupDetailsContentProps) {
-  const api = useApi();
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -582,7 +619,7 @@ function GroupDetailsContent({
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
-  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
@@ -593,10 +630,6 @@ function GroupDetailsContent({
   });
 
   const {hasAutofixQuota} = useAiConfig(group, project);
-
-  useEffect(() => {
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization.slug, project.id]);
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -640,6 +673,42 @@ function GroupDetailsContent({
 
   useEngagedViewTracking({group, project});
 
+  const {eventId: eventIdParam, tagKey} = useParams<{
+    eventId?: string;
+    tagKey?: string;
+  }>();
+
+  let issueView: IssueView = 'issue-overview';
+  if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
+    issueView = 'specific-event';
+  } else if (currentTab === Tab.EVENTS) {
+    issueView = 'events-list';
+  } else if (currentTab === Tab.REPLAYS) {
+    issueView = 'replays';
+  } else if (currentTab === Tab.ATTACHMENTS) {
+    issueView = 'attachments';
+  } else if (currentTab === Tab.DISTRIBUTIONS) {
+    issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
+  }
+
+  useLLMContext({
+    contextHint: getIssueDetailContextHint(issueView),
+    shortId: group.shortId,
+    title: group.title,
+    level: group.level,
+    status: group.status,
+    priority: group.priority,
+    issueType: group.issueType,
+    count: group.count,
+    userCount: group.userCount,
+    firstSeen: group.firstSeen,
+    lastSeen: group.lastSeen,
+    projectSlug: project.slug,
+    eventId: event?.id,
+    currentTab,
+    ...(tagKey ? {tagKey} : {}),
+  });
+
   const isDisplayingEventDetails = [
     Tab.DETAILS,
     Tab.DISTRIBUTIONS,
@@ -660,6 +729,8 @@ function GroupDetailsContent({
     </GroupDetailsLayout>
   );
 }
+
+const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;
@@ -761,27 +832,29 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   return (
-    <TourContextProvider<IssueDetailsTour>
-      tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isCompleted={isIssueDetailsTourCompleted}
-      orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      TourContext={IssueDetailsTourContext}
-    >
-      <GroupDetailsContent
-        project={projectWithFallback}
-        group={props.group}
-        event={props.event ?? injectedEvent}
+    <GroupDataContextProvider group={props.group} project={projectWithFallback}>
+      <TourContextProvider<IssueDetailsTour>
+        tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
+        isCompleted={isIssueDetailsTourCompleted}
+        orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+        TourContext={IssueDetailsTourContext}
       >
-        {props.children}
-      </GroupDetailsContent>
-    </TourContextProvider>
+        <IssueDetailsTourModal />
+        <GroupDetailsContent
+          project={projectWithFallback}
+          group={props.group}
+          event={props.event ?? injectedEvent}
+        >
+          {props.children}
+        </GroupDetailsContent>
+      </TourContextProvider>
+    </GroupDataContextProvider>
   );
 }
 
 function GroupDetails() {
   const organization = useOrganization();
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
-  const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
@@ -805,27 +878,32 @@ function GroupDetails() {
   const config = group && getConfigForIssueType(group, group.project);
 
   return (
-    <Fragment>
-      {isSampleError && group && (
-        <SampleEventAlert project={group.project} organization={organization} />
-      )}
-      <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
-        <PageFiltersContainer
-          skipLoadLastUsed
-          forceProject={group?.project}
-          shouldForceProject
-        >
-          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
-          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
-            <Outlet />
-          </GroupDetailsPageContent>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
-    </Fragment>
+    <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
+      <PageFiltersContainer
+        skipLoadLastUsed
+        forceProject={group?.project}
+        shouldForceProject
+      >
+        {config?.showFeedbackWidget && <FloatingFeedbackButton />}
+        <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
+          <Outlet />
+        </GroupDetailsPageContent>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }
 
-export default Sentry.withProfiler(GroupDetails);
+function GroupDetailsContainer() {
+  const params = useParams<{groupId: string}>();
+
+  return (
+    <GroupIdProvider groupId={params.groupId}>
+      <GroupDetails />
+    </GroupIdProvider>
+  );
+}
+
+export default Sentry.withProfiler(GroupDetailsContainer);
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${p => p.theme.space.xl};

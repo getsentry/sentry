@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
-  getFirstToolInputValue,
+  getToolInputPreview,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -30,7 +30,7 @@ import {
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
+export function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
   let startTime = 0;
   let endTime = 0;
 
@@ -48,14 +48,17 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
     startTime = totalStartAndEndTime.startTime;
     endTime = totalStartAndEndTime.endTime;
   } else {
-    if (!node.startTimestamp || !node.endTimestamp)
+    if (!node.startTimestamp || !node.endTimestamp) {
       return {startTime: 0, endTime: 0, duration: 0};
+    }
 
     startTime = node.startTimestamp;
     endTime = node.endTimestamp;
   }
 
-  if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
+  if (endTime === 0) {
+    return {startTime: 0, endTime: 0, duration: 0};
+  }
 
   return {
     startTime,
@@ -281,13 +284,13 @@ const TraceListItem = memo(function TraceListItem({
   );
 });
 
-interface TraceBounds {
+export interface TraceBounds {
   duration: number;
   endTime: number;
   startTime: number;
 }
 
-interface CompressedTimeBounds extends TraceBounds {
+export interface CompressedTimeBounds extends TraceBounds {
   compressedStartByNodeId: Map<string, number>;
 }
 
@@ -305,7 +308,7 @@ const COMPRESSED_GAP_SECONDS = 1;
  * Returns a Map of node IDs to their compressed start times, which allows O(1)
  * lookup when rendering each span's position on the timeline.
  */
-function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
+export function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds {
   const emptyResult: CompressedTimeBounds = {
     startTime: 0,
     endTime: 0,
@@ -374,12 +377,14 @@ function getCompressedTimeBounds(nodes: AITraceSpanNode[]): CompressedTimeBounds
   };
 }
 
-function calculateRelativeTiming(
+export function calculateRelativeTiming(
   node: AITraceSpanNode,
   traceBounds: TraceBounds,
   compressedStartByNodeId?: Map<string, number>
 ): {leftPercent: number; widthPercent: number} {
-  if (!node.value) return {leftPercent: 0, widthPercent: 0};
+  if (!node.value) {
+    return {leftPercent: 0, widthPercent: 0};
+  }
 
   let startTime: number, endTime: number;
 
@@ -390,7 +395,9 @@ function calculateRelativeTiming(
     return {leftPercent: 0, widthPercent: 0};
   }
 
-  if (traceBounds.duration === 0) return {leftPercent: 0, widthPercent: 0};
+  if (traceBounds.duration === 0) {
+    return {leftPercent: 0, widthPercent: 0};
+  }
 
   // Look up the pre-computed compressed start time for this node.
   // The span duration stays the same - only gaps between spans are compressed.
@@ -493,12 +500,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: firstInputValue || (toolName ? op : ''),
+        subtitle: inputPreview || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:

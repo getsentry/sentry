@@ -1,4 +1,8 @@
-from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
+)
 from sentry.testutils.cases import APITestCase
 
 
@@ -10,24 +14,21 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_feature_flag_disabled_returns_404(self) -> None:
-        SeerNightShiftRun.objects.create(
-            organization=self.organization,
-            triage_strategy="agentic",
-        )
+        SeerNightShiftRun.objects.create(organization=self.organization)
         self.get_error_response(self.organization.slug, status_code=404)
 
-    def test_returns_runs_for_org_with_nested_issues(self) -> None:
+    def test_returns_runs_for_org_with_nested_results(self) -> None:
         group = self.create_group()
         run = SeerNightShiftRun.objects.create(
             organization=self.organization,
-            triage_strategy="agentic",
             extras={"foo": "bar"},
         )
-        issue = SeerNightShiftRunIssue.objects.create(
+        result = SeerNightShiftRunResult.objects.create(
             run=run,
+            kind="agentic_triage",
             group=group,
-            action="autofix_triggered",
             seer_run_id="seer-123",
+            extras={"action": "autofix_triggered"},
         )
 
         with self.feature("organizations:seer-night-shift"):
@@ -35,26 +36,54 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(run.id)
-        assert response.data[0]["triageStrategy"] == "agentic"
         assert response.data[0]["errorMessage"] is None
         assert response.data[0]["extras"] == {"foo": "bar"}
-        assert len(response.data[0]["issues"]) == 1
+        assert len(response.data[0]["results"]) == 1
 
-        issue_data = response.data[0]["issues"][0]
-        assert issue_data["id"] == str(issue.id)
-        assert issue_data["groupId"] == str(group.id)
-        assert issue_data["action"] == "autofix_triggered"
-        assert issue_data["seerRunId"] == "seer-123"
+        result_data = response.data[0]["results"][0]
+        assert result_data["id"] == str(result.id)
+        assert result_data["kind"] == "agentic_triage"
+        assert result_data["groupId"] == str(group.id)
+        assert result_data["seerRunId"] == "seer-123"
+        assert result_data["extras"] == {"action": "autofix_triggered"}
+
+        # Transitional aliases for the existing frontend.
+        assert response.data[0]["triageStrategy"] == "agentic_triage"
+        assert len(response.data[0]["issues"]) == 1
+        legacy = response.data[0]["issues"][0]
+        assert legacy["groupId"] == str(group.id)
+        assert legacy["action"] == "autofix_triggered"
+
+    def test_surfaces_shard_seer_run_ids(self) -> None:
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        seer_run_a = self.create_seer_run(organization=self.organization, seer_run_state_id=111)
+        seer_run_b = self.create_seer_run(organization=self.organization, seer_run_state_id=222)
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_a)
+        SeerNightShiftRunShard.objects.create(run=run, seer_run=seer_run_b)
+        # A shard with no mirrored state id serializes with a null seerRunId.
+        SeerNightShiftRunShard.objects.create(run=run)
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        seer_run_ids = [r["seerRunId"] for r in response.data[0]["seerRuns"]]
+        assert seer_run_ids == ["111", "222", None]
+
+    def test_surfaces_shard_error_message(self) -> None:
+        # Per-shard delivery errors live on the shard; the run API must still
+        # surface them so a failed shard doesn't read as a healthy run.
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunShard.objects.create(run=run)
+        SeerNightShiftRunShard.objects.create(run=run, extras={"error_message": "shard failed"})
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["errorMessage"] == "shard failed"
 
     def test_runs_ordered_by_date_added_desc(self) -> None:
-        older = SeerNightShiftRun.objects.create(
-            organization=self.organization,
-            triage_strategy="agentic",
-        )
-        newer = SeerNightShiftRun.objects.create(
-            organization=self.organization,
-            triage_strategy="simple",
-        )
+        older = SeerNightShiftRun.objects.create(organization=self.organization)
+        newer = SeerNightShiftRun.objects.create(organization=self.organization)
 
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
@@ -63,14 +92,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
     def test_runs_scoped_to_requesting_org(self) -> None:
         other_org = self.create_organization()
-        SeerNightShiftRun.objects.create(
-            organization=other_org,
-            triage_strategy="agentic",
-        )
-        own_run = SeerNightShiftRun.objects.create(
-            organization=self.organization,
-            triage_strategy="agentic",
-        )
+        SeerNightShiftRun.objects.create(organization=other_org)
+        own_run = SeerNightShiftRun.objects.create(organization=self.organization)
 
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)

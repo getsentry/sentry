@@ -10,7 +10,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {DateRangePicker} from 'sentry/components/calendar';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -20,8 +20,7 @@ import {
   setDateToTime,
 } from 'sentry/utils/dates';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {TimePicker} from './timePicker';
 
@@ -38,7 +37,7 @@ const defaultProps = {
   maxPickableDays: MAX_PICKABLE_DAYS,
 };
 
-type Props = WithRouterProps & {
+type Props = {
   /**
    * End date value for absolute date selector
    */
@@ -52,6 +51,11 @@ type Props = WithRouterProps & {
    * handle UTC checkbox change
    */
   onChangeUtc: () => void;
+
+  /**
+   * The matched routes, used to derive a parameterized path for analytics.
+   */
+  routes: PlainRoute[];
 
   /**
    * Start date value for absolute date selector
@@ -117,7 +121,7 @@ class BaseDateRange extends Component<Props, State> {
     // Time will be in 24hr e.g. "21:00"
     const start = this.props.start ?? '';
     const end = this.props.end ?? undefined;
-    const {onChange, organization, router} = this.props;
+    const {onChange, organization, routes} = this.props;
     const startTime = e.target.value;
     const newStartTime = setDateToTime(start, startTime, {local: true});
 
@@ -131,7 +135,7 @@ class BaseDateRange extends Component<Props, State> {
       organization: organization ?? null,
       field_changed: 'start',
       time: startTime,
-      path: getRouteStringFromRoutes({routes: router.routes}),
+      path: getRouteStringFromRoutes({routes}),
     });
 
     onChange({
@@ -146,7 +150,7 @@ class BaseDateRange extends Component<Props, State> {
   handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const start = this.props.start ?? undefined;
     const end = this.props.end ?? '';
-    const {organization, onChange, router} = this.props;
+    const {organization, onChange, routes} = this.props;
     const endTime = e.target.value;
     const newEndTime = setDateToTime(end, endTime, {local: true});
 
@@ -160,7 +164,7 @@ class BaseDateRange extends Component<Props, State> {
       organization: organization ?? null,
       field_changed: 'end',
       time: endTime,
-      path: getRouteStringFromRoutes({routes: router.routes}),
+      path: getRouteStringFromRoutes({routes}),
     });
 
     onChange({
@@ -238,7 +242,12 @@ class BaseDateRange extends Component<Props, State> {
   }
 }
 
-export const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
+function WithRoutes(props: Omit<Props, 'routes'>) {
+  const routes = useRoutes();
+  return <BaseDateRange {...props} routes={routes} />;
+}
+
+export const DateRange = styled(withTheme(WithRoutes))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};

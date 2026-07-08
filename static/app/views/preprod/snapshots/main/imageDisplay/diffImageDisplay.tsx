@@ -10,6 +10,7 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
 import {DiffOverlay} from 'sentry/views/preprod/snapshots/main/diffOverlay';
+import {getSnapshotImageUrl} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
@@ -24,7 +25,7 @@ import {
 
 export type DiffMode = 'split' | 'wipe' | 'onion';
 
-export const TRANSPARENT_COLOR = 'transparent';
+const TRANSPARENT_COLOR = 'transparent';
 
 interface DiffImageDisplayProps {
   diffImageBaseUrl: string;
@@ -33,6 +34,7 @@ interface DiffImageDisplayProps {
   overlayColor: string;
   pair: SnapshotDiffPair;
   headLabel?: string;
+  overlayOpacity?: number;
 }
 
 export function DiffImageDisplay({
@@ -40,13 +42,14 @@ export function DiffImageDisplay({
   imageBaseUrl,
   diffImageBaseUrl,
   overlayColor,
+  overlayOpacity,
   diffMode,
   headLabel = t('Head'),
 }: DiffImageDisplayProps) {
   const [onionOpacity, setOnionOpacity] = useState(50);
 
-  const baseImageUrl = `${imageBaseUrl}${pair.base_image.key}/`;
-  const headImageUrl = `${imageBaseUrl}${pair.head_image.key}/`;
+  const baseImageUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
+  const headImageUrl = getSnapshotImageUrl(imageBaseUrl, pair.head_image);
   const diffMaskUrl = pair.diff_image_key
     ? `${diffImageBaseUrl}${pair.diff_image_key}/`
     : null;
@@ -60,6 +63,7 @@ export function DiffImageDisplay({
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffMaskUrl={diffMaskUrl}
           maskSize={maskSize}
           headLabel={headLabel}
@@ -94,6 +98,7 @@ interface SplitViewProps {
   headLabel: string;
   maskSize: string;
   overlayColor: string;
+  overlayOpacity?: number;
 }
 
 function SplitView({
@@ -101,10 +106,11 @@ function SplitView({
   headImageUrl,
   headLabel,
   overlayColor,
+  overlayOpacity,
   diffMaskUrl,
   maskSize,
 }: SplitViewProps) {
-  const [zoom1, zoom2] = useSyncedD3Zoom();
+  const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const [displayBaseUrl, displayHeadUrl, displayMaskUrl] = useBufferedImageGroup([
     baseImageUrl,
     headImageUrl,
@@ -165,6 +171,7 @@ function SplitView({
                   {showOverlay && (
                     <DiffOverlay
                       $overlayColor={overlayColor}
+                      $opacity={overlayOpacity}
                       $maskUrl={displayMaskUrl}
                       $maskSize={maskSize}
                     />

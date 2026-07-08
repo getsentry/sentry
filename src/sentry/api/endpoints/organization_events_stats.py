@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,6 +17,8 @@ from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_query_columns_for_error_upsampling,
 )
+from sentry.api.serializers.snuba import StatsTimeSeriesResult
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -32,7 +35,6 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    spans_indexed,
     spans_metrics,
     transactions,
 )
@@ -47,6 +49,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
+from sentry.utils.tracing import set_span_data, start_span
 
 SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
@@ -111,6 +114,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         )
         return has_data
 
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsStatsResponse",
+                StatsTimeSeriesResult | dict[str, StatsTimeSeriesResult],
+            )
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
         logger.info(
@@ -123,8 +134,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             },
         )
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with start_span(op="discover.endpoint", name="filter_params") as span:
+            set_span_data(span, "organization", organization)
 
             top_events = 0
 
@@ -169,7 +180,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             batch_features = self.get_features(organization, request)
 
-            dataset = self.get_dataset(request)
+            dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 dataset = (
@@ -180,7 +191,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        spans_indexed,
                         spans_metrics,
                         Spans,
                         OurLogs,
@@ -198,6 +208,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
 
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
@@ -232,6 +243,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     raise NotImplementedError
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -246,6 +262,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         )
                         == "1",
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
                 if scoped_dataset == PreprodSize:
@@ -257,6 +274,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         )
                         == "1",
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
                 return SearchResolverConfig(
@@ -267,6 +285,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     )
                     == "1",
                     extrapolation_mode=extrapolation_mode,
+                    disable_array_attributes=disable_array_attributes,
                 )
 
             if top_events > 0:
@@ -443,6 +462,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
+                        sentry_sdk.set_attribute("third_split_query", True)
                         transactions_only_query = f"({query}) AND event.type:transaction"
                         transaction_results = _get_event_stats(
                             discover,

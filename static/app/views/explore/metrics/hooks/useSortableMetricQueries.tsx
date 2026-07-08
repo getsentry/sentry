@@ -53,7 +53,9 @@ export function useSortableMetricQueries({
         const oldIndex = sortableItems.find(({id}) => id === active.id)?.index;
         const newIndex = sortableItems.find(({id}) => id === over?.id)?.index;
 
-        if (oldIndex === undefined || newIndex === undefined) return;
+        if (oldIndex === undefined || newIndex === undefined) {
+          return;
+        }
 
         reorderMetricQueries(
           arrayMove([...metricQueries], oldIndex, newIndex),

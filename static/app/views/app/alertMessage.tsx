@@ -6,16 +6,16 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {AlertStore} from 'sentry/stores/alertStore';
+
+import type {StoredGlobalAlert} from './globalAlerts';
 
 type Props = {
-  alert: ReturnType<(typeof AlertStore)['getState']>[number];
+  alert: StoredGlobalAlert;
+  onClose: () => void;
   system: boolean;
 };
 
-export function AlertMessage({alert, system}: Props) {
-  const handleClose = () => AlertStore.closeAlert(alert);
-
+export function AlertMessage({alert, onClose, system}: Props) {
   return (
     <Alert
       variant={alert.variant}
@@ -24,7 +24,7 @@ export function AlertMessage({alert, system}: Props) {
         <StyledCloseButton
           icon={<IconClose size="sm" />}
           aria-label={t('Close')}
-          onClick={alert.onClose ?? handleClose}
+          onClick={onClose}
           size="zero"
           variant="transparent"
         />

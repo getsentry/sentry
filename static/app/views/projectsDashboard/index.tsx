@@ -6,7 +6,7 @@ import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -18,7 +18,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {
@@ -37,7 +36,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TeamFilter} from 'sentry/views/alerts/list/rules/teamFilter';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectCard} from './projectCard';
@@ -134,13 +132,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
-  useEffect(() => {
-    return function cleanup() {
-      ProjectsStatsStore.reset();
-    };
-  }, []);
   const {teams: userTeams, isLoading: loadingTeams, isError} = useUserTeams();
   const isAllTeams = location.query.team === '';
   const selectedTeams = getTeamParams(location.query.team ?? 'myteams');
@@ -205,90 +197,47 @@ function Dashboard() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Header unified>
-        <Layout.HeaderContent unified>
-          <Layout.Title>
-            {t('All Projects')}
-            <PageHeadingQuestionTooltip
-              docsUrl="https://docs.sentry.io/product/projects/"
-              title={t(
-                "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
-              )}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="actions">
-            <LinkButton
-              icon={<IconUser />}
-              tooltipProps={{
-                title: canJoinTeam
-                  ? undefined
-                  : t('You do not have permission to join a team.'),
-              }}
-              disabled={!canJoinTeam}
-              to={`/settings/${organization.slug}/teams/`}
-              data-test-id="join-team"
-            >
-              {t('Join a Team')}
-            </LinkButton>
-            <LinkButton
-              variant="primary"
-              disabled={!canUserCreateProject}
-              tooltipProps={{
-                title: canUserCreateProject
-                  ? undefined
-                  : t('You do not have permission to create projects'),
-              }}
-              to={makeProjectsPathname({
-                path: '/new/',
-                organization,
-              })}
-              icon={<IconAdd />}
-              data-test-id="create-project"
-            >
-              {t('Create Project')}
-            </LinkButton>
-          </TopBar.Slot>
-        ) : (
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <LinkButton
-                size="sm"
-                icon={<IconUser />}
-                tooltipProps={{
-                  title: canJoinTeam
-                    ? undefined
-                    : t('You do not have permission to join a team.'),
-                }}
-                disabled={!canJoinTeam}
-                to={`/settings/${organization.slug}/teams/`}
-                data-test-id="join-team"
-              >
-                {t('Join a Team')}
-              </LinkButton>
-              <LinkButton
-                size="sm"
-                variant="primary"
-                disabled={!canUserCreateProject}
-                tooltipProps={{
-                  title: canUserCreateProject
-                    ? undefined
-                    : t('You do not have permission to create projects'),
-                }}
-                to={makeProjectsPathname({
-                  path: '/new/',
-                  organization,
-                })}
-                icon={<IconAdd />}
-                data-test-id="create-project"
-              >
-                {t('Create Project')}
-              </LinkButton>
-            </Grid>
-          </Layout.HeaderActions>
-        )}
-      </Layout.Header>
+      <Layout.Title>
+        {t('All Projects')}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/projects/"
+          title={t(
+            "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
+          )}
+        />
+      </Layout.Title>
+      <TopBar.Slot name="actions">
+        <LinkButton
+          icon={<IconUser />}
+          tooltipProps={{
+            title: canJoinTeam
+              ? undefined
+              : t('You do not have permission to join a team.'),
+          }}
+          disabled={!canJoinTeam}
+          to={`/settings/${organization.slug}/teams/`}
+          data-test-id="join-team"
+        >
+          {t('Join a Team')}
+        </LinkButton>
+        <LinkButton
+          variant="primary"
+          disabled={!canUserCreateProject}
+          tooltipProps={{
+            title: canUserCreateProject
+              ? undefined
+              : t('You do not have permission to create projects'),
+          }}
+          to={makeProjectsPathname({
+            path: '/new/',
+            organization,
+          })}
+          icon={<IconAdd />}
+          data-test-id="create-project"
+        >
+          {t('Create Project')}
+        </LinkButton>
+      </TopBar.Slot>
       <Layout.Body>
         <Layout.Main width="full">
           <SearchAndSelectorWrapper>

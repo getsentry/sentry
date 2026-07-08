@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
@@ -211,7 +211,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
       <Flex justify="end" align="center" gap="xs">
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={releaseVersion}
           aria-label={t('Copy release version to clipboard')}

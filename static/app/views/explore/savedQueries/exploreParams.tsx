@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -19,6 +19,7 @@ const MORE_TOKENS_WIDTH = 32;
 type SingleQueryProps = {
   query: string;
   visualizes: BaseVisualize[];
+  agent?: string[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
@@ -26,6 +27,7 @@ export function ExploreParams({
   query,
   visualizes,
   groupBys,
+  agent,
   className,
 }: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
@@ -33,7 +35,7 @@ export function ExploreParams({
 
   const {width} = useDimensions({elementRef: containerRef});
   const [childWidths, setChildWidths] = useState<number[]>([]);
-  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   const debouncedSetContainerWidth = useMemo(
     () =>
@@ -93,7 +95,7 @@ export function ExploreParams({
     });
   }
   const parsedQuery = useMemo(() => {
-    return parseQueryBuilderValue(query, getFieldDefinition);
+    return parseQueryBuilderValue(query, key => getFieldDefinition(key));
   }, [query]);
   if (query) {
     tokens.push(
@@ -112,6 +114,20 @@ export function ExploreParams({
           </Flex>
         );
       });
+  }
+  if (agent && agent.length > 0) {
+    tokens.push(
+      <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key="agent">
+        <ExploreParamTitle>{t('Agent')}</ExploreParamTitle>
+      </Flex>
+    );
+    agent.forEach((agentName, index) => {
+      tokens.push(
+        <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key={`agent-${index}`}>
+          <ExploreVisualizes>{agentName}</ExploreVisualizes>
+        </Flex>
+      );
+    });
   }
   if (groupBys && groupBys.length > 0) {
     tokens.push(

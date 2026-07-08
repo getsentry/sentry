@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -37,11 +37,16 @@ import {
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
+import {TraceTimeCompression} from './traceRenderers/traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceRenderers/traceTimeCompression';
 import {
   useVirtualizedList,
   type VirtualizedRow,
 } from './traceRenderers/traceVirtualizedList';
-import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import type {
+  TraceTimeCompressionManagerOptions,
+  VirtualizedViewManager,
+} from './traceRenderers/virtualizedViewManager';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
@@ -50,12 +55,38 @@ import {
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
 } from './traceRow/traceRow';
+import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from './traceState/tracePreferences';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import type {TraceReducerState} from './traceState';
+
+const traceIssueIconBackgroundStyles = css`
+  &.info {
+    background-color: var(--info);
+  }
+  &.warning {
+    background-color: var(--warning);
+  }
+  &.debug {
+    background-color: var(--debug);
+  }
+  &.error,
+  &.fatal {
+    background-color: var(--error);
+  }
+  &.occurrence {
+    background-color: var(--occurrence);
+  }
+  &.default {
+    background-color: var(--default);
+  }
+  &.unknown {
+    background-color: var(--unknown);
+  }
+`;
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -80,6 +111,10 @@ function computeNextIndexFromAction(
     default:
       throw new TypeError(`Invalid or not implemented reducer action - ${action}`);
   }
+}
+
+function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNode[] {
+  return nodes.slice();
 }
 
 interface TraceProps {
@@ -123,7 +158,7 @@ export function Trace({
   const traceDispatch = useTraceStateDispatch();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
 
-  const rerenderRef = useRef<TraceProps['rerender']>(rerender);
+  const rerenderRef = useRef(rerender);
   rerenderRef.current = rerender;
 
   const treePromiseStatusRef = useRef<Map<
@@ -135,11 +170,66 @@ export function Trace({
     treePromiseStatusRef.current = new Map();
   }
 
-  const treeRef = useRef<TraceTree>(trace);
+  const treeRef = useRef(trace);
   treeRef.current = trace;
 
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
+
+  const traceStart = trace.root.space[0];
+  const traceDuration = trace.root.space[1];
+  const hasCompressedTimelineFeature = organization.features.includes(
+    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
+  );
+
+  const visibleTraceItems = useMemo(
+    () => snapshotVisibleTraceItems(trace.list, forceRerender),
+    [trace.list, forceRerender]
+  );
+
+  const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
+    const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
+    return {
+      enabled:
+        hasCompressedTimelineFeature &&
+        traceState.preferences.compressed_timeline &&
+        trace.type === 'trace',
+      traceSpace,
+      nodes: visibleTraceItems,
+      indicators: trace.indicators,
+    };
+  }, [
+    trace.indicators,
+    traceDuration,
+    traceStart,
+    trace.type,
+    hasCompressedTimelineFeature,
+    traceState.preferences.compressed_timeline,
+    visibleTraceItems,
+  ]);
+
+  const [physicalWidth, setPhysicalWidth] = useState(
+    () => manager.view.trace_physical_space.width
+  );
+
+  const timeCompression = useMemo(
+    () =>
+      TraceTimeCompression.FromVisibleItems({
+        ...timeCompressionOptions,
+        physicalWidth,
+      }),
+    [physicalWidth, timeCompressionOptions]
+  );
+  const timeCompressionOptionsRef = useRef(timeCompressionOptions);
+  timeCompressionOptionsRef.current = timeCompressionOptions;
+
+  useLayoutEffect(() => {
+    manager.timeCompressionOptions = timeCompressionOptions;
+    manager.recomputeTimeCompression(timeCompressionOptions);
+    manager.recomputeTimelineIntervals();
+    manager.recomputeSpanToPXMatrix();
+    manager.draw();
+  }, [manager, physicalWidth, timeCompressionOptions]);
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
@@ -154,11 +244,15 @@ export function Trace({
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
+      const nextPhysicalWidth = manager.view.trace_physical_space.width;
+      setPhysicalWidth(nextPhysicalWidth);
+      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
     };
     const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
+      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
@@ -168,12 +262,17 @@ export function Trace({
       manager.recomputeSpanToPXMatrix();
       manager.draw(view);
     };
+    const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
+      const nextPhysicalWidth = manager.view.trace_physical_space.width;
+      setPhysicalWidth(nextPhysicalWidth);
+    };
 
     scheduler.on('set trace view', onTraceViewChange);
     scheduler.on('set trace space', onTraceSpaceChange);
     scheduler.on('set container physical space', onPhysicalSpaceChange);
     scheduler.on('initialize trace space', onTraceSpaceChange);
     scheduler.on('divider resize', onDividerResize);
+    scheduler.on('divider resize end', onDividerResizeEnd);
 
     return () => {
       scheduler.off('set trace view', onTraceViewChange);
@@ -181,15 +280,12 @@ export function Trace({
       scheduler.off('set container physical space', onPhysicalSpaceChange);
       scheduler.off('initialize trace space', onTraceSpaceChange);
       scheduler.off('divider resize', onDividerResize);
+      scheduler.off('divider resize end', onDividerResizeEnd);
     };
   }, [manager, scheduler]);
 
   const onNodeZoomIn = useCallback(
-    (
-      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: BaseNode,
-      value: boolean
-    ) => {
+    (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
       event.stopPropagation();
       rerenderRef.current();
 
@@ -218,11 +314,7 @@ export function Trace({
   );
 
   const onNodeExpand = useCallback(
-    (
-      event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
-      node: BaseNode,
-      value: boolean
-    ) => {
+    (event: React.MouseEvent | React.KeyboardEvent, node: BaseNode, value: boolean) => {
       event.stopPropagation();
 
       node.expand(value, treeRef.current);
@@ -447,6 +539,17 @@ export function Trace({
             </div>
           );
         })}
+        {trace.type === 'trace' &&
+          !isLoading &&
+          timeCompression.gaps.map((gap, i) => (
+            <CollapsedGapMarker
+              key={`${gap.start}-${gap.end}`}
+              gap={gap}
+              index={i}
+              manager={manager}
+              scrollContainer={scrollContainer}
+            />
+          ))}
         {traceNode && traceStartTimestamp ? (
           <VerticalTimestampIndicators
             viewmanager={manager}
@@ -480,14 +583,14 @@ function RenderTraceRow(props: {
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: BaseNode;
-  onExpand: (event: React.MouseEvent<Element>, node: BaseNode, value: boolean) => void;
+  onExpand: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   onRowClick: (
     node: BaseNode,
     event: React.MouseEvent<HTMLElement>,
     index: number
   ) => void;
   onRowKeyDown: (event: React.KeyboardEvent, index: number, node: BaseNode) => void;
-  onZoomIn: (event: React.MouseEvent<Element>, node: BaseNode, value: boolean) => void;
+  onZoomIn: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   organization: Organization;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;
@@ -615,6 +718,55 @@ function RenderTraceRow(props: {
   };
 
   return node.renderWaterfallRow(rowProps);
+}
+
+function CollapsedGapMarker({
+  gap,
+  index,
+  manager,
+  scrollContainer,
+}: {
+  gap: TraceTimeCompressionGap;
+  index: number;
+  manager: VirtualizedViewManager;
+  scrollContainer: HTMLElement | null;
+}) {
+  const registerCollapsedGapMarkerRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      manager.registerCollapsedGapMarkerRef(ref, index, gap);
+    },
+    [gap, index, manager]
+  );
+
+  const durationLabel = formatTraceDuration(gap.duration);
+  const onPillWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!scrollContainer) {
+      return;
+    }
+
+    event.preventDefault();
+    scrollContainer.scrollTop += event.deltaY;
+    scrollContainer.scrollLeft += event.deltaX;
+  };
+
+  return (
+    <div
+      ref={registerCollapsedGapMarkerRef}
+      className="TraceCollapsedGapMarker"
+      style={{pointerEvents: 'none'}}
+    >
+      <div className="TraceCollapsedGapMarkerBreak" />
+      <Tooltip title={`Skipped ${durationLabel} inactive period`}>
+        <div
+          className="TraceCollapsedGapMarkerPill"
+          style={{pointerEvents: 'auto'}}
+          onWheel={onPillWheel}
+        >
+          {durationLabel}
+        </div>
+      </Tooltip>
+    </div>
+  );
 }
 
 function VerticalTimestampIndicators({
@@ -835,6 +987,48 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
+  }
+
+  .TraceCollapsedGapMarker {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .TraceCollapsedGapMarkerBreak {
+    position: absolute;
+    top: 19px;
+    left: -2px;
+    right: -2px;
+    height: calc(100% - 19px);
+    box-sizing: border-box;
+    color: ${p => p.theme.tokens.content.secondary};
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 8px,
+      color-mix(in srgb, currentColor 24%, transparent) 8px 10px
+    );
+    border-left: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+    border-right: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+  }
+
+  .TraceCollapsedGapMarkerPill {
+    position: relative;
+    top: 20px;
+    font-size: 10px;
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    color: ${p => p.theme.tokens.content.secondary};
+    background-color: ${p => p.theme.tokens.background.primary};
+    line-height: 1;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 100px;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    cursor: default;
   }
 
   .TraceIndicatorLabelContainer {
@@ -1135,6 +1329,9 @@ const TraceStylingWrapper = styled('div')`
     &.info {
     }
     &.warning {
+      color: ${p => p.theme.tokens.content.warning};
+      --row-children-button-border-color: ${p => p.theme.tokens.content.warning};
+      --row-outline: ${p => p.theme.tokens.content.warning};
     }
     &.debug {
     }
@@ -1142,7 +1339,6 @@ const TraceStylingWrapper = styled('div')`
     &.fatal,
     &.occurrence {
       color: ${p => p.theme.tokens.content.danger};
-      --autogrouped: ${p => p.theme.tokens.content.danger};
       --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
       --row-outline: ${p => p.theme.tokens.content.danger};
     }
@@ -1178,28 +1374,8 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
       z-index: 1;
 
-      &.info {
-        background-color: var(--info);
-      }
-      &.warning {
-        background-color: var(--warning);
-      }
-      &.debug {
-        background-color: var(--debug);
-      }
-      &.error,
-      &.fatal {
-        background-color: var(--error);
-      }
-      &.occurrence {
-        background-color: var(--occurrence);
-      }
-      &.default {
-        background-color: var(--default);
-      }
-      &.unknown {
-        background-color: var(--unknown);
-      }
+      ${traceIssueIconBackgroundStyles}
+
       &.profile {
         background-color: var(--profile);
       }
@@ -1223,6 +1399,67 @@ const TraceStylingWrapper = styled('div')`
           transform: translateY(-1px);
         }
       }
+    }
+
+    .TraceIconGroup {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 18px;
+      min-width: 18px;
+      padding: 0 5px 0 5px;
+      box-sizing: border-box;
+      border-radius: ${p => p.theme.radius.lg};
+      color: ${p => p.theme.colors.white};
+      z-index: 1;
+
+      ${traceIssueIconBackgroundStyles}
+
+      .TraceIconGlyph {
+        flex: 0 0 auto;
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      svg {
+        width: 12px;
+        height: 12px;
+        fill: currentColor;
+      }
+    }
+
+    .TraceIconGroupStart {
+      transform-origin: left center;
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconGroupEnd {
+      transform-origin: right center;
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconStart {
+      transform-origin: left center;
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconEnd {
+      transform-origin: right center;
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconCount {
+      min-width: 8px;
+      font-size: ${p => p.theme.font.size.xs};
+      line-height: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
     }
 
     .TracePatternContainer {

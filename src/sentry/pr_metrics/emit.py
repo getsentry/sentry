@@ -1,0 +1,321 @@
+"""PR-metrics emission: on a tracked PR's close/merge, emit one analytics row.
+
+The row goes to Sentry's analytics pipeline (which lands in BigQuery in
+production). A PR is "tracked" once it has at least one valid
+``PullRequestAttribution`` row; untracked PRs are not emitted.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Sequence
+from typing import Any
+
+from sentry import analytics
+from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.models.commit import Commit
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityType,
+    PullRequestAttribution,
+    PullRequestMetrics,
+    PullRequestVerdict,
+)
+from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
+from sentry.pr_metrics.contracts import (
+    CLOSE_ACTION_CLOSED,
+    CLOSE_ACTION_MERGED,
+    CloseAction,
+    PrConversationAnalysis,
+)
+from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
+from sentry.utils import json, metrics
+
+logger = logging.getLogger(__name__)
+
+
+def select_verdict(
+    pull_request: PullRequest, organization: Organization
+) -> PullRequestVerdict | None:
+    """The terminal verdict Sentry can decide on its own, or ``None`` for a judge.
+
+    A judge is needed whenever the outcome can't be settled deterministically from
+    data Sentry already holds — so ``None`` is the "needs a judge" signal, and the
+    caller forwards to Seer (the judge path) rather than emitting:
+
+    - Merged with no commits after it opened → ``merged_unchanged``: the merge head
+      is the opened head, so nothing changed, by anyone. A merge with later commits
+      is ambiguous (Seer's own iteration vs. external changes) and needs the
+      diff-similarity judge.
+    - Closed with no engagement — no later commits, comments, or review comments →
+      ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
+      engagement needs the conversation judge to decide why it was closed.
+
+    The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
+    to the PR branch after it opened. Those rows are only written under
+    ``pr-metrics-activity``, which is flagged independently of emission; without it
+    a clean merge is indistinguishable from one with later commits, so we defer
+    every outcome to a judge rather than read its absence as "no later commits". A
+    missing ``PullRequestMetrics`` row is an error state — ``handle_metrics``
+    persists it before emission under the same flag, so its absence means it
+    failed — and we defer to a judge for both outcomes rather than emit zeroed
+    counters (merge) or guess abandoned (close).
+    """
+    if not is_activity_tracking_enabled(organization):
+        metrics.incr("pr_metrics.select_verdict.activity_disabled")
+        return None
+
+    metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
+    if metrics_row is None:
+        logger.warning(
+            "pr_metrics.select_verdict.metrics_row_missing",
+            extra={
+                "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
+                "pull_request_id": pull_request.id,
+            },
+        )
+        metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
+        return None
+
+    has_commits_after_open = PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+    ).exists()
+
+    if pull_request.merged_at is not None:
+        return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
+
+    has_discussion = bool(metrics_row.comments_count or metrics_row.review_comments_count)
+    if has_commits_after_open or has_discussion:
+        return None
+    return PullRequestVerdict.CLOSED_UNMERGED
+
+
+def is_pr_tracked(pull_request: PullRequest) -> bool:
+    """Whether the PR has ≥1 valid attribution — the emission tracking gate.
+
+    Mirrors the gate ``emit_pr_metrics_row`` applies, as a cheap existence check
+    so a caller can verify tracking before an irreversible step (claiming a
+    verdict) it would otherwise take for a PR that can never emit.
+    """
+    return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
+
+
+def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
+    """The PR's valid attribution signals, highest-confidence first.
+
+    Each entry carries the ``signal_type``, ``source``, and ``signal_details`` so
+    the consumer sees the full picture, ordered by attribution priority so the
+    primary attribution leads. Ties break on ``signal_type`` then ``source`` for
+    a deterministic order. Shared by emission and the Seer judge forward so both
+    hand the consumer the same ordered snapshot.
+    """
+    attributions = PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True)
+    ordered = sorted(
+        attributions,
+        key=lambda a: (-SIGNAL_TYPE_CONFIDENCE.get(a.signal_type, -1), a.signal_type, a.source),
+    )
+    return [
+        {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
+        for a in ordered
+    ]
+
+
+def _merge_commit_id(pull_request: PullRequest) -> int | None:
+    """The Sentry Commit row id for the PR's merge commit, if Sentry tracks it.
+
+    Resolved from merge_commit_sha via the (repository_id, key) unique key. Null
+    when the PR wasn't merged or Sentry never recorded the landed commit — the
+    pr_metrics module never creates Commit rows, so a match isn't guaranteed.
+    """
+    if pull_request.merge_commit_sha is None:
+        return None
+    return (
+        Commit.objects.filter(
+            repository_id=pull_request.repository_id,
+            key=pull_request.merge_commit_sha,
+        )
+        .values_list("id", flat=True)
+        .first()
+    )
+
+
+def _conversation_analysis_fields(
+    conversation_analysis: PrConversationAnalysis | None,
+) -> dict[str, Any]:
+    """The ``PrCloseMetricsEvent`` columns from the conversation judge, or ``{}``
+    (every column keeps its ``None`` default) when no analysis was supplied. Only
+    ``metadata`` is JSON-encoded; the semantic outputs get their own columns.
+    """
+    if conversation_analysis is None:
+        return {}
+    return {
+        "conversation_sentiment": conversation_analysis.sentiment,
+        "conversation_comments_bot": conversation_analysis.comments_bot,
+        "conversation_comments_human": conversation_analysis.comments_human,
+        "conversation_comments_total": conversation_analysis.comments_total,
+        "conversation_comments_judged": conversation_analysis.comments_judged,
+        "conversation_comments_truncated": conversation_analysis.comments_truncated,
+        "conversation_metadata": (
+            json.dumps(conversation_analysis.metadata)
+            if conversation_analysis.metadata is not None
+            else None
+        ),
+    }
+
+
+def build_pr_metrics_row(
+    *,
+    pull_request: PullRequest,
+    close_action: CloseAction,
+    attributions: list[dict[str, Any]],
+    group_ids: list[int],
+    conversation_analysis: PrConversationAnalysis | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
+) -> PrCloseMetricsEvent:
+    """Assemble the close/merge analytics row.
+
+    Every fact is read from the stored ``PullRequest`` / ``PullRequestMetrics``
+    rows, so the judge path (Seer RPC callback, which has no webhook payload) can
+    reuse this. ``attributions`` is passed in so the tracking gate and the
+    emitted row read the same query. A missing metrics row (a PR Sentry never saw
+    active) coalesces every counter to its default.
+
+    The judge enrichment is set on the judge path only: ``conversation_analysis``
+    is the conversation judge's result (semantic outputs become columns, its
+    ``metadata`` is JSON-encoded), and ``diagnosis_labels`` is the cross-judge
+    close-reason "why".
+    """
+    head_commit_sha = pull_request.head_commit_sha
+    closed_at = pull_request.closed_at
+    if head_commit_sha is None or closed_at is None:
+        # The webhook always persists both on a close/merge; a null here means
+        # emit ran on a PR that never reached a terminal state. Fail loud.
+        raise ValueError("PR metrics row requires a persisted head_commit_sha and closed_at")
+
+    # A bare instance carries the model's zero/false field defaults, so a PR with
+    # no stored metrics row emits zeroed counters rather than erroring.
+    metrics = (
+        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
+    )
+
+    return PrCloseMetricsEvent(
+        organization_id=pull_request.organization_id,
+        repository_id=pull_request.repository_id,
+        pull_request_id=pull_request.id,
+        pr_key=pull_request.key,
+        group_ids=group_ids,
+        close_action=close_action,
+        head_commit_sha=head_commit_sha,
+        closed_at=closed_at.isoformat(),
+        merge_commit_sha=pull_request.merge_commit_sha,
+        merge_commit_id=_merge_commit_id(pull_request),
+        merged_at=iso_or_none(pull_request.merged_at),
+        opened_at=iso_or_none(pull_request.opened_at),
+        draft=bool(pull_request.draft),
+        additions=metrics.additions,
+        deletions=metrics.deletions,
+        files_changed=metrics.files_changed,
+        commits_count=metrics.commits_count,
+        comments_count=metrics.comments_count,
+        review_comments_count=metrics.review_comments_count,
+        is_assigned=metrics.is_assigned,
+        participants_count=metrics.participants_count,
+        reviews_count=metrics.reviews_count,
+        attributions=json.dumps(attributions),
+        verdict=metrics.verdict,
+        diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
+        **_conversation_analysis_fields(conversation_analysis),
+    )
+
+
+def _activity_derived_counters(pull_request: PullRequest) -> dict[str, int]:
+    """Counters derived from the PR's stored activity log at its terminal event.
+
+    Computed at emit — not on the Seer callback — so both the no-judge and judge
+    paths populate them from data Sentry already holds, independent of whether the
+    PR is judged. Read before ``cleanup_pr_activity_task`` sweeps the activity
+    rows; the results are persisted onto ``PullRequestMetrics`` so a later
+    re-derivation (recovery) reads them off the row, not the deleted activity.
+
+    - ``reviews_count``: total ``REVIEW_SUBMITTED`` rows — every GitHub review
+      submission (a reviewer who submits twice counts twice), not distinct
+      reviewers.
+    - ``participants_count``: distinct non-empty ``sender_login`` across the PR's
+      activity, excluding ``sender_type == "Bot"`` so CI apps and automation don't
+      inflate human participation.
+
+    Both are only meaningful under ``pr-metrics-activity`` (no activity rows → 0).
+    """
+    activities = PullRequestActivity.objects.filter(pull_request=pull_request)
+    reviews_count = activities.filter(event_type=PullRequestActivityType.REVIEW_SUBMITTED).count()
+    participant_logins = {
+        login
+        for login, sender_type in activities.values_list(
+            "payload__sender_login", "payload__sender_type"
+        )
+        if login and sender_type != "Bot"
+    }
+    return {"participants_count": len(participant_logins), "reviews_count": reviews_count}
+
+
+def emit_pr_metrics_row(
+    *,
+    pull_request: PullRequest,
+    conversation_analysis: PrConversationAnalysis | None = None,
+    diagnosis_labels: Sequence[str] | None = None,
+) -> bool:
+    """Emit one BigQuery row for a tracked PR's terminal event.
+
+    The tracking gate is ≥1 valid ``PullRequestAttribution`` row. Untracked PRs
+    are skipped — we don't pay to record PRs that no Sentry feature can be
+    attributed to. Returns whether a row was emitted, for callers/tests.
+
+    Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
+    judge can call it directly via RPC callback. ``conversation_analysis`` and
+    ``diagnosis_labels`` are set only on that judge path.
+    """
+    # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
+    # and rides along on the emitted row, so the two can't diverge.
+    attributions = active_attributions(pull_request)
+    if not attributions:
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
+        return False
+
+    # Derive the activity-sourced counters at the terminal event — before the
+    # activity rows are swept post-emit — and persist them onto the metrics row so
+    # build_pr_metrics_row (and any later re-derivation for recovery) reads the
+    # same final counts. A no-op when Sentry never wrote a metrics row.
+    PullRequestMetrics.objects.filter(pull_request=pull_request).update(
+        **_activity_derived_counters(pull_request)
+    )
+
+    close_action: CloseAction = (
+        CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
+    )
+    row = build_pr_metrics_row(
+        pull_request=pull_request,
+        close_action=close_action,
+        attributions=attributions,
+        group_ids=resolved_group_ids(pull_request),
+        conversation_analysis=conversation_analysis,
+        diagnosis_labels=diagnosis_labels,
+    )
+    analytics.record(row)
+    metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})
+    logger.info(
+        "pr_metrics.emit.recorded",
+        extra={
+            "organization_id": pull_request.organization_id,
+            "repository_id": pull_request.repository_id,
+            "pull_request_id": pull_request.id,
+            "close_action": close_action,
+        },
+    )
+    # Imported here to avoid a circular import: tasks → judge → emit.
+    from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+    cleanup_pr_activity_task.delay(pull_request_id=pull_request.id)
+    return True

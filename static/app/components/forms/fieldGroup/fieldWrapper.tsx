@@ -20,7 +20,7 @@ export const FieldWrapper = styled('div')<FieldWrapperProps>`
       : css`
           flex-direction: column;
           align-items: stretch;
-        `};
+        `}
 
   ${p =>
     p.stacked && !p.inline
@@ -29,7 +29,7 @@ export const FieldWrapper = styled('div')<FieldWrapperProps>`
         `
       : css`
           padding: ${p.theme.space.xl};
-        `};
+        `}
 
   ${p =>
     !p.stacked &&
@@ -51,7 +51,6 @@ export const FieldWrapper = styled('div')<FieldWrapperProps>`
         pointer-events: none;
       }
     `}
-
 
   /* Better padding with form inside of a modal */
   ${p =>

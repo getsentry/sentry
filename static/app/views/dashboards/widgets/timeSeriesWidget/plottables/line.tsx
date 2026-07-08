@@ -56,7 +56,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     };
 
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete]) => {
-      if (isIncomplete === true) {
+      if (isIncomplete) {
         plottableSeries.push(
           LineSeries({
             ...commonOptions,
@@ -71,7 +71,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
         );
       }
 
-      if (isIncomplete === false) {
+      if (!isIncomplete) {
         plottableSeries.push(
           LineSeries({
             ...commonOptions,

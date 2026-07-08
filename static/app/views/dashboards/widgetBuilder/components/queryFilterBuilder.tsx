@@ -63,11 +63,13 @@ export function WidgetBuilderQueryFilterBuilder({
   // - Tables: only one filter (no overlay concept)
   // - Big Numbers: only one filter (single value display)
   // - Bar (Categorical): only one filter allowed, to simplify product for now
+  // - Heat Map: only one filter (single distribution)
   // - Details: only one filter (single query, key-value display)
   const canAddSearchConditions =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.HEATMAP &&
     state.displayType !== DisplayType.DETAILS &&
     state.query &&
     state.query.length < 3;
@@ -78,11 +80,13 @@ export function WidgetBuilderQueryFilterBuilder({
   // - Tables: no legend (data shown in rows)
   // - Big Numbers: no legend (single value)
   // - Bar (Categorical): no aliases (only one filter allowed, no point aliasing it)
+  // - Heat Map: no aliases (only one filter allowed, no point aliasing it)
   // - Details: no legend (single query, data shown in key-value pairs)
   const canHaveAlias =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.CATEGORICAL_BAR &&
+    state.displayType !== DisplayType.HEATMAP &&
     state.displayType !== DisplayType.DETAILS;
 
   const onAddSearchConditions = () => {
@@ -114,7 +118,7 @@ export function WidgetBuilderQueryFilterBuilder({
         const nextQueryConditionValidity = cloneDeep(queryConditionValidity);
         nextQueryConditionValidity[queryIndex] = validSearch;
         setQueryConditionValidity(nextQueryConditionValidity);
-        onQueryConditionChange(nextQueryConditionValidity.every(validity => validity));
+        onQueryConditionChange(nextQueryConditionValidity.every(Boolean));
         dispatch({
           type: BuilderStateAction.SET_QUERY,
           payload: state.query?.map((q, i) => (i === queryIndex ? field : q)) ?? [],
@@ -128,7 +132,7 @@ export function WidgetBuilderQueryFilterBuilder({
     (queryIndex: number) => () => {
       queryConditionValidity.splice(queryIndex, 1);
       setQueryConditionValidity(queryConditionValidity);
-      onQueryConditionChange(queryConditionValidity.every(validity => validity));
+      onQueryConditionChange(queryConditionValidity.every(Boolean));
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: state.query?.filter((_, i) => i !== queryIndex) ?? [],

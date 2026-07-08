@@ -11,7 +11,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {releaseComparisonChartLabels} from 'sentry/views/explore/releases/detail/utils';
 
 import type {ReleaseComparisonRow} from '.';
@@ -100,7 +100,7 @@ export function ReleaseComparisonChartRow({
           {role === 'parent' && (
             <ToggleButton
               onClick={() => onExpanderToggle(type)}
-              priority="transparent"
+              variant="transparent"
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
               aria-label={t('Toggle chart group')}
@@ -223,7 +223,7 @@ const ChartTableRow = styled('label')<{
       }
     `}
 
-    ${p =>
+  ${p =>
     p.role === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {

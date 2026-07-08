@@ -3,9 +3,12 @@ import type {Theme} from '@emotion/react';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -13,7 +16,23 @@ import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+import {HTTP_ERROR_STATUSES} from './constants';
 import {traceChronologicalSort} from './utils';
+
+const BROWSER_WEB_VITAL_MEASUREMENTS: Record<string, string> = {
+  'browser.web_vital.cls.value': 'cls',
+  'browser.web_vital.fcp.value': 'fcp',
+  'browser.web_vital.inp.value': 'inp',
+  'browser.web_vital.lcp.value': 'lcp',
+  'browser.web_vital.ttfb.value': 'ttfb',
+};
+
+const MOBILE_VITAL_MEASUREMENTS: Record<string, string> = {
+  'app.vitals.start.cold.value': 'app_start_cold',
+  'app.vitals.start.warm.value': 'app_start_warm',
+  'app.vitals.ttfd.value': 'time_to_full_display',
+  'app.vitals.ttid.value': 'time_to_initial_display',
+};
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   id: string;
@@ -142,6 +161,35 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
         result[normalizedKey] = {value};
       }
     }
+
+    if (this.value.mobile_app_vital) {
+      for (const key in this.value.mobile_app_vital) {
+        const normalizedKey = MOBILE_VITAL_MEASUREMENTS[key];
+        const value = this.value.mobile_app_vital[key];
+        if (
+          normalizedKey &&
+          typeof value === 'number' &&
+          (!result[normalizedKey] || result[normalizedKey].value === 0)
+        ) {
+          result[normalizedKey] = {value};
+        }
+      }
+    }
+
+    if (this.value.browser_web_vital) {
+      for (const key in this.value.browser_web_vital) {
+        const normalizedKey = BROWSER_WEB_VITAL_MEASUREMENTS[key];
+        const value = this.value.browser_web_vital[key];
+        if (
+          normalizedKey &&
+          typeof value === 'number' &&
+          result[normalizedKey]?.value === 0
+        ) {
+          result[normalizedKey] = {value};
+        }
+      }
+    }
+
     return result;
   }
 
@@ -155,6 +203,21 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return this.value.is_transaction
       ? undefined
       : this.findClosestParentTransaction()?.profileId;
+  }
+
+  get hasHttpError(): boolean {
+    const statusCode = Number(
+      this.value.additional_attributes?.['http.response.status_code']
+    );
+    if (!isNaN(statusCode) && statusCode >= 400) {
+      return true;
+    }
+
+    const status = this.value.additional_attributes?.['span.status'];
+    if (typeof status === 'string' && HTTP_ERROR_STATUSES.has(status)) {
+      return true;
+    }
+    return false;
   }
 
   get profilerId(): string | undefined {
@@ -187,7 +250,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     };
   }
 
-  get directVisibleChildren(): Array<BaseNode<TraceTree.NodeValue>> {
+  get directVisibleChildren(): BaseNode[] {
     if (this.value.is_transaction && !this.expanded) {
       // For collapsed eap-transactions we render the first nested transaction on each
       // descendant branch while preserving the actual tree parentage.
@@ -275,6 +338,9 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
+    if (getIsAiNode(this) && hasGenAiConversationsRedesignFeature(props.organization)) {
+      return <AiSpanDetails node={this} traceId={props.traceId} />;
+    }
     return <EAPSpanNodeDetails {...props} node={this} />;
   }
 

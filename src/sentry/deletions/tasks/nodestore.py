@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 import sentry_sdk
@@ -24,12 +25,15 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.utils import metrics
-from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
-from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.utils.snuba_rpc import (
+    SnubaRPCRateLimitExceeded,
+    SnubaRPCTimeout,
+    SnubaRPCTooManySimultaneous,
+)
 
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
@@ -45,13 +49,14 @@ class RetryTask(Exception):
     namespace=deletion_tasks,
     processing_deadline_duration=60 * 20,
     retry=Retry(
-        on=(RetryTask,),
+        on=(Exception,),
         times=MAX_RETRIES,
         delay=60 * 5,
+        ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(DeleteAborted,),
 )
-@retry(exclude=(DeleteAborted,))
 @track_group_async_operation
 def delete_events_for_groups_from_nodestore_and_eventstore(
     organization_id: int,
@@ -163,10 +168,19 @@ def fetch_events_from_eventstore(
     conditions = []
     eap_conditions: TraceItemFilter | None = build_group_id_in_filter(group_ids)
     if last_event_id and last_event_timestamp:
+        # Snuba's legacy SnQL parser (snuba_sdk.legacy.parse_datetime) only recognizes a
+        # condition value as a datetime when it has no tz offset; Event.timestamp is a
+        # tz-aware isoformat, so strip the offset to naive UTC for the legacy conditions.
+        naive_timestamp = (
+            datetime.fromisoformat(last_event_timestamp)
+            .astimezone(timezone.utc)
+            .replace(tzinfo=None)
+            .isoformat()
+        )
         conditions.extend(
             [
-                ["timestamp", "<=", last_event_timestamp],
-                [["timestamp", "<", last_event_timestamp], ["event_id", "<", last_event_id]],
+                ["timestamp", "<=", naive_timestamp],
+                [["timestamp", "<", naive_timestamp], ["event_id", "<", last_event_id]],
             ]
         )
         eap_conditions = and_trace_item_filters(
@@ -223,36 +237,46 @@ def delete_events_from_eventstore(
         eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
         eventstream.backend.end_delete_groups(eventstream_state)
 
-    delete_events_from_eap(organization_id, project_id, group_ids, dataset)
+    delete_events_from_eap.apply_async(
+        kwargs={
+            "organization_id": organization_id,
+            "project_id": project_id,
+            "group_ids": group_ids,
+            "dataset_str": dataset.value,
+        },
+    )
 
 
+@instrumented_task(
+    name="sentry.deletions.tasks.nodestore.delete_events_from_eap",
+    namespace=deletion_tasks,
+    processing_deadline_duration=60 * 2,
+    retry=Retry(
+        times=MAX_RETRIES,
+        on=(SnubaRPCTimeout, SnubaRPCRateLimitExceeded, SnubaRPCTooManySimultaneous),
+        delay=60,
+    ),
+    silo_mode=SiloMode.CELL,
+)
 def delete_events_from_eap(
     organization_id: int,
     project_id: int,
     group_ids: Sequence[int],
-    dataset: Dataset,
+    dataset_str: str,
 ) -> None:
     if not options.get("eventstream.eap.deletion-enabled"):
         return
 
-    retry_policy = ConditionalRetryPolicy(
-        test_function=lambda attempt, exc: attempt < 5
-        and isinstance(exc, SnubaRPCRateLimitExceeded),
-        delay_function=exponential_delay(1.0),
-    )
-
     try:
-        retry_policy(
-            lambda: delete_groups_from_eap_rpc(
-                organization_id=organization_id,
-                project_id=project_id,
-                group_ids=group_ids,
-                referrer="deletions.group.eap",
-            )
+        delete_groups_from_eap_rpc(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_ids=group_ids,
+            referrer="deletions.group.eap",
         )
         metrics.incr(
             "deletions.group.eap.success",
-            tags={"dataset": dataset.value},
+            tags={"dataset": dataset_str},
             sample_rate=1.0,
         )
     except Exception:
@@ -262,14 +286,15 @@ def delete_events_from_eap(
                 "organization_id": organization_id,
                 "project_id": project_id,
                 "group_ids": group_ids[:10],
-                "dataset": dataset.value,
+                "dataset": dataset_str,
             },
         )
         metrics.incr(
             "deletions.group.eap.failure",
-            tags={"dataset": dataset.value},
+            tags={"dataset": dataset_str},
             sample_rate=1.0,
         )
+        raise
 
 
 def delete_events_from_eventstore_issue_platform(

@@ -8,8 +8,8 @@ import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicato
 import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 export const fieldIsRequiredMessage = t('Field is required');
@@ -400,7 +400,7 @@ export class FormModel {
     }
 
     if (typeof value === 'boolean') {
-      return value === true;
+      return value;
     }
 
     return value !== '' && defined(value);
@@ -422,15 +422,10 @@ export class FormModel {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
 
-    return new Promise((resolve, reject) =>
-      this.api.request(endpoint, {
-        method,
-        data,
-        success: response => resolve(response),
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-        error: error => reject(error),
-      })
-    );
+    return this.api.requestPromise(endpoint, {
+      method,
+      data,
+    });
   }
 
   /**
@@ -532,7 +527,7 @@ export class FormModel {
           this.options.onSubmitSuccess(resp, this);
         }
       })
-      .catch(resp => {
+      .catch((resp: any) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
         if (this.options.resetOnError) {
@@ -648,7 +643,7 @@ export class FormModel {
 
         return data;
       })
-      .catch(resp => {
+      .catch((resp: any) => {
         // should we revert field value to last known state?
         saveSnapshot = null;
 

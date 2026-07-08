@@ -1,13 +1,15 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -18,11 +20,15 @@ import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
 import {
   useConversations,
@@ -31,18 +37,34 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
+import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
-function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+export function getConversationDetailUrl(
+  orgSlug: string,
+  conversation: Conversation,
+  projects: number[],
+  referrer = 'conversations-table'
+): string {
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
   if (conversation.startTimestamp) {
-    params.set('start', String(conversation.startTimestamp));
+    params.set(
+      'start',
+      new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString()
+    );
   }
   if (conversation.endTimestamp) {
-    params.set('end', String(conversation.endTimestamp));
+    params.set('end', new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString());
   }
+  for (const project of projects) {
+    params.append('project', String(project));
+  }
+  params.set('referrer', referrer);
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
@@ -64,7 +86,7 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
   {key: 'user', name: t('User'), width: 120},
   {key: 'steps', name: t('Steps'), width: 80},
-  {key: 'toolsUsed', name: t('Tools'), width: 200},
+  {key: 'toolsUsed', name: t('Tools'), width: 140},
   {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
   {key: 'timestamp', name: t('Last Message'), width: 120},
 ];
@@ -72,11 +94,26 @@ const defaultColumnOrder: Array<GridColumnOrder<string>> = [
 const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
 
 function ConversationsTableInner() {
+  const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
   const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+
+  const showMissingMessagesAlert =
+    !isLoading &&
+    !error &&
+    data.length > 0 &&
+    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+
+  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+    trackAnalytics('conversations.table.paginate', {
+      organization,
+      direction: pageDelta > 0 ? 'next' : 'previous',
+    });
+    setCursor(cursor, path, query, pageDelta);
+  };
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -94,7 +131,11 @@ function ConversationsTableInner() {
           column.name
         )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'inputOutput' && <CellExpander />}
+        {column.key === 'inputOutput' && (
+          // Force the cell to take as much width as possible in the table
+          // layout, otherwise GridEditable will let the last column grow.
+          <Container width="100vw" />
+        )}
       </Flex>
     );
   }, []);
@@ -108,6 +149,7 @@ function ConversationsTableInner() {
 
   return (
     <Fragment>
+      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
           isLoading={isLoading}
@@ -123,13 +165,25 @@ function ConversationsTableInner() {
           }}
         />
       </Container>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={handlePaginate} />
     </Fragment>
   );
 }
 
-function getUserDisplayName(user: ConversationUser): string {
-  return user.email || user.username || user.ip_address || t('Unknown');
+export function normalizeUserField(value: string | null | undefined): string | null {
+  if (!value || value.toLowerCase() === 'none') {
+    return null;
+  }
+  return value;
+}
+
+export function getUserDisplayName(user: ConversationUser): string | null {
+  return (
+    normalizeUserField(user.email) ||
+    normalizeUserField(user.username) ||
+    normalizeUserField(user.ip_address) ||
+    null
+  );
 }
 
 const TOOLTIP_MAX_CHARS = 2048;
@@ -137,7 +191,7 @@ const CELL_MAX_CHARS = 256;
 
 function TooltipContent({text}: {text: string}) {
   return (
-    <TooltipTextContainer>
+    <TooltipTextContainer onClick={e => e.stopPropagation()}>
       <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );
@@ -155,11 +209,14 @@ type CellContentProps = ComponentPropsWithRef<'div'> & {
   text: string;
 };
 
-function CellContent({text, ref, ...props}: CellContentProps) {
+export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
-      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+      {/* inline: no block <p>/<pre> children, so white-space:nowrap clamps to
+          one line without relying on `* {display:inline}` (Safari drops it on
+          MarkedText's async innerHTML swap, growing rows on back-nav). */}
+      <MarkedText inline text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
 }
@@ -179,7 +236,7 @@ export function InputOutputTooltipCell({text}: {text: string}) {
   );
 }
 
-function UserNotInstrumentedTooltip() {
+export function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
@@ -204,27 +261,42 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
+  const {selection} = usePageFilters();
 
-  const navigateToDetail = useCallback(() => {
-    navigate(getConversationDetailUrl(organization.slug, dataRow));
-  }, [navigate, organization.slug, dataRow]);
+  const detailUrl = getConversationDetailUrl(
+    organization.slug,
+    dataRow,
+    selection.projects
+  );
+  const listLocationState = getConversationsListLocationState(location.query);
+
+  const navigateToDetail = () => {
+    navigate(detailUrl, {state: listLocationState});
+  };
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdButton type="button" onClick={navigateToDetail}>
-          {dataRow.conversationId.slice(0, 8)}
-        </ConversationIdButton>
+        <ConversationIdLink to={detailUrl} state={listLocationState}>
+          {isUUID(dataRow.conversationId) ? (
+            dataRow.conversationId.slice(0, 8)
+          ) : (
+            <Tooltip title={dataRow.conversationId} showOnlyOnOverflow skipWrapper>
+              <ConversationIdText ellipsis>{dataRow.conversationId}</ConversationIdText>
+            </Tooltip>
+          )}
+        </ConversationIdLink>
       );
     case 'user': {
       if (!dataRow.user) {
         return (
-          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
-            <Text variant="muted">&mdash;</Text>
-          </Tooltip>
+          <InfoText variant="muted" title={<UserNotInstrumentedTooltip />}>
+            &mdash;
+          </InfoText>
         );
       }
-      const displayName = getUserDisplayName(dataRow.user);
+      const displayName = getUserDisplayName(dataRow.user) ?? t('Unknown');
       return (
         <Tooltip title={displayName} showOnlyOnOverflow>
           <Flex align="center" gap="xs" minWidth={0}>
@@ -237,7 +309,7 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow type="button" onClick={navigateToDetail}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -247,7 +319,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow type="button" onClick={navigateToDetail}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
@@ -274,7 +346,12 @@ const BodyCell = memo(function BodyCell({
     case 'tokensAndCost':
       return (
         <Text as="div" align="right">
-          <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.totalCost} />
+          <Count value={dataRow.totalTokens} /> /{' '}
+          {dataRow.totalCost !== null && dataRow.totalCost < 0 ? (
+            <NegativeCostInfo cost={dataRow.totalCost} />
+          ) : (
+            <LLMCosts cost={dataRow.totalCost} />
+          )}
         </Text>
       );
     case 'timestamp':
@@ -316,25 +393,15 @@ const SingleLineMarkdown = styled('div')`
   }
 `;
 
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
-const ConversationIdButton = styled('button')`
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+const ConversationIdLink = styled(Link)`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
   font-weight: normal;
+`;
 
-  &:hover {
-    text-decoration: underline;
-  }
+const ConversationIdText = styled(Text)`
+  display: block;
+  max-width: 100%;
+  color: inherit;
 `;
 
 const InputOutputRow = styled('button')`

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from '@sentry/scraps/compactSelect';
+import {getEscapedKey, HighlightText} from '@sentry/scraps/compactSelect';
 
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -30,7 +30,7 @@ import {
 } from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -92,10 +92,11 @@ export function createSection(
     label: section.label,
     options: section.children
       .map(key => {
-        if (!keys[key]) {
+        const tag = Object.hasOwn(keys, key) ? keys[key] : undefined;
+        if (!tag) {
           return null;
         }
-        return createItem(keys[key], getFieldDefinition(key), section);
+        return createItem(tag, getFieldDefinition(key), section);
       })
       .filter(defined),
     type: 'section',
@@ -105,18 +106,21 @@ export function createSection(
 export function createItem(
   tag: Tag,
   fieldDefinition: FieldDefinition | null,
-  section?: FilterKeySection
+  section?: FilterKeySection,
+  highlightQuery?: string
 ): KeyItem {
   const description = fieldDefinition?.desc;
+  const label = getKeyLabel(tag, fieldDefinition);
 
   const key = section ? `${section.value}:${tag.key}` : tag.key;
 
   return {
     key: getEscapedKey(key),
-    label: getKeyLabel(tag, fieldDefinition),
+    label: highlightQuery ? <HighlightText text={label} query={highlightQuery} /> : label,
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
+    tag,
     hideCheck: true,
     showDetailsInOverlay: true,
     details: () => <KeyDescription tag={tag} />,

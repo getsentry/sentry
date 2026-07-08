@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
@@ -59,7 +60,7 @@ export function RuleListRow({
   hasMetricAlerts,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
-  const [assignee, setAssignee] = useState<string>('');
+  const [assignee, setAssignee] = useState('');
 
   const isUptime = rule.type === CombinedAlertType.UPTIME;
   const isCron = rule.type === CombinedAlertType.CRONS;
@@ -339,7 +340,7 @@ export function RuleListRow({
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
                     }
                     size="zero"
-                    priority="transparent"
+                    variant="transparent"
                   >
                     {avatarElement}
                   </OverlayTrigger.Button>
@@ -390,7 +391,10 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   gap: ${p => p.theme.space.xl};
   ${p =>
     p.isIssueAlert &&
-    `padding: ${p.theme.space['2xl']} ${p.theme.space.xl}; line-height: 2.4;`}
+    css`
+      padding: ${p.theme.space['2xl']} ${p.theme.space.xl};
+      line-height: 2.4;
+    `}
 `;
 
 const AlertNameAndStatus = styled('div')`

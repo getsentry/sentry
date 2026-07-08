@@ -9,8 +9,8 @@ import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   CurrencyUnit,
@@ -59,7 +59,7 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {generateTargetQuery} from 'sentry/views/explore/utils';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
@@ -260,8 +260,44 @@ export function parseLinkHeaderFromLogsPage(
   return parseLinkHeader(linkHeader ?? null);
 }
 
-export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
+export function getLogRowTimestampMillis(row: LogTableRowItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
+}
+
+function getLogRowSortValue(
+  row: LogTableRowItem,
+  field: OurLogFieldKey
+): string | number | bigint {
+  if (
+    field === OurLogKnownFieldKey.TIMESTAMP ||
+    field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  ) {
+    try {
+      return BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
+      return BigInt(new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+    }
+  }
+  return (isRegularLogResponseItem(row) ? row[field] : undefined) ?? '';
+}
+
+export function compareLogRowsBySortBys(
+  a: LogTableRowItem,
+  b: LogTableRowItem,
+  sortBys: readonly Sort[]
+): number {
+  for (const sortBy of sortBys) {
+    const direction = sortBy.kind === 'desc' ? -1 : 1;
+    const aValue = getLogRowSortValue(a, sortBy.field);
+    const bValue = getLogRowSortValue(b, sortBy.field);
+    if (aValue < bValue) {
+      return -1 * direction;
+    }
+    if (aValue > bValue) {
+      return direction;
+    }
+  }
+  return 0;
 }
 
 export function quantizeTimestampToMinutes(
@@ -284,7 +320,7 @@ export function getLogTimestampBucketIndex(
 
 // Null indicates the data is not available yet.
 export function calculateAverageLogsPerSecond(
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+  timeseriesResult: SortedTimeSeries
 ): number | null {
   if (timeseriesResult.isLoading) {
     return null;

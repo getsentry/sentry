@@ -32,7 +32,7 @@ export function OtherProjects({projects, location, version, organization}: Props
       <SidebarSection.Content>
         <Collapsible
           expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
+            <Button variant="link" onClick={onExpand}>
               {tn(
                 'Show %s collapsed project',
                 'Show %s collapsed projects',
@@ -77,7 +77,7 @@ const Row = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) and (max-width: ${p =>
-      p.theme.breakpoints.lg}) {
+    p.theme.breakpoints.lg}) {
     grid-template-columns: 200px max-content;
   }
 `;

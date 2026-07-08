@@ -145,7 +145,7 @@ describe('EAP SampledEventsTable', () => {
     const profileLink = screen.getByRole('button', {name: 'View Profile'});
     expect(profileLink).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/prof1/flamegraph/?referrer=performance`
+      `/organizations/${organization.slug}/explore/profiles/profile/${project.slug}/prof1/flamegraph/?referrer=performance`
     );
   });
 
@@ -192,7 +192,7 @@ describe('EAP SampledEventsTable', () => {
     const profileLink = await screen.findByRole('button', {name: 'View Profile'});
     const href = profileLink.getAttribute('href') ?? '';
     expect(href).toContain(
-      `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/flamegraph/`
+      `/organizations/${organization.slug}/explore/profiles/profile/${project.slug}/flamegraph/`
     );
     expect(href).toContain('profilerId=profiler_xyz');
     expect(href).toContain('tid=0');

@@ -4,8 +4,7 @@ import GridLayout, {WidthProvider} from 'react-grid-layout';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {defined} from 'sentry/utils';
-import {uniqueId} from 'sentry/utils/guid';
+import {defined} from 'sentry/utils/defined';
 import {
   assignDefaultLayout,
   calculateColumnDepths,
@@ -58,12 +57,11 @@ export function GridPreview({widgetPreview}: Props) {
       isResizable={false}
       isDraggable={false}
       useCSSTransforms={false}
-      measureBeforeMount
     >
       {renderPreview.map(({displayType, layout}, index) => {
         const color = chartPalette[index % chartPalette.length]!;
         return (
-          <Chart key={uniqueId()} data-grid={{...layout}}>
+          <Chart key={index} data-grid={{...layout}}>
             <PreviewWrapper>
               <MiniWidget displayType={displayType} color={color} />
             </PreviewWrapper>

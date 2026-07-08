@@ -8,13 +8,14 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.pullrequest import PullRequest
 
 
 class SeerRunType(models.TextChoices):
     EXPLORER = "explorer"
-    AUTOFIX = "autofix"
     PR_REVIEW = "pr_review"
     ASSISTED_QUERY = "assisted_query"
+    FEATURE_RUN = "feature_run"
 
 
 class SeerRunMirrorStatus(models.TextChoices):
@@ -54,8 +55,16 @@ class SeerRun(DefaultFieldsModel):
         db_default=SeerRunMirrorStatus.PENDING,
     )
 
+    # What specifically triggered this run, e.g. an AutofixReferrer value.
+    referrer = models.CharField(max_length=256, null=True)
+
     last_triggered_at = models.DateTimeField()
     extras = models.JSONField(db_default={}, default=dict)
+
+    @property
+    def pull_requests(self) -> models.QuerySet[PullRequest]:
+        """The pull requests this run opened, via the SeerRunPullRequest links."""
+        return PullRequest.objects.filter(seer_run_links__seer_run=self)
 
     class Meta:
         app_label = "seer"
@@ -67,11 +76,43 @@ class SeerRun(DefaultFieldsModel):
             models.Index(fields=["organization", "user_id", "-last_triggered_at"]),
             # Per-org type breakdowns (e.g. "all PR reviews for this org").
             models.Index(fields=["organization", "type", "-last_triggered_at"]),
+            # Per-org referrer breakdowns (e.g. "all night-shift-triggered runs").
+            models.Index(fields=["organization", "referrer", "-last_triggered_at"]),
             # TTL/cleanup scans across all orgs.
             models.Index(fields=["last_triggered_at"]),
         ]
 
-    __repr__ = sane_repr("organization_id", "seer_run_state_id", "type")
+    __repr__ = sane_repr("organization_id", "seer_run_state_id", "type", "referrer")
+
+
+@cell_silo_model
+class SeerRunPullRequest(DefaultFieldsModel):
+    """Links a Seer run to a pull request it opened.
+
+    A run opens many PRs, but a PR is opened by exactly one run, so
+    ``pull_request`` is unique (one row per PR).
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="pull_request_links"
+    )
+    pull_request = FlexibleForeignKey(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
+    )
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerrunpullrequest"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["pull_request"],
+                name="seer_runpr_unique_pr",
+            ),
+        ]
+
+    __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
 
 @cell_silo_model

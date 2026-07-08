@@ -45,7 +45,7 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         integration_id: int | None = None,
-        external_id: int | None = None,
+        external_id: str | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
@@ -142,6 +142,27 @@ class RepositoryService(RpcService):
         """
         Schedules a task to update all GitLab project webhooks for an integration.
         This is used when sync settings change and webhooks need to be updated.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def auto_link_repos_by_name(
+        self,
+        *,
+        organization_id: int,
+        repo_ids: list[int] | None = None,
+        project_ids: list[int] | None = None,
+    ) -> int:
+        """
+        Auto-link repositories to projects based on name matching.
+        Only creates links when neither the repo nor the project
+        already has a ProjectRepository row.
+
+        If repo_ids is provided, only consider those repos. Otherwise all
+        unlinked repos in the org are considered.
+        If project_ids is provided, only consider those projects.
+
+        Returns the number of links created.
         """
 
 

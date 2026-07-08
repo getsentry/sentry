@@ -1,4 +1,4 @@
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,11 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('renders default values when the project has no preprod options', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
     render(<SnapshotStatusChecks />, {
       organization,
       outletContext: {project},
@@ -44,13 +48,17 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('reflects project values from explicit fields', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotStatusChecksEnabled: true,
       preprodSnapshotStatusChecksFailOnAdded: true,
       preprodSnapshotStatusChecksFailOnRemoved: false,
       preprodSnapshotStatusChecksFailOnChanged: false,
       preprodSnapshotStatusChecksFailOnRenamed: true,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
     render(<SnapshotStatusChecks />, {
       organization,
@@ -73,8 +81,12 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('saves fail_on_changed when toggled off', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -103,8 +115,12 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('saves fail_on_renamed when toggled on', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -133,8 +149,12 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('immediately hides failure condition toggles when status checks are disabled', async () => {
-    const project = ProjectFixture({options: {}});
+    const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: project,
+    });
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -147,12 +167,20 @@ describe('SnapshotStatusChecks', () => {
       initialRouterConfig,
     });
 
+    // Setup mock for after the toggle is switched off
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      body: {...project, preprodSnapshotStatusChecksEnabled: false},
+    });
+
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Enable Snapshot Status Checks'})
+      await screen.findByRole('checkbox', {
+        name: 'Enable Snapshot Status Checks',
+      })
     );
 
     expect(
-      screen.getByText('Enable status checks to configure failure conditions')
+      await screen.findByText('Enable status checks to configure failure conditions')
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('checkbox', {name: 'Fail on Changed Snapshots'})
@@ -169,9 +197,13 @@ describe('SnapshotStatusChecks', () => {
   });
 
   it('hides per-category toggles and shows a hint when status checks are disabled', async () => {
-    const project = ProjectFixture({
+    const project = DetailedProjectFixture({
       options: {},
       preprodSnapshotStatusChecksEnabled: false,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
     render(<SnapshotStatusChecks />, {
       organization,

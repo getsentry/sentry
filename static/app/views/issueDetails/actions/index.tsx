@@ -2,10 +2,11 @@ import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -14,7 +15,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
@@ -36,7 +37,6 @@ import {
   IconUpload,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
@@ -47,7 +47,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
-import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
@@ -59,16 +58,17 @@ import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
 import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
 import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
+import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
+import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
-  | {isBookmarked: boolean}
-  | {isSubscribed: boolean}
+  | {isBookmarked: boolean; inbox?: boolean}
+  | {isSubscribed: boolean; inbox?: boolean}
   | MarkReviewed
   | GroupStatusResolution;
 
@@ -92,7 +92,7 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
     }
   }
 
-  if ((data as {inbox: boolean}).inbox === false) {
+  if (data.inbox === false) {
     return t('Issue marked reviewed');
   }
 
@@ -107,6 +107,8 @@ interface GroupActionsProps {
 }
 
 export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
@@ -114,6 +116,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const location = useLocation();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
+  const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -297,28 +300,12 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onDiscard = () => {
-    const id = uniqueId();
-    addLoadingMessage(t('Discarding event\u2026'));
-
-    GroupStore.onDiscard(id, group.id);
-
-    api.request(`/issues/${group.id}/`, {
-      method: 'PUT',
-      data: {discard: true},
-      success: response => {
-        GroupStore.onDiscardSuccess(id, group.id, response);
-        navigate({
-          pathname: `/organizations/${organization.slug}/issues/`,
-          query: {project: project.id},
-        });
-      },
-      error: error => {
-        GroupStore.onDiscardError(id, group.id, error);
-      },
-      complete: clearIndicators,
-    });
     trackIssueAction('discarded');
-    IssueListCacheStore.reset();
+    discardIssue({
+      groupId: group.id,
+      orgSlug: organization.slug,
+      projectId: project.id,
+    });
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -338,7 +325,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     return (
       <Feature
         features="projects:discard-groups"
-        hookName="feature-disabled:discard-groups"
+        overrideName="feature-disabled:discard-groups"
         organization={organization}
         project={project}
         renderDisabled={renderDiscardDisabled}

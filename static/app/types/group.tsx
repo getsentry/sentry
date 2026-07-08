@@ -1,8 +1,8 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
+import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,7 +16,8 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {AvatarProject, PlatformKey, Project} from './project';
+import type {PlatformKey} from './platform';
+import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -109,8 +110,6 @@ export enum IssueCategory {
 
   PREPROD = 'preprod',
 
-  INSTRUMENTATION = 'instrumentation',
-
   CONFIGURATION = 'configuration',
 }
 
@@ -148,9 +147,6 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
-  [IssueCategory.INSTRUMENTATION]: t(
-    'Improvements to your instrumentation and SDK usage.'
-  ),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
@@ -217,6 +213,7 @@ export enum IssueType {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
+  LOW_VALUE_SPAN_CONFIGURATION = 'low_value_span_configuration',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -238,7 +235,6 @@ export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
   IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,
   IssueType.AI_DETECTED_SECURITY,
   IssueType.AI_DETECTED_CODE_HEALTH,
-  IssueType.AI_DETECTED_GENERAL,
 ]);
 
 export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
@@ -303,6 +299,7 @@ export enum IssueTitle {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
+  LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -355,6 +352,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 
   sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
+  low_value_span_configuration: IssueTitle.LOW_VALUE_SPAN_CONFIGURATION,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -385,8 +383,8 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
-  2008: IssueType.PROFILE_FRAME_DROP,
-  2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  2009: IssueType.PROFILE_FRAME_DROP,
+  2011: IssueType.PROFILE_FUNCTION_REGRESSION,
   3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   3502: IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
   3503: IssueType.AI_DETECTED_HTTP,
@@ -562,20 +560,6 @@ type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
-/**
- * Mirrors OwnershipRuleOwnerResponse from the backend
- */
-interface OwnershipRuleOwner {
-  name: string;
-  type: 'user' | 'team';
-  id?: string;
-}
-
-export interface ParsedOwnershipRule {
-  matcher: {pattern: string; type: string};
-  owners: OwnershipRuleOwner[];
-}
-
 export type IssueOwnership = {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
@@ -616,7 +600,29 @@ export enum GroupActivityType {
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
   DELETED_ATTACHMENT = 'deleted_attachment',
+  SEER_RCA_STARTED = 'seer_rca_started',
+  SEER_RCA_COMPLETED = 'seer_rca_completed',
+  SEER_SOLUTION_STARTED = 'seer_solution_started',
+  SEER_SOLUTION_COMPLETED = 'seer_solution_completed',
+  SEER_CODING_STARTED = 'seer_coding_started',
+  SEER_CODING_COMPLETED = 'seer_coding_completed',
+  SEER_PR_CREATED = 'seer_pr_created',
+  SEER_ITERATION_STARTED = 'seer_iteration_started',
+  SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
+  PULL_REQUEST_CLOSED = 'pull_request_closed',
 }
+
+export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SEER_RCA_STARTED,
+  GroupActivityType.SEER_RCA_COMPLETED,
+  GroupActivityType.SEER_SOLUTION_STARTED,
+  GroupActivityType.SEER_SOLUTION_COMPLETED,
+  GroupActivityType.SEER_CODING_STARTED,
+  GroupActivityType.SEER_CODING_COMPLETED,
+  GroupActivityType.SEER_PR_CREATED,
+  GroupActivityType.SEER_ITERATION_STARTED,
+  GroupActivityType.SEER_ITERATION_COMPLETED,
+]);
 
 interface GroupActivityBase {
   dateCreated: string;
@@ -627,7 +633,7 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-export interface GroupActivityNote extends GroupActivityBase {
+interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
@@ -698,7 +704,9 @@ interface GroupActivitySetPrivate extends GroupActivityBase {
 }
 
 interface GroupActivitySetByAge extends GroupActivityBase {
-  data: Record<string, any>;
+  data: {
+    age?: number | string;
+  };
   type: GroupActivityType.SET_RESOLVED_BY_AGE;
 }
 
@@ -759,23 +767,30 @@ interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit?: Commit;
+    commit?: Commit | null;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivityReferencedInCommit extends GroupActivityBase {
   data: {
-    commit?: Commit;
+    commit?: Commit | null;
   };
   type: GroupActivityType.REFERENCED_IN_COMMIT;
 }
 
-interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
+export interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest?: PullRequest;
+    pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
+}
+
+export interface GroupActivityPullRequestClosed extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_CLOSED;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -832,7 +847,7 @@ interface GroupActivityMerge extends GroupActivityBase {
 
 interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   data: {
-    afterDays?: number;
+    after_days?: number;
   };
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
@@ -863,8 +878,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
     assigneeType: string;
-    user: Team | User;
     assigneeEmail?: string;
+    assigneeName?: string;
     /**
      * If the user was assigned via an integration
      */
@@ -876,6 +891,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
+    user?: Team | User;
   };
   type: GroupActivityType.ASSIGNED;
 }
@@ -885,6 +901,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
     location: string;
     provider: string;
     title: string;
+    label?: string;
     new?: boolean;
   };
   type: GroupActivityType.CREATE_ISSUE;
@@ -893,6 +910,90 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 interface GroupActivityDeletedAttachment extends GroupActivityBase {
   data: Record<string, string>;
   type: GroupActivityType.DELETED_ATTACHMENT;
+}
+
+interface GroupActivitySeerRcaStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_RCA_STARTED;
+}
+
+interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    summary?: string;
+  };
+  type: GroupActivityType.SEER_RCA_COMPLETED;
+}
+
+interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_SOLUTION_STARTED;
+}
+
+interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    summary?: string;
+  };
+  type: GroupActivityType.SEER_SOLUTION_COMPLETED;
+}
+
+interface GroupActivitySeerCodingStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_STARTED;
+}
+
+interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_COMPLETED;
+}
+
+interface GroupActivitySeerPrCreated extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_CREATED;
+}
+
+interface GroupActivitySeerIterationStarted extends GroupActivityBase {
+  data: {
+    iteration_index?: number;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_ITERATION_STARTED;
+}
+
+interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
+  data: {
+    code_changes?: unknown;
+    iteration_index?: number;
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
 export type GroupActivity =
@@ -924,7 +1025,17 @@ export type GroupActivity =
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
   | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivityDeletedAttachment
+  | GroupActivitySeerRcaStarted
+  | GroupActivitySeerRcaCompleted
+  | GroupActivitySeerSolutionStarted
+  | GroupActivitySeerSolutionCompleted
+  | GroupActivitySeerCodingStarted
+  | GroupActivitySeerCodingCompleted
+  | GroupActivitySeerPrCreated
+  | GroupActivitySeerIterationStarted
+  | GroupActivitySeerIterationCompleted
+  | GroupActivityPullRequestClosed;
 
 export type Activity = GroupActivity;
 
@@ -1055,9 +1166,6 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: Array<[title: string, actionLink: string]>;
-  pluginContexts: any[]; // TODO(ts)
-  pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
   priorityLockedAt: string | null;
   project: Project;
@@ -1182,13 +1290,20 @@ export type ChunkType = {
 export type UserReport = {
   comments: string;
   dateCreated: string;
-  email: string;
+  email: string | null;
   event: {eventID: string; id: string};
   eventID: string;
   id: string;
-  issue: Group;
-  name: string;
-  user: User;
+  name: string | null;
+  user: {
+    avatarUrl: string | null;
+    email: string | null;
+    id: string;
+    ipAddress: string | null;
+    name: string | null;
+    username: string | null;
+  } | null;
+  issue?: Group | null;
 };
 
 export type KeyValueListDataItem = {

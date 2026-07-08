@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
@@ -8,6 +8,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -43,8 +44,9 @@ import {
   IconJson,
   IconPanel,
   IconProfiling,
+  IconTerminal,
 } from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -55,6 +57,7 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -64,6 +67,7 @@ import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
@@ -73,6 +77,12 @@ import {
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
+import type {DurationComparison} from './durationComparison';
+import {
+  getDurationComparison,
+  makeDurationComparisonStatusColors,
+  MIN_PCT_DURATION_DIFFERENCE,
+} from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
@@ -145,7 +155,7 @@ function SubtitleWithCopyButton({
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           text={clipboardText}
           tooltipProps={{disabled: true}}
@@ -176,7 +186,7 @@ function TitleOp({text}: {text: string}) {
           {text}
           <CopyToClipboardButton
             aria-label={t('Copy to clipboard')}
-            priority="transparent"
+            variant="transparent"
             size="zero"
             text={text}
             tooltipProps={{disabled: true}}
@@ -264,78 +274,6 @@ const HeaderContainer = styled(FlexBox)`
   gap: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-function makeDurationComparisonStatusColors(theme: Theme): {
-  equal: {light: string; normal: string};
-  faster: {light: string; normal: string};
-  slower: {light: string; normal: string};
-} {
-  return {
-    faster: {
-      light: theme.colors.green100,
-      normal: theme.colors.green600,
-    },
-    slower: {
-      light: theme.colors.red100,
-      normal: theme.colors.red600,
-    },
-    equal: {
-      light: theme.tokens.background.transparent.neutral.muted,
-      normal: theme.tokens.content.secondary,
-    },
-  };
-}
-
-const MIN_PCT_DURATION_DIFFERENCE = 10;
-
-type DurationComparison = {
-  deltaPct: number;
-  deltaText: React.JSX.Element;
-  status: 'faster' | 'slower' | 'equal';
-} | null;
-
-const getDurationComparison = (
-  baseline: number | undefined,
-  duration: number,
-  baseDescription?: string
-): DurationComparison => {
-  if (!baseline) {
-    return null;
-  }
-
-  const delta = duration - baseline;
-  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
-  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
-
-  const formattedBaseDuration = (
-    <Tooltip
-      title={baseDescription}
-      showUnderline
-      underlineColor={
-        status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted'
-      }
-    >
-      {getDuration(baseline, 2, true)}
-    </Tooltip>
-  );
-
-  const deltaText =
-    status === 'equal'
-      ? tct('equal to avg [formattedBaseDuration]', {
-          formattedBaseDuration,
-        })
-      : status === 'faster'
-        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          })
-        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          });
-
-  return {deltaPct, status, deltaText};
-};
 
 type DurationProps = {
   baseline: number | undefined;
@@ -463,7 +401,7 @@ function Highlights({
   return (
     <Fragment>
       <HighlightsWrapper>
-        <Stack justify="center" align="center">
+        <Stack justify="center" align="center" gap="xs">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
               project={project ? project : {slug: node.projectSlug ?? ''}}
@@ -471,7 +409,9 @@ function Highlights({
               hideName
             />
           </Tooltip>
-          <VerticalLine />
+          <Flex flex="1">
+            <Separator orientation="vertical" />
+          </Flex>
         </Stack>
         <Stack justify="left" flex="1" height="100%" overflow="hidden">
           <HighlightOp>{node.op}</HighlightOp>
@@ -525,7 +465,8 @@ function Highlights({
           )}
         </Stack>
       </HighlightsWrapper>
-      <SectionDivider />
+      {/* margin (deprecated) kept for parity with surrounding margin-based sections in BodyContainer */}
+      <Separator orientation="horizontal" margin="md 0" border="muted" />
     </Fragment>
   );
 }
@@ -689,7 +630,7 @@ const HighlightOp = styled('div')`
 
 const HighlightedAttributesWrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: ${p => p.theme.space.lg};
   row-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
@@ -712,19 +653,6 @@ const StyledPanelHeader = styled(PanelHeader)`
   line-height: normal;
   text-transform: none;
   overflow: hidden;
-`;
-
-const SectionDivider = styled('hr')`
-  border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
-  margin: ${p => p.theme.space.md} 0;
-`;
-
-const VerticalLine = styled('div')`
-  width: 1px;
-  height: 100%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background-color: ${p => p.theme.tokens.border.primary};
-  margin-top: ${p => p.theme.space.xs};
 `;
 
 const HighlightsWrapper = styled('div')`
@@ -961,6 +889,7 @@ function NodeActions(props: {
   threadId?: string;
 }) {
   const organization = useOrganization();
+  const user = useUser();
   const params = useParams<{traceSlug?: string}>();
 
   const transactionId = props.node.transactionId ?? '';
@@ -1010,6 +939,17 @@ function NodeActions(props: {
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
+          />
+        </Tooltip>
+      ) : null}
+      {user.isSuperuser && isEAPSpanNode(props.node) && params.traceSlug ? (
+        <Tooltip title={t('Span JSON (Superuser Only)')} skipWrapper>
+          <ActionLinkButton
+            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`}
+            size="zero"
+            aria-label={t('Span JSON (Superuser Only)')}
+            icon={<IconTerminal />}
+            external
           />
         </Tooltip>
       ) : null}
@@ -1146,7 +1086,7 @@ function CopyableCardValueWithLink({
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
-            priority="transparent"
+            variant="transparent"
             size="zero"
             text={value}
             aria-label={t('Copy to clipboard')}
@@ -1198,40 +1138,50 @@ const CardValueText = styled('span')`
 function MultilineText({
   children,
   renderFormatted,
+  clip = true,
 }: {
   children: string;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  const content = (
+    <MultilineTextWrapper {...hoverProps}>
+      <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
+        {isHovered && (
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={value => setShowRaw(value === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </Container>
+      {showRaw
+        ? children.trim()
+        : (renderFormatted?.(children) ?? (
+            <MarkedText as={MarkdownContainer} text={children} />
+          ))}
+    </MultilineTextWrapper>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
   return (
-    <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
-        <MultilineTextWrapper {...hoverProps}>
-          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
-            {isHovered && (
-              <SegmentedControl
-                size="xs"
-                value={showRaw ? 'raw' : 'formatted'}
-                onChange={value => setShowRaw(value === 'raw')}
-              >
-                <SegmentedControl.Item key="formatted">
-                  {t('Pretty')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-          </Container>
-          {showRaw
-            ? children.trim()
-            : (renderFormatted?.(children) ?? (
-                <MarkedText as={MarkdownContainer} text={children} />
-              ))}
-        </MultilineTextWrapper>
-      </StyledClippedBox>
-    </Fragment>
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
@@ -1311,11 +1261,19 @@ const MultilineTextWrapper = styled('div')`
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
+  autoCollapseLimit,
+  clip = false,
 }: {
   value: any;
+  autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   maxDefaultDepth?: number;
 }) {
-  const [showRaw, setShowRaw] = useState<boolean>(false);
+  const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
@@ -1323,11 +1281,11 @@ function MultilineJSON({
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {
-    const childPaths = getDefaultExpanded(maxDefaultDepth, json);
+    const childPaths = getDefaultExpanded(maxDefaultDepth, json, autoCollapseLimit);
     return Array.from(new Set(['$', ...childPaths]));
-  }, [maxDefaultDepth, json]);
+  }, [maxDefaultDepth, json, autoCollapseLimit]);
 
-  return (
+  const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
@@ -1362,11 +1320,22 @@ function MultilineJSON({
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}
+          autoCollapseLimit={autoCollapseLimit}
           initialExpandedPaths={computedExpandedPaths}
           withAnnotatedText
         />
       )}
     </MultilineTextWrapperMonospace>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
+  return (
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
@@ -1375,6 +1344,9 @@ const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-size: ${p => p.theme.font.size.sm};
   /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
   min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
+  /* Reserve horizontal space so the absolutely-positioned Pretty/Raw control doesn't
+   * overlap the content when the object is narrow (e.g. inside a fit-content bubble). */
+  min-width: 210px;
   pre {
     margin: 0;
     padding: 0;

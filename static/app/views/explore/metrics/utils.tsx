@@ -5,7 +5,7 @@ import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
@@ -32,6 +32,7 @@ import {
 import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
+  isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
@@ -57,14 +58,16 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
 
     search.addFilterValue('metric.name', traceMetric.name);
     search.addFilterValue('metric.type', traceMetric.type);
-    const addNoneOperators = traceMetric.unit === NONE_UNIT;
+    const metricUnit =
+      traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
+    const addNoneOperators = metricUnit === NONE_UNIT;
     if (addNoneOperators) {
       search.addOp('(');
       search.addFilterValue('!has', 'metric.unit');
       search.addOp('OR');
     }
 
-    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
+    search.addFilterValue('metric.unit', metricUnit);
 
     if (addNoneOperators) {
       search.addOp(')');
@@ -96,9 +99,46 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
     : undefined;
 }
 
+/**
+ * Splits a metrics query string into the structured metric identity and the
+ * remaining attribute predicate. The identity rides as metric.name/metric.type/
+ * metric.unit filter tokens (samples-mode form, e.g. what Ask Seer returns for a
+ * metrics query). Returns `metric: undefined` and the query untouched when the
+ * identity isn't present, so callers can ignore it.
+ */
+/**
+ * Removes any metric.name/metric.type/metric.unit identity tokens from a query,
+ * whether or not they form a complete metric. Use when the metric has been
+ * adopted onto the panel so no stale identity filters linger in the query.
+ */
+export function stripTraceMetricTokens(query: string): string {
+  const search = new MutableSearch(query);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
+  return search.formatString();
+}
+
+export function parseTraceMetricFromQuery(query: string): {
+  metric: TraceMetric | undefined;
+  rest: string;
+} {
+  const search = new MutableSearch(query);
+  const name = search.getFilterValues(TraceMetricKnownFieldKey.METRIC_NAME)[0];
+  const type = search.getFilterValues(TraceMetricKnownFieldKey.METRIC_TYPE)[0];
+  const unit = search.getFilterValues(TraceMetricKnownFieldKey.METRIC_UNIT)[0];
+  if (!name || !type || !isTraceMetricTypeValue(type)) {
+    return {metric: undefined, rest: query};
+  }
+  return {
+    metric: {name, type, unit: unit ?? NONE_UNIT},
+    rest: stripTraceMetricTokens(query),
+  };
+}
+
 export function hasDisplayMetricUnit(
   hasMetricUnitsUI: boolean,
-  metricUnit?: string
+  metricUnit?: string | null
 ): metricUnit is string {
   return (
     hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
@@ -106,7 +146,9 @@ export function hasDisplayMetricUnit(
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+  // Coerce '-' to NONE_UNIT because we do not want to allow the UI to query '-' as a unit, it's a catch-all
+  // that queries for all metrics with the same name and type regardless of the unit. These should be kept separate for now.
+  return `${metric.name}||${metric.type}||${defined(metric.unit) && metric.unit !== '-' ? metric.unit : NONE_UNIT}`;
 }
 
 export function getMetricsUnit(
@@ -261,7 +303,7 @@ export function makeMetricsAggregate({
     attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
     traceMetric.name,
     traceMetric.type,
-    traceMetric.unit ?? '-',
+    traceMetric.unit ?? NONE_UNIT,
   ];
   return `${aggregate}(${args.join(',')})`;
 }
@@ -300,7 +342,7 @@ const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
  * responses, so the frontend must do this mapping based on the selected
  * metric's unit.
  */
-export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
+export function mapMetricUnitToFieldType(metricUnit: string | null | undefined): {
   fieldType: ColumnType;
   unit: string | undefined;
 } {

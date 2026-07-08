@@ -19,8 +19,6 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils import metrics
 
 
@@ -396,10 +394,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.state: MNPlusOneState = SearchingForMNPlusOne(
             settings=self.settings,
@@ -407,25 +404,18 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
             parent_map={},
         )
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:
         self.state, performance_problem = self.state.next(span)
         if performance_problem:
             if self.detector_id is not None:
-                if performance_problem.evidence_data is None:
-                    performance_problem.evidence_data = {}
                 performance_problem.evidence_data["detector_id"] = self.detector_id
             self.stored_problems[performance_problem.fingerprint] = performance_problem
 
     def on_complete(self) -> None:
         if performance_problem := self.state.finish():
             if self.detector_id is not None:
-                if performance_problem.evidence_data is None:
-                    performance_problem.evidence_data = {}
                 performance_problem.evidence_data["detector_id"] = self.detector_id
             self.stored_problems[performance_problem.fingerprint] = performance_problem

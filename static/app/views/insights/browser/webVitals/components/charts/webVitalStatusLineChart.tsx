@@ -11,6 +11,7 @@ import {
   FIELD_ALIASES,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
@@ -57,7 +58,7 @@ export function WebVitalStatusLineChart({
   } = useFetchSpanTimeSeries(
     {
       query: search,
-      yAxis: webVital ? [`p75(measurements.${webVital})`] : [],
+      yAxis: webVital ? [`p75(${WEB_VITAL_TO_FIELD[webVital]})`] : [],
       enabled: !!webVital,
     },
     referrer
@@ -65,7 +66,7 @@ export function WebVitalStatusLineChart({
 
   const timeSeries = timeseriesData?.timeSeries || [];
   const webVitalTimeSeries = webVital
-    ? timeSeries.find(ts => ts.yAxis === `p75(measurements.${webVital})`)
+    ? timeSeries.find(ts => ts.yAxis === `p75(${WEB_VITAL_TO_FIELD[webVital]})`)
     : undefined;
 
   const includePoorThreshold = webVitalTimeSeries?.values.some(

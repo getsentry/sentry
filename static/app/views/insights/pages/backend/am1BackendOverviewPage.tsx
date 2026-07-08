@@ -25,7 +25,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -265,7 +265,7 @@ export function Am1BackendOverviewPage({
                   organization={organization}
                 />
               ) : (
-                <PerformanceDisplayProvider
+                <PerformanceDisplayContext
                   value={{performanceType: ProjectPerformanceType.BACKEND}}
                 >
                   <TeamKeyTransactionManager.Provider
@@ -291,7 +291,7 @@ export function Am1BackendOverviewPage({
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>
-                </PerformanceDisplayProvider>
+                </PerformanceDisplayContext>
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

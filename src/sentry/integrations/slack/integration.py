@@ -8,6 +8,7 @@ from typing import Any, Optional
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.identity.slack.provider import SlackIdentityProvider
 from sentry.integrations.base import (
@@ -37,7 +38,7 @@ from sentry.notifications.platform.slack.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -69,11 +70,6 @@ FEATURES = [
     ),
 ]
 
-setup_alert = {
-    "type": "info",
-    "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-}
-
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURES,
@@ -81,7 +77,7 @@ metadata = IntegrationMetadata(
     noun=_("Workspace"),
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-    aspects={"alerts": [setup_alert]},
+    aspects={},
 )
 
 
@@ -162,10 +158,11 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         renderable: SlackRenderable,
         thread_ts: str,
-    ) -> None:
+    ) -> SlackResponse | None:
+        """Post a message in a thread. Returns the posted message's ts, or None on failure."""
         client = self.get_client()
         try:
-            client.chat_postMessage(
+            return client.chat_postMessage(
                 channel=channel_id,
                 blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
                 text=renderable["text"],
@@ -174,6 +171,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
         except SlackApiError as e:
             translate_slack_api_error(e)
+            return None
 
     def send_threaded_ephemeral_message(
         self,
@@ -183,48 +181,13 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         renderable: SlackRenderable,
         thread_ts: str,
     ) -> None:
-        client = self.get_client()
-        try:
-            client.chat_postEphemeral(
-                channel=channel_id,
-                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
-                attachments=renderable.get("attachments"),
-                text=renderable["text"],
-                thread_ts=thread_ts,
-                user=slack_user_id,
-            )
-        except SlackApiError as e:
-            translate_slack_api_error(e)
-
-    @staticmethod
-    def send_threaded_ephemeral_message_static(
-        *,
-        integration_id: int,
-        channel_id: str,
-        renderable: SlackRenderable,
-        slack_user_id: str,
-        thread_ts: str | None,
-    ) -> None:
-        """
-        In most cases, you should use the instance method instead, so an organization is associated
-        with the message.
-
-        In rare cases where we cannot infer an organization, but need to invoke a Slack API, use this.
-        For example, when linking a Slack identity to a Sentry user, there could be multiple organizations
-        attached to the Slack Workspace. We cannot infer which the user may link to.
-        """
-        client = SlackSdkClient(integration_id=integration_id)
-        try:
-            client.chat_postEphemeral(
-                channel=channel_id,
-                blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
-                attachments=renderable.get("attachments"),
-                text=renderable["text"],
-                thread_ts=thread_ts,
-                user=slack_user_id,
-            )
-        except SlackApiError as e:
-            translate_slack_api_error(e)
+        workspace.send_threaded_ephemeral_message(
+            integration_id=self.model.id,
+            channel_id=channel_id,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+            thread_ts=thread_ts,
+        )
 
     def update_message(
         self,
@@ -275,12 +238,20 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         *,
         channel_id: str,
         thread_ts: str,
+        latest: str | None = None,
+        oldest: str | None = None,
+        inclusive: bool | None = None,
+        limit: int | None = None,
     ) -> list[dict[str, Any]]:
         return workspace.get_thread_history(
             integration_id=self.model.id,
             channel_id=channel_id,
             thread_ts=thread_ts,
             scopes=self.model.metadata.get("scopes"),
+            latest=latest,
+            oldest=oldest,
+            inclusive=inclusive,
+            limit=limit,
         )
 
     def set_thread_status(
@@ -368,7 +339,6 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.customize",
             "commands",
             SlackScope.APP_MENTIONS_READ,
-            SlackScope.ASSISTANT_WRITE,
         ]
     )
     # Stage new scopes here to test them via SlackStagingIntegrationProvider
@@ -389,11 +359,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         return self.identity_oauth_scopes
 
-    setup_dialog_config = {"width": 600, "height": 900}
     setup_url_path = "/extensions/slack/setup/"
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def _make_identity_provider(self) -> SlackIdentityProvider:
         return SlackIdentityProvider(

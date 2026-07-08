@@ -3,15 +3,15 @@ import {useMutation} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -54,14 +55,17 @@ type OwnedOrg = {
 };
 
 function AccountClose() {
+  const {openModal} = useModal();
+  const user = useUser();
+
   const api = useApi();
 
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
-  const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
+  const [orgsToRemove, setOrgsToRemove] = useState(new Set<string>());
   const [isLoading, setIsLoading] = useState(true);
   const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 
-  // Load organizations from all regions.
+  // Load all organizations the current user is an owner of.
   useEffect(() => {
     setIsLoading(true);
     fetchOrganizations(api, {owner: 1}).then((response: OwnedOrg[]) => {
@@ -130,8 +134,8 @@ function AccountClose() {
     removeAccount(Array.from(orgsToRemove));
   };
 
-  const HookedCustomConfirmAccountClose = HookOrDefault({
-    hookName: 'component:confirm-account-close',
+  const HookedCustomConfirmAccountClose = OverrideOrDefault({
+    overrideName: 'component:confirm-account-close',
     defaultComponent: props => <ConfirmAccountClose {...props} />,
   });
 
@@ -146,12 +150,15 @@ function AccountClose() {
         title={t('Close Account')}
         subtitle={
           <Fragment>
-            {t(
-              'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
-            )}
             <strong>
-              {t('Closing your account is permanent and cannot be undone')}!
+              {t('Closing your account is permanent and cannot be undone.')}
             </strong>
+            <br />
+            {t('This will permanently remove all associated data for your user.')}
+            <br />
+            {t(
+              'To close your user account you must also delete any organizations where you are the only Owner.'
+            )}
           </Fragment>
         }
       />
@@ -195,6 +202,7 @@ function AccountClose() {
         <HookedCustomConfirmAccountClose
           handleRemoveAccount={handleRemoveAccount}
           organizationSlugs={Array.from(orgsToRemove)}
+          userEmail={user.email}
         />
       </Flex>
     </div>

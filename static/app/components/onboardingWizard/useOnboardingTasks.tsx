@@ -67,7 +67,7 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
       enabled:
         !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
       refetchInterval: query => {
-        const data = query.state.data?.[0]?.onboardingTasks;
+        const data = query.state.data?.json?.onboardingTasks;
         if (!data) {
           return false;
         }

@@ -3,7 +3,7 @@ from typing import Any
 
 from django import forms
 
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
@@ -44,7 +44,15 @@ class IssueCategoryFilter(EventFilter):
         include_category = self.get_option("include", "true") != "false"
 
         if group:
-            category_matches = value == group.issue_category or value == group.issue_category_v2
+            # TODO(CEO): we're only temporarily handling GroupCategory.PERFORMANCE_ISSUE_CATEGORIES until we can migrate away from that data
+            # Until condition data is migrated, treat a stored PERFORMANCE value as matching any of the replacement categories too
+            if value == GroupCategory.PERFORMANCE:
+                category_matches = (
+                    group.issue_category in PERFORMANCE_ISSUE_CATEGORIES
+                    or group.issue_category == GroupCategory.PERFORMANCE
+                )
+            else:
+                category_matches = value == group.issue_category
             return category_matches if include_category else not category_matches
 
         return False

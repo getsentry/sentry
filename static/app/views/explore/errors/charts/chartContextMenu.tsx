@@ -38,7 +38,7 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
       textValue: t('Add to Dashboard'),
       label: (
         <Feature
-          hookName="feature-disabled:dashboards-edit"
+          overrideName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
           renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
         >
@@ -76,7 +76,7 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
     <DropdownMenu
       triggerProps={{
         size: 'xs',
-        priority: 'transparent',
+        variant: 'transparent',
         showChevron: false,
         'aria-label': t('Context Menu'),
         icon: <IconEllipsis />,

@@ -357,7 +357,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         # Should find the ATTACHMENT data (Relay category 4), not errors
         assert len(response.days) == 1
         assert len(response.days[0].usage) == 1
-        assert response.days[0].usage[0].category == DataCategory.ATTACHMENT
+        assert response.days[0].usage[0].category == ProtoDataCategory.DATA_CATEGORY_ATTACHMENT
         assert response.days[0].usage[0].data.accepted == 512
 
     def test_overlapping_semantics(self):

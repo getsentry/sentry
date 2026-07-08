@@ -485,6 +485,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.superuser.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isActive": "false"},
                 "changed_fields": {"is_active"},
             },
@@ -506,6 +507,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.superuser.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isStaff": "true"},
                 "changed_fields": {"is_staff"},
             },
@@ -529,6 +531,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.superuser.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isSuperuser": "true"},
                 "changed_fields": {"is_superuser"},
             },
@@ -586,6 +589,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.superuser.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isActive": "false", "isStaff": "true"},
                 "changed_fields": {"is_active", "is_staff"},
             },
@@ -886,6 +890,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.staff_user.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isActive": "false"},
                 "changed_fields": {"is_active"},
             },
@@ -909,6 +914,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.staff_user.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isStaff": "true"},
                 "changed_fields": {"is_staff"},
             },
@@ -932,6 +938,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
             extra={
                 "user_id": self.user.id,
                 "actor_id": self.staff_user.id,
+                "ip_address": "127.0.0.1",
                 "form_data": {"isSuperuser": "true"},
                 "changed_fields": {"is_superuser"},
             },

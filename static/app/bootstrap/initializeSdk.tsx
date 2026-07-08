@@ -5,26 +5,21 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import type {Event, Log} from '@sentry/core';
+import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants';
+import {
+  IGNORED_BREADCRUMB_FETCH_HOSTS,
+  IGNORED_SPAN_NAMES,
+  SENTRY_RELEASE_VERSION,
+  SPA_DSN,
+  SPA_MODE_ALLOW_URLS,
+  SPA_MODE_TRACE_PROPAGATION_TARGETS,
+} from 'sentry/constants/sdk';
 import type {Config} from 'sentry/types/system';
-import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
+import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-
-const SPA_MODE_ALLOW_URLS = [
-  'localhost',
-  'dev.getsentry.net',
-  'sentry.dev',
-  'webpack-internal://',
-];
-
-const SPA_MODE_TRACE_PROPAGATION_TARGETS = [
-  'localhost',
-  'dev.getsentry.net',
-  'sentry.dev',
-];
 
 let lastEventId: string | undefined;
 
@@ -45,23 +40,6 @@ const FILTERED_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|DELETE) .* (\d+)$/;
 
 const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
 
-// We don't care about recording breadcrumbs for these hosts. These typically
-// pollute our breadcrumbs since they may occur a LOT.
-//
-// XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
-const IGNORED_BREADCRUMB_FETCH_HOSTS = [
-  'amplitude.com',
-  'pendo.io',
-  'reload.getsentry.net',
-];
-
-// Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = [
-  'amplitude.com',
-  'pendo.io',
-  'reload.getsentry.net',
-];
-
 /**
  * Check if the message is from the console banner in `static/app/bootstrap/printConsoleBanner.ts`.
  * Used to filter it from both breadcrumbs and logs.
@@ -76,6 +54,7 @@ function isConsoleBannerMessage(message: string | undefined): boolean {
 const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 function getSentryIntegrations() {
   const integrations = [
+    Sentry.spanStreamingIntegration(),
     Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
@@ -112,13 +91,13 @@ function getSentryIntegrations() {
  */
 export function initializeSdk(config: Config) {
   // NOTE: This config is mutated by `commonInitialization`
-  const {apmSampling, sentryConfig, userIdentity} = config;
+  const {apmSampling, customerDomain, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
     : [...sentryConfig.tracePropagationTargets];
 
-  Sentry.init({
+  const sentryClient = Sentry.init({
     ...sentryConfig,
     /**
      * For SPA mode, we need a way to overwrite the default DSN from backend
@@ -140,32 +119,20 @@ export function initializeSdk(config: Config) {
     tracesSampler: context => {
       const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
       if (op.startsWith('ui.action')) {
-        return tracesSampleRate / 100;
+        return context.inheritOrSampleWith(tracesSampleRate / 100);
       }
-      return tracesSampleRate;
+      return context.inheritOrSampleWith(tracesSampleRate);
     },
-    beforeSendTransaction(event) {
-      addExtraMeasurements(event);
-      addUIElementTag(event);
+    ignoreSpans: IGNORED_SPAN_NAMES,
 
-      const filteredSpans = event.spans?.filter(span => {
-        return IGNORED_SPANS_BY_DESCRIPTION.every(
-          partialDesc => !span.description?.includes(partialDesc)
-        );
-      });
-
-      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
-      if (filteredSpans && filteredSpans?.length !== event.spans?.length) {
-        event.spans = filteredSpans;
-        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
-        event.timestamp = newEndTimestamp;
+    beforeSendSpan: Sentry.withStreamedSpan(span => {
+      const op = span.attributes?.['sentry.op'];
+      if (span.name && (op === 'pageload' || op === 'navigation')) {
+        span.name = normalizeUrl(span.name, {forceCustomerDomain: true});
       }
 
-      if (event.transaction) {
-        event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
-      }
-      return event;
-    },
+      return span;
+    }),
 
     ignoreErrors: [
       /**
@@ -234,7 +201,7 @@ export function initializeSdk(config: Config) {
     },
 
     enableLogs: true,
-    sendDefaultPii: true,
+    dataCollection: {},
     _experiments: {
       enableMetrics: true,
     },
@@ -251,15 +218,24 @@ export function initializeSdk(config: Config) {
   }
   if (window.__SENTRY__VERSION) {
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+    Sentry.setAttribute('sentry_version', window.__SENTRY__VERSION);
   }
-
-  const {customerDomain} = window.__initialData;
 
   if (customerDomain) {
     Sentry.setTag('isCustomerDomain', 'yes');
     Sentry.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
+    Sentry.setAttributes({
+      isCustomerDomain: 'yes',
+      'customerDomain.organizationUrl': customerDomain.organizationUrl,
+      'customerDomain.sentryUrl': customerDomain.sentryUrl,
+      'customerDomain.subdomain': customerDomain.subdomain,
+    });
+  }
+
+  if (sentryClient) {
+    addUIElementTagToSegmentSpan(sentryClient);
   }
 }
 

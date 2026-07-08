@@ -21,7 +21,7 @@ import {FormState} from 'sentry/components/forms/state';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {FormFieldControlState} from './controlState';
@@ -408,7 +408,7 @@ export function FormField(props: FormFieldProps) {
                         <Button onClick={handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
-                        <Button priority="primary" size="xs" onClick={handleSaveField}>
+                        <Button variant="primary" size="xs" onClick={handleSaveField}>
                           {t('Save')}
                         </Button>
                       </Fragment>

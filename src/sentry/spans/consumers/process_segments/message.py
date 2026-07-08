@@ -2,6 +2,7 @@ import logging
 import types
 import uuid
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 import sentry_sdk
@@ -10,17 +11,23 @@ from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
-from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_URL
-from sentry.ingest.transaction_clusterer.datasource.redis import record_segment_name
-from sentry.ingest.transaction_clusterer.normalization import normalize_segment_name
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection.detectors.span_first.run_detectors import (
+    SPAN_FIRST_DETECTORS_BY_GROUPTYPE,
+    compare_span_first_problems_to_control_data,
+    run_span_first_detectors,
+)
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
 from sentry.issue_detection.performance_detection import detect_performance_problems
-from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -39,9 +46,11 @@ from sentry.spans.consumers.process_segments.types import CompatibleSpan, attrib
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
+from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
+from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.safe import safe_execute
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +65,12 @@ def process_segment(
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
         * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
     )
-    with sentry_sdk.start_transaction(
+    with start_span(
         name="spans.consumers.process_segments.process_segment",
         custom_sampling_context={
             "sample_rate": sample_rate,
         },
+        transaction=True,
     ):
         return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
 
@@ -103,10 +113,43 @@ def _process_segment(
     ):
         return []
 
-    safe_execute(_normalize_segment_name, segment_span, project)
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
-    _create_models(segment_span, project)
+
+    environment_name = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)
+    release_name = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_RELEASE)
+    dist_name = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_DIST)
+    date = to_datetime(segment_span["end_timestamp"])
+
+    cache_key = f"{project.id}:{_to_string(environment_name)}:{_to_string(release_name)}:{_to_string(dist_name)}"
+
+    cache = _get_cache()
+    cache_metric_name = "spans.consumers.process_segments.cache"
+    cached_timestamp = cache.get(cache_key)
+    timestamp = int(date.timestamp())
+
+    # If no cached value exists this is the first time we've seen this combination. Here
+    # we follow the maximalist path. Models are created and onboarding signals issued.
+    if cached_timestamp is None:
+        _create_models(project, environment_name, release_name, dist_name, date)
+        cache[cache_key] = timestamp
+        metrics.incr(cache_metric_name, tags={"outcome": "miss"})
+    # If a cached value was found and the timestamp specified by the current event exceeds
+    # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS` then we
+    # perform small mutations on select models. From the code in this module this may appear
+    # to only save one or two cache lookups, however, certain billing logic tied to the
+    # feature flag check runs when this program is executed in getsentry. In the minimal
+    # case its three extra saved queries but up to six additional cache lookups have been
+    # observed.
+    elif timestamp - LAST_SEEN_INTERVAL_SECONDS >= cached_timestamp:
+        _bump_release_last_seen(project, environment_name, release_name, date)
+        cache[cache_key] = timestamp
+        metrics.incr(cache_metric_name, tags={"action": "bump", "outcome": "hit"})
+    # If a cached value was found and the timestamp does NOT exceed the interval then we
+    # do nothing! This should be the majority of events.
+    else:
+        metrics.incr(cache_metric_name, tags={"action": "noop", "outcome": "hit"})
+
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
 
@@ -183,29 +226,6 @@ def _enrich_spans(
     return segment, spans
 
 
-@metrics.wraps("spans.consumers.process_segments.normalize_segment_name")
-@sentry_sdk.trace
-def _normalize_segment_name(segment_span: CompatibleSpan, project: Project) -> None:
-    if not features.has(
-        "organizations:normalize_segment_names_in_span_enrichment", project.organization
-    ):
-        return
-
-    segment_name = attribute_value(
-        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
-    ) or segment_span.get("name")
-    if not segment_name:
-        return
-
-    source = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
-    unknown_if_parameterized = not source
-    known_to_be_unparameterized = source == TRANSACTION_SOURCE_URL
-    if unknown_if_parameterized or known_to_be_unparameterized:
-        normalize_segment_name(project, segment_span)
-
-    record_segment_name(project, segment_span)
-
-
 @metrics.wraps("spans.consumers.process_segments.add_segment_name")
 def _add_segment_name(segment: CompatibleSpan, spans: Sequence[CompatibleSpan]) -> None:
     segment_name = segment.get("name")
@@ -233,16 +253,13 @@ def _compute_breakdowns(
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
-def _create_models(segment: CompatibleSpan, project: Project) -> None:
+def _create_models(
+    project: Project, environment_name: Any, release_name: Any, dist_name: Any, date: datetime
+) -> None:
     """
     Creates the Environment and Release models, along with the necessary
     relationships between them and the Project model.
     """
-    environment_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)
-    release_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_RELEASE)
-    dist_name = attribute_value(segment, ATTRIBUTE_NAMES.SENTRY_DIST)
-    date = to_datetime(segment["end_timestamp"])
-
     environment = Environment.get_or_create(project=project, name=environment_name)
 
     if not release_name:
@@ -281,50 +298,108 @@ def _create_models(segment: CompatibleSpan, project: Project) -> None:
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
+    # Killswitch for all segment-based issue detection
     if not options.get("spans.process-segments.detect-performance-problems.enable"):
         return
 
-    event_data = build_shim_event_data(segment_span, spans)
-    performance_problems = detect_performance_problems(event_data, project, standalone=True)
-
-    if not segment_span.get("_performance_issues_spans"):
+    try:
+        # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
+        # segment span, produce occurrences from the results
+        legacy_detected_problems = _run_legacy_detectors(segment_span, spans, project)
+    except Exception:
+        logger.exception("segment_consumer_legacy_issue_detectors.error")
+        # If the legacy detectors error out, there's no point in running the experiment, so bail now
         return
 
-    # Prepare a slimmer event payload for the occurrence consumer. This event
-    # will be persisted by the consumer. Once issue detectors can run on
-    # standalone spans, we should directly build a minimal occurrence event
-    # payload here, instead.
-    event_data["spans"] = []
-    event_data["timestamp"] = event_data["datetime"]
+    # Run the new span-first detectors and compare their results to those of the legacy detectors.
+    # Note: Not all legacy detectors have span-first analogs yet. Results from those that don't are
+    # just ignored in the comparison.
+    _maybe_run_span_first_detector_parity_check(
+        segment_span, spans, project, legacy_detected_problems
+    )
 
-    for problem in performance_problems:
-        problem.type = PerformanceStreamedSpansGroupTypeExperimental
-        problem.fingerprint = (
-            f"{problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
+
+def _run_legacy_detectors(
+    segment_span: CompatibleSpan, segment: list[CompatibleSpan], project: Project
+) -> list[PerformanceProblem]:
+    """
+    Run legacy issue detectors on segment data by first creating a fake transaction event. If the
+    `_performance_issues_spans` flag is set, also create occurrences from the results.
+    """
+    # Create a fake transaction event out of the segment data, to match what the legacy detectors
+    # are expecting
+    event_data = build_shim_event_data(segment_span, segment)
+    detected_problems = detect_performance_problems(event_data, project, standalone=True)
+
+    # This flag is set in Relay, and here enables producing occurrences from the legacy detector
+    # results. For segments derived from transactions, it additionally suppresses the running of
+    # legacy detectors in `save_transaction_events`, thus preventing duplicate occurrences from
+    # being created.
+    if segment_span.get("_performance_issues_spans"):
+        # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
+        # by the consumer. Once issue detectors can run on standalone spans, we should directly
+        # build a minimal occurrence event payload here, instead.
+        event_data["spans"] = []
+        event_data["timestamp"] = event_data["datetime"]
+
+        for problem in detected_problems:
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=project.id,
+                event_id=event_data["event_id"],
+                fingerprint=[problem.fingerprint],
+                type=problem.type,
+                issue_title=problem.title,
+                subtitle=problem.desc,
+                culprit=event_data["transaction"],
+                evidence_data=problem.evidence_data or {},
+                evidence_display=problem.evidence_display,
+                detection_time=to_datetime(segment_span["end_timestamp"]),
+                level="info",
+            )
+
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+                occurrence=occurrence,
+                event_data=event_data,
+                is_buffered_spans=True,
+            )
+
+    return detected_problems
+
+
+def _maybe_run_span_first_detector_parity_check(
+    segment_span: CompatibleSpan,
+    segment: list[CompatibleSpan],
+    project: Project,
+    all_control_problems: list[PerformanceProblem],
+) -> None:
+    if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
+        return
+
+    sampled_grouptypes = [
+        grouptype_slug
+        for grouptype_slug in SPAN_FIRST_DETECTORS_BY_GROUPTYPE
+        if SpanFirstDetectorsRolloutController.should_check_experiment(grouptype_slug)
+    ]
+    if not sampled_grouptypes:
+        return
+
+    try:
+        span_first_problems_by_grouptype = run_span_first_detectors(
+            sampled_grouptypes, segment_span, segment, project
         )
 
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            resource_id=None,
-            project_id=project.id,
-            event_id=event_data["event_id"],
-            fingerprint=[problem.fingerprint],
-            type=problem.type,
-            issue_title=problem.title,
-            subtitle=problem.desc,
-            culprit=event_data["transaction"],
-            evidence_data=problem.evidence_data or {},
-            evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp"]),
-            level="info",
+        compare_span_first_problems_to_control_data(
+            span_first_problems_by_grouptype,
+            all_control_problems,
+            get_source_of_truth=lambda _: (
+                "control" if segment_span.get("_performance_issues_spans") else "neither"
+            ),
         )
-
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data=event_data,
-            is_buffered_spans=True,
-        )
+    except Exception:
+        logger.exception("span_first_detector_test.error")
 
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
@@ -371,3 +446,42 @@ def _track_outcomes(segment_span: CompatibleSpan, spans: list[CompatibleSpan]) -
         category=DataCategory.SPAN_INDEXED,
         quantity=len(spans),
     )
+
+
+@metrics.wraps("spans.consumers.process_segments.bump_release_last_seen")
+def _bump_release_last_seen(
+    project: Project, environment_name: Any, release_name: Any, date: datetime
+) -> None:
+    if not release_name:
+        return
+
+    environment = Environment.get_or_create(project=project, name=environment_name)
+
+    try:
+        release = Release.get_or_create(project=project, version=release_name, date_added=date)
+    except ValidationError:
+        return
+
+    # Bumps release-environment last-seen.
+    ReleaseEnvironment.get_or_create(
+        project=project, release=release, environment=environment, datetime=date
+    )
+
+    # Bumps release-project-environment last-seen.
+    ReleaseProjectEnvironment.get_or_create(
+        project=project, release=release, environment=environment, datetime=date
+    )
+
+
+def _to_string(s: Any) -> str:
+    return s if isinstance(s, str) else ""
+
+
+def _get_cache() -> SizedKeyCache[int]:
+    global cache
+    if cache is None:
+        cache = SizedKeyCache[int](ThreadSafeCache(LRUCache(maxlen=100_000)))
+    return cache
+
+
+cache: SizedKeyCache[int] | None = None

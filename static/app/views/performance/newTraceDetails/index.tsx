@@ -1,17 +1,18 @@
 import {useEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
@@ -33,12 +34,19 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {
+  getTraceMetaErrorCount,
+  getTraceMetaMetricsCount,
+  getTraceMetaPerformanceIssueCount,
+  getTraceMetaSpanCount,
+  useTraceMeta,
+} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
+  TRACE_WATERFALL_TIME_COMPRESSION_FEATURE,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
@@ -64,16 +72,22 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
 const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
 
 export default function TraceView() {
+  const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
+  const enableCompressedTimeline = organization.features.includes(
+    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
+  );
 
   const preferences = useMemo(
     () =>
       getInitialTracePreferences(
         TRACE_VIEW_PREFERENCES_KEY,
-        DEFAULT_TRACE_VIEW_PREFERENCES
+        DEFAULT_TRACE_VIEW_PREFERENCES,
+        'trace_view',
+        {enableCompressedTimeline}
       ),
-    []
+    [enableCompressedTimeline]
   );
 
   return (
@@ -107,17 +121,22 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
 
 function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
+  const logsEnabled = isLogsEnabled(organization);
+  const metricsEnabled = canUseMetricsUI(organization);
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useInitialLogsData();
+  const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
+  const metaMetricsCount = getTraceMetaMetricsCount(meta.data);
   const {metricsData} = useInitialTraceMetricData({
     traceId: traceSlug,
     queryParams,
-    enabled: true,
+    enabled: meta.status !== 'pending' && metaMetricsCount === undefined,
   });
+  const traceMetricsData =
+    metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
@@ -125,6 +144,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       'thread.id',
       'tags[performance.timeOrigin,number]',
       'gen_ai.operation.type',
+      'http.response.status_code',
+      'span.status',
     ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
@@ -140,34 +161,35 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: logsData,
+    timestamp: queryParams.timestamp,
     traceId: traceSlug,
   });
 
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
+    isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
     logs: logsData,
-    metrics: metricsData,
+    meta: meta.data,
+    metrics: traceMetricsData,
+    logsEnabled,
+    metricsEnabled,
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
       'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
-      'Tools: get_trace_waterfall(trace_id, span_id?) for full waterfall or specific span; ' +
-      'get_event_details(event_id?, issue_id?) for error event details; ' +
-      'get_issue_details(issue_id) for issue aggregate stats; ' +
-      'get_log_attributes(trace_id, log_message_substring) for log entries in this trace; ' +
-      'get_metric_attributes(trace_id, metric_name) for metric samples in this trace; ' +
-      'get_profile_flamegraph(profile_id, trace_id?) for CPU/memory flamegraph; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for related spans/errors/logs/metrics.',
+      'You can get the trace waterfall or focus on a specific span, get event details or issue aggregate stats, ' +
+      'get log attributes or metric attributes by trace ID, view a profile flamegraph, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
     traceId: traceSlug,
     activeTab: currentTab,
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
     services: Array.from(tree.projects.values()).map(p => p.slug),
-    errors: meta.data?.errors,
-    performanceIssues: meta.data?.performance_issues,
-    spanCount: meta.data?.span_count,
+    errors: getTraceMetaErrorCount(meta.data),
+    performanceIssues: getTraceMetaPerformanceIssueCount(meta.data),
+    spanCount: getTraceMetaSpanCount(meta.data),
     webVitals: tree.indicators.map(i => ({
       type: i.type,
       label: i.label,
@@ -183,7 +205,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <LayoutPageWithHiddenFooter flex={1}>
+        <ViewportConstrainedPage>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -192,7 +214,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             traceSlug={traceSlug}
             traceEventView={traceEventView}
             logs={logsData}
-            metrics={metricsData}
+            metrics={traceMetricsData}
           />
           <TraceInnerLayout>
             <ErrorsOnlyWarnings
@@ -241,7 +263,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
               <TraceAiTab traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </LayoutPageWithHiddenFooter>
+        </ViewportConstrainedPage>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
@@ -249,23 +271,17 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
 
-// @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
-// When that feature is enabled, the footer is no longer rendered at the bottom of the page.
-const LayoutPageWithHiddenFooter = styled(Stack)`
-  ~ footer {
-    display: none;
-  }
-`;
-
-function TraceInnerLayout(props: FlexProps<'div'>) {
-  const hasPageFrame = useHasPageFrameFeature();
+function TraceInnerLayout(props: FlexProps) {
   return (
     <Flex
       {...props}
-      background={hasPageFrame ? 'primary' : undefined}
+      background="primary"
       direction="column"
       gap="md"
-      padding="xl"
+      paddingLeft="xl"
+      paddingRight="xl"
+      paddingTop="lg"
+      paddingBottom="lg"
       flex="1"
       overflowY="auto"
     />

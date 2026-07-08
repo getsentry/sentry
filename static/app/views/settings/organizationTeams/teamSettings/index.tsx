@@ -14,6 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
@@ -153,13 +154,23 @@ export default function TeamSettings() {
                 )}
               </form.Subscribe>
               <Flex gap="sm" flexShrink={0}>
-                <Button onClick={() => form.reset()}>{t('Cancel')}</Button>
+                <form.ResetButton>{t('Cancel')}</form.ResetButton>
                 <form.SubmitButton>{t('Save')}</form.SubmitButton>
               </Flex>
             </Flex>
           )}
         </FieldGroup>
       </form.AppForm>
+
+      <AvatarChooser
+        key={team.id}
+        type="team"
+        supportedTypes={['upload', 'letter_avatar']}
+        endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
+        model={team}
+        onSave={resp => updateTeamSuccess(team.slug, resp)}
+        disabled={isDisabled}
+      />
 
       <Panel>
         <PanelHeader>{t('Team Administration')}</PanelHeader>

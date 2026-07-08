@@ -12,7 +12,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
+import {getSignupLocalities} from 'sentry/utils/cells';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -25,7 +25,7 @@ import {EncryptBackup} from './encryptBackup';
 import {GetStarted} from './getStarted';
 import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
-import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
+import type {MaybeUpdateRelocationState, StepDescriptor} from './types';
 import {UploadBackup} from './uploadBackup';
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
@@ -76,31 +76,31 @@ export function RelocationOnboarding() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
-  const regions = ConfigStore.get('regions');
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
   const [existingRelocation, setExistingRelocation] = useState('');
   const [publicKeys, setPublicKeys] = useState(new Map<string, string>());
   const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
-  const [relocationState, setRelocationState] = useSessionStorage<RelocationState>(
+  const [relocationState, setRelocationState] = useSessionStorage(
     'relocationOnboarding',
     {
       orgSlugs: '',
-      regionUrl: '',
+      localityName: '',
       promoCode: '',
     }
   );
+  const localityOptions = getSignupLocalities();
 
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
-      regions.map(region =>
-        api.requestPromise('/relocations/', {
+      localityOptions.map(option => {
+        return api.requestPromise('/relocations/', {
           method: 'GET',
-          host: region.url,
-        })
-      )
+          host: option.url,
+        });
+      })
     )
       .then(responses => {
         const response = responses.flat(1);
@@ -130,8 +130,8 @@ export function RelocationOnboarding() {
 
         // The user tried to view a later step, but at least one bit of required data was missing in
         // their local storage. Take them back to the first screen.
-        const {orgSlugs, regionUrl} = relocationState;
-        if (stepId !== 'get-started' && (!orgSlugs || !regionUrl)) {
+        const {orgSlugs, localityName} = relocationState;
+        if (stepId !== 'get-started' && (!orgSlugs || !localityName)) {
           navigate('/relocation/get-started/');
         }
 
@@ -142,7 +142,7 @@ export function RelocationOnboarding() {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, navigate, regions, relocationState, stepId]);
+  }, [api, navigate, localityOptions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,17 +151,20 @@ export function RelocationOnboarding() {
   const fetchPublicKeys = useCallback(() => {
     setPublicKeysState(LoadingState.FETCHING);
     return Promise.all(
-      regions.map(region =>
+      localityOptions.map(option =>
         api.requestPromise('/publickeys/relocations/', {
           method: 'GET',
-          host: region.url,
+          host: option.url,
         })
       )
     )
       .then(responses => {
         setPublicKeys(
           new Map<string, string>(
-            regions.map((region, index) => [region.url, responses[index].public_key])
+            localityOptions.map((option, index) => [
+              option.value,
+              responses[index].public_key,
+            ])
           )
         );
         setPublicKeysState(LoadingState.FETCHED);
@@ -170,7 +173,7 @@ export function RelocationOnboarding() {
         setPublicKeys(new Map<string, string>());
         setPublicKeysState(LoadingState.ERROR);
       });
-  }, [api, regions]);
+  }, [api, localityOptions]);
   useEffect(() => {
     fetchPublicKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,13 +263,15 @@ export function RelocationOnboarding() {
             stepIndex={stepIndex}
             onUpdateRelocationState={({
               orgSlugs,
-              regionUrl,
+              localityName,
               promoCode,
             }: MaybeUpdateRelocationState) => {
               setRelocationState({
                 orgSlugs: orgSlugs === undefined ? relocationState.orgSlugs : orgSlugs,
-                regionUrl:
-                  regionUrl === undefined ? relocationState.regionUrl : regionUrl,
+                localityName:
+                  localityName === undefined
+                    ? relocationState.localityName
+                    : localityName,
                 promoCode:
                   promoCode === undefined ? relocationState.promoCode : promoCode,
               });

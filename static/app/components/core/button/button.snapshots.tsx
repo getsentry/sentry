@@ -8,8 +8,8 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const themes = {light: lightTheme, dark: darkTheme};
 
-const allPriorities: Array<ButtonProps['priority']> = [
-  'default',
+const allVariants: Array<ButtonProps['variant']> = [
+  'secondary',
   'primary',
   'danger',
   'warning',
@@ -32,20 +32,21 @@ describe('Button', () => {
       );
     }
 
-    describe.each(allPriorities)('priority %s', priority => {
+    describe.each(allVariants)('variant %s', variant => {
       describe.each(allSizes)('size %s', size => {
         it.snapshot(
           'without icon',
           () => (
             <Wrapper>
-              <Button priority={priority} size={size}>
+              <Button variant={variant} size={size}>
                 Button
               </Button>
             </Wrapper>
           ),
           {
             group: `${themeName} – without icon`,
-            display_name: `${themeName} / ${priority} / ${size} / without icon`,
+            display_name: `${themeName} / ${variant} / ${size} / without icon`,
+            tags: {variant: String(variant), size: String(size), area: 'core'},
           }
         );
 
@@ -53,14 +54,15 @@ describe('Button', () => {
           'with icon',
           () => (
             <Wrapper>
-              <Button priority={priority} size={size} icon={<IconEdit />}>
+              <Button variant={variant} size={size} icon={<IconEdit />}>
                 Button
               </Button>
             </Wrapper>
           ),
           {
             group: `${themeName} – with icon`,
-            display_name: `${themeName} / ${priority} / ${size} / with icon`,
+            display_name: `${themeName} / ${variant} / ${size} / with icon`,
+            tags: {variant: String(variant), size: String(size), area: 'core'},
           }
         );
 
@@ -69,7 +71,7 @@ describe('Button', () => {
           () => (
             <Wrapper>
               <Button
-                priority={priority}
+                variant={variant}
                 size={size}
                 icon={<IconEdit />}
                 aria-label="Edit"
@@ -78,7 +80,8 @@ describe('Button', () => {
           ),
           {
             group: `${themeName} – icon-only`,
-            display_name: `${themeName} / ${priority} / ${size} / icon-only`,
+            display_name: `${themeName} / ${variant} / ${size} / icon-only`,
+            tags: {variant: String(variant), size: String(size), area: 'core'},
           }
         );
       });

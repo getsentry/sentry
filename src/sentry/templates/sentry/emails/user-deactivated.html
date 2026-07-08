@@ -21,7 +21,7 @@
     </tr>
   </table>
   <p>You have until <strong>{{ scheduled_deletion_datetime }} UTC</strong> to reactivate your account. After this time, your account and all associated data will be permanently deleted.</p>
-  <p>To reactivate your account, please log in before the scheduled deletion date.</p>
+  <p>To reactivate your account, <a href="{% absolute_uri '/auth/login/' %}">please log in</a> before the scheduled deletion date.</p>
   <h4>Don't recognize this activity?</h4>
   <p>If you didn't trigger this action, we recommend you immediately log in to reactivate your account and review your account security. If you determine that this activity is malicious please contact <a href="mailto:{% security_contact %}">{% security_contact %}</a>.</p>
 {% endblock %}

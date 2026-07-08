@@ -85,7 +85,7 @@ export function useTraceOnLoad(
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
 
   const traceState = useTraceState();
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
@@ -164,7 +164,7 @@ export function useTraceIssuesOnLoad(
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
 
   const traceState = useTraceState();
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<

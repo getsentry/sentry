@@ -1,19 +1,53 @@
+from datetime import datetime
+from typing import Any, TypedDict
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
-from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
+    SentryAppAvatarSerializer,
+    SentryAppAvatarSerializerResponse,
+)
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
+
+class _ActivitySentryAppEmbed(TypedDict):
+    id: str
+    name: str
+    slug: str
+    avatars: list[SentryAppAvatarSerializerResponse]
+
+
+class ActivitySerializerResponse(TypedDict):
+    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
+    id: str
+    # The serialized acting user (a user serializer response), or null for
+    # system/integration activity. Left loose: the full user shape is out of scope.
+    user: dict[str, Any] | None
+    sentry_app: _ActivitySentryAppEmbed | None
+    type: str
+    # Polymorphic by activity type (note text, commit, pull request, unmerge
+    # fingerprints + source/destination, ...). Loose by design — describing every
+    # variant is out of scope.
+    data: dict[str, Any]
+    dateCreated: datetime
+
+
 COMMIT_ACTIVITY_TYPES = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value,
     ActivityType.REFERENCED_IN_COMMIT.value,
+}
+
+PULL_REQUEST_ACTIVITY_TYPES = {
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+    ActivityType.PULL_REQUEST_CLOSED.value,
 }
 
 
@@ -39,7 +73,7 @@ class ActivitySerializer(Serializer):
         if user_ids:
             sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
         # Minimal Sentry App serialization to keep the payload minimal
-        sentry_apps = {
+        sentry_apps: dict[str, _ActivitySentryAppEmbed] = {
             str(app.proxy_user_id): {
                 "id": str(app.id),
                 "name": app.name,
@@ -69,9 +103,7 @@ class ActivitySerializer(Serializer):
             commits = {}
 
         pull_request_ids = {
-            i.data["pull_request"]
-            for i in item_list
-            if i.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
+            i.data["pull_request"] for i in item_list if i.type in PULL_REQUEST_ACTIVITY_TYPES
         }
         if pull_request_ids:
             pull_request_list = list(PullRequest.objects.filter(id__in=pull_request_ids))
@@ -81,7 +113,7 @@ class ActivitySerializer(Serializer):
             pull_requests = {
                 i: pull_requests_by_id.get(i.data["pull_request"])
                 for i in item_list
-                if i.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
+                if i.type in PULL_REQUEST_ACTIVITY_TYPES
             }
         else:
             pull_requests = {}
@@ -125,7 +157,7 @@ class ActivitySerializer(Serializer):
     def serialize(self, obj: Activity, attrs, user, **kwargs):
         if obj.type in COMMIT_ACTIVITY_TYPES:
             data = {"commit": attrs["commit"]}
-        elif obj.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value:
+        elif obj.type in PULL_REQUEST_ACTIVITY_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
         elif obj.type == ActivityType.UNMERGE_DESTINATION.value:
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}

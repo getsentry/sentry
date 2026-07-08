@@ -303,6 +303,7 @@ export function FeedbackSearch() {
       searchSource="feedback-list"
       placeholder={t('Search Feedback')}
       matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
+      disallowLogicalOperators
     />
   );
 }

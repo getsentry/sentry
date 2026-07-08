@@ -85,6 +85,20 @@ describe('LogsPage', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
@@ -114,32 +128,6 @@ describe('LogsPage', () => {
     expect(table).not.toHaveTextContent(/auto refresh/i);
     expect(table).toHaveTextContent(/Error occurred in authentication service/);
     expect(table).toHaveTextContent(/User login successful/);
-  });
-
-  it('hides the footer when logs table is expanded', async () => {
-    const organizationWithExpando = {
-      ...organization,
-      features: [...organization.features, 'ourlogs-table-expando'],
-    };
-
-    render(
-      <div>
-        <LogsPage />
-        <footer data-test-id="global-footer" />
-      </div>,
-      {
-        organization: organizationWithExpando,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
-        },
-      }
-    );
-
-    await screen.findByTestId('logs-table');
-
-    expect(screen.getByTestId('global-footer')).toBe(
-      document.querySelector('[data-hide-footer] ~ footer')
-    );
   });
 
   it('should show onboarding when project is not onboarded', async () => {
@@ -256,7 +244,7 @@ describe('LogsPage', () => {
             sampling: 'NORMAL',
             sort: '-count_message',
             statsPeriod: '24h',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(message)'],
           }),
         })
@@ -392,7 +380,8 @@ describe('LogsPage', () => {
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      expect(eventTableMock).toHaveBeenCalledTimes(3);
+      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(4);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

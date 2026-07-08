@@ -14,7 +14,7 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
-import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {AttributesSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -95,6 +95,7 @@ function UptimeSpanNodeDetails(props: UptimeSpanNodeDetailsProps) {
     traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.UPTIME_RESULTS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
+    timestamp: node.value.start_timestamp,
     enabled: true,
   });
 
@@ -138,7 +139,7 @@ function UptimeSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
-        <Attributes
+        <AttributesSection
           node={node}
           attributes={attributes}
           theme={theme}

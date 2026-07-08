@@ -66,7 +66,7 @@ function getPermissionsPreview(scopes: string[]): string {
 }
 
 export default function ApiNewToken() {
-  const [permissions, setPermissions] = useState<Permissions>({...INITIAL_PERMISSIONS});
+  const [permissions, setPermissions] = useState({...INITIAL_PERMISSIONS});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 

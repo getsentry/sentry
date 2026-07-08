@@ -2,11 +2,11 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {ApiResult} from 'sentry/types/api';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
@@ -40,6 +40,7 @@ async function fetchOrg(api: Client, slug: string): Promise<Organization> {
   // XXX(dcramer): this is duplicated in sdk.py on the backend
   scope.setTag('organization', org.id);
   scope.setTag('organization.slug', org.slug);
+  scope.setAttributes({organization: org.id, 'organization.slug': org.slug});
   scope.setContext('organization', {id: org.id, slug: org.slug});
 
   return org;

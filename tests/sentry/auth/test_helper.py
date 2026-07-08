@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TypedDict
 from unittest import mock
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, models, router, transaction
 from django.http import HttpResponseRedirect
@@ -11,13 +12,16 @@ from django.test import Client, RequestFactory
 
 from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
+from sentry.auth.exceptions import AuthIdentityUserMismatch
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
+    ERR_MERGE_FAILED,
     ERR_USER_SUSPENDED,
     OK_LINK_IDENTITY,
     AuthHelper,
     AuthIdentityHandler,
 )
+from sentry.auth.idpmigration import SSO_VERIFICATION_KEY
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -144,6 +148,24 @@ class UserResolutionTest(AuthIdentityHandlerTest):
 
         # Should resolve to user1 (org member) not user2 (primary email)
         assert handler.user == user1
+
+    def test_authenticated_user_resolves_to_session_user(self) -> None:
+        """Session user takes priority over IdP email resolution."""
+        session_user = self.set_up_user()
+        victim = self.create_user(email=self.email)
+
+        assert self.handler.user == session_user
+        assert self.handler.user != victim
+
+    def test_unauthenticated_with_no_email_match_resolves_to_anonymous(self) -> None:
+        identity: _Identity = {
+            "id": "sso_unknown",
+            "email": "nobody@nowhere.com",
+            "name": "Unknown",
+            "data": {},
+        }
+        handler = self._handler_with(identity)
+        assert isinstance(handler.user, AnonymousUser)
 
 
 @control_silo_test
@@ -471,6 +493,38 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         self._test_with_identity_belonging_to_another_user(request_user)
         assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
 
+    def test_raises_on_session_user_mismatch(self) -> None:
+        """Defense-in-depth: handle_attach_identity must refuse to write
+        when the session user differs from the resolved target user."""
+        self.set_up_user()
+        other_user = self.create_user(email="other@example.com")
+        identity: _Identity = {
+            "id": "sso_id_456",
+            "email": other_user.email,
+            "name": "Other",
+            "data": {},
+        }
+        # Build handler while unauthenticated so self.user resolves by email,
+        # then set request.user to simulate a post-login state mismatch.
+        unauthenticated_request = _set_up_request()
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_organization = serialize_rpc_organization(self.organization)
+        handler = AuthIdentityHandler(
+            self.auth_provider_inst,
+            DummyProvider(),
+            rpc_organization,
+            unauthenticated_request,
+            identity,
+        )
+        assert handler.user == other_user
+        handler.request.user = self.request.user
+
+        with pytest.raises(AuthIdentityUserMismatch):
+            handler.handle_attach_identity()
+        assert not AuthIdentity.objects.filter(
+            auth_provider=self.auth_provider_inst, ident=identity["id"]
+        ).exists()
+
 
 @control_silo_test
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
@@ -510,10 +564,30 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_unauthenticated_with_existing_user(
+    def test_unauthenticated_with_secondary_email_shows_login(
         self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
     ) -> None:
-        existing_user = self.create_user(email=self.email)
+        """When the IdP asserts a verified secondary email, the unauthenticated
+        user should be shown the login page rather than auto-linked."""
+        existing_user = self.create_user(email="primary@example.com")
+        self.create_useremail(user=existing_user, email=self.email, is_verified=True)
+
+        context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
+        assert not mock_create_key.called
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_unauthenticated_with_unverified_secondary_email_shows_login(
+        self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        """An unverified secondary email still resolves via resolve_email_to_user
+        (no is_verified filter on the query), so the user should be shown the
+        login page."""
+        existing_user = self.create_user(email="primary@example.com")
+        self.create_useremail(user=existing_user, email=self.email, is_verified=False)
+
         context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert not mock_create_key.called
         assert context["existing_user"] == existing_user
@@ -567,16 +641,120 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         )
 
     @mock.patch("sentry.auth.helper.messages")
+    def test_confirm_links_to_session_user_not_email_resolved_user(
+        self, mock_messages: mock.MagicMock
+    ) -> None:
+        # When authenticated as user A and the IdP asserts user B's email,
+        # confirming must link the identity to user A (session user).
+        session_user = self.create_user(email="other@example.com")
+        self.request.user = session_user
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.create_member(user=session_user, organization=self.organization, role="member")
+        # Create the user whose email the IdP asserted
+        self.create_user(email=self.email)
+
+        self.request.POST = {"op": "confirm"}
+        self.handler.handle_unknown_identity(self.state)
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        )
+        assert auth_identity.user_id == session_user.id
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_confirm_links_to_session_user_not_secondary_email_user(
+        self, mock_messages: mock.MagicMock
+    ) -> None:
+        """When authenticated as user A and the IdP asserts an email that is a
+        verified secondary on user B, confirming links to user A (session user)."""
+        session_user = self.create_user(email="session@example.com")
+        self.request.user = session_user
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.create_member(user=session_user, organization=self.organization, role="member")
+        other_user = self.create_user(email="primary@example.com")
+        self.create_useremail(user=other_user, email=self.email, is_verified=True)
+
+        self.request.POST = {"op": "confirm"}
+        self.handler.handle_unknown_identity(self.state)
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        )
+        assert auth_identity.user_id == session_user.id
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.auth")
+    def test_is_account_verified_auto_links_unauthenticated_user(
+        self, mock_auth: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        """Unauthenticated user who proved email ownership via verification link
+        should auto-link without needing IdP email_verified."""
+        existing_user = self.create_user(email=self.email)
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = self.create_member(
+                user=existing_user, organization=self.organization, role="member"
+            )
+
+        mock_auth.login.return_value = True
+        mock_auth.get_login_redirect.return_value = "/organizations/test-org/issues/"
+
+        # Simulate the is_account_verified flow: session has verification key
+        # that resolves to a value matching this user + email
+        verification_value = {
+            "user_id": existing_user.id,
+            "email": self.email,
+            "member_id": member.id,
+            "identity_id": self.identity["id"],
+        }
+        with (
+            mock.patch(
+                "sentry.auth.helper.get_verification_value_from_key",
+                return_value=verification_value,
+            ),
+        ):
+            self.request.session[SSO_VERIFICATION_KEY] = "test-verification-key"
+            self.handler.handle_unknown_identity(self.state)
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        )
+        assert auth_identity.user_id == existing_user.id
+
     @mock.patch("sentry.auth.helper.render_to_response")
-    def test_confirm_merge_user_mismatch_shows_error(
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_idp_email_verified_does_not_auto_link_unauthenticated_user(
+        self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        """IdP-asserted email_verified=True must not bypass the login gate
+        for unauthenticated users."""
+        existing_user = self.create_user(email=self.email)
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.create_member(user=existing_user, organization=self.organization, role="member")
+
+        identity: _Identity = {
+            "id": self.identity["id"],
+            "email": self.email,
+            "name": self.identity["name"],
+            "data": {},
+        }
+        handler = self._handler_with(identity)
+        handler.identity["email_verified"] = True
+
+        response = handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        template = mock_render.call_args.args[0]
+        assert template == "sentry/auth-confirm-identity.html"
+        assert not AuthIdentity.objects.filter(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        ).exists()
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_unauthenticated_unverified_shows_merge_error(
         self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
     ) -> None:
-        from sentry.auth.helper import ERR_MERGE_FAILED
-
-        # Log in as a different user than the one resolved by identity email
-        different_user = self.create_user(email="other@example.com")
-        self.request.user = different_user
-        # Create the user that matches the identity email
+        """op=confirm without authentication or email verification shows ERR_MERGE_FAILED."""
         self.create_user(email=self.email)
 
         self.request.POST = {"op": "confirm"}
@@ -589,7 +767,58 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
             ERR_MERGE_FAILED,
         )
 
-    # TODO: More test cases for various values of request.POST.get("op")
+    @mock.patch("sentry.auth.helper.messages")
+    def test_newuser_creates_account_and_identity(self, mock_messages: mock.MagicMock) -> None:
+        """op=newuser creates a new User and links the AuthIdentity to them."""
+        self.request.POST = {"op": "newuser"}
+        self.handler.handle_unknown_identity(self.state)
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        )
+        assert auth_identity.user.email == self.email
+
+    @mock.patch("sentry.auth.helper.auth")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_login_with_valid_credentials_returns_confirmation(
+        self, mock_render: mock.MagicMock, mock_auth: mock.MagicMock
+    ) -> None:
+        """op=login with valid credentials calls _login and re-shows the confirmation page."""
+        existing_user = self.create_user(email=self.email)
+        mock_auth.login.return_value = True
+
+        mock_form = mock.MagicMock()
+        mock_form.is_valid.return_value = True
+        mock_form.get_user.return_value = existing_user
+
+        self.request.POST = {"op": "login"}
+        with mock.patch.object(
+            type(self.handler), "_login_form", new_callable=lambda: property(lambda s: mock_form)
+        ):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_auth.login.assert_called_once()
+
+    @mock.patch("sentry.auth.helper.auth")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_login_with_invalid_credentials_returns_confirmation(
+        self, mock_render: mock.MagicMock, mock_auth: mock.MagicMock
+    ) -> None:
+        """op=login with bad credentials logs the failure and re-shows the confirmation page."""
+        self.create_user(email=self.email)
+
+        mock_form = mock.MagicMock()
+        mock_form.is_valid.return_value = False
+
+        self.request.POST = {"op": "login", "username": self.email}
+        with mock.patch.object(
+            type(self.handler), "_login_form", new_callable=lambda: property(lambda s: mock_form)
+        ):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_auth.log_auth_failure.assert_called_once()
 
 
 @control_silo_test

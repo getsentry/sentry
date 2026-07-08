@@ -127,7 +127,6 @@ type GetsentryEventParameters = {
   };
   'gen_ai_consent.view_in_settings_clicked': Record<PropertyKey, unknown>;
   'github.multi_org.upsell': {source?: string};
-  'grace_period_modal.seen': HasSub;
   'growth.clicked_enter_sandbox': {
     scenario: string;
   };
@@ -250,9 +249,6 @@ type GetsentryEventParameters = {
   'upgrade_now.modal.viewed': UpdateProps & {
     has_price_change: undefined | boolean;
   };
-  'usage_exceeded_modal.seen': HasSub;
-  'zendesk_link.clicked': {source?: string};
-  'zendesk_link.viewed': {source?: string};
 };
 
 export type AM2UpdateSurfaces =
@@ -262,7 +258,7 @@ export type AM2UpdateSurfaces =
   | 'replay_project_creation'
   | 'replay'
   | 'subscription_page';
-type UpdateProps = Pick<Subscription, 'planTier' | 'canSelfServe' | 'channel'> & {
+type UpdateProps = Pick<Subscription, 'canSelfServe' | 'channel'> & {
   has_billing_scope: boolean;
   surface: AM2UpdateSurfaces;
 };
@@ -298,8 +294,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'performance.quota_exceeded_alert.displayed':
     'Performance: Quota Exceeded Alert Displayed',
   'trial_ended_notice.dismissed_understood': 'Trial Ended Notice: Dismissed understood',
-  'grace_period_modal.seen': 'Grace Period Modal Seen',
-  'usage_exceeded_modal.seen': 'Usage Exceeded Modal Seen',
   'past_due_modal.seen': 'Past Due Modal Seen',
   'deactivated_member_alert.snoozed': 'Deactivated Member Alert: Snoozed',
   'deactivated_member_alert.upgrade_link_clicked':
@@ -373,8 +367,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'intercom_link.clicked': 'Intercom Link Clicked',
   'intercom_link.viewed': 'Intercom Link Viewed',
   'learn_more_link.clicked': 'Learn More Link Clicked',
-  'zendesk_link.clicked': 'Zendesk Link Clicked',
-  'zendesk_link.viewed': 'Zendesk Link Viewed',
   'spend_allocations.open_form': 'Spend Allocations: Form Opened',
   'spend_allocations.submit': 'Spend Allocations: Form Submitted',
   'data_consent_modal.learn_more': 'Data Consent Modal: Learn More',

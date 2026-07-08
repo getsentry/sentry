@@ -325,25 +325,40 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
     def test_invalid_email(self) -> None:
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
         assert resp.status_code == 400
-        assert resp.data == {"raw": ["Invalid rule owners: idont@exist.com"]}
+        assert resp.data == {
+            "raw": [
+                "Invalid rule owners: User idont@exist.com is not a member of this organization."
+            ]
+        }
 
     def test_invalid_team(self) -> None:
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #faketeam"})
         assert resp.status_code == 400
-        assert resp.data == {"raw": ["Invalid rule owners: #faketeam"]}
+        assert resp.data == {
+            "raw": ["Invalid rule owners: Team #faketeam does not have access to project 'bengal'."]
+        }
 
     def test_team_not_on_project(self) -> None:
         self.create_team(organization=self.organization, slug="other-team", members=[self.user])
         resp = self.client.put(self.path, {"raw": "*.js #other-team"})
         assert resp.status_code == 400
-        assert resp.data == {"raw": ["Invalid rule owners: #other-team"]}
+        assert resp.data == {
+            "raw": [
+                "Invalid rule owners: Team #other-team does not have access to project 'bengal'."
+            ]
+        }
 
     def test_invalid_mixed(self) -> None:
         resp = self.client.put(
             self.path, {"raw": "*.js idont@exist.com admin@localhost #faketeam #tiger-team"}
         )
         assert resp.status_code == 400
-        assert resp.data == {"raw": ["Invalid rule owners: #faketeam, idont@exist.com"]}
+        assert resp.data == {
+            "raw": [
+                "Invalid rule owners: Team #faketeam does not have access to project 'bengal'."
+                " User idont@exist.com is not a member of this organization."
+            ]
+        }
 
     def test_invalid_matcher_type(self) -> None:
         """Check for matcher types that aren't allowed when updating issue owners"""

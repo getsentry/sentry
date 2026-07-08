@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,7 +12,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -37,7 +36,6 @@ const VALID_TABS: PreprodTab[] = ['size', 'distribution'];
 export default function PreprodSettings() {
   const location = useLocation();
   const navigate = useNavigate();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const queryTab = decodeScalar(location?.query?.tab);
   const tab = VALID_TABS.includes(queryTab as PreprodTab)
@@ -56,23 +54,15 @@ export default function PreprodSettings() {
         subtitle={t(
           'Configure status checks and thresholds for your mobile build size analysis.'
         )}
-        action={
-          <Grid flow="column" align="center" gap="lg">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            ) : (
-              <FeedbackButton />
-            )}
-          </Grid>
-        }
       />
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Stack gap="lg">
         <PreprodQuotaAlert />
         <Container borderBottom="primary">

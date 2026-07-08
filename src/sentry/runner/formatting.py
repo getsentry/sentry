@@ -1,10 +1,36 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+import sys
+from typing import IO, TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import honcho.printer
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+class TeeStream:
+    """Mirror writes to a console stream verbatim and a log file with ANSI stripped."""
+
+    def __init__(self, console: IO[str], log_file: IO[str]) -> None:
+        self._console = console
+        self._log_file = log_file
+
+    def write(self, s: str) -> int:
+        self._console.write(s)
+        self._log_file.write(_ANSI_RE.sub("", s))
+        self._log_file.flush()
+        return len(s)
+
+    def flush(self) -> None:
+        self._console.flush()
+        self._log_file.flush()
+
+    def isatty(self) -> bool:
+        # Delegate so honcho keeps coloring the console; the file copy is stripped above.
+        return self._console.isatty()
+
 
 # Sentry colors taken from our design system. Might not look good on all
 # terminal themes tbh
@@ -75,7 +101,9 @@ def colorize_traceback(pattern: re.Match[str]) -> str:
     )
 
 
-def get_honcho_printer(*, prefix: bool, pretty: bool) -> honcho.printer.Printer:
+def get_honcho_printer(
+    *, prefix: bool, pretty: bool, output: IO[str] | TeeStream | None = None
+) -> honcho.printer.Printer:
     import honcho.printer
 
     class SentryPrinter(honcho.printer.Printer):
@@ -117,4 +145,6 @@ def get_honcho_printer(*, prefix: bool, pretty: bool) -> honcho.printer.Printer:
             for line in string.splitlines():
                 self.output.write(f"{prefix}{line}\n")
 
-    return SentryPrinter(prefix=prefix)
+    return SentryPrinter(
+        prefix=prefix, output=cast("IO[str]", output) if output is not None else sys.stdout
+    )

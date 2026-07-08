@@ -7,6 +7,7 @@ from django import forms
 from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules import EventState
@@ -69,14 +70,19 @@ class AssignedToFilter(EventFilter):
     def render_label(self) -> str:
         target_type = AssigneeTargetType(self.get_option("targetType"))
         target_identifer = self.get_option("targetIdentifier")
+        organization_id = self.project.organization_id
         if target_type == AssigneeTargetType.TEAM:
             try:
-                team = Team.objects.get(id=target_identifer)
+                team = Team.objects.get(id=target_identifer, organization_id=organization_id)
             except Team.DoesNotExist:
                 return self.label.format(**self.data)
             return self.label.format(targetType=f"team #{team.slug}")
 
         elif target_type == AssigneeTargetType.MEMBER:
+            if not OrganizationMember.objects.filter(
+                user_id=target_identifer, organization_id=organization_id
+            ).exists():
+                return self.label.format(**self.data)
             user = user_service.get_user(user_id=target_identifer)
             if user is not None:
                 return self.label.format(targetType=user.username)

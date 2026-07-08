@@ -59,6 +59,7 @@ class Spans(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -73,6 +74,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
                 additional_queries=additional_queries,
+                max_string_length=max_string_length,
             ),
             params.debug,
         )
@@ -93,7 +95,7 @@ class Spans(rpc_dataset_common.RPCBase):
 
         trace_attributes = [
             "parent_span",
-            "description",
+            "span.description",
             "span.op",
             "span.name",
             "is_transaction",
@@ -109,17 +111,35 @@ class Spans(rpc_dataset_common.RPCBase):
             "sdk.name",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
+            "measurements.app_start_cold",
+            "measurements.app_start_warm",
+            "measurements.frames_slow_rate",
+            "measurements.frames_frozen_rate",
+            "measurements.lcp",
+            "measurements.score.ratio.lcp",
+            "measurements.fcp",
+            "measurements.score.ratio.fcp",
+            "measurements.inp",
+            "measurements.score.ratio.inp",
+            "measurements.cls",
+            "measurements.score.ratio.cls",
+            "measurements.ttfb",
+            "measurements.score.ratio.ttfb",
+            # span v2 web vital values
+            "browser.web_vital.lcp.value",
+            "browser.web_vital.cls.value",
+            "browser.web_vital.inp.value",
+            "browser.web_vital.ttfb.value",
+            "browser.web_vital.fcp.value",
+            # The UI does not currently use FP values, so do not request it yet.
+            # "browser.web_vital.fp.value",
+            # span v2 mobile vital values
+            "app.vitals.start.cold.value",
+            "app.vitals.start.warm.value",
+            "app.vitals.ttid.value",
+            "app.vitals.ttfd.value",
             *additional_attributes,
         ]
-        for key in {
-            "lcp",
-            "fcp",
-            "inp",
-            "cls",
-            "ttfb",
-        }:
-            trace_attributes.append(f"measurements.{key}")
-            trace_attributes.append(f"measurements.score.ratio.{key}")
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
         columns, _ = resolver.resolve_attributes(trace_attributes)
         meta = resolver.resolve_meta(referrer=referrer)
@@ -141,7 +161,7 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
         @sentry_sdk.tracing.trace
-        def process_item_groups(item_groups):
+        def process_item_groups(item_groups: Any) -> None:
             for item_group in item_groups:
                 for span_item in item_group.items:
                     span: dict[str, Any] = {

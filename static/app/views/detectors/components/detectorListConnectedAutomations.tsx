@@ -17,6 +17,7 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {useIssueStreamDetectorContext} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
 
 type DetectorListConnectedAutomationsProps = {
@@ -84,8 +85,15 @@ export function DetectorListConnectedAutomations({
   automationIds,
   projectId,
 }: DetectorListConnectedAutomationsProps) {
-  const {data: issueStreamDetectors, isPending} =
-    useIssueStreamDetectorsForProject(projectId);
+  const batchContext = useIssueStreamDetectorContext();
+  const individualQuery = useIssueStreamDetectorsForProject(
+    batchContext ? undefined : projectId
+  );
+
+  const issueStreamDetectors = batchContext
+    ? batchContext.detectorsByProject.get(projectId)
+    : individualQuery.data;
+  const isPending = batchContext ? batchContext.isPending : individualQuery.isPending;
 
   // Combine the automation IDs from the project's issue stream detector with the directly-connected ones
   const combinedAutomationIds = useMemo(() => {

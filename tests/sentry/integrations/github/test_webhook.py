@@ -4,11 +4,13 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
+from django.test import override_settings
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
     INSTALLATION_DELETE_EVENT_EXAMPLE,
     INSTALLATION_EVENT_EXAMPLE,
+    INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE,
     ISSUES_ASSIGNED_EVENT_EXAMPLE,
     ISSUES_CLOSED_EVENT_EXAMPLE,
     ISSUES_REOPENED_EVENT_EXAMPLE,
@@ -17,28 +19,37 @@ from fixtures.github import (
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
+    push_event_with_author,
+    push_event_with_commit_authors,
 )
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
+    CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
+    _track_contributor_action_processor,
 )
-from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
+from sentry.integrations.github.webhook_types import (
+    GithubWebhookType,
+    InstallationRepositoriesEvent,
+)
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
+from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import override_options
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -125,6 +136,54 @@ class WebhookTest(APITestCase):
         )
 
         assert response.status_code == 400
+
+
+class SCMOnlyWebhookTest(APITestCase):
+    """Tests for webhook event types that have no legacy processors and only
+    publish to the SCM event stream."""
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    def create_github_integration_and_repo(self) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="12345",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        self.create_repo(
+            self.project,
+            external_id="35129377",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+    @patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
+    @patch.object(CheckSuiteWebhook, "_handle", autospec=True)
+    def test_check_suite_routes_to_handler_and_publishes_to_scm_stream(
+        self, mock_handle: MagicMock, mock_produce: MagicMock
+    ) -> None:
+        self.create_github_integration_and_repo()
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="check_suite",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        # check_suite now feeds the PR-metrics activity timeline in addition to
+        # being republished to the SCM stream.
+        assert pr_metrics_handle_check_suite in CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS
+        mock_handle.assert_called_once()
+        mock_produce.assert_called_once()
 
 
 @control_silo_test
@@ -284,88 +343,120 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
 
-    @patch(
-        "sentry.integrations.github.tasks.codecov_account_unlink.codecov_account_unlink.apply_async"
-    )
+
+@control_silo_test
+class InstallationNewPermissionsEventWebhookTest(APITestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    def _post(self) -> int:
+        body = INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE
+        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode(), self.secret
+        )
+        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode(), self.secret
+        )
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        return response.status_code
+
+    def _add_refresh_response(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/2/access_tokens",
+            json={
+                "token": "new-token",
+                "expires_at": "2099-01-01T00:00:00Z",
+                "permissions": {"contents": "write", "pull_requests": "write"},
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+    @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    @override_options(
-        {
-            "github-app.id": "123",
-            "github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "hybrid_cloud.authentication.disabled_organization_shards": [],
-            "hybrid_cloud.authentication.disabled_user_shards": [],
-        }
-    )
-    def test_installation_deleted_triggers_codecov_unlink_when_app_ids_match(
-        self, get_jwt: MagicMock, mock_codecov_unlink: MagicMock
-    ) -> None:
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+    def test_refreshes_token_and_persists_permissions(self, get_jwt: MagicMock) -> None:
+        # A token that is still valid (well in the future) so the only reason a
+        # refresh happens is that the handler expired it. Confirms we ALWAYS refresh.
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(hours=1)
         integration = self.create_integration(
             name="octocat",
             organization=self.organization,
             external_id="2",
             provider="github",
-            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            metadata={
+                "access_token": "old-token",
+                "expires_at": future_expires.isoformat(),
+                "permissions": {"contents": "read"},
+            },
         )
-        integration.add_organization(self.project.organization.id, self.user)
+        self._add_refresh_response()
 
-        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
-            response = self.client.post(
-                path=self.url,
-                data=INSTALLATION_DELETE_EVENT_EXAMPLE,
-                content_type="application/json",
-                HTTP_X_GITHUB_EVENT="installation",
-                HTTP_X_HUB_SIGNATURE="sha1=6a660af7f5c9e5dbc98e83abdff07adf40fafdf4",
-                HTTP_X_HUB_SIGNATURE_256="sha256=037b8cddfa1697fecf60e1390138e11e117a04096a02a8c52c09ab808ce6555c",
-                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-            )
-            assert response.status_code == 204
+        assert self._post() == 204
 
-        mock_codecov_unlink.assert_called_once_with(
-            kwargs={
-                "integration_id": integration.id,
-                "organization_ids": [self.organization.id],
-            }
-        )
+        # The refresh endpoint was hit even though the stored token was unexpired.
+        assert len(responses.calls) == 1
+        assert "access_tokens" in responses.calls[0].request.url
 
-    @patch(
-        "sentry.integrations.github.tasks.codecov_account_unlink.codecov_account_unlink.apply_async"
-    )
-    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    @override_options(
-        {
-            "github-app.id": "different_app_id",
-            "github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "hybrid_cloud.authentication.disabled_organization_shards": [],
-            "hybrid_cloud.authentication.disabled_user_shards": [],
+        integration = Integration.objects.get(external_id="2")
+        assert integration.metadata["access_token"] == "new-token"
+        assert integration.metadata["expires_at"] == "2099-01-01T00:00:00"
+        # Permissions returned with the refreshed token are persisted as a side effect.
+        assert integration.metadata["permissions"] == {
+            "contents": "write",
+            "pull_requests": "write",
         }
-    )
-    def test_installation_deleted_skips_codecov_unlink_when_app_ids_dont_match(
-        self, get_jwt: MagicMock, mock_codecov_unlink: MagicMock
-    ) -> None:
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        integration = self.create_integration(
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_missing_integration_is_noop(self, get_jwt: MagicMock) -> None:
+        self._add_refresh_response()
+
+        # No integration exists for external_id "2".
+        assert self._post() == 204
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_token_refresh_failure_is_non_fatal(self, get_jwt: MagicMock) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+        self.create_integration(
             name="octocat",
             organization=self.organization,
             external_id="2",
             provider="github",
-            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            metadata={
+                "access_token": "old-token",
+                "expires_at": future_expires.isoformat(),
+                "permissions": {"contents": "read"},
+            },
         )
-        integration.add_organization(self.project.organization.id, self.user)
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/2/access_tokens",
+            status=500,
+        )
 
-        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
-            response = self.client.post(
-                path=self.url,
-                data=INSTALLATION_DELETE_EVENT_EXAMPLE,
-                content_type="application/json",
-                HTTP_X_GITHUB_EVENT="installation",
-                HTTP_X_HUB_SIGNATURE="sha1=6a660af7f5c9e5dbc98e83abdff07adf40fafdf4",
-                HTTP_X_HUB_SIGNATURE_256="sha256=037b8cddfa1697fecf60e1390138e11e117a04096a02a8c52c09ab808ce6555c",
-                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-            )
-            assert response.status_code == 204
+        # A failed refresh must not surface an error to GitHub.
+        assert self._post() == 204
 
-        mock_codecov_unlink.assert_not_called()
+        # The token was expired prior to the (failed) refresh; it stays expired so
+        # the next request will retry the refresh lazily.
+        integration = Integration.objects.get(external_id="2")
+        assert integration.metadata["access_token"] is None
+        assert integration.metadata["expires_at"] is None
 
 
 @control_silo_test
@@ -435,15 +526,7 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         sha1, sha256 = self._compute_signatures(body)
 
-        with (
-            self.feature(
-                [
-                    "organizations:github-repo-auto-sync-webhook",
-                    "organizations:scm-repo-auto-sync-removal",
-                ]
-            ),
-            self.tasks(),
-        ):
+        with self.tasks():
             response = self.client.post(
                 path=self.url,
                 data=body,
@@ -490,15 +573,7 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         sha1, sha256 = self._compute_signatures(body)
 
-        with (
-            self.feature(
-                [
-                    "organizations:github-repo-auto-sync-webhook",
-                    "organizations:scm-repo-auto-sync-removal",
-                ]
-            ),
-            self.tasks(),
-        ):
+        with self.tasks():
             response = self.client.post(
                 path=self.url,
                 data=body,
@@ -704,6 +779,186 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
+    def _send_push_event(self, body: str):
+        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode("utf-8"), self.secret
+        )
+        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode("utf-8"), self.secret
+        )
+        return self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+    def _setup_github_integration_and_repo(self):
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.organization.id, self.user)
+        return integration
+
+    @responses.activate
+    def test_creates_external_actor_for_new_commit_author(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        integration = self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        external_actor = external_actors[0]
+        assert external_actor.user_id == member.id
+        assert external_actor.external_name == "@newdev"
+        assert external_actor.provider == ExternalProviders.GITHUB.value
+        assert external_actor.integration_id == integration.id
+        assert external_actor.source == ExternalActorSource.COMMIT_AUTHOR.value
+
+    @responses.activate
+    def test_skips_external_actor_for_noreply_email(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(
+                name="New Dev",
+                email="newdev@users.noreply.github.com",
+                username="newdev",
+            )
+        )
+        assert response.status_code == 204
+
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+    @responses.activate
+    def test_skips_external_actor_when_email_does_not_match_user(self) -> None:
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(
+                name="Stranger", email="stranger@example.com", username="stranger"
+            )
+        )
+        assert response.status_code == 204
+
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+    @responses.activate
+    def test_external_actor_creation_is_idempotent(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        body = push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        assert self._send_push_event(body).status_code == 204
+        # Re-sending creates a new CommitAuthor lookup but must not duplicate the mapping.
+        assert self._send_push_event(body).status_code == 204
+
+        assert (
+            ExternalActor.objects.filter(
+                organization_id=self.organization.id, user_id=member.id
+            ).count()
+            == 1
+        )
+
+    @responses.activate
+    def test_creates_external_actor_when_username_arrives_in_later_push(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        # GitHub omits the username when the commit email isn't tied to a GitHub
+        # account, so the first push creates the author without one.
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com")
+        )
+        assert response.status_code == 204
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+        # A later push for the same email carries the username; the reused author
+        # must still gain its ExternalActor mapping.
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        assert external_actors[0].user_id == member.id
+        assert external_actors[0].external_name == "@newdev"
+
+    @responses.activate
+    def test_creates_external_actor_when_username_arrives_in_later_commit(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        # Within a single push, the first commit lacks the username but a later
+        # commit for the same email includes it.
+        response = self._send_push_event(
+            push_event_with_commit_authors(
+                [
+                    {"name": "New Dev", "email": "newdev@example.com", "username": None},
+                    {"name": "New Dev", "email": "newdev@example.com", "username": "newdev"},
+                ]
+            )
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        assert external_actors[0].user_id == member.id
+        assert external_actors[0].external_name == "@newdev"
+
+    @responses.activate
+    def test_does_not_duplicate_external_actor_for_casing_variant(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        integration = self._setup_github_integration_and_repo()
+
+        # Pre-existing mapping uses a different casing than the webhook payload.
+        existing = ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            user_id=member.id,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@NewDev",
+        )
+
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(
+            ExternalActor.objects.filter(organization_id=self.organization.id, user_id=member.id)
+        )
+        assert len(external_actors) == 1
+        # The original casing is preserved; no casing-variant duplicate is created.
+        assert external_actors[0].id == existing.id
+        assert external_actors[0].external_name == "@NewDev"
+
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
@@ -790,7 +1045,7 @@ class PushEventWebhookTest(APITestCase):
         assert_success_metric(mock_record)
 
     @responses.activate
-    @override_options({"viewer-context.enabled": True})
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_viewer_context_set_during_handler(self, mock_record: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during webhook processing."""
@@ -1060,6 +1315,18 @@ class PullRequestEventWebhookTest(APITestCase):
         sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha256", body, self.secret)
         return f"sha256={sig}"
 
+    def _post_pull_request_event(self, body: bytes) -> None:
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
     def _create_integration_and_send_pull_request_opened_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1223,6 +1490,15 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
+        # Emit-sourced facts persisted for the PR metrics pipeline.
+        assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+        assert pr.state == PullRequestLifecycleState.OPEN
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.closed_at is None
+        assert pr.merged_at is None
+        # The opened fixture omits the draft flag.
+        assert pr.draft is None
+
         self.assert_group_link(group, pr)
 
         assert_success_metric(mock_record)
@@ -1385,6 +1661,55 @@ class PullRequestEventWebhookTest(APITestCase):
 
         self.assert_group_link(group, pr)
 
+    def test_ready_for_review_updates_draft_on_existing_row(self) -> None:
+        # A PR opened as a draft and later marked ready: the second webhook must
+        # refresh draft on the existing row (update_or_create updates defaults,
+        # it doesn't only create), not leave the stale draft=True or fork a row.
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        repo = Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        opened["pull_request"]["draft"] = True
+        self._post_pull_request_event(json.dumps(opened).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.draft is True
+        assert pr.state == PullRequestLifecycleState.OPEN
+
+        ready = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        ready["action"] = "ready_for_review"
+        ready["pull_request"]["draft"] = False
+        self._post_pull_request_event(json.dumps(ready).encode())
+
+        # Re-fetch (not refresh_from_db) so the row is read fresh.
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.draft is False
+        # Same row updated, not a duplicate.
+        assert (
+            PullRequest.objects.filter(
+                repository_id=repo.id, organization_id=self.project.organization.id
+            ).count()
+            == 1
+        )
+
     @patch("sentry.integrations.github.webhook.metrics")
     def test_closed(self, mock_metrics: MagicMock) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1431,6 +1756,15 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+        # Emit-sourced facts persisted for the PR metrics pipeline. The payload's
+        # merged flag wins over its (open) state, so the PR is "merged".
+        assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+        assert pr.state == PullRequestLifecycleState.MERGED
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.closed_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.merged_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.draft is None
 
         assert mock_metrics.incr.call_count == 1
 
@@ -1739,3 +2073,80 @@ class IssuesEventWebhookTest(APITestCase):
             assert response.status_code == 204
             # Sync should be called for each org that has a linked issue
             assert mock_sync.call_count >= 1
+
+
+class TrackContributorActionProcessorTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        self.repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=self.integration.id
+        )
+        self.rpc_integration = integration_service.get_integration(
+            integration_id=self.integration.id
+        )
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_success(self, mock_record: MagicMock) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        mock_record.assert_called_once()
+        kwargs = mock_record.call_args.kwargs
+        assert kwargs["organization"].id == self.organization.id
+        assert kwargs["repo"].id == self.repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["user_id"] == "6752317"
+        assert kwargs["user_username"] == "baxterthehacker"
+        assert kwargs["provider"] == "github"
+        assert kwargs["pr_number"] == 1
+        assert kwargs["is_opened"] is True
+        assert kwargs["logs_extra"] == {"github_event_action": "opened"}
+        assert kwargs["tags"] == {"is_private": False}
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_is_opened_false_for_non_opened_action(self, mock_record: MagicMock) -> None:
+        event = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        event["action"] = "synchronize"
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        assert mock_record.call_args.kwargs["is_opened"] is False
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_no_integration_skips(self, mock_record: MagicMock) -> None:
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE),
+            organization=self.organization,
+            repo=self.repo,
+            integration=None,
+        )
+
+        mock_record.assert_not_called()
+
+    @patch("sentry.integrations.github.webhook.record_contributor_action")
+    def test_missing_pull_request_skips(self, mock_record: MagicMock) -> None:
+        event = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        del event["pull_request"]
+        _track_contributor_action_processor(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            integration=self.rpc_integration,
+        )
+
+        mock_record.assert_not_called()

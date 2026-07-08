@@ -4,8 +4,9 @@ import {useMutation} from '@tanstack/react-query';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
-import {fetchMutation, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
@@ -27,8 +28,10 @@ export function useDeleteReplays({projectSlug}: Props) {
   const project = useProjectFromSlug({organization, projectSlug});
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
+  const hasOrgAdminAccess = hasEveryAccess(['org:admin'], {organization});
 
-  const hasAccess = Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess);
+  const hasAccess =
+    Boolean(projectSlug) && (hasWriteAccess || hasAdminAccess || hasOrgAdminAccess);
 
   const {mutate} = useMutation({
     mutationFn: ([data]: Vars) => {

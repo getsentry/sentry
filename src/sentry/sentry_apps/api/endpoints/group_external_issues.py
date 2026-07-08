@@ -21,13 +21,14 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupExternalIssuesEndpoint(GroupEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Retrieve custom integration issue links for the given Sentry issue",
+        operation_id="listOrganizationIssueExternalIssues",
+        summary="Retrieve custom integration issue links for the given Sentry issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -40,8 +41,14 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         },
         examples=SentryAppExamples.GET_PLATFORM_EXTERNAL_ISSUE,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-external-issues"])
-    def get(self, request: Request, group) -> Response:
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-external-issues",
+        url_names=["sentry-api-0-group-external-issues"],
+    )
+    def get(
+        self, request: Request, group
+    ) -> Response[list[PlatformExternalIssueSerializerResponse]]:
         """
         Retrieve custom integration issue links for the given Sentry issue
 

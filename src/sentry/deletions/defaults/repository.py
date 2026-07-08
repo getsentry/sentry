@@ -7,20 +7,6 @@ from sentry.models.repository import Repository
 from sentry.signals import pending_delete
 
 
-def _get_repository_child_relations(instance: Repository) -> list[BaseRelation]:
-    from sentry.integrations.models.repository_project_path_config import (
-        RepositoryProjectPathConfig,
-    )
-    from sentry.models.commit import Commit
-    from sentry.models.pullrequest import PullRequest
-
-    return [
-        ModelRelation(Commit, {"repository_id": instance.id}),
-        ModelRelation(PullRequest, {"repository_id": instance.id}),
-        ModelRelation(RepositoryProjectPathConfig, {"repository_id": instance.id}),
-    ]
-
-
 class RepositoryDeletionTask(ModelDeletionTask[Repository]):
     def should_proceed(self, instance: Repository) -> bool:
         """
@@ -29,12 +15,36 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
         return instance.status in {ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS}
 
     def get_child_relations(self, instance: Repository) -> list[BaseRelation]:
-        from sentry.seer.models.project_repository import SeerProjectRepository
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
+        from sentry.models.commit import Commit
+        from sentry.models.projectrepository import ProjectRepository
+        from sentry.models.pullrequest import PullRequest
+        from sentry.seer.models.project_repository import (
+            SeerProjectRepository,
+            SeerProjectRepositoryBranchOverride,
+        )
 
-        return _get_repository_child_relations(instance) + [
-            # We only delete SeerProjectRepository when the repo is actually deleted,
-            # but not when it's hidden/disabled (repository_cascade_delete_on_hide).
-            ModelRelation(SeerProjectRepository, {"repository_id": instance.id}),
+        # Order matters: branch overrides → SPR → ProjectRepository.
+        # BulkModelDeletionTask does raw SQL DELETE which bypasses Django
+        # CASCADE, so children must be deleted before parents.
+        return [
+            ModelRelation(Commit, {"repository_id": instance.id}),
+            ModelRelation(PullRequest, {"repository_id": instance.id}),
+            ModelRelation(
+                RepositoryProjectPathConfig,
+                {"project_repository__repository_id": instance.id},
+            ),
+            ModelRelation(
+                SeerProjectRepositoryBranchOverride,
+                {"seer_project_repository__project_repository__repository_id": instance.id},
+            ),
+            ModelRelation(
+                SeerProjectRepository,
+                {"project_repository__repository_id": instance.id},
+            ),
+            ModelRelation(ProjectRepository, {"repository_id": instance.id}),
         ]
 
     def delete_instance(self, instance: Repository) -> None:

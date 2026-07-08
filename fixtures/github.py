@@ -1,3 +1,84 @@
+from sentry.utils import json
+
+
+def push_event_with_author(*, name: str, email: str, username: str | None = None) -> str:
+    """Build a minimal push event body with a single commit by the given author.
+
+    Unlike ``PUSH_EVENT_EXAMPLE_INSTALLATION``, this is not a raw string with a precomputed
+    signature: callers are expected to sign the returned body themselves, so field ordering is
+    irrelevant here.
+    """
+    author: dict[str, str] = {"name": name, "email": email}
+    if username is not None:
+        author["username"] = username
+    return json.dumps(
+        {
+            "ref": "refs/heads/main",
+            "installation": {"id": 12345},
+            "commits": [
+                {
+                    "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
+                    "distinct": True,
+                    "message": "Update hello.py",
+                    "timestamp": "2015-05-05T19:45:15-04:00",
+                    "author": author,
+                    "added": [],
+                    "removed": [],
+                    "modified": ["hello.py"],
+                }
+            ],
+            "repository": {
+                "id": 35129377,
+                "full_name": "baxterthehacker/public-repo",
+                "html_url": "https://github.com/baxterthehacker/public-repo",
+            },
+        }
+    )
+
+
+def push_event_with_commit_authors(authors: list[dict[str, str | None]]) -> str:
+    """Build a push event body with one distinct commit per provided author.
+
+    Each entry in ``authors`` is a mapping with ``name`` and ``email`` keys and an
+    optional ``username`` key. This is useful for exercising behavior across
+    multiple distinct commits within a single push (e.g. when a later commit for
+    the same email carries a GitHub username the earlier commit was missing).
+
+    Like ``push_event_with_author``, callers are expected to sign the returned
+    body themselves.
+    """
+    commits = []
+    for i, entry in enumerate(authors):
+        author: dict[str, str] = {"name": entry["name"], "email": entry["email"]}  # type: ignore[dict-item]
+        if entry.get("username") is not None:
+            author["username"] = entry["username"]  # type: ignore[assignment]
+        commits.append(
+            {
+                # Commit keys must be unique within a repository.
+                "id": f"{i:040x}",
+                "distinct": True,
+                "message": "Update hello.py",
+                "timestamp": "2015-05-05T19:45:15-04:00",
+                "author": author,
+                "added": [],
+                "removed": [],
+                "modified": ["hello.py"],
+            }
+        )
+    return json.dumps(
+        {
+            "ref": "refs/heads/main",
+            "installation": {"id": 12345},
+            "commits": commits,
+            "repository": {
+                "id": 35129377,
+                "full_name": "baxterthehacker/public-repo",
+                "html_url": "https://github.com/baxterthehacker/public-repo",
+            },
+        }
+    )
+
+
 # we keep this as a raw string as order matters for hmac signing
 PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
   "ref": "refs/heads/changes",
@@ -646,6 +727,72 @@ INSTALLATION_DELETE_EVENT_EXAMPLE = """{
     "events_url": "https://api.github.com/users/octocat/events{/privacy}",
     "received_events_url": "https://api.github.com/users/octocat/received_events",
     "type": "User",
+    "site_admin": false
+  }
+}"""
+
+INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE = """{
+  "action": "new_permissions_accepted",
+  "installation": {
+    "id": 2,
+    "client_id": "Iv1.abc123",
+    "account": {
+      "login": "octocat",
+      "id": 1,
+      "node_id": "MDQ6VXNlcjE=",
+      "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/octocat",
+      "html_url": "https://github.com/octocat",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "repository_selection": "all",
+    "access_tokens_url": "https://api.github.com/app/installations/2/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories",
+    "html_url": "https://github.com/settings/installations/2",
+    "app_id": 123,
+    "app_slug": "octocat-app",
+    "target_id": 1,
+    "target_type": "User",
+    "permissions": {
+      "actions": "read",
+      "administration": "read",
+      "checks": "write",
+      "contents": "write",
+      "issues": "write",
+      "metadata": "read",
+      "pull_requests": "write",
+      "repository_hooks": "write",
+      "statuses": "write"
+    },
+    "events": [
+      "check_suite",
+      "issues",
+      "issue_comment",
+      "pull_request",
+      "pull_request_review",
+      "push"
+    ],
+    "created_at": "2019-01-01T08:56:55.000-04:00",
+    "updated_at": "2019-01-02T12:16:12.000-04:00",
+    "single_file_name": null,
+    "has_multiple_single_files": false,
+    "single_file_paths": [],
+    "suspended_by": null,
+    "suspended_at": null
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "node_id": "MDQ6VXNlcjE=",
+    "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/octocat",
+    "html_url": "https://github.com/octocat",
+    "type": "User",
+    "user_view_type": "public",
     "site_admin": false
   }
 }"""

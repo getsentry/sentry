@@ -33,6 +33,11 @@ const REFERRER_CONFIG: ReferrerConfig[] = [
     pattern: /^autofix\.on_completion_hook$/,
     tooltip: t('Triggered from completion hook'),
   },
+  {pattern: /^night_shift$/, tooltip: t('Triggered by agentic triage')},
+  {pattern: /^api\.cli$/, tooltip: t('Triggered by the Sentry CLI')},
+  {pattern: /^api\.linear_agent$/, tooltip: t('Triggered from Linear')},
+  {pattern: /^api\.mcp$/, tooltip: t('Triggered by the Sentry MCP')},
+  {pattern: /^api\.web$/, tooltip: t('Manually triggered')},
   FALLBACK_CONFIG,
 ];
 

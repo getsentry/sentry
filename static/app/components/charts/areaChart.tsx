@@ -32,7 +32,7 @@ function transformToAreaSeries({
       },
       areaStyle: {
         color: (colors as any)?.[i],
-        opacity: 1.0,
+        opacity: 1,
       },
       // Define the z level so that the series remain stacked in the correct order
       // even after operations like hiding / highlighting series

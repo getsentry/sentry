@@ -212,11 +212,18 @@ describe('ExternalIssueForm', () => {
         {organization}
       );
 
+      expect(
+        screen.getByRole('heading', {name: 'Create GitHub Issue'})
+      ).toBeInTheDocument();
+
       // Wait for initial load
       expect(await screen.findByRole('textbox', {name: 'Title'})).toBeInTheDocument();
 
       // Click the Link tab
       await userEvent.click(screen.getByText('Link'));
+      expect(
+        screen.getByRole('heading', {name: 'Link GitHub Issue'})
+      ).toBeInTheDocument();
       expect(linkConfig).toHaveBeenCalled();
 
       // Should show link config fields, not create config fields
@@ -224,6 +231,76 @@ describe('ExternalIssueForm', () => {
       expect(screen.queryByRole('textbox', {name: 'Title'})).not.toBeInTheDocument();
 
       // Link action should show "Link Issue" button
+      expect(screen.getByRole('button', {name: 'Link Issue'})).toBeInTheDocument();
+    });
+
+    it('should reset shared field names when switching actions', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Title',
+              required: true,
+              type: 'string',
+              name: 'title',
+              default: 'Create default',
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({action: 'create'})],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: {
+          linkIssueConfig: [
+            {
+              label: 'Title',
+              required: true,
+              type: 'string',
+              name: 'title',
+              default: 'Link default',
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({action: 'link'})],
+      });
+
+      render(
+        <ExternalIssueForm
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          onChange={onChange}
+          group={group}
+          integration={integration}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Create default'
+      );
+
+      await userEvent.click(screen.getByText('Link'));
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Link default'
+      );
+
+      await userEvent.click(screen.getByText('Create'));
+      const titleInput = await screen.findByRole('textbox', {name: 'Title'});
+      expect(titleInput).toHaveValue('Create default');
+      await userEvent.clear(titleInput);
+      await userEvent.type(titleInput, 'Create title');
+
+      await userEvent.click(screen.getByText('Link'));
+
+      expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(
+        'Link default'
+      );
       expect(screen.getByRole('button', {name: 'Link Issue'})).toBeInTheDocument();
     });
 
@@ -442,7 +519,8 @@ describe('ExternalIssueForm', () => {
       expect(screen.queryByRole('textbox', {name: 'Reporter'})).not.toBeInTheDocument();
     });
 
-    it('should reset field values when dynamic refetch returns new config', async () => {
+    it('should preserve user-entered stable field values but reset other dynamic fields on refetch', async () => {
+      // Initial config: two dynamic fields (project, issuetype) and one stable field (summary).
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         match: [MockApiClient.matchQuery({action: 'create'})],
@@ -460,6 +538,17 @@ describe('ExternalIssueForm', () => {
               updatesForm: true,
             },
             {
+              label: 'Issue Type',
+              required: true,
+              choices: [
+                ['bug', 'Bug'],
+                ['story', 'Story'],
+              ],
+              type: 'select',
+              name: 'issuetype',
+              updatesForm: true,
+            },
+            {
               label: 'Summary',
               required: false,
               type: 'text',
@@ -468,7 +557,9 @@ describe('ExternalIssueForm', () => {
           ],
         },
       });
-      // After selecting Project 1, the refetch returns Summary with a new default
+      // After selecting Project 1, the refetch returns a new config:
+      // - summary gets a new server-provided default
+      // - issuetype options change (project 1 only supports 'bug')
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         match: [MockApiClient.matchQuery({action: 'create', project: '#proj-1'})],
@@ -484,6 +575,15 @@ describe('ExternalIssueForm', () => {
               type: 'select',
               name: 'project',
               updatesForm: true,
+            },
+            {
+              label: 'Issue Type',
+              required: true,
+              choices: [['bug', 'Bug']],
+              type: 'select',
+              name: 'issuetype',
+              updatesForm: true,
+              default: 'bug',
             },
             {
               label: 'Summary',
@@ -511,20 +611,146 @@ describe('ExternalIssueForm', () => {
       );
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      // Type something into Summary
+      // User types into the stable Summary field
       const summaryInput = screen.getByRole('textbox', {name: 'Summary'});
       await userEvent.type(summaryInput, 'User typed text');
       expect(summaryInput).toHaveValue('User typed text');
 
-      // Select a project (triggers dynamic refetch)
+      // User picks an issue type that will not exist in the next project config.
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        'Story'
+      );
+      expect(screen.getByText('Story')).toBeInTheDocument();
+
+      // User changes project (a dynamic field that triggers a refetch)
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Project'}),
         'Project 1'
       );
 
-      // Summary should be reset to the new default from the server, not preserved
+      // Summary (stable, non-dynamic) should be preserved across the remount
       expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue(
-        'New default from server'
+        'User typed text'
+      );
+
+      // Issue Type is dynamic but did not trigger this refetch, so it should
+      // use the new server default instead of keeping the stale Story value.
+      expect(screen.getByText('Bug')).toBeInTheDocument();
+      expect(screen.queryByText('Story')).not.toBeInTheDocument();
+    });
+
+    it('should preserve async select value after dynamic refetch when value is not in initial choices', async () => {
+      // Catch-all mock for the search endpoint
+      MockApiClient.addMockResponse({
+        url: '/extensions/jira/search/org-slug/5',
+        body: [],
+      });
+
+      // Initial config: project field is async select with limited choices
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['1', 'PROJ1 - Project 1'],
+                ['2', 'PROJ2 - Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+              url: '/extensions/jira/search/org-slug/5',
+              default: '1',
+            },
+          ],
+        },
+      });
+
+      // Search results include a project not in initial choices
+      MockApiClient.addMockResponse({
+        url: '/extensions/jira/search/org-slug/5',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'project',
+            query: 'Hidden',
+          }),
+        ],
+        body: [
+          {label: 'PROJ1 - Project 1', value: '1'},
+          {label: 'HIDDEN - Hidden Project', value: '99'},
+        ],
+      });
+
+      // After selecting project 99, the refetch returns config where choices
+      // still don't include project 99 (backend only returns first N projects)
+      const dynamicRefetch = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create', project: '99'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['1', 'PROJ1 - Project 1'],
+                ['2', 'PROJ2 - Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+              url: '/extensions/jira/search/org-slug/5',
+              default: '99',
+            },
+            {
+              label: 'Summary',
+              required: false,
+              type: 'text',
+              name: 'summary',
+              default: 'Default summary for hidden project',
+            },
+          ],
+        },
+      });
+
+      render(
+        <ExternalIssueForm
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          onChange={onChange}
+          group={group}
+          integration={integration}
+        />,
+        {organization}
+      );
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+      // Search for the hidden project via async select
+      const projectField = screen.getByRole('textbox', {name: 'Project'});
+      await userEvent.click(projectField);
+      await userEvent.type(projectField, 'Hidden');
+
+      // Wait for async search results and select the hidden project
+      expect(await screen.findByText('HIDDEN - Hidden Project')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('HIDDEN - Hidden Project'));
+
+      // Wait for the dynamic refetch
+      await waitFor(() => expect(dynamicRefetch).toHaveBeenCalled());
+
+      // The hidden project should remain selected (label visible) even though
+      // it's not in the refetched config's choices
+      expect(await screen.findByText('HIDDEN - Hidden Project')).toBeInTheDocument();
+
+      // Dependent fields from the refetch should also appear
+      expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue(
+        'Default summary for hidden project'
       );
     });
   });

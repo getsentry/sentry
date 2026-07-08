@@ -1,7 +1,18 @@
-import os
 from datetime import datetime
+from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import (
+    ATTRIBUTE_METADATA,
+    ATTRIBUTE_NAMES,
+    ApplyScrubbing,
+    ApplyScrubbingInfo,
+    AttributeMetadata,
+    AttributeType,
+    DeprecationInfo,
+    DeprecationStatus,
+    Visibility,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -28,6 +39,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
@@ -39,12 +51,85 @@ from sentry.search.eap.spans.attributes import (
     _update_attribute_definitions_with_deprecations,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils import json
+
+
+class AttributeVisibilityTest(TestCase):
+    def test_public_convention_attribute_visible_to_everyone(self) -> None:
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT, SupportedTraceItemType.SPANS
+        )
+
+    def test_internal_convention_attribute_hidden_unless_included(self) -> None:
+        assert not can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT, SupportedTraceItemType.SPANS
+        )
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
+
+    def test_internal_convention_public_alias_is_hidden(self) -> None:
+        with mock.patch.dict(
+            eap_utils.PUBLIC_ALIAS_TO_INTERNAL_MAPPING[SupportedTraceItemType.SPANS],
+            {
+                "public.alias": ResolvedAttribute(
+                    public_alias="public.alias",
+                    internal_name=ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+                    search_type="string",
+                )
+            },
+        ):
+            assert not can_expose_attribute_to_api("public.alias", SupportedTraceItemType.SPANS)
+
+    def test_internal_convention_translated_public_alias_is_hidden(self) -> None:
+        with mock.patch.dict(
+            eap_utils.INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS[SupportedTraceItemType.SPANS]["string"],
+            {ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT: "public.alias"},
+        ):
+            assert not can_expose_attribute_to_api(
+                ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT, SupportedTraceItemType.SPANS
+            )
+
+    def test_internal_convention_replacement_is_hidden(self) -> None:
+        with mock.patch.dict(
+            eap_utils.SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS[SupportedTraceItemType.SPANS],
+            {"deprecated.attr": ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT},
+        ):
+            assert not can_expose_attribute_to_api("deprecated.attr", SupportedTraceItemType.SPANS)
+
+    def test_public_convention_deprecated_alias_visible_to_everyone(self) -> None:
+        aliases = ATTRIBUTE_METADATA[ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT].aliases
+
+        assert aliases is not None
+        assert can_expose_attribute_to_api(aliases[0], SupportedTraceItemType.SPANS)
+
+    def test_stripped_internal_prefix_alias_is_hidden(self) -> None:
+        assert not can_expose_attribute_to_api(
+            "_internal.normalized_description", SupportedTraceItemType.SPANS
+        )
+        assert can_expose_attribute_to_api(
+            "_internal.normalized_description",
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
+
+    def test_stripped_dsc_convention_alias_is_hidden(self) -> None:
+        assert not can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix("sentry."),
+            SupportedTraceItemType.SPANS,
+        )
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix("sentry."),
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
 
 
 class SearchResolverQueryTest(TestCase):
@@ -448,6 +533,45 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_query_hides_internal_api_attributes_in_where(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
+            resolver.resolve_query(f"{hidden_attribute}:foo")
+
+    def test_query_hides_internal_api_attributes_in_having(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
+            resolver.resolve_query(f"count_unique({hidden_attribute}):>0")
+
+    def test_query_hides_internal_api_attributes_in_if_subquery(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=TRACE_METRICS_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        with pytest.raises(InvalidSearchQuery, match="Could not parse"):
+            resolver.resolve_query(f"count_if(`{hidden_attribute}:foo`, value):>0")
+
     def test_aggregate_query_on_attributes_with_units(self) -> None:
         for value in ["1000", "1s", "1000ms"]:
             where, having, _ = self.resolver.resolve_query(f"avg(measurements.lcp):>{value}")
@@ -678,6 +802,54 @@ class SearchResolverQueryTest(TestCase):
             group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
         )
 
+    def test_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=trace_key),
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_NOT_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_not_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        not_filter=NotFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(key=trace_key),
+                                )
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
 
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:
@@ -744,6 +916,82 @@ class SearchResolverColumnTest(TestCase):
             name="foo", type=AttributeKey.Type.TYPE_DOUBLE
         )
         assert virtual_context is None
+
+    def test_resolve_columns_hides_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            [
+                "span.op",
+                f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+            ]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == ["span.op"]
+        assert resolved_contexts == [None]
+
+    def test_resolve_columns_hides_functions_with_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            ["span.op", f"count_unique({hidden_attribute})"]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == ["span.op"]
+        assert resolved_contexts == [None]
+
+    def test_resolve_equations_hides_internal_api_attributes(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        hidden_attribute = f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]"
+
+        resolved_equations, resolved_contexts = resolver.resolve_equations(
+            [f"count_unique({hidden_attribute}) / count()", "count() / 1"]
+        )
+
+        assert [column.public_alias for column in resolved_equations] == ["equation|count() / 1"]
+        assert resolved_contexts == []
+
+    def test_resolve_columns_includes_internal_api_attributes_when_configured(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                api_attribute_visibility_item_type=SupportedTraceItemType.SPANS,
+                api_attribute_visibility_include_internal=True,
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        resolved_columns, resolved_contexts = resolver.resolve_columns(
+            [
+                "span.op",
+                f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+            ]
+        )
+
+        assert [column.public_alias for column in resolved_columns] == [
+            "span.op",
+            f"tags[{ATTRIBUTE_NAMES.SENTRY_DSC_TRACE_ID.removeprefix('sentry.')}]",
+        ]
+        assert resolved_contexts == [None, None]
 
     def test_sum_function(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
@@ -813,6 +1061,30 @@ class SearchResolverColumnTest(TestCase):
         )
         assert virtual_context is None
 
+    def test_max_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("max(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MAX,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="max(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_min_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MIN,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="min(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_max_string_field_raises(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.resolver.resolve_column("max(span.description)")
+
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])
         assert "span.op" in self.resolver._resolved_attribute_cache
@@ -836,13 +1108,19 @@ class SearchResolverColumnTest(TestCase):
         assert (resolved_column, virtual_context) == (p95_column, p95_context)
 
 
-def test_loads_deprecated_attrs_json() -> None:
-    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
-        deprecated_attrs = json.loads(f.read())["attributes"]
-
-    attribute = deprecated_attrs[0]
-    assert attribute["key"]
-    assert attribute["deprecation"]
+def _make_deprecated_metadata(
+    attr_type: AttributeType,
+    replacement: str,
+    status: DeprecationStatus = DeprecationStatus.BACKFILL,
+) -> AttributeMetadata:
+    return AttributeMetadata(
+        brief="",
+        type=attr_type,
+        apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
+        is_in_otel=False,
+        visibility=Visibility.PUBLIC,
+        deprecation=DeprecationInfo(replacement=replacement, status=status),
+    )
 
 
 def test_backfilled_deprecated_attributes_resolve_to_replacement() -> None:
@@ -869,16 +1147,11 @@ def test_deprecated_attribute_internal_alias_preserves_existing_search_type() ->
 
     _update_attribute_definitions_with_deprecations(
         attribute_definitions,
-        [
-            {
-                "key": "frames.total",
-                "type": "integer",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "app.vitals.frames.total.count",
-                },
-            }
-        ],
+        {
+            "frames.total": _make_deprecated_metadata(
+                AttributeType.INTEGER, "app.vitals.frames.total.count"
+            )
+        },
     )
 
     deprecated_internal_attr = attribute_definitions["mobile.total_frames"]
@@ -902,16 +1175,7 @@ def test_deprecated_attribute_internal_name_match_does_not_expose_internal_alias
 
     _update_attribute_definitions_with_deprecations(
         attribute_definitions,
-        [
-            {
-                "key": "fcp",
-                "type": "double",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "browser.web_vital.fcp.value",
-                },
-            }
-        ],
+        {"fcp": _make_deprecated_metadata(AttributeType.DOUBLE, "browser.web_vital.fcp.value")},
     )
 
     deprecated_attr = attribute_definitions["measurements.fcp"]
@@ -940,16 +1204,7 @@ def test_deprecated_attribute_replacement_does_not_inherit_secondary_alias() -> 
 
     _update_attribute_definitions_with_deprecations(
         attribute_definitions,
-        [
-            {
-                "key": "db.system",
-                "type": "string",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "db.system.name",
-                },
-            }
-        ],
+        {"db.system": _make_deprecated_metadata(AttributeType.STRING, "db.system.name")},
     )
 
     deprecated_attr = attribute_definitions["span.system"]
@@ -989,16 +1244,11 @@ def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
 
     _update_attribute_definitions_with_deprecations(
         attribute_definitions,
-        [
-            {
-                "key": "frames.total",
-                "type": "number",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "app.vitals.frames.total.count",
-                },
-            }
-        ],
+        {
+            "frames.total": _make_deprecated_metadata(
+                AttributeType.DOUBLE, "app.vitals.frames.total.count"
+            )
+        },
     )
 
     deprecated_internal_attr = attribute_definitions["mobile.total_frames"]
@@ -1017,45 +1267,51 @@ def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
     assert replacement_attr.replacement is None
 
 
+def test_deprecated_attribute_replacement_does_not_shadow_existing_internal_name() -> None:
+    attribute_definitions = {
+        "environment": ResolvedAttribute(
+            public_alias="environment",
+            internal_name="sentry.environment",
+            search_type="string",
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "resource.deployment.environment": _make_deprecated_metadata(
+                AttributeType.STRING, "sentry.environment"
+            ),
+            "resource.deployment.environment.name": _make_deprecated_metadata(
+                AttributeType.STRING, "sentry.environment"
+            ),
+        },
+    )
+
+    assert "sentry.environment" not in attribute_definitions
+    assert attribute_definitions["environment"].public_alias == "environment"
+    assert attribute_definitions["environment"].internal_name == "sentry.environment"
+
+    assert (
+        attribute_definitions["resource.deployment.environment"].replacement == "sentry.environment"
+    )
+    assert (
+        attribute_definitions["resource.deployment.environment.name"].replacement
+        == "sentry.environment"
+    )
+
+
 def test_deprecated_attribute_normalizes_supported_convention_attribute_types() -> None:
     attribute_definitions: dict[str, ResolvedAttribute] = {}
 
     _update_attribute_definitions_with_deprecations(
         attribute_definitions,
-        [
-            {
-                "key": "old_string",
-                "type": "string",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "new_string",
-                },
-            },
-            {
-                "key": "old_boolean",
-                "type": "boolean",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "new_boolean",
-                },
-            },
-            {
-                "key": "old_integer",
-                "type": "integer",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "new_integer",
-                },
-            },
-            {
-                "key": "old_double",
-                "type": "double",
-                "deprecation": {
-                    "_status": "backfill",
-                    "replacement": "new_double",
-                },
-            },
-        ],
+        {
+            "old_string": _make_deprecated_metadata(AttributeType.STRING, "new_string"),
+            "old_boolean": _make_deprecated_metadata(AttributeType.BOOLEAN, "new_boolean"),
+            "old_integer": _make_deprecated_metadata(AttributeType.INTEGER, "new_integer"),
+            "old_double": _make_deprecated_metadata(AttributeType.DOUBLE, "new_double"),
+        },
     )
 
     assert attribute_definitions["old_string"].search_type == "string"
@@ -1069,3 +1325,50 @@ def test_deprecated_attribute_normalizes_supported_convention_attribute_types() 
 
     assert attribute_definitions["old_double"].search_type == "number"
     assert attribute_definitions["new_double"].search_type == "number"
+
+
+def test_normalize_deprecated_attributes_resolve_to_replacement() -> None:
+    attribute_definitions: dict[str, ResolvedAttribute] = {}
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "old_attr": _make_deprecated_metadata(
+                AttributeType.STRING, "new_attr", status=DeprecationStatus.NORMALIZE
+            ),
+        },
+    )
+
+    assert "old_attr" in attribute_definitions
+    assert attribute_definitions["old_attr"].replacement == "new_attr"
+    assert attribute_definitions["old_attr"].deprecation_status == "normalize"
+    assert "new_attr" in attribute_definitions
+    assert attribute_definitions["new_attr"].search_type == "string"
+
+
+def test_normalize_deprecated_attribute_preserves_existing_definition() -> None:
+    attribute_definitions = {
+        "gen_ai.request.messages": ResolvedAttribute(
+            public_alias="gen_ai.request.messages",
+            internal_name="gen_ai.request.messages",
+            search_type="string",
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "gen_ai.request.messages": _make_deprecated_metadata(
+                AttributeType.STRING, "gen_ai.input.messages", status=DeprecationStatus.NORMALIZE
+            ),
+        },
+    )
+
+    deprecated_attr = attribute_definitions["gen_ai.request.messages"]
+    replacement_attr = attribute_definitions["gen_ai.input.messages"]
+
+    assert deprecated_attr.replacement == "gen_ai.input.messages"
+    assert deprecated_attr.deprecation_status == "normalize"
+    assert replacement_attr.public_alias == "gen_ai.input.messages"
+    assert replacement_attr.internal_name == "gen_ai.input.messages"
+    assert replacement_attr.search_type == "string"

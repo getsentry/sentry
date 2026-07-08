@@ -61,7 +61,7 @@ function PaymentHistory() {
   const paymentsPageLinks = data?.headers.Link;
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Receipts')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Receipts')} />
       {isPending ? (

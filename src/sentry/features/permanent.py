@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sentry.features.base import (
     FeatureHandlerStrategy,
     OrganizationFeature,
@@ -5,6 +7,13 @@ from sentry.features.base import (
     SystemFeature,
 )
 from sentry.features.manager import FeatureManager
+
+
+@dataclass(frozen=True)
+class FlagpoleFeature:
+    default: bool = False
+    api_expose: bool = False
+
 
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
 
@@ -22,14 +31,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
+        # Denotes organizations on the AM3 billing tier
+        "organizations:am3-tier": False,
         # Enable anomaly detection alerts
         "organizations:anomaly-detection-alerts": False,
-        # Enable multiple Apple app-store-connect sources per project.
-        "organizations:app-store-connect-multiple": False,
         # Enable change alerts for an org
         "organizations:change-alerts": True,
-        # The overall flag for codecov integration, gated by plans.
-        "organizations:codecov-integration": False,
         # Enable alerting based on crash free sessions/users
         "organizations:crash-rate-alerts": True,
         # Allow organizations to configure custom external symbol sources.
@@ -120,6 +127,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-scm-multi-org": True,
         # Enable issue view endpoints and UI
         "organizations:issue-views": False,
+        # Display profile durations on the stats page
+        "organizations:continuous-profiling-stats": False,
     }
 
     permanent_project_features = {
@@ -131,6 +140,26 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "projects:discard-groups": False,
         # Enable functionality to trigger service hooks upon event ingestion.
         "projects:servicehooks": False,
+    }
+
+    # Permanent organization features that are controlled via flagpole
+    permanent_flagpole_organization_features: dict[str, FlagpoleFeature] = {
+        # Enables import/export functionality for dashboards
+        "organizations:dashboards-import": FlagpoleFeature(default=False, api_expose=True),
+        # Enable various explore related dev features, may be used by internal branches for testing.
+        "organizations:explore-dev-features": FlagpoleFeature(default=False, api_expose=True),
+        # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
+        "organizations:init-sentry-toolbar": FlagpoleFeature(default=False, api_expose=True),
+        # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
+        "organizations:workflow-engine-log-evaluations": FlagpoleFeature(default=False),
+    }
+
+    # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
+    permanent_system_features = {
+        # Enables user registration.
+        "auth:register": True,
+        # Enable support for multiple regions, and org slug subdomains (customer-domains).
+        "system:multi-region": False,
     }
 
     for org_feature, default in permanent_organization_features.items():
@@ -151,11 +180,19 @@ def register_permanent_features(manager: FeatureManager) -> None:
             api_expose=True,
         )
 
-    # Enable support for multiple regions, and org slug subdomains (customer-domains).
-    manager.add(
-        "system:multi-region",
-        SystemFeature,
-        FeatureHandlerStrategy.INTERNAL,
-        default=False,
-        api_expose=False,
-    )
+    for org_feature, config in permanent_flagpole_organization_features.items():
+        manager.add(
+            org_feature,
+            OrganizationFeature,
+            FeatureHandlerStrategy.FLAGPOLE,
+            default=config.default,
+            api_expose=config.api_expose,
+        )
+
+    for system_feature, default in permanent_system_features.items():
+        manager.add(
+            system_feature,
+            SystemFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+        )

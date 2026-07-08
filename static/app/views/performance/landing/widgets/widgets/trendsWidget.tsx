@@ -56,7 +56,9 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const navigate = useNavigate();
   const {projects} = useProjects();
 
-  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+  const metricsCardinality = useMetricsCardinalityContext();
+  const isCardinalityCheckLoading = metricsCardinality?.isLoading;
+  const outcome = metricsCardinality?.outcome;
 
   const {eventView: _eventView, withStaticFilters, InteractiveTitle} = props;
 
@@ -69,7 +71,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
   const trendFunctionField = TrendFunctionField.P95;
 
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
 
   const eventView = _eventView.clone();
   eventView.fields = fields;
@@ -118,7 +120,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     <TrendsChart
       {...provided}
       {...rest}
-      isLoading={provided.widgetData.chart.isLoading || isCardinalityCheckLoading}
+      isLoading={provided.widgetData.chart.isLoading || !!isCardinalityCheckLoading}
       statsData={provided.widgetData.chart.statsData}
       query={eventView.query}
       project={eventView.project}

@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.processing.processor import split_conditions_and_filters
@@ -76,8 +77,12 @@ def create_if_dcg(
     return if_dcg
 
 
-def create_workflow_actions(if_dcg: DataConditionGroup, actions: list[dict[str, Any]]) -> None:
-    notification_actions = build_notification_actions_from_rule_data_actions(actions)
+def create_workflow_actions(
+    if_dcg: DataConditionGroup, actions: list[dict[str, Any]], project: Project
+) -> None:
+    notification_actions = build_notification_actions_from_rule_data_actions(
+        actions, project=project
+    )
     dcg_actions = [
         DataConditionGroupAction(action=action, condition_group=if_dcg)
         for action in notification_actions
@@ -89,7 +94,10 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     data = rule.data
 
     try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(
+            rule_id=rule.id,
+            workflow__organization_id=rule.project.organization_id,
+        )
     except AlertRuleWorkflow.DoesNotExist:
         # OK state, rule may not have been migrated
         logger.info(
@@ -140,7 +148,9 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     )
 
     delete_workflow_actions(if_dcg=if_dcg)
-    create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
+    create_workflow_actions(
+        if_dcg=if_dcg, actions=data["actions"], project=rule.project
+    )  # action(s) must exist
 
     workflow.environment_id = rule.environment_id
     if frequency := data["frequency"]:

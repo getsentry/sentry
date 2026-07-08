@@ -66,9 +66,12 @@ import { HydratedRouter } from "react-router/dom";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // Adds request headers and IP for users, for more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
 });
 
 startTransition(() => {

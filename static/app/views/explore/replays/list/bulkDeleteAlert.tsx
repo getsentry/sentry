@@ -26,7 +26,7 @@ export function BulkDeleteAlert({projectId, onDidHide}: Props) {
   const prevRender = usePrevious(shouldRender);
 
   useEffect(() => {
-    if (shouldRender === false && prevRender === true) {
+    if (!shouldRender && prevRender) {
       onDidHide?.();
     }
   }, [onDidHide, prevRender, shouldRender]);

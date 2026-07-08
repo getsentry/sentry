@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from sentry import options
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -15,6 +14,9 @@ class ProjectSeerNightShiftTest(APITestCase):
 
     @with_feature("organizations:seer-night-shift")
     def test_triggers_task(self) -> None:
+        # The endpoint forwards only the manual-trigger metadata; the run
+        # options (including project tweaks) are resolved by build_run_options
+        # inside the task, scoped to project_ids.
         with patch(
             "sentry.seer.endpoints.project_seer_night_shift.run_night_shift_for_org",
             return_value=42,
@@ -28,14 +30,7 @@ class ProjectSeerNightShiftTest(APITestCase):
         assert response.data == {"run_id": 42}
         mock_task.assert_called_once_with(
             self.organization.id,
-            options={
-                "source": "manual",
-                "dry_run": False,
-                "max_candidates": options.get("seer.night_shift.issues_per_org"),
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
-                "extra_triage_instructions": "",
-            },
+            options={"source": "manual", "dry_run": False},
             project_ids=[self.project.id],
             triggering_user_id=self.user.id,
             execute_in_task=True,
@@ -57,52 +52,7 @@ class ProjectSeerNightShiftTest(APITestCase):
         assert response.data == {"run_id": None}
         mock_task.assert_called_once_with(
             self.organization.id,
-            options={
-                "source": "manual",
-                "dry_run": True,
-                "max_candidates": options.get("seer.night_shift.issues_per_org"),
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
-                "extra_triage_instructions": "",
-            },
-            project_ids=[self.project.id],
-            triggering_user_id=self.user.id,
-            execute_in_task=True,
-        )
-
-    @with_feature("organizations:seer-night-shift")
-    def test_forwards_tweaks_to_task(self) -> None:
-        self.project.update_option(
-            "sentry:seer_nightshift_tweaks",
-            {
-                "max_candidates": 25,
-                "intelligence_level": "low",
-                "reasoning_effort": "medium",
-                "extra_triage_instructions": "Be terse.",
-            },
-        )
-
-        with patch(
-            "sentry.seer.endpoints.project_seer_night_shift.run_night_shift_for_org",
-            return_value=99,
-        ) as mock_task:
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                status_code=200,
-            )
-
-        assert response.data == {"run_id": 99}
-        mock_task.assert_called_once_with(
-            self.organization.id,
-            options={
-                "source": "manual",
-                "dry_run": False,
-                "max_candidates": 25,
-                "intelligence_level": "low",
-                "reasoning_effort": "medium",
-                "extra_triage_instructions": "Be terse.",
-            },
+            options={"source": "manual", "dry_run": True},
             project_ids=[self.project.id],
             triggering_user_id=self.user.id,
             execute_in_task=True,

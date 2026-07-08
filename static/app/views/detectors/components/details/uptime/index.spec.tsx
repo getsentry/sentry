@@ -14,6 +14,10 @@ describe('UptimeDetectorDetails', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/3/checks/`,
       body: [],
     });

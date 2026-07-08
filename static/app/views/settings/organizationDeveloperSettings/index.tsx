@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import {removeSentryApp, sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,17 +20,14 @@ import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {SentryApplicationRow} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
+import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 type Tab = 'public' | 'internal';
 
@@ -41,7 +39,6 @@ const TAB_LABELS: Record<Tab, string> = {
 function OrganizationDeveloperSettings() {
   const location = useLocation();
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
   const api = useApi({persistInFlight: true});
 
   const value =
@@ -58,16 +55,7 @@ function OrganizationDeveloperSettings() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<SentryApp[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery(sentryAppsApiOptions({orgSlug: organization.slug}));
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -151,13 +139,6 @@ function OrganizationDeveloperSettings() {
     }
   };
 
-  const headerActions = (
-    <Flex gap="md">
-      <ExampleIntegrationButton analyticsView={analyticsView} />
-      <CreateIntegrationButton analyticsView={analyticsView} />
-    </Flex>
-  );
-
   const inlineActions = (
     <Flex gap="md">
       <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
@@ -191,7 +172,6 @@ function OrganizationDeveloperSettings() {
             })}
           </Fragment>
         }
-        action={hasPageFrame ? undefined : headerActions}
       />
       <TabsContainer>
         <Flex align="center" justify="between" gap="md">
@@ -202,7 +182,7 @@ function OrganizationDeveloperSettings() {
               ))}
             </TabList>
           </Tabs>
-          {hasPageFrame && inlineActions}
+          {inlineActions}
         </Flex>
       </TabsContainer>
       {renderTabContent()}

@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
 import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
@@ -33,7 +32,6 @@ import {
   type ExceptionValue,
   type Frame,
 } from 'sentry/types/event';
-import {Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 type StacktraceWithFrames = StacktraceType & {
@@ -44,18 +42,6 @@ type StackTraceStoryData = {
   event: Event;
   stacktrace: StacktraceWithFrames;
 };
-
-function getSampleSourceLineCoverage(length: number): Coverage[] {
-  return Array.from({length}, (_, index) => {
-    if (index % 3 === 0) {
-      return Coverage.COVERED;
-    }
-    if (index % 3 === 1) {
-      return Coverage.NOT_COVERED;
-    }
-    return Coverage.PARTIAL;
-  });
-}
 
 function makeEvent(overrides: Partial<Event> = {}): Event {
   return {
@@ -1058,7 +1044,7 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
-  story('StackTraceFrames - Single Frame Source Coverage', () => {
+  story('StackTraceFrames - Single frame with embedded source context', () => {
     const {event, stacktrace} = makeStackTraceData();
 
     const context: Frame['context'] = [
@@ -1070,23 +1056,17 @@ export default Storybook.story('StackTrace', story => {
       [6, '        raise ValueError("bad data")'],
       [7, '    return result'],
     ];
-    const sourceLineCoverage = getSampleSourceLineCoverage(context.length);
 
     const singleFrameStacktrace = {
       ...stacktrace,
       frames: [makeFrame({context, lineNo: 6, inApp: true})],
     };
 
-    function CoveredFrameContext() {
-      return <FrameContent sourceLineCoverage={sourceLineCoverage} />;
-    }
-
     return (
       <Flex direction="column" gap="md">
-        <LineCoverageLegend />
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames
-            frameContextComponent={CoveredFrameContext}
+            frameContextComponent={FrameContent}
             frameActionsComponent={StoryFrameActions}
           />
         </StoryStackTraceProvider>

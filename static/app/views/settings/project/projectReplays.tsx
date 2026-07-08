@@ -2,13 +2,12 @@ import styled from '@emotion/styled';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -16,7 +15,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -28,16 +26,14 @@ const replaySchema = z.object({
 
 type ReplaySchema = z.infer<typeof replaySchema>;
 
-const ReplaySettingsAlert = HookOrDefault({
-  hookName: 'component:replay-settings-alert',
+const ReplaySettingsAlert = OverrideOrDefault({
+  overrideName: 'component:replay-settings-alert',
   defaultComponent: null,
 });
 
 export default function ProjectReplaySettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
@@ -64,19 +60,7 @@ export default function ProjectReplaySettings() {
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/replays/">
       <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
-        <SettingsPageHeader
-          title={t('Replays')}
-          action={
-            !hasPageFrameFeature && (
-              <LinkButton
-                external
-                href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
-              >
-                {t('Read the Docs')}
-              </LinkButton>
-            )
-          }
-        />
+        <SettingsPageHeader title={t('Replays')} />
         <TabsWithGap
           value={tab}
           onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}

@@ -10,11 +10,11 @@ import {GuideStore} from 'sentry/stores/guideStore';
 describe('GuideAnchor', () => {
   const serverGuide = [
     {
-      guide: 'issue',
+      guide: 'trace_view',
       seen: false,
     },
   ];
-  const firstGuideHeader = 'How bad is it?';
+  const firstGuideHeader = 'Event Breakdown';
 
   beforeEach(() => {
     ConfigStore.loadInitialData(
@@ -30,28 +30,24 @@ describe('GuideAnchor', () => {
   it('renders, async advances, async and finishes', async () => {
     render(
       <div>
-        <GuideAnchor target="issue_header_stats" />
-        <GuideAnchor target="breadcrumbs" />
-        <GuideAnchor target="issue_sidebar_owners" />
+        <GuideAnchor target="trace_view_guide_breakdown" />
+        <GuideAnchor target="trace_view_guide_row" />
+        <GuideAnchor target="trace_view_guide_row_details" />
       </div>
     );
 
     act(() => GuideStore.fetchSucceeded(serverGuide));
     expect(await screen.findByText(firstGuideHeader)).toBeInTheDocument();
 
-    // XXX(epurkhiser): Skip pointer event checks due to a bug with how Popper
-    // renders the hovercard with pointer-events: none. See [0]
-    //
-    // [0]: https://github.com/testing-library/user-event/issues/639
-    //
-    // NOTE(epurkhiser): We may be able to remove the skipPointerEventsCheck
-    // when we're on popper >= 1.
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(await screen.findByText('Retrace Your Steps')).toBeInTheDocument();
+    expect(await screen.findByText('Events')).toBeInTheDocument();
     expect(screen.queryByText(firstGuideHeader)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText('Next'));
+
+    expect(await screen.findByText('Event Details')).toBeInTheDocument();
+    expect(screen.queryByText('Events')).not.toBeInTheDocument();
 
     // Clicking on the button in the last step should finish the guide.
     const finishMock = MockApiClient.addMockResponse({
@@ -66,7 +62,7 @@ describe('GuideAnchor', () => {
       expect.objectContaining({
         method: 'PUT',
         data: {
-          guide: 'issue',
+          guide: 'trace_view',
           status: 'viewed',
         },
       })
@@ -76,9 +72,9 @@ describe('GuideAnchor', () => {
   it('dismisses', async () => {
     render(
       <div>
-        <GuideAnchor target="issue_header_stats" />
-        <GuideAnchor target="breadcrumbs" />
-        <GuideAnchor target="issue_sidebar_owners" />
+        <GuideAnchor target="trace_view_guide_breakdown" />
+        <GuideAnchor target="trace_view_guide_row" />
+        <GuideAnchor target="trace_view_guide_row_details" />
       </div>
     );
 
@@ -97,7 +93,7 @@ describe('GuideAnchor', () => {
       expect.objectContaining({
         method: 'PUT',
         data: {
-          guide: 'issue',
+          guide: 'trace_view',
           status: 'dismissed',
         },
       })
@@ -131,9 +127,9 @@ describe('GuideAnchor', () => {
   it('if forceHide is true, async do not render guide', async () => {
     render(
       <div>
-        <GuideAnchor target="issue_header_stats" />
-        <GuideAnchor target="breadcrumbs" />
-        <GuideAnchor target="issue_sidebar_owners" />
+        <GuideAnchor target="trace_view_guide_breakdown" />
+        <GuideAnchor target="trace_view_guide_row" />
+        <GuideAnchor target="trace_view_guide_row_details" />
       </div>
     );
 

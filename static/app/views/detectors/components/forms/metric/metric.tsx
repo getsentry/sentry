@@ -225,6 +225,20 @@ function validateMediumThreshold({
   return [];
 }
 
+// The medium threshold's validation depends on the high threshold value, but the
+// form model only validates the field being edited. Without this, the medium
+// threshold's error tooltip persists after the high threshold is corrected.
+function useRevalidateMediumThreshold() {
+  const formContext = useContext(FormContext);
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
+  );
+
+  useEffect(() => {
+    formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+  }, [highThreshold, formContext.form]);
+}
+
 interface PriorityRowProps {
   aggregate: string;
   detectionType: 'static' | 'percent';
@@ -496,6 +510,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
 }
 
 function DetectSection({step}: {step?: number}) {
+  useRevalidateMediumThreshold();
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );

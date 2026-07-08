@@ -38,7 +38,8 @@ class ShortIdLookupEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="Resolve a Short ID",
+        operation_id="resolveOrganizationShortId",
+        summary="Resolve a Short ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -118,7 +119,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
             )
         ],
     )
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[ShortIdLookupResponse]:
         """
         Resolve a short ID to the project slug and group details.
         """

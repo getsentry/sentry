@@ -81,7 +81,7 @@ export function WidgetBuilderV2({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
+  const [queryConditionsValid, setQueryConditionsValid] = useState(true);
   const theme = useTheme();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
@@ -89,14 +89,14 @@ export function WidgetBuilderV2({
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
-  const [translate, setTranslate] = useState<WidgetDragPositioning>(
-    DEFAULT_WIDGET_DRAG_POSITIONING
-  );
+  const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
 
   const navigationElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (navigationElementRef.current) return;
+    if (navigationElementRef.current) {
+      return;
+    }
 
     const navigationElement = document.querySelector(
       'nav[aria-label="Primary Navigation"]'
@@ -195,7 +195,7 @@ export function WidgetBuilderV2({
                       dashboard={dashboard}
                       dashboardFilters={dashboardFilters}
                       setIsPreviewDraggable={setIsPreviewDraggable}
-                      isWidgetInvalid={!queryConditionsValid}
+                      isQueryConditionInvalid={!queryConditionsValid}
                       openWidgetTemplates={openWidgetTemplates}
                       setOpenWidgetTemplates={setOpenWidgetTemplates}
                       onDataFetched={handleWidgetDataFetched}
@@ -214,7 +214,7 @@ export function WidgetBuilderV2({
                           dashboard={dashboard}
                           dragPosition={translate}
                           isDraggable={isPreviewDraggable}
-                          isWidgetInvalid={!queryConditionsValid}
+                          isQueryConditionInvalid={!queryConditionsValid}
                           onDataFetched={handleWidgetDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
                         />
@@ -234,7 +234,7 @@ export function WidgetBuilderV2({
 export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
-  isWidgetInvalid,
+  isQueryConditionInvalid,
   dragPosition,
   isDraggable,
   onDataFetched,
@@ -242,9 +242,9 @@ export function WidgetPreviewContainer({
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid: boolean;
   dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
+  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   openWidgetTemplates?: boolean;
 }) {
@@ -365,7 +365,7 @@ export function WidgetPreviewContainer({
                     <WidgetPreview
                       dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
-                      isWidgetInvalid={isWidgetInvalid}
+                      isQueryConditionInvalid={isQueryConditionInvalid}
                       onDataFetched={onDataFetched}
                       shouldForceDescriptionTooltip={!isSmallScreen}
                     />
@@ -423,7 +423,7 @@ const SampleWidgetCard = styled(motion.div)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }
@@ -512,7 +512,7 @@ const FilterBarContainer = styled(motion.div)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }

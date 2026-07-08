@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useContext, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
@@ -8,15 +8,22 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {LeadWrap} from '@sentry/scraps/compactSelect';
-import {InnerWrap, MenuListItem} from '@sentry/scraps/menuListItem';
+import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {
+  InnerWrap,
+  MenuListItem,
+  type MenuListItemProps,
+} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 
-export interface GridListOptionProps extends AriaGridListItemOptions {
-  listState: ListState<any>;
-  node: Node<any>;
+export interface GridListOptionProps<
+  T extends ListItemBase,
+> extends AriaGridListItemOptions {
+  listState: ListState<T>;
+  node: Node<T>;
   size: FormSize;
 }
 
@@ -24,12 +31,15 @@ export interface GridListOptionProps extends AriaGridListItemOptions {
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListOption({node, listState, size}: GridListOptionProps) {
+export function GridListOption<T extends ListItemBase>({
+  node,
+  listState,
+  size,
+}: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
     label,
     details,
-    leadingItems,
     trailingItems,
     priority,
     hideCheck,
@@ -43,6 +53,14 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
 
   const {rowProps, gridCellProps, isSelected, isDisabled, isPressed, isFocused} =
     useGridListItem({node, shouldSelectOnPressUp: true}, listState, ref);
+
+  const {search, highlightSearch} = useContext(ControlContext);
+  const renderedLabel =
+    highlightSearch && search && typeof label === 'string' ? (
+      <HighlightText text={label} query={search} />
+    ) : (
+      label
+    );
 
   const {
     checkboxProps: {
@@ -70,6 +88,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     [label]
   );
 
+  const leadingItems = (node.props as MenuListItemProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -108,7 +127,7 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
       {...rowPropsMerged}
       ref={ref}
       size={size}
-      label={label}
+      label={renderedLabel}
       details={details}
       disabled={isDisabled}
       isSelected={isSelected}

@@ -2,8 +2,9 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useApi} from 'sentry/utils/useApi';
@@ -102,8 +103,8 @@ export function useReplaySummary(
   // Otherwise, when start request query is finished, in the same render loop, we 1) invalidate the
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
-  const startSummaryRequestTime = useRef<number>(0);
-  const hasMadeStartRequest = useRef<boolean>(false);
+  const startSummaryRequestTime = useRef(0);
+  const hasMadeStartRequest = useRef(false);
 
   const [didTimeout, setDidTimeout] = useState(false);
   const {start: startTotalTimeout, cancel: cancelTotalTimeout} = useTimeout({
@@ -202,7 +203,7 @@ export function useReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (shouldPoll(query.state.data?.[0], isStartSummaryRequestError, didTimeout)) {
+        if (shouldPoll(query.state.data?.json, isStartSummaryRequestError, didTimeout)) {
           return query.state.status === 'error'
             ? ERROR_POLL_INTERVAL_MS
             : POLL_INTERVAL_MS;

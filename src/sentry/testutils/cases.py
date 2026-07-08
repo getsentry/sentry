@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import inspect
 import random
 import re
 import time
@@ -126,7 +125,6 @@ from sentry.notifications.models.notificationsettingprovider import (
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -467,7 +465,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+                            cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
                         with (
                             SingleProcessSiloModeState.exit(),
                             SingleProcessSiloModeState.enter(mode, cell),
@@ -920,12 +918,6 @@ class PluginTestCase(TestCase):
     def setUp(self):
         super().setUp()
 
-        # Old plugins, plugin is a class, new plugins, it's an instance
-        # New plugins don't need to be registered
-        if inspect.isclass(self.plugin):
-            plugins.register(self.plugin)
-            self.addCleanup(plugins.unregister, self.plugin)
-
 
 class CliTestCase(TestCase):
     @cached_property
@@ -1017,14 +1009,6 @@ class IntegrationTestCase(TestCase):
             request=self.request,
             organization=rpc_organization,
             provider_key=self.provider.key,
-        )
-
-        self.init_path = reverse(
-            "sentry-organization-integrations-setup",
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "provider_id": self.provider.key,
-            },
         )
 
         self.setup_path = reverse(
@@ -3566,7 +3550,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         title: str = "some error",
         transaction: str | None = None,
         issue_occurrence_id: str | None = None,
-        tags: dict[str, str] | None = None,
+        tags: dict[str, list[str] | str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
         client_sample_rate: float = 1.0,
@@ -4047,6 +4031,90 @@ class ReplayEAPTestCase(BaseTestCase):
         if category == "ui.click":
             breadcrumb_data["click_is_dead"] = click_is_dead
             breadcrumb_data["click_is_rage"] = click_is_rage
+
+        breadcrumb_data.update(attributes)
+
+        attributes_proto = {}
+        for k, v in breadcrumb_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=retention_days,
+            attributes=attributes_proto,
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
+        )
+
+    def create_replay_breadcrumb(
+        self,
+        *,
+        project,
+        replay_id,
+        segment_id,
+        breadcrumb_type,
+        timestamp=None,
+        organization=None,
+        trace_id=None,
+        retention_days=30,
+        **attributes,
+    ):
+        """create_eap_replay_breadcrumb is wrong so making another create event that's tested against what we see in
+        production. can also check `src/sentry/replays/usecases/ingest/event_parser.py` for these names too"""
+
+        if organization is None:
+            organization = self.organization
+        if timestamp is None:
+            timestamp = datetime.now(UTC)
+        if trace_id is None:
+            trace_id = replay_id
+
+        if breadcrumb_type == ReplayBreadcrumbType.CLICK:
+            category = "ui.click"
+            click_is_dead = 0
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.DEAD_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.RAGE_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 1
+        elif breadcrumb_type == ReplayBreadcrumbType.ERROR:
+            category = "error"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.WARNING:
+            category = "warning"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.INFO:
+            category = "info"
+            click_is_dead = None
+            click_is_rage = None
+        else:
+            raise ValueError(f"Unknown breadcrumb type: {breadcrumb_type}")
+
+        breadcrumb_data = {
+            "replay_id": replay_id,
+            "segment_id": segment_id,
+            "category": category,
+        }
+
+        if category == "ui.click":
+            breadcrumb_data["is_dead"] = click_is_dead
+            breadcrumb_data["is_rage"] = click_is_rage
 
         breadcrumb_data.update(attributes)
 

@@ -87,7 +87,9 @@ export function makeCollection<T>(): CollectionInstance<T> {
 
         unregister(key) {
           const node = nodes.current.get(key);
-          if (!node) return;
+          if (!node) {
+            return;
+          }
           nodes.current.delete(key);
           childIndex.current.get(node.parent)?.delete(key);
           childIndex.current.delete(key);

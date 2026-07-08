@@ -44,6 +44,12 @@ export type OnboardingEventParameters = {
     from: string;
     to: string;
   };
+  'onboarding.scm_connect_integration_selected': {
+    provider: string;
+    // 'default' when the integration was auto-selected on entry, 'manual' when
+    // the user explicitly switched via the selector.
+    source: 'default' | 'manual';
+  };
   'onboarding.scm_connect_repo_selected': {
     provider: string;
     repo: string;
@@ -112,6 +118,7 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.scm_skip_detection_clicked': Record<string, unknown>;
   'onboarding.scm_source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
@@ -191,6 +198,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
   'onboarding.scm_back_button_clicked': 'Onboarding: SCM Back Button Clicked',
+  'onboarding.scm_connect_integration_selected':
+    'Onboarding: SCM Connect Integration Selected',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
   'onboarding.scm_data_removal_modal_confirm_button_clicked':
@@ -215,6 +224,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_platform_features_step_viewed':
     'Onboarding: SCM Platform Features Step Viewed',
   'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
+  'onboarding.scm_skip_detection_clicked': 'Onboarding: SCM Skip Detection Clicked',
   'onboarding.scm_project_details_alert_selected':
     'Onboarding: SCM Project Details Alert Selected',
   'onboarding.scm_project_details_create_clicked':

@@ -17,10 +17,21 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     A provider indicates how identity authenticate should happen for a given service.
     """
 
+    auto_create_provider_model = False
+    create_organization_identity = False
+
     def __init__(self, **config):
         super().__init__()
         self.config = config
         self.logger = logging.getLogger(f"sentry.identity.{self.key}")
+
+    def get_pipeline_config(self, data: dict[str, Any]) -> dict[str, str]:
+        """
+        Extract and validate provider-specific configuration from request data.
+
+        Raises ValueError if required configuration is missing or invalid.
+        """
+        return {}
 
     def build_identity(self, state):
         """
@@ -57,6 +68,16 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         Return the new state which should be used for an identity.
         """
         return new_data
+
+    def post_link_identity(self, identity: dict[str, Any], user_id: int) -> None:
+        """
+        Hook invoked after an identity is linked via the social-auth pipeline.
+
+        ``identity`` is the mapping returned by ``build_identity`` and ``user_id`` is
+        the Sentry user the identity was linked to. No-op by default; providers may
+        override to perform side effects (e.g. backfilling derived mappings). Callers
+        invoke this best-effort, so implementations must not assume they can raise.
+        """
 
     def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         """

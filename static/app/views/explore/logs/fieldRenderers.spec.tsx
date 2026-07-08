@@ -39,6 +39,7 @@ describe('Logs Field Renderers', () => {
     extra: {
       organization,
       location: {} as any,
+      navigate: jest.fn(),
       theme: ThemeFixture(),
       attributeTypes: {},
       attributes,

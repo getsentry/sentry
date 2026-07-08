@@ -12,25 +12,15 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {ParsedOwnershipRule} from './group';
-import type {PlatformKey} from './project';
+import type {ParsedOwnershipRule} from './ownership';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
-export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
-
-export type Permissions = {
-  Event: PermissionValue;
-  Member: PermissionValue;
-  Organization: PermissionValue;
-  Project: PermissionValue;
-  Release: PermissionValue;
-  Team: PermissionValue;
-  Alerts?: PermissionValue;
-  Distribution?: PermissionValue;
-};
-
-export type PermissionResource = keyof Permissions;
+export type {
+  PermissionValue,
+  Permissions,
+  PermissionResource,
+} from 'sentry/types/permissions';
 
 export type ExternalActorMapping = {
   externalName: string;
@@ -142,6 +132,8 @@ export type CommitAuthor = {
   name?: string;
 };
 
+export type PullRequestAuthor = User | CommitAuthor;
+
 export type CommitFile = {
   author: CommitAuthor;
   commitMessage: string;
@@ -152,12 +144,35 @@ export type CommitFile = {
   type: string;
 };
 
-export type PullRequest = {
+export interface PullRequest {
+  dateCreated: string;
   externalUrl: string;
   id: string;
+  message: string | null;
   repository: Repository;
-  title: string;
+  title: string | null;
+  author?: CommitAuthor;
+}
+
+export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
+
+type SeerAttribution = {
+  id: 'seer';
+  type: 'seer';
 };
+
+export type PullRequestAttribution = SeerAttribution;
+
+export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
+  attribution: PullRequestAttribution | null;
+  dateLinked: string;
+  status: PullRequestStatus;
+  author?: PullRequestAuthor;
+}
+
+export interface LinkedPullRequestsResponse {
+  pullRequests: LinkedPullRequest[];
+}
 
 /**
  * Sentry Apps
@@ -205,27 +220,6 @@ type SentryAppSchemaAlertRuleActionSettings = {
   optional_fields?: any[];
 };
 
-export enum Coverage {
-  NOT_APPLICABLE = -1,
-  COVERED = 0,
-  NOT_COVERED = 1,
-  PARTIAL = 2,
-}
-export type LineCoverage = [lineNo: number, coverage: Coverage];
-
-export enum CodecovStatusCode {
-  COVERAGE_EXISTS = 200,
-  NO_INTEGRATION = 404,
-  NO_COVERAGE_DATA = 400,
-}
-
-export interface CodecovResponse {
-  status: CodecovStatusCode;
-  attemptedUrl?: string;
-  coverageUrl?: string;
-  lineCoverage?: LineCoverage[];
-}
-
 export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
@@ -263,6 +257,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
+  allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
@@ -272,6 +267,8 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  // Each entry is a "Header-Name: value" line. Saved values are masked by the API
+  webhookHeaders?: string[];
 };
 
 // Minimal Sentry App representation for use with avatars
@@ -409,7 +406,6 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
     noun: string;
     source_url: string;
   };
-  setupDialog: {height: number; url: string; width: number};
 }
 
 interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
@@ -426,6 +422,7 @@ interface CommonIntegration {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  outOfDate?: boolean | null;
 }
 
 export interface Integration extends CommonIntegration {
@@ -437,6 +434,8 @@ export interface Integration extends CommonIntegration {
       uninstallationUrl?: string;
     };
   };
+  // Present on OrganizationIntegration; for GitHub this is the App installation id.
+  externalId?: string;
   scopes?: string[];
 }
 
@@ -514,78 +513,9 @@ export type IntegrationIssueConfig = {
   linkIssueConfig?: IssueConfigField[];
 };
 
-/**
- * Project Plugins
- */
-export type PluginNoProject = {
-  canDisable: boolean;
-  // TODO(ts)
-  contexts: any[];
-  doc: string;
-  featureDescriptions: IntegrationFeature[];
-  features: string[];
-  hasConfiguration: boolean;
-  id: string;
-  isDeprecated: boolean;
-  isHidden: boolean;
-  isTestable: boolean;
-  metadata: any;
-  name: string;
-  shortName: string;
-  slug: string;
-  status: string;
-  type: string;
-  altIsSentryApp?: boolean;
-  author?: {name: string; url: string};
-  deprecationDate?: string;
-  description?: string;
-  firstPartyAlternative?: string;
-  issue?: {
-    issue_id: string;
-    // TODO(TS): Label can be an object, unknown shape
-    label: string | any;
-    url: string;
-  };
-  resourceLinks?: Array<{title: string; url: string}>;
-  version?: string;
-};
+export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;
 
-export type Plugin = PluginNoProject & {
-  enabled: boolean;
-};
-
-export type PluginProjectItem = {
-  configured: boolean;
-  enabled: boolean;
-  projectId: string;
-  projectName: string;
-  projectPlatform: PlatformKey;
-  projectSlug: string;
-};
-
-export type PluginWithProjectList = PluginNoProject & {
-  projectList: PluginProjectItem[];
-};
-
-export type AppOrProviderOrPlugin =
-  | SentryApp
-  | IntegrationProvider
-  | PluginWithProjectList
-  | DocIntegration;
-
-/**
- * Webhooks and servicehooks
- */
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
-
-export type ServiceHook = {
-  dateCreated: string;
-  events: string[];
-  id: string;
-  secret: string;
-  status: string;
-  url: string;
-};
 
 /**
  * Codeowners and repository path mappings.
@@ -598,6 +528,7 @@ export type CodeOwner = {
    */
   codeOwnersUrl: string | 'unknown';
   dateCreated: string;
+  dateSynced: string | null;
   dateUpdated: string;
   errors: {
     missing_external_teams: string[];

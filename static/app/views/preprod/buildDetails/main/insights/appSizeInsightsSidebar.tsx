@@ -41,7 +41,7 @@ export function AppSizeInsightsSidebar({
   platform,
   projectType,
 }: AppSizeInsightsSidebarProps) {
-  const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
+  const [expandedInsights, setExpandedInsights] = useState(new Set());
 
   const {
     isHeld,

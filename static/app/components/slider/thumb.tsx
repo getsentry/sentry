@@ -98,7 +98,7 @@ const SliderThumbWrap = styled('div')<{
       z-index: 1;
     `}
 
-    ${p =>
+  ${p =>
     p.isDisabled &&
     css`
       cursor: initial;
@@ -108,7 +108,7 @@ const SliderThumbWrap = styled('div')<{
       &:hover {
         background: ${p.theme.tokens.background.secondary};
       }
-    `};
+    `}
 
   /* Extend click area */
   &::before {

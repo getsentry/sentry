@@ -1,11 +1,12 @@
 import {PlatformIcon} from 'platformicons';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getPlatformKind, type PlatformKind} from 'sentry/data/platformKinds';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {ScmCardButton} from './scmCardButton';
 import {ScmSelectableContainer} from './scmSelectableContainer';
@@ -35,17 +36,21 @@ export function ScmPlatformCard({
   return (
     <ScmCardButton onClick={onClick} role="radio" aria-checked={isSelected}>
       <ScmSelectableContainer isSelected={isSelected} padding="lg">
-        <Grid gap="md" align="center" columns="max-content min-content">
-          <PlatformIcon platform={platform} size={28} />
-          <Stack>
-            <Text bold textWrap="nowrap">
-              {name}
-            </Text>
-            <Text variant="muted" size="sm" textWrap="nowrap">
+        <Flex gap="md" align="center">
+          <Flex flexShrink={0}>
+            <PlatformIcon platform={platform} size={28} />
+          </Flex>
+          <Stack maxWidth="100%" flexShrink={1} flexGrow={1} overflow="hidden">
+            <Tooltip title={name} showOnlyOnOverflow skipWrapper>
+              <Text bold textWrap="nowrap" ellipsis>
+                {name}
+              </Text>
+            </Tooltip>
+            <Text variant="muted" size="sm" textWrap="nowrap" ellipsis>
               {KIND_LABELS[getPlatformKind(platform, type)]}
             </Text>
           </Stack>
-        </Grid>
+        </Flex>
       </ScmSelectableContainer>
     </ScmCardButton>
   );

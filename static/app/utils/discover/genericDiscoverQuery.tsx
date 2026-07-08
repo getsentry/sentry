@@ -3,9 +3,9 @@ import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {
   EventView,
   ImmutableEventView,
@@ -71,11 +71,6 @@ type BaseDiscoverQueryProps = {
    */
   cursor?: string;
   /**
-   * Appends a raw string to query to be able to sidestep the tokenizer.
-   * @deprecated
-   */
-  forceAppendRawQueryString?: string;
-  /**
    * Record limit to get.
    */
   limit?: number;
@@ -85,7 +80,7 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    UseQueryOptions<[any, string | undefined, ResponseMeta | undefined], QueryError>,
     'queryKey' | 'queryFn'
   > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**
@@ -108,7 +103,7 @@ type BaseDiscoverQueryProps = {
   skipAbort?: boolean;
 };
 
-export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
+type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
   eventView: EventView | ImmutableEventView;
   orgSlug: string;
@@ -185,7 +180,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
-      prevProps.eventView.isValid() === false && this.props.eventView.isValid();
+      !prevProps.eventView.isValid() && this.props.eventView.isValid();
 
     const shouldRefetchExternal = this.props.shouldRefetchData
       ? this.props.shouldRefetchData(prevProps, this.props)
@@ -366,19 +361,11 @@ export async function doDiscoverQuery<T>(
 }
 
 function getPayload<T, P>(props: Props<T, P>) {
-  const {
-    cursor,
-    limit,
-    noPagination,
-    referrer,
-    getRequestPayload,
-    eventView,
-    location,
-    forceAppendRawQueryString,
-  } = props;
+  const {cursor, limit, noPagination, referrer, getRequestPayload, eventView, location} =
+    props;
   const payload = getRequestPayload
     ? getRequestPayload(props)
-    : eventView.getEventsAPIPayload(location, forceAppendRawQueryString);
+    : eventView.getEventsAPIPayload(location);
 
   if (cursor !== undefined) {
     payload.cursor = cursor;

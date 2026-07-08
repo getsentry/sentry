@@ -22,7 +22,7 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -88,7 +88,13 @@ function getMaxConfigSpace(
   unit: ProfilingFormatterUnit | string,
   [start, end]: readonly [number, number] | readonly [null, null]
 ): Rect {
-  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  // Use the end position of each profile (startedAt offset + duration) rather than
+  // just duration, so profiles that start late in the window don't get clipped.
+  const maxProfileEnd = Math.max(
+    ...profileGroup.profiles.map(p =>
+      start === null ? p.duration : p.startedAt - start + p.duration
+    )
+  );
   const spaceDuration = start !== null && end !== null ? end - start : 0;
 
   if (transactionSpan) {
@@ -103,15 +109,15 @@ function getMaxConfigSpace(
     // and profile are fully visible to the user.
     const duration = Math.max(
       formatTo(transactionDuration, 'seconds', unit),
-      maxProfileDuration,
+      maxProfileEnd,
       spaceDuration
     );
     return new Rect(0, 0, duration, 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
-  // position of the profiles - find the max of profile durations
-  return new Rect(0, 0, Math.max(maxProfileDuration, spaceDuration), 0);
+  // position of the profiles - find the max end position across all profiles
+  return new Rect(0, 0, Math.max(maxProfileEnd, spaceDuration), 0);
 }
 
 function getProfileOffset(
@@ -325,7 +331,11 @@ export function ContinuousFlamegraph(): ReactElement {
     }
 
     return LOADING_OR_FALLBACK_SPAN_TREE;
-  }, [transactionResult]);
+  }, [
+    transactionResult.isPending,
+    transactionResult.data.transactionSpan,
+    transactionResult.data.childSpans,
+  ]);
 
   const spanChart = useMemo(() => {
     if (!profile || !spanTree || !transactionResult.isEnabled) {
@@ -341,7 +351,14 @@ export function ContinuousFlamegraph(): ReactElement {
         configSpaceQueryParam
       ),
     });
-  }, [spanTree, profile, profileGroup, transactionResult, configSpaceQueryParam]);
+  }, [
+    spanTree,
+    profile,
+    profileGroup,
+    transactionResult.isEnabled,
+    transactionResult.data.transactionSpan,
+    configSpaceQueryParam,
+  ]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -363,6 +380,10 @@ export function ContinuousFlamegraph(): ReactElement {
     const span = Sentry.withScope(scope => {
       scope.setTag('sorting', sorting.split(' ').join('_'));
       scope.setTag('view', view.split(' ').join('_'));
+      scope.setAttributes({
+        sorting: sorting.split(' ').join('_'),
+        view: view.split(' ').join('_'),
+      });
 
       return Sentry.startInactiveSpan({
         op: 'import',
@@ -391,7 +412,9 @@ export function ContinuousFlamegraph(): ReactElement {
     sorting,
     flamegraphProfiles.threadId,
     view,
-    transactionResult,
+    transactionResult.data.transactionSpan,
+    transactionResult.isEnabled,
+    transactionResult.isPending,
     configSpaceQueryParam,
   ]);
 
@@ -671,14 +694,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      flamegraph,
-      flamegraphCanvas,
-      flamegraphTheme,
-      profile,
-      transactionResult,
-      configSpaceQueryParam,
-    ]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profile, configSpaceQueryParam]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -890,7 +906,7 @@ export function ContinuousFlamegraph(): ReactElement {
       flamegraphTheme.SIZES,
       profileTimestamp,
       configSpaceQueryParam,
-      transactionResult,
+      transactionResult.data.transactionSpan,
     ]
   );
 

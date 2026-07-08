@@ -12,21 +12,24 @@ class RepositorySettingsSerializerResponse(TypedDict):
     codeReviewTriggers: list[str]
 
 
-class RepositorySerializerResponse(TypedDict, total=False):
-    id: str
-    name: str
+class RepositorySerializerResponseOptional(TypedDict, total=False):
     url: str | None
     provider: dict[str, str]
     status: str
-    dateCreated: datetime
     integrationId: str | None
     externalSlug: str | None
     externalId: str | None
     settings: RepositorySettingsSerializerResponse | None
 
 
+class RepositorySerializerResponse(RepositorySerializerResponseOptional):
+    id: str
+    name: str
+    dateCreated: datetime
+
+
 @register(RepositorySettings)
-class RepositorySettingsSerializer(Serializer):
+class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerResponse]):
     def serialize(
         self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> RepositorySettingsSerializerResponse:
@@ -37,7 +40,7 @@ class RepositorySettingsSerializer(Serializer):
 
 
 @register(Repository)
-class RepositorySerializer(Serializer):
+class RepositorySerializer(Serializer[RepositorySerializerResponse]):
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         super().__init__()
         self.expand = expand or []
@@ -68,12 +71,12 @@ class RepositorySerializer(Serializer):
         integration_id = None
         if obj.integration_id:
             integration_id = str(obj.integration_id)
-        if obj.provider:
-            repo_provider = obj.get_provider()
+        repo_provider = obj.get_provider() if obj.provider else None
+        if repo_provider is not None:
             provider = {"id": obj.provider, "name": repo_provider.name}
             external_slug = repo_provider.repository_external_slug(obj)
         else:
-            provider = {"id": "unknown", "name": "Unknown Provider"}
+            provider = {"id": obj.provider or "unknown", "name": obj.provider or "Unknown Provider"}
 
         data: RepositorySerializerResponse = {
             "id": str(obj.id),

@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -15,7 +16,7 @@ import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   fieldAlignment,
   parseFunction,
@@ -31,10 +32,10 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import type {
   useMultiQueryTableAggregateMode,
@@ -89,7 +90,6 @@ function AggregatesTable({
   const location = useLocation();
   const queries = useReadQueriesFromLocation();
 
-  const topEvents = 5;
   const {result, eventView, fields} = aggregatesTableResult;
   const {sortBys} = queryParts;
   const meta = result.meta ?? {};
@@ -180,9 +180,7 @@ function AggregatesTable({
               return (
                 <TableRow key={i}>
                   <TableBodyCell key={`samples-${i}`}>
-                    {topEvents && i < topEvents && (
-                      <TopResultsIndicator color={palette[i]!} />
-                    )}
+                    {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target} data-test-id="unstack-link">
                         <IconStack />
@@ -346,7 +344,11 @@ const TableBodyCell = styled(GridBodyCell)`
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  ${p => p.align && `justify-content: ${p.align};`}
+  ${p =>
+    p.align &&
+    css`
+      justify-content: ${p.align};
+    `}
   font-size: ${p => p.theme.font.size.sm};
   height: 33px;
 `;

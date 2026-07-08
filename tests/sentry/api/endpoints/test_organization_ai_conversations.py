@@ -1,3 +1,4 @@
+import json  # noqa: S003
 from datetime import timedelta
 from typing import Any
 from uuid import uuid4
@@ -5,8 +6,6 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_ai_conversations import (
-    _extract_content_from_parts,
-    _extract_first_user_message,
     _get_first_input_message,
     _get_last_output,
 )
@@ -15,153 +14,79 @@ from sentry.testutils.helpers.datetime import before_now
 
 from .test_organization_ai_conversations_base import (
     LLM_COST,
+    LLM_INPUT_TOKENS,
+    LLM_OUTPUT_TOKENS,
     LLM_TOKENS,
     BaseAIConversationsTestCase,
 )
 
 
-class TestExtractContentFromParts:
-    """Unit tests for _extract_content_from_parts helper function"""
-
-    def test_single_text_part(self) -> None:
-        msg = {"parts": [{"type": "text", "content": "Hello, world!"}]}
-        assert _extract_content_from_parts(msg) == "Hello, world!"
-
-    def test_multiple_text_parts(self) -> None:
-        msg = {
-            "parts": [
-                {"type": "text", "content": "First part."},
-                {"type": "text", "content": "Second part."},
-            ]
-        }
-        assert _extract_content_from_parts(msg) == "First part.\nSecond part."
-
-    def test_mixed_part_types(self) -> None:
-        msg = {
-            "parts": [
-                {"type": "text", "content": "User question"},
-                {"type": "tool_call", "id": "123", "name": "weather"},
-                {"type": "text", "content": "More text"},
-            ]
-        }
-        # Should only extract text parts
-        assert _extract_content_from_parts(msg) == "User question\nMore text"
-
-    def test_empty_parts(self) -> None:
-        msg: dict[str, Any] = {"parts": []}
-        assert _extract_content_from_parts(msg) is None
-
-    def test_no_parts_key(self) -> None:
-        msg = {"content": "old format"}
-        assert _extract_content_from_parts(msg) is None
-
-    def test_parts_not_list(self) -> None:
-        msg = {"parts": "invalid"}
-        assert _extract_content_from_parts(msg) is None
-
-    def test_empty_content(self) -> None:
-        msg = {"parts": [{"type": "text", "content": ""}]}
-        assert _extract_content_from_parts(msg) is None
-
-    def test_missing_content(self) -> None:
-        msg = {"parts": [{"type": "text"}]}
-        assert _extract_content_from_parts(msg) is None
-
-
-class TestExtractFirstUserMessage:
-    """Unit tests for _extract_first_user_message helper function"""
-
-    def test_old_format_content(self) -> None:
-        messages = '[{"role": "user", "content": "Hello"}]'
-        assert _extract_first_user_message(messages) == "Hello"
-
-    def test_new_format_parts(self) -> None:
-        messages = '[{"role": "user", "parts": [{"type": "text", "content": "Hello"}]}]'
-        assert _extract_first_user_message(messages) == "Hello"
-
-    def test_prefers_old_format_when_both_exist(self) -> None:
-        messages = (
-            '[{"role": "user", "content": "Old", "parts": [{"type": "text", "content": "New"}]}]'
-        )
-        assert _extract_first_user_message(messages) == "Old"
-
-    def test_finds_first_user_message(self) -> None:
-        messages = '[{"role": "system", "content": "System"}, {"role": "user", "content": "First"}, {"role": "user", "content": "Second"}]'
-        assert _extract_first_user_message(messages) == "First"
-
-    def test_returns_none_for_no_user_messages(self) -> None:
-        messages = (
-            '[{"role": "system", "content": "System"}, {"role": "assistant", "content": "Hi"}]'
-        )
-        assert _extract_first_user_message(messages) is None
-
-    def test_returns_none_for_invalid_json(self) -> None:
-        messages = "invalid json"
-        assert _extract_first_user_message(messages) is None
-
-    def test_returns_none_for_none_input(self) -> None:
-        assert _extract_first_user_message(None) is None
-
-    def test_returns_none_for_empty_list(self) -> None:
-        messages = "[]"
-        assert _extract_first_user_message(messages) is None
-
-    def test_returns_filtered(self) -> None:
-        assert _extract_first_user_message("[Filtered]") == "[Filtered]"
+def json_string(value: Any) -> str:
+    return json.dumps(value)
 
 
 class TestGetFirstInputMessage:
-    """Unit tests for _get_first_input_message helper function"""
-
-    def test_prefers_new_format(self) -> None:
+    def test_prefers_input_messages(self) -> None:
         row = {
-            "gen_ai.input.messages": '[{"role": "user", "parts": [{"type": "text", "content": "New"}]}]',
-            "gen_ai.request.messages": '[{"role": "user", "content": "Old"}]',
+            "gen_ai.input.messages": json_string(
+                [{"role": "user", "parts": [{"type": "text", "content": "New"}]}]
+            ),
+            "gen_ai.request.messages": json_string([{"role": "user", "content": "Old"}]),
         }
         assert _get_first_input_message(row) == "New"
 
-    def test_falls_back_to_old_format(self) -> None:
-        row = {"gen_ai.request.messages": '[{"role": "user", "content": "Old"}]'}
+    def test_falls_back_to_request_messages(self) -> None:
+        row = {"gen_ai.request.messages": json_string([{"role": "user", "content": "Old"}])}
         assert _get_first_input_message(row) == "Old"
 
     def test_returns_none_when_both_empty(self) -> None:
         row: dict[str, Any] = {}
         assert _get_first_input_message(row) is None
 
-    def test_skips_invalid_new_format(self) -> None:
+    def test_skips_invalid_input_messages(self) -> None:
         row = {
-            "gen_ai.input.messages": "invalid",
-            "gen_ai.request.messages": '[{"role": "user", "content": "Old"}]',
+            "gen_ai.input.messages": "[broken json",
+            "gen_ai.request.messages": json_string([{"role": "user", "content": "Old"}]),
         }
         assert _get_first_input_message(row) == "Old"
 
-    def test_returns_filtered_for_new_format(self) -> None:
+    def test_returns_filtered_for_input_messages(self) -> None:
         row = {"gen_ai.input.messages": "[Filtered]"}
         assert _get_first_input_message(row) == "[Filtered]"
 
-    def test_returns_filtered_for_old_format(self) -> None:
+    def test_python_repr_single_quotes(self) -> None:
+        row = {"gen_ai.input.messages": "[{'role': 'user', 'content': 'Hello'}]"}
+        assert _get_first_input_message(row) == "Hello"
+
+    def test_python_repr_mixed_quotes(self) -> None:
+        row = {"gen_ai.input.messages": """[{'role': 'user', 'content': "the user's message"}]"""}
+        assert _get_first_input_message(row) == "the user's message"
+
+    def test_returns_filtered_for_request_messages(self) -> None:
         row = {"gen_ai.request.messages": "[Filtered]"}
         assert _get_first_input_message(row) == "[Filtered]"
 
 
 class TestGetLastOutput:
-    """Unit tests for _get_last_output helper function"""
-
-    def test_prefers_new_format_text_part(self) -> None:
+    def test_prefers_output_messages_text_part(self) -> None:
         row = {
-            "gen_ai.output.messages": '[{"role": "assistant", "parts": [{"type": "text", "content": "New"}]}]',
+            "gen_ai.output.messages": json_string(
+                [{"role": "assistant", "parts": [{"type": "text", "content": "New"}]}]
+            ),
             "gen_ai.response.text": "Old",
         }
         assert _get_last_output(row) == "New"
 
-    def test_prefers_new_format_content(self) -> None:
+    def test_prefers_output_messages_content(self) -> None:
         row = {
-            "gen_ai.output.messages": '[{"role": "assistant", "content": "New content"}]',
+            "gen_ai.output.messages": json_string(
+                [{"role": "assistant", "content": "New content"}]
+            ),
             "gen_ai.response.text": "Old",
         }
         assert _get_last_output(row) == "New content"
 
-    def test_falls_back_to_old_format(self) -> None:
+    def test_falls_back_to_response_text(self) -> None:
         row = {"gen_ai.response.text": "Old response"}
         assert _get_last_output(row) == "Old response"
 
@@ -169,24 +94,7 @@ class TestGetLastOutput:
         row: dict[str, Any] = {}
         assert _get_last_output(row) is None
 
-    def test_finds_last_assistant_message(self) -> None:
-        row = {
-            "gen_ai.output.messages": '[{"role": "assistant", "content": "First"}, {"role": "user", "content": "Question"}, {"role": "assistant", "content": "Last"}]'
-        }
-        assert _get_last_output(row) == "Last"
-
-    def test_uses_plain_string_as_assistant_text(self) -> None:
-        row = {
-            "gen_ai.output.messages": "Plain text response",
-            "gen_ai.response.text": "Fallback",
-        }
-        assert _get_last_output(row) == "Plain text response"
-
-    def test_extracts_json_encoded_string(self) -> None:
-        row = {"gen_ai.output.messages": '"Hello, world!"'}
-        assert _get_last_output(row) == "Hello, world!"
-
-    def test_falls_back_on_invalid_json(self) -> None:
+    def test_falls_back_on_invalid_output_messages(self) -> None:
         row = {
             "gen_ai.output.messages": "[broken json",
             "gen_ai.response.text": "Fallback",
@@ -196,6 +104,10 @@ class TestGetLastOutput:
     def test_returns_filtered(self) -> None:
         row = {"gen_ai.output.messages": "[Filtered]"}
         assert _get_last_output(row) == "[Filtered]"
+
+    def test_python_repr_output(self) -> None:
+        row = {"gen_ai.output.messages": "[{'role': 'assistant', 'content': 'Hello!'}]"}
+        assert _get_last_output(row) == "Hello!"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
@@ -271,6 +183,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             tokens=LLM_TOKENS,
+            input_tokens=LLM_INPUT_TOKENS,
+            output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
             messages=first_messages,
@@ -302,6 +216,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             status="internal_error",
             operation_type="ai_client",
             tokens=LLM_TOKENS,
+            input_tokens=LLM_INPUT_TOKENS,
+            output_tokens=LLM_OUTPUT_TOKENS,
             cost=LLM_COST,
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Thanks"}],
@@ -324,6 +240,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 2
         assert conversation["toolCalls"] == 1
         assert conversation["totalTokens"] == LLM_TOKENS * 2
+        assert conversation["inputTokens"] == LLM_INPUT_TOKENS * 2
+        assert conversation["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
@@ -517,6 +435,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 1
         assert conversation["toolCalls"] == 0
         assert conversation["totalTokens"] == 0
+        assert conversation["inputTokens"] == 0
+        assert conversation["outputTokens"] == 0
         assert conversation["totalCost"] == 0.0
         assert conversation["flow"] == []
         assert len(conversation["traceIds"]) == 1
@@ -548,6 +468,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 conversation_id=conversation_id,
                 timestamp=now - timedelta(seconds=i),
                 op="gen_ai.chat",
+                operation_type="ai_client",
                 status=span_status,
                 trace_id=trace_id,
                 **extra_kwargs,
@@ -639,6 +560,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             tokens=50,
+            input_tokens=35,
+            output_tokens=15,
             cost=0.005,
             trace_id=trace_id,
             messages=[{"role": "user", "content": "recent request"}],
@@ -659,6 +582,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["conversationId"] == conversation_id
         assert conversation["llmCalls"] == 1
         assert conversation["totalTokens"] == 50
+        assert conversation["inputTokens"] == 35
+        assert conversation["outputTokens"] == 15
         assert conversation["totalCost"] == 0.005
 
     def test_first_input_last_output(self) -> None:
@@ -723,17 +648,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == first_user_content
         assert conversation["lastOutput"] == last_response_text
 
-    def test_no_ai_client_spans_filtered_out(self) -> None:
-        """Test conversations without input/output are filtered out"""
+    def test_conversation_without_ai_client_spans_included(self) -> None:
+        """Conversations are surfaced based on gen_ai.operation.type, even without LLM I/O"""
         now = before_now(days=12).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Only invoke_agent spans, no ai_client spans with input/output
+        # Only invoke_agent and tool spans, no ai_client spans with input/output
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
             agent_name="Test Agent",
             trace_id=trace_id,
         )
@@ -743,6 +669,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.execute_tool",
             operation_type="tool",
+            tool_name="weather",
             trace_id=trace_id,
         )
 
@@ -754,7 +681,57 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert len(response.data) == 0
+        assert len(response.data) == 1
+        conversation = response.data[0]
+        assert conversation["conversationId"] == conversation_id
+        assert conversation["toolNames"] == ["weather"]
+        assert conversation["firstInput"] is None
+        assert conversation["lastOutput"] is None
+
+    def test_query_filter_by_tool_name(self) -> None:
+        """Test that a tool-name query filters conversations by the tools they used"""
+        now = before_now(days=24).replace(microsecond=0)
+        conversation_with_tool = uuid4().hex
+        conversation_without_tool = uuid4().hex
+
+        # Conversation that uses the weather tool
+        self.store_ai_span(
+            conversation_id=conversation_with_tool,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "What is the weather?"}],
+            response_text="Let me check",
+        )
+        self.store_ai_span(
+            conversation_id=conversation_with_tool,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+
+        # Conversation that does not use the weather tool
+        self.store_ai_span(
+            conversation_id=conversation_without_tool,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            messages=[{"role": "user", "content": "Tell me a joke"}],
+            response_text="Here is one",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "gen_ai.tool.name:weather",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == conversation_with_tool
 
     def test_query_filter(self) -> None:
         """Test that query parameter filters conversations"""
@@ -1079,6 +1056,45 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.data[0]["firstInput"] == user_content
         assert response.data[0]["lastOutput"] == response_content
 
+    def test_structured_user_part_populates_first_input(self) -> None:
+        now = before_now(days=19).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        input_messages = [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "type": "object",
+                        "data": {"question": "Weather in Paris?"},
+                    }
+                ],
+            }
+        ]
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            input_messages=input_messages,
+            output_messages=[{"role": "assistant", "content": "It's rainy"}],
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data[0]["firstInput"] == (
+            '{"type": "object", "data": {"question": "Weather in Paris?"}}'
+        )
+
     def test_tool_names_populated(self) -> None:
         """Test that toolNames is populated with distinct tool names from tool spans"""
         now = before_now(days=21).replace(microsecond=0)
@@ -1297,6 +1313,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             agent_name="Test Agent",
             trace_id=trace_id,
             tokens=500,
+            input_tokens=350,
+            output_tokens=150,
             cost=0.05,
         )
 
@@ -1308,6 +1326,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             operation_type="ai_client",
             trace_id=trace_id,
             tokens=100,
+            input_tokens=70,
+            output_tokens=30,
             cost=0.01,
             messages=[{"role": "user", "content": "test"}],
             response_text="test response",
@@ -1327,6 +1347,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         # Tokens and cost should only come from ai_client span (100, 0.01)
         # NOT the sum of both spans (600, 0.06) which would be double counting
         assert conversation["totalTokens"] == 100
+        assert conversation["inputTokens"] == 70
+        assert conversation["outputTokens"] == 30
         assert conversation["totalCost"] == 0.01
         # Verify counts are correct
         assert conversation["llmCalls"] == 1

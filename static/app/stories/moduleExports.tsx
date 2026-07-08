@@ -5,7 +5,9 @@ import {Heading} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
-  if (!props.exports?.exports || !props.exports.module) return null;
+  if (!props.exports?.exports || !props.exports.module) {
+    return null;
+  }
 
   const lines = [];
   // canonical source: @sentry/scraps/<component> (no deep imports)
@@ -65,7 +67,9 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
     }
   }
 
-  if (!lines.length) return null;
+  if (!lines.length) {
+    return null;
+  }
 
   return (
     <Stack gap="md" paddingTop="xl">

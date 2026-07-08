@@ -4,7 +4,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type Props = {
   barHeight: number;

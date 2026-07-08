@@ -6,7 +6,7 @@ import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {uniqueId} from 'sentry/utils/guid';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
@@ -90,7 +90,11 @@ export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
 }
 
 export function getDefaultWidgetHeight(displayType: DisplayType): number {
-  if (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.DETAILS) {
+  if (
+    displayType === DisplayType.BIG_NUMBER ||
+    displayType === DisplayType.DETAILS ||
+    displayType === DisplayType.TEXT
+  ) {
     return 1;
   }
   return 2;

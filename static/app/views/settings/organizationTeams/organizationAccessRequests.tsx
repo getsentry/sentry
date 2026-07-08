@@ -1,141 +1,127 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {AccessRequest} from 'sentry/types/organization';
-import {withApi} from 'sentry/utils/withApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
-  api: Client;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   orgSlug: string;
   requestList: AccessRequest[];
 };
 
-type State = {
-  accessRequestBusy: Record<string, boolean>;
-};
+export function OrganizationAccessRequests({
+  orgSlug,
+  requestList,
+  onRemoveAccessRequest,
+}: Props) {
+  if (!requestList?.length) {
+    return null;
+  }
 
-type HandleOpts = {
-  errorMessage: string;
-  id: string;
-  isApproved: boolean;
-  successMessage: string;
-};
+  return (
+    <Panel>
+      <PanelHeader>{t('Pending Team Requests')}</PanelHeader>
 
-class OrganizationAccessRequests extends Component<Props, State> {
-  state: State = {
-    accessRequestBusy: {},
-  };
+      <PanelBody>
+        {requestList.map(accessRequest => (
+          <AccessRequestItem
+            key={accessRequest.id}
+            accessRequest={accessRequest}
+            orgSlug={orgSlug}
+            onRemoveAccessRequest={onRemoveAccessRequest}
+          />
+        ))}
+      </PanelBody>
+    </Panel>
+  );
+}
 
-  async handleAction({id, isApproved, successMessage, errorMessage}: HandleOpts) {
-    const {api, orgSlug, onRemoveAccessRequest} = this.props;
+function AccessRequestItem({
+  accessRequest,
+  orgSlug,
+  onRemoveAccessRequest,
+}: {
+  accessRequest: AccessRequest;
+  onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
+  orgSlug: string;
+}) {
+  const {id, member, team, requester} = accessRequest;
 
-    this.setState(state => ({
-      accessRequestBusy: {...state.accessRequestBusy, [id]: true},
-    }));
-
-    try {
-      await api.requestPromise(`/organizations/${orgSlug}/access-requests/${id}/`, {
+  const {mutate, isPending} = useMutation({
+    mutationFn: ({isApproved}: {isApproved: boolean}) => {
+      return fetchMutation({
         method: 'PUT',
+        url: `/organizations/${orgSlug}/access-requests/${id}/`,
         data: {isApproved},
       });
+    },
+    onSuccess: (_data, {isApproved}) => {
       onRemoveAccessRequest(id, isApproved);
-      addSuccessMessage(successMessage);
-    } catch {
-      addErrorMessage(errorMessage);
-    }
+      addSuccessMessage(
+        isApproved ? t('Team request approved') : t('Team request denied')
+      );
+    },
+    onError: (_error, {isApproved}) => {
+      addErrorMessage(
+        isApproved ? t('Error approving team request') : t('Error denying team request')
+      );
+    },
+  });
 
-    this.setState(state => ({
-      accessRequestBusy: {...state.accessRequestBusy, [id]: false},
-    }));
-  }
+  const memberName =
+    member.user && (member.user.name || member.user.email || member.user.username);
+  const requesterName =
+    requester && (requester.name || requester.email || requester.username);
 
-  handleApprove = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    this.handleAction({
-      id,
-      isApproved: true,
-      successMessage: t('Team request approved'),
-      errorMessage: t('Error approving team request'),
-    });
-  };
-
-  handleDeny = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    this.handleAction({
-      id,
-      isApproved: false,
-      successMessage: t('Team request denied'),
-      errorMessage: t('Error denying team request'),
-    });
-  };
-
-  render() {
-    const {requestList} = this.props;
-    const {accessRequestBusy} = this.state;
-
-    if (!requestList?.length) {
-      return null;
-    }
-
-    return (
-      <Panel>
-        <PanelHeader>{t('Pending Team Requests')}</PanelHeader>
-
-        <PanelBody>
-          {requestList.map(({id, member, team, requester}) => {
-            const memberName =
-              member.user &&
-              (member.user.name || member.user.email || member.user.username);
-            const requesterName =
-              requester && (requester.name || requester.email || requester.username);
-            return (
-              <StyledPanelItem key={id}>
-                <div data-test-id="request-message">
-                  {requesterName
-                    ? tct('[requesterName] requests to add [name] to the [team] team.', {
-                        requesterName,
-                        name: <strong>{memberName}</strong>,
-                        team: <strong>#{team.slug}</strong>,
-                      })
-                    : tct('[name] requests access to the [team] team.', {
-                        name: <strong>{memberName}</strong>,
-                        team: <strong>#{team.slug}</strong>,
-                      })}
-                </div>
-                <div>
-                  <StyledButton
-                    variant="primary"
-                    size="sm"
-                    onClick={e => this.handleApprove(id, e)}
-                    busy={accessRequestBusy[id]}
-                  >
-                    {t('Approve')}
-                  </StyledButton>
-                  <Button
-                    busy={accessRequestBusy[id]}
-                    onClick={e => this.handleDeny(id, e)}
-                    size="sm"
-                  >
-                    {t('Deny')}
-                  </Button>
-                </div>
-              </StyledPanelItem>
-            );
-          })}
-        </PanelBody>
-      </Panel>
-    );
-  }
+  return (
+    <StyledPanelItem>
+      <div data-test-id="request-message">
+        {requesterName
+          ? tct('[requesterName] requests to add [name] to the [team] team.', {
+              requesterName,
+              name: <strong>{memberName}</strong>,
+              team: <strong>#{team.slug}</strong>,
+            })
+          : tct('[name] requests access to the [team] team.', {
+              name: <strong>{memberName}</strong>,
+              team: <strong>#{team.slug}</strong>,
+            })}
+      </div>
+      <Flex gap="md">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={e => {
+            e.stopPropagation();
+            mutate({isApproved: true});
+          }}
+          busy={isPending}
+        >
+          {t('Approve')}
+        </Button>
+        <Button
+          busy={isPending}
+          onClick={e => {
+            e.stopPropagation();
+            mutate({isApproved: false});
+          }}
+          size="sm"
+        >
+          {t('Deny')}
+        </Button>
+      </Flex>
+    </StyledPanelItem>
+  );
 }
 
 const StyledPanelItem = styled(PanelItem)`
@@ -144,9 +130,3 @@ const StyledPanelItem = styled(PanelItem)`
   gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
-
-const StyledButton = styled(Button)`
-  margin-right: ${p => p.theme.space.md};
-`;
-
-export default withApi(OrganizationAccessRequests);

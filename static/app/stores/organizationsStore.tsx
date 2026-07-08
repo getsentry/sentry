@@ -1,22 +1,22 @@
 import {createStore} from 'reflux';
 
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 
 import type {StrictStoreDefinition} from './types';
 
 interface State {
   loaded: boolean;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 }
 
 interface OrganizationsStoreDefinition extends StrictStoreDefinition<State> {
-  addOrReplace(item: Organization): void;
-  get(slug: string): Organization | undefined;
-  getAll(): Organization[];
-  load(items: Organization[]): void;
-  onChangeSlug(prev: Organization, next: Partial<Organization>): void;
+  addOrReplace(item: OrganizationSummary): void;
+  get(slug: string): OrganizationSummary | undefined;
+  getAll(): OrganizationSummary[];
+  load(items: OrganizationSummary[]): void;
+  onChangeSlug(prev: OrganizationSummary, next: Partial<OrganizationSummary>): void;
   onRemoveSuccess(slug: string): void;
-  onUpdate(org: Partial<Organization>): void;
+  onUpdate(org: Partial<OrganizationSummary>): void;
   remove(slug: string): void;
 }
 
@@ -62,7 +62,7 @@ const storeConfig: OrganizationsStoreDefinition = {
   },
 
   get(slug) {
-    return this.state.organizations.find((item: Organization) => item.slug === slug);
+    return this.state.organizations.find(item => item.slug === slug);
   },
 
   getAll() {
@@ -97,7 +97,7 @@ const storeConfig: OrganizationsStoreDefinition = {
     this.trigger(newOrgs);
   },
 
-  load(items: Organization[]) {
+  load(items: OrganizationSummary[]) {
     const newOrgs = [...items];
     this.state = {organizations: newOrgs, loaded: true};
     this.trigger(newOrgs);

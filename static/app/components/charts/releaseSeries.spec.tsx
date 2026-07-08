@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -32,8 +31,7 @@ describe('ReleaseSeries', () => {
     });
   });
 
-  const router = RouterFixture();
-  const baseSeriesProps: ReleaseSeriesProps = {
+  const baseSeriesProps: Omit<ReleaseSeriesProps, 'location' | 'navigate'> = {
     api: new MockApiClient(),
     organization: OrganizationFixture(),
     period: '14d',
@@ -44,10 +42,6 @@ describe('ReleaseSeries', () => {
     query: '',
     environments: [],
     children: renderFunc,
-    params: router.params,
-    routes: router.routes,
-    router,
-    location: router.location,
     theme,
   };
 

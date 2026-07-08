@@ -86,6 +86,10 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
@@ -186,6 +190,10 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/integrations/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/repos/`,

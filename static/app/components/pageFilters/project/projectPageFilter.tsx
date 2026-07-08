@@ -110,7 +110,7 @@ export function ProjectPageFilter({
   const dispatchRef = useRef<React.Dispatch<any> | undefined>(undefined);
 
   // We need to backpropagate the staged value to the options so that we can update the UI.
-  const [stagedValue, setStagedValue] = useState<number[]>(committedSelectionIntent.ids);
+  const [stagedValue, setStagedValue] = useState(committedSelectionIntent.ids);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
     const optionSelectionIntent = selectionToIntent({
@@ -352,8 +352,8 @@ export function ProjectPageFilter({
       bookmarkedSnapshotRef.current
         ? [
             !lastSelected.includes(parseInt(project.id, 10)),
-            !project.isMember,
             !bookmarkedSnapshotRef.current.has(project.id),
+            !project.isMember,
             project.slug,
           ]
         : [
@@ -574,7 +574,7 @@ export function ProjectPageFilter({
 
   return (
     <CompactSelect
-      grid
+      mode="grid"
       multiple
       {...selectProps}
       {...stagedSelect.compactSelectProps}

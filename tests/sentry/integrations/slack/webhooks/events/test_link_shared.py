@@ -38,7 +38,7 @@ class LinkSharedEventTest(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             ("mock_link", {"arg1": "value1"}),
-            ("mock_link", {"arg1", "value2"}),
+            ("mock_link", {"arg2": "value2"}),
             ("mock_link", {"arg1": "value1"}),
         ],
     )
@@ -71,7 +71,7 @@ class LinkSharedEventTest(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             ("mock_link", {"arg1": "value1"}),
-            ("mock_link", {"arg1", "value2"}),
+            ("mock_link", {"arg2": "value2"}),
             ("mock_link", {"arg1": "value1"}),
         ],
     )
@@ -115,7 +115,7 @@ class LinkSharedEventTest(BaseEventTest):
         # two unique links and one duplicate.
         side_effect=[
             ("mock_link", {"arg1": "value1"}),
-            ("mock_link", {"arg1", "value2"}),
+            ("mock_link", {"arg2": "value2"}),
             ("mock_link", {"arg1": "value1"}),
         ],
     )

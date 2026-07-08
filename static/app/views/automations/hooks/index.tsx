@@ -21,8 +21,8 @@ import type {
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -162,8 +162,11 @@ export function useCreateAutomation() {
         queryKey: automationsApiOptions(org).queryKey,
       });
     },
-    onError: _ => {
-      addErrorMessage(t('Unable to create alert'));
+    onError: error => {
+      addErrorMessage(
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
+          t('Unable to create alert')
+      );
     },
   });
 }
@@ -269,8 +272,11 @@ export function useUpdateAutomation() {
         queryKey: automationsApiOptions(org).queryKey,
       });
     },
-    onError: _ => {
-      addErrorMessage(t('Unable to update alert'));
+    onError: error => {
+      addErrorMessage(
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
+          t('Unable to update alert')
+      );
     },
   });
 }

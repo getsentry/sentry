@@ -253,7 +253,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             settings[ConsecutiveDBSpanDetector.settings_key], event
         )
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -266,7 +266,7 @@ class ConsecutiveDbDetectorTest(TestCase):
             settings[ConsecutiveDBSpanDetector.settings_key], event
         )
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_detects_consecutive_db_does_not_detect_php(self) -> None:
         event = self.create_issue_event()

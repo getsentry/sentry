@@ -147,7 +147,7 @@ export function getTermHelp(
   organization: Organization,
   term: keyof typeof PERFORMANCE_TERMS
 ): string {
-  if (!PERFORMANCE_TERMS.hasOwnProperty(term)) {
+  if (!Object.hasOwn(PERFORMANCE_TERMS, term)) {
     return '';
   }
   return PERFORMANCE_TERMS[term](organization);

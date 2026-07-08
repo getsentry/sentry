@@ -172,7 +172,7 @@ function MetricsSectionContent() {
         <TraceItemSearchQueryBuilder {...traceMetricsSearchQueryBuilderProps} />
       </SearchQueryBuilderProvider>
       <TableContainer>
-        <MetricsSamplesTable embedded />
+        <MetricsSamplesTable source="traceWaterfall" />
       </TableContainer>
     </Fragment>
   );

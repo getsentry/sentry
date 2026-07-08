@@ -7,21 +7,29 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {getReferrerConfig} from 'sentry/components/events/autofix/autofixReferrer';
+import {IconBot} from 'sentry/icons/iconBot';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerHeaderProps {
   onCopyMarkdown?: () => void;
+  onOpenSeerAgent?: () => void;
   onReset?: () => void;
   referrer?: string;
 }
 
 export function SeerDrawerHeader({
   onCopyMarkdown,
+  onOpenSeerAgent,
   onReset,
   referrer,
 }: SeerDrawerHeaderProps) {
+  const organization = useOrganization();
+  const hasDebugFlag = organization.features.includes('autofix-seer-agent-debug');
+  const isSentryEmployee = useIsSentryEmployee();
   const tooltip = useMemo(() => {
     const config = getReferrerConfig(referrer);
     return config.tooltip ?? referrer;
@@ -42,7 +50,7 @@ export function SeerDrawerHeader({
             disabled={!onReset}
             tooltipProps={{title: t('Start a new analysis from scratch')}}
             aria-label={t('Start a new analysis from scratch')}
-            priority="transparent"
+            variant="transparent"
           />
           <Button
             size="xs"
@@ -51,8 +59,18 @@ export function SeerDrawerHeader({
             disabled={!onCopyMarkdown}
             tooltipProps={{title: t('Copy analysis as Markdown')}}
             aria-label={t('Copy analysis as Markdown')}
-            priority="transparent"
+            variant="transparent"
           />
+          {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
+            <Button
+              size="xs"
+              icon={<IconBot />}
+              onClick={onOpenSeerAgent}
+              tooltipProps={{title: t('Open in Seer Agent (debug)')}}
+              aria-label={t('Open in Seer Agent (debug)')}
+              variant="transparent"
+            />
+          )}
         </Flex>
       </Flex>
     </DrawerHeader>

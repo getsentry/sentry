@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 
 import orjson
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,6 +24,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -158,12 +158,13 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
 
-        with sentry_sdk.start_transaction(
+        with start_span(
             name="replays.endpoints.project_replay_summary.get",
             op="replays.endpoints.project_replay_summary.get",
             custom_sampling_context=(
                 {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
             ),
+            transaction=True,
         ):
             self.check_replay_access(request, project)
 
@@ -193,12 +194,13 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
 
-        with sentry_sdk.start_transaction(
+        with start_span(
             name="replays.endpoints.project_replay_summary.post",
             op="replays.endpoints.project_replay_summary.post",
             custom_sampling_context=(
                 {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
             ),
+            transaction=True,
         ):
             self.check_replay_access(request, project)
 

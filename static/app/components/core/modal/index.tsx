@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, type ComponentProps} from 'react';
+import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
 import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,7 +7,7 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Surface} from '@sentry/scraps/layout';
+import {ContainerQueryProvider, Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -17,7 +17,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -118,7 +117,6 @@ type Props = {
 
 export function GlobalModal({onClose}: Props) {
   const {renderer, options, visible, triggerElement} = useModalStore();
-  const hasPageFrame = useHasPageFrameFeature();
   const location = useLocation();
   const theme = useTheme();
   const closeEvents = options.closeEvents ?? 'all';
@@ -155,6 +153,13 @@ export function GlobalModal({onClose}: Props) {
 
   const scrollLock = useScrollLock(document.body);
   const portal = getModalPortal();
+  // The portal lives at the document body, so container responsive props (bare
+  // breakpoint keys) inside a modal have no DOM container ancestor in the routed
+  // app. `#modal-portal` is a query container (see global styles); broadcast its
+  // breakpoint here so the JS resolution (which would otherwise leak the #main
+  // breakpoint through the React portal) agrees with the CSS @container rules.
+  // The ref is stable because `getModalPortal` is memoized.
+  const portalRef = useRef(portal);
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
@@ -229,7 +234,7 @@ export function GlobalModal({onClose}: Props) {
   });
 
   return createPortal(
-    <Fragment>
+    <ContainerQueryProvider elementRef={portalRef}>
       <AnimatePresence>
         {backdrop && visible && (
           <Backdrop
@@ -258,22 +263,14 @@ export function GlobalModal({onClose}: Props) {
                 role="dialog"
                 aria-modal
                 css={options.modalCss}
-                initial={hasPageFrame ? {opacity: 0, scale: 0.98} : {opacity: 0, y: -10}}
-                animate={hasPageFrame ? {opacity: 1, scale: 1} : {opacity: 1, y: 0}}
-                exit={
-                  hasPageFrame
-                    ? {opacity: 0, scale: 0.99, transition: theme.motion.framer.exit.fast}
-                    : {opacity: 0, y: 15}
-                }
-                transition={
-                  hasPageFrame
-                    ? theme.motion.framer.enter.moderate
-                    : {
-                        type: 'spring',
-                        stiffness: 450,
-                        damping: 25,
-                      }
-                }
+                initial={{opacity: 0, scale: 0.98}}
+                animate={{opacity: 1, scale: 1}}
+                exit={{
+                  opacity: 0,
+                  scale: 0.99,
+                  transition: theme.motion.framer.exit.fast,
+                }}
+                transition={theme.motion.framer.enter.moderate}
               >
                 <Surface variant="overlay" elevation="high">
                   {p => (
@@ -287,7 +284,7 @@ export function GlobalModal({onClose}: Props) {
           </AnimatePresence>
         </TooltipContext>
       </ModalContainer>
-    </Fragment>,
+    </ContainerQueryProvider>,
     portal
   );
 }

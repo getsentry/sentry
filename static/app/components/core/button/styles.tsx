@@ -6,7 +6,6 @@ import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 import {
   type ButtonVariant,
   type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
-  DO_NOT_USE_resolveButtonVariant as resolveButtonVariant,
 } from './types';
 
 export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
@@ -29,14 +28,14 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<CommonButtonProps, 'priority' | 'variant' | 'busy'> &
+  p: Pick<CommonButtonProps, 'variant' | 'busy'> &
     Pick<ButtonProps, 'disabled'> & {
       shapeVariant: 'rectangular' | 'square';
       size: NonNullable<ButtonProps['size']>;
       theme: Theme;
     }
 ): StrictCSSObject {
-  const variant = resolveButtonVariant(p);
+  const variant = p.variant ?? 'secondary';
 
   const buttonSizes = {
     ...p.theme.form,

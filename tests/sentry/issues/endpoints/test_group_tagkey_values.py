@@ -189,6 +189,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             "foo",
             tenant_ids={"organization_id": group.project.organization_id},
         )
+        assert group_tag_key.top_values is not None
         top_values = {tv.value for tv in group_tag_key.top_values}
         assert top_values == {"", "bar"}
 

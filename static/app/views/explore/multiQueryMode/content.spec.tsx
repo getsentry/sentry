@@ -90,11 +90,6 @@ describe('MultiQueryModeContent', () => {
       method: 'GET',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
-    });
   });
 
   it('disables changing fields for count', async () => {
@@ -985,7 +980,7 @@ describe('MultiQueryModeContent', () => {
             sampling: 'NORMAL',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(span.duration)'],
           }),
         })

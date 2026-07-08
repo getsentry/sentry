@@ -7,7 +7,10 @@ import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
@@ -49,7 +52,8 @@ export function AggregateKey({
   filterRef,
 }: AggregateKeyProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {dispatch, focusOverride, disabled} = useSearchQueryBuilder();
+  const {dispatch, focusOverride} = useSearchQueryBuilderState();
+  const {disabled} = useSearchQueryBuilderConfig();
 
   const [isEditing, setIsEditing] = useState(false);
 

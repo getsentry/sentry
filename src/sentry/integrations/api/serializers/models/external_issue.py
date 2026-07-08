@@ -5,6 +5,7 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.api.serializers import register
 from sentry.api.serializers.base import Serializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.service import integration_service
@@ -14,6 +15,7 @@ from sentry.users.services.user.model import RpcUser
 
 # Serializer for External Issues Model
 # Maps an external issue to to additional integration information such as key or name
+@register(ExternalIssue)
 class ExternalIssueSerializer(Serializer):
     def get_attrs(
         self,

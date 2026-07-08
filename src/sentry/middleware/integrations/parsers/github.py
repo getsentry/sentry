@@ -99,7 +99,12 @@ class GithubRequestParser(BaseRequestParser):
         Handles installation events in control silo and distributes webhooks to appropriate
         cell silos based on organization locations.
         """
-        if self.view_class != self.webhook_endpoint:
+        webhook_endpoints = (
+            self.webhook_endpoint
+            if isinstance(self.webhook_endpoint, tuple)
+            else (self.webhook_endpoint,)
+        )
+        if self.view_class not in webhook_endpoints:
             return self.get_response_from_control_silo()
 
         try:

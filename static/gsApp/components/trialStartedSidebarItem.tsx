@@ -28,10 +28,10 @@ type Props = {
 };
 
 function TrialStartedSidebarItem({subscription, organization, children}: Props) {
-  const [animationComplete, setAnimationComplete] = useState<boolean>(
+  const [animationComplete, setAnimationComplete] = useState(
     !!hasJustStartedPlanTrial(subscription)
   );
-  const [trialRequested, setTrialRequested] = useState<boolean>(
+  const [trialRequested, setTrialRequested] = useState(
     TrialRequestedStore.getTrialRequstedState()
   );
 

@@ -88,8 +88,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             event=self.group_event, workflow_env=self.environment, group=self.group
         )
 
-        self.action.workflow_id = self.workflow.id
-
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
             def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
@@ -109,7 +107,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         handler = TestHandler()
         with pytest.raises(ValueError):
-            handler.create_rule_instance_from_action(self.action, self.detector, self.event_data)
+            handler.create_rule_instance_from_action(
+                self.action, self.detector, self.event_data, workflow_id=self.workflow.id
+            )
 
     def test_create_rule_instance_from_action_missing_rule_workflow_id_raises_value_error(
         self,
@@ -125,12 +125,14 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(action, self.detector, job)
+            self.handler.create_rule_instance_from_action(
+                action, self.detector, job, workflow_id=None
+            )
 
     def test_create_rule_instance_from_action(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data
+            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
 
         assert isinstance(rule, Rule)
@@ -159,7 +161,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.rule.delete()
         rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data
+            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
 
         assert isinstance(rule, Rule)
@@ -190,7 +192,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         workflow_id = self.workflow.id
         self.workflow.delete()
         rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data
+            self.action, self.detector, self.event_data, workflow_id=workflow_id
         )
 
         assert isinstance(rule, Rule)
@@ -209,9 +211,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
     def test_create_rule_instance_from_action_with_test_notification_id(self) -> None:
         """Test that Workflow lookup is skipped for test notifications, falling back to detector name"""
-        self.action.workflow_id = TEST_NOTIFICATION_ID
         rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data
+            self.action, self.detector, self.event_data, workflow_id=TEST_NOTIFICATION_ID
         )
 
         assert isinstance(rule, Rule)
@@ -232,7 +233,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.create_workflow()
         job = WorkflowEventData(event=self.group_event, workflow_env=None, group=self.group)
-        rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, job, workflow_id=self.workflow.id
+        )
 
         assert isinstance(rule, Rule)
         assert rule.id == self.action.id
@@ -275,6 +278,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             action=self.action,
             detector=self.detector,
             notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
         )
 
         self.handler.invoke_legacy_registry(invocation)

@@ -15,7 +15,6 @@ import {
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   FieldKey,
@@ -28,6 +27,7 @@ import {
 } from 'sentry/utils/fields';
 import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import {escapeIssueTagKey} from 'sentry/utils/queryString';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -377,10 +377,23 @@ function builtInIssuesFields({
       values: [],
       predefined: true,
     },
+    [FieldKey.USER_COUNT]: {
+      ...PREDEFINED_FIELDS[FieldKey.USER_COUNT]!,
+      name: 'User Count',
+      isInput: true,
+      values: [],
+      predefined: true,
+    },
     [FieldKey.ISSUE_PRIORITY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY]!,
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
+      predefined: true,
+    },
+    [FieldKey.ISSUE_PROGRESS]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PROGRESS]!,
+      name: 'Issue Progress',
+      values: ['identified', 'assigned', 'diagnosed', 'fix_proposed', 'fix_applied'],
       predefined: true,
     },
     [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
@@ -410,9 +423,15 @@ function builtInIssuesFields({
     ISSUE_FIELDS.includes(key as FieldKey)
   );
 
-  return {
+  const allFields: TagCollection = {
     ...PREDEFINED_FIELDS,
     ...Object.fromEntries(filteredCollection),
     ...semverFields,
   };
+
+  if (!organization.features.includes('issue-stream-progress-ui')) {
+    delete allFields[FieldKey.ISSUE_PROGRESS];
+  }
+
+  return allFields;
 }

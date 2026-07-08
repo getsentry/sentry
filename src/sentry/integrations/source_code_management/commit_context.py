@@ -266,7 +266,9 @@ class CommitContextIntegration(ABC):
             )
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
+            scope.set_attribute("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
+            scope.set_attribute("queue_comment_check.organization_id", commit.organization_id)
 
             # client will raise an Exception if the request is not successful
             try:
@@ -594,7 +596,7 @@ class PRCommentWorkflow(ABC):
                 snuba_results,
                 eap_results,
                 "integrations.pr_comment.get_top_5_issues_by_count",
-                is_experimental_data_a_null_result=len(eap_results) == 0,
+                is_experimental_data_nullish=len(eap_results) == 0,
                 reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
                     snuba_rows,
                     eap_rows,

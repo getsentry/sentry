@@ -48,7 +48,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Tag's Values for an Issue",
+        operation_id="listOrganizationIssueTagValues",
+        summary="List a Tag's Values for an Issue",
         description="Returns a list of values associated with this key for an issue.\nReturns at most 1000 values when paginated.",
         parameters=[
             IssueParams.ISSUE_ID,
@@ -69,8 +70,12 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         },
         examples=[TagsExamples.GROUP_TAGKEY_VALUES],
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-values"])
-    def get(self, request: Request, group, key) -> Response:
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-tag-key-values",
+        url_names=["sentry-api-0-group-tag-key-values"],
+    )
+    def get(self, request: Request, group, key) -> Response[list[TagValueSerializerResponse]]:
         """
         List a Tag's Values
         """

@@ -123,7 +123,7 @@ export function useCreateNotificationAction({
     undefined
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
-  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
+  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
 
   useEffect(() => {
     // Initializes form state based on the first default action and available integrations.
@@ -249,11 +249,19 @@ export function useCreateNotificationAction({
   };
 }
 
-export function IssueAlertNotificationOptions(
-  notificationProps: IssueAlertNotificationProps
-) {
-  const {actions, setActions, querySuccess, shouldRenderSetupButton} = notificationProps;
-
+/**
+ * Shared shell for the project-creation notification options: derives which
+ * sub-controls to show and reports the setup-button impression. The classic
+ * (`IssueAlertNotificationOptions`) and SCM (`ScmIssueAlertNotificationOptions`)
+ * layouts reuse this and differ only in presentation.
+ *
+ * @public Consumed by the SCM layout in a downstream PR.
+ */
+export function useIssueAlertNotificationOptions({
+  actions,
+  querySuccess,
+  shouldRenderSetupButton,
+}: IssueAlertNotificationProps) {
   const shouldRenderNotificationConfigs = actions.some(
     v => v !== MultipleCheckboxOptions.EMAIL
   );
@@ -261,6 +269,20 @@ export function IssueAlertNotificationOptions(
   useRouteAnalyticsParams({
     setup_message_integration_button_shown: shouldRenderSetupButton,
   });
+
+  return {
+    querySuccess,
+    shouldRenderNotificationConfigs,
+    shouldRenderSetupButton,
+  };
+}
+
+export function IssueAlertNotificationOptions(
+  notificationProps: IssueAlertNotificationProps
+) {
+  const {actions, setActions} = notificationProps;
+  const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
+    useIssueAlertNotificationOptions(notificationProps);
 
   if (!querySuccess) {
     return null;

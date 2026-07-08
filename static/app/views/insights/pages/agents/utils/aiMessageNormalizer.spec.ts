@@ -1,4 +1,5 @@
 import {
+  EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -128,6 +129,32 @@ describe('normalizeToMessages', () => {
       expect(messages?.[0]?.content).toBe('part one\npart two');
     });
 
+    it('renders a placeholder for text parts with no usable text', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: [{type: 'text', chars: 56}]},
+      ]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'assistant'});
+
+      expect(messages?.[0]?.content).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('renders a single placeholder when multiple text parts all have no usable text', () => {
+      const input = JSON.stringify([
+        {
+          role: 'assistant',
+          content: [
+            {type: 'text', chars: 56},
+            {type: 'text', chars: 100},
+          ],
+        },
+      ]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'assistant'});
+
+      expect(messages?.[0]?.content).toBe(EMPTY_TEXT_CONTENT);
+    });
+
     it('keeps tool role content as-is (not re-rendered)', () => {
       const input = JSON.stringify([
         {role: 'tool', content: [{type: 'text', text: 'result'}]},
@@ -190,6 +217,20 @@ describe('normalizeToMessages', () => {
         {role: 'user', content: 'Hi!'},
       ]);
     });
+
+    it('prepends a structured system field when present', () => {
+      const input = JSON.stringify({
+        system: {instructions: ['Be concise'], priority: 'high'},
+        messages: [{role: 'user', content: 'Hi!'}],
+      });
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([
+        {role: 'system', content: {instructions: ['Be concise'], priority: 'high'}},
+        {role: 'user', content: 'Hi!'},
+      ]);
+    });
   });
 
   describe('legacy shapes', () => {
@@ -200,6 +241,20 @@ describe('normalizeToMessages', () => {
 
       expect(messages).toEqual([
         {role: 'system', content: 'sys'},
+        {role: 'user', content: 'do the thing'},
+      ]);
+    });
+
+    it('expands structured {system, prompt} into two messages', () => {
+      const input = JSON.stringify({
+        system: {instructions: ['Be concise'], priority: 'high'},
+        prompt: 'do the thing',
+      });
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([
+        {role: 'system', content: {instructions: ['Be concise'], priority: 'high'}},
         {role: 'user', content: 'do the thing'},
       ]);
     });
@@ -278,6 +333,24 @@ describe('normalizeToMessages', () => {
     });
   });
 
+  describe('Python dict format', () => {
+    it('parses Python repr with single-quoted messages', () => {
+      const input = "[{'role': 'user', 'content': 'Hello!'}]";
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'user', content: 'Hello!'}]);
+    });
+
+    it('returns null for mixed-quote Python repr (known limitation)', () => {
+      const input = `[{'role': 'user', 'content': "the user's message"}]`;
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toBeNull();
+    });
+  });
+
   describe('cross-format tolerance', () => {
     it('accepts parts format on a field that traditionally held content format', () => {
       // Simulates: gen_ai.request.messages carrying the new parts shape.
@@ -335,6 +408,50 @@ describe('extractAssistantOutput', () => {
       });
     });
 
+    it('returns the placeholder when the only text part has no usable text', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: [{type: 'text', chars: 56}]},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('returns the placeholder for empty text parts in parts-format output', () => {
+      const input = JSON.stringify([{role: 'assistant', parts: [{type: 'text'}]}]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('returns a single placeholder when multiple parts-format text parts are all empty', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', parts: [{type: 'text'}, {type: 'text'}, {type: 'text'}]},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
+    it('returns a single placeholder when multiple content-format text parts are all empty', () => {
+      const input = JSON.stringify([
+        {
+          role: 'assistant',
+          content: [
+            {type: 'text', chars: 56},
+            {type: 'text', chars: 100},
+          ],
+        },
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe(EMPTY_TEXT_CONTENT);
+    });
+
     it('joins text across multiple assistant messages', () => {
       const input = JSON.stringify([
         {role: 'assistant', parts: [{type: 'text', text: 'one'}]},
@@ -377,6 +494,61 @@ describe('extractAssistantOutput', () => {
       const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
 
       expect(responseText).toBe('the answer');
+    });
+
+    it('parses JSON-encoded string content from assistant messages', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: JSON.stringify('the answer')},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('the answer');
+    });
+
+    it('parses JSON-encoded content parts from assistant messages', () => {
+      const input = JSON.stringify([
+        {
+          role: 'assistant',
+          content: JSON.stringify([{type: 'text', text: 'the answer'}]),
+        },
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('the answer');
+    });
+
+    it('ignores empty string content from assistant messages', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: ''},
+        {role: 'assistant', content: 'the answer'},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('the answer');
+    });
+
+    it('preserves JSON primitive content strings from assistant messages', () => {
+      const numeric = extractAssistantOutput(
+        JSON.stringify([{role: 'assistant', content: '42'}]),
+        {
+          defaultRole: 'assistant',
+        }
+      );
+      const boolean = extractAssistantOutput(
+        JSON.stringify([{role: 'assistant', content: 'true'}]),
+        {defaultRole: 'assistant'}
+      );
+      const nullable = extractAssistantOutput(
+        JSON.stringify([{role: 'assistant', content: 'null'}]),
+        {defaultRole: 'assistant'}
+      );
+
+      expect(numeric.responseText).toBe('42');
+      expect(boolean.responseText).toBe('true');
+      expect(nullable.responseText).toBe('null');
     });
 
     it('treats object content as a response object', () => {
@@ -427,6 +599,28 @@ describe('extractAssistantOutput', () => {
 
       expect(responseText).toBe('B');
     });
+
+    it('treats declared defaultRole values as explicit roles', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', content: 'A'},
+        {role: 'assistant', content: 'B'},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('A\nB');
+    });
+
+    it('treats declared completion roles as explicit roles', () => {
+      const input = JSON.stringify([
+        {role: 'assistant', completion: 'A'},
+        {role: 'assistant', completion: 'B'},
+      ]);
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('A\nB');
+    });
   });
 
   describe('plain strings and non-array inputs', () => {
@@ -446,6 +640,22 @@ describe('extractAssistantOutput', () => {
       const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
 
       expect(responseText).toBe('direct');
+    });
+
+    it('extracts content from a single {content} object', () => {
+      const input = JSON.stringify({content: 'direct without role'});
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('direct without role');
+    });
+
+    it('extracts content from a single {completion} object', () => {
+      const input = JSON.stringify({completion: 'completion text'});
+
+      const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
+
+      expect(responseText).toBe('completion text');
     });
 
     it('returns all null fields for empty input', () => {

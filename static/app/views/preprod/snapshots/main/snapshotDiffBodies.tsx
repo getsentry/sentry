@@ -1,4 +1,5 @@
 import {memo, type ReactNode, useCallback, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -40,6 +41,7 @@ export const SplitPairBody = memo(function SplitPairBody({
   headLabel,
   altPrefix,
   overlayColor,
+  overlayOpacity,
   diffImageKey,
   diffImageBaseUrl,
 }: {
@@ -52,6 +54,7 @@ export const SplitPairBody = memo(function SplitPairBody({
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
@@ -99,6 +102,7 @@ export const SplitPairBody = memo(function SplitPairBody({
                   {diffMaskUrl && (
                     <DiffOverlay
                       $overlayColor={overlayColor!}
+                      $opacity={overlayOpacity}
                       $maskUrl={diffMaskUrl}
                       $maskSize={computeMaskSize(baseImage, headImage)}
                     />
@@ -123,6 +127,7 @@ export const ImageColumn = memo(function ImageColumn({
   alt,
   image,
   overlayColor,
+  overlayOpacity,
   diffImageKey,
   diffImageBaseUrl,
 }: {
@@ -132,6 +137,7 @@ export const ImageColumn = memo(function ImageColumn({
   diffImageBaseUrl?: string;
   diffImageKey?: string | null;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
@@ -150,6 +156,7 @@ export const ImageColumn = memo(function ImageColumn({
           {diffMaskUrl && (
             <DiffOverlay
               $overlayColor={overlayColor!}
+              $opacity={overlayOpacity}
               $maskUrl={diffMaskUrl}
               $maskSize="100% 100%"
             />
@@ -365,7 +372,12 @@ const ImageSizer = styled('div')<{$aspectRatio?: string; $naturalWidth?: number}
   width: ${p => (p.$naturalWidth ? `${p.$naturalWidth}px` : '100%')};
   max-width: 100%;
   max-height: ${MAX_IMAGE_HEIGHT}px;
-  ${p => (p.$aspectRatio ? `aspect-ratio: ${p.$aspectRatio};` : '')}
+  ${p =>
+    p.$aspectRatio
+      ? css`
+          aspect-ratio: ${p.$aspectRatio};
+        `
+      : ''}
   display: flex;
   justify-content: center;
   overflow: visible;

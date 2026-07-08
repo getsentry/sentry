@@ -8,6 +8,10 @@ import {IssueCategory} from 'sentry/types/group';
 import {useReplaysFromIssue} from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 
 describe('useReplaysFromIssue', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   const initialRouterConfig = {
     route: '/organizations/:orgSlug/issues/:groupId/',
     location: {
@@ -21,7 +25,7 @@ describe('useReplaysFromIssue', () => {
     features: ['session-replay'],
   });
 
-  it.isKnownFlake('should fetch a list of replay ids', async () => {
+  it('should fetch a list of replay ids', async () => {
     const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({
@@ -91,7 +95,9 @@ describe('useReplaysFromIssue', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
-      body: {},
+      body: {
+        [MOCK_GROUP.id]: [],
+      },
     });
 
     const {result} = renderHookWithProviders(useReplaysFromIssue, {

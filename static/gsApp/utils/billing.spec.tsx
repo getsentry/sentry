@@ -34,7 +34,6 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isDeveloperPlan,
-  isEnterprise,
   isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
@@ -531,7 +530,7 @@ describe('getSlot', () => {
 
   it('should return the slot index which matches the current price', () => {
     const reservedEvents = undefined;
-    const currentPrice = 29.0;
+    const currentPrice = 29;
     const buckets = [
       makeBucket({price: 29}), // matches the current price
       makeBucket({price: 39}),
@@ -570,7 +569,7 @@ describe('getSlot', () => {
 
   it('should return the slot index that is above the current price', () => {
     const reservedEvents = undefined;
-    const currentPrice = 33.0;
+    const currentPrice = 33;
     const buckets = [
       makeBucket({price: 29}),
       makeBucket({price: 39}), // next highest
@@ -582,7 +581,7 @@ describe('getSlot', () => {
 
   it('should return the slot index that is below the current price with minimize strategy', () => {
     const reservedEvents = undefined;
-    const currentPrice = 33.0;
+    const currentPrice = 33;
     const buckets = [
       makeBucket({price: 29}), // next lowest
       makeBucket({price: 39}),
@@ -1064,23 +1063,6 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
   });
 });
 
-describe('isEnterprise', () => {
-  it('returns true for enterprise plans', () => {
-    expect(isEnterprise('e1')).toBe(true);
-    expect(isEnterprise('enterprise')).toBe(true);
-    expect(isEnterprise('am1_business_ent')).toBe(true);
-    expect(isEnterprise('am2_team_ent_auf')).toBe(true);
-    expect(isEnterprise('am3_business_ent_ds_auf')).toBe(true);
-  });
-
-  it('returns false for non-enterprise plans', () => {
-    expect(isEnterprise('_e1')).toBe(false);
-    expect(isEnterprise('_enterprise')).toBe(false);
-    expect(isEnterprise('am1_business')).toBe(false);
-    expect(isEnterprise('am2_team')).toBe(false);
-  });
-});
-
 describe('getBestActionToIncreaseEventLimits', () => {
   it('returns start trial for free plan', () => {
     const organization = OrganizationFixture();
@@ -1416,27 +1398,6 @@ describe('productIsEnabled', () => {
       softCapType: 'ON_DEMAND',
     };
     expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
-  });
-
-  it('returns true for subscriptions with hasSoftCap=true even when softCapType is null and no prepaid quota', () => {
-    subscription.hasSoftCap = true;
-    subscription.categories.monitorSeats = {
-      ...subscription.categories.monitorSeats!,
-      reserved: 0,
-      free: 0,
-      prepaid: 0,
-      softCapType: null,
-    };
-    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
-
-    subscription.categories.uptime = {
-      ...subscription.categories.uptime!,
-      reserved: 0,
-      free: 0,
-      prepaid: 0,
-      softCapType: null,
-    };
-    expect(productIsEnabled(subscription, DataCategory.UPTIME)).toBe(true);
   });
 });
 

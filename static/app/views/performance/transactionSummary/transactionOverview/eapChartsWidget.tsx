@@ -127,7 +127,7 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
           value={selectedChart}
           onChange={handleChartChange}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+            <OverlayTrigger.Button {...triggerProps} variant="transparent" size="zero" />
           )}
         />
       }

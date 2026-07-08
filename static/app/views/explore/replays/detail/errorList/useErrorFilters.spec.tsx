@@ -1,23 +1,15 @@
-import type {Location} from 'history';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderHookWithProviders as renderHook,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import type {
-  ErrorSelectOption,
-  FilterFields,
-} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
+import type {ErrorSelectOption} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
 import {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
@@ -58,9 +50,7 @@ const {
 );
 
 describe('useErrorFilters', () => {
-  it('should update the url when setters are called', () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+  it('should update the url when setters are called', async () => {
     const errorFrames = [
       ERROR_1_JS_RANGEERROR!,
       ERROR_2_NEXTJS_TYPEERROR!,
@@ -74,44 +64,23 @@ describe('useErrorFilters', () => {
     } as ErrorSelectOption;
     const SEARCH_FILTER = 'BadRequestError';
 
-    mockUseLocation
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {},
-      } as Location<FilterFields>)
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {f_e_project: [PROJECT_OPTION.value]},
-      } as Location<FilterFields>);
-
-    const {result, rerender} = renderHook(useErrorFilters, {
+    const {result, router} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
     });
 
-    result.current.setFilters([PROJECT_OPTION]);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_e_level: [],
-          f_e_project: [PROJECT_OPTION.value],
-        },
-      },
-      {replace: true}
+    act(() => result.current.setFilters([PROJECT_OPTION]));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_e_project: PROJECT_OPTION.value,
+      })
     );
 
-    rerender({errorFrames});
-
-    result.current.setSearchTerm(SEARCH_FILTER);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_e_project: [PROJECT_OPTION.value],
-          f_e_search: SEARCH_FILTER,
-        },
-      },
-      {replace: true}
+    act(() => result.current.setSearchTerm(SEARCH_FILTER));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_e_project: PROJECT_OPTION.value,
+        f_e_search: SEARCH_FILTER,
+      })
     );
   });
 
@@ -121,11 +90,6 @@ describe('useErrorFilters', () => {
       ERROR_2_NEXTJS_TYPEERROR!,
       ERROR_3_JS_UNDEFINED!,
     ];
-
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {},
-    } as Location<FilterFields>);
 
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
@@ -140,15 +104,16 @@ describe('useErrorFilters', () => {
       ERROR_3_JS_UNDEFINED!,
     ];
 
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_e_project: ['javascript'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_e_project: ['javascript'],
+          },
+        },
+      },
     });
     expect(result.current.items).toStrictEqual([
       ERROR_1_JS_RANGEERROR!,
@@ -163,15 +128,16 @@ describe('useErrorFilters', () => {
       ERROR_3_JS_UNDEFINED!,
     ];
 
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_e_level: ['error'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_e_level: ['error'],
+          },
+        },
+      },
     });
     expect(result.current.items).toStrictEqual([
       ERROR_2_NEXTJS_TYPEERROR!,
@@ -186,15 +152,16 @@ describe('useErrorFilters', () => {
       ERROR_3_JS_UNDEFINED!,
     ];
 
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_e_search: 'Maximum update depth',
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_e_search: 'Maximum update depth',
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(1);
   });

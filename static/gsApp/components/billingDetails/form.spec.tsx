@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BillingDetailsForm} from './form';
 
@@ -113,5 +113,30 @@ describe('BillingDetailsForm', () => {
     render(<BillingDetailsForm {...defaultProps} extraButton={extraButton} />);
 
     await screen.findByRole('button', {name: 'Extra Action'});
+  });
+
+  it('clears a stale region on save for countries without region choices', async () => {
+    const detailsWithStaleRegion = BillingDetailsFixture({
+      countryCode: 'HU',
+      region: 'CA',
+    });
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'PUT',
+      body: detailsWithStaleRegion,
+    });
+
+    render(<BillingDetailsForm {...defaultProps} initialData={detailsWithStaleRegion} />);
+
+    const submitButton = screen.getByRole('button', {name: 'Save Changes'});
+    await waitFor(() => expect(submitButton).toBeEnabled());
+
+    await userEvent.click(submitButton);
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+    expect(updateMock).toHaveBeenCalledWith(
+      `/customers/${organization.slug}/billing-details/`,
+      expect.objectContaining({data: expect.objectContaining({region: null})})
+    );
   });
 });

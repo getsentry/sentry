@@ -4,9 +4,9 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ export const SUPERGROUP_DRAWER_QUERY_PARAM = 'supergroupDrawer';
 
 interface UseSupergroupDrawerOptions {
   lookup: SupergroupLookup;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
 }
 
 export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOptions) {

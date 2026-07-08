@@ -1,33 +1,34 @@
 import logging
-import os
 from dataclasses import replace
 from typing import Any, Literal
 
+from sentry_conventions.attributes import (
+    ATTRIBUTE_METADATA,
+    AttributeMetadata,
+    DeprecationStatus,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
 from sentry.insights.models import InsightsStarredSegment
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AttributeContext,
     ResolvedAttribute,
     VirtualColumnDefinition,
     simple_measurements_field,
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
-from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.events.constants import (
     PRECISE_FINISH_TS,
     PRECISE_START_TS,
     SPAN_MODULE_CATEGORY_VALUES,
 )
 from sentry.search.events.types import SnubaParams
-from sentry.search.utils import DEVICE_CLASS
-from sentry.utils import json
+from sentry.search.utils import DEVICE_CLASS, validate_event_id, validate_span_id
 from sentry.utils.validators import (
     is_empty_string,
-    is_event_id_or_list,
-    is_span_id,
-    is_span_id_or_list,
+    normalize_event_id_strict,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,13 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="id",
             internal_name="sentry.item_id",
             search_type="string",
-            validator=is_span_id_or_list,
+            validator=validate_span_id,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
-            validator=[is_empty_string, is_span_id],
+            validator=[is_empty_string, validate_span_id],
         ),
         ResolvedAttribute(
             public_alias="span.name",
@@ -70,6 +71,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span.description",
             internal_name="sentry.raw_description",
             search_type="string",
+            context=AttributeContext(brief="Description of the span's operation."),
         ),
         ResolvedAttribute(
             public_alias="description",
@@ -88,6 +90,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.raw_description",
             search_type="string",
             secondary_alias=True,
+            context=AttributeContext(brief="Description of the span's operation."),
         ),
         ResolvedAttribute(
             public_alias="span.domain",
@@ -113,16 +116,23 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span.self_time",
             internal_name="sentry.exclusive_time_ms",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="The duration of the span excluding the duration of its child spans."
+            ),
         ),
         ResolvedAttribute(
             public_alias="span.duration",
             internal_name="sentry.duration_ms",
             search_type="millisecond",
+            context=AttributeContext(brief="The total time taken by the span."),
         ),
         ResolvedAttribute(
             public_alias="span.status",
             internal_name="sentry.status",
             search_type="string",
+            context=AttributeContext(
+                brief="Span status. Indicates whether the operation was successful."
+            ),
         ),
         ResolvedAttribute(
             public_alias="span.status_code",
@@ -138,7 +148,15 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
-            validator=is_event_id_or_list,
+            validator=validate_event_id,
+            normalizer=normalize_event_id_strict,
+            context=AttributeContext(
+                brief=(
+                    "A trace represents the record of the entire operation you want to "
+                    "measure or track — like page load, searched using the UUID generated "
+                    "by Sentry's SDK."
+                )
+            ),
         ),
         ResolvedAttribute(
             public_alias="transaction",
@@ -149,6 +167,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="is_transaction",
             internal_name="sentry.is_segment",
             search_type="boolean",
+            context=AttributeContext(brief="The span is also a transaction."),
         ),
         ResolvedAttribute(
             public_alias="transaction.span_id",
@@ -207,6 +226,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.conversation.id",
+            internal_name="gen_ai.conversation.id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.operation.name",
+            internal_name="gen_ai.operation.name",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.operation.type",
+            internal_name="gen_ai.operation.type",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
             internal_name="gen_ai.usage.input_tokens",
             search_type="integer",
@@ -224,6 +258,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="gen_ai.usage.output_tokens.reasoning",
             internal_name="gen_ai.usage.output_tokens.reasoning",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.reasoning.output_tokens",
+            internal_name="gen_ai.usage.reasoning.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.cache_read.input_tokens",
+            internal_name="gen_ai.usage.cache_read.input_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.cache_creation.input_tokens",
+            internal_name="gen_ai.usage.cache_creation.input_tokens",
             search_type="integer",
         ),
         ResolvedAttribute(
@@ -250,6 +299,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="gen_ai.usage.total_cost",
             internal_name="gen_ai.usage.total_cost",
             search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.request.reasoning_effort",
+            internal_name="gen_ai.request.reasoning_effort",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.query.bindings",
+            internal_name="cloudflare.durable_object.query.bindings",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.response.rows_read",
+            internal_name="cloudflare.durable_object.response.rows_read",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.response.rows_written",
+            internal_name="cloudflare.durable_object.response.rows_written",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
@@ -352,26 +421,41 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="spans.browser",
             internal_name="span_ops.ops.browser",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative browser time for a transaction, based on the span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.db",
             internal_name="span_ops.ops.db",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative db time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.http",
             internal_name="span_ops.ops.http",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative http time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.resource",
             internal_name="span_ops.ops.resource",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative resource time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="spans.ui",
             internal_name="span_ops.ops.ui",
             search_type="millisecond",
+            context=AttributeContext(
+                brief="Cumulative UI time for a transaction, based on span operations."
+            ),
         ),
         ResolvedAttribute(
             public_alias="span.system",
@@ -395,9 +479,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
-        simple_sentry_field("file_extension"),
+        simple_sentry_field(
+            "file_extension",
+            context=AttributeContext(brief="The file extension of a resource span."),
+        ),
         simple_sentry_field("device.family"),
-        simple_sentry_field("device.arch"),
+        simple_sentry_field("device.arch", context=AttributeContext(brief="CPU architecture.")),
         simple_sentry_field("device.battery_level"),
         simple_sentry_field("device.brand"),
         simple_sentry_field("device.charging"),
@@ -440,9 +527,18 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
         ),
-        simple_sentry_field("trace.status"),
-        simple_sentry_field("transaction.method"),
-        simple_sentry_field("transaction.op"),
+        simple_sentry_field(
+            "trace.status",
+            context=AttributeContext(brief="The span trace's success or failure status."),
+        ),
+        simple_sentry_field(
+            "transaction.method",
+            context=AttributeContext(brief="HTTP method of the containing transaction."),
+        ),
+        simple_sentry_field(
+            "transaction.op",
+            context=AttributeContext(brief="Operation of the containing transaction."),
+        ),
         simple_sentry_field("user"),
         simple_sentry_field("user.email"),
         simple_sentry_field("user.geo.city"),
@@ -458,25 +554,63 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("ttid"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
-        simple_measurements_field("frames_frozen"),
+        simple_measurements_field(
+            "frames_frozen",
+            context=AttributeContext(
+                brief="Slow and frozen frames measure the responsiveness of your app."
+            ),
+        ),
         simple_measurements_field("frames_frozen_rate", "percentage"),
-        simple_measurements_field("frames_slow"),
+        simple_measurements_field(
+            "frames_slow",
+            context=AttributeContext(
+                brief="Slow and frozen frames measure the responsiveness of your app."
+            ),
+        ),
         simple_measurements_field("frames_slow_rate", "percentage"),
-        simple_measurements_field("frames_total"),
+        simple_measurements_field(
+            "frames_total",
+            context=AttributeContext(
+                brief="Returns results with a matching total number of frames."
+            ),
+        ),
         simple_measurements_field("time_to_initial_display", "millisecond"),
         simple_measurements_field("time_to_full_display", "millisecond"),
-        simple_measurements_field("stall_count"),
+        simple_measurements_field(
+            "stall_count",
+            context=AttributeContext(
+                brief=(
+                    "A stall is when the JavaScript event loop takes longer than expected "
+                    "to complete. Only applies to React Native."
+                )
+            ),
+        ),
         simple_measurements_field("stall_percentage", "percentage"),
         simple_measurements_field("stall_stall_longest_time"),
         simple_measurements_field("stall_stall_total_time"),
         simple_measurements_field("cls"),
         simple_measurements_field("fcp", "millisecond"),
-        simple_measurements_field("fid", "millisecond"),
+        simple_measurements_field(
+            "fid",
+            "millisecond",
+            context=AttributeContext(
+                brief=(
+                    "First Input Delay (FID) measures the response time when the user "
+                    "tries to interact with the viewport."
+                )
+            ),
+        ),
         simple_measurements_field("fp", "millisecond"),
         simple_measurements_field("inp", "millisecond"),
         simple_measurements_field("lcp", "millisecond"),
         simple_measurements_field("ttfb", "millisecond"),
-        simple_measurements_field("ttfb.requesttime", "millisecond"),
+        simple_measurements_field(
+            "ttfb.requesttime",
+            "millisecond",
+            context=AttributeContext(
+                brief="The time between start of the request and start of the response (see diagram)."
+            ),
+        ),
         simple_measurements_field("score.cls"),
         simple_measurements_field("score.fcp"),
         simple_measurements_field("score.fid"),
@@ -503,13 +637,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     ]
 }
 
-DEPRECATED_ATTRIBUTES: list[dict[str, Any]] = []
-try:
-    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
-        DEPRECATED_ATTRIBUTES = json.loads(f.read())["attributes"]
-except Exception:
-    logger.exception("Failed to load deprecated attributes from 'deprecated_attributes.json'")
-
 
 def _normalize_convention_attribute_type(attr_type: str) -> constants.SearchType | None:
     # Convention types are generic value types like integer, double, string, boolean.
@@ -524,74 +651,81 @@ def _normalize_convention_attribute_type(attr_type: str) -> constants.SearchType
 
 
 def _update_attribute_definitions_with_deprecations(
-    attribute_definitions: dict[str, ResolvedAttribute], deprecated_attributes: list[dict[str, Any]]
+    attribute_definitions: dict[str, ResolvedAttribute],
+    convention_attributes: dict[str, AttributeMetadata],
 ) -> None:
     span_attribute_definitions_by_internal_name = {
         definition.internal_name: definition for definition in attribute_definitions.values()
     }
 
-    for attribute in deprecated_attributes:
-        deprecation = attribute.get("deprecation", {})
-        key = attribute["key"]
+    for key, metadata in convention_attributes.items():
+        deprecation = metadata.deprecation
         if (
-            "replacement" in deprecation
-            and "_status" in deprecation
-            and deprecation["_status"] == "backfill"
+            deprecation is None
+            or deprecation.replacement is None
+            or deprecation.status not in (DeprecationStatus.BACKFILL, DeprecationStatus.NORMALIZE)
         ):
-            status = deprecation["_status"]
-            replacement = deprecation["replacement"]
-            deprecated_attr = attribute_definitions.get(key)
-            deprecated_public_alias = key
-            if deprecated_attr is None:
-                deprecated_attr = span_attribute_definitions_by_internal_name.get(key)
-                if deprecated_attr is not None:
-                    deprecated_public_alias = deprecated_attr.public_alias
+            continue
 
+        status = deprecation.status.value
+        replacement = deprecation.replacement
+        deprecated_attr = attribute_definitions.get(key)
+        deprecated_public_alias = key
+        if deprecated_attr is None:
+            deprecated_attr = span_attribute_definitions_by_internal_name.get(key)
             if deprecated_attr is not None:
-                attribute_definitions[deprecated_public_alias] = replace(
+                deprecated_public_alias = deprecated_attr.public_alias
+
+        if deprecated_attr is not None:
+            attribute_definitions[deprecated_public_alias] = replace(
+                deprecated_attr,
+                replacement=replacement,
+                deprecation_status=status,
+            )
+            # TODO: Introduce units to attribute schema.
+            if (
+                replacement not in attribute_definitions
+                and replacement not in span_attribute_definitions_by_internal_name
+            ):
+                attribute_definitions[replacement] = replace(
                     deprecated_attr,
-                    replacement=replacement,
-                    deprecation_status=status,
+                    public_alias=replacement,
+                    internal_name=replacement,
+                    secondary_alias=False,
                 )
-                # TODO: Introduce units to attribute schema.
-                if replacement not in attribute_definitions:
-                    attribute_definitions[replacement] = replace(
-                        deprecated_attr,
-                        public_alias=replacement,
-                        internal_name=replacement,
-                        secondary_alias=False,
-                    )
-            else:
-                attr_type = _normalize_convention_attribute_type(attribute.get("type", "string"))
-                if attr_type is None:
-                    continue
-                attribute_definitions[key] = ResolvedAttribute(
-                    public_alias=key,
-                    internal_name=key,
+        else:
+            attr_type = _normalize_convention_attribute_type(metadata.type.value)
+            if attr_type is None:
+                continue
+            attribute_definitions[key] = ResolvedAttribute(
+                public_alias=key,
+                internal_name=key,
+                search_type=attr_type,
+                replacement=replacement,
+                deprecation_status=status,
+            )
+
+            if (
+                replacement not in attribute_definitions
+                and replacement not in span_attribute_definitions_by_internal_name
+            ):
+                attribute_definitions[replacement] = ResolvedAttribute(
+                    public_alias=replacement,
+                    internal_name=replacement,
                     search_type=attr_type,
-                    replacement=replacement,
-                    deprecation_status=status,
                 )
 
-                if replacement not in attribute_definitions:
-                    attribute_definitions[replacement] = ResolvedAttribute(
-                        public_alias=replacement,
-                        internal_name=replacement,
-                        search_type=attr_type,
-                    )
-
-            span_attribute_definitions_by_internal_name[key] = attribute_definitions[
-                deprecated_public_alias
-            ]
+        span_attribute_definitions_by_internal_name[key] = attribute_definitions[
+            deprecated_public_alias
+        ]
+        if replacement in attribute_definitions:
             span_attribute_definitions_by_internal_name[replacement] = attribute_definitions[
                 replacement
             ]
 
 
 try:
-    _update_attribute_definitions_with_deprecations(
-        SPAN_ATTRIBUTE_DEFINITIONS, DEPRECATED_ATTRIBUTES
-    )
+    _update_attribute_definitions_with_deprecations(SPAN_ATTRIBUTE_DEFINITIONS, ATTRIBUTE_METADATA)
 
 except Exception as e:
     logger.exception("Failed to update attribute definitions: %s", e)

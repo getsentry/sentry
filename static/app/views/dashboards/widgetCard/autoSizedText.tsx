@@ -9,9 +9,9 @@ interface Props {
 export function AutoSizedText({children}: Props) {
   const childRef = useRef<HTMLDivElement>(null);
 
-  const fontSize = useRef<number>(0);
-  const fontSizeLowerBound = useRef<number>(0);
-  const fontSizeUpperBound = useRef<number>(0);
+  const fontSize = useRef(0);
+  const fontSizeLowerBound = useRef(0);
+  const fontSizeUpperBound = useRef(0);
 
   useLayoutEffect(() => {
     const childElement = childRef.current; // This is `SizedChild`

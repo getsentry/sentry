@@ -3,9 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {UsageLogFixture} from 'getsentry-test/fixtures/usageLog';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PlanTier} from 'getsentry/types';
 import UsageLog from 'getsentry/views/subscriptionPage/usageLog';
 
 describe('Subscription Usage Log', () => {
@@ -38,12 +38,6 @@ describe('Subscription Usage Log', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
@@ -79,7 +73,6 @@ describe('Subscription Usage Log', () => {
     render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
-    expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
     expect(await screen.findByText(/cancelled plan/i)).toBeInTheDocument();
     expect(screen.getByText(/Sentry Staff/i)).toBeInTheDocument();
     expect(screen.getByText(/Jun/i)).toBeInTheDocument();

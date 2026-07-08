@@ -1,7 +1,6 @@
 import {DataCategory} from 'sentry/types/core';
 
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 
 type Product = {
   categories: DataCategory[];
@@ -27,7 +26,7 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
     product: DataCategory.REPLAYS,
     categories: [DataCategory.REPLAYS],
   },
-  '/profiling/': {
+  '/profiles/': {
     product: DataCategory.PROFILES,
     categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
   },
@@ -66,7 +65,7 @@ const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
     product: DataCategory.REPLAYS,
     categories: [DataCategory.REPLAYS],
   },
-  '/profiling/': {
+  '/profiles/': {
     product: DataCategory.PROFILES,
     // The trials that should be started here are for
     // - DataCategory.PROFILE_DURATION
@@ -87,8 +86,10 @@ function normalizePath(path: string): string {
   switch (path) {
     case '/explore/traces/':
       return '/traces/';
+    case '/profiling/':
     case '/explore/profiling/':
-      return '/profiling/';
+    case '/explore/profiles/':
+      return '/profiles/';
     case '/explore/replays/':
       return '/replays/';
     case '/explore/logs/':
@@ -106,8 +107,8 @@ export function getProductForPath(
 ): Product | null {
   path = normalizePath(path);
 
-  if (subscription.planTier === PlanTier.AM3) {
-    if (PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES.hasOwnProperty(path)) {
+  if (subscription.planDetails?.categories.includes(DataCategory.SPANS)) {
+    if (Object.hasOwn(PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES, path)) {
       return PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES[path]!;
     }
   }

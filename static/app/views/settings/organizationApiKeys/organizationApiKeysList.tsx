@@ -44,22 +44,23 @@ export function OrganizationApiKeysList({
 }: Props) {
   const hasKeys = Boolean(keys?.length);
 
-  const action = (
-    <Button
-      variant="primary"
-      size="sm"
-      icon={<IconAdd />}
-      busy={busy}
-      disabled={busy}
-      onClick={onAddApiKey}
-    >
-      {t('New API Key')}
-    </Button>
-  );
-
   return (
     <div>
-      <SettingsPageHeader title={t('API Keys')} action={action} />
+      <SettingsPageHeader
+        title={t('API Keys')}
+        action={
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<IconAdd />}
+            busy={busy}
+            disabled={busy}
+            onClick={onAddApiKey}
+          >
+            {t('New API Key')}
+          </Button>
+        }
+      />
 
       <TextBlock>
         {tct(

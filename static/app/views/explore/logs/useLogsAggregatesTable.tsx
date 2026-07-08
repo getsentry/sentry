@@ -3,8 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,6 +33,8 @@ interface UseLogsAggregatesTableOptions {
   queryExtras?: RPCQueryExtras;
   referrer?: string;
 }
+
+export type LogsAggregatesTableResult = ReturnType<typeof useLogsAggregatesTable>;
 
 export function useLogsAggregatesTable({
   enabled,
@@ -123,8 +125,10 @@ function useLogsAggregatesApiOptions({
   const aggregateCursor = useQueryParamsAggregateCursor();
   const [caseInsensitive] = useCaseInsensitivity();
   const fields: string[] = [];
-  fields.push(...groupBys.filter(Boolean));
-  fields.push(...visualizes.map(visualize => visualize.yAxis));
+  fields.push(
+    ...groupBys.filter(Boolean),
+    ...visualizes.map(visualize => visualize.yAxis)
+  );
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {

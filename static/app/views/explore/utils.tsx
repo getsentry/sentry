@@ -10,10 +10,11 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import type {DetailedProject, Project} from 'sentry/types/project';
+import {escapeDoubleQuotes} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -24,6 +25,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -32,6 +34,7 @@ import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggr
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -54,7 +57,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -446,7 +449,7 @@ export function getDefaultExploreRoute(organization: Organization) {
   }
 
   if (organization.features.includes('performance-profiling')) {
-    return 'profiling';
+    return 'profiles';
   }
 
   if (organization.features.includes('session-replay-ui')) {
@@ -458,7 +461,7 @@ export function getDefaultExploreRoute(organization: Organization) {
 
 export function computeVisualizeSampleTotals(
   yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {
@@ -524,7 +527,7 @@ export function findSuggestedColumns(
     }
 
     if (
-      !oldFilters.hasOwnProperty(key) || // new filter key
+      !Object.hasOwn(oldFilters, key) || // new filter key
       isSimpleFilter(key, oldFilters[key] || [], attributes) // existing filter key turned complex
     ) {
       keys.add(normalizeKey(key));
@@ -534,14 +537,14 @@ export function findSuggestedColumns(
 
   const oldHas = new Set(oldFilters.has);
   for (const key of newFilters.has || []) {
-    if (oldFilters.hasOwnProperty(key) || oldHas.has(key)) {
+    if (Object.hasOwn(oldFilters, key) || oldHas.has(key)) {
       // old condition, don't add column
       continue;
     }
 
     // if there's a simple filter on the key, don't add column
     if (
-      newFilters.hasOwnProperty(key) &&
+      Object.hasOwn(newFilters, key) &&
       isSimpleFilter(key, newFilters[key] || [], attributes)
     ) {
       continue;
@@ -640,22 +643,21 @@ export const removeHiddenKeys = (
   tagCollection: TagCollection,
   hiddenKeys: string[]
 ): TagCollection => {
+  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
-    if (key && !hiddenKeys.includes(key) && tagCollection[key]) {
-      result[key] = tagCollection[key];
+    const tag = tagCollection[key];
+    if (!key || !tag) {
+      continue;
     }
+    // Hide by both the raw key and the display name, matching the column
+    // editor. Explicitly-typed keys such as `tags[project_id,number]` carry a
+    // display name (`project_id`) that is what appears in the hidden lists.
+    if (hiddenKeySet.has(key) || (tag.name && hiddenKeySet.has(tag.name))) {
+      continue;
+    }
+    result[key] = tag;
   }
-  return result;
-};
-
-export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
-  const result: Tag[] = [];
-  tagCollection.forEach(tag => {
-    if (keys.includes(tag.key) && tag.name) {
-      result.push(tag);
-    }
-  });
   return result;
 };
 
@@ -666,6 +668,9 @@ export function getSavedQueryTraceItemUrl({
   organization: Organization;
   savedQuery: SavedQuery;
 }) {
+  if (savedQuery.dataset === 'ai_conversations') {
+    return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
+  }
   const traceItemDataset = getSavedQueryTraceItemDataset(savedQuery.dataset);
   const urlFunction = TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
   if (urlFunction) {
@@ -676,6 +681,35 @@ export function getSavedQueryTraceItemUrl({
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+function getConversationsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  let queryString = qs.stringify(queryParams, {skipNull: true});
+  if (savedQuery.agent?.length) {
+    queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
+  }
+  const basePath = normalizeUrl(
+    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  );
+  return `${basePath}?${queryString}`;
 }
 
 function getReplayUrlFromSavedQueryUrl({
@@ -769,7 +803,7 @@ export class TraceItemMetaInfo {
     attribute: string,
     meta: TraceItemDetailsMeta,
     organization?: Organization,
-    project?: Project
+    project?: DetailedProject
   ): string | React.ReactNode | null {
     const metaInfo = new TraceItemMetaInfo(meta);
     const remarks = metaInfo.getRemarks(attribute);
@@ -793,4 +827,68 @@ interface RemarkObject {
   rangeStart: number;
   ruleId: string;
   type: string;
+}
+
+const SAMPLING_SENSITIVE_AGGREGATES = new Set([
+  'count_unique',
+  'failure_count',
+  'failure_rate',
+]);
+const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
+
+export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
+
+export function getSamplingWarningReason(
+  yAxis: string,
+  series: TimeSeries[],
+  dataScanned: 'full' | 'partial' | undefined
+): SamplingWarningReason | null {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return null;
+  }
+  if (!series.some(seriesItem => defined(seriesItem) && seriesItem.values.length > 0)) {
+    return null;
+  }
+  if (dataScanned === 'partial') {
+    return 'partialData';
+  }
+  if (shouldWarnSamplingSensitive(yAxis, series)) {
+    return 'lowSampleRate';
+  }
+  return null;
+}
+
+export function shouldWarnSamplingSensitive(
+  yAxis: string,
+  series: TimeSeries[]
+): boolean {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return false;
+  }
+  const avgSampleRate = computeAvgSampleRate(series);
+  return defined(avgSampleRate) && avgSampleRate < LOW_SAMPLE_RATE_THRESHOLD;
+}
+
+export function isSamplingSensitiveAggregate(yAxis: string): boolean {
+  const parsed = parseFunction(yAxis);
+  if (!parsed) {
+    return false;
+  }
+  return SAMPLING_SENSITIVE_AGGREGATES.has(parsed.name);
+}
+
+function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
+  let total = 0;
+  let count = 0;
+
+  for (const seriesItem of series.filter(defined)) {
+    for (const item of seriesItem.values) {
+      if (defined(item.sampleRate)) {
+        total += item.sampleRate;
+        count += 1;
+      }
+    }
+  }
+
+  return count > 0 ? total / count : undefined;
 }

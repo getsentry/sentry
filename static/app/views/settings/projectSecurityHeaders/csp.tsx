@@ -14,7 +14,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Project, ProjectKey} from 'sentry/types/project';
+import type {DetailedProject, ProjectKey} from 'sentry/types/project';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -108,12 +108,12 @@ export default function ProjectCspReports() {
 
   const cspMutationOptions = mutationOptions({
     mutationFn: (data: Partial<CspSchema>) =>
-      fetchMutation<Project>({
+      fetchMutation<DetailedProject>({
         url: projectEndpoint,
         method: 'PUT',
         data: {options: data},
       }),
-    onSuccess: (updatedProject: Project) => {
+    onSuccess: (updatedProject: DetailedProject) => {
       queryClient.setQueryData(projectQueryKey, prev => {
         const previous = prev?.json;
         const merged = previous

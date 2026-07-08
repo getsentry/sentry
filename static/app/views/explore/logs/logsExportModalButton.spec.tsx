@@ -1,11 +1,17 @@
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockTrackAnalytics = jest.fn();
@@ -14,20 +20,8 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: (...args: unknown[]) => mockTrackAnalytics(...args),
 }));
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openModal: jest.fn(),
-}));
-
 describe('LogsExportModalButton', () => {
   const organization = OrganizationFixture({features: ['discover-query']});
-
-  const queryInfo: LogsQueryInfo = {
-    dataset: 'logs',
-    field: [OurLogKnownFieldKey.MESSAGE],
-    project: [1],
-    query: 'level:error',
-    sort: ['-timestamp'],
-  };
 
   const tableData = [
     LogFixture({
@@ -38,62 +32,70 @@ describe('LogsExportModalButton', () => {
   ];
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    // The export modal estimates row counts from a timeseries query.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: []},
+    });
   });
 
-  async function clickExportDataAndGetOnClose() {
+  async function renderAndOpen() {
     render(
-      <LogsExportModalButton
-        error={null}
-        isLoading={false}
-        queryInfo={queryInfo}
-        tableData={tableData}
-      />,
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsExportModalButton error={null} isLoading={false} tableData={tableData} />
+      </LogsQueryParamsProvider>,
       {organization}
     );
-
+    renderGlobalModal();
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-
-    expect(openModal).toHaveBeenCalled();
-    const openOptions = (openModal as jest.Mock).mock.calls[0]?.[1];
-    expect(openOptions?.onClose).toEqual(expect.any(Function));
-
-    return openOptions.onClose;
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   }
 
-  it('tracks cancel analytics when onClose receives escape-key', async () => {
-    const onClose = await clickExportDataAndGetOnClose();
+  it('opens the export modal and tracks open analytics', async () => {
+    await renderAndOpen();
 
     expect(mockTrackAnalytics).toHaveBeenCalledWith(
       'logs.export_modal',
-      expect.objectContaining({
-        action: 'open',
-      })
-    );
-
-    onClose('escape-key');
-    expect(mockTrackAnalytics).toHaveBeenCalledWith(
-      'logs.export_modal',
-      expect.objectContaining({
-        action: 'cancel',
-        close_reason: 'escape_key',
-      })
+      expect.objectContaining({action: 'open'})
     );
   });
 
-  it('does not track cancel analytics when onClose receives undefined reason', async () => {
-    const onClose = await clickExportDataAndGetOnClose();
+  it('tracks cancel analytics with escape_key when closed via Escape', async () => {
+    await renderAndOpen();
 
-    expect(mockTrackAnalytics).toHaveBeenCalledTimes(1);
-    expect(mockTrackAnalytics).toHaveBeenCalledWith(
-      'logs.export_modal',
-      expect.objectContaining({
-        action: 'open',
-      })
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(mockTrackAnalytics).toHaveBeenCalledWith(
+        'logs.export_modal',
+        expect.objectContaining({action: 'cancel', close_reason: 'escape_key'})
+      );
+    });
+  });
+
+  it('does not double-fire cancel analytics when closed via the Cancel button', async () => {
+    await renderAndOpen();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    // The Cancel button itself fires cancel/cancel_button. The onClose
+    // callback receives no reason in the programmatic-close path and must
+    // skip its own cancel event so we don't get a duplicate.
+    await waitFor(() => {
+      expect(mockTrackAnalytics).toHaveBeenCalledWith(
+        'logs.export_modal',
+        expect.objectContaining({action: 'cancel', close_reason: 'cancel_button'})
+      );
+    });
+    const cancelCalls = mockTrackAnalytics.mock.calls.filter(
+      ([event, payload]) => event === 'logs.export_modal' && payload?.action === 'cancel'
     );
-
-    onClose(undefined);
-
-    expect(mockTrackAnalytics).toHaveBeenCalledTimes(1);
+    expect(cancelCalls).toHaveLength(1);
   });
 });

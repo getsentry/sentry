@@ -12,8 +12,8 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type Props = {
   event: Event;
@@ -124,15 +124,15 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
   }
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.PROCESSING_ERROR}
       title={t('Event Processing Errors')}
-      type={SectionKey.PROCESSING_ERROR}
     >
       <KeyValueData.Container>
         {errors.map((error, idx) => {
           return <EventErrorDescription key={idx} error={error} />;
         })}
       </KeyValueData.Container>
-    </InterimSection>
+    </FoldSection>
   );
 }

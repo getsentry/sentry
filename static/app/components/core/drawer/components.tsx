@@ -1,4 +1,5 @@
 import {createContext, Fragment, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -10,7 +11,6 @@ import {TooltipContext} from '@sentry/scraps/tooltip';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {
   DEFAULT_WIDTH_PERCENT,
@@ -136,7 +136,6 @@ export function DrawerHeader({
   hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <Header
@@ -144,7 +143,7 @@ export function DrawerHeader({
       className={className}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
-      height={hasPageFrameFeature ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
     >
       {!hideCloseButton && (
         <Fragment>
@@ -193,14 +192,14 @@ const Header = styled('header')<{
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   ${p =>
     p.height &&
-    `
-    --drawer-header-height: ${p.height};
-    height: var(--drawer-header-height);
-    box-sizing: border-box;
-    align-items: center;
-    box-shadow: none;
-    border-bottom: 1px solid ${p.theme.tokens.border.primary};
-  `}
+    css`
+      --drawer-header-height: ${p.height};
+      height: var(--drawer-header-height);
+      box-sizing: border-box;
+      align-items: center;
+      box-shadow: none;
+      border-bottom: 1px solid ${p.theme.tokens.border.primary};
+    `}
 `;
 
 export const DrawerBody = styled('aside')`

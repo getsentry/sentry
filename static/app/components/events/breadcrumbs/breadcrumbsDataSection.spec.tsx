@@ -53,7 +53,7 @@ describe('BreadcrumbsDataSection', () => {
     }
 
     // When expanded, all should be visible
-    const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+    const viewAllButton = screen.getByRole('button', {name: 'View 2 more'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
     expect(drawer).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('BreadcrumbsDataSection', () => {
 
   it('toggles the drawer when view all is clicked', async () => {
     render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
-    const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+    const viewAllButton = screen.getByRole('button', {name: 'View 2 more'});
     await userEvent.click(viewAllButton);
     const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
     expect(drawer).toBeInTheDocument();
@@ -99,6 +99,8 @@ describe('BreadcrumbsDataSection', () => {
     // From event breadcrumb
     expect(screen.getByText('May 21, 2019 6:00:48.760 PM UTC')).toBeInTheDocument();
     expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
 
     const timeControl = screen.getByRole('button', {
       name: 'Change Time Format for Breadcrumbs',

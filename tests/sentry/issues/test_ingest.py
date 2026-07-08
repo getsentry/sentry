@@ -8,7 +8,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.helpers.group_index.update import handle_priority
-from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, parse_log_level
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue, MetricIssueDetectorHandler
 from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
@@ -383,7 +383,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             group = group_info.group
             assert group.title == occurrence.issue_title
             assert group.platform == event.platform
-            assert group.level == LOG_LEVELS_MAP.get(occurrence.level)
+            assert group.level == parse_log_level(occurrence.level)
             assert group.last_seen == event.datetime
             assert group.first_seen == event.datetime
             assert group.active_at == event.datetime
@@ -574,8 +574,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 type_id = 1
                 slug = "test"
                 description = "Test"
-                category = GroupCategory.PROFILE.value
-                category_v2 = GroupCategory.MOBILE.value
+                category = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=project_id)
@@ -808,7 +807,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
-            "level": LOG_LEVELS_MAP.get(occurrence.level),
+            "level": parse_log_level(occurrence.level),
             # Should truncate the culprit to max allowable length
             "culprit": f"{culprit[: MAX_CULPRIT_LENGTH - 3]}...",
             "last_seen": event.datetime,

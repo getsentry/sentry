@@ -1,21 +1,25 @@
+import {Outlet} from 'react-router-dom';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoAccess} from 'sentry/components/noAccess';
+import {SeerRepoTable} from 'sentry/components/seer/repoTable/seerRepoTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
+import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {SeerRepoTable} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
-import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
-import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
-import {useRepoDetailsDrawer} from 'getsentry/views/seerAutomation/hooks/useRepoDetailsDrawer';
-import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
+import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 export default function SeerAutomationRepos() {
   const organization = useOrganization();
-  useRepoDetailsDrawer();
+  const location = useLocation();
 
   if (!orgHasCodeReviewFeature(organization)) {
     return (
@@ -27,27 +31,39 @@ export default function SeerAutomationRepos() {
 
   return (
     <AnalyticsArea name="repos">
-      <SeerSettingsPageWrapper>
-        <SentryDocumentTitle title={t('Code Review')} />
-        <SettingsPageHeader
-          title={t('Code Review')}
-          subtitle={tct(
-            "Enable [code_review:Code Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.",
-            {
-              code: <code />,
-              code_review: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
-              ),
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-              ),
-            }
-          )}
-        />
-        <SeerSettingsPageContent>
-          <SeerRepoTable />
-        </SeerSettingsPageContent>
-      </SeerSettingsPageWrapper>
+      <SentryDocumentTitle title={t('Code Review')} />
+      <SettingsPageHeader
+        title={t('Code Review')}
+        action={
+          <LinkButton
+            size="sm"
+            icon={<IconSettings />}
+            to={{
+              pathname: `/settings/${organization.slug}/seer/repos/defaults/`,
+              query: location.query,
+            }}
+          >
+            {t('Defaults')}
+          </LinkButton>
+        }
+        subtitle={tct(
+          "Enable [code_review:Code Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.",
+          {
+            code: <code />,
+            code_review: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
+            ),
+            docs: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+            ),
+          }
+        )}
+      />
+      <Stack gap="lg" flex="1" minHeight="0" contain="size">
+        <SeerSettingsPageBanners />
+        <SeerRepoTable />
+      </Stack>
+      <Outlet />
     </AnalyticsArea>
   );
 }

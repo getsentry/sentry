@@ -91,7 +91,9 @@ export function useAttributeBreakdownsTooltip({
   // - Sets up the listener for clicks anywhere on the chart to toggle the frozen tooltip state.
   useEffect(() => {
     const chartInstance = chartRef.current?.getEchartsInstance();
-    if (!chartInstance) return;
+    if (!chartInstance) {
+      return;
+    }
 
     if (frozenPosition) {
       chartInstance.dispatchAction({
@@ -146,7 +148,9 @@ export function useAttributeBreakdownsTooltip({
   // This effect sets up the on click listeners for the tooltip actions.
   // e-charts tooltips do not support actions out of the box, so we need to handle them manually.
   useEffect(() => {
-    if (!frozenPosition) return;
+    if (!frozenPosition) {
+      return;
+    }
 
     const handleClickActions = (event: MouseEvent) => {
       event.preventDefault();

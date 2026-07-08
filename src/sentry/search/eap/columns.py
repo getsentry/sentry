@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict, cast
@@ -47,6 +47,20 @@ class ResolverSettings(TypedDict):
 
 
 @dataclass(frozen=True, kw_only=True)
+class AttributeContext:
+    """User-facing context for a Sentry-defined (non-convention) attribute.
+
+    Mirrors the subset of the ``/attributes`` endpoint's ``expand=context``
+    response that a definition can supply on its own (``brief`` and ``examples``);
+    the endpoint combines this with ``isConvention``/deprecation at serialization
+    time. Conventions get their context from ``sentry_conventions`` instead.
+    """
+
+    brief: str
+    examples: Sequence[str] | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResolvedColumn:
     # The alias for this column
     public_alias: (
@@ -60,6 +74,9 @@ class ResolvedColumn:
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
     validator: Callable[[Any], bool] | list[Callable[[Any], bool]] | None = None
+    # Normalizer transforms a search value before sending to Snuba (e.g. stripping dashes from UUIDs).
+    # Called after validation, before building the AttributeValue proto.
+    normalizer: Callable[[Any], Any] | None = None
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -70,6 +87,20 @@ class ResolvedColumn:
         if self.processor:
             return self.processor(value)
         return value
+
+    def normalize(
+        self, value: str | float | datetime | Sequence[float] | Sequence[str]
+    ) -> str | float | datetime | Sequence[float] | Sequence[str]:
+        """Normalize a search value before building the AttributeValue proto.
+
+        If a normalizer is defined, applies it to each element of a list or to the scalar value.
+        Returns the value unchanged when no normalizer is set.
+        """
+        if self.normalizer is None:
+            return value
+        if isinstance(value, list):
+            return [self.normalizer(item) for item in value]
+        return self.normalizer(value)
 
     def validate(self, value: Any) -> None:
         if callable(self.validator):
@@ -122,6 +153,11 @@ class ResolvedAttribute(ResolvedColumn):
     private: bool = False
     replacement: str | None = field(default=None)
     deprecation_status: str | None = field(default=None)
+    # User-facing context for this Sentry-defined attribute. Only set for
+    # attributes that aren't sentry-conventions (those get their context from
+    # `sentry_conventions`); briefs/examples sourced from Seer's
+    # `attributes_reference.py`.
+    context: AttributeContext | None = field(default=None)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -177,6 +213,8 @@ class VirtualColumnDefinition:
     # When set, sorting uses this column (with original values) rather than the
     # transformed virtual column values, which may not sort in the desired order.
     sort_column: str | None = None
+    # User-facing context (brief/examples) surfaced by the /attributes endpoint.
+    context: AttributeContext | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -197,7 +235,7 @@ class ResolvedFunction(ResolvedColumn):
 
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
-        return constants.DOUBLE
+        return constants.TYPE_MAP[self.search_type]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -239,13 +277,22 @@ class ResolvedAggregate(ResolvedFunction):
     def proto_definition(self) -> AttributeAggregation:
         """The definition of this function as needed by the RPC"""
         if self.default_value is not None:
-            return AttributeAggregation(
-                aggregate=self.internal_name,
-                key=self.argument,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-                default_value_double=self.default_value,
-            )
+            if self.proto_type == constants.INT:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.argument,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_int64=int(self.default_value),
+                )
+            else:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.argument,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
         else:
             return AttributeAggregation(
                 aggregate=self.internal_name,
@@ -273,13 +320,22 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
     ) -> AttributeAggregation | AttributeConditionalAggregation:
         if self.trace_metric is None and self.trace_filter is None:
             if self.default_value is not None:
-                return AttributeAggregation(
-                    aggregate=self.internal_name,
-                    key=self.key,
-                    label=self.public_alias,
-                    extrapolation_mode=self.extrapolation_mode,
-                    default_value_double=self.default_value,
-                )
+                if self.proto_type == constants.INT:
+                    return AttributeAggregation(
+                        aggregate=self.internal_name,
+                        key=self.key,
+                        label=self.public_alias,
+                        extrapolation_mode=self.extrapolation_mode,
+                        default_value_int64=int(self.default_value),
+                    )
+                else:
+                    return AttributeAggregation(
+                        aggregate=self.internal_name,
+                        key=self.key,
+                        label=self.public_alias,
+                        extrapolation_mode=self.extrapolation_mode,
+                        default_value_double=self.default_value,
+                    )
             else:
                 return AttributeAggregation(
                     aggregate=self.internal_name,
@@ -298,14 +354,24 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
             )
 
         if self.default_value is not None:
-            return AttributeConditionalAggregation(
-                aggregate=self.internal_name,
-                key=self.key,
-                filter=trace_filter,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-                default_value_double=self.default_value,
-            )
+            if self.proto_type == constants.INT:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_int64=int(self.default_value),
+                )
+            else:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
         else:
             return AttributeConditionalAggregation(
                 aggregate=self.internal_name,
@@ -332,14 +398,24 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     def proto_definition(self) -> AttributeConditionalAggregation:
         """The definition of this function as needed by the RPC"""
         if self.default_value is not None:
-            return AttributeConditionalAggregation(
-                aggregate=self.internal_name,
-                key=self.key,
-                filter=self.trace_filter,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-                default_value_double=self.default_value,
-            )
+            if self.proto_type == constants.INT:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=self.trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_int64=int(self.default_value),
+                )
+            else:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=self.trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
         else:
             return AttributeConditionalAggregation(
                 aggregate=self.internal_name,
@@ -662,6 +738,7 @@ class ConditionalTraceMetricFormulaDefinition(TraceMetricFormulaDefinition):
 def simple_sentry_field(
     field: str,
     search_type: constants.SearchType = "string",
+    context: AttributeContext | None = None,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     without the `sentry.` suffix. This helper functions makes defining them easier"""
@@ -669,6 +746,7 @@ def simple_sentry_field(
         public_alias=field,
         internal_name=f"sentry.{field}",
         search_type=search_type,
+        context=context,
     )
 
 
@@ -676,6 +754,7 @@ def simple_measurements_field(
     field: str,
     search_type: constants.SearchType = "number",
     secondary_alias: bool = False,
+    context: AttributeContext | None = None,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     with the `measurements.` prefix. This helper functions makes defining them easier"""
@@ -684,6 +763,7 @@ def simple_measurements_field(
         internal_name=field,
         search_type=search_type,
         secondary_alias=secondary_alias,
+        context=context,
     )
 
 

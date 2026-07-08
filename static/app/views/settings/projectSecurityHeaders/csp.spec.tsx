@@ -37,10 +37,8 @@ describe('ProjectCspReports', () => {
       initialRouterConfig,
     });
 
-    // Heading
-    expect(
-      await screen.findByText('Content Security Policy', {selector: 'h1'})
-    ).toBeInTheDocument();
+    // Panel heading
+    expect(await screen.findByText('About')).toBeInTheDocument();
   });
 
   it('renders loading error', async () => {

@@ -1,55 +1,59 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconGraph} from 'sentry/icons';
+import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attributeBreakdowns/constants';
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface ExploreChartsProps {
   confidences: Confidence[];
   extrapolate: boolean;
   query: string;
   rawSpanCounts: RawCounts;
-  setTab: (tab: Mode | Tab) => void;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
 }
@@ -79,7 +83,6 @@ export function ExploreCharts({
   visualizes,
   setVisualizes,
   samplingMode,
-  setTab,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
@@ -115,7 +118,6 @@ export function ExploreCharts({
         {visualizes.map((visualize, index) => {
           return (
             <Chart
-              setTab={setTab}
               key={`${index}`}
               extrapolate={extrapolate}
               index={index}
@@ -144,8 +146,7 @@ interface ChartProps {
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
   rawSpanCounts: RawCounts;
-  setTab: (tab: Mode | Tab) => void;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualize: Visualize;
   samplingMode?: SamplingMode;
   topEvents?: number;
@@ -162,7 +163,6 @@ function Chart({
   timeseriesResult,
   samplingMode,
   topEvents,
-  setTab,
 }: ChartProps) {
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -211,15 +211,34 @@ function Chart({
     };
   }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
+
   const Title = (
-    <Flex>
-      <Widget.WidgetTitle
-        title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
-      />
-    </Flex>
+    <Widget.WidgetTitle
+      summary={
+        !visualize.visible && plottablesCanBeVisualized(plottables) ? (
+          <TimeSeriesWidgetVisualization
+            plottables={plottables}
+            showLegend="never"
+            showXAxis="never"
+            showYAxis="never"
+          />
+        ) : null
+      }
+      title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
+    />
   );
 
-  const Actions = (
+  const samplingWarningReason = getSamplingWarningReason(
+    visualize.yAxis,
+    chartInfo.series,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarningReason ? (
+    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  ) : null;
+
+  const Actions = visualize.visible ? (
     <Fragment>
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
@@ -227,7 +246,7 @@ function Chart({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />
@@ -246,7 +265,7 @@ function Chart({
             <OverlayTrigger.Button
               {...triggerProps}
               icon={<IconClock />}
-              priority="transparent"
+              variant="transparent"
               showChevron={false}
               size="xs"
             />
@@ -261,10 +280,21 @@ function Chart({
         query={query}
         interval={interval}
         visualizeIndex={index}
-        visible={visualize.visible}
-        setVisible={onChartVisibilityChange}
+      />
+      <Button
+        aria-label={t('Collapse chart')}
+        icon={<IconContract />}
+        onClick={() => onChartVisibilityChange(false)}
+        size="xs"
       />
     </Fragment>
+  ) : (
+    <Button
+      aria-label={t('Expand chart')}
+      icon={<IconExpand />}
+      onClick={() => onChartVisibilityChange(true)}
+      size="xs"
+    />
   );
 
   const initialChartSelection =
@@ -274,6 +304,7 @@ function Chart({
     <ChartWrapper ref={chartWrapperRef}>
       <Widget
         Title={Title}
+        TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
           visualize.visible && (
@@ -288,7 +319,9 @@ function Chart({
                   }
                 },
                 onInsideSelectionClick: params => {
-                  if (!params.selectionState) return;
+                  if (!params.selectionState) {
+                    return;
+                  }
 
                   params.setSelectionState({
                     ...params.selectionState,
@@ -296,7 +329,9 @@ function Chart({
                   });
                 },
                 onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) return;
+                  if (!params.selectionState?.isActionMenuVisible) {
+                    return;
+                  }
 
                   params.setSelectionState({
                     ...params.selectionState,
@@ -308,9 +343,7 @@ function Chart({
                 },
                 disabled: false,
                 actionMenuRenderer: params => {
-                  return (
-                    <FloatingTrigger chartIndex={index} params={params} setTab={setTab} />
-                  );
+                  return <FloatingTrigger chartIndex={index} params={params} />;
                 },
               }}
             />

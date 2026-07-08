@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -21,18 +20,15 @@ import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
 import {
   makeMonitorBasePathname,
-  makeMonitorDetailsPathname,
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function StaticSections({project}: {project: Project}) {
   const organization = useOrganization();
@@ -126,7 +122,6 @@ export function EditExistingErrorDetectorForm({
   const organization = useOrganization();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const submitEditDetector = useSubmitEditDetector();
 
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -156,42 +151,22 @@ export function EditExistingErrorDetectorForm({
   return (
     <EditLayout>
       <form.AppForm form={form}>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Monitors'),
-                    to: makeMonitorBasePathname(organization.slug),
-                  },
-                  {
-                    label: getDetectorTypeLabel(detector.type),
-                    to: makeMonitorTypePathname(organization.slug, detector.type),
-                  },
-                  {
-                    label: <ProjectBadge disableLink project={project} avatarSize={16} />,
-                    to: makeMonitorDetailsPathname(organization.slug, detector.id),
-                  },
-                  {label: t('Configure')},
-                ]}
-              />
-            </TopBar.Slot>
-            <AutomationFeedbackButton />
-          </Fragment>
-        ) : (
-          <EditLayout.Header>
-            <EditLayout.HeaderContent>
-              <Fragment>
-                <EditDetectorBreadcrumbs detector={detector} />
-                <EditLayout.Title title={detector.name} project={project} />
-              </Fragment>
-            </EditLayout.HeaderContent>
-            <EditLayout.Actions>
-              <AutomationFeedbackButton />
-            </EditLayout.Actions>
-          </EditLayout.Header>
-        )}
+        <TopBar.Slot name="title">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: t('Monitors'),
+                to: makeMonitorBasePathname(organization.slug),
+              },
+              {
+                label: getDetectorTypeLabel(detector.type),
+                to: makeMonitorTypePathname(organization.slug, detector.type),
+              },
+              {label: detector.name},
+            ]}
+          />
+        </TopBar.Slot>
+        <AutomationFeedbackButton />
 
         <EditLayout.Body>
           <Stack gap="2xl" maxWidth={maxWidth}>

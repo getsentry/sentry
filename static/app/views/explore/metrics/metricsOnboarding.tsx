@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
@@ -349,10 +350,10 @@ const Preview = styled('div')<{isUnsupportedPlatform?: boolean}>`
 
   ${p =>
     p.isUnsupportedPlatform &&
-    `
-    display: flex;
-    flex-direction: column;
-  `}
+    css`
+      display: flex;
+      flex-direction: column;
+    `}
 `;
 
 const Body = styled('div')<{isUnsupportedPlatform?: boolean}>`
@@ -363,10 +364,10 @@ const Body = styled('div')<{isUnsupportedPlatform?: boolean}>`
 
   ${p =>
     p.isUnsupportedPlatform &&
-    `
-    grid-auto-flow: row;
-    grid-auto-columns: unset;
-  `}
+    css`
+      grid-auto-flow: row;
+      grid-auto-columns: unset;
+    `}
 
   h4 {
     margin-bottom: 0;

@@ -1,22 +1,7 @@
-from copy import deepcopy
-
-from sentry import audit_log
-from sentry.api.serializers import serialize
-from sentry.incidents.models.alert_rule import AlertRule
-from sentry.models.auditlogentry import AuditLogEntry
-from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
-from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.migration_helpers.alert_rule import (
-    dual_write_alert_rule,
-    migrate_alert_rule,
-)
+from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
 
 pytestmark = [requires_snuba]
 
@@ -30,192 +15,35 @@ class AlertRuleListEndpointTest(APITestCase):
     def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, self.project.slug)
 
-        assert resp.data == serialize([alert_rule])
+        assert len(resp.data) == 1
+        assert resp.data[0]["name"] == detector.name
 
     def test_no_perf_alerts(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
+        migrate_alert_rule(alert_rule)
         perf_alert_rule = self.create_alert_rule(query="p95", dataset=Dataset.Transactions)
+        migrate_alert_rule(perf_alert_rule)
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, self.project.slug)
-            assert resp.data == serialize([alert_rule])
+            assert len(resp.data) == 1
+            assert resp.data[0]["name"] == alert_rule.name
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_success_response(self.organization.slug, self.project.slug)
-            assert resp.data == serialize([perf_alert_rule, alert_rule])
+            assert len(resp.data) == 2
+            names = {item["name"] for item in resp.data}
+            assert names == {alert_rule.name, perf_alert_rule.name}
 
     def test_no_feature(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 404
-
-
-@freeze_time("2024-12-11 03:21:34")
-class AlertRuleListDeltaTest(APITestCase):
-    endpoint = "sentry-api-0-project-alert-rules"
-
-    @with_feature("organizations:incidents")
-    def test_assert_serializer_parity(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule(resolve_threshold=50)
-        self.create_alert_rule_trigger(alert_rule, label="critical")
-        dual_write_alert_rule(alert_rule)
-        self.login_as(self.user)
-
-        old_resp = self.get_success_response(self.organization.slug, self.project.slug)
-
-        with self.feature("organizations:workflow-engine-rule-serializers"):
-            new_resp = self.get_success_response(self.organization.slug, self.project.slug)
-
-        assert len(old_resp.data) == len(new_resp.data) == 1
-        assert_serializer_parity(old=old_resp.data[0], new=new_resp.data[0])
-
-
-@with_feature(
-    [
-        "organizations:incidents",
-        "organizations:workflow-engine-metric-alert-endpoints-get",
-    ]
-)
-class AlertRuleListEndpointWorkflowEngineMethodFlagTest(APITestCase):
-    """Verify that the per-method flag alone (without the broad rule-serializers flag)
-    activates the workflow engine path for GET requests."""
-
-    endpoint = "sentry-api-0-project-alert-rules"
-
-    def test_returns_detector_serialization(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = self.create_alert_rule()
-        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
-
-        self.login_as(self.user)
-        resp = self.get_success_response(self.organization.slug, self.project.slug)
-
-        assert len(resp.data) == 1
-        assert resp.data[0]["name"] == detector.name
-
-
-@freeze_time()
-class AlertRuleCreateEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-project-alert-rules"
-    method = "post"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
-        self.user = self.create_user()
-        self.valid_alert_rule = {
-            "aggregate": "count()",
-            "query": "",
-            "timeWindow": "300",
-            "resolveThreshold": 100,
-            "thresholdType": 0,
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 200,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                },
-                {
-                    "label": "warning",
-                    "alertThreshold": 150,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
-                    ],
-                },
-            ],
-            "projects": [self.project.slug],
-            "owner": self.user.id,
-            "name": "JustAValidTestRule",
-        }
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
-    def test_simple(self) -> None:
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                status_code=201,
-                **self.valid_alert_rule,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            audit_log_entry = AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
-            )
-        assert len(audit_log_entry) == 1
-        assert (
-            resp.renderer_context["request"].META["REMOTE_ADDR"]
-            == list(audit_log_entry)[0].ip_address
-        )
-
-    def test_status_filter(self) -> None:
-        with (
-            outbox_runner(),
-            self.feature(
-                [
-                    "organizations:incidents",
-                    "organizations:performance-view",
-                ]
-            ),
-        ):
-            data = deepcopy(self.valid_alert_rule)
-            data["query"] = "is:unresolved"
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query.query == "is:unresolved"
-
-    def test_project_not_in_request(self) -> None:
-        """Test that if you don't provide the project data in the request, we grab it from the URL"""
-        data = deepcopy(self.valid_alert_rule)
-        del data["projects"]
-        with (
-            outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
-        ):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            audit_log_entry = AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
-            )
-        assert len(audit_log_entry) == 1
-        assert (
-            resp.renderer_context["request"].META["REMOTE_ADDR"]
-            == list(audit_log_entry)[0].ip_address
-        )

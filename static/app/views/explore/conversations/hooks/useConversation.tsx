@@ -1,13 +1,20 @@
 import {useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {
+  ALL_ACCESS_PROJECTS,
+  getDefaultPageFilterSelection,
+} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -32,6 +39,7 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.input.messages'?: string;
@@ -46,6 +54,7 @@ interface ConversationApiSpan {
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.total_tokens'?: number;
+  occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
   'span.op'?: string;
   'user.email'?: string;
@@ -100,8 +109,8 @@ function createNodeFromApiSpan(
     transaction: '',
     transaction_id: '',
     name: apiSpan['span.name'] || '',
-    errors: [],
-    occurrences: [],
+    errors: apiSpan.errors ?? [],
+    occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
@@ -129,7 +138,20 @@ function createNodeFromApiSpan(
   const startMs = value.start_timestamp * 1e3;
   const durationMs = (value.end_timestamp - value.start_timestamp) * 1e3;
   const parentSpanId = apiSpan.parent_span;
-  const errors = new Set<TraceTree.TraceError>();
+
+  const dedupeByIssueId = <T extends {issue_id: number}>(issues: T[]): T[] => {
+    const seen = new Set<number>();
+    return issues.filter(issue => {
+      if (seen.has(issue.issue_id)) {
+        return false;
+      }
+      seen.add(issue.issue_id);
+      return true;
+    });
+  };
+
+  const uniqueErrorIssues = dedupeByIssueId(value.errors);
+  const uniqueOccurrenceIssues = dedupeByIssueId(value.occurrences);
 
   const node = {
     id: apiSpan.span_id,
@@ -143,10 +165,16 @@ function createNodeFromApiSpan(
     endTimestamp: value.end_timestamp,
     projectSlug: value.project_slug,
     attributes: value.additional_attributes,
-    errors,
+    errors: new Set<TraceTree.TraceErrorIssue>(value.errors),
+    occurrences: new Set<TraceTree.TraceOccurrence>(value.occurrences),
     profileId: undefined,
     profilerId: undefined,
-    uniqueIssues: [] as TraceTree.TraceIssue[],
+    uniqueErrorIssues,
+    uniqueOccurrenceIssues,
+    uniqueIssues: [
+      ...uniqueErrorIssues,
+      ...uniqueOccurrenceIssues,
+    ] as TraceTree.TraceIssue[],
 
     findClosestParentTransaction: () => null,
     findParent<T>(predicate: (node: T) => boolean): T | null {
@@ -166,6 +194,9 @@ function createNodeFromApiSpan(
     findParentEapTransaction: () => null,
 
     renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
+      if (hasGenAiConversationsRedesignFeature(props.organization)) {
+        return <AiSpanDetails node={props.node} traceId={props.traceId} />;
+      }
       return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
     },
   };
@@ -179,19 +210,33 @@ export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
-  // Ignore page filters so the conversation is always found.
+  const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
+  const hasExplicitDatetime =
+    selection.datetime.start !== null ||
+    (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
+
+  const datetimeParams = hasConversationTimestamps
+    ? {
+        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
+        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+      }
+    : hasExplicitDatetime
+      ? normalizeDateTimeParams(selection.datetime)
+      : {};
+
+  const project =
+    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
+
   const queryParams = {
-    project: [ALL_ACCESS_PROJECTS],
+    project,
     per_page: 1000,
-    ...(hasConversationTimestamps && {
-      start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
-      end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-    }),
+    ...datetimeParams,
   };
 
   const {
@@ -250,13 +295,18 @@ export function useConversation(
   }, [allSpans]);
 
   if (!conversation.conversationId) {
-    return {nodes: [], nodeTraceMap: new Map(), isLoading: false, error: false};
+    return {
+      nodes: [],
+      nodeTraceMap: new Map(),
+      isLoading: false,
+      error: false,
+    };
   }
 
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage,
+    isLoading: isLoading || isFetchingNextPage || hasNextPage,
     error: isError,
   };
 }

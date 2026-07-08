@@ -23,7 +23,7 @@ interface UseExploreTracesTableOptions {
 
 export type TracesTableResult = {
   error: QueryError | null;
-  result: UseQueryResult<ApiResponse<TraceResults>, Error>;
+  result: UseQueryResult<ApiResponse<TraceResults>>;
 };
 
 export function useExploreTracesTableApiOptions({

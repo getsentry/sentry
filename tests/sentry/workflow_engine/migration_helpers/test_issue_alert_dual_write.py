@@ -4,6 +4,8 @@ from jsonschema.exceptions import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
@@ -132,6 +134,10 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert workflow.enabled is True
 
     def test_update_issue_alert(self) -> None:
+        # NotifyEventAction dual-writes a WEBHOOK action only when webhooks are enabled.
+        assert self.issue_alert.project
+        ProjectOption.objects.set_value(self.issue_alert.project, "webhooks:enabled", True)
+
         conditions_payload = [
             {
                 "id": FirstSeenEventCondition.id,
@@ -196,7 +202,35 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
 
         dcg_actions = DataConditionGroupAction.objects.get(condition_group=if_dcg)
         action = dcg_actions.action
-        assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
+        # tested fully in test_migrate_rule_action.py
+        assert action.type == Action.Type.WEBHOOK
+        assert action.config.get("target_identifier") == "webhooks"
+
+    def test_update_issue_alert__notify_event_webhooks_disabled(self) -> None:
+        # Webhooks disabled: no action written; the workflow is a valid "No actions" automation.
+        rule_data = self.issue_alert.data
+        rule_data.update(
+            {
+                "action_match": "none",
+                "filter_match": "all",
+                "conditions": [{"id": FirstSeenEventCondition.id}],
+                "frequency": 60,
+                "actions": [
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "uuid": "test-uuid",
+                    }
+                ],
+            }
+        )
+
+        self.issue_alert.update(data=rule_data)
+        update_migrated_issue_alert(self.issue_alert)
+
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
 
     def test_update_issue_alert__none_match(self) -> None:
         conditions_payload = [
@@ -354,7 +388,13 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         self.when_dcg: DataConditionGroup = when_dcg
         self.if_dcg: DataConditionGroup = if_dcg
 
-    def assert_issue_alert_deleted(
+    def assert_rule_deleted_workflow_survives(self, workflow: Workflow) -> None:
+        """Rule and link rows are deleted, but org-scoped Workflow survives."""
+        assert not Rule.objects.filter(id=self.issue_alert.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert Workflow.objects.filter(id=workflow.id).exists()
+
+    def assert_everything_deleted(
         self, workflow: Workflow, when_dcg: DataConditionGroup, if_dcg: DataConditionGroup
     ) -> None:
         assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
@@ -373,7 +413,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         with self.tasks():
             run_scheduled_deletions()
 
-        self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
+        self.assert_rule_deleted_workflow_survives(self.workflow)
 
     def test_delete_issue_alert__project_deletion_task(self) -> None:
         self.project.update(status=ObjectStatus.PENDING_DELETION)
@@ -382,7 +422,9 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         with self.tasks():
             run_scheduled_deletions()
 
-        self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
+        # Workflows are org-scoped, not project-scoped, so they survive
+        # project deletion. Only OrganizationDeletionTask cleans them up.
+        self.assert_rule_deleted_workflow_survives(self.workflow)
 
     def test_delete_issue_alert__org_deletion_task(self) -> None:
         self.organization.update(status=ObjectStatus.PENDING_DELETION)
@@ -391,4 +433,4 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         with self.tasks():
             run_scheduled_deletions()
 
-        self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
+        self.assert_everything_deleted(self.workflow, self.when_dcg, self.if_dcg)

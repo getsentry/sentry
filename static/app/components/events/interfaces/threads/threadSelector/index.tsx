@@ -8,8 +8,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -44,8 +44,8 @@ export function ThreadSelector({
   onChange,
 }: Props) {
   const organization = useOrganization({allowNull: true});
-  const [sortAttribute, setSortAttribute] = useState<SortAttribute>(SortAttribute.ID);
-  const [isSortAscending, setIsSortAscending] = useState<boolean>(true);
+  const [sortAttribute, setSortAttribute] = useState(SortAttribute.ID);
+  const [isSortAscending, setIsSortAscending] = useState(true);
 
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))

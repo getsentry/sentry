@@ -61,6 +61,7 @@ export enum ChartType {
   BAR = 0,
   LINE = 1,
   AREA = 2,
+  HEATMAP = 3,
 }
 
 export function isChartType(value: any): value is ChartType {
@@ -610,9 +611,9 @@ function computeAxisMax(data: Series[], stacked?: boolean) {
   } else if (magnitude <= 5) {
     scale = 0.5;
   } else if (magnitude <= 7.5) {
-    scale = 1.0;
+    scale = 1;
   } else {
-    scale = 2.0;
+    scale = 2;
   }
 
   const step = 10 ** Math.floor(power) * scale;

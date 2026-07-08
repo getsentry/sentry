@@ -54,7 +54,7 @@ export class SentrySampledProfile extends Profile {
     const startedAt = samples[0]!.elapsed_since_start_ns;
     const endedAt = samples[samples.length - 1]!.elapsed_since_start_ns;
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
-      throw TypeError('startedAt or endedAt is NaN');
+      throw new TypeError('startedAt or endedAt is NaN');
     }
 
     const {threadId, threadName} = getThreadData(sampledProfile);

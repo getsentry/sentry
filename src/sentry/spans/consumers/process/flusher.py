@@ -1,11 +1,13 @@
 import logging
 import multiprocessing
 import multiprocessing.context
+import multiprocessing.process
 import threading
 import time
 from collections.abc import Callable, Mapping
 from concurrent.futures import Future
 from functools import partial
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -20,8 +22,10 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.consumers.process_segments.tasks import process_segment_task
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -272,12 +276,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
+        sentry_sdk.set_attribute("sentry_spans_buffer_component", "flusher")
         sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
+        sentry_sdk.set_attribute("sentry_spans_buffer_shards", shard_tag)
 
         logger.info("Flusher process started for shards %s", shard_tag)
 
         try:
-            producer_futures = []
+            producer_futures: list[tuple[int, Any, int]] = []
 
             if produce_to_pipe is not None:
 
@@ -329,9 +335,29 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     continue
 
                 with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    for flushed_segment in flushed_segments.values():
+                    log_flushed_segments = options.get("spans.buffer.flusher.log-flushed-segments")
+
+                    for segment_key, flushed_segment in flushed_segments.items():
                         if not flushed_segment.spans:
                             continue
+
+                        if log_flushed_segments:
+                            logger.info(
+                                "spans.buffer.flushed_segment",
+                                extra={
+                                    "segment_key": segment_key.decode("utf-8", errors="replace"),
+                                    "queue_key": flushed_segment.queue_key.decode(
+                                        "utf-8", errors="replace"
+                                    ),
+                                    "span_count": len(flushed_segment.spans),
+                                    "project_id": flushed_segment.project_id,
+                                },
+                            )
+
+                        produce_to_process_segment_task = (
+                            produce_to_pipe is None
+                            and in_random_rollout("spans.buffer.process-segments-task-rollout-rate")
+                        )
 
                         for message in flushed_segment.to_messages():
                             kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
@@ -340,11 +366,24 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 len(kafka_payload.value),
                                 tags={"shard": shard_tag},
                             )
-                            produce(
-                                flushed_segment.project_id,
-                                kafka_payload,
-                                len(message["spans"]),
-                            )
+                            if produce_to_process_segment_task:
+                                task_produce_future = process_segment_task.apply_async_with_future(
+                                    args=[kafka_payload.value]
+                                )
+                                if task_produce_future is not None:
+                                    producer_futures.append(
+                                        (
+                                            flushed_segment.project_id,
+                                            task_produce_future,
+                                            len(message["spans"]),
+                                        )
+                                    )
+                            else:
+                                produce(
+                                    flushed_segment.project_id,
+                                    kafka_payload,
+                                    len(message["spans"]),
+                                )
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
                     for project_id, future, dropped in producer_futures:
@@ -425,7 +464,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self.process_restarts[process_index] += 1
 
             try:
-                if isinstance(process, multiprocessing.Process):
+                if isinstance(process, multiprocessing.process.BaseProcess):
+                    if process.is_alive():
+                        metrics.incr("spans.buffer.flusher.killed_live_process")
                     process.kill()
             except (ValueError, AttributeError):
                 pass  # Process already closed, ignore
@@ -517,15 +558,15 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self.next_step.join(timeout)
 
-        # Wait for all processes to finish
+        # Wait for all processes to finish, then kill them
         for process_index, process in self.processes.items():
-            if deadline is not None:
-                remaining_time = deadline - time.time()
-                if remaining_time <= 0:
-                    break
-
             while process.is_alive() and (deadline is None or deadline > time.time()):
                 time.sleep(0.1)
 
-            if isinstance(process, multiprocessing.Process):
-                process.terminate()
+            if isinstance(process, multiprocessing.process.BaseProcess):
+                try:
+                    if process.is_alive():
+                        metrics.incr("spans.buffer.flusher.killed_live_process")
+                    process.kill()
+                except (ValueError, AttributeError):
+                    pass  # Process already closed, ignore

@@ -2,14 +2,11 @@ import {Fragment, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
-import {
-  cmdkQueryOptions,
-  type CMDKQueryOptions,
-} from 'sentry/components/commandPalette/types';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
@@ -68,8 +65,12 @@ interface IssueListCommandPaletteActionsProps {
  * child items under header groups).
  */
 function getTagValueStrings(tag: Tag): string[] {
-  if (!tag.values?.length) return [];
-  if (typeof tag.values[0] === 'string') return tag.values as string[];
+  if (!tag.values?.length) {
+    return [];
+  }
+  if (typeof tag.values[0] === 'string') {
+    return tag.values as string[];
+  }
 
   const groups = tag.values as SearchGroup[];
   return groups.flatMap(group => {
@@ -126,10 +127,12 @@ function FilterActions({
         : undefined,
       statsPeriod: pageFilters.datetime.period,
     };
+    const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
+
     const fetchParams = {
       api,
       orgSlug: organization.slug,
-      tagKey: key,
+      tagKey,
       search: '',
       projectIds,
       endpointParams,
@@ -141,21 +144,20 @@ function FilterActions({
       return values.map(v => v.value);
     }
 
-    if (key === FieldKey.FIRST_RELEASE) {
-      const values = await fetchTagValues({
-        ...fetchParams,
-        tagKey: 'release',
-        dataset: Dataset.ERRORS,
-      });
-      return ['latest', ...values.map(v => v.value)];
-    }
-
     const [errorsValues, platformValues] = await Promise.all([
       fetchTagValues({...fetchParams, dataset: Dataset.ERRORS}),
       fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
     ]);
 
-    return mergeAndSortTagValues(errorsValues, platformValues, 'count').map(v => v.value);
+    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count').map(
+      v => v.value
+    );
+
+    if (key === FieldKey.RELEASE || key === FieldKey.FIRST_RELEASE) {
+      return ['latest', ...values];
+    }
+
+    return values;
   };
 
   const issueFields = useMemo(
@@ -194,13 +196,15 @@ function FilterActions({
       keywords: [tag.key],
       prompt: t('Select a value...'),
       limit: 4,
-      resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+      resource: (_q: string, ctx: CMDKResourceContext) =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
-            const values = hasPredefined ? predefined : await loadTagValues(tag.key);
-            return values.map(value => ({
+            return hasPredefined ? predefined : await loadTagValues(tag.key);
+          },
+          select: data =>
+            data.map(value => ({
               display: {
                 label: value,
                 icon:
@@ -209,24 +213,21 @@ function FilterActions({
                   ) : undefined,
               },
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
-            }));
-          },
+            })),
           enabled: hasPredefined || ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
   };
 
-  const makeSectionResource =
-    (tags: Tag[], cacheKey: string): ((q: string) => CMDKQueryOptions) =>
-    _q =>
-      // Feed query in key ensures onAction closures reference the current query.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
-        queryFn: () => tags.map(makeFilterKeyItem),
-        staleTime: Infinity,
-      });
+  const makeSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
+    // Feed query in key ensures onAction closures reference the current query.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+      queryFn: () => tags.map(makeFilterKeyItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
@@ -309,6 +310,8 @@ function SaveViewActions({
   query,
   sort,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'sort'>) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const user = useUser();
   const {viewId} = useParams();

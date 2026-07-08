@@ -11,6 +11,7 @@ from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
     format_snapshot_status_check_messages,
+    format_waiting_for_base_snapshot_status_check_messages,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -67,6 +68,7 @@ class SnapshotStatusCheckTestBase(TestCase):
         images_removed: int = 0,
         images_renamed: int = 0,
         images_unchanged: int = 10,
+        images_errored: int = 0,
     ) -> PreprodSnapshotComparison:
         return PreprodSnapshotComparison.objects.create(
             head_snapshot_metrics=head_metrics,
@@ -77,6 +79,7 @@ class SnapshotStatusCheckTestBase(TestCase):
             images_removed=images_removed,
             images_renamed=images_renamed,
             images_unchanged=images_unchanged,
+            images_errored=images_errored,
         )
 
 
@@ -298,7 +301,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 modified, 7 unchanged"
+        assert subtitle == "3 changed, 7 unchanged"
         assert "⏳ Needs approval" in summary
 
     def test_single_image_changed(self) -> None:
@@ -325,7 +328,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             project=self.project,
         )
 
-        assert subtitle == "1 modified, 9 unchanged"
+        assert subtitle == "1 changed, 9 unchanged"
 
     def test_images_added_and_removed(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -408,7 +411,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
             project=self.project,
         )
 
-        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 5 unchanged"
+        assert subtitle == "3 changed, 1 added, 2 removed, 1 renamed, 5 unchanged"
         assert "⏳ Needs approval" in summary
 
 
@@ -535,6 +538,54 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
+    def test_summary_shows_errored_note_when_errored(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=8,
+            images_errored=2,
+        )
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.SUCCESS,
+            {},
+            {},
+            project=self.project,
+        )
+
+        assert "2 images failed to compare" in summary
+
+    def test_summary_omits_errored_note_when_none(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=10,
+            images_errored=0,
+        )
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.SUCCESS,
+            {},
+            {},
+            project=self.project,
+        )
+
+        assert "failed to compare" not in summary
+
     def test_summary_table_has_correct_headers(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
@@ -554,7 +605,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |"
             in summary
         )
         assert "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |" in summary
@@ -671,12 +722,10 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/snapshots/"
         configure_link = f"[Configure {self.project.name} snapshot settings]({settings_url})"
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
-            f" | 0 | 0 | 0 | 0"
-            f" | [{15}]({artifact_url}?selectedTypes=unchanged)"
-            f" | 0"
+            f" | 0 | 0 | 0 | 0 | 15 | 0"
             f" | ✅ Unchanged |"
             f"\n\n{configure_link}"
         )
@@ -713,20 +762,15 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
+        assert subtitle == "3 changed, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/snapshots/"
         configure_link = f"[Configure {self.project.name} snapshot settings]({settings_url})"
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app`"
-            f" | [{1}]({artifact_url}?selectedTypes=added)"
-            f" | [{2}]({artifact_url}?selectedTypes=removed)"
-            f" | [{3}]({artifact_url}?selectedTypes=changed)"
-            f" | [{1}]({artifact_url}?selectedTypes=renamed)"
-            f" | [{4}]({artifact_url}?selectedTypes=unchanged)"
-            f" | 0"
+            f"| [My App]({artifact_url}?selectedTypes=added,removed,changed,renamed)<br>`com.example.app`"
+            f" | 1 | 2 | 3 | 1 | 4 | 0"
             f" | ⏳ Needs approval |"
             f"\n\n{configure_link}"
         )
@@ -1085,20 +1129,15 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
+        assert subtitle == "3 changed, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/snapshots/"
         configure_link = f"[Configure {self.project.name} snapshot settings]({settings_url})"
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app`"
-            f" | [{1}]({artifact_url}?selectedTypes=added)"
-            f" | [{2}]({artifact_url}?selectedTypes=removed)"
-            f" | [{3}]({artifact_url}?selectedTypes=changed)"
-            f" | [{1}]({artifact_url}?selectedTypes=renamed)"
-            f" | [{4}]({artifact_url}?selectedTypes=unchanged)"
-            f" | 0"
+            f"| [My App]({artifact_url}?selectedTypes=added,removed,changed,renamed)<br>`com.example.app`"
+            f" | 1 | 2 | 3 | 1 | 4 | 0"
             f" | ✅ Approved |"
             f"\n\n{configure_link}"
         )
@@ -1139,3 +1178,46 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
 
         assert "✅ Approved" in summary
         assert "⏳ Needs approval" in summary
+
+
+@cell_silo_test
+class SnapshotWaitingForBaseFormattingTest(SnapshotStatusCheckTestBase):
+    def test_waiting_for_base_single_artifact(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=24
+        )
+        snapshot_metrics_map = {artifact.id: metrics}
+
+        title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
+            [artifact], snapshot_metrics_map, project=self.project
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Waiting for base snapshots..."
+        assert "My App" in summary
+        assert "24" in summary
+        assert "✅ Uploaded" in summary
+        assert "Waiting for base snapshots to finish uploading" in summary
+
+    def test_waiting_for_base_multiple_artifacts(self) -> None:
+        artifacts = []
+        snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
+
+        for i in range(2):
+            artifact, metrics = self._create_artifact_with_metrics(
+                app_id=f"com.example.app{i}",
+                app_name=f"App {i}",
+                build_number=i + 1,
+                image_count=10,
+            )
+            artifacts.append(artifact)
+            snapshot_metrics_map[artifact.id] = metrics
+
+        title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
+            artifacts, snapshot_metrics_map, project=self.project
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Waiting for base snapshots..."
+        assert "App 0" in summary
+        assert "App 1" in summary

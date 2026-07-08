@@ -14,7 +14,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.integrations.models import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
@@ -60,43 +59,15 @@ ValidationError = serializers.ValidationError
 
 @freeze_time()
 class RuleSerializerTest(TestCase):
-    def test_last_triggered_rule_only(self) -> None:
+    def test_last_triggered(self) -> None:
         rule = self.create_project_rule()
 
         # Initially no fire history
         result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
         assert result["lastTriggered"] is None
 
-        # Create a RuleFireHistory
-        RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
-
-        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
-        assert result["lastTriggered"] == timezone.now()
-
-    def test_last_triggered_with_workflow_only(self) -> None:
-        rule = self.create_project_rule()
-
-        # Create a workflow for the rule
+        # Create a workflow for the rule and record a fire
         workflow = IssueAlertMigrator(rule).run()
-
-        WorkflowFireHistory.objects.create(
-            workflow=workflow, group=self.group, event_id="test-event-id"
-        )
-
-        result = serialize(rule, self.user, RuleSerializer(expand=["lastTriggered"]))
-        assert result["lastTriggered"] == timezone.now()
-
-    def test_last_triggered_with_workflow(self) -> None:
-        rule = self.create_project_rule()
-
-        # Create a workflow for the rule
-        workflow = IssueAlertMigrator(rule).run()
-
-        # Create an older RuleFireHistory
-        rfh = RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
-        rfh.update(date_added=before_now(hours=2))
-
-        # Create a newer WorkflowFireHistory
         WorkflowFireHistory.objects.create(
             workflow=workflow, group=self.group, event_id="test-event-id"
         )
@@ -136,11 +107,6 @@ class WorkflowRuleSerializerTest(TestCase):
         )
 
     def assert_equal_serializers(self, issue_alert):
-        RuleFireHistory.objects.create(project=self.project, rule=issue_alert, group=self.group)
-        serialized_rule = serialize(
-            issue_alert, self.user, RuleSerializer(prepare_component_fields=True)
-        )
-
         arw = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
         workflow = arw.workflow
 
@@ -150,15 +116,19 @@ class WorkflowRuleSerializerTest(TestCase):
             event_id="fc6d8c0c43fc4630ad850ee518f1b9d0",
         )
 
+        serialized_rule = serialize(
+            issue_alert, self.user, RuleSerializer(prepare_component_fields=True)
+        )
+
         serialized_workflow_rule = serialize(
             workflow, self.user, WorkflowEngineRuleSerializer(prepare_component_fields=True)
         )
 
-        # Pop and compare lists of dicts
-        rule_conditions = serialized_rule.pop("conditions")
-        workflow_conditions = serialized_workflow_rule.pop("conditions")
-        rule_filters = serialized_rule.pop("filters")
-        workflow_filters = serialized_workflow_rule.pop("filters")
+        # Compare lists of dicts independent of order, then compare the rest.
+        rule_conditions = serialized_rule["conditions"]
+        workflow_conditions = serialized_workflow_rule["conditions"]
+        rule_filters = serialized_rule["filters"]
+        workflow_filters = serialized_workflow_rule["filters"]
 
         assert len(rule_conditions) == len(workflow_conditions)
         for condition in rule_conditions:
@@ -168,14 +138,17 @@ class WorkflowRuleSerializerTest(TestCase):
         for filter in rule_filters:
             assert filter in workflow_filters
 
-        rule_actions = serialized_rule.pop("actions")
-        workflow_actions = serialized_workflow_rule.pop("actions")
+        rule_actions = serialized_rule["actions"]
+        workflow_actions = serialized_workflow_rule["actions"]
 
         assert len(rule_actions) == len(workflow_actions)
         for action in rule_actions:
             assert action in workflow_actions
 
-        assert serialized_rule == serialized_workflow_rule
+        list_keys = {"conditions", "filters", "actions"}
+        rule_rest = {k: v for k, v in serialized_rule.items() if k not in list_keys}
+        workflow_rest = {k: v for k, v in serialized_workflow_rule.items() if k not in list_keys}
+        assert rule_rest == workflow_rest
 
     def test_fetch_workflow_users(self) -> None:
         workflow = self.create_workflow(created_by_id=self.user.id)

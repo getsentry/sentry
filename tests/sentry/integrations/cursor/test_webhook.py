@@ -8,6 +8,11 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import MethodNotAllowed
 
+from sentry.models.pullrequest import (
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.testutils.cases import APITestCase
 
 
@@ -54,6 +59,7 @@ class TestCursorWebhook(APITestCase):
         repo: str = "github.com/testorg/testrepo",
         ref: str | None = "main",
         pr_url: str | None = "https://github.com/testorg/testrepo/pull/1",
+        branch_name: str | None = "cursor/fix-bug-1234",
         agent_url: str | None = "https://cursor.sh/agents/1",
         summary: str | None = "All done",
     ) -> dict[str, Any]:
@@ -62,12 +68,22 @@ class TestCursorWebhook(APITestCase):
             "id": id,
             "status": status,
             "source": {"repository": repo, "ref": ref},
-            "target": {"prUrl": pr_url, "url": agent_url},
+            "target": {"prUrl": pr_url, "branchName": branch_name, "url": agent_url},
             "summary": summary,
         }
 
+    def _skip_log_extra(self, mock_logger: Any) -> dict[str, Any]:
+        calls = [
+            c
+            for c in mock_logger.info.call_args_list
+            if c.args and c.args[0] == "cursor_webhook.attribution_skipped"
+        ]
+        assert len(calls) == 1
+        return calls[0].kwargs["extra"]
+
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_happy_path_finished(self, mock_update_state):
+        mock_update_state.return_value = True
         payload = self._build_status_payload(status="FINISHED")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -85,6 +101,116 @@ class TestCursorWebhook(APITestCase):
         assert result.repo_full_name == "testorg/testrepo"
         assert result.repo_provider == "github"
         assert result.pr_url == "https://github.com/testorg/testrepo/pull/1"
+        assert result.branch_name == "cursor/fix-bug-1234"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_branch_name_absent_is_none(self, mock_update_state):
+        payload = self._build_status_payload(status="FINISHED", branch_name=None)
+        body = orjson.dumps(payload)
+        headers = self._signed_headers(body)
+
+        response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert mock_update_state.call_args[1]["result"].branch_name is None
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_records_pr_attribution(self, mock_update_state):
+        mock_update_state.return_value = True
+        repo = self.create_repo(
+            self.project, name="testorg/testrepo", provider="integrations:github"
+        )
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        attribution = PullRequestAttribution.objects.get()
+        assert attribution.signal_type == PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR
+        assert attribution.source == PullRequestAttributionSource.SEER_DATA
+        assert attribution.pull_request.repository_id == repo.id
+        assert attribution.pull_request.key == "1"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_unknown_agent_records_no_attribution(self, mock_update_state):
+        # Seer returns False (e.g. 404) for agent_ids it doesn't know about —
+        # these are Cursor sessions not delegated by Seer, and must not be attributed.
+        mock_update_state.return_value = False
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_error_status_records_no_attribution(self, mock_update_state):
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="ERROR", pr_url=None))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_without_pr_url_records_no_attribution(self, mock_update_state):
+        # Isolates the ``and pr_url`` half of the attribution guard: a completed
+        # agent that produced no PR must not be attributed.
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.logger")
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_completed_without_attribution_logs_skip_reason(self, mock_update_state, mock_logger):
+        # A completed agent that we don't attribute must leave a breadcrumb naming the
+        # gate that blocked it, otherwise a missing SEER_DELEGATED_CURSOR row is invisible.
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+
+        # Seer didn't recognize the agent: known_to_seer=False, but a PR is present.
+        mock_update_state.return_value = False
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        with self.feature("organizations:pr-metrics-attribution"):
+            assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
+        extra = self._skip_log_extra(mock_logger)
+        assert extra["known_to_seer"] is False
+        assert extra["has_pr_url"] is True
+
+        # Seer knew the agent but there's no PR to attribute: known_to_seer=True, pr_url absent.
+        mock_logger.reset_mock()
+        mock_update_state.return_value = True
+        body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
+        with self.feature("organizations:pr-metrics-attribution"):
+            assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
+        extra = self._skip_log_extra(mock_logger)
+        assert extra["known_to_seer"] is True
+        assert extra["has_pr_url"] is False
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_records_no_attribution_when_flag_disabled(self, mock_update_state):
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature({"organizations:pr-metrics-attribution": False}):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
 
     def test_invalid_method(self) -> None:
         with pytest.raises(MethodNotAllowed):
@@ -203,6 +329,31 @@ class TestCursorWebhook(APITestCase):
         resp = self._post_with_headers(body, headers)
         assert resp.status_code == 204
         assert mock_update_state.call_count == 1
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_invalid_pr_url_is_dropped(self, mock_update_state):
+        # Non-https scheme must be rejected — the pr_url is nulled out so no attribution fires.
+        mock_update_state.return_value = True
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+
+        for bad_url in [
+            "not-a-url-at-all",
+            "http://github.com/testorg/testrepo/pull/1",
+            "https://github.com/otherorg/otherrepo/pull/1",
+            "https://github.com/testorg/testrepo/tree/main",
+        ]:
+            mock_update_state.reset_mock()
+            body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=bad_url))
+            headers = self._signed_headers(body)
+
+            with self.feature("organizations:pr-metrics-attribution"):
+                response = self._post_with_headers(body, headers)
+
+            assert response.status_code == 204, bad_url
+            # The Seer state update still happens, but with no pr_url.
+            assert mock_update_state.call_count == 1, bad_url
+            assert mock_update_state.call_args[1]["result"].pr_url is None, bad_url
+            assert not PullRequestAttribution.objects.exists(), bad_url
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_signature_without_prefix(self, mock_update_state):

@@ -10,6 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -25,13 +26,14 @@ from sentry.models.repository import Repository
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="List a Repository's Commits",
+        operation_id="listOrganizationRepoCommits",
+        summary="List a Repository's Commits",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -68,12 +70,17 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
             ),
         ],
     )
-    def get(self, request: Request, organization, repo_id) -> Response:
+    def get(
+        self, request: Request, organization, repo_id
+    ) -> Response[list[CommitSerializerResponse]]:
         """
         List a Repository's Commits
         """
         try:
-            repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
+            repo = Repository.objects.get(
+                id=to_valid_int_id("repo_id", repo_id, raise_404=True),
+                organization_id=organization.id,
+            )
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 

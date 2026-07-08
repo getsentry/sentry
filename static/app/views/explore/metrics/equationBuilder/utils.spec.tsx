@@ -82,6 +82,156 @@ describe('syncEquationMetricQueries', () => {
     );
   });
 
+  it('correctly updates equations when two references resolve to the same value', () => {
+    const metricQueries: BaseMetricQuery[] = [
+      {
+        label: 'A',
+        metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.SAMPLES,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [],
+          aggregateCursor: '',
+          aggregateFields: [
+            new VisualizeFunction('sum(value,metricA,distribution,none)'),
+          ],
+          aggregateSortBys: [],
+        }),
+      },
+      {
+        label: 'B',
+        metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.SAMPLES,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [],
+          aggregateCursor: '',
+          aggregateFields: [
+            new VisualizeFunction('sum(value,metricA,distribution,none)'),
+          ],
+          aggregateSortBys: [],
+        }),
+      },
+      {
+        label: 'ƒ1',
+        metric: {name: '', type: ''},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.AGGREGATE,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [],
+          aggregateCursor: '',
+          aggregateFields: [
+            new VisualizeEquation(
+              'equation|sum(value,metricA,distribution,none) + sum(value,metricA,distribution,none)',
+              {internalExpression: 'A + B'}
+            ),
+          ],
+          aggregateSortBys: [],
+        }),
+      },
+    ];
+
+    const updatedQueries = syncEquationMetricQueries(
+      metricQueries,
+      {
+        A: 'sum(value,metricA,distribution,none)',
+        B: 'sum(value,metricA,distribution,none)',
+      },
+      {
+        A: 'sum(value,metricA,distribution,none)',
+        B: 'avg(value,metricA,distribution,none)',
+      }
+    );
+
+    expect(updatedQueries[2]!.queryParams.visualizes[0]!.yAxis).toBe(
+      'equation|sum(value,metricA,distribution,none) + avg(value,metricA,distribution,none)'
+    );
+  });
+
+  it('correctly updates equations with non-alphabetical label order in expression', () => {
+    const metricQueries: BaseMetricQuery[] = [
+      {
+        label: 'A',
+        metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.SAMPLES,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [],
+          aggregateCursor: '',
+          aggregateFields: [
+            new VisualizeFunction('sum(value,metricA,distribution,none)'),
+          ],
+          aggregateSortBys: [],
+        }),
+      },
+      {
+        label: 'B',
+        metric: {name: 'metricA', type: 'distribution', unit: 'none'},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.SAMPLES,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [],
+          aggregateCursor: '',
+          aggregateFields: [
+            new VisualizeFunction('sum(value,metricA,distribution,none)'),
+          ],
+          aggregateSortBys: [],
+        }),
+      },
+      {
+        label: 'ƒ1',
+        metric: {name: '', type: ''},
+        queryParams: new ReadableQueryParams({
+          extrapolate: true,
+          mode: Mode.AGGREGATE,
+          query: '',
+          cursor: '',
+          fields: ['id', 'timestamp'],
+          sortBys: [],
+          aggregateCursor: '',
+          aggregateFields: [
+            new VisualizeEquation(
+              'equation|sum(value,metricA,distribution,none) + sum(value,metricA,distribution,none)',
+              {internalExpression: 'B + A'}
+            ),
+          ],
+          aggregateSortBys: [],
+        }),
+      },
+    ];
+
+    const updatedQueries = syncEquationMetricQueries(
+      metricQueries,
+      {
+        A: 'sum(value,metricA,distribution,none)',
+        B: 'sum(value,metricA,distribution,none)',
+      },
+      {
+        A: 'sum(value,metricA,distribution,none)',
+        B: 'avg(value,metricA,distribution,none)',
+      }
+    );
+
+    expect(updatedQueries[2]!.queryParams.visualizes[0]!.yAxis).toBe(
+      'equation|avg(value,metricA,distribution,none) + sum(value,metricA,distribution,none)'
+    );
+  });
+
   it('updates every equation when a referenced metric changes', () => {
     const metricQueries: BaseMetricQuery[] = [
       {

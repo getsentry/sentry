@@ -699,9 +699,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
-        if result["status"] == CHECKSTATUS_FAILURE and features.has(
-            "organizations:uptime-response-capture", organization
-        ):
+        if result["status"] == CHECKSTATUS_FAILURE:
             create_uptime_response_capture(subscription, result)
 
         if last_update_ms > 0:
@@ -710,13 +708,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             is_out_of_order = result["scheduled_check_time_ms"] != expected_next_ms
 
             if is_out_of_order:
-                if features.has("organizations:uptime-backlog-retry", organization):
-                    self.queue_result_for_retry(subscription, result, metric_tags, cluster)
-                    return
-
-                create_backfill_misses(
-                    detector, subscription, result, last_update_ms, metric_tags, cluster
-                )
+                self.queue_result_for_retry(subscription, result, metric_tags, cluster)
+                return
 
         process_result_internal(
             detector, subscription, result, metric_tags, cluster, subscription_regions

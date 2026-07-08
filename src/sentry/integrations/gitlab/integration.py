@@ -35,6 +35,7 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -164,6 +165,21 @@ class GitlabIntegration(
         if "error" in data:
             return data["error"]
 
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # GitLab's get_repositories does not wrap errors in IntegrationError,
+        # so plain ApiError bubbles up directly. 403/404 indicate a terminally
+        # broken integration (blocked account, revoked access, deleted group).
+        if isinstance(exc, ApiError):
+            if exc.code == 404:
+                return "configuration_error"
+            if exc.code == 403:
+                return "unauthorized"
+        # Self-hosted GitLab instances sometimes return HTML login/captcha
+        # pages instead of JSON. The response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
+        return super().is_broken_integration_error(exc)
+
     # RepositoryIntegration methods
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
@@ -186,6 +202,14 @@ class GitlabIntegration(
             # Note: gitlab projects are the same things as repos everywhere else
             group = self.get_group_id()
             resp = self.get_client().search_projects(group, query)
+            # GitLab returns {"status": "error", ...} when the group is
+            # inaccessible. The pagination layer turns that dict into a list
+            # of its keys (e.g. ["status", "error"]), which would crash the
+            # list comprehension below with TypeError on str["id"].
+            if resp and not isinstance(resp[0], dict):
+                raise IntegrationError(
+                    "Expected list of projects from GitLab, got unexpected response"
+                )
             instance = self.model.metadata["instance"]
             return [
                 {
@@ -611,8 +635,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    setup_dialog_config = {"width": 1030, "height": 1000}
-
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupApiClient(
             base_url=installation_data["url"],
@@ -641,9 +663,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
             raise IntegrationProviderError(
                 f"The requested GitLab group {requested_group} could not be found."
             )
-
-    def get_pipeline_views(self) -> list:
-        return []
 
     def _make_oauth_api_step(self) -> OAuth2ApiStep:
         oauth_info = self.pipeline._fetch_state("oauth_config_information")

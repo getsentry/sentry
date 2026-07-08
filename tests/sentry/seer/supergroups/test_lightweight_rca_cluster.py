@@ -5,12 +5,35 @@ import pytest
 from sentry.seer.supergroups.lightweight_rca_cluster import trigger_lightweight_rca_cluster
 from sentry.testutils.cases import TestCase
 
+EVENT_DATA_WITH_STACKTRACE = {
+    "message": "test error",
+    "level": "error",
+    "platform": "python",
+    "exception": {
+        "values": [
+            {
+                "type": "ValueError",
+                "value": "test",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "test_func",
+                            "filename": "test.py",
+                            "lineno": 1,
+                        }
+                    ]
+                },
+            }
+        ]
+    },
+}
+
 
 class TriggerLightweightRCAClusterTest(TestCase):
     def setUp(self):
         super().setUp()
         self.event = self.store_event(
-            data={"message": "test error", "level": "error"},
+            data=EVENT_DATA_WITH_STACKTRACE,
             project_id=self.project.id,
         )
         self.group = self.event.group
@@ -38,3 +61,27 @@ class TriggerLightweightRCAClusterTest(TestCase):
 
         with pytest.raises(Exception):
             trigger_lightweight_rca_cluster(self.group)
+
+    @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
+    def test_skips_event_without_stacktrace(self, mock_request):
+        event = self.store_event(
+            data={"message": "no stacktrace here", "level": "error", "fingerprint": ["no-stack"]},
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        trigger_lightweight_rca_cluster(event.group)
+
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
+    def test_skips_event_with_unsupported_platform(self, mock_request):
+        event = self.store_event(
+            data={**EVENT_DATA_WITH_STACKTRACE, "platform": "other", "fingerprint": ["other-plat"]},
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        trigger_lightweight_rca_cluster(event.group)
+
+        mock_request.assert_not_called()

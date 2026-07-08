@@ -14,7 +14,6 @@ from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
-from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.toolbar.views.iframe_view import IframeView
 from sentry.toolbar.views.login_success_view import LoginSuccessView
@@ -23,9 +22,6 @@ from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
-from sentry.web.frontend.accept_organization_invite_redirect import (
-    AcceptOrganizationInviteRedirectView,
-)
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -37,7 +33,6 @@ from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_404 import Error404View
 from sentry.web.frontend.error_500 import Error500View
 from sentry.web.frontend.group_event_json import GroupEventJsonView
-from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
@@ -58,6 +53,7 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
+from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 
 __all__ = ("urlpatterns",)
@@ -158,6 +154,13 @@ urlpatterns += [
         r"^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$",
         generic.static_media,
         name="sentry-media",
+    ),
+    # Service worker, proxied from the frontend app dist so it can be served
+    # from our own origin and register with a root scope.
+    re_path(
+        r"^service-worker\.js$",
+        generic.service_worker,
+        name="sentry-service-worker",
     ),
     # Javascript SDK Loader
     re_path(
@@ -526,6 +529,11 @@ urlpatterns += [
         name="sentry-api-docs-redirect",
     ),
     re_path(
+        r"^scraps/?$",
+        RedirectView.as_view(pattern_name="stories", permanent=False),
+        name="sentry-scraps-redirect",
+    ),
+    re_path(
         r"^api/$",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
         name="sentry-api-redirect",
@@ -554,11 +562,6 @@ urlpatterns += [
         r"^accept-transfer/$",
         react_page_view,
         name="sentry-accept-project-transfer",
-    ),
-    re_path(
-        r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        AcceptOrganizationInviteRedirectView.as_view(),
-        name="sentry-accept-invite",
     ),
     re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
@@ -805,9 +808,9 @@ urlpatterns += [
         ),
     ),
     re_path(
-        r"^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$",
+        r"^extensions/(?P<integration_slug>[^/]+)/link/$",
         react_page_view,
-        name="integration-installation",
+        name="sentry-integration-installation-link",
     ),
     re_path(
         r"^unsubscribe/(?P<organization_slug>[^/]+)/project/(?P<project_id>\d+)/$",
@@ -992,18 +995,6 @@ urlpatterns += [
         react_page_view,
         name="feedback-details",
     ),
-    # Prevent (Codecov features)
-    re_path(
-        r"^prevent/",
-        react_page_view,
-        name="prevent",
-    ),
-    # Seer
-    re_path(
-        r"^seer/",
-        react_page_view,
-        name="seer",
-    ),
     # Monitors
     re_path(
         r"^monitors/",
@@ -1114,6 +1105,11 @@ urlpatterns += [
                     name="sentry-organization-project-event-redirect",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
+                    GroupTagExportView.as_view(),
+                    name="sentry-organization-group-tag-export",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",
                     react_page_view,
                     name="sentry-organization-api-keys",
@@ -1127,11 +1123,6 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/auth/configure/$",
                     OrganizationAuthSettingsView.as_view(),
                     name="sentry-organization-auth-provider-settings",
-                ),
-                re_path(
-                    r"^(?P<organization_slug>[^/]+)/integrations/(?P<provider_id>[^/]+)/setup/$",
-                    OrganizationIntegrationSetupView.as_view(),
-                    name="sentry-organization-integrations-setup",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/members/$",
@@ -1202,6 +1193,12 @@ urlpatterns += [
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
+                # Need to serve the org-slug-prefixed share route for self-hosted
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/share/(?:group|issue)/(?P<share_id>[^/]+)/$",
+                    SharedGroupDetailsView.as_view(auth_required=False),
+                    name="sentry-customer-domain-group-shared",
+                ),
                 # need to force these to React and ensure organization_slug is captured
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/",
@@ -1229,9 +1226,20 @@ urlpatterns += [
         name="sentry-user-avatar-url",
     ),
     re_path(
-        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        r"^organization-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
+    ),
+    # Deprecated because it lacks an organization slug
+    re_path(
+        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        OrganizationAvatarPhotoView.as_view(),
+        name="sentry-organization-avatar-url-deprecated",
+    ),
+    re_path(
+        r"^team-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
+        TeamAvatarPhotoView.as_view(),
+        name="sentry-team-avatar-url",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",
@@ -1269,6 +1277,31 @@ urlpatterns += [
         r"^\.well-known/mcp\.json$",
         api.mcp_json,
         name="sentry-mcp-json",
+    ),
+    re_path(
+        r"^\.well-known/api-catalog$",
+        api.api_catalog,
+        name="sentry-api-catalog",
+    ),
+    re_path(
+        r"^\.well-known/oauth-authorization-server$",
+        api.oauth_authorization_server,
+        name="sentry-oauth-authorization-server",
+    ),
+    re_path(
+        r"^\.well-known/oauth-protected-resource$",
+        api.oauth_protected_resource,
+        name="sentry-oauth-protected-resource",
+    ),
+    re_path(
+        r"^\.well-known/mcp/server-card\.json$",
+        api.mcp_server_card,
+        name="sentry-mcp-server-card",
+    ),
+    re_path(
+        r"^\.well-known/agent-skills/index\.json$",
+        api.agent_skills_index,
+        name="sentry-agent-skills-index",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
@@ -1353,10 +1386,6 @@ urlpatterns += [
             ]
         ),
     ),
-    re_path(
-        r"^plugins/",
-        include("sentry.plugins.base.urls"),
-    ),
     # Generic API
     re_path(
         r"^share/(?:group|issue)/(?P<share_id>[^/]+)/$",
@@ -1410,11 +1439,6 @@ urlpatterns += [
         name="sentry-group-tag-export",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[^/]+)/",
-        GroupPluginActionView.as_view(),
-        name="sentry-group-plugin-action",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",
         ProjectEventRedirect.as_view(),
         name="sentry-project-event-redirect",
@@ -1427,3 +1451,5 @@ urlpatterns += [
         name="sentry-catchall",
     ),
 ]
+
+handler500 = Error500View.as_view()

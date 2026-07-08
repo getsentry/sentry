@@ -8,6 +8,7 @@ import {
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
+  isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
@@ -24,7 +25,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -57,8 +58,9 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
 
   return (
     <Flex direction="column" gap="lg">
-      <SeerDrawerArtifacts autofix={autofix} sections={sections} />
-      {autofix.runState?.status === 'completed' && (
+      <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
+      {(autofix.runState?.status === 'completed' ||
+        isLastStepPrIteration(autofix.runState)) && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (
@@ -68,7 +70,7 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
           trailingItems={
             <Button
               size="zero"
-              priority="transparent"
+              variant="transparent"
               icon={<IconClose size="sm" />}
               aria-label={t('Dismiss error')}
               onClick={() => autofix.dismissCodingAgentError(id)}
@@ -84,17 +86,25 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
 
 interface SeerDrawerArtifactsProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  groupId: string;
   sections: AutofixSection[];
 }
 
-function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
+function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsProps) {
   return (
     <Fragment>
       {sections.map(section => {
         const key = `${section.step}-${section.blocks[0]?.id ?? null}`;
 
         if (isRootCauseSection(section)) {
-          return <RootCauseCard key={key} autofix={autofix} section={section} />;
+          return (
+            <RootCauseCard
+              key={key}
+              autofix={autofix}
+              section={section}
+              groupId={groupId}
+            />
+          );
         }
 
         if (isSolutionSection(section)) {
@@ -102,7 +112,14 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
         }
 
         if (isCodeChangesSection(section)) {
-          return <CodeChangesCard key={key} autofix={autofix} section={section} />;
+          return (
+            <CodeChangesCard
+              key={key}
+              autofix={autofix}
+              section={section}
+              groupId={groupId}
+            />
+          );
         }
 
         if (isPullRequestsSection(section)) {

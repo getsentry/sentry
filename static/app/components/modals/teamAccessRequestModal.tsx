@@ -21,7 +21,7 @@ export interface CreateTeamAccessRequestModalProps
 }
 
 function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) {
-  const [createBusy, setCreateBusy] = useState<boolean>(false);
+  const [createBusy, setCreateBusy] = useState(false);
   const {api, memberId, orgId, teamId, closeModal, Body, Footer} = props;
 
   const handleClick = async () => {

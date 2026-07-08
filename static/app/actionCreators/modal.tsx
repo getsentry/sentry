@@ -14,7 +14,6 @@ import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types'
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -256,16 +255,6 @@ export async function openAddToDashboardModal(options: AddToDashboardModalProps)
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
-    modalCss,
-  });
-}
-
-export async function openLinkToDashboardModal(options: LinkToDashboardModalProps) {
-  const {LinkToDashboardModal, modalCss} =
-    await import('sentry/components/modals/widgetBuilder/linkToDashboardModal');
-
-  openModal(deps => <LinkToDashboardModal {...deps} {...options} />, {
     closeEvents: 'escape-key',
     modalCss,
   });

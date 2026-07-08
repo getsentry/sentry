@@ -9,15 +9,15 @@ import {
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
@@ -34,6 +34,7 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {
   canUseMetricsAlertsUI,
   canUseMetricsEquationsInAlerts,
+  canUseMetricsEquationsInDashboards,
   canUseMetricsSavedQueriesUI,
 } from './metricsFlags';
 
@@ -47,11 +48,14 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
-  const id = getIdFromLocation(location);
+  const id = decodeScalar(location.query.id);
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const metricQueries = useMultiMetricsQueryParams();
   const {addToDashboard} = useAddMetricToDashboard();
+
+  const metricsEquationsInDashboardsEnabled =
+    canUseMetricsEquationsInDashboards(organization);
 
   const project =
     projects.length === 1
@@ -169,7 +173,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         textValue: newAlertLabel,
         children: alertsUrls,
         disabled: alertsUrls.length === 0,
-        isSubmenu: true,
+        submenu: true,
       },
     ];
   }, [metricQueries, organization, project, pageFilters, options.interval]);
@@ -180,7 +184,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         key: 'add-to-dashboard',
         label: t('Dashboard widget'),
         textValue: t('Dashboard widget'),
-        isSubmenu: true,
+        submenu: true,
         children: [
           ...(metricQueries.length > 1
             ? [
@@ -192,7 +196,10 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                     addToDashboard(
                       metricQueries.filter(
                         metricQuery =>
-                          !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
+                          // Allow all charts if you have the flag, otherwise only allow non-equation charts without the flag
+                          metricsEquationsInDashboardsEnabled ||
+                          (!metricsEquationsInDashboardsEnabled &&
+                            !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!))
                       )
                     );
                   },
@@ -201,6 +208,8 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             : []),
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
+            const isUnsupported =
+              !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize);
             const label = isVisualizeFunction(visualize)
               ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
                   formatTraceMetricsFunction(
@@ -214,21 +223,22 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
               key: `add-to-dashboard-${index}`,
               label,
               onAction: () => {
-                if (isVisualizeEquation(visualize)) {
+                if (isUnsupported) {
                   return;
                 }
                 addToDashboard(metricQuery);
               },
-              disabled: isVisualizeEquation(visualize),
-              tooltip: isVisualizeEquation(visualize)
-                ? t('Equations cannot currently be added to a dashboard')
-                : undefined,
+              disabled: isUnsupported,
+              tooltip:
+                !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize)
+                  ? t('Equations cannot currently be added to a dashboard')
+                  : undefined,
             };
           }),
         ],
       },
     ];
-  }, [addToDashboard, metricQueries]);
+  }, [addToDashboard, metricQueries, metricsEquationsInDashboardsEnabled]);
 
   return useMemo(() => {
     return [...saveAsItems, ...saveAsAlertItems, ...addToDashboardItems];

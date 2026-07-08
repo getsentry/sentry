@@ -9,12 +9,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import * as RegionUtils from 'sentry/utils/regions';
+import * as RegionUtils from 'sentry/utils/cells';
 import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/utils/regions');
+jest.mock('sentry/utils/cells');
 
 describe('OrganizationSettingsForm', () => {
   const organization = OrganizationFixture();
@@ -22,10 +21,10 @@ describe('OrganizationSettingsForm', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
-    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
+    jest.mocked(RegionUtils.getLocalities).mockReturnValue([]);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(organization, {replace: true});
-    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
+    jest.mocked(RegionUtils.getLocalities).mockReturnValue([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -39,7 +38,11 @@ describe('OrganizationSettingsForm', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
+      body: [{user: UserFixture()}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [{user: UserFixture()}],
     });
     onSave.mockReset();
   });
@@ -180,40 +183,6 @@ describe('OrganizationSettingsForm', () => {
     ).toBeInTheDocument();
   });
 
-  it('can enable codecov', async () => {
-    putMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, codecovAccess: true},
-    });
-
-    render(
-      <OrganizationSettingsForm
-        initialData={OrganizationFixture({codecovAccess: false})}
-        onSave={onSave}
-      />,
-      {
-        organization: {
-          ...organization,
-          features: ['codecov-integration'],
-        },
-      }
-    );
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/})
-    );
-
-    expect(putMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/',
-      expect.objectContaining({
-        data: {
-          codecovAccess: true,
-        },
-      })
-    );
-  });
-
   it('can enable "Show Generative AI Features"', async () => {
     // initialData.hideAiFeatures = false (default) → switch starts OFF
     render(
@@ -277,10 +246,11 @@ describe('OrganizationSettingsForm', () => {
 
   it('shows hideAiFeatures toggle for DE region', () => {
     // Mock the region util to return DE region
-    jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+    jest.mocked(RegionUtils.getLocalityDataFromOrganization).mockImplementation(() => ({
       name: 'de',
       displayName: 'Europe (Frankfurt)',
       url: 'https://sentry.de.example.com',
+      label: '🇪🇺 Europe (Frankfurt)',
     }));
 
     render(
@@ -441,7 +411,11 @@ describe('OrganizationSettingsForm', () => {
     });
 
     it('saves replayAccessMembers when a member is selected', async () => {
-      MemberListStore.loadInitialData([UserFixture()]);
+      const user = UserFixture();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [{user}],
+      });
       const replayPutMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
         method: 'PUT',

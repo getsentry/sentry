@@ -2,11 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageUpsellOverlay from 'getsentry/components/features/pageUpsellOverlay';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 
 describe('PageUpsellOverlay', () => {
   let wrapper: any;
@@ -19,7 +19,7 @@ describe('PageUpsellOverlay', () => {
 
   const org = OrganizationFixture({access: ['org:billing']});
   MockApiClient.addMockResponse({
-    url: `/customers/${org.slug}/billing-config/?tier=am2`,
+    url: `/customers/${org.slug}/billing-config/?tier=upsell`,
     body: BillingConfigFixture(PlanTier.AM2),
   });
 
@@ -41,7 +41,8 @@ describe('PageUpsellOverlay', () => {
         description=""
         requiredPlan=""
         source=""
-      />
+      />,
+      {organization: org}
     );
     expect(screen.queryByText('Learn More')).not.toBeInTheDocument();
     expect(screen.getByText('My Text')).toBeInTheDocument();
@@ -64,7 +65,8 @@ describe('PageUpsellOverlay', () => {
         description=""
         requiredPlan=""
         source=""
-      />
+      />,
+      {organization: org}
     );
     expect(screen.getByText('Learn More')).toBeInTheDocument();
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
@@ -86,7 +88,8 @@ describe('PageUpsellOverlay', () => {
         description=""
         requiredPlan=""
         source=""
-      />
+      />,
+      {organization: org}
     );
     expect(screen.getByText('Learn More')).toBeInTheDocument();
     expect(screen.queryByText('Upgrade Plan')).not.toBeInTheDocument();

@@ -64,7 +64,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
     'layout.casing': props.initialData?.layout.casing ?? 'default',
   };
 
-  const [data, setData] = useState<Data>(initialData);
+  const [data, setData] = useState(initialData);
 
   function isFormInvalid() {
     return !data.name || !data.url;

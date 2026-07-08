@@ -150,6 +150,9 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             },
             "additionalProperties": True,
         },
+        "_meta": {
+            "type": ["object", "null"],
+        },
     },
     "required": [
         "event_id",

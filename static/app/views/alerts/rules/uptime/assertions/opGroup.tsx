@@ -213,7 +213,7 @@ export function AssertionOpGroup({
         <CompositeSelect
           size="xs"
           trigger={props => (
-            <OverlayTrigger.Button {...props} size="zero" priority="transparent">
+            <OverlayTrigger.Button {...props} size="zero" variant="transparent">
               {triggerLabel}
             </OverlayTrigger.Button>
           )}
@@ -333,7 +333,7 @@ const TopBorder = styled('div')<{rightBorder?: boolean}>`
         border-right: 1px dashed var(--border-color);
         border-top-right-radius: var(--border-radius);
         margin-right: var(--margin-right-align);
-      `};
+      `}
   }
 `;
 

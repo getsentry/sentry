@@ -17,8 +17,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,10 +28,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {ComparisonState, DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  isPairSidebarItem,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -47,9 +52,16 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {buildSoloImages} from './soloImages';
+import {TagFilterProvider} from './tagFilterContext';
+import {narrowItemByTags} from './tagFiltering';
 
 function imageGroupKey(img: SnapshotImage): string {
   return img.group ?? img.image_file_name;
+}
+
+function imageGroupDisplayName(img: SnapshotImage): string {
+  return img.group ?? getImageName(img);
 }
 
 function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
@@ -67,13 +79,18 @@ function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]>
 }
 
 function itemVariantCount(item: SidebarItem): number {
-  return item.type === 'changed' || item.type === 'renamed'
-    ? item.pairs.length
-    : item.images.length;
+  return isPairSidebarItem(item) ? item.pairs.length : item.images.length;
+}
+
+function itemImages(item: SidebarItem): SnapshotImage[] {
+  if (isPairSidebarItem(item)) {
+    return item.pairs.map(p => p.head_image);
+  }
+  return item.images;
 }
 
 function snapshotKeyAt(item: SidebarItem, variantIdx: number): string | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs[variantIdx]?.head_image.image_file_name ?? null;
   }
   return item.images[variantIdx]?.image_file_name ?? null;
@@ -85,10 +102,9 @@ function findSnapshotPosition(
 ): {itemIdx: number; variantIdx: number} | null {
   for (let i = 0; i < items.length; i++) {
     const item = items[i]!;
-    const variantIdx =
-      item.type === 'changed' || item.type === 'renamed'
-        ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
-        : item.images.findIndex(img => img.image_file_name === snapshotKey);
+    const variantIdx = isPairSidebarItem(item)
+      ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
+      : item.images.findIndex(img => img.image_file_name === snapshotKey);
     if (variantIdx !== -1) {
       return {itemIdx: i, variantIdx};
     }
@@ -112,7 +128,6 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -135,25 +150,46 @@ export default function SnapshotsPage() {
       // Skip retries on 4xx so error pages render instantly
       retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
       refetchInterval: query => {
-        const state = query.state.data?.[0]?.comparison_run_info?.state;
-        return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
-          ? 5_000
-          : false;
+        const state = query.state.data?.json?.comparison_state;
+        return state === 'pending' || state === 'processing' ? 5_000 : false;
       },
     }
   );
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const viewedArtifactRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isPending || !data || viewedArtifactRef.current === data.head_artifact_id) {
+      return;
+    }
+    viewedArtifactRef.current = data.head_artifact_id;
+    trackAnalytics('preprod.snapshots.details.viewed', {
+      organization,
+      comparison_type: data.comparison_type,
+      image_count: data.image_count,
+      approval_status: data.approval_status ?? null,
+      has_base_build: !!data.base_artifact_id,
+      project_id: data.project_id,
+    });
+  }, [isPending, data, organization]);
+
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
+  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
-    palette.at(-5) ?? palette[0]
+    palette.at(-3) ?? palette[0]
   );
   const [diffMode, setDiffMode] = useLocalStorageState<DiffMode>(
     'snapshot-diff-mode',
     'split'
   );
+  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState(
+    'snapshot-overlay-opacity',
+    50
+  );
+  const breakpoints = useBreakpoints();
+  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -161,6 +197,10 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const replaceHistory = {history: 'replace' as const};
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'search',
+    parseAsString.withDefault('').withOptions(replaceHistory)
+  );
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
     parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus)))
@@ -178,9 +218,20 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const activeStatuses = useMemo(() => new Set(activeStatusList), [activeStatusList]);
+  const [activeTagFilters, setActiveTagFilters] = useState<Record<string, string>>({});
+  const hasActiveTagFilter = Object.keys(activeTagFilters).length > 0;
+
+  const availableStatuses = useMemo(
+    () =>
+      new Set((Object.values(DiffStatus) as DiffStatus[]).filter(s => data?.[s]?.length)),
+    [data]
+  );
 
   const handleToggleStatus = useCallback(
     (status: DiffStatus) => {
+      if (availableStatuses.size <= 1) {
+        return;
+      }
       startTransition(() => {
         setActiveStatusList(prev => {
           if (prev.length === 0) {
@@ -189,13 +240,21 @@ export default function SnapshotsPage() {
           if (prev.length === 1 && prev[0] === status) {
             return [];
           }
-          return prev.includes(status)
+          const next = prev.includes(status)
             ? prev.filter(s => s !== status)
             : [...prev, status];
+          if (
+            availableStatuses.size > 0 &&
+            next.length === availableStatuses.size &&
+            next.every(s => availableStatuses.has(s))
+          ) {
+            return [];
+          }
+          return next;
         });
       });
     },
-    [setActiveStatusList]
+    [setActiveStatusList, availableStatuses]
   );
 
   const {
@@ -217,9 +276,8 @@ export default function SnapshotsPage() {
   const hasDiffComparison = data?.comparison_type === 'diff';
   const comparisonType =
     viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
-  const comparisonRunInfo = data?.comparison_run_info;
 
-  const isSoloView = comparisonType === 'solo';
+  const isSoloView = comparisonType === 'solo' || comparisonType === 'waiting_for_base';
   const handleToggleView = useCallback(() => {
     const {view: _view, ...restQuery} = location.query;
     if (isSoloView) {
@@ -237,7 +295,10 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      const pushDiffPairs = (pairs: SnapshotDiffPair[], type: 'changed' | 'renamed') => {
+      const pushDiffPairs = (
+        pairs: SnapshotDiffPair[],
+        type: 'changed' | 'renamed' | 'errored'
+      ) => {
         for (const [groupKey, groupedPairs] of groupByKey(pairs, p =>
           imageGroupKey(p.head_image)
         )) {
@@ -245,6 +306,7 @@ export default function SnapshotsPage() {
             type,
             key: `${type}:${groupKey}`,
             name: groupKey,
+            displayName: imageGroupDisplayName(groupedPairs[0]!.head_image),
             pairs: groupedPairs,
           });
         }
@@ -252,18 +314,26 @@ export default function SnapshotsPage() {
 
       const pushImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged' | 'skipped'
       ) => {
         for (const [groupKey, images] of groupByKey(imgs, imageGroupKey)) {
-          items.push({type, key: `${type}:${groupKey}`, name: groupKey, images});
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: groupKey,
+            displayName: imageGroupDisplayName(images[0]!),
+            images,
+          });
         }
       };
 
       pushDiffPairs(data.changed, 'changed');
       pushDiffPairs(data.renamed ?? [], 'renamed');
+      pushDiffPairs(data.errored ?? [], 'errored');
       pushImages(data.added, 'added');
       pushImages(data.removed, 'removed');
       pushImages(data.unchanged, 'unchanged');
+      pushImages(data.skipped ?? [], 'skipped');
 
       items.sort(
         (a, b) => (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99)
@@ -272,15 +342,33 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    return [...groupByKey(data.images, imageGroupKey).entries()]
+    return [...groupByKey(buildSoloImages(data), imageGroupKey).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => ({
         type: 'solo' as const,
         key: `solo:${groupKey}`,
         name: groupKey,
+        displayName: imageGroupDisplayName(images[0]!),
         images,
       }));
   }, [data, comparisonType]);
+
+  const handleToggleTagFilter = useCallback((key: string, value: string) => {
+    setActiveTagFilters(prev => {
+      const result = {...prev};
+      if (prev[key] === value) {
+        delete result[key];
+      } else {
+        result[key] = value;
+      }
+      return result;
+    });
+  }, []);
+
+  const tagFilterContextValue = useMemo(
+    () => ({activeTagFilters, onToggleTagFilter: handleToggleTagFilter}),
+    [activeTagFilters, handleToggleTagFilter]
+  );
 
   // Pre-computed lowercase text per image/pair for fast substring search filtering
   const memberSearchKeys = useMemo(
@@ -307,11 +395,80 @@ export default function SnapshotsPage() {
     return result;
   }, [sidebarItems, memberSearchKeys, searchQuery]);
 
+  const availableTags = useMemo(() => {
+    const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
+    const activeTagKeys = Object.keys(activeTagFilters);
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+    const tagMap = new Map<string, Map<string, number>>();
+
+    for (let i = 0; i < sidebarItems.length; i++) {
+      const item = sidebarItems[i]!;
+      const passesStatus =
+        !hasStatusFilter || activeStatuses.has(item.type as DiffStatus);
+      const images = itemImages(item);
+      const searchKeys = memberSearchKeys[i]!;
+
+      for (let j = 0; j < images.length; j++) {
+        const img = images[j]!;
+        if (!img.tags) {
+          continue;
+        }
+
+        const passesSearch = !trimmedQuery || searchKeys[j]!.includes(trimmedQuery);
+
+        const passesTagFilters = activeTagKeys.every(filterKey => {
+          const filterValue = activeTagFilters[filterKey];
+          if (filterValue === undefined) {
+            return true;
+          }
+          return img.tags?.[filterKey] === filterValue;
+        });
+
+        const counted = passesStatus && passesSearch && passesTagFilters;
+
+        for (const [k, v] of Object.entries(img.tags)) {
+          let values = tagMap.get(k);
+          if (!values) {
+            values = new Map<string, number>();
+            tagMap.set(k, values);
+          }
+          if (counted) {
+            values.set(v, (values.get(v) ?? 0) + 1);
+          } else if (!values.has(v)) {
+            values.set(v, 0);
+          }
+        }
+      }
+    }
+    return tagMap;
+  }, [
+    sidebarItems,
+    memberSearchKeys,
+    searchQuery,
+    activeStatuses,
+    comparisonType,
+    activeTagFilters,
+  ]);
+
+  const tagFilteredItems = useMemo(() => {
+    if (!hasActiveTagFilter) {
+      return searchFilteredItems;
+    }
+    const result: SidebarItem[] = [];
+    for (const item of searchFilteredItems) {
+      const narrowed = narrowItemByTags(item, activeTagFilters);
+      if (narrowed) {
+        result.push(narrowed);
+      }
+    }
+    return result;
+  }, [searchFilteredItems, hasActiveTagFilter, activeTagFilters]);
+
   const filteredItems = useMemo(() => {
-    const hasStatusFilter = activeStatuses.size > 0;
+    const hasStatusFilter = activeStatuses.size > 0 && comparisonType === 'diff';
     const base = hasStatusFilter
-      ? searchFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
-      : searchFilteredItems;
+      ? tagFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
+      : tagFilteredItems;
 
     return [...base].sort((a, b) => {
       const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
@@ -326,11 +483,15 @@ export default function SnapshotsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [searchFilteredItems, activeStatuses, sortBy]);
+  }, [tagFilteredItems, activeStatuses, sortBy, comparisonType]);
 
   const sidebarSections = useMemo<SidebarSection[]>(() => {
     function toGroup(item: SidebarItem) {
-      return {key: item.key, name: item.name, count: itemVariantCount(item)};
+      return {
+        key: item.key,
+        displayName: item.displayName,
+        count: itemVariantCount(item),
+      };
     }
 
     if (comparisonType !== 'diff') {
@@ -340,14 +501,16 @@ export default function SnapshotsPage() {
 
     const sectionOrder = [
       DiffStatus.CHANGED,
+      DiffStatus.ERRORED,
       DiffStatus.REMOVED,
       DiffStatus.ADDED,
       DiffStatus.RENAMED,
       DiffStatus.UNCHANGED,
+      DiffStatus.SKIPPED,
     ];
     const byType = new Map<
       DiffStatus,
-      Array<{count: number; key: string; name: string}>
+      Array<{count: number; displayName: string; key: string}>
     >();
     for (const type of sectionOrder) {
       byType.set(type, []);
@@ -374,14 +537,16 @@ export default function SnapshotsPage() {
       [DiffStatus.REMOVED]: 0,
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
+      [DiffStatus.ERRORED]: 0,
+      [DiffStatus.SKIPPED]: 0,
     };
-    for (const item of searchFilteredItems) {
+    for (const item of tagFilteredItems) {
       if (item.type in counts) {
         counts[item.type as DiffStatus] += itemVariantCount(item);
       }
     }
     return counts;
-  }, [searchFilteredItems, comparisonType]);
+  }, [tagFilteredItems, comparisonType]);
 
   const listViewRef = useRef<SnapshotListViewHandle>(null);
   const [visibleItemKey, setVisibleItemKey] = useState<string | null>(null);
@@ -573,14 +738,25 @@ export default function SnapshotsPage() {
       : deferredItem;
   const singleViewVariantIndex = singleViewPosition?.variantIdx ?? 0;
 
-  const activeItemKey =
-    viewMode === 'list' ? visibleItemKey : (singleViewItem?.key ?? null);
+  const activeItemKey = useMemo(() => {
+    if (viewMode !== 'list') {
+      return singleViewItem?.key ?? null;
+    }
+    if (selectedSnapshotKey && singleViewPosition) {
+      return listItems[singleViewPosition.itemIdx]?.key ?? visibleItemKey;
+    }
+    return visibleItemKey;
+  }, [
+    viewMode,
+    singleViewItem,
+    selectedSnapshotKey,
+    singleViewPosition,
+    listItems,
+    visibleItemKey,
+  ]);
 
   const isComparisonProcessing =
-    !!comparisonRunInfo?.state &&
-    [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
-      comparisonRunInfo.state
-    );
+    data?.comparison_state === 'pending' || data?.comparison_state === 'processing';
 
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = imageBaseUrl;
@@ -601,67 +777,72 @@ export default function SnapshotsPage() {
   };
 
   const snapshotContent = (
-    <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
-      <Flex
-        flexShrink={0}
-        overflow="auto"
-        borderRight="primary"
-        style={{
-          width: sidebarWidth,
-          height: hasPageFrameFeature
-            ? 'calc(100dvh - var(--top-bar-height, 53px))'
-            : 'calc(100vh - 205px)',
-        }}
-      >
-        <SnapshotSidebarContent
-          sections={sidebarSections}
-          activeItemKey={activeItemKey}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSelectItem={handleSelectItem}
-          statusCounts={statusCounts}
-          activeStatuses={activeStatuses}
-          onToggleStatus={handleToggleStatus}
-        />
+    <TagFilterProvider value={tagFilterContextValue}>
+      <Flex direction="row" flex="1" minHeight="0" width="100%" overflow="hidden">
+        <Flex
+          flexShrink={0}
+          overflow="auto"
+          borderRight="primary"
+          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
+          maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}
+          style={{
+            width: sidebarWidth,
+            height: 'calc(100dvh - var(--top-bar-height, 53px))',
+          }}
+        >
+          <SnapshotSidebarContent
+            sections={sidebarSections}
+            activeItemKey={activeItemKey}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectItem={handleSelectItem}
+            statusCounts={statusCounts}
+            activeStatuses={activeStatuses}
+            onToggleStatus={handleToggleStatus}
+            availableTags={availableTags}
+          />
+        </Flex>
+        <DragHandle
+          data-is-held={isHeld}
+          onMouseDown={onMouseDown}
+          onDoubleClick={onDoubleClick}
+        >
+          <IconGrabbable size="sm" />
+        </DragHandle>
+        <Flex flex="1" minWidth={0} overflow="hidden">
+          <SnapshotMainContent
+            selectedItem={singleViewItem}
+            variantIndex={singleViewVariantIndex}
+            imageBaseUrl={imageBaseUrl}
+            listViewRef={listViewRef}
+            diffImageBaseUrl={diffImageBaseUrl}
+            overlayColor={overlayColor}
+            onOverlayColorChange={setOverlayColor}
+            overlayOpacity={overlayOpacity}
+            onOverlayOpacityChange={setOverlayOpacity}
+            diffMode={effectiveDiffMode}
+            onDiffModeChange={setDiffMode}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            listItems={listItems}
+            hasDiffComparison={hasDiffComparison}
+            isSoloView={isSoloView}
+            onToggleSoloView={handleToggleView}
+            comparisonType={comparisonType}
+            headBranch={data?.vcs_info?.head_ref}
+            selectedSnapshotKey={selectedSnapshotKey}
+            onSelectSnapshot={setSelectedSnapshotKey}
+            onVisibleGroupChange={setVisibleItemKey}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            onNavigateSingleView={navigateSingleView}
+            canNavigatePrev={singleViewNav.canPrev}
+            canNavigateNext={singleViewNav.canNext}
+            navButtonRefs={navButtonRefs}
+          />
+        </Flex>
       </Flex>
-      <DragHandle
-        data-is-held={isHeld}
-        onMouseDown={onMouseDown}
-        onDoubleClick={onDoubleClick}
-      >
-        <IconGrabbable size="sm" />
-      </DragHandle>
-      <Flex flex="1" minWidth={0} overflow="hidden">
-        <SnapshotMainContent
-          selectedItem={singleViewItem}
-          variantIndex={singleViewVariantIndex}
-          imageBaseUrl={imageBaseUrl}
-          listViewRef={listViewRef}
-          diffImageBaseUrl={diffImageBaseUrl}
-          overlayColor={overlayColor}
-          onOverlayColorChange={setOverlayColor}
-          diffMode={diffMode}
-          onDiffModeChange={setDiffMode}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          listItems={listItems}
-          hasDiffComparison={hasDiffComparison}
-          isSoloView={isSoloView}
-          onToggleSoloView={handleToggleView}
-          comparisonType={comparisonType}
-          headBranch={data?.vcs_info?.head_ref}
-          selectedSnapshotKey={selectedSnapshotKey}
-          onSelectSnapshot={setSelectedSnapshotKey}
-          onVisibleGroupChange={setVisibleItemKey}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          onNavigateSingleView={navigateSingleView}
-          canNavigatePrev={singleViewNav.canPrev}
-          canNavigateNext={singleViewNav.canNext}
-          navButtonRefs={navButtonRefs}
-        />
-      </Flex>
-    </Flex>
+    </TagFilterProvider>
   );
 
   if (isPending) {
@@ -715,6 +896,10 @@ const DragHandle = styled('div')`
   position: relative;
   display: grid;
   place-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
@@ -746,16 +931,27 @@ const DragHandle = styled('div')`
 
 function imageSearchKey(image: SnapshotImage): string {
   const parts: string[] = [];
-  if (image.display_name) parts.push(image.display_name);
-  if (image.image_file_name) parts.push(image.image_file_name);
-  if (image.group) parts.push(image.group);
+  if (image.display_name) {
+    parts.push(image.display_name);
+  }
+  if (image.image_file_name) {
+    parts.push(image.image_file_name);
+  }
+  if (image.group) {
+    parts.push(image.group);
+  }
+  if (image.tags) {
+    for (const [k, v] of Object.entries(image.tags)) {
+      parts.push(`${k}=${v}`);
+    }
+  }
   return parts.join('\n').toLowerCase();
 }
 
 // Builds one lowercase search key per image/pair, joining all searchable metadata
 function buildMemberSearchKeys(item: SidebarItem): string[] {
   const groupNameLower = item.name ? item.name.toLowerCase() : '';
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs.map(pair => {
       const head = imageSearchKey(pair.head_image);
       const base = imageSearchKey(pair.base_image);
@@ -773,7 +969,7 @@ function narrowItemBySearch(
   memberSearchKeysForItem: string[],
   query: string
 ): SidebarItem | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     const kept: SnapshotDiffPair[] = [];
     let allMatched = true;
     for (let i = 0; i < item.pairs.length; i++) {
@@ -783,8 +979,12 @@ function narrowItemBySearch(
         allMatched = false;
       }
     }
-    if (kept.length === 0) return null;
-    if (allMatched) return item;
+    if (kept.length === 0) {
+      return null;
+    }
+    if (allMatched) {
+      return item;
+    }
     return {...item, pairs: kept};
   }
   const kept: SnapshotImage[] = [];
@@ -796,7 +996,11 @@ function narrowItemBySearch(
       allMatched = false;
     }
   }
-  if (kept.length === 0) return null;
-  if (allMatched) return item;
+  if (kept.length === 0) {
+    return null;
+  }
+  if (allMatched) {
+    return item;
+  }
   return {...item, images: kept};
 }

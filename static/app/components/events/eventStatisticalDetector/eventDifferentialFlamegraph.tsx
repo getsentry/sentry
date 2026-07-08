@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -128,7 +128,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         ? systemFrameOnly
         : undefined;
 
-  const [negated, setNegated] = useState<boolean>(false);
+  const [negated, setNegated] = useState(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 

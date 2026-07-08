@@ -9,7 +9,7 @@ from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
@@ -55,10 +55,9 @@ def run_escalating_forecast() -> None:
     name="sentry.tasks.weekly_escalating_forecast.generate_forecasts_for_projects",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 2,
-    retry=Retry(times=3, delay=60),
+    retry=Retry(times=3, delay=60, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def generate_forecasts_for_projects(project_ids: list[int]) -> None:
     for until_escalating_groups in chunked(
         RangeQuerySetWrapper(

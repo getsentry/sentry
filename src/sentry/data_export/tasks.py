@@ -40,8 +40,9 @@ from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, Assemble
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -71,11 +72,40 @@ def _export_metric_tags(data_export: ExportedData) -> dict[str, str]:
     }
 
 
-def _page_token_b64_from_processor(
+def _requested_rows_bucket(export_limit: int | None) -> str:
+    if export_limit is None:
+        return "unknown"
+    if export_limit < 1_000:
+        return "0-1k"
+    if export_limit < 10_000:
+        return "1k-10k"
+    if export_limit < 100_000:
+        return "10k-100k"
+    if export_limit < 1_000_000:
+        return "100k-1M"
+    return "1M-10M"
+
+
+def _sentry_metric_attrs(
+    data_export: ExportedData,
+    export_limit: int | None,
+    *,
+    extra: dict[str, str] | None = None,
+) -> dict[str, str]:
+    attrs = {
+        **_export_metric_tags(data_export),
+        "requested_rows_bucket": _requested_rows_bucket(export_limit),
+    }
+    if extra:
+        attrs.update(extra)
+    return attrs
+
+
+def _page_token_from_processor(
     processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
-) -> str | None:
+) -> bytes | None:
     if isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None:
-        return base64.b64encode(processor.page_token).decode("ascii")
+        return processor.page_token
     return None
 
 
@@ -114,19 +144,17 @@ def _should_stop_fetching_more_fragments(
     starting_pos: int,
 ) -> bool:
     """True when this activation should flush the chunk: no rows, size cap, or trace pagination end."""
-    if not rows:
-        return True
-    partial_batch = len(rows) < batch_size
-    partial_full_trace_batch = (
-        isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None
-    )
-    if partial_batch and not partial_full_trace_batch:
-        return True
     if tf.tell() - starting_pos >= MAX_BATCH_SIZE:
         return True
-    if isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is None:
-        return True
-    return False
+
+    if isinstance(processor, TraceItemFullExportProcessor):
+        if processor.page_token is None:
+            return True
+        return False
+    else:
+        if not rows or len(rows) < batch_size:
+            return True
+        return False
 
 
 def export_chunk_to_stored_blobs(
@@ -134,56 +162,57 @@ def export_chunk_to_stored_blobs(
     data_export: ExportedData,
     export_limit: int,
     environment_id: int | None,
-    last_emitted_item_id_hex: str | None = None,
     first_page: bool = True,
-    page_token: str | None = None,
+    page_token: bytes | str | None = None,
     offset: int = 0,
     bytes_written: int = 0,
     batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
-    output_mode = OutputMode.from_value(data_export.export_format)
-    processor = get_processor(
-        data_export,
-        environment_id,
-        output_mode,
-        page_token_b64=page_token,
-        last_emitted_item_id_hex=last_emitted_item_id_hex,
-    )
-
-    with tempfile.TemporaryFile(mode="w+b") as tf:
-        writer = FileWriter(
-            buffer=tf,
-            output_mode=output_mode,
-            csv_headers=processor.header_fields,
-            escapechar="\\",
-            extrasaction="ignore",
+    with start_span(op="export.chunk", name=f"offset={offset}"):
+        output_mode = OutputMode.from_value(data_export.export_format)
+        processor = get_processor(
+            data_export,
+            environment_id,
+            output_mode,
+            page_token=page_token,
         )
-        if first_page:
-            writer.writeheader()
 
-        starting_pos = tf.tell()
-        fragment_offset = 0
-        next_offset = offset + fragment_offset
-        rows: list[dict[str, Any]] = []
+        with tempfile.TemporaryFile(mode="w+b") as tf:
+            writer = FileWriter(
+                buffer=tf,
+                output_mode=output_mode,
+                csv_headers=processor.header_fields,
+                escapechar="\\",
+                extrasaction="ignore",
+            )
+            if first_page:
+                writer.writeheader()
 
-        for _ in range(MAX_FRAGMENTS_PER_BATCH):
-            remaining = export_limit - next_offset
-            if remaining <= 0:
-                break
-            fragment_row_count = min(batch_size, remaining)
-            rows = process_rows(processor, data_export, fragment_row_count, next_offset)
-            writer.writerows(rows)
-
-            fragment_offset += len(rows)
+            starting_pos = tf.tell()
+            fragment_offset = 0
             next_offset = offset + fragment_offset
+            rows: list[dict[str, Any]] = []
 
-            if _should_stop_fetching_more_fragments(processor, rows, batch_size, tf, starting_pos):
-                break
+            for _ in range(MAX_FRAGMENTS_PER_BATCH):
+                remaining = export_limit - next_offset
+                if remaining <= 0:
+                    break
+                fragment_row_count = min(batch_size, remaining)
+                rows = process_rows(processor, data_export, fragment_row_count, next_offset)
+                writer.writerows(rows)
 
-        tf.seek(0)
-        new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
-        bytes_written_after_chunk = bytes_written + new_bytes_written
+                fragment_offset += len(rows)
+                next_offset = offset + fragment_offset
+
+                if _should_stop_fetching_more_fragments(
+                    processor, rows, batch_size, tf, starting_pos
+                ):
+                    break
+
+            tf.seek(0)
+            new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
+            bytes_written_after_chunk = bytes_written + new_bytes_written
 
     return AssembleChunkResult(
         processor=processor,
@@ -212,8 +241,7 @@ def _schedule_retry(
     base_bytes_written: int,
     environment_id: int | None,
     export_retries: int,
-    page_token: str | None,
-    last_emitted_item_id_hex: str | None,
+    page_token: bytes | str | None,
     delay_retry: bool = False,
 ) -> None:
     assemble_download.apply_async(
@@ -226,7 +254,6 @@ def _schedule_retry(
             "environment_id": environment_id,
             "export_retries": export_retries - 1,
             "page_token": page_token,
-            "last_emitted_item_id_hex": last_emitted_item_id_hex,
         },
         countdown=recoverable_retry_countdown(export_retries) if delay_retry else None,
     )
@@ -254,24 +281,15 @@ def _schedule_next_task(
         "bytes_written": bytes_written,
         "environment_id": environment_id,
         "export_retries": export_retries,
-        "page_token": _page_token_b64_from_processor(processor),
+        "page_token": _page_token_from_processor(processor),
     }
-    if isinstance(processor, TraceItemFullExportProcessor):
-        cont_kwargs["last_emitted_item_id_hex"] = processor.last_emitted_item_id_hex
-
-    should_continue = (
-        new_bytes_written
-        and next_offset < export_limit
-        and (
-            (
-                isinstance(processor, TraceItemFullExportProcessor)
-                and processor.page_token is not None
-            )
-            or (
-                not isinstance(processor, TraceItemFullExportProcessor)
-                and rows
-                and len(rows) >= batch_size
-            )
+    should_continue = next_offset < export_limit and (
+        (isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None)
+        or (
+            not isinstance(processor, TraceItemFullExportProcessor)
+            and new_bytes_written
+            and rows
+            and len(rows) >= batch_size
         )
     )
 
@@ -283,7 +301,10 @@ def _schedule_next_task(
     else:
         metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
         metrics.distribution("dataexport.file_size", bytes_written, sample_rate=1.0, unit="byte")
-        merge_export_blobs.delay(data_export_id)
+        merge_export_blobs.apply_async(
+            args=[data_export_id],
+            kwargs={"export_limit": export_limit, "actual_rows": next_offset},
+        )
 
 
 @instrumented_task(
@@ -305,14 +326,18 @@ def assemble_download(
     environment_id: int | None = None,
     export_retries: int = DEFAULT_EXPORT_RETRIES,
     *,
-    page_token: str | None = None,
-    last_emitted_item_id_hex: str | None = None,
+    page_token: bytes | str | None = None,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
     # to filter the GCP logs
-    extra: dict[str, Any] = {"data_export_id": data_export_id}
-    with sentry_sdk.start_span(op="assemble"):
+    export_limit = _normalize_export_limit(export_limit)
+    extra: dict[str, Any] = {
+        "data_export_id": data_export_id,
+        "requested_rows": export_limit,
+        "offset_in": offset,
+    }
+    with start_span(op="assemble", name="Async Export Data"):
         first_page = offset == 0
         data_export = _fetch_exported_data_req_obj(data_export_id, first_page, extra)
         if data_export is None:
@@ -323,10 +348,11 @@ def assemble_download(
         base_bytes_written = bytes_written
 
         extra.update(
-            {"query": str(data_export.payload), "organization_id": data_export.organization_id}
+            {
+                "query": str(data_export.payload),
+                "organization_id": data_export.organization_id,
+            }
         )
-
-        export_limit = _normalize_export_limit(export_limit)
 
         try:
             chunk = export_chunk_to_stored_blobs(
@@ -337,7 +363,6 @@ def assemble_download(
                 bytes_written=bytes_written,
                 environment_id=environment_id,
                 page_token=page_token,
-                last_emitted_item_id_hex=last_emitted_item_id_hex,
                 first_page=first_page,
             )
         except ExportError as error:
@@ -351,7 +376,6 @@ def assemble_download(
                     environment_id=environment_id,
                     export_retries=export_retries,
                     page_token=page_token,
-                    last_emitted_item_id_hex=last_emitted_item_id_hex,
                     delay_retry=error.delay_retry,
                 )
             else:
@@ -359,6 +383,33 @@ def assemble_download(
                     "dataexport.error",
                     tags={**_export_metric_tags(data_export), "error": str(error)},
                     sample_rate=1.0,
+                )
+                metrics.incr(
+                    "dataexport.end",
+                    tags={
+                        **_export_metric_tags(data_export),
+                        "success": False,
+                        "error": str(error),
+                    },
+                    sample_rate=1.0,
+                )
+                sentry_sdk.metrics.count(
+                    "dataexport.completed",
+                    1,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
+                )
+                sentry_sdk.metrics.distribution(
+                    "dataexport.rows",
+                    offset,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
                 )
                 logger.exception("assemble_download: ExportError", extra=extra)
                 return data_export.email_failure(message=str(error))
@@ -382,6 +433,24 @@ def assemble_download(
                     },
                     sample_rate=1.0,
                 )
+                sentry_sdk.metrics.count(
+                    "dataexport.completed",
+                    1,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
+                )
+                sentry_sdk.metrics.distribution(
+                    "dataexport.rows",
+                    offset,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
+                )
                 return data_export.email_failure(message="Internal processing failure")
         else:
             _schedule_next_task(
@@ -404,32 +473,106 @@ def export_data_to_stored_blobs_sync(
         "query": str(data_export.payload),
         "organization_id": data_export.organization_id,
         "download_type": "sync",
+        "requested_rows": export_limit,
     }
     sentry_sdk.set_tag("download_type", "sync")
+    sentry_sdk.set_attribute("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
-
-    try:
-        export_chunk_to_stored_blobs(
-            data_export=data_export,
-            export_limit=export_limit,
-            environment_id=environment_id,
-        )
-        merge_export_blobs(data_export_id=data_export.id, email_notif=False)
-    except Exception as error:
+    sentry_sdk.set_attribute("data_export.data_export_id", data_export.id)
+    sentry_sdk.set_attribute("data_export.query", str(data_export.payload))
+    sentry_sdk.set_attribute("data_export.organization_id", data_export.organization_id)
+    sentry_sdk.set_attribute("data_export.download_type", "sync")
+    sentry_sdk.set_attribute("data_export.requested_rows", export_limit)
+    _set_data_on_scope(data_export)
+    with start_span(op="assemble", name="Sync Export Data"):
+        logger.info("dataexport.start", extra=extra)
         metrics.incr(
-            "dataexport.error",
-            tags={
-                **_export_metric_tags(data_export),
-                "error": str(error),
-                "download_type": "sync",
-                "error_type": "ExportError"
-                if isinstance(error, ExportError)
-                else type(error).__name__,
-            },
+            "dataexport.start",
+            tags={**_export_metric_tags(data_export), "success": True},
             sample_rate=1.0,
         )
-        logger.exception("export_data_sync", extra=extra)
-        raise
+        actual_rows: int | None = None
+        try:
+            chunk = export_chunk_to_stored_blobs(
+                data_export=data_export,
+                export_limit=export_limit,
+                environment_id=environment_id,
+            )
+            actual_rows = chunk.next_offset
+            metrics.distribution("dataexport.row_count", actual_rows, sample_rate=1.0)
+            metrics.distribution(
+                "dataexport.file_size",
+                chunk.bytes_written_after_chunk,
+                sample_rate=1.0,
+                unit="byte",
+            )
+            merge_export_blobs(
+                data_export_id=data_export.id,
+                email_notif=False,
+                export_limit=export_limit,
+                actual_rows=actual_rows,
+            )
+            sentry_sdk.metrics.count(
+                "dataexport.completed",
+                1,
+                attributes=_sentry_metric_attrs(
+                    data_export,
+                    export_limit,
+                    extra={"success": "true", "download_type": "sync"},
+                ),
+            )
+            sentry_sdk.metrics.distribution(
+                "dataexport.rows",
+                actual_rows,
+                attributes=_sentry_metric_attrs(
+                    data_export,
+                    export_limit,
+                    extra={"success": "true", "download_type": "sync"},
+                ),
+            )
+
+        except Exception as error:
+            error_type = "ExportError" if isinstance(error, ExportError) else type(error).__name__
+            metrics.incr(
+                "dataexport.error",
+                tags={
+                    **_export_metric_tags(data_export),
+                    "error": str(error),
+                    "download_type": "sync",
+                    "error_type": error_type,
+                },
+                sample_rate=1.0,
+            )
+            extra["actual_rows"] = actual_rows
+            sentry_sdk.metrics.count(
+                "dataexport.completed",
+                1,
+                attributes=_sentry_metric_attrs(
+                    data_export,
+                    export_limit,
+                    extra={
+                        "success": "false",
+                        "error_type": error_type,
+                        "download_type": "sync",
+                    },
+                ),
+            )
+            if actual_rows is not None:
+                sentry_sdk.metrics.distribution(
+                    "dataexport.rows",
+                    actual_rows,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={
+                            "success": "false",
+                            "error_type": error_type,
+                            "download_type": "sync",
+                        },
+                    ),
+                )
+            logger.exception("export_data_sync", extra=extra)
+            raise
 
 
 def get_processor(
@@ -437,8 +580,7 @@ def get_processor(
     environment_id: int | None,
     output_mode: OutputMode,
     *,
-    page_token_b64: str | None = None,
-    last_emitted_item_id_hex: str | None = None,
+    page_token: bytes | str | None = None,
 ) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor | TraceItemFullExportProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
@@ -462,18 +604,21 @@ def get_processor(
                 output_mode=output_mode,
             )
         elif data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT:
-            page_token: bytes | None = None
-            if page_token_b64:
-                try:
-                    page_token = base64.b64decode(page_token_b64)
-                except (ValueError, TypeError) as e:
-                    raise ExportError("Invalid export trace item pagination state.") from e
+            page_token_bytes: bytes | None = None
+            if page_token is not None:
+                # Handle both bytes (new) and base64 string (legacy) page tokens
+                if isinstance(page_token, str):
+                    try:
+                        page_token_bytes = base64.b64decode(page_token)
+                    except (ValueError, TypeError) as e:
+                        raise ExportError("Invalid export trace item pagination state.") from e
+                else:
+                    page_token_bytes = page_token
             return TraceItemFullExportProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
                 output_mode=output_mode,
-                page_token=page_token,
-                last_emitted_item_id_hex=last_emitted_item_id_hex,
+                page_token=page_token_bytes,
             )
 
         else:
@@ -573,9 +718,20 @@ def store_export_chunk_as_blob(
     namespace=export_tasks,
     silo_mode=SiloMode.CELL,
 )
-def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwargs: Any) -> None:
-    extra: dict[str, Any] = {"data_export_id": data_export_id}
-    with sentry_sdk.start_span(op="merge"):
+def merge_export_blobs(
+    data_export_id: int,
+    *,
+    email_notif: bool = True,
+    export_limit: int | None = None,
+    actual_rows: int | None = None,
+    **kwargs: Any,
+) -> None:
+    extra: dict[str, Any] = {
+        "data_export_id": data_export_id,
+        "requested_rows": export_limit,
+        "actual_rows": actual_rows,
+    }
+    with start_span(op="merge", name="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist:
@@ -642,6 +798,24 @@ def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwarg
                     tags={**_export_metric_tags(data_export), "success": True},
                     sample_rate=1.0,
                 )
+                # Sync caller owns its own terminal Sentry metric emission to avoid
+                # double-counting; emit only on the async path.
+                if email_notif:
+                    sentry_sdk.metrics.count(
+                        "dataexport.completed",
+                        1,
+                        attributes=_sentry_metric_attrs(
+                            data_export, export_limit, extra={"success": "true"}
+                        ),
+                    )
+                    if actual_rows is not None:
+                        sentry_sdk.metrics.distribution(
+                            "dataexport.rows",
+                            actual_rows,
+                            attributes=_sentry_metric_attrs(
+                                data_export, export_limit, extra={"success": "true"}
+                            ),
+                        )
         except Exception as error:
             metrics.incr(
                 "dataexport.error",
@@ -653,23 +827,52 @@ def merge_export_blobs(data_export_id: int, *, email_notif: bool = True, **kwarg
                 tags={**_export_metric_tags(data_export), "success": False, "error": str(error)},
                 sample_rate=1.0,
             )
+            if email_notif:
+                sentry_sdk.metrics.count(
+                    "dataexport.completed",
+                    1,
+                    attributes=_sentry_metric_attrs(
+                        data_export,
+                        export_limit,
+                        extra={"success": "false", "error_type": type(error).__name__},
+                    ),
+                )
+                if actual_rows is not None:
+                    sentry_sdk.metrics.distribution(
+                        "dataexport.rows",
+                        actual_rows,
+                        attributes=_sentry_metric_attrs(
+                            data_export,
+                            export_limit,
+                            extra={"success": "false", "error_type": type(error).__name__},
+                        ),
+                    )
             logger.exception("merge_export_blobs: Exception", extra=extra)
             if isinstance(error, IntegrityError):
                 message = "Failed to save the assembled file."
             else:
                 message = "Internal processing failure."
-            return data_export.email_failure(message=message)
+            data_export.email_failure(message=message)
+
+            if not email_notif:
+                # sync mode; propogate the error upwards
+                raise
 
 
 def _set_data_on_scope(data_export: ExportedData) -> None:
-    scope = sentry_sdk.get_isolation_scope()
     if data_export.user_id:
         user = dict(id=data_export.user_id)
-        scope.set_user(user)
-    scope.set_tag("organization.slug", data_export.organization.slug)
-    scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-    scope.set_tag("export.format", data_export.export_format)
+        sentry_sdk.set_user(user)
+    sentry_sdk.set_tag("organization.slug", data_export.organization.slug)
+    sentry_sdk.set_attribute("organization.slug", data_export.organization.slug)
+    sentry_sdk.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    sentry_sdk.set_attribute("export.type", ExportQueryType.as_str(data_export.query_type))
+    sentry_sdk.set_tag("export.format", data_export.export_format)
+    if data_export.export_format is not None:
+        sentry_sdk.set_attribute("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
-        scope.set_tag("export.dataset", str(qi.get("dataset")))
-    scope.set_extra("export.query", data_export.query_info)
+        sentry_sdk.set_tag("export.dataset", str(qi.get("dataset")))
+        sentry_sdk.set_attribute("export.dataset", str(qi.get("dataset")))
+    sentry_sdk.set_extra("export.query", data_export.query_info)
+    sentry_sdk.set_attribute("export.query", json.dumps(data_export.query_info))

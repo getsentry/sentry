@@ -1,4 +1,4 @@
-import React, {Fragment, PureComponent, type ComponentProps} from 'react';
+import {Fragment, PureComponent, type ComponentProps} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -423,12 +423,12 @@ class TriggersChart extends PureComponent<Props, State> {
                   dataScanned={seriesSamplingInfo?.dataScanned}
                 />
               ) : (
-                <React.Fragment>
+                <Fragment>
                   <SectionHeading>{totalCountLabel}</SectionHeading>
                   <SectionValue>
                     {totalCount === null ? '\u2014' : totalCount.toLocaleString()}
                   </SectionValue>
-                </React.Fragment>
+                </Fragment>
               )}
             </InlineContainer>
           ) : (
@@ -447,7 +447,7 @@ class TriggersChart extends PureComponent<Props, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button
                   {...triggerProps}
-                  priority="transparent"
+                  variant="transparent"
                   prefix={t('Display')}
                 />
               )}

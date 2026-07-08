@@ -1,22 +1,33 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useCallback} from 'react';
+import {
+  queryOptions,
+  useQueryClient,
+  type QueryFunctionContext,
+} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {GetTagValuesParams} from 'sentry/components/searchQueryBuilder';
+import type {
+  GetTagValuesParams,
+  TagValueWithCount,
+} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
+import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
 interface TraceItemAttributeValue {
-  first_seen: null;
+  count: number | null;
+  firstSeen: string | null;
   key: string;
-  last_seen: null;
-  times_seen: null;
-  value: string;
+  lastSeen: string | null;
+  name: string;
+  value: string | null;
 }
 
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
@@ -40,8 +51,8 @@ export function useGetTraceItemAttributeValues({
   const {selection} = usePageFilters();
   const queryClient = useQueryClient();
 
-  const {mutateAsync: getTraceItemAttributeValues} = useMutation({
-    mutationFn: async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
+  return useCallback(
+    async ({tag, searchQuery}: GetTagValuesParams): Promise<TagValueWithCount[]> => {
       if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
         // We can't really auto suggest values for aggregate functions, numbers, or booleans
         return Promise.resolve([]);
@@ -63,24 +74,48 @@ export function useGetTraceItemAttributeValues({
           query: {
             itemType: traceItemType,
             attributeType: type,
-            query: filterQuery && filterQuery !== '' ? filterQuery : undefined,
-            substringMatch: searchQuery && searchQuery !== '' ? searchQuery : undefined,
+            query: filterQuery || undefined,
+            substringMatch: searchQuery || undefined,
             project,
             ...datetimeParams,
           },
         }
       );
+      const originalQueryFn = options.queryFn;
+      const optionsWithPrefixCacheShortcut =
+        typeof originalQueryFn === 'function'
+          ? queryOptions({
+              ...options,
+              queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) => {
+                return (
+                  findFreshEmptyPrefixSearchCacheMatch({
+                    client: ctx.client,
+                    currentKey: ctx.queryKey,
+                  }) ?? originalQueryFn(ctx)
+                );
+              },
+            })
+          : options;
 
       try {
-        const {json} = await queryClient.fetchQuery(options);
-        return json
-          .filter((item: TraceItemAttributeValue) => defined(item.value))
-          .map((item: TraceItemAttributeValue) => item.value);
+        const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
+        return json.flatMap((item: TraceItemAttributeValue) =>
+          defined(item.value) ? [{value: item.value, count: item.count ?? undefined}] : []
+        );
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
     },
-  });
-
-  return getTraceItemAttributeValues;
+    [
+      datetime,
+      filterQuery,
+      organization.slug,
+      projectIds,
+      queryClient,
+      selection.datetime,
+      selection.projects,
+      traceItemType,
+      type,
+    ]
+  );
 }

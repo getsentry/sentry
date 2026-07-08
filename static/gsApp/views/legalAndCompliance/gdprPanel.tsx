@@ -6,6 +6,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {
@@ -14,7 +15,6 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -151,6 +151,8 @@ const sectionTitles = {
 } as const;
 
 export function GDPRPanel({subscription}: GDPRPanelProps) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const activeSuperUser = isActiveSuperuser();
   const hasAccess = organization.access.includes('org:billing');

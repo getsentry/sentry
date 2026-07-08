@@ -73,7 +73,6 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentTrigger,
     IncidentType,
     TriggerStatus,
 )
@@ -3547,11 +3546,6 @@ class TestDeduplicateTriggerActions(TestCase):
             integration_id=self.integration.id,
             target_type=target_type,
             target_identifier=target_identifier,
-        )
-        IncidentTrigger.objects.create(
-            incident=self.incident,
-            alert_rule_trigger=alert_rule_trigger,
-            status=incident_trigger_status,
         )
         return alert_rule_trigger, action
 

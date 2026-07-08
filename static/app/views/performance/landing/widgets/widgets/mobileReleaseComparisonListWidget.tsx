@@ -15,7 +15,7 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -106,7 +106,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
   const mepSetting = useMEPSettingContext();
   const {isLoading: isLoadingReleases, primaryRelease} = useReleaseSelection();
   const location = useLocation();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const dataset = DiscoverDatasets.SPANS;

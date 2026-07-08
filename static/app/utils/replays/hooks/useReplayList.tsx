@@ -6,15 +6,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {fetchReplayList} from 'sentry/utils/replays/fetchReplayList';
 import {useApi} from 'sentry/utils/useApi';
-import type {
-  ReplayListLocationQuery,
-  ReplayListQueryReferrer,
-} from 'sentry/views/explore/replays/types';
+import type {ReplayListQueryReferrer} from 'sentry/views/explore/replays/types';
 
 type Options = {
   enabled: boolean;
   eventView: EventView;
-  location: Location<ReplayListLocationQuery>;
+  location: Location;
   organization: Organization;
   perPage?: number;
   queryReferrer?: ReplayListQueryReferrer;

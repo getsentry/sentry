@@ -46,16 +46,10 @@ ERR_SIGNATURE_EXPIRED = _(
     "Settings to resend the verification email."
 )
 
-INFO_EMAIL_ALREADY_VERIFIED = _("The email you are trying to verify has already been verified.")
+SUCCESS_CONFIRMING_EMAIL = _("Thanks for confirming your email")
 
 
 class InvalidRequest(Exception):
-    pass
-
-
-class VerifiedEmailAlreadyExists(Exception):
-    """email already exists as a verified email on the account"""
-
     pass
 
 
@@ -247,12 +241,7 @@ def recover_confirm(
                     organization_id=membership.organization_id
                 )
 
-                # These service calls need to be outside of the transaction block. Claiming an
-                # account constitutes an email verifying action. We'll verify the primary email
-                # associated with this account in particular, since that is the only one the user
-                # claiming email could have been sent to.
                 rpc_user = user_service.get_user(user_id=user.id)
-                user_service.verify_user_email(email=user.email, user_id=user.id)
                 orgs = organization_service.get_organizations_by_user_and_scope(
                     cell_name=mapping.cell_name, user=rpc_user
                 )
@@ -263,6 +252,10 @@ def recover_confirm(
                         ip_address=request.META["REMOTE_ADDR"],
                         sender=recover_confirm,
                     )
+
+            # Completing a password reset proves the user controls the email
+            # the reset link was sent to, so verify it.
+            user_service.verify_user_email(email=user.email, user_id=user.id)
 
             with transaction.atomic(router.db_for_write(User)):
                 if mode == "relocate":
@@ -407,16 +400,6 @@ def confirm_signed_email(
 ) -> HttpResponseRedirect | HttpResponse:
     EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
 
-    use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
-    if not use_signed_urls:
-        msg = ERR_CONFIRMING_EMAIL
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
-    msg = _("Thanks for confirming your email")
-    level = messages.SUCCESS
-
     try:
         data = unsign(
             signed_data, salt=EMAIL_CONFIRMATION_SALT, max_age=2 * 24 * 60 * 60
@@ -427,54 +410,32 @@ def confirm_signed_email(
         if request.user.id != int(data["user_id"]):
             raise InvalidRequest
 
-        # check to see if the email has already been verified
-        try:
-            email = UserEmail.objects.get(user=request.user.id, email=data["email"])
-            if email.is_verified:
-                raise VerifiedEmailAlreadyExists()
-        except UserEmail.DoesNotExist:
-            # user email does not exist, so we can create it
-            pass
-    except VerifiedEmailAlreadyExists:
-        msg = INFO_EMAIL_ALREADY_VERIFIED
-        level = messages.INFO
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+        # Verifying an existing unverified email is a separate path
+        # This path is only emails that don't exist yet
+        email, created = UserEmail.objects.get_or_create(
+            user_id=request.user.id,
+            email=data["email"],
+            defaults={"validation_hash": "", "is_verified": True},
+        )
     except SignatureExpired:
-        msg = ERR_SIGNATURE_EXPIRED
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+        msg, level = ERR_SIGNATURE_EXPIRED, messages.ERROR
     except (InvalidRequest, BadSignature):
-        msg = ERR_CONFIRMING_EMAIL
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+        msg, level = ERR_CONFIRMING_EMAIL, messages.ERROR
     except Exception:
         logger.exception("user.email.signed-confirm.error")
-        msg = ERR_CONFIRMING_EMAIL
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
-    user = User.objects.get(id=request.user.id)
-    email = UserEmail.objects.create(
-        user=user,
-        email=data["email"],
-        validation_hash="",
-        is_verified=True,
-    )
-    email.save()
-
-    email_verified.send(email=email.email, sender=email)
-    logger.info(
-        "user.email.signed-confirm",
-        extra={
-            "user_id": request.user.id,
-            "ip_address": request.META["REMOTE_ADDR"],
-            "email": email.email,
-        },
-    )
+        msg, level = ERR_CONFIRMING_EMAIL, messages.ERROR
+    else:
+        if created:
+            email_verified.send(email=email.email, sender=email)
+            logger.info(
+                "user.email.signed-confirm",
+                extra={
+                    "user_id": request.user.id,
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "email": email.email,
+                },
+            )
+        msg, level = SUCCESS_CONFIRMING_EMAIL, messages.SUCCESS
 
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))

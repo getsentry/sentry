@@ -51,8 +51,9 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
   // The currently selected dashboard. Use initialDashboard for optimistic updates
   // when navigating from widget builder (passed via location.state).
-  const [selectedDashboardState, setSelectedDashboardState] =
-    useState<DashboardDetails | null>(initialDashboard ?? null);
+  const [selectedDashboardState, setSelectedDashboardState] = useState(
+    initialDashboard ?? null
+  );
 
   const {
     data: dashboards,

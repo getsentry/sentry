@@ -8,7 +8,12 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
-from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
+from sentry.spans.consumers.process_segments.factory import (
+    DetectPerformanceIssuesStrategyFactory,
+    _check_span_duplicates,
+    _process_message,
+)
+from sentry.spans.consumers.process_segments.tasks import process_segment_task
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
@@ -24,7 +29,12 @@ def build_mock_message(data, topic=None):
     return message
 
 
-@override_options({"spans.process-segments.consumer.enable": True})
+@override_options(
+    {
+        "spans.process-segments.dedupe-ttl": 0,
+        "spans.process-segments.dedupe-filter-enable": False,
+    }
+)
 @mock.patch(
     "sentry.spans.consumers.process_segments.factory.process_segment",
     side_effect=lambda x, **kwargs: x,
@@ -44,7 +54,12 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
         skip_produce=False,
     )
 
-    with mock.patch.object(factory, "producer", new=mock.Mock()) as mock_producer:
+    with (
+        mock.patch.object(factory, "producer", new=mock.Mock()) as mock_producer,
+        mock.patch(
+            "sentry.spans.consumers.process_segments.tasks._snuba_items_task_producer"
+        ) as mock_task_producer,
+    ):
         strategy = factory.create_with_partitions(
             commit=mock_commit,
             partitions={},
@@ -90,6 +105,7 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
 
         assert mock_producer.produce.call_count == 2
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-items")
+        mock_task_producer.produce.assert_not_called()
 
         payload = mock_producer.produce.call_args.args[1]
         span_item = TraceItem.FromString(payload.value)
@@ -98,3 +114,128 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
         headers = {k: v for k, v in payload.headers}
         assert headers["item_type"] == b"1"
         assert headers["project_id"] == b"1"
+
+
+@mock.patch(
+    "sentry.spans.consumers.process_segments.factory._check_span_duplicates",
+    side_effect=lambda spans: spans,
+)
+@mock.patch(
+    "sentry.spans.consumers.process_segments.factory.process_segment",
+    side_effect=lambda x, **kwargs: x,
+)
+def test_process_segment_task_matches_consumer_output(
+    mock_process_segment: mock.MagicMock,
+    mock_check_span_duplicates: mock.MagicMock,
+) -> None:
+    topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
+    partition = Partition(topic, 0)
+    span_data = build_mock_span(project_id=1, is_segment=True)
+    segment_data = {"spans": [span_data]}
+    segment_bytes = json.dumps(segment_data).encode("utf-8")
+
+    consumer_values = _process_message(
+        Message(
+            BrokerValue(
+                KafkaPayload(b"key", segment_bytes, []),
+                partition,
+                1,
+                datetime.now(),
+            )
+        )
+    )
+    consumer_payloads = [value.payload for value in consumer_values]
+
+    with mock.patch(
+        "sentry.spans.consumers.process_segments.tasks._snuba_items_task_producer"
+    ) as mock_producer:
+        process_segment_task(segment_bytes)
+
+    assert mock_process_segment.call_count == 2
+    assert mock_process_segment.call_args.args[0] == segment_data["spans"]
+    assert mock_check_span_duplicates.call_count == 2
+
+    mock_producer.produce.assert_called_once()
+    assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-items")
+
+    task_payloads = [call.args[1] for call in mock_producer.produce.call_args_list]
+    assert task_payloads == consumer_payloads
+
+    payload = task_payloads[0]
+    span_item = TraceItem.FromString(payload.value)
+    assert span_item == convert_span_to_item(span_data)
+
+    headers = {k: v for k, v in payload.headers}
+    assert headers["item_type"] == b"1"
+    assert headers["project_id"] == b"1"
+
+
+class TestCheckSpanDuplicates:
+    @override_options({"spans.process-segments.dedupe-ttl": 0})
+    def test_disabled_when_ttl_is_zero(self):
+        spans = [build_mock_span(project_id=1, is_segment=True)]
+        with mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis:
+            result = _check_span_duplicates(spans)
+            assert result == spans
+            mock_redis.redis_clusters.get_binary.assert_not_called()
+
+    @override_options(
+        {
+            "spans.process-segments.dedupe-ttl": 300,
+            "spans.process-segments.dedupe-filter-enable": False,
+        }
+    )
+    def test_emits_metric_on_duplicate(self):
+        spans = [
+            build_mock_span(project_id=1, is_segment=True, span_id="span1"),
+            build_mock_span(project_id=1, is_segment=False, span_id="span2"),
+        ]
+        with (
+            mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis,
+            mock.patch("sentry.spans.consumers.process_segments.factory.metrics") as mock_metrics,
+        ):
+            mock_client = mock.MagicMock()
+            mock_pipeline = mock.MagicMock()
+            mock_redis.redis_clusters.get_binary.return_value = mock_client
+            mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            # First span is duplicate (setnx returns False), second is new (returns True)
+            mock_pipeline.execute.return_value = [False, True]
+
+            result = _check_span_duplicates(spans)
+
+            # All spans returned when not filtering
+            assert result == spans
+            mock_metrics.incr.assert_called_once_with(
+                "spans.process-segments.duplicate_span", amount=1
+            )
+
+    @override_options(
+        {
+            "spans.process-segments.dedupe-ttl": 300,
+            "spans.process-segments.dedupe-filter-enable": True,
+        }
+    )
+    def test_filters_duplicates_when_enabled(self):
+        spans = [
+            build_mock_span(project_id=1, is_segment=True, span_id="span1"),
+            build_mock_span(project_id=1, is_segment=False, span_id="span2"),
+        ]
+        with (
+            mock.patch("sentry.spans.consumers.process_segments.factory.redis") as mock_redis,
+            mock.patch("sentry.spans.consumers.process_segments.factory.metrics") as mock_metrics,
+        ):
+            mock_client = mock.MagicMock()
+            mock_pipeline = mock.MagicMock()
+            mock_redis.redis_clusters.get_binary.return_value = mock_client
+            mock_client.pipeline.return_value.__enter__.return_value = mock_pipeline
+            # First span is duplicate (setnx returns False), second is new (returns True)
+            mock_pipeline.execute.return_value = [False, True]
+
+            result = _check_span_duplicates(spans)
+
+            # Only new span returned when filtering
+            assert len(result) == 1
+            assert result[0]["span_id"] == "span2"
+            mock_metrics.incr.assert_called_once_with(
+                "spans.process-segments.duplicate_span", amount=1
+            )

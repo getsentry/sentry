@@ -99,8 +99,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,alpha_metric,counter,-)',
-                'sum(value,alpha_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,none)',
+                'sum(value,alpha_metric,counter,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -138,7 +138,7 @@ describe('MetricSelectRow', () => {
       },
       {
         kind: 'function',
-        function: ['sum', 'value', 'alpha_metric', 'counter', '-'],
+        function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
       },
     ];
     render(
@@ -153,8 +153,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,alpha_metric,counter,-)',
-                'sum(value,alpha_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,none)',
+                'sum(value,alpha_metric,counter,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -186,7 +186,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['p50', 'value', 'distribution_metric', 'distribution', '-'],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -197,7 +197,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['p50(value,distribution_metric,distribution,-)'],
+              yAxis: ['p50(value,distribution_metric,distribution,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -222,7 +222,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -238,7 +238,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
           }}
           index={0}
           disabled={false}
@@ -249,7 +249,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['sum(value,counter_metric,counter,-)'],
+              yAxis: ['sum(value,counter_metric,counter,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -274,7 +274,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'distribution_metric', 'distribution', '-'],
+                function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
               },
             ]),
           }),
@@ -290,7 +290,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum', 'value', 'distribution_metric', 'distribution', '-'],
+            function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -302,9 +302,9 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,distribution_metric,distribution,-)',
-                'p99(value,distribution_metric,distribution,-)',
-                'count(value,distribution_metric,distribution,-)',
+                'per_second(value,distribution_metric,distribution,none)',
+                'p99(value,distribution_metric,distribution,none)',
+                'count(value,distribution_metric,distribution,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -335,16 +335,16 @@ describe('MetricSelectRow', () => {
                   'value',
                   'counter_metric',
                   'counter',
-                  '-',
+                  'none',
                 ],
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -360,7 +360,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['avg', 'value', 'gauge_metric', 'gauge', '-'],
+            function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
           }}
           index={0}
           disabled={false}
@@ -371,7 +371,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['avg(value,gauge_metric,gauge,-)'],
+              field: ['avg(value,gauge_metric,gauge,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.BIG_NUMBER,
             },
@@ -394,7 +394,7 @@ describe('MetricSelectRow', () => {
             field: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -410,7 +410,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['p50', 'value', 'distribution_metric', 'distribution', '-'],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -421,7 +421,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['p50(value,distribution_metric,distribution,-)'],
+              yAxis: ['p50(value,distribution_metric,distribution,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -446,7 +446,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'gauge_metric', 'gauge', '-'],
+                function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
               },
             ]),
           }),
@@ -454,5 +454,156 @@ describe('MetricSelectRow', () => {
         expect.anything()
       );
     });
+  });
+
+  it('converts - to none for unit', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['sum(value,counter_metric,counter,-)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    const metricSelector = await screen.findByRole('button', {name: 'counter_metric'});
+    await userEvent.click(metricSelector);
+    await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: serializeFields([
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+            },
+          ]),
+        }),
+      }),
+      expect.anything()
+    );
+  });
+
+  it('disables non-distribution metrics when the display type is a heat map', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['count', 'value', 'distribution_metric', 'distribution', 'none'],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              field: ['count(value,distribution_metric,distribution,none)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.HEATMAP,
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'distribution_metric'})
+    );
+
+    // Counters and gauges can't be visualized as a heat map.
+    expect(await screen.findByRole('option', {name: 'counter_metric'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'gauge_metric'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'distribution_metric'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('does not auto-select a metric when every option is disabled for a heat map', async () => {
+    // A project with only non-distribution metrics: nothing is selectable for a
+    // heat map, so the picker must not fall back to selecting an invalid metric.
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            ['metric.name']: 'counter_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'gauge_metric',
+            ['metric.type']: 'gauge',
+            ['count(metric.name)']: 1,
+          },
+        ],
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['count', 'value', undefined, undefined],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              field: ['count(value)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.HEATMAP,
+            },
+          },
+        },
+      }
+    );
+
+    // The trigger is disabled while metrics load, then becomes enabled once the
+    // fetch settles and the auto-select effect runs. If an invalid metric had
+    // been auto-selected the trigger would be relabeled to its name; instead it
+    // stays unselected ("None").
+    const trigger = await screen.findByRole('button', {name: 'None'});
+    await waitFor(() => expect(trigger).toBeEnabled());
+    expect(screen.getByRole('button', {name: 'None'})).toBeInTheDocument();
   });
 });

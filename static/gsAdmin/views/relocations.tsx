@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {RelocationBadge} from 'admin/components/relocationBadge';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
 
@@ -61,7 +61,6 @@ export function Relocations() {
           Create New Relocation
         </LinkButton>
       </PageHeader>
-
       <ResultGrid
         inPanel
         isRegional
@@ -92,8 +91,8 @@ export function Relocations() {
         columnsForRow={getRow}
         hasSearch
         defaultSort="date"
-        rowsFromData={(data, region) => {
-          if (region === undefined) {
+        rowsFromData={(data, cell) => {
+          if (cell === undefined) {
             return [];
           }
           return data
@@ -101,7 +100,7 @@ export function Relocations() {
             .map((rawRow: any) => {
               return {
                 ...rawRow,
-                region,
+                region: cell,
               };
             });
         }}

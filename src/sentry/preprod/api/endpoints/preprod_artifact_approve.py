@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -13,24 +14,18 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
-from sentry.preprod.vcs.status_checks.snapshots.tasks import (
-    create_preprod_snapshot_status_check_task,
-)
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 
 logger = logging.getLogger(__name__)
 
 FEATURE_TYPE_MAP = {
     "snapshots": PreprodComparisonApproval.FeatureType.SNAPSHOTS,
     "size": PreprodComparisonApproval.FeatureType.SIZE,
-}
-
-STATUS_CHECK_TASK_MAP = {
-    PreprodComparisonApproval.FeatureType.SNAPSHOTS: create_preprod_snapshot_status_check_task,
-    PreprodComparisonApproval.FeatureType.SIZE: create_preprod_status_check_task,
 }
 
 
@@ -60,6 +55,9 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Artifact not found"}, status=404)
 
+        if not request.access.has_project_access(artifact.project) and not is_active_staff(request):
+            return Response({"detail": "Artifact not found"}, status=404)
+
         # exists()+create() instead of get_or_create — no unique constraint on this model
         # (see snapshots/tasks.py for rationale)
         already_approved = PreprodComparisonApproval.objects.filter(
@@ -80,24 +78,27 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
             approved_at=datetime.now(timezone.utc),
         )
 
+        analytics.record(
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                artifact_id=artifact.id,
+                product=feature_type_str,
+                source="web",
+            )
+        )
+
         PreprodComparisonApproval.objects.filter(
             preprod_artifact=artifact,
             preprod_feature_type=feature_type,
             approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
         ).delete()
 
-        task = STATUS_CHECK_TASK_MAP[feature_type]
-        task(
-            preprod_artifact_id=artifact.id,
-            caller="approval_endpoint",
-        )
-
         if feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS:
-            create_preprod_snapshot_pr_comment_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact.id,
-                    "caller": "approval_endpoint",
-                },
+            update_preprod_snapshot_vcs(preprod_artifact_id=artifact.id, caller="approval_endpoint")
+        elif feature_type == PreprodComparisonApproval.FeatureType.SIZE:
+            create_preprod_status_check_task(
+                preprod_artifact_id=artifact.id, caller="approval_endpoint"
             )
 
         return Response({"detail": "Approved"}, status=201)

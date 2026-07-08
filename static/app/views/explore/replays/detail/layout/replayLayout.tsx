@@ -1,7 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -20,7 +21,6 @@ import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {FocusArea} from 'sentry/views/explore/replays/detail/layout/focusArea';
 import {FocusTabs} from 'sentry/views/explore/replays/detail/layout/focusTabs';
-import {ReplaySplitPanel as SplitPanel} from 'sentry/views/explore/replays/detail/layout/splitPanel';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 const MIN_CONTENT_WIDTH = 340;
@@ -28,7 +28,8 @@ const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
 
-const DIVIDER_SIZE = 16;
+// SplitPanel.Divider is a 1px border.
+const DIVIDER_SIZE = 1;
 
 interface ReplayLayoutProps {
   isLoading: boolean;
@@ -95,17 +96,6 @@ function ReplayLayoutBody({
     </ErrorBoundary>
   );
 
-  if (layout === LayoutKey.VIDEO_ONLY) {
-    return (
-      <BodyGrid>
-        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {video}
-          {controller}
-        </Stack>
-      </BodyGrid>
-    );
-  }
-
   const focusArea =
     isLoading || replayRecord?.is_archived ? (
       <Placeholder width="100%" height="100%" />
@@ -120,57 +110,69 @@ function ReplayLayoutBody({
     );
 
   const hasSize = width + height > 0;
+  const isFocusAreaCollapsed = layout === LayoutKey.VIDEO_ONLY;
+  const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
+  const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyGrid>
         <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
+          {hasSize ? <PanelContainer>{focusArea}</PanelContainer> : null}
         </Stack>
       </BodyGrid>
     );
   }
 
-  if (layout === LayoutKey.SIDEBAR_LEFT) {
-    return (
-      <BodyGrid>
-        <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {hasSize ? (
-            <SplitPanel
-              layout={layout}
-              key={layout}
-              availableSize={width}
-              left={{
-                content: <PanelContainer key={layout}>{video}</PanelContainer>,
-                default: width * 0.5,
-                min: MIN_SIDEBAR_WIDTH,
-                max: width - MIN_CONTENT_WIDTH,
-              }}
-              right={focusArea}
-            />
-          ) : null}
-        </Stack>
-        {controller}
-      </BodyGrid>
-    );
-  }
-
-  // layout === 'topbar'
   return (
     <BodyGrid>
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
-            layout={layout}
-            key={layout}
-            availableSize={height}
-            top={{
-              content: <PanelContainer>{video}</PanelContainer>,
-              default: (height - DIVIDER_SIZE) * 0.5,
-              min: MIN_VIDEO_HEIGHT,
-              max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
-            }}
-            bottom={focusArea}
+            orientation={isLeftRight ? 'horizontal' : 'vertical'}
+            defaultSize={isLeftRight ? width * 0.5 : (height - DIVIDER_SIZE) * 0.5}
+            minSize={isLeftRight ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
+            fillMinSize={isLeftRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT}
+            onResizeEnd={({direction}) =>
+              trackAnalytics('replay.details-resized-panel', {
+                organization,
+                layout: effectiveLayout,
+                slide_motion:
+                  direction === 'increase'
+                    ? isLeftRight
+                      ? 'toRight'
+                      : 'toBottom'
+                    : isLeftRight
+                      ? 'toLeft'
+                      : 'toTop',
+              })
+            }
+            sized={
+              <Flex
+                direction="column"
+                flex="1"
+                minHeight="0"
+                minWidth="0"
+                paddingRight={isLeftRight ? 'md' : undefined}
+                paddingBottom={isLeftRight ? undefined : 'md'}
+              >
+                <PanelContainer>{video}</PanelContainer>
+              </Flex>
+            }
+            fill={
+              isFocusAreaCollapsed ? undefined : (
+                <Flex
+                  direction="column"
+                  flex="1"
+                  minHeight="0"
+                  minWidth="0"
+                  paddingLeft={isLeftRight ? 'md' : undefined}
+                  paddingTop={isLeftRight ? undefined : 'md'}
+                >
+                  {focusArea}
+                </Flex>
+              )
+            }
           />
         ) : null}
       </Stack>
@@ -192,7 +194,6 @@ const BodyGrid = styled('div')`
   display: grid;
   grid-template-rows: 1fr auto;
   gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl};
   flex: 1;
 
   /*
@@ -220,8 +221,4 @@ const PanelContainer = styled('div')`
   position: relative;
   display: flex;
   flex-grow: 1;
-
-  &.disable-iframe-pointer iframe {
-    pointer-events: none !important;
-  }
 `;

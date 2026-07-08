@@ -100,7 +100,9 @@ export function AppSizeLegend({
 
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
-      if (!entry) return;
+      if (!entry) {
+        return;
+      }
 
       const currentWidth = entry.contentRect.width;
 
@@ -169,7 +171,9 @@ export function AppSizeLegend({
     }
   ) => {
     const categoryInfo = getCategoryInfo(categoryType);
-    if (!categoryInfo) return null;
+    if (!categoryInfo) {
+      return null;
+    }
 
     return (
       <LegendItem

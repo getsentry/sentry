@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Badge} from '@sentry/scraps/badge';
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -33,6 +33,17 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {organization.features.includes('issue-stream-progress-ui') && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/awaiting-input/`}
+                  end
+                  analyticsItemName="issues_awaiting_input"
+                >
+                  {t('Awaiting Input')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
@@ -40,15 +51,17 @@ export function IssuesSecondaryNavigation() {
           <SecondaryNavigation.List>
             {Object.values(ISSUE_TAXONOMY_CONFIG)
               .filter(
-                ({featureFlag}) =>
-                  !featureFlag || organization.features.includes(featureFlag)
+                ({featureFlags}) =>
+                  !featureFlags ||
+                  featureFlags.some(feature => organization.features.includes(feature))
               )
-              .map(({key, label}) => (
+              .map(({key, label, badge}) => (
                 <SecondaryNavigation.ListItem key={key}>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/${key}/`}
                     end
                     analyticsItemName={`issues_types_${key}`}
+                    trailingItems={badge ? <FeatureBadge type={badge} /> : null}
                   >
                     {label}
                   </SecondaryNavigation.Link>
@@ -62,36 +75,22 @@ export function IssuesSecondaryNavigation() {
                 {t('User Feedback')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('seer-autopilot') && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/instrumentation/`}
-                  analyticsItemName="issues_instrumentation"
-                >
-                  {t('Instrumentation')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        {organization.features.includes('autofix-on-explorer') && (
-          <Fragment>
-            <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
-              <SecondaryNavigation.List>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/autofix/recent/`}
-                    analyticsItemName="issues_autofix"
-                    end
-                  >
-                    {t('Recently Run')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </SecondaryNavigation.List>
-            </SecondaryNavigation.Section>
-          </Fragment>
-        )}
+        <SecondaryNavigation.Separator />
+        <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/autofix/recent/`}
+                analyticsItemName="issues_autofix"
+                end
+              >
+                {t('Recently Run')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>
@@ -119,10 +118,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const isSticky = layout === 'sidebar';
 
   const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-  const hasRedirectOptOut = organization.features.includes(
-    'workflow-engine-redirect-opt-out'
-  );
-  const shouldRedirectToWorkflowEngineUI = !hasRedirectOptOut && hasWorkflowEngineUI;
+  const shouldRedirectToWorkflowEngineUI = hasWorkflowEngineUI;
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
     ? makeAutomationBasePathname(organization.slug)

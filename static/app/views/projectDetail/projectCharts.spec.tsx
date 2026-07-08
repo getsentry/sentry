@@ -1,24 +1,18 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformKey} from 'sentry/types/project';
-import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
+import type {PlatformKey} from 'sentry/types/platform';
+import {ProjectCharts} from 'sentry/views/projectDetail/projectCharts';
 
 function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
-  const {organization, router, project} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: OrganizationFixture(),
     projects: [{platform}],
-    router: {
-      params: {orgId: 'org-slug', projectId: 'project-slug'},
-      location: {
-        pathname: '/organizations/org-slug/projects/project-slug/',
-        query: {chart1: chartDisplay ?? 'crash_free'},
-      },
-    },
-  } as Parameters<typeof initializeOrg>[0]);
+  });
 
   return render(
     <ProjectCharts
@@ -26,7 +20,10 @@ function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
       chartIndex={0}
       hasSessions
       hasTransactions
-      location={router.location}
+      location={LocationFixture({
+        pathname: '/organizations/org-slug/projects/project-slug/',
+        query: {chart1: chartDisplay ?? 'crash_free'},
+      })}
       organization={organization}
       visibleCharts={['chart1', 'chart2']}
       project={project}
@@ -106,6 +103,22 @@ describe('ProjectDetail > ProjectCharts', () => {
 
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+  });
+
+  it('does not refetch sessions when the summary total updates', async () => {
+    // Sessions display mode issues a single sessions request. When the request
+    // resolves it reports the total back up to ProjectCharts, which updates the
+    // summary state and re-renders. A stable onTotalValuesChange handler ensures
+    // this re-render does not trip ProjectSessionsChartRequest's prop comparison
+    // into refetching.
+    renderProjectCharts('python', 'sessions');
+
+    // 492 is the total sessions count derived from the fixture.
+    expect(await screen.findByText('492')).toBeInTheDocument();
+
+    // Give any erroneous refetch triggered by the summary re-render a chance to fire.
+    await waitFor(() => expect(mockSessions).toHaveBeenCalled());
+    expect(mockSessions).toHaveBeenCalledTimes(1);
   });
 
   it('makes the right ANR sessions request', async () => {

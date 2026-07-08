@@ -36,7 +36,7 @@ function RecoveryOptionsModal({
       staleTime: 5000, // expire after 5 seconds
     }
   );
-  const [skipSms, setSkipSms] = useState<boolean>(false);
+  const [skipSms, setSkipSms] = useState(false);
 
   const {recovery, sms} = authenticators.reduce<Record<string, Authenticator>>(
     (obj, item) => {

@@ -102,6 +102,44 @@ class BaseApiClientTest(TestCase):
         assert mock_track_response_data.call_count == 1
         assert mock_track_response_data.mock_calls[0].kwargs["extra"]["integration_id"] == "123"
 
+    @patch.object(BaseApiClient, "track_response_data")
+    @patch.object(Session, "send")
+    def test_track_response_data_includes_organization_id_from_logging_context(
+        self, mock_session_send, mock_track_response_data
+    ) -> None:
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        class Client(BaseApiClient):
+            integration_type = "integration"
+            integration_name = "base"
+
+        api_client = Client(logging_context={"organization_id": 42})
+        api_client.get("https://example.com/get")
+
+        assert mock_track_response_data.call_count == 1
+        assert mock_track_response_data.mock_calls[0].kwargs["extra"]["organization_id"] == "42"
+
+    @patch.object(BaseApiClient, "track_response_data")
+    @patch.object(Session, "send")
+    def test_track_response_data_uses_org_id_fallback_for_organization_id(
+        self, mock_session_send, mock_track_response_data
+    ) -> None:
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        class Client(BaseApiClient):
+            integration_type = "integration"
+            integration_name = "base"
+
+        api_client = Client(logging_context={"org_id": 24})
+        api_client.get("https://example.com/get")
+
+        assert mock_track_response_data.call_count == 1
+        assert mock_track_response_data.mock_calls[0].kwargs["extra"]["organization_id"] == "24"
+
     @patch("sentry.shared_integrations.client.base.metrics.incr")
     @patch.object(Session, "send")
     def test_request_and_response_metrics_include_api_request_type(

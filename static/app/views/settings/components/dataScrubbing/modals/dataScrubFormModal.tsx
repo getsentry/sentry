@@ -28,7 +28,6 @@ import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submit
 import type {
   EditableRule,
   Rule,
-  SourceSuggestion,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   AllowedDataScrubbingDatasets,
@@ -122,9 +121,9 @@ export function DataScrubFormModal({
   const initialDataset =
     traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
 
-  const [dataset, setDataset] = useState<AllowedDataScrubbingDatasets>(initialDataset);
+  const [dataset, setDataset] = useState(initialDataset);
   const [displayEventId, setDisplayEventId] = useState(!!sourceGroupData.eventId);
-  const [sourceSuggestions, setSourceSuggestions] = useState<SourceSuggestion[]>(
+  const [sourceSuggestions, setSourceSuggestions] = useState(
     sourceGroupData.sourceSuggestions
   );
   const [eventIdError, setEventIdError] = useState<string | undefined>(undefined);
@@ -240,7 +239,7 @@ export function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        <Stack gap={{xs: 'md', sm: 'xl'}}>
+        <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
@@ -257,7 +256,7 @@ export function DataScrubFormModal({
                     hintText={t('The dataset targeted by the scrubbing rule')}
                     variant="compact"
                   >
-                    <Flex gap="lg">
+                    <Flex direction="column" gap="lg">
                       {sortBy(enabledDatasets).map(value => (
                         <field.Radio.Item key={value} value={value}>
                           {getDatasetLabelLong(value)}
@@ -274,9 +273,11 @@ export function DataScrubFormModal({
             {method => (
               <Grid
                 columns={
-                  method === MethodType.REPLACE ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'
+                  method === MethodType.REPLACE
+                    ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
+                    : '1fr'
                 }
-                gap={{sm: 'md'}}
+                gap={{'screen:sm': 'md'}}
               >
                 <form.AppField
                   name="method"
@@ -327,8 +328,12 @@ export function DataScrubFormModal({
           </form.Subscribe>
 
           <Grid
-            columns={type === RuleType.PATTERN ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'}
-            gap={{sm: 'md'}}
+            columns={
+              type === RuleType.PATTERN
+                ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
+                : '1fr'
+            }
+            gap={{'screen:sm': 'md'}}
           >
             <form.AppField
               name="type"
@@ -598,7 +603,7 @@ function SourceGroup({
 }: React.PropsWithChildren<{isExpanded?: boolean}>) {
   return (
     <SourceGroupContainer isExpanded={isExpanded}>
-      <Stack gap={{xs: 'md', sm: 'xl'}}>{children}</Stack>
+      <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>{children}</Stack>
     </SourceGroupContainer>
   );
 }

@@ -105,9 +105,9 @@ describe('Flamegraph', () => {
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
-          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+          pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
         },
-        route: '/explore/profiling/profile/:projectId/:eventId/',
+        route: '/explore/profiles/profile/:projectId/:eventId/',
         children: [
           {
             path: 'flamegraph/',
@@ -117,10 +117,11 @@ describe('Flamegraph', () => {
       },
     });
 
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Error loading flamegraph'
+    );
     expect(
-      await screen.findByText(
-        'RequestError: GET /projects/{orgSlug}/{projectSlug}/profiling/profiles/profile-id/'
-      )
+      await screen.findByText('The requested data could not be found.')
     ).toBeInTheDocument();
   });
 
@@ -138,9 +139,9 @@ describe('Flamegraph', () => {
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
-          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+          pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
         },
-        route: '/explore/profiling/profile/:projectId/:eventId/',
+        route: '/explore/profiles/profile/:projectId/:eventId/',
         children: [
           {
             path: 'flamegraph/',
@@ -172,7 +173,7 @@ describe('Flamegraph', () => {
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
-          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+          pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
           query: {
             colorCoding: 'by library',
             query: '',
@@ -181,7 +182,7 @@ describe('Flamegraph', () => {
             view: 'bottom up',
           },
         },
-        route: '/explore/profiling/profile/:projectId/:eventId/',
+        route: '/explore/profiles/profile/:projectId/:eventId/',
         children: [
           {
             path: 'flamegraph/',
@@ -215,12 +216,12 @@ describe('Flamegraph', () => {
     render(<ProfilesAndTransactionProvider />, {
       initialRouterConfig: {
         location: {
-          pathname: '/explore/profiling/profile/foo-project/profile-id/flamegraph/',
+          pathname: '/explore/profiles/profile/foo-project/profile-id/flamegraph/',
           query: {
             query: 'profiling transaction',
           },
         },
-        route: '/explore/profiling/profile/:projectId/:eventId/',
+        route: '/explore/profiles/profile/:projectId/:eventId/',
         children: [
           {
             path: 'flamegraph/',

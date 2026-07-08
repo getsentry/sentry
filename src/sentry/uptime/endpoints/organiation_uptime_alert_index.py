@@ -59,7 +59,9 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[UptimeDetectorSerializerResponse]]:
         """
         Lists uptime alerts. May be filtered to a project or environment.
         """

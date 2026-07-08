@@ -4,11 +4,11 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   getSavedQueryTraceItemDataset,
@@ -21,7 +21,7 @@ import {confirmDeleteSavedQuery} from 'sentry/views/explore/utils';
 export function SavedQueryEditMenu() {
   const organization = useOrganization();
   const location = useLocation();
-  const locationId = getIdFromLocation(location);
+  const locationId = decodeScalar(location.query.id);
   const {data: savedQuery} = useGetSavedQuery(locationId);
   const navigate = useNavigate();
   const {deleteQuery} = useDeleteQuery();

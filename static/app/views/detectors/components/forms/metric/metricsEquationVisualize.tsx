@@ -60,7 +60,9 @@ function computeEquationReferencedLabels(
     return [];
   }
   const labelSet = new Set(Object.keys(referenceMap));
-  const unresolvedText = unresolveExpression(visualize.expression.text, referenceMap);
+  const unresolvedText =
+    visualize.internalExpression ??
+    unresolveExpression(visualize.expression.text, referenceMap);
   return extractReferenceLabels(new Expression(unresolvedText, labelSet));
 }
 
@@ -366,7 +368,10 @@ function MetricToolbar({
   ) => {
     if (isVisualizeEquation(visualize)) {
       setVisualize(
-        visualize.replace({yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`})
+        visualize.replace({
+          yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
+          internalExpression: internalText,
+        })
       );
       // Report the user's typed labels (pre-resolve) so identical rows don't
       // collapse the lock onto whichever label sorts first in the map.
@@ -412,7 +417,12 @@ function MetricToolbar({
             />
           </Flex>
           <AggregateDropdown traceMetric={traceMetric} singleSelect />
-          <Filter traceMetric={traceMetric} />
+          <Filter
+            traceMetric={traceMetric}
+            projectIds={projectIds}
+            environments={environments}
+            disableValidation
+          />
           <DeleteMetricButton disabledReason={deleteDisabledReason} />
         </Fragment>
       ) : isVisualizeEquation(visualize) ? (
@@ -421,8 +431,15 @@ function MetricToolbar({
             expression={visualize.expression.text}
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
+            storedInternalExpression={visualize.internalExpression}
           />
-          <Filter traceMetric={traceMetric} skipTraceMetricFilter />
+          <Filter
+            traceMetric={traceMetric}
+            skipTraceMetricFilter
+            projectIds={projectIds}
+            environments={environments}
+            disableValidation
+          />
           <DeleteMetricButton />
         </Fragment>
       ) : null}

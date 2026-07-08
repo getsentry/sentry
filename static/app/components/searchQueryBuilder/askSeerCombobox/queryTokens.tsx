@@ -1,25 +1,34 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
+import {useProjects} from 'sentry/utils/useProjects';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+
+const MAX_PROJECT_CHIPS = 3;
 
 export function QueryTokens({
   groupBys,
+  interval,
   query,
   sort,
   statsPeriod,
   start,
   end,
   visualizations,
+  expandedProjectIds,
+  crossEvents,
 }: QueryTokensProps) {
   const tokens = [];
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
+  const {projects} = useProjects();
   const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
   if (query && parsedQuery?.length) {
     tokens.push(
@@ -52,6 +61,22 @@ export function QueryTokens({
             <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
           ))
         )}
+      </Flex>
+    );
+  }
+
+  if (interval) {
+    tokens.push(
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="interval"
+      >
+        <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
+        <ExploreGroupBys>{interval}</ExploreGroupBys>
       </Flex>
     );
   }
@@ -98,6 +123,31 @@ export function QueryTokens({
     );
   }
 
+  if (expandedProjectIds && expandedProjectIds.length > 0) {
+    const shownSlugs = expandedProjectIds
+      .slice(0, MAX_PROJECT_CHIPS)
+      .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
+    const overflowCount = expandedProjectIds.length - shownSlugs.length;
+    tokens.push(
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="projects"
+      >
+        <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
+        {shownSlugs.map(slug => (
+          <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
+        ))}
+        {overflowCount > 0 ? (
+          <ExploreGroupBys>{t('+%s more', overflowCount)}</ExploreGroupBys>
+        ) : null}
+      </Flex>
+    );
+  }
+
   if (sort && sort.length > 0) {
     tokens.push(
       <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="sort">
@@ -109,13 +159,66 @@ export function QueryTokens({
     );
   }
 
-  return <TokenContainer>{tokens}</TokenContainer>;
+  return (
+    <Fragment>
+      <TokenContainer>{tokens}</TokenContainer>
+      {crossEvents?.length ? (
+        <CrossEventSection>
+          {crossEvents.map((crossEvent, idx) => {
+            const filterQuery =
+              crossEvent.type === 'metrics'
+                ? [
+                    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
+                    crossEvent.query,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                : crossEvent.query;
+            const parsedCrossEvent = filterQuery
+              ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
+              : null;
+            return (
+              <Flex
+                as="span"
+                align="center"
+                wrap="wrap"
+                gap="xs"
+                overflow="hidden"
+                key={`${crossEvent.type}-${idx}`}
+              >
+                <ExploreParamTitle>{t('Cross Event Filter')}</ExploreParamTitle>
+                <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
+                <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
+                <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
+                {parsedCrossEvent
+                  ?.filter(({text}) => text.trim() !== '')
+                  .map(({text}) => (
+                    <FormattedQueryWrapper key={text}>
+                      <ProvidedFormattedQuery query={text} />
+                    </FormattedQueryWrapper>
+                  ))}
+              </Flex>
+            );
+          })}
+        </CrossEventSection>
+      ) : null}
+    </Fragment>
+  );
 }
 
 const TokenContainer = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md};
+`;
+
+// Cross-event filters render as their own block beneath the main query row,
+// one sibling per line, each labelled with its Dataset and Filter.
+const CrossEventSection = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.md} ${p => p.theme.space.md};
 `;
 
 const ExploreParamTitle = styled('span')`

@@ -6,10 +6,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationExternalIssueBaseEndpoint
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
+from sentry.sentry_apps.external_requests.utils import validate_sentry_app_uri
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.users.services.user.serial import serialize_generic_user
 
@@ -17,12 +18,16 @@ from sentry.users.services.user.serial import serialize_generic_user
 class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer):
     groupId = serializers.CharField(required=True, allow_null=False)
     action = serializers.CharField(required=True, allow_null=False)
-    uri = serializers.CharField(required=True, allow_null=False)
+    uri = serializers.CharField(
+        required=True, allow_null=False, validators=[validate_sentry_app_uri]
+    )
 
 
 @control_silo_endpoint
-class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+class SentryAppInstallationExternalIssueActionsEndpoint(
+    SentryAppInstallationExternalIssueBaseEndpoint
+):
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

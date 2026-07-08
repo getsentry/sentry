@@ -37,6 +37,18 @@ _LOGIN_URL: str | None = None
 
 MFA_SESSION_KEY = "mfa"
 
+SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
+
+
+def record_suspended_user_rejection(path: str) -> None:
+    metrics.incr(
+        SUSPENDED_USER_REJECTED_METRIC,
+        tags={"path": path},
+        skip_internal=True,
+        sample_rate=1.0,
+    )
+
+
 DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 
@@ -212,7 +224,7 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
         return False
     parsed_url = urlparse(url)
     url_host = parsed_url.netloc
-    base_hostname = options.get("system.base-hostname")
+    base_hostname = settings.SENTRY_BASE_HOSTNAME
     if url_host.endswith(f".{base_hostname}"):
         if allowed_hosts is None:
             allowed_hosts = {url_host}
@@ -220,6 +232,14 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
             allowed_hosts = set(allowed_hosts)
             allowed_hosts.add(url_host)
     return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
+
+
+def is_valid_relative_redirect(url: object) -> bool:
+    return (
+        isinstance(url, str)
+        and url.startswith("/")
+        and url_has_allowed_host_and_scheme(url, allowed_hosts=set())
+    )
 
 
 def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
@@ -315,6 +335,7 @@ def login(
     Returns boolean indicating if the user was logged in.
     """
     if getattr(user, "is_suspended", False):
+        record_suspended_user_rejection("session_login")
         return False
 
     if passed_2fa is None:
@@ -392,7 +413,7 @@ def log_auth_failure(request: HttpRequest, username: str | None = None) -> None:
 
 
 def has_user_registration() -> bool:
-    from sentry import features, options
+    from sentry import features
 
     return features.has("auth:register") and options.get("auth.allow-registration")
 
@@ -457,6 +478,7 @@ class EmailAuthBackend(ModelBackend):
     def get_user(self, user_id: int) -> RpcUser | None:  # type: ignore[override]  # XXX: HC "pretends" to be the user model
         user = user_service.get_user(user_id=user_id)
         if user is not None and user.is_suspended:
+            record_suspended_user_rejection("session_get_user")
             return None
         return user
 

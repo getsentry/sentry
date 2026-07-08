@@ -577,6 +577,166 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.query).toEqual(['event.type:test']);
     });
 
+    it('keeps only aggregates and clears sort when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Columns are dropped; only the aggregate ("Visualize") remains.
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('drops equations when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['count()', 'equation|count() * 2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Only the non-equation aggregate survives.
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('normalizes the aggregate to count() when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,distribution,none)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // The metric is preserved but the function becomes count() — heat maps
+      // always count the metric's value, so the chosen function is irrelevant.
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['count', 'value', 'test_metric', 'distribution', 'none'],
+          alias: undefined,
+        },
+      ]);
+    });
+
+    it('drops non-distribution metrics when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,counter,none)'],
+            dataset: WidgetType.TRACEMETRICS,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Counters can't be heat-mapped, so the metric is dropped and the slot
+      // falls back to the metric-less default (the picker then auto-selects a
+      // distribution metric).
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['sum', 'value', undefined, undefined],
+          alias: undefined,
+        },
+      ]);
+    });
+
+    it('selects the first filter when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()'],
+            query: ['event.type:test', 'event.type:test2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test']);
+    });
+
     it('resets selectedAggregate when the display type is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({query: {selectedAggregate: '0'}})
@@ -1653,6 +1813,37 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.limit).toBe(5);
     });
+
+    it('preserves the breakdown legend type when there are multiple group bys', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['testField'],
+            yAxis: ['count()'],
+            legendType: 'breakdown',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendType).toBe('breakdown');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'testField', kind: FieldValueKind.FIELD},
+            {field: 'testField2', kind: FieldValueKind.FIELD},
+          ],
+        });
+      });
+
+      expect(result.current.state.legendType).toBe('breakdown');
+    });
   });
 
   describe('yAxis', () => {
@@ -1936,8 +2127,8 @@ describe('useWidgetBuilderState', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             field: ['project'],
-            yAxis: ['sum(value,my.metric,counter,-)'],
-            sort: ['-sum(value,my.metric,counter,-)'],
+            yAxis: ['sum(value,my.metric,counter,none)'],
+            sort: ['-sum(value,my.metric,counter,none)'],
           },
         })
       );
@@ -1953,7 +2144,7 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: ['avg', 'value', 'other.metric', 'gauge', '-'],
+              function: ['avg', 'value', 'other.metric', 'gauge', 'none'],
             },
           ] as Column[],
         });
@@ -1961,7 +2152,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should be updated to the new aggregate
       expect(result.current.state.sort).toEqual([
-        {kind: 'desc', field: 'avg(value,other.metric,gauge,-)'},
+        {kind: 'desc', field: 'avg(value,other.metric,gauge,none)'},
       ]);
     });
 
@@ -1972,8 +2163,8 @@ describe('useWidgetBuilderState', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             field: ['project'],
-            yAxis: ['sum(value,my.metric,counter,-)'],
-            sort: ['-sum(value,my.metric,counter,-)'],
+            yAxis: ['sum(value,my.metric,counter,none)'],
+            sort: ['-sum(value,my.metric,counter,none)'],
           },
         })
       );
@@ -1989,11 +2180,11 @@ describe('useWidgetBuilderState', () => {
           payload: [
             {
               kind: 'function',
-              function: ['sum', 'value', 'my.metric', 'counter', '-'],
+              function: ['sum', 'value', 'my.metric', 'counter', 'none'],
             },
             {
               kind: 'function',
-              function: ['avg', 'value', 'my.metric', 'counter', '-'],
+              function: ['avg', 'value', 'my.metric', 'counter', 'none'],
             },
           ] as Column[],
         });
@@ -2001,7 +2192,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should remain on sum since it's still present
       expect(result.current.state.sort).toEqual([
-        {kind: 'desc', field: 'sum(value,my.metric,counter,-)'},
+        {kind: 'desc', field: 'sum(value,my.metric,counter,none)'},
       ]);
     });
 
@@ -2012,8 +2203,8 @@ describe('useWidgetBuilderState', () => {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
             yAxis: [
-              'sum(value,my.metric,counter,-)',
-              'per_second(value,my.metric,counter,-)',
+              'sum(value,my.metric,counter,none)',
+              'per_second(value,my.metric,counter,none)',
             ],
           },
         })
@@ -2028,12 +2219,12 @@ describe('useWidgetBuilderState', () => {
       // stores all args in the args array when there are more than 3.
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', 'my.metric', 'counter', '-'],
+          function: ['sum', 'value', 'my.metric', 'counter', 'none'],
           alias: undefined,
           kind: 'function',
         },
         {
-          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
+          function: ['per_second', 'value', 'my.metric', 'counter', 'none'],
           alias: undefined,
           kind: 'function',
         },
@@ -2066,7 +2257,7 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.FIELD, field: 'project'},
               {
                 kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'my.metric', 'counter', '-'],
+                function: ['sum', 'value', 'my.metric', 'counter', 'none'],
               },
               {
                 kind: FieldValueKind.FUNCTION,
@@ -2075,7 +2266,7 @@ describe('useWidgetBuilderState', () => {
                   'value',
                   'my.metric',
                   'counter',
-                  '-',
+                  'none',
                 ],
               },
             ]),
@@ -2088,7 +2279,7 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: ['-per_second(value,my.metric,counter,-)'],
+            sort: ['-per_second(value,my.metric,counter,none)'],
           }),
         }),
         expect.anything()

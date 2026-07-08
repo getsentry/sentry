@@ -1,12 +1,27 @@
+import {type ReactNode, useRef} from 'react';
 import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+} from 'sentry-test/reactTestingLibrary';
 
+import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
-// eslint-disable-next-line boundaries/dependencies
-import {rc, useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
+import {
+  ContainerQueryProvider,
+  getBorder,
+  rc,
+  useActiveBreakpoint,
+  useContainerBreakpoint,
+  useResponsivePropValue,
+  type Responsive,
+  // eslint-disable-next-line boundaries/dependencies
+} from './styles';
 
 const theme = ThemeFixture();
 const normalizeCss = (value: string) =>
@@ -58,7 +73,8 @@ const setupMediaQueries = (
 
 describe('rc', () => {
   it('returns a simple CSS declaration for a plain string value', () => {
-    const output = rc('color', 'red', theme)!;
+    const output = rc('color', 'red', theme);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -73,7 +89,8 @@ describe('rc', () => {
   });
 
   it('applies a resolver to a plain value', () => {
-    const output = rc('color', 'primary', theme, value => `resolved-${value}`)!;
+    const output = rc('color', 'primary', theme, value => `resolved-${value}`);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -89,7 +106,8 @@ describe('rc', () => {
 
   it('generates media queries for responsive values', () => {
     // First defined breakpoint gets both min-width and max-width; subsequent get min-width only.
-    const output = rc('color', {xs: 'blue', md: 'green'}, theme)!;
+    const output = rc('color', {'screen:xs': 'blue', 'screen:md': 'green'}, theme);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -101,7 +119,8 @@ describe('rc', () => {
 
   it('skips undefined intermediate breakpoints', () => {
     // xs and md are defined; 2xs, sm, lg, xl, 2xl are absent from the output.
-    const output = rc('font-size', {xs: 'md', md: 'lg'}, theme)!;
+    const output = rc('font-size', {'screen:xs': 'md', 'screen:md': 'lg'}, theme);
+    assert(output);
     expect(
       normalizeCss(
         css`
@@ -110,6 +129,82 @@ describe('rc', () => {
       )
     ).toEqual(normalizeCss(output));
   });
+
+  it('emits @container queries for bare breakpoint keys', () => {
+    // Bare keys (no prefix) resolve against the nearest query container.
+    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme);
+    assert(output);
+    expect(output).toContain('@container');
+    expect(output).not.toContain('@media');
+    expect(output).toContain(`@container (min-width: ${theme.breakpoints.md})`);
+  });
+
+  it('emits @media queries for screen: breakpoint keys', () => {
+    // `screen:`-prefixed keys resolve against the viewport.
+    const output = rc(
+      'flex-direction',
+      {'screen:xs': 'column', 'screen:md': 'row'},
+      theme
+    );
+    assert(output);
+    expect(output).toContain('@media');
+    expect(output).not.toContain('@container');
+    expect(output).toContain(`@media (min-width: ${theme.breakpoints.md})`);
+  });
+
+  it('resolves the same prop against both the container and the viewport', () => {
+    // Bare `xs` is the container base; `screen:lg` overrides at the viewport.
+    const output = rc('flex-direction', {xs: 'column', 'screen:lg': 'row'}, theme);
+    assert(output);
+    // xs (smallest defined) is the always-applied base — a plain declaration.
+    expect(output).toContain('flex-direction: column;');
+    // and the viewport key emits an @media rule on top.
+    expect(output).toContain(`@media (min-width: ${theme.breakpoints.lg})`);
+    expect(output).toContain('flex-direction: row;');
+  });
+
+  it('emits the first defined breakpoint as a plain declaration', () => {
+    // The base value applies unconditionally (not wrapped in a query) so it
+    // still applies when no container is present.
+    const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme);
+    assert(output);
+    // xs (the base) is a bare declaration, not inside an at-rule.
+    expect(output).toContain('flex-direction: column;');
+    expect(output).not.toContain(`(min-width: ${theme.breakpoints.xs})`);
+  });
+
+  it('returns a plain declaration (no at-rule) for non-responsive values', () => {
+    expect(rc('container-type', 'inline-size', theme)).toBe(
+      'container-type: inline-size;'
+    );
+    expect(rc('container-type', undefined, theme)).toBeUndefined();
+  });
+});
+
+describe('getBorder', () => {
+  it('resolves a border variant to a full declaration', () => {
+    expect(getBorder('primary', undefined, theme)).toBe(
+      `1px solid ${theme.tokens.border.primary}`
+    );
+  });
+
+  it('returns "none" so a border can be turned off responsively', () => {
+    expect(getBorder('none', undefined, theme)).toBe('none');
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBorder(undefined, undefined, theme)).toBeUndefined();
+  });
+
+  it('lets a responsive border move sides across breakpoints', () => {
+    const output = rc('border-bottom', {'2xs': 'primary', lg: 'none'}, theme, getBorder);
+    assert(output);
+    // Present below lg…
+    expect(output).toContain(`border-bottom: 1px solid ${theme.tokens.border.primary}`);
+    // …and explicitly removed at lg via `none`.
+    expect(output).toContain(`@container (min-width: ${theme.breakpoints.lg})`);
+    expect(output).toContain('border-bottom: none');
+  });
 });
 
 describe('useResponsivePropValue', () => {
@@ -117,6 +212,41 @@ describe('useResponsivePropValue', () => {
     const {result} = renderHookWithProviders(() => useResponsivePropValue('hello'));
 
     expect(result.current).toBe('hello');
+  });
+
+  it('falls back to the base breakpoint for container keys with no container ancestor', () => {
+    // Bare keys resolve against the nearest container; with no ContainerQueryProvider
+    // in the tree they resolve to the base ('2xs') — the only value the CSS applies
+    // (the plain base declaration), so JS and CSS agree instead of JS drifting.
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue({'2xs': 'base', md: 'medium'})
+    );
+
+    expect(result.current).toBe('base');
+  });
+
+  it('resolves the same prop against both container and viewport', () => {
+    // Bare `2xs` is the container base; `screen:lg` overrides once the viewport
+    // reaches lg. With the viewport at lg (and no container), the viewport wins.
+    const cleanup = setupMediaQueries({xs: true, sm: true, md: true, lg: true});
+
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue({'2xs': 'container-base', 'screen:lg': 'viewport-large'})
+    );
+
+    expect(result.current).toBe('viewport-large');
+    cleanup();
+  });
+
+  it('keeps the container base when the viewport key does not match', () => {
+    const cleanup = setupMediaQueries({xs: false, sm: false, md: false, lg: false});
+
+    const {result} = renderHookWithProviders(() =>
+      useResponsivePropValue({'2xs': 'container-base', 'screen:lg': 'viewport-large'})
+    );
+
+    expect(result.current).toBe('container-base');
+    cleanup();
   });
 
   it('window matches breakpoint = breakpoint value', () => {
@@ -128,9 +258,9 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'extra-small',
-      sm: 'small',
-      md: 'medium',
+      'screen:xs': 'extra-small',
+      'screen:sm': 'small',
+      'screen:md': 'medium',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -148,9 +278,9 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'extra-small',
-      sm: 'small',
-      md: 'medium',
+      'screen:xs': 'extra-small',
+      'screen:sm': 'small',
+      'screen:md': 'medium',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -168,7 +298,7 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      sm: 'small',
+      'screen:sm': 'small',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -188,8 +318,8 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      sm: 'small',
-      lg: 'large',
+      'screen:sm': 'small',
+      'screen:lg': 'large',
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -207,10 +337,10 @@ describe('useResponsivePropValue', () => {
     });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'small',
-      sm: undefined,
-      md: 'medium',
-      lg: undefined,
+      'screen:xs': 'small',
+      'screen:sm': undefined,
+      'screen:md': 'medium',
+      'screen:lg': undefined,
     };
 
     const {result} = renderHookWithProviders(() =>
@@ -329,7 +459,11 @@ describe('useActiveBreakpoint', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useResponsivePropValue({xs: 'small', md: 'medium', lg: 'large'})
+      useResponsivePropValue({
+        'screen:xs': 'small',
+        'screen:md': 'medium',
+        'screen:lg': 'large',
+      })
     );
 
     // Initially query matches 'medium'
@@ -377,7 +511,7 @@ describe('useActiveBreakpoint', () => {
     }));
 
     const {unmount} = renderHookWithProviders(() =>
-      useResponsivePropValue({xs: 'small', md: 'medium'})
+      useResponsivePropValue({'screen:xs': 'small', 'screen:md': 'medium'})
     );
 
     // Sets up listeners for all breakpoints
@@ -385,5 +519,76 @@ describe('useActiveBreakpoint', () => {
     unmount();
     // Removes listeners for all breakpoints
     expect(abortController.abort).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useContainerBreakpoint', () => {
+  class MockResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  let originalResizeObserver: typeof window.ResizeObserver;
+  const originalClientWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'clientWidth'
+  );
+
+  beforeEach(() => {
+    originalResizeObserver = window.ResizeObserver;
+    window.ResizeObserver = MockResizeObserver as unknown as typeof window.ResizeObserver;
+  });
+
+  afterEach(() => {
+    window.ResizeObserver = originalResizeObserver;
+    if (originalClientWidth) {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
+    }
+  });
+
+  const setClientWidth = (width: number) => {
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get: () => width,
+    });
+  };
+
+  // The hook reads the nearest query container's size from context, so render
+  // the probe inside a ContainerQueryProvider whose measured element reports the
+  // faked width.
+  function BreakpointProbe() {
+    const breakpoint = useContainerBreakpoint();
+    return <div>breakpoint:{breakpoint}</div>;
+  }
+
+  function Container({children}: {children: ReactNode}) {
+    const ref = useRef<HTMLDivElement>(null);
+    return (
+      <ContainerQueryProvider elementRef={ref}>
+        <div ref={ref}>{children}</div>
+      </ContainerQueryProvider>
+    );
+  }
+
+  it('resolves the largest breakpoint the container width satisfies', () => {
+    // md = 992px, lg = 1200px -> 1000px resolves to md.
+    setClientWidth(1000);
+    render(
+      <Container>
+        <BreakpointProbe />
+      </Container>
+    );
+    expect(screen.getByText('breakpoint:md')).toBeInTheDocument();
+  });
+
+  it('falls back to 2xs when the container is narrower than the smallest breakpoint', () => {
+    setClientWidth(0);
+    render(
+      <Container>
+        <BreakpointProbe />
+      </Container>
+    );
+    expect(screen.getByText('breakpoint:2xs')).toBeInTheDocument();
   });
 });

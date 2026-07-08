@@ -8,7 +8,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
@@ -25,6 +24,7 @@ import {
   AutomationListRowSkeleton,
 } from 'sentry/views/automations/components/automationListTable/row';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
+import {useCanEditAutomation} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 type AutomationListTableProps = {
@@ -91,7 +91,7 @@ export function AutomationListTable({
   allResultsVisible,
 }: AutomationListTableProps) {
   const organization = useOrganization();
-  const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
+  const canEditAutomations = useCanEditAutomation();
   const [query] = useQueryState('query', parseAsString);
   const [selected, setSelected] = useState(new Set<string>());
 

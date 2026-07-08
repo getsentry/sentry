@@ -123,6 +123,18 @@ class TripStrategy(Protocol):
         """Whether the current error count/rate warrants tripping to BROKEN."""
         ...
 
+    def get_trip_log_context(
+        self,
+        controlling_quota: Quota,
+        remaining_errors: int,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        state: CircuitBreakerState,
+    ) -> dict[str, Any]:
+        """Extra log context to include when the breaker trips."""
+        ...
+
 
 class CountBasedTripStrategy(TripStrategy):
     """Trips the breaker when the error count within the window reaches a fixed threshold."""
@@ -185,6 +197,17 @@ class CountBasedTripStrategy(TripStrategy):
         threshold = self._recovery_error_limit if is_recovery else self.error_limit
         return error_count >= threshold
 
+    def get_trip_log_context(
+        self,
+        controlling_quota: Quota,
+        remaining_errors: int,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        state: CircuitBreakerState,
+    ) -> dict[str, Any]:
+        return {}
+
 
 class RateBasedTripStrategy(TripStrategy):
     """Trips the breaker when error_count >= floor AND error_count / total_requests >= threshold."""
@@ -231,6 +254,25 @@ class RateBasedTripStrategy(TripStrategy):
             else [self._total_requests_quota]
         )
 
+    def _get_total_requests_counted(
+        self,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        *,
+        is_recovery: bool = False,
+    ) -> int:
+        controlling_total_requests_quota = (
+            self._recovery_total_requests_quota if is_recovery else self._total_requests_quota
+        )
+        if controlling_total_requests_quota is None:
+            raise ValueError("Cannot get total requests quota before initialization")
+        _, total_grants = limiter.check_within_quotas(
+            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [controlling_total_requests_quota])],
+            window_end,
+        )
+        return _COUNTER_QUOTA_LIMIT - total_grants[0].granted
+
     def should_trip(
         self,
         controlling_quota: Quota,
@@ -245,26 +287,36 @@ class RateBasedTripStrategy(TripStrategy):
         if error_count < self.floor:
             return False
 
-        # total_grants is the number of remaining requests out of the quota limit,
-        # so we need to subtract it from the quota limit to get the number of requests counted
-        controlling_total_requests_quota = (
-            self._recovery_total_requests_quota if is_recovery else self._total_requests_quota
+        total_requests_counted = self._get_total_requests_counted(
+            limiter, key, window_end, is_recovery=is_recovery
         )
-
-        if controlling_total_requests_quota is None:
-            raise ValueError("Cannot get controlling total requests quota before initialization")
-
-        _, total_grants = limiter.check_within_quotas(
-            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [controlling_total_requests_quota])],
-            window_end,
-        )
-        total_requests_counted = _COUNTER_QUOTA_LIMIT - total_grants[0].granted
 
         # Guard against division by zero but this should never happen
         if total_requests_counted == 0:
             return False
 
         return (error_count / total_requests_counted) >= self.threshold
+
+    def get_trip_log_context(
+        self,
+        controlling_quota: Quota,
+        remaining_errors: int,
+        limiter: RedisSlidingWindowRateLimiter,
+        key: str,
+        window_end: int,
+        state: CircuitBreakerState,
+    ) -> dict[str, Any]:
+        error_count = controlling_quota.limit - remaining_errors
+        total_requests_counted = self._get_total_requests_counted(
+            limiter, key, window_end, is_recovery=state == CircuitBreakerState.RECOVERY
+        )
+        if total_requests_counted == 0:
+            return {"error_count": error_count}
+        return {
+            "error_count": error_count,
+            "total_requests_counted": total_requests_counted,
+            "error_percentage": (error_count / total_requests_counted) * 100,
+        }
 
 
 class CircuitBreaker:
@@ -489,6 +541,16 @@ class CircuitBreaker:
         # If incrementing has made us hit the current limit, switch to the BROKEN state
         controlling_quota = self._get_controlling_quota(state)
         if self._should_trip(controlling_quota):
+            window_end_time = int(time.time())
+            remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
+            trip_log_context = self.trip_strategy.get_trip_log_context(
+                controlling_quota,
+                remaining,
+                self.limiter,
+                self.key,
+                window_end_time,
+                state,
+            )
             logger.warning(
                 "Circuit breaker '%s' error limit hit",
                 self.key,
@@ -496,6 +558,7 @@ class CircuitBreaker:
                     "current_state": state,
                     "error_limit": controlling_quota.limit,
                     "error_limit_window": controlling_quota.window_seconds,
+                    **trip_log_context,
                 },
             )
             metrics.incr(

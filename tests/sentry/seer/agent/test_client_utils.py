@@ -1,14 +1,19 @@
 import jwt
 from django.test import override_settings
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.agent.client_utils import (
+    _normalize_wildcard_operators,
+    _sanitize_json_strings,
     collect_user_org_context,
+    enqueue_seer_run,
     get_proxy_headers,
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
@@ -32,32 +37,14 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
-    def test_no_explorer_flags_enabled(self) -> None:
+    def test_no_explorer_flag_enabled(self) -> None:
         with self.feature("organizations:gen-ai-features"):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
-    def test_only_seer_explorer_flag(self) -> None:
+    def test_seer_explorer_flag_enabled(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
-        ):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
-    def test_only_autofix_on_explorer_flag(self) -> None:
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:autofix-on-explorer": True}
-        ):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
-    def test_all_explorer_flags_enabled(self) -> None:
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-                "organizations:seer-explorer": True,
-                "organizations:autofix-on-explorer": True,
-            }
         ):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
@@ -69,7 +56,6 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
             {
                 "organizations:gen-ai-features": True,
                 "organizations:seer-explorer": True,
-                "organizations:autofix-on-explorer": True,
             }
         ):
             result = has_seer_agent_access_with_detail(self.org, self.user)
@@ -201,7 +187,7 @@ class CollectUserOrgContextTest(TestCase):
             integration_id=999,
             external_id="ext-1",
         )
-        SeerProjectRepository.objects.create(project=self.project1, repository=repo1)
+        self.create_seer_project_repository(project=self.project1, repository=repo1)
         repo2 = self.create_repo(
             project=self.project2,
             name="acme/project-2-repo",
@@ -209,7 +195,7 @@ class CollectUserOrgContextTest(TestCase):
             integration_id=999,
             external_id="ext-2",
         )
-        SeerProjectRepository.objects.create(project=self.project2, repository=repo2)
+        self.create_seer_project_repository(project=self.project2, repository=repo2)
 
         context = collect_user_org_context(self.user, self.organization)
 
@@ -372,6 +358,61 @@ class SnapshotToMarkdownTest(TestCase):
         assert "# Widget" in result
         assert '- "some string"' in result
 
+    def test_wildcard_operators_normalized_in_output(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "explorer",
+                    "data": {
+                        "searchQuery": (
+                            "span.name:\uf00dStartsWith\uf00d/api"
+                            " title:\uf00dDoesNotContain\uf00dtest"
+                        )
+                    },
+                    "children": [],
+                }
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "\uf00d" not in result
+        assert "starts with" in result
+        assert "does not contain" in result
+
+
+class NormalizeWildcardOperatorsTest(TestCase):
+    W = "\uf00d"
+
+    def test_all_operators(self) -> None:
+        W = self.W
+        cases = [
+            (f"f:{W}Contains{W}x", "f: contains x"),
+            (f"f:{W}DoesNotContain{W}x", "f: does not contain x"),
+            (f"f:{W}StartsWith{W}x", "f: starts with x"),
+            (f"f:{W}DoesNotStartWith{W}x", "f: does not start with x"),
+            (f"f:{W}EndsWith{W}x", "f: ends with x"),
+            (f"f:{W}DoesNotEndWith{W}x", "f: does not end with x"),
+        ]
+        for input_text, expected in cases:
+            assert _normalize_wildcard_operators(input_text) == expected
+
+    def test_escaped_and_mixed_sequences(self) -> None:
+        assert _normalize_wildcard_operators("f:\\uf00dContains\\uf00dx") == "f: contains x"
+        assert _normalize_wildcard_operators("f:\\uF00DContains\\uF00Dx") == "f: contains x"
+        assert _normalize_wildcard_operators("f:\uf00dContains\\uf00dx") == "f: contains x"
+
+    def test_passthrough(self) -> None:
+        assert _normalize_wildcard_operators("") == ""
+        assert (
+            _normalize_wildcard_operators("browser:Firefox count():>100")
+            == "browser:Firefox count():>100"
+        )
+
+    def test_multiple_operators(self) -> None:
+        W = self.W
+        text = f"a:{W}Contains{W}foo b:{W}EndsWith{W}.js"
+        assert _normalize_wildcard_operators(text) == "a: contains foo b: ends with .js"
+
 
 _TEST_SECRET = "test-secret-must-be-at-least-32-bytes-long-for-hs256"
 
@@ -426,3 +467,48 @@ class TestGetProxyHeaders(TestCase):
         assert "iat" in decoded
         assert "exp" in decoded
         assert decoded["iss"] == "sentry"
+
+
+class SanitizeJsonStringsTest(TestCase):
+    def test_strips_nul_from_nested_structures(self) -> None:
+        value = {
+            "title": "The input string '\x00' was not in a correct format.",
+            "nested": {"culprit": "foo\x00bar"},
+            "items": [{"name": "a\x00"}, "b\x00c", 3, None, True],
+        }
+        assert _sanitize_json_strings(value) == {
+            "title": "The input string '' was not in a correct format.",
+            "nested": {"culprit": "foobar"},
+            "items": [{"name": "a"}, "bc", 3, None, True],
+        }
+
+    def test_strips_lone_surrogates(self) -> None:
+        assert _sanitize_json_strings({"title": "bad\ud83dvalue"}) == {"title": "badvalue"}
+
+    def test_leaves_clean_values_untouched(self) -> None:
+        value = {"title": "plain", "count": 5, "flags": [True, None]}
+        assert _sanitize_json_strings(value) == value
+
+
+class EnqueueSeerRunSanitizeTest(TestCase):
+    def test_nul_in_body_does_not_break_outbox_insert(self) -> None:
+        run = enqueue_seer_run(
+            organization=self.organization,
+            run_type=SeerRunType.FEATURE_RUN,
+            body={
+                "feature_id": "night_shift",
+                "payload": {
+                    "candidates": [
+                        {"title": "System.FormatException: The input string '\x00' was..."}
+                    ]
+                },
+            },
+            viewer_context=None,
+            flush=False,
+        )
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.id
+        )
+        assert outbox.payload is not None
+        title = outbox.payload["body"]["payload"]["candidates"][0]["title"]
+        assert title == "System.FormatException: The input string '' was..."

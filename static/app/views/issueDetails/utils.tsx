@@ -10,16 +10,16 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
@@ -133,7 +133,7 @@ export function getSubscriptionReason(group: Group) {
       );
     }
 
-    if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+    if (reason && Object.hasOwn(SUBSCRIPTION_REASONS, reason)) {
       return SUBSCRIPTION_REASONS[reason as keyof typeof SUBSCRIPTION_REASONS];
     }
   }
@@ -277,20 +277,17 @@ export function groupEventApiOptions<T = Event>({
 }
 
 export function useIsSampleEvent(): boolean {
-  const params = useParams<{groupId: string}>();
+  const groupId = useGroupId({allowNull: true});
+  const groupData = useGroupData({allowNull: true});
   const environments = useEnvironmentsFromUrl();
-
-  const groupId = params.groupId;
-
-  const group = GroupStore.get(groupId);
 
   const {data} = useGroupTags(
     {
-      groupId,
+      groupId: groupId ?? undefined,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests
-    {enabled: defined(group)}
+    {enabled: defined(groupData)}
   );
   return data?.some(tag => tag.key === 'sample_event') ?? false;
 }

@@ -13,7 +13,7 @@ import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -21,6 +21,7 @@ import {
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarGroupByHeader() {
   return (
@@ -43,7 +44,8 @@ interface ToolbarGroupByDropdownProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
-  fieldDefinitionType?: Parameters<typeof getFieldDefinition>[1];
+  fieldDefinitionType?: GetFieldDefinitionType;
+  groupBys?: readonly string[];
   loading?: boolean;
   onClose?: () => void;
   onSearch?: (search: string) => void;
@@ -59,11 +61,31 @@ export function ToolbarGroupByDropdown({
   loading,
   onClose,
   fieldDefinitionType = 'span',
+  groupBys = [],
 }: ToolbarGroupByDropdownProps) {
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
     transition: null,
   });
+
+  const optionsWithDisabled = useMemo(() => {
+    const usedByOtherColumns = new Set(
+      groupBys.filter(groupBy => groupBy && groupBy !== column.column)
+    );
+    if (usedByOtherColumns.size === 0) {
+      return options;
+    }
+    return options.map(option =>
+      usedByOtherColumns.has(option.value)
+        ? {
+            ...option,
+            disabled: true,
+            tooltip: t('This attribute is already being grouped by.'),
+            tooltipOptions: {position: 'left' as const},
+          }
+        : option
+    );
+  }, [options, groupBys, column.column]);
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
     if (typeof option.value === 'string') {
@@ -86,24 +108,18 @@ export function ToolbarGroupByDropdown({
       {canDelete ? <DragReorderButton iconSize="sm" {...listeners} /> : null}
       <StyledCompactSelect
         data-test-id="editor-column"
-        options={options}
+        options={optionsWithDisabled}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         search={{
+          highlight: true,
           onChange: onSearch,
           filter: (option, search) => {
-            const text =
-              option.textValue ?? (typeof option.label === 'string' ? option.label : '');
-            const normalizedText = text.toLowerCase();
-            const normalizedSearch = search.toLowerCase();
-            if (!normalizedText.includes(normalizedSearch)) {
-              return {score: 0};
-            }
-            const isExact = normalizedText === normalizedSearch;
-            const isKnown =
-              getFieldDefinition(String(option.value), fieldDefinitionType) !== null;
-            // exact+known=4, exact+unknown=3, partial+known=2, partial+unknown=1
-            return {score: (isExact ? 2 : 0) + (isKnown ? 2 : 1)};
+            return sortSearchedAttributes({
+              fieldDefinitionType,
+              option,
+              searchText: search,
+            });
           },
         }}
         trigger={triggerProps => (
@@ -118,7 +134,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? (
         <Button
           aria-label={t('Remove Column')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
@@ -126,7 +142,7 @@ export function ToolbarGroupByDropdown({
       ) : column.column ? (
         <Button
           aria-label={t('Clear Group By')}
-          priority="transparent"
+          variant="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnChange('')}
@@ -147,7 +163,7 @@ export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddPro
       size="zero"
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      variant="link"
       aria-label={t('Add Group')}
       disabled={disabled}
     >

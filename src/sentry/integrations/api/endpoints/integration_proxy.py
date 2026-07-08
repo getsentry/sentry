@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from enum import StrEnum
-from typing import Any
+from typing import Any, MutableMapping
 from urllib.parse import urljoin
 
 import sentry_sdk
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import HttpRequest, HttpResponseBadRequest, StreamingHttpResponse
 from requests import Request, Response
+from requests.exceptions import RequestException
+from rest_framework.negotiation import BaseContentNegotiation
+from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
 from sentry_sdk import Scope
@@ -37,7 +40,9 @@ from sentry.silo.util import (
     PROXY_OI_HEADER,
     PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
+    PROXY_TIMEOUT_HEADER,
     clean_outbound_headers,
+    decode_proxy_timeout,
     trim_leading_slashes,
     verify_subnet_signature,
 )
@@ -72,8 +77,27 @@ class IntegrationProxyFailureMetricType(StrEnum):
     FAILED_VALIDATION = "failed_validation"
 
 
+class _PassthroughContentNegotiation(BaseContentNegotiation):
+    """
+    DRF's initial() method calls perform_content_negotiation() before the handler runs. The default
+    negotiation class (DefaultContentNegotiation) tries to match the request's Accept header against
+    configured renderers. Sentry only configures JSONRenderer, so any request with Accept: text/html,
+    application/xml, etc. gets rejected with 406 Not Acceptable — even though this endpoint never
+    uses DRF's rendering at all (it returns a raw StreamingHttpResponse).
+
+    _PassthroughContentNegotiation bypasses that check by always returning a valid renderer,
+    regardless of what the client sent in Accept. The returned renderer is never actually used.
+    StreamingHttpResponse skips DRF's finalize_response rendering entirely — but DRF requires
+    select_renderer to succeed for the request to proceed past initial().
+    """
+
+    def select_renderer(self, request, renderers, format_suffix=None):
+        return (JSONRenderer(), JSONRenderer.media_type)
+
+
 @internal_control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
+    content_negotiation_class = _PassthroughContentNegotiation
     publish_status = defaultdict(lambda: ApiPublishStatus.PRIVATE)
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
@@ -236,28 +260,45 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             return False
         return True
 
-    def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
+    @sentry_sdk.trace
+    def _call_third_party_api(
+        self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
+    ) -> StreamingHttpResponse:
         prepared_request = Request(
-            method=request.method,
-            url=full_url,
-            headers=headers,
-            data=request.body,
+            method=request.method, url=full_url, headers=headers, data=request.body
         ).prepare()
-        # Third-party authentication headers will be added in client.authorize_request which runs
-        # in IntegrationProxyClient.finalize_request.
-        raw_response: Response = self.client.request(
+
+        # Honor the timeout the original caller forwarded so the downstream
+        # request can stay open as long as intended. Falls back to the client's
+        # default timeout when the header is absent or unparseable.
+        timeout = decode_proxy_timeout(request.headers.get(PROXY_TIMEOUT_HEADER))
+
+        resp: Response = self.client.request(
             request.method,
             self.proxy_path,
             allow_text=True,
             prepared_request=prepared_request,
             raw_response=True,
+            stream=True,
+            timeout=timeout,
         )
-        clean_headers = clean_outbound_headers(raw_response.headers)
-        return HttpResponse(
-            content=raw_response.content,
-            status=raw_response.status_code,
-            reason=raw_response.reason,
-            headers=clean_headers,
+
+        def iter_response(response: Response) -> Generator[bytes]:
+            with response as r:
+                try:
+                    yield from r.iter_content(16 * 1024)
+                except (RequestException, ConnectionError, OSError) as e:
+                    logger.warning(
+                        "integrations.proxy.stream_interrupted",
+                        extra={"error": str(e), "url": full_url},
+                    )
+                    return
+
+        return StreamingHttpResponse(
+            iter_response(resp),
+            status=resp.status_code,
+            headers=clean_outbound_headers(resp.headers),
+            reason=resp.reason,
         )
 
     @sentry_sdk.trace(op="integration_proxy.http_method_not_allowed")

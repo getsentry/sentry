@@ -16,8 +16,10 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.notifications.platform.slack.provider import SlackRenderable
 
 _logger = logging.getLogger("sentry.integrations.slack")
 
@@ -104,6 +106,10 @@ def get_thread_history(
     channel_id: str,
     thread_ts: str,
     scopes: Sequence[str] | None = None,
+    latest: str | None = None,
+    oldest: str | None = None,
+    inclusive: bool | None = None,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     """Fetch thread replies via conversations.replies. Empty list on missing scope or error."""
     if not has_history_scope(integration_id=integration_id, channel_id=channel_id, scopes=scopes):
@@ -111,7 +117,14 @@ def get_thread_history(
 
     try:
         client = SlackSdkClient(integration_id=integration_id)
-        response = client.conversations_replies(channel=channel_id, ts=thread_ts)
+        response = client.conversations_replies(
+            channel=channel_id,
+            ts=thread_ts,
+            latest=latest,
+            oldest=oldest,
+            inclusive=inclusive,
+            limit=limit,
+        )
         return response.get("messages", []) or []
     except SlackApiError as e:
         _logger.warning(
@@ -130,3 +143,25 @@ def get_thread_history(
             extra={"integration_id": integration_id, "error": str(e)},
         )
         return []
+
+
+def send_threaded_ephemeral_message(
+    *,
+    integration_id: int,
+    channel_id: str,
+    renderable: SlackRenderable,
+    slack_user_id: str,
+    thread_ts: str | None,
+) -> None:
+    client = SlackSdkClient(integration_id=integration_id)
+    try:
+        client.chat_postEphemeral(
+            channel=channel_id,
+            blocks=renderable["blocks"] if len(renderable["blocks"]) > 0 else None,
+            attachments=renderable.get("attachments"),
+            text=renderable["text"],
+            thread_ts=thread_ts,
+            user=slack_user_id,
+        )
+    except SlackApiError as e:
+        translate_slack_api_error(e)

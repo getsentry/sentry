@@ -78,6 +78,7 @@ class TestOrganizationSeerAgentPRGroupsEndpoint(APITestCase):
 
     def test_get_returns_issues_with_pr_data(self) -> None:
         group = self.create_group(project=self.project)
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=42)
         seer_item = self._make_seer_item(
             group_id=group.id,
             run_id=42,
@@ -101,6 +102,7 @@ class TestOrganizationSeerAgentPRGroupsEndpoint(APITestCase):
         data = response.json()["data"]
         assert len(data) == 1
         assert data[0]["runId"] == 42
+        assert data[0]["sentryRunId"] == str(seer_run.uuid)
         assert data[0]["userId"] == 1
         assert data[0]["createdAt"] == "2025-01-15T12:00:00Z"
         assert data[0]["repoPrStates"] == {

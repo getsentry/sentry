@@ -386,7 +386,9 @@ function makeContextCapture() {
   return {
     ContextCapture,
     getSnapshot: () => {
-      if (!ref.current) throw new Error('ContextCapture not mounted');
+      if (!ref.current) {
+        throw new Error('ContextCapture not mounted');
+      }
       return ref.current();
     },
   };

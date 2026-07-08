@@ -32,14 +32,14 @@ class SentryAppAvatarTypes(Enum):
 class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
     def get_by_apps_as_dict(
         self, sentry_apps: Iterable[SentryApp]
-    ) -> dict[int, set[SentryAppAvatar]]:
+    ) -> dict[int, list[SentryAppAvatar]]:
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
         """
         avatars = SentryAppAvatar.objects.filter(sentry_app__in=sentry_apps)
-        avatar_to_app_map = defaultdict(set)
+        avatar_to_app_map: dict[int, list[SentryAppAvatar]] = defaultdict(list)
         for avatar in avatars:
-            avatar_to_app_map[avatar.sentry_app_id].add(avatar)
+            avatar_to_app_map[avatar.sentry_app_id].append(avatar)
         return avatar_to_app_map
 
 

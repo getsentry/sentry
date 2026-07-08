@@ -38,7 +38,9 @@ from sentry.snuba.events import Columns
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
+from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -239,7 +241,7 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        with sentry_sdk.start_span(op="eventstore.snuba.get_events"):
+        with start_span(op="eventstore.snuba.get_events", name="eventstore.snuba.get_events"):
             return self.__get_events(
                 filter,
                 eap_conditions=eap_conditions,
@@ -410,7 +412,7 @@ class SnubaEventStorage(EventStorage):
                     control_data=control_data,
                     experimental_data=experimental_data,
                     callsite=callsite,
-                    is_experimental_data_a_null_result=eap_results is None,
+                    is_experimental_data_nullish=eap_results is None,
                     reasonable_match_comparator=lambda ctl, exp: exp.issubset(ctl),
                     debug_context={
                         "project_ids": list(filter.project_ids) if filter.project_ids else [],
@@ -483,6 +485,7 @@ class SnubaEventStorage(EventStorage):
 
         if group_id is not None:
             sentry_sdk.set_tag("nodestore.event_type", event.get_event_type())
+            sentry_sdk.set_attribute("nodestore.event_type", event.get_event_type())
 
         if group_id is not None and (
             event.get_event_type() == "error"
@@ -584,7 +587,7 @@ class SnubaEventStorage(EventStorage):
                     control_data=control_group_id,
                     experimental_data=eap_group_id,
                     callsite=callsite,
-                    is_experimental_data_a_null_result=eap_result is None,
+                    is_experimental_data_nullish=eap_result is None,
                     reasonable_match_comparator=lambda snuba, eap: snuba == eap,
                     debug_context={
                         "project_id": project_id,
@@ -925,7 +928,7 @@ class SnubaEventStorage(EventStorage):
         next_filter.conditions.extend(get_after_event_condition(event))
         next_filter.start = event.datetime
         if not next_filter.end:
-            next_filter.end = datetime.utcnow()
+            next_filter.end = deprecated_utcnow()
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)

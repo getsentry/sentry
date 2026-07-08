@@ -45,7 +45,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
@@ -54,7 +54,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </HeaderControlsRight>
       </Header>

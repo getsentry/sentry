@@ -22,8 +22,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UserEmail} from 'sentry/types/user';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -158,7 +158,7 @@ export function EmailAddresses() {
     api
       .requestPromise(endpoint, requestParams)
       .catch(err => {
-        if (err?.responseJSON?.email) {
+        if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
           addErrorMessage(err.responseJSON.email);
         }
       })

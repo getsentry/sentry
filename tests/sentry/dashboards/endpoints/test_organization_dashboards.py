@@ -13,7 +13,6 @@ from sentry.dashboards.endpoints.organization_dashboards import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardLastVisited,
 )
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -21,7 +20,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -151,49 +149,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 expected = list(reversed(expected))
 
             assert values == expected
-
-    def test_get_sortby_recently_viewed_user_last_visited(self) -> None:
-        dashboard_a = Dashboard.objects.create(
-            title="A",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        dashboard_b = Dashboard.objects.create(
-            title="B",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_a,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=5),
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_b,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=0),
-        )
-
-        for forward_sort in [True, False]:
-            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-
-            with self.feature("organizations:dashboards-starred-reordering"):
-                response = self.client.get(self.url, data={"sort": sorting})
-
-            assert response.status_code == 200
-            values = [row["title"] for row in response.data]
-            expected = ["B", "A"]
-
-            if not forward_sort:
-                expected = list(reversed(expected))
-
-            # Only A, B are sorted by their last visited entry, Dashboard 1
-            # and Dashboard 2 are by default sorted by their date created
-            assert values == expected + ["Dashboard 2", "Dashboard 1"]
 
     def test_get_sortby_mydashboards(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -886,93 +841,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [now, one_hour_ago]
-
-    def test_get_with_last_visited(self) -> None:
-        # Clean up existing dashboards setup for this test.
-        Dashboard.objects.all().delete()
-
-        Dashboard.objects.create(
-            title="Dashboard without last visited",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
-        dashboard_2 = Dashboard.objects.create(
-            title="Dashboard with last visited",
-            organization=self.organization,
-            created_by_id=self.user.id,
-        )
-        now = before_now(minutes=0)
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_2,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=now,
-        )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-
-        titles = [row["title"] for row in response.data]
-        assert titles == [
-            "Dashboard with last visited",
-            "Dashboard without last visited",
-        ]
-
-        visited_at = [row.get("lastVisited") for row in response.data]
-        assert visited_at == [now, None]
-
-    def test_get_recently_viewed_sort_with_favorites_from_other_user(self) -> None:
-        other_user = self.create_user(username="other_user")
-        self.create_member(organization=self.organization, user=other_user)
-
-        Dashboard.objects.all().delete()
-        dashboard_1 = Dashboard.objects.create(
-            title="Dashboard 1",
-            created_by_id=other_user.id,
-            organization=self.organization,
-        )
-
-        # Both users have the same dashboard in their favorites
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=self.user.id,
-            dashboard=dashboard_1,
-        )
-        DashboardFavoriteUser.objects.insert_favorite_dashboard(
-            organization=self.organization,
-            user_id=other_user.id,
-            dashboard=dashboard_1,
-        )
-
-        # Both users have recently visited the dashboard
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_1,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=self.user.id
-            ),
-            last_visited=before_now(minutes=0),
-        )
-        DashboardLastVisited.objects.create(
-            dashboard=dashboard_1,
-            member=OrganizationMember.objects.get(
-                organization=self.organization, user_id=other_user.id
-            ),
-            last_visited=before_now(minutes=2),
-        )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.client.get(
-                self.url, data={"sort": "recentlyViewed", "pin": "favorites"}
-            )
-        assert response.status_code == 200, response.content
-
-        # Assert that the dashboard did not receive a duplicate entry due to being
-        # favorited by another user
-        assert len(response.data) == 1
-        self.assert_equal_dashboards(dashboard_1, response.data[0])
 
     def test_post(self) -> None:
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
@@ -2006,80 +1874,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         starred_dashboard = response.data[1]
         assert starred_dashboard["projects"] == []
 
-    def test_automatically_favorites_dashboard_when_isFavorited_is_true(self) -> None:
-        data = {
-            "title": "Dashboard with errors widget",
-            "isFavorited": True,
-        }
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with errors widget"
-        )
-        assert response.data["isFavorited"] is True
-
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization, user_id=self.user.id, dashboard=dashboard
-            )
-            is not None
-        )
-
-    def test_does_not_automatically_favorite_dashboard_when_isFavorited_is_false(self) -> None:
-        data = {
-            "title": "Dashboard with errors widget",
-            "isFavorited": False,
-        }
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 201, response.data
-        dashboard = Dashboard.objects.get(
-            organization=self.organization, title="Dashboard with errors widget"
-        )
-        assert response.data["isFavorited"] is False
-
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                organization=self.organization, user_id=self.user.id, dashboard=dashboard
-            )
-            is None
-        )
-
-    def test_order_by_most_favorited(self) -> None:
-        Dashboard.objects.all().delete()
-
-        # A mapping from dashboard title to the number of times it was favorited
-        dashboards = {
-            "Dashboard 1": 0,
-            "Dashboard 2": 2,
-            "Dashboard 3": 1,
-        }
-
-        # Set up a favorite entry for each dashboard by the number of times it was favorited
-        for title, favorited in dashboards.items():
-            dashboard = self.create_dashboard(title=title, organization=self.organization)
-            if favorited:
-                for _ in range(favorited):
-                    user = self.create_user()
-                    DashboardFavoriteUser.objects.create(
-                        dashboard=dashboard,
-                        user_id=user.id,
-                        organization=self.organization,
-                    )
-
-        with self.feature("organizations:dashboards-starred-reordering"):
-            response = self.do_request(
-                "get", self.url, {"sort": "mostFavorited", "pin": "favorites"}
-            )
-
-        assert response.status_code == 200, response.content
-        assert [dashboard["title"] for dashboard in response.data] == [
-            "Dashboard 2",
-            "Dashboard 3",
-            "Dashboard 1",
-        ]
-
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
         mock_get_dashboard_limit.return_value = 1
@@ -2332,90 +2126,157 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(prebuilt_in_response) == 1
 
     def test_post_with_text_widget(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Dashboard from Post",
-                "widgets": [
-                    {
-                        "displayType": "line",
-                        "interval": "5m",
-                        "title": "Chart",
-                        "queries": [
-                            {
-                                "name": "Transactions",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                                "conditions": "event.type:transaction",
-                            }
-                        ],
-                    },
-                    {
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "This is a text widget description",
-                    },
-                ],
-            }
-            response = self.do_request("post", self.url, data=data)
-            assert response.status_code == 201, response.data
-            dashboard = Dashboard.objects.get(
-                organization=self.organization, title="Dashboard from Post"
-            )
-            assert dashboard.created_by_id == self.user.id
-
-            widgets = self.get_widgets(dashboard.id)
-            assert len(widgets) == 2
-
-            text_widget = widgets[1]
-            assert text_widget.title == "Text Widget"
-            assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
-            assert text_widget.description == "This is a text widget description"
-            assert text_widget.widget_type is None
-
-            assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
-
-    def test_post_with_text_widget_without_feature_flag(self) -> None:
         data = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Chart",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+                {
                     "title": "Text Widget",
                     "displayType": "text",
                     "description": "This is a text widget description",
-                }
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        assert dashboard.created_by_id == self.user.id
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 2
+
+        text_widget = widgets[1]
+        assert text_widget.title == "Text Widget"
+        assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
+        assert text_widget.description == "This is a text widget description"
+        assert text_widget.widget_type is None
+
+        assert DashboardWidgetQuery.objects.filter(widget=text_widget).count() == 0
+
+    def test_agents_traces_table_dashboard_save_and_update(self) -> None:
+        # Regression: the AI Agents Overview prebuilt config has an
+        # agents_traces_table widget without a widget_type. The backend defaults
+        # it to error-events on create. On the next PUT the frontend round-trips
+        # widget_type=error-events, which would otherwise fail validation.
+        data = {
+            "title": "AI Agents Overview",
+            "widgets": [
+                {
+                    "title": "Traces",
+                    "displayType": "agents_traces_table",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [],
+                            "columns": [],
+                            "aggregates": [],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        create = self.do_request("post", self.url, data=data)
+        assert create.status_code == 201, create.data
+        dashboard_id = create.data["id"]
+        widget_id = create.data["widgets"][0]["id"]
+        widget_type = create.data["widgets"][0].get("widgetType")
+
+        put_url = f"/api/0/organizations/{self.organization.slug}/dashboards/{dashboard_id}/"
+        put_data = {
+            "title": "AI Agents Overview",
+            "widgets": [
+                {
+                    "id": widget_id,
+                    "title": "Traces",
+                    "displayType": "agents_traces_table",
+                    "widgetType": widget_type,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [],
+                            "columns": [],
+                            "aggregates": [],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        update = self.do_request("put", put_url, data=put_data)
+        assert update.status_code == 200, update.data
+
+    def test_post_text_widget_after_restrictive_dataset_widget(self) -> None:
+        # Regression: DRF reuses a single child serializer for ``many=True``,
+        # so a previous widget's widget_type can leak via serializer context
+        # and incorrectly fail validation for a later TEXT widget.
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Mobile Size",
+                    "displayType": "line",
+                    "widgetType": "preprod-app-size",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+                {
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "Notes",
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+    def test_post_with_text_widget_ignores_queries(self) -> None:
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "title": "Text Widget with Queries",
+                    "displayType": "text",
+                    "description": "This should ignore queries",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "conditions": "event.type:error",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                        }
+                    ],
+                },
             ],
         }
         response = self.do_request("post", self.url, data=data)
         assert response.status_code == 400, response.data
         assert "widgets" in response.data, response.data
-        assert "Text widgets are not enabled" in response.data["widgets"][0]["displayType"][0]
-
-    def test_post_with_text_widget_ignores_queries(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "Dashboard from Post",
-                "widgets": [
-                    {
-                        "title": "Text Widget with Queries",
-                        "displayType": "text",
-                        "description": "This should ignore queries",
-                        "queries": [
-                            {
-                                "name": "errors",
-                                "conditions": "event.type:error",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                            }
-                        ],
-                    },
-                ],
-            }
-            response = self.do_request("post", self.url, data=data)
-            assert response.status_code == 400, response.data
-            assert "widgets" in response.data, response.data
-            assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
+        assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
 
     def test_post_validate_only_success_without_creating(self) -> None:
         data: dict[str, Any] = {
@@ -2443,6 +2304,38 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, title="Validated Dashboard"
         ).exists()
 
+    def test_post_tracemetrics_line_chart_rejects_equation_with_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Tracemetrics Equation",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Metrics Equation",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data["widgets"][0], response.data
+
     def test_post_validate_only_error_for_invalid_dashboard(self) -> None:
         data: dict[str, Any] = {
             "title": "Invalid Dashboard",
@@ -2468,34 +2361,4 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["widgets"][0]["interval"][0] == "This field may not be blank."
         assert not Dashboard.objects.filter(
             organization=self.organization, title="Invalid Dashboard"
-        ).exists()
-
-    def test_post_with_deprecated_display_type_rejected(self) -> None:
-        data: dict[str, Any] = {
-            "title": "Dashboard with Deprecated Widget",
-            "widgets": [
-                {
-                    "displayType": "stacked_area",
-                    "interval": "5m",
-                    "title": "Stacked area",
-                    "queries": [
-                        {
-                            "name": "Transactions",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:transaction",
-                        }
-                    ],
-                },
-            ],
-        }
-        response = self.do_request("post", self.url, data=data)
-        assert response.status_code == 400, response.data
-        assert (
-            "stacked_area is no longer a supported display type."
-            in response.data["widgets"][0]["displayType"][0]
-        )
-        assert not Dashboard.objects.filter(
-            organization=self.organization, title="Dashboard with Deprecated Widget"
         ).exists()

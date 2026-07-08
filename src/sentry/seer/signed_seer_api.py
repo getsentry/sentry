@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -149,7 +148,7 @@ def make_signed_seer_api_request(
         except ValueError:
             logger.warning(
                 "viewer_context_jwt.no_signing_key",
-                extra={"msg": "No key available to sign viewer context JWT."},
+                extra={"reason": "No key available to sign viewer context JWT."},
             )
         except Exception:
             logger.exception("Failed to encode viewer context JWT for call to Seer.")
@@ -241,6 +240,14 @@ class LlmGenerateRequest(TypedDict):
     response_schema: NotRequired[dict[str, Any]]
     timeout: NotRequired[float | None]
     reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
+
+
+class OneShotRunRequest(TypedDict):
+    # The registered one-shot to dispatch to on the Seer side (see the ONESHOTS
+    # registry in seer/automation/oneshots/). The `payload` shape is defined by
+    # that one-shot and parsed against its contract.
+    oneshot_id: str
+    payload: dict[str, Any]
 
 
 class RepoDetails(TypedDict):
@@ -399,6 +406,20 @@ def make_llm_generate_request(
     )
 
 
+def make_oneshot_request(
+    body: OneShotRunRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/oneshot/run",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
 class SummarizeTraceRequest(TypedDict):
     trace_id: str
     only_transaction: bool
@@ -415,18 +436,6 @@ class SummarizeIssueRequest(TypedDict):
     experiment_variant: NotRequired[str | None]
 
 
-class RCASource(StrEnum):
-    EXPLORER = "EXPLORER"
-    LIGHTWEIGHT = "LIGHTWEIGHT"
-
-
-class SupergroupsEmbeddingRequest(TypedDict):
-    organization_id: int
-    group_id: int
-    project_id: int
-    artifact_data: dict[str, Any]
-
-
 class LightweightRCAClusterRequest(TypedDict):
     group_id: int
     issue: dict[str, Any]
@@ -438,13 +447,11 @@ class LightweightRCAClusterRequest(TypedDict):
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
-    rca_source: str
 
 
 class SupergroupsGetByGroupIdsRequest(TypedDict):
     organization_id: int
     group_ids: list[int]
-    rca_source: str
 
 
 class SupergroupDetailData(TypedDict):
@@ -492,6 +499,7 @@ class SearchAgentStartRequest(TypedDict):
     project_ids: list[int]
     natural_language_query: str
     strategy: str
+    external_idempotency_key: NotRequired[str]
     user_email: NotRequired[str]
     timezone: NotRequired[str]
     options: NotRequired[dict[str, Any]]
@@ -543,20 +551,6 @@ def make_summarize_issue_request(
         seer_summarization_default_connection_pool,
         "/v1/automation/summarize/issue",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_supergroups_embedding_request(
-    body: SupergroupsEmbeddingRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v0/issues/supergroups",
-        body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
     )

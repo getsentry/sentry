@@ -286,7 +286,7 @@ export function StacktraceLinkModal({
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
                           <CopyToClipboardButton
-                            priority="transparent"
+                            variant="transparent"
                             text={suggestion}
                             size="xs"
                             aria-label={t('Copy suggestion to clipboard')}
@@ -314,7 +314,7 @@ export function StacktraceLinkModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={handleSubmit}>
+          <Button variant="primary" onClick={handleSubmit}>
             {t('Save')}
           </Button>
         </Grid>

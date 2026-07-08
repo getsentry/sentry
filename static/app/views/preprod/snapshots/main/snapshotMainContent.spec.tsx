@@ -1,6 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {
+  SidebarItem,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
@@ -31,9 +33,9 @@ jest.mock('sentry/utils/useCopyToClipboard', () => ({
   useCopyToClipboard: () => ({copy: mockCopy}),
 }));
 
-function renderSnapshotMainContent(
+function buildProps(
   props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
-) {
+): React.ComponentProps<typeof SnapshotMainContent> {
   const defaultProps: React.ComponentProps<typeof SnapshotMainContent> = {
     canNavigateNext: false,
     canNavigatePrev: false,
@@ -48,38 +50,44 @@ function renderSnapshotMainContent(
     onDiffModeChange: jest.fn(),
     onNavigateSingleView: jest.fn(),
     onOverlayColorChange: jest.fn(),
+    onOverlayOpacityChange: jest.fn(),
     onToggleSoloView: jest.fn(),
     onViewModeChange: jest.fn(),
     overlayColor: 'transparent',
+    overlayOpacity: 100,
     selectedItem: null,
     variantIndex: 0,
     viewMode: 'list',
   };
 
-  return render(<SnapshotMainContent {...defaultProps} {...props} />);
+  return {...defaultProps, ...props};
+}
+
+function renderSnapshotMainContent(
+  props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
+) {
+  return render(<SnapshotMainContent {...buildProps(props)} />);
 }
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
-    content_hash: 'synthetic-content-hash',
     display_name: 'Button / light',
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
+    tags: null,
     width: 320,
     ...overrides,
   };
 }
 
 const baseImage = image({
-  content_hash: 'base-content-hash',
   display_name: 'Button / light base',
   image_file_name: 'button.light.base.png',
   key: 'base-button-light',
 });
 
 const headImage = image({
-  content_hash: 'head-content-hash',
   group: 'components',
   key: 'head-button-light',
 });
@@ -91,9 +99,24 @@ const changedPair: SnapshotDiffPair = {
   head_image: headImage,
 };
 
+const erroredPair: SnapshotDiffPair = {
+  base_image: image({
+    display_name: 'Login screen base',
+    image_file_name: 'login.base.png',
+    key: 'base-login',
+  }),
+  diff: null,
+  diff_image_key: null,
+  head_image: image({
+    display_name: 'Login screen',
+    group: 'screens',
+    image_file_name: 'login.png',
+    key: 'head-login',
+  }),
+};
+
 const renamedPair: SnapshotDiffPair = {
   base_image: image({
-    content_hash: 'base-renamed-content-hash',
     display_name: 'Button / light old',
     image_file_name: 'button.light.old.png',
     key: 'base-button-light-old',
@@ -101,7 +124,6 @@ const renamedPair: SnapshotDiffPair = {
   diff: null,
   diff_image_key: null,
   head_image: image({
-    content_hash: 'head-renamed-content-hash',
     group: 'components',
     image_file_name: 'button.light.png',
     key: 'head-button-light',
@@ -137,12 +159,19 @@ describe('SnapshotMainContent', () => {
       headBranch: 'feature/snapshot-updates',
       isSoloView: false,
       listItems: [
-        {key: 'changed-buttons', name: 'Buttons', pairs: [changedPair], type: 'changed'},
+        {
+          key: 'changed-buttons',
+          name: 'Buttons',
+          displayName: 'Buttons',
+          pairs: [changedPair],
+          type: 'changed',
+        },
       ],
       onNavigateSingleView,
       selectedItem: {
         key: 'changed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [changedPair],
         type: 'changed',
       },
@@ -151,7 +180,7 @@ describe('SnapshotMainContent', () => {
 
     expect(screen.getByText('Buttons')).toBeInTheDocument();
     expect(screen.getByText('Button / light')).toBeInTheDocument();
-    expect(screen.getByText(/Modified/)).toBeInTheDocument();
+    expect(screen.getByText(/Changed/)).toBeInTheDocument();
     expect(screen.getByText('feature/snapshot-updates')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pick overlay color'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Split'})).toBeChecked();
@@ -167,6 +196,130 @@ describe('SnapshotMainContent', () => {
     expect(onNavigateSingleView).toHaveBeenCalledWith('next');
   });
 
+  it('exposes overlay opacity presets inside the color picker in split mode', async () => {
+    const onOverlayOpacityChange = jest.fn();
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      diffMode: 'split',
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      onOverlayOpacityChange,
+      overlayOpacity: 100,
+      viewMode: 'single',
+    });
+
+    // Presets live inside the color picker popover, not the toolbar itself.
+    expect(
+      screen.queryByRole('button', {name: 'Overlay opacity 50%'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pick overlay color'}));
+
+    expect(screen.getByRole('button', {name: 'Overlay opacity 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Overlay opacity 50%'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Overlay opacity 100%'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Overlay opacity 50%'}));
+
+    expect(onOverlayOpacityChange).toHaveBeenCalledWith(50);
+  });
+
+  it('marks only the active opacity preset as pressed', async () => {
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      diffMode: 'split',
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      overlayOpacity: 50,
+      viewMode: 'single',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pick overlay color'}));
+
+    expect(screen.getByRole('button', {name: 'Overlay opacity 50%'})).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    for (const label of ['Overlay opacity 0%', 'Overlay opacity 100%']) {
+      expect(screen.getByRole('button', {name: label})).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+    }
+  });
+
+  it('hides the color picker and opacity presets outside of split mode', () => {
+    const changedItem = {
+      key: 'changed-buttons',
+      name: 'Buttons',
+      displayName: 'Buttons',
+      pairs: [changedPair],
+      type: 'changed' as const,
+    };
+
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      diffMode: 'wipe',
+      isSoloView: false,
+      listItems: [changedItem],
+      selectedItem: changedItem,
+      viewMode: 'single',
+    });
+
+    expect(
+      screen.queryByRole('button', {name: 'Pick overlay color'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Wipe'})).toBeChecked();
+  });
+
+  it('renders focused errored snapshots side-by-side with a failed badge', () => {
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      isSoloView: false,
+      selectedItem: {
+        key: 'errored-screens',
+        name: 'Screens',
+        displayName: 'Screens',
+        pairs: [erroredPair],
+        type: 'errored',
+      },
+      viewMode: 'single',
+    });
+
+    expect(screen.getByText('Screens')).toBeInTheDocument();
+    expect(screen.getByText('Login screen')).toBeInTheDocument();
+    expect(screen.getByText('Failed to compare')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Unknown error: failed to compare these images (base and head images still shown below).'
+      )
+    ).toBeInTheDocument();
+    // Side-by-side renders both base and head columns (one per diff-mode body).
+    expect(screen.getAllByText('Base').length).toBeGreaterThan(0);
+    // Errored pairs have no diff, so the diff-mode controls are not shown.
+    expect(screen.queryByRole('radio', {name: 'Split'})).not.toBeInTheDocument();
+  });
+
   it('renders focused renamed snapshots as a single image with pair metadata', async () => {
     renderSnapshotMainContent({
       comparisonType: 'diff',
@@ -174,6 +327,7 @@ describe('SnapshotMainContent', () => {
       selectedItem: {
         key: 'renamed-buttons',
         name: 'Buttons',
+        displayName: 'Buttons',
         pairs: [renamedPair],
         type: 'renamed',
       },
@@ -188,6 +342,156 @@ describe('SnapshotMainContent', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy metadata as JSON'}));
 
     const copiedJson = mockCopy.mock.calls.at(-1)?.[0];
-    expect(JSON.parse(copiedJson)).toEqual(renamedPair);
+    expect(JSON.parse(copiedJson)).toEqual({
+      base_image: {
+        display_name: 'Button / light old',
+        height: 180,
+        image_file_name: 'button.light.old.png',
+        width: 320,
+      },
+      head_image: {
+        display_name: 'Button / light',
+        group: 'components',
+        height: 180,
+        image_file_name: 'button.light.png',
+        width: 320,
+      },
+    });
+  });
+
+  describe('canvas theme', () => {
+    // The header toggle button is labeled with the action it performs, so its
+    // accessible name reveals the current canvas: 'Light preview' means the
+    // canvas is dark, 'Dark preview' means it is light.
+    function expectDarkCanvas() {
+      expect(screen.getByRole('button', {name: 'Light preview'})).toBeInTheDocument();
+    }
+    function expectLightCanvas() {
+      expect(screen.getByRole('button', {name: 'Dark preview'})).toBeInTheDocument();
+    }
+
+    function soloItem(img: SnapshotImage): SidebarItem {
+      return {
+        key: `solo-${img.key}`,
+        name: img.image_file_name,
+        displayName: img.display_name ?? img.image_file_name,
+        images: [img],
+        type: 'solo',
+      };
+    }
+
+    const darkTagged = image({
+      display_name: 'Dark screen',
+      image_file_name: 'dark.png',
+      key: 'head-dark',
+      canvas_theme: 'dark',
+    });
+    const lightTagged = image({
+      display_name: 'Light screen',
+      image_file_name: 'light.png',
+      key: 'head-light',
+      canvas_theme: 'light',
+    });
+    const untagged = image({
+      display_name: 'Untagged screen',
+      image_file_name: 'untagged.png',
+      key: 'head-untagged',
+    });
+
+    function renderSingleView(img: SnapshotImage) {
+      const item = soloItem(img);
+      const view = renderSnapshotMainContent({
+        listItems: [item],
+        selectedItem: item,
+        viewMode: 'single',
+      });
+      const renderItem = (nextItem: SidebarItem) =>
+        view.rerender(
+          <SnapshotMainContent
+            {...buildProps({
+              listItems: [nextItem],
+              selectedItem: nextItem,
+              viewMode: 'single',
+            })}
+          />
+        );
+      return {
+        navigateTo: (nextImg: SnapshotImage) => renderItem(soloItem(nextImg)),
+        // Re-render the same view, as the app's theme provider does when the
+        // site theme changes (the isolated test tree has no such subscriber).
+        rerender: () => renderItem(item),
+      };
+    }
+
+    afterEach(() => {
+      ConfigStore.set('theme', 'light');
+    });
+
+    it('seeds the canvas from an explicit canvas_theme hint', () => {
+      renderSingleView(darkTagged);
+      expectDarkCanvas();
+    });
+
+    it('follows the site theme when the image has no hint', () => {
+      renderSingleView(untagged);
+      expectLightCanvas();
+    });
+
+    it('follows a dark site theme when the image has no hint', () => {
+      ConfigStore.set('theme', 'dark');
+      renderSingleView(untagged);
+      expectDarkCanvas();
+    });
+
+    it('keeps following the site theme for an unhinted image after it changes', () => {
+      const {rerender} = renderSingleView(untagged);
+      expectLightCanvas();
+
+      // An unhinted image must track the site theme live, not freeze to the
+      // theme that happened to be active when it first mounted.
+      ConfigStore.set('theme', 'dark');
+      rerender();
+      expectDarkCanvas();
+    });
+
+    it('asserts an explicit hint on navigation, overriding a manual toggle', async () => {
+      const {navigateTo} = renderSingleView(untagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Dark preview'}));
+      expectDarkCanvas();
+
+      navigateTo(lightTagged);
+      expectLightCanvas();
+    });
+
+    it('carries a manual toggle over to images without a hint', async () => {
+      const {navigateTo} = renderSingleView(darkTagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
+      expectLightCanvas();
+
+      navigateTo(untagged);
+      expectLightCanvas();
+    });
+
+    it('keeps a manual toggle when the same image is refetched', async () => {
+      const {navigateTo} = renderSingleView(darkTagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
+      expectLightCanvas();
+
+      // A poll refetch produces new objects with identical values; the hint
+      // must not re-assert itself while the user stays on the image.
+      navigateTo({...darkTagged});
+      expectLightCanvas();
+    });
+
+    it('re-asserts the hint when navigating between same-themed images', async () => {
+      const {navigateTo} = renderSingleView(darkTagged);
+      await userEvent.click(screen.getByRole('button', {name: 'Light preview'}));
+      expectLightCanvas();
+
+      // The next image shares the same canvas_theme, so only the image key
+      // changes — navigation must still re-assert the hint over the toggle.
+      navigateTo(image({...darkTagged, key: 'head-dark-2'}));
+      expectDarkCanvas();
+    });
   });
 });

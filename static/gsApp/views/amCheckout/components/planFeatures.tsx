@@ -14,12 +14,12 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
-import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
-import {PlanTier, type Plan} from 'getsentry/types';
-import {formatReservedWithUnits, getAmPlanTier} from 'getsentry/utils/billing';
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
+import type {Plan} from 'getsentry/types';
+import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
@@ -56,7 +56,6 @@ type FeatureInfo = {
   key: FeatureKey;
   displayStringPrefix?: string;
   displayStringSuffix?: string;
-  excludedTiers?: PlanTier[];
 };
 
 const ORDERED_PLAN_TYPES = ['developer', 'team', 'business'];
@@ -94,7 +93,6 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
       team: t('Insights w/ 30 day lookback'),
       business: t('+ 13 month sampled retention'),
     },
-    excludedTiers: [PlanTier.AM1],
   },
   {
     key: 'codeowners',
@@ -206,7 +204,7 @@ function MonitoringAndDataFeatures({
     Record<FeatureKey | DataCategory, Omit<FeatureInfo, 'key'>>
   > = {
     alerts: {
-      displayStringSuffix: t(' metric alerts'),
+      displayStringSuffix: t(' Metric Monitors'),
       displayStringMap: {},
     },
     dashboards: {
@@ -264,7 +262,7 @@ function MonitoringAndDataFeatures({
     const {metricDetectorLimit, dashboardLimit} = plan;
     const formattedMetricDetectorLimit =
       metricDetectorLimit === UNLIMITED_RESERVED
-        ? t('Unlimited')
+        ? t('1,000')
         : metricDetectorLimit.toString();
     const formattedDashboardLimit =
       dashboardLimit === UNLIMITED_RESERVED ? t('Unlimited') : dashboardLimit.toString();
@@ -493,7 +491,6 @@ export function PlanFeatures({
   activePlan: Plan;
   planOptions: Plan[];
 }) {
-  const currentTier = getAmPlanTier(activePlan.id);
   const perPlanPriceDiffs: Record<
     Plan['id'],
     Partial<Record<DataCategory, number>> & {plan: Plan}
@@ -530,11 +527,11 @@ export function PlanFeatures({
         gap="xl"
         direction="column"
       >
-        <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)'}} gap="xl">
+        <Grid columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
-        {currentTier !== DEFAULT_TIER && (
+        {!activePlan.categories.includes(DataCategory.SPANS) && (
           <Flex gap="sm">
             <Container paddingTop="xs">
               <IconLightning size="sm" variant="accent" />

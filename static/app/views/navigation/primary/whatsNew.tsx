@@ -27,6 +27,7 @@ const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> =
   blog: t('Blog Post'),
   event: t('Event'),
   video: t('Video'),
+  sdk_update: t('SDK Update'),
 };
 
 function BroadcastImage({src, alt}: {alt: string; src: string}) {
@@ -215,7 +216,9 @@ export function PrimaryNavigationWhatsNew() {
   const uniqueBroadcasts = useMemo(() => {
     const seenTitles = new Set<string>();
     return allBroadcasts.filter(item => {
-      if (seenTitles.has(item.title)) return false;
+      if (seenTitles.has(item.title)) {
+        return false;
+      }
       seenTitles.add(item.title);
       return true;
     });

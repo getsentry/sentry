@@ -75,7 +75,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   traces: 'explore/traces',
   metrics: 'metrics',
   discover: 'explore/discover',
-  profiling_flamegraph: 'explore/profiling',
+  profiling_flamegraph: 'explore/profiles',
   performance_transaction_summary: 'insights/summary',
   issue_details: 'issues',
   feedback_details: 'issues/feedback',
@@ -126,17 +126,6 @@ function getPerformanceBreadCrumbs(
         label: t('Transaction Summary'),
         to: getBreadCrumbTarget(
           normalizeUrl(`/organizations/${organization.slug}/${transactionSummaryUrl}`),
-          location.query
-        ),
-      });
-      break;
-    case Tab.TAGS:
-      crumbs.push({
-        label: t('Tags'),
-        to: getBreadCrumbTarget(
-          normalizeUrl(
-            `/organizations/${organization.slug}/${transactionSummaryUrl}/tags`
-          ),
           location.query
         ),
       });
@@ -399,7 +388,7 @@ function LeafBreadCrumbLabel({
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"
-        priority="transparent"
+        variant="transparent"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
         }}

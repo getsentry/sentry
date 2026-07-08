@@ -9,13 +9,12 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 function useReminderData() {
   const organization = useOrganization();
@@ -24,6 +23,8 @@ function useReminderData() {
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
+
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const analyticsParams = useMemo(() => {
     return {
@@ -49,10 +50,14 @@ function useReminderData() {
     return {
       canSeeReminder: true,
       analyticsParams,
-      title: t('Connect GitHub'),
-      description: t(
-        'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Autofix and Code Review.'
-      ),
+      title: hasGitLabSupport ? t('Connect GitHub or GitLab') : t('Connect GitHub'),
+      description: hasGitLabSupport
+        ? t(
+            'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
+          )
+        : t(
+            'Seer is enabled, but repositories are not connected. Connect your GitHub account to enable Autofix and Code Review.'
+          ),
     };
   }
 

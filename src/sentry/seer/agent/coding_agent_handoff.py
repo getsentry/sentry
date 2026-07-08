@@ -13,7 +13,6 @@ import sentry_sdk
 from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from sentry import features
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -23,9 +22,9 @@ from sentry.integrations.services.github_copilot_identity import github_copilot_
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.coding_agent import (
-    _validate_and_get_integration,
     sanitize_branch_name,
     store_coding_agent_states_to_seer,
+    validate_and_get_integration,
 )
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
@@ -50,8 +49,6 @@ def _resolve_client(
         Tuple of (client, installation). Exactly one will be non-None.
     """
     if provider == "github_copilot":
-        if not features.has("organizations:integrations-github-copilot-agent", organization):
-            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
         user_access_token: str | None = None
         if user_id is not None:
             user_access_token = github_copilot_identity_service.get_access_token_for_user(
@@ -64,7 +61,7 @@ def _resolve_client(
         return GithubCopilotAgentClient(user_access_token), None
 
     if integration_id is not None:
-        _integration, installation = _validate_and_get_integration(organization, integration_id)
+        _integration, installation = validate_and_get_integration(organization, integration_id)
         return None, installation
 
     raise ValidationError("Either integration_id or provider must be provided")
@@ -80,6 +77,8 @@ def launch_coding_agents(
     auto_create_pr: bool = False,
     provider: str | None = None,
     user_id: int | None = None,
+    issue_short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an agent run.
@@ -94,6 +93,8 @@ def launch_coding_agents(
         auto_create_pr: Whether to automatically create a PR when agent finishes
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+        issue_short_id: Optional Sentry issue short ID for coding agent session naming
+        issue_url: Optional full URL to the Sentry issue for linking in PRs
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -118,6 +119,8 @@ def launch_coding_agents(
             repository=repo,
             branch_name=sanitize_branch_name(branch_name_base),
             auto_create_pr=auto_create_pr,
+            issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )
 
         try:
@@ -215,6 +218,11 @@ def launch_coding_agents(
             "run_id": run_id,
             "repos_succeeded": len(successes),
             "repos_failed": len(failures),
+            # The launched agent ids are the only join key between this run and the
+            # provider webhooks that later report completion (keyed on agent_id). Seer's
+            # handoff record carries run_id but no agent_id, so without this a webhook's
+            # attribution outcome cannot be traced back to the run that launched it.
+            "agent_ids": [state.id for state in states_to_store],
         },
     )
 

@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -15,7 +16,6 @@ import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetai
 import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
 import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
@@ -26,10 +26,11 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface RootCauseCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  groupId: string;
   section: AutofixSection;
 }
 
-export function RootCauseCard({autofix, section}: RootCauseCardProps) {
+export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -78,7 +79,7 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
             />
           )}
           <ArtifactDetails>
-            <StyledMarkedText text={artifact.data.one_line_description} />
+            <Markdown raw={artifact.data.one_line_description} />
           </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>
@@ -87,7 +88,7 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
                 <Container as="ul" margin="0">
                   {artifact.data.five_whys.map((why, index) => (
                     <li key={index}>
-                      <StyledMarkedText text={why} />
+                      <Markdown raw={why} />
                     </li>
                   ))}
                 </Container>
@@ -98,7 +99,7 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
                   <Container as="ol" margin="0">
                     {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <StyledMarkedText text={step} />
+                        <Markdown raw={step} />
                       </li>
                     ))}
                   </Container>
@@ -114,6 +115,8 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
                   <AutofixEvidence
                     key={e.toolCall.id}
                     evidenceButtonProps={e.evidenceButtonProps}
+                    groupId={groupId}
+                    toolCall={e.toolCall}
                   />
                 ))}
               </Flex>
@@ -129,7 +132,7 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
           </Text>
           <div>
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconRefresh />}
               onClick={() => handleReset()}
             >

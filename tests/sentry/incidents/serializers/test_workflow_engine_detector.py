@@ -11,7 +11,6 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
@@ -53,14 +52,7 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         migrate_resolve_threshold_data_condition(other_alert_rule)
 
         self.add_incident_data()
-        past_incident = self.create_incident(
-            alert_rule=self.alert_rule, date_started=self.now - timedelta(days=1)
-        )
-        IncidentTrigger.objects.create(
-            incident=past_incident,
-            alert_rule_trigger=self.critical_trigger,
-            status=TriggerStatus.ACTIVE.value,
-        )
+        self.create_incident(alert_rule=self.alert_rule, date_started=self.now - timedelta(days=1))
 
         serialized_detector = serialize(
             self.detector,

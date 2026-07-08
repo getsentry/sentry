@@ -7,19 +7,23 @@ import type {KeyboardEvent} from '@react-types/shared';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {getEscapedKey} from '@sentry/scraps/compactSelect';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {resolveFilterKey} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
@@ -160,7 +164,7 @@ function useParameterSuggestions({
   parameterIndex: number;
   token: AggregateFilter;
 }): Array<SelectOptionWithKey<string>> {
-  const {getFieldDefinition, filterKeys} = useSearchQueryBuilder();
+  const {getFieldDefinition, filterKeys} = useSearchQueryBuilderConfig();
   const fieldDefinition = getFieldDefinition(token.key.name.text);
 
   const parameterDefinition = fieldDefinition?.parameters?.[parameterIndex];
@@ -182,7 +186,7 @@ function useParameterSuggestions({
             : field => columnTypes.includes(field.valueType);
 
         return potentialColumns
-          .map(col => [col, getFieldDefinition(col.key, col.kind)] as const)
+          .map(col => [col, getFieldDefinition(col.key, {kind: col.kind})] as const)
           .filter(([col, definition]) =>
             filterFn({
               key: col.key,
@@ -240,10 +244,11 @@ export function SearchQueryBuilderParametersCombobox({
   onDelete,
   onKeyDown: passedOnKeyDown,
 }: ParametersComboboxProps) {
-  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
+    useSearchQueryBuilderConfig();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
   const initialValue = getInitialInputValue(token);
   const [inputValue, setInputValue] = useState('');
   const [inputChanged, setInputChanged] = useState(false);
@@ -289,7 +294,7 @@ export function SearchQueryBuilderParametersCombobox({
         const definition = getFieldDefinition(token.key.name.text);
         const parameters = splitParameters(value).map((parameter, i) => {
           return definition?.parameters?.[i]?.kind === 'column'
-            ? getSuggestedFilterKey(parameter)
+            ? resolveFilterKey({key: parameter, filterKeys, getSuggestedFilterKey})
             : parameter;
         });
 
@@ -309,6 +314,7 @@ export function SearchQueryBuilderParametersCombobox({
       token,
       onCommit,
       state,
+      filterKeys,
       getFieldDefinition,
       getSuggestedFilterKey,
     ]

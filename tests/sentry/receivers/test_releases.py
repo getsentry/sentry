@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry.buffer.base import Buffer
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -13,13 +14,13 @@ from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.users.models.user_option import UserOption
@@ -42,13 +43,9 @@ class ResolvedInCommitTest(TestCase):
     """
     Tests for resolved_in_commit signal handler.
 
-    With "organizations:defer-commit-resolution" flag ON (new behavior):
     Commits with "Fixes ISSUE-123" create GroupLinks and REFERENCED_IN_COMMIT
     Activity entries, but do NOT immediately resolve issues. Resolution happens
     when a release is created that includes these commits, via update_group_resolutions().
-
-    With flag OFF (legacy behavior): Issues are immediately resolved when commits
-    are pushed.
     """
 
     def assertLinkedFromCommitDeferred(self, group, commit):
@@ -72,25 +69,6 @@ class ResolvedInCommitTest(TestCase):
         # Inbox should NOT be modified
         assert GroupInbox.objects.filter(group=group).exists()
 
-    def assertLinkedFromCommitImmediate(self, group, commit):
-        """Assert that a GroupLink, Activity, GroupHistory were created, and issue IS resolved (legacy behavior)."""
-        assert GroupLink.objects.filter(
-            group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
-        ).exists()
-        assert Activity.objects.filter(
-            group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value
-        ).exists()
-        assert not Activity.objects.filter(
-            group=group, type=ActivityType.REFERENCED_IN_COMMIT.value
-        ).exists()
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
-        ).exists()
-        # Issue should be resolved immediately (legacy behavior)
-        assert Group.objects.filter(id=group.id, status=GroupStatus.RESOLVED).exists()
-        # Inbox should be removed
-        assert not GroupInbox.objects.filter(group=group).exists()
-
     def assertNotLinkedFromCommit(self, group, commit):
         """Assert that no GroupLink exists for this commit."""
         assert not GroupLink.objects.filter(
@@ -99,12 +77,9 @@ class ResolvedInCommitTest(TestCase):
         assert not Group.objects.filter(id=group.id, status=GroupStatus.RESOLVED).exists()
         assert GroupInbox.objects.filter(group=group).exists()
 
-    # Tests with defer-commit-resolution flag ON (new behavior) #
-
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_simple_no_author(self) -> None:
-        """With defer-commit-resolution ON, commits create links but don't resolve issues."""
+        """Commits create links but don't resolve issues."""
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -119,10 +94,9 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertLinkedFromCommitDeferred(group, commit)
 
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_updating_commit(self) -> None:
-        """With defer-commit-resolution ON, updating a commit message creates links but doesn't resolve."""
+        """Updating a commit message creates links but doesn't resolve."""
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -141,10 +115,9 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertLinkedFromCommitDeferred(group, commit)
 
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_updating_commit_with_existing_grouplink(self) -> None:
-        """With defer-commit-resolution ON, updating commit with existing link keeps deferred state."""
+        """Updating commit with existing link keeps deferred state."""
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
 
@@ -164,7 +137,6 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertLinkedFromCommitDeferred(group, commit)
 
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_removes_group_link_when_message_changes(self) -> None:
         group = self.create_group()
@@ -186,7 +158,6 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertNotLinkedFromCommit(group, commit)
 
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_no_matching_group(self) -> None:
         repo = Repository.objects.create(name="example", organization_id=self.organization.id)
@@ -202,10 +173,9 @@ class ResolvedInCommitTest(TestCase):
             linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
         ).exists()
 
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_matching_author_with_assignment(self) -> None:
-        """With defer-commit-resolution ON, commits assign users but don't resolve issues."""
+        """Commits assign users but don't resolve issues."""
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
@@ -224,17 +194,25 @@ class ResolvedInCommitTest(TestCase):
         )
         author.preload_users()
 
-        commit = Commit.objects.create(
-            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
-            organization_id=group.organization.id,
-            repository_id=repo.id,
-            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
-            author=author,
-        )
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            commit = Commit.objects.create(
+                key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+                organization_id=group.organization.id,
+                repository_id=repo.id,
+                message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+                author=author,
+            )
 
         self.assertLinkedFromCommitDeferred(group, commit)
 
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
+
+        # The self-assign is attributed to the commit author, not logged as a system action.
+        assign_records = [r for r in logs.records if r.__dict__.get("action") == "assign"]
+        assert len(assign_records) == 1
+        assert assign_records[0].__dict__["actor_id"] == str(user.id)
+        assert assign_records[0].__dict__["actor_type"] == "user"
+        assert assign_records[0].__dict__["source"] == "system"
 
         assert Activity.objects.filter(
             project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id
@@ -247,10 +225,9 @@ class ResolvedInCommitTest(TestCase):
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
-    @with_feature("organizations:defer-commit-resolution")
     @receivers_raise_on_send()
     def test_matching_author_without_assignment(self) -> None:
-        """With defer-commit-resolution ON, commits subscribe users but don't resolve issues."""
+        """Commits subscribe users but don't resolve issues."""
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
@@ -281,61 +258,125 @@ class ResolvedInCommitTest(TestCase):
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
-    # Tests with defer-commit-resolution flag OFF (legacy behavior) #
 
-    @with_feature({"organizations:defer-commit-resolution": False})
-    @receivers_raise_on_send()
-    def test_immediate_resolution_without_flag(self) -> None:
-        """Without defer-commit-resolution flag, commits immediately resolve issues (legacy behavior)."""
-        group = self.create_group()
-        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+class ResolvedInPullRequestTest(TestCase):
+    def _create_pull_request_author(
+        self, github_username: str, organization_id: int
+    ) -> CommitAuthor:
+        author = self.create_commit_author(
+            organization_id=organization_id,
+            email=f"{github_username}@localhost",
+        )
+        author.update(name=github_username, external_id=f"github:{github_username}")
+        return author
 
-        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
-
-        commit = Commit.objects.create(
-            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+    def _create_resolving_pull_request(
+        self, group: Group, repo: Repository, author: CommitAuthor
+    ) -> PullRequest:
+        return self.create_pull_request(
+            key="1",
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
-        )
-
-        self.assertLinkedFromCommitImmediate(group, commit)
-
-    @with_feature({"organizations:defer-commit-resolution": False})
-    @receivers_raise_on_send()
-    def test_immediate_resolution_with_author(self) -> None:
-        """Without flag, commits with authors immediately resolve and assign issues."""
-        group = self.create_group()
-        add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            email = UserEmail.objects.get_primary_email(user=user)
-            email.is_verified = True
-            email.save()
-            UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
-
-        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
-        OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
-
-        author = CommitAuthor.objects.create(
-            organization_id=group.organization.id, name=user.name, email=user.email
-        )
-        author.preload_users()
-
-        commit = Commit.objects.create(
-            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
-            organization_id=group.organization.id,
-            repository_id=repo.id,
+            title="very cool PR to fix the thing",
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
             author=author,
         )
 
-        # Issue should be immediately resolved (legacy behavior)
-        self.assertLinkedFromCommitImmediate(group, commit)
+    @receivers_raise_on_send()
+    def test_matching_external_actor_sets_activity_user(self) -> None:
+        group = self.create_group()
+        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
+        self.create_member(organization=group.organization, user=user)
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        self.create_external_user(
+            user=user,
+            organization=group.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
 
-        # Author should still be assigned
+        pull_request = self._create_resolving_pull_request(group, repo, author)
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+        )
+        assert activity.user_id == user.id
+        assert activity.data == {"pull_request": pull_request.id}
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
-        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+    @receivers_raise_on_send()
+    def test_author_from_different_organization_does_not_set_activity_user(self) -> None:
+        group = self.create_group()
+        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
+        other_organization = self.create_organization(owner=user)
+        self.create_member(organization=group.organization, user=user)
+        integration = self.create_integration(
+            organization=other_organization,
+            external_id="github:1",
+            provider="github",
+        )
+        self.create_external_user(
+            user=user,
+            organization=other_organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
+        repo = self.create_repo(project=group.project, provider="integrations:github")
+        author = self._create_pull_request_author("newdev", other_organization.id)
+
+        self._create_resolving_pull_request(group, repo, author)
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+        )
+        assert activity.user_id is None
+        assert not GroupAssignee.objects.filter(group=group).exists()
+
+    @receivers_raise_on_send()
+    def test_external_actor_user_must_be_organization_member(self) -> None:
+        group = self.create_group()
+        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        self.create_external_user(
+            user=user,
+            organization=group.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+
+        self._create_resolving_pull_request(group, repo, author)
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+        )
+        assert activity.user_id is None
+        assert not GroupAssignee.objects.filter(group=group).exists()
 
 
 class ProjectHasReleasesReceiverTest(TestCase):
@@ -362,3 +403,49 @@ class ProjectHasReleasesReceiverTest(TestCase):
             filters={"release_id": -1, "project_id": -2},
             sender=ReleaseProject,
         )
+
+
+class PullRequestClosedSignalTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(project=self.project, name="example/repo")
+        self.group = self.create_group(project=self.project)
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="1"
+        )
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pull_request.id,
+        )
+
+    def _save_with_state(self, state: str) -> None:
+        self.pull_request.state = state
+        self.pull_request.save()
+
+    def test_closed_emits_activity(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.ident == str(self.pull_request.id)
+        assert activity.data == {"pull_request": self.pull_request.id}
+
+    def test_merged_does_not_emit_activity(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.MERGED)
+
+        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+
+    def test_open_does_not_emit_activity(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.OPEN)
+
+        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+
+    def test_resaving_closed_pr_does_not_duplicate(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        assert Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).count() == 1

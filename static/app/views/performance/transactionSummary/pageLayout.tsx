@@ -21,21 +21,20 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
-import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -46,19 +45,16 @@ import {
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
-import {tagsRouteWithQuery} from './transactionTags/utils';
 import {TransactionHeader} from './header';
 import {Tab} from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
-  | 'performance_views.tags.tags_tab_clicked'
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
 export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
 };
 
@@ -66,7 +62,6 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
-    shouldUseEAP: boolean;
     theme: Theme;
     transactionName: string;
   }) => EventView;
@@ -114,12 +109,7 @@ export function PageLayout(props: Props) {
       case Tab.REPLAYS:
         return [DataCategory.REPLAYS];
       case Tab.EVENTS:
-      case Tab.TAGS:
       case Tab.TRANSACTION_SUMMARY:
-        // The transactions summary page technically also uses transactions
-        // in additional to spans. But if we specify transactions here, it'll
-        // use the 90d retention for transactions instead of the 30d retention
-        // for spans in some cases which is not what we want.
         return [DataCategory.SPANS];
       default:
         throw new Error(`Unsupported tab: ${tab}`);
@@ -145,8 +135,6 @@ export function PageLayout(props: Props) {
       };
 
       switch (newTab) {
-        case Tab.TAGS:
-          return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
@@ -179,8 +167,6 @@ export function PageLayout(props: Props) {
     navigate(normalizeUrl(getNewRoute(newTab)));
   };
 
-  const shouldUseEAP = useTransactionSummaryEAP();
-
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location, navigate);
     return null;
@@ -190,7 +176,6 @@ export function PageLayout(props: Props) {
     location,
     organization,
     transactionName,
-    shouldUseEAP,
     theme,
   });
 
@@ -272,7 +257,7 @@ export function PageLayout(props: Props) {
         renderDisabled={NoAccess}
       >
         <MetricsCardinalityProvider location={location} organization={organization}>
-          <PerformanceEventViewProvider value={{eventView}}>
+          <PerformanceEventViewContext value={{eventView}}>
             <PageFiltersContainer
               shouldForceProject={defined(project)}
               forceProject={project}
@@ -329,7 +314,7 @@ export function PageLayout(props: Props) {
                 </Stack>
               </Tabs>
             </PageFiltersContainer>
-          </PerformanceEventViewProvider>
+          </PerformanceEventViewContext>
         </MetricsCardinalityProvider>
       </Feature>
     </SentryDocumentTitle>

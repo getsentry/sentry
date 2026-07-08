@@ -72,7 +72,7 @@ export function SlideOverPanel({
   // contents in a lower priority lane. When the render is complete, the content
   // is displayed.
   // Subsequent updates of the `children` are not deferred.
-  const [isContentVisible, setIsContentVisible] = useState<boolean>(false);
+  const [isContentVisible, setIsContentVisible] = useState(false);
   const {contentTop} = useTopOffset();
   useEffect(() => {
     startTransition(() => {

@@ -7,7 +7,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, GlobalFilter} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
-import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 
 interface PrebuiltDashboardUrlOptions {
   bare?: boolean;
@@ -40,10 +39,7 @@ export function usePrebuiltDashboardUrl(
   const {bare = false, filters} = options;
   const organization = useOrganization({allowNull: true});
   const {selection} = usePageFilters();
-  const isPlatformized = organization ? hasPlatformizedInsights(organization) : false;
-  const {dashboard: prebuiltDashboard} = useGetPrebuiltDashboard(
-    isPlatformized ? prebuiltId : undefined
-  );
+  const {dashboard: prebuiltDashboard} = useGetPrebuiltDashboard(prebuiltId);
 
   const queryParams = pageFiltersToQueryParams(selection);
 
@@ -51,15 +47,15 @@ export function usePrebuiltDashboardUrl(
     return undefined;
   }
 
-  const {slug} = organization;
-
-  if (isPlatformized && prebuiltDashboard.id) {
-    applyDashboardFilters(queryParams, filters);
-    const query = Object.keys(queryParams).length ? `?${qs.stringify(queryParams)}` : '';
-    return bare
-      ? `dashboard/${prebuiltDashboard.id}/${query}`
-      : normalizeUrl(`/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`);
+  if (!prebuiltDashboard.id) {
+    return undefined;
   }
 
-  return undefined;
+  const {slug} = organization;
+
+  applyDashboardFilters(queryParams, filters);
+  const query = Object.keys(queryParams).length ? `?${qs.stringify(queryParams)}` : '';
+  return bare
+    ? `dashboard/${prebuiltDashboard.id}/${query}`
+    : normalizeUrl(`/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`);
 }

@@ -29,6 +29,10 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentMessageCachePayload,
+)
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
@@ -80,11 +84,23 @@ def send_thread_update(
                     slack_user_id=ephemeral_user_id,
                 )
             else:
-                install.send_threaded_message(
+                response = install.send_threaded_message(
                     channel_id=thread["channel_id"],
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                 )
+                message_ts = response.get("ts") if response else None
+                run_id = getattr(data, "run_id", None)
+                if message_ts and run_id is not None:
+                    SlackSeerAgentMessageCache.set(
+                        integration_id=install.model.id,
+                        channel_id=thread["channel_id"],
+                        message_ts=message_ts,
+                        payload=SlackSeerAgentMessageCachePayload(
+                            thread_ts=thread["thread_ts"],
+                            run_id=run_id,
+                        ),
+                    )
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
         except IntegrationError as e:
@@ -282,9 +298,9 @@ def send_halt_message(
     thread_ts: str | None,
     halt_reason: SeerSlackHaltReason,
 ) -> None:
-    from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.message_builder.types import SlackAction
     from sentry.integrations.slack.views.link_identity import build_linking_url
+    from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
 
     link_button: LinkButtonElement
     message: str
@@ -299,9 +315,6 @@ def send_halt_message(
     match halt_reason:
         case SeerSlackHaltReason.IDENTITY_NOT_LINKED:
             message = "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
-            # TODO(leander): We'll need to revisit the UX around linking. We can't pass threads here so while
-            # the linking start message is correctly located and ephemeral, the success message afterwards is not.
-            # By omitting the response_url here, it will arrive as a DM, but it doesn't accept threads so this is the best we can do for now.
             associate_url = build_linking_url(
                 integration=integration,
                 slack_id=slack_user_id,
@@ -352,7 +365,7 @@ def send_halt_message(
         text=message,
     )
     try:
-        SlackIntegration.send_threaded_ephemeral_message_static(
+        send_threaded_ephemeral_message(
             integration_id=integration.id,
             channel_id=channel_id,
             thread_ts=thread_ts,
@@ -363,3 +376,34 @@ def send_halt_message(
         logger.exception("send_halt_message.error", extra=logging_ctx)
     else:
         logger.info("send_halt_message.success", extra=logging_ctx)
+
+
+@all_silo_function
+def send_not_org_member_message(
+    *,
+    integration_id: int,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
+    org_name: str,
+) -> None:
+    """Send an ephemeral message informing the user they are not a member of the organization."""
+    from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
+
+    message = (
+        f"You must be a member of the *{org_name}* Sentry organization to use Seer Agent in Slack."
+    )
+    renderable = SlackRenderable(
+        blocks=[MarkdownBlock(text=message)],
+        text=message,
+    )
+    try:
+        send_threaded_ephemeral_message(
+            integration_id=integration_id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+        )
+    except Exception as e:
+        logger.warning("seer.slack.send_not_org_member_message_failed", exc_info=e)

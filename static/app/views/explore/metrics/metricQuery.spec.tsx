@@ -17,9 +17,9 @@ describe('decodeMetricsQueryParams', () => {
       metric: {name: 'test_metric', type: 'distribution'},
       query: '',
       aggregateFields: [
-        {yAxes: ['p50(value,test_metric,distribution,-)']},
-        {yAxes: ['p75(value,test_metric,distribution,-)']},
-        {yAxes: ['p99(value,test_metric,distribution,-)']},
+        {yAxes: ['p50(value,test_metric,distribution,none)']},
+        {yAxes: ['p75(value,test_metric,distribution,none)']},
+        {yAxes: ['p99(value,test_metric,distribution,none)']},
       ],
       aggregateSortBys: [],
       mode: 'samples',
@@ -28,9 +28,9 @@ describe('decodeMetricsQueryParams', () => {
     const result = decodeMetricsQueryParams(json);
 
     expect(result?.queryParams.aggregateFields).toEqual([
-      new VisualizeFunction('p50(value,test_metric,distribution,-)'),
-      new VisualizeFunction('p75(value,test_metric,distribution,-)'),
-      new VisualizeFunction('p99(value,test_metric,distribution,-)'),
+      new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+      new VisualizeFunction('p75(value,test_metric,distribution,none)'),
+      new VisualizeFunction('p99(value,test_metric,distribution,none)'),
     ]);
   });
 
@@ -69,8 +69,8 @@ describe('decodeMetricsQueryParams', () => {
       metric: {name: 'test_metric', type: 'distribution'},
       query: '',
       aggregateFields: [
-        {yAxes: ['p50(value,test_metric,distribution,-)']},
-        {yAxes: ['p75(value,test_metric,distribution,-)']},
+        {yAxes: ['p50(value,test_metric,distribution,none)']},
+        {yAxes: ['p75(value,test_metric,distribution,none)']},
         {groupBy: 'environment'},
       ],
       aggregateSortBys: [],
@@ -80,8 +80,8 @@ describe('decodeMetricsQueryParams', () => {
     const result = decodeMetricsQueryParams(json);
 
     expect(result?.queryParams.aggregateFields).toEqual([
-      new VisualizeFunction('p50(value,test_metric,distribution,-)'),
-      new VisualizeFunction('p75(value,test_metric,distribution,-)'),
+      new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+      new VisualizeFunction('p75(value,test_metric,distribution,none)'),
       {groupBy: 'environment'},
     ]);
   });
@@ -98,11 +98,11 @@ describe('decodeMetricsQueryParams', () => {
         sortBys: [{field: 'timestamp', kind: 'desc'}],
         aggregateCursor: '',
         aggregateFields: [
-          new VisualizeFunction('per_second(value,test_metric,counter,-)'),
-          new VisualizeFunction('sum(value,test_metric,counter,-)'),
+          new VisualizeFunction('per_second(value,test_metric,counter,none)'),
+          new VisualizeFunction('sum(value,test_metric,counter,none)'),
         ],
         aggregateSortBys: [
-          {field: 'per_second(value,test_metric,counter,-)', kind: 'desc'},
+          {field: 'per_second(value,test_metric,counter,none)', kind: 'desc'},
         ],
       }),
     };
@@ -128,9 +128,9 @@ describe('decodeMetricsQueryParams', () => {
         fields: ['id', 'timestamp'],
         sortBys: [{field: 'value', kind: 'asc' as const}],
         aggregateCursor: '',
-        aggregateFields: [new VisualizeFunction('sum(value,test_metric,counter,-)')],
+        aggregateFields: [new VisualizeFunction('sum(value,test_metric,counter,none)')],
         aggregateSortBys: [
-          {field: 'sum(value,test_metric,counter,-)', kind: 'desc' as const},
+          {field: 'sum(value,test_metric,counter,none)', kind: 'desc' as const},
         ],
       }),
     };
@@ -145,7 +145,7 @@ describe('decodeMetricsQueryParams', () => {
     const json = JSON.stringify({
       metric: {name: 'test_metric', type: 'counter'},
       query: '',
-      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,none)']}],
       aggregateSortBys: [],
       mode: 'samples',
     });
@@ -159,7 +159,7 @@ describe('decodeMetricsQueryParams', () => {
     const json = JSON.stringify({
       metric: {name: 'test_metric', type: 'counter'},
       query: '',
-      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,none)']}],
       aggregateSortBys: [],
       sortBys: [{field: 'arbitrary_field', kind: 'desc'}],
       mode: 'samples',
@@ -174,7 +174,7 @@ describe('decodeMetricsQueryParams', () => {
     const json = JSON.stringify({
       metric: {name: 'test_metric', type: 'counter'},
       query: '',
-      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,-)']}],
+      aggregateFields: [{yAxes: ['sum(value,test_metric,counter,none)']}],
       aggregateSortBys: [],
       sortBys: [{field: 'value', kind: 'invalid'}],
       mode: 'samples',

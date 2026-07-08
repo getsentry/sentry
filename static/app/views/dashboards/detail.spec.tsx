@@ -24,7 +24,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
@@ -34,7 +34,6 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
@@ -133,6 +132,10 @@ describe('Dashboards > Detail', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
+      });
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
@@ -266,7 +269,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/default-overview/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -289,6 +292,10 @@ describe('Dashboards > Detail', () => {
         router: {
           location: LocationFixture(),
         },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        body: [],
       });
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState({
@@ -468,7 +475,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -523,7 +530,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -548,7 +555,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -576,7 +583,7 @@ describe('Dashboards > Detail', () => {
           ...makeDashboardRouterConfig({
             pathname: '/organizations/org-slug/dashboard/1/',
             route: DASHBOARD_ROUTE,
-            query: initialData.router.location.query,
+            query: {},
           }),
           organization: initialData.organization,
         }
@@ -585,10 +592,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the linked dashboard breadcrumb in the top bar when page frame is enabled', async () => {
+    it('renders the linked dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'page-frame'],
+        features: organization.features,
       });
 
       render(
@@ -627,7 +634,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -681,7 +688,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -720,7 +727,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -762,7 +769,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -846,7 +853,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/0/',
           route: DASHBOARD_WIDGET_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -866,8 +873,8 @@ describe('Dashboards > Detail', () => {
       const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/123/',
-          route: DASHBOARD_WIDGET_ROUTE,
-          query: initialData.router.location.query,
+          routes: [DASHBOARD_WIDGET_ROUTE, DASHBOARD_ROUTE],
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -895,20 +902,15 @@ describe('Dashboards > Detail', () => {
         method: 'POST',
         body: [],
       });
-      const locationWithFilters = {
-        ...initialData.router.location,
-        query: {
-          ...initialData.router.location.query,
-          statsPeriod: '7d',
-          project: [2],
-          environment: ['alpha', 'beta'],
-        },
-      };
       render(<CreateDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboards/new/',
           route: DASHBOARD_NEW_ROUTE,
-          query: locationWithFilters.query,
+          query: {
+            statsPeriod: '7d',
+            project: ['2'],
+            environment: ['alpha', 'beta'],
+          },
         }),
         organization: initialData.organization,
       });
@@ -939,7 +941,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/1/',
           route: DASHBOARD_WIDGET_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -967,7 +969,6 @@ describe('Dashboards > Detail', () => {
           pathname: '/organizations/org-slug/dashboard/1/widget/1/',
           route: DASHBOARD_WIDGET_ROUTE,
           query: {
-            ...initialData.router.location.query,
             release: ['unsaved-release-filter@1.2.0'],
           },
         }),
@@ -981,6 +982,33 @@ describe('Dashboards > Detail', () => {
           })
         );
       });
+    });
+
+    it('closes full screen modal when releases drawer is opened from that view', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(widgets, {id: '1', title: 'Custom Errors'}),
+      });
+
+      const {router} = render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/widget/0/',
+          route: DASHBOARD_WIDGET_ROUTE,
+          query: {rd: 'show', rdRelease: '1.0.0'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/dashboard/1/');
+      });
+
+      // The releases drawer query param is preserved; widget viewer query fields are stripped
+      expect(router.location.query).toEqual(
+        expect.objectContaining({rd: 'show', rdRelease: '1.0.0'})
+      );
+      expect(openWidgetViewerModal).not.toHaveBeenCalled();
     });
 
     it('can save dashboard filters in existing dashboard', async () => {
@@ -1064,7 +1092,7 @@ describe('Dashboards > Detail', () => {
           },
         },
       });
-      render(<ViewEditDashboard />, {
+      const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
@@ -1074,7 +1102,6 @@ describe('Dashboards > Detail', () => {
         }),
         organization: testData.organization,
       });
-      const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
       await userEvent.click(screen.getAllByText('Clear')[0]!);
@@ -1082,12 +1109,10 @@ describe('Dashboards > Detail', () => {
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistoryPush).toHaveBeenCalledWith(
+        expect(router.location.query).toEqual(
           expect.objectContaining({
-            query: expect.objectContaining({
-              release: [''],
-              globalFilter: [''],
-            }),
+            release: '',
+            globalFilter: '',
           })
         );
       });
@@ -1160,7 +1185,7 @@ describe('Dashboards > Detail', () => {
           },
         },
       });
-      render(<ViewEditDashboard />, {
+      const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
@@ -1171,25 +1196,22 @@ describe('Dashboards > Detail', () => {
         }),
         organization: testData.organization,
       });
-      const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.keyboard('{Escape}');
 
-      await userEvent.click(screen.getByTestId('filter-bar-cancel'));
-
-      screen.getByText('All Releases');
-
       await waitFor(() => {
-        expect(browserHistoryPush).toHaveBeenCalledWith(
+        expect(router.location.query).toEqual(
           expect.objectContaining({
-            query: expect.objectContaining({
-              release: ['sentry-android-shop@1.2.0'],
-            }),
+            release: 'sentry-android-shop@1.2.0',
           })
         );
       });
+
+      await userEvent.click(screen.getByTestId('filter-bar-cancel'));
+
+      screen.getByText('All Releases');
     });
 
     it('disables the edit-dashboard button when there are unsaved filters', async () => {
@@ -1382,7 +1404,7 @@ describe('Dashboards > Detail', () => {
           location: LocationFixture(),
         },
       });
-      render(<ViewEditDashboard />, {
+      const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
@@ -1390,18 +1412,15 @@ describe('Dashboards > Detail', () => {
         }),
         organization: testData.organization,
       });
-      const browserHistoryPush = jest.spyOn(browserHistory, 'push');
 
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistoryPush).toHaveBeenCalledWith(
+        expect(router.location.query).toEqual(
           expect.objectContaining({
-            query: expect.objectContaining({
-              release: ['sentry-android-shop@1.2.0'],
-            }),
+            release: 'sentry-android-shop@1.2.0',
           })
         );
       });

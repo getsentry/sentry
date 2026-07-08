@@ -4,11 +4,10 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -21,7 +20,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -36,11 +34,44 @@ const relaySchema = z.object({
   ingestThroughTrustedRelaysOnly: z.boolean(),
 });
 
+const relayDsnEndpointSchema = z.object({
+  relayDsnEndpoint: z
+    .string()
+    .trim()
+    .refine(
+      value => {
+        if (value === '') {
+          return true;
+        }
+        let parts: URL;
+        try {
+          parts = new URL(value);
+        } catch {
+          return false;
+        }
+        return (
+          (parts.protocol === 'http:' || parts.protocol === 'https:') &&
+          parts.hostname !== '' &&
+          parts.username === '' &&
+          parts.password === '' &&
+          parts.search === '' &&
+          parts.hash === ''
+        );
+      },
+      {
+        message: t(
+          'Enter an absolute http(s) base URL with a host and no credentials, query, or fragment.'
+        ),
+      }
+    ),
+});
+
 export function RelayWrapper() {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
   const api = useApi();
-  const [relays, setRelays] = useState<Relay[]>(organization.trustedRelays);
-  const hasPageFrame = useHasPageFrameFeature();
+  const [relays, setRelays] = useState(organization.trustedRelays ?? []);
 
   const disabled = !organization.access.includes('org:write');
 
@@ -53,7 +84,7 @@ export function RelayWrapper() {
         orgSlug={organization.slug}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully added Relay public key'));
-          setRelays(response.trustedRelays);
+          setRelays(response.trustedRelays ?? []);
         }}
       />
     ));
@@ -65,7 +96,7 @@ export function RelayWrapper() {
         title: disabled ? t('You do not have permission to register keys') : undefined,
       }}
       variant="primary"
-      size={hasPageFrame ? 'md' : 'sm'}
+      size="md"
       icon={<IconAdd />}
       onClick={handleOpenAddDialog}
       disabled={disabled}
@@ -78,73 +109,88 @@ export function RelayWrapper() {
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
         title={t('Relay')}
-        subtitle={
-          hasPageFrame ? (
-            <Flex justify="between" align="center" gap="md">
-              <span>
-                {tct(
-                  'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-                  {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-                )}
-              </span>
-              {registerKeyAction}
-            </Flex>
-          ) : (
-            tct(
-              'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-              {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-            )
-          )
-        }
-        action={hasPageFrame ? undefined : registerKeyAction}
+        action={registerKeyAction}
+        subtitle={tct(
+          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+        )}
       />
       <OrganizationPermissionAlert />
-      {organization.features.includes('ingest-through-trusted-relays-only') && (
-        <FieldGroup title={t('Data Authenticity')}>
-          <AutoSaveForm
-            name="ingestThroughTrustedRelaysOnly"
-            schema={relaySchema}
-            initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
-            confirm={value =>
-              value
-                ? t(
-                    'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
-                  )
-                : undefined
-            }
-            mutationOptions={{
-              mutationFn: data =>
-                fetchMutation<Organization>({
-                  url: `/organizations/${organization.slug}/`,
-                  method: 'PUT',
-                  data: {
-                    ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
-                      ? 'enabled'
-                      : 'disabled',
-                  },
-                }),
-              onSuccess: updatedOrg => {
-                OrganizationStore.onUpdate(updatedOrg);
-              },
-            }}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Ingest Through Trusted Relays Only')}
-                hintText={t(
-                  'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
-      )}
+      <FieldGroup title={t('Data Authenticity')}>
+        <AutoSaveForm
+          name="ingestThroughTrustedRelaysOnly"
+          schema={relaySchema}
+          initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
+          confirm={value =>
+            value
+              ? t(
+                  'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
+                )
+              : undefined
+          }
+          mutationOptions={{
+            mutationFn: data =>
+              fetchMutation<Organization>({
+                url: `/organizations/${organization.slug}/`,
+                method: 'PUT',
+                data: {
+                  ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
+                    ? 'enabled'
+                    : 'disabled',
+                },
+              }),
+            onSuccess: updatedOrg => {
+              OrganizationStore.onUpdate(updatedOrg);
+            },
+          }}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Ingest Through Trusted Relays Only')}
+              hintText={t(
+                'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+        <AutoSaveForm
+          name="relayDsnEndpoint"
+          schema={relayDsnEndpointSchema}
+          initialValue={organization.relayDsnEndpoint ?? ''}
+          mutationOptions={{
+            mutationFn: data =>
+              fetchMutation<Organization>({
+                url: `/organizations/${organization.slug}/`,
+                method: 'PUT',
+                data: {relayDsnEndpoint: data.relayDsnEndpoint},
+              }),
+            onSuccess: updatedOrg => {
+              OrganizationStore.onUpdate(updatedOrg);
+            },
+          }}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('DSN Endpoint Override')}
+              hintText={t(
+                "Use a Relay base URL when displaying Client Key DSNs. Leave blank to use Sentry's default ingest endpoint."
+              )}
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+      </FieldGroup>
       {relays.length === 0 ? (
         <EmptyState />
       ) : (
@@ -176,6 +222,8 @@ function RelayUsageList({
   relays: Relay[];
   registerKeyAction?: React.ReactNode;
 }) {
+  const {openModal} = useModal();
+
   const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/relay_usage/', {
@@ -205,7 +253,7 @@ function RelayUsageList({
         relay={editRelay}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully updated Relay public key'));
-          onRelaysChange(response.trustedRelays);
+          onRelaysChange(response.trustedRelays ?? []);
         }}
       />
     ));
@@ -222,7 +270,7 @@ function RelayUsageList({
         data: {trustedRelays},
       });
       addSuccessMessage(t('Successfully deleted Relay public key'));
-      onRelaysChange(response.trustedRelays);
+      onRelaysChange(response.trustedRelays ?? []);
     } catch {
       addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
     }

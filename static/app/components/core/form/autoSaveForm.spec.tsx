@@ -12,6 +12,10 @@ const testSchema = z.object({
   testField: z.string(),
 });
 
+const transformedTestSchema = z.object({
+  testField: z.string().transform(value => value.toUpperCase()),
+});
+
 describe('AutoSaveForm', () => {
   describe('types', () => {
     it('should have data type flow towards callbacks', () => {
@@ -64,7 +68,9 @@ describe('AutoSaveForm', () => {
             initialValue={serverState}
             mutationOptions={{
               mutationFn: (data: {testField: string}) => {
-                return Promise.resolve({testField: data.testField.toUpperCase()});
+                return Promise.resolve({
+                  testField: data.testField.toUpperCase(),
+                });
               },
               onSuccess: data => {
                 setServerState(data.testField);
@@ -93,6 +99,33 @@ describe('AutoSaveForm', () => {
       // After save, the form should reset and show the server's uppercased value
       await waitFor(() => {
         expect(input).toHaveValue('HELLO');
+      });
+    });
+
+    it('submits transformed schema values to the mutation', async () => {
+      const mutationFn = jest.fn((data: {testField: string}) => Promise.resolve(data));
+
+      render(
+        <AutoSaveForm
+          name="testField"
+          schema={transformedTestSchema}
+          initialValue=""
+          mutationOptions={{mutationFn}}
+        >
+          {field => (
+            <field.Layout.Row label="Name">
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+      );
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.type(input, 'hello');
+      await userEvent.tab();
+
+      await waitFor(() => {
+        expect(mutationFn).toHaveBeenCalledWith({testField: 'HELLO'}, expect.anything());
       });
     });
   });
@@ -141,7 +174,9 @@ describe('AutoSaveForm', () => {
             mutationOptions={{
               mutationFn: () => {
                 const error = new RequestError('POST', '/test/', new Error('test'));
-                error.responseJSON = {testField: ['This value is not allowed']};
+                error.responseJSON = {
+                  testField: ['This value is not allowed'],
+                };
                 throw error;
               },
             }}
@@ -199,6 +234,41 @@ describe('AutoSaveForm', () => {
       await userEvent.tab();
 
       expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+    });
+
+    it('shows detail message from RequestError', async () => {
+      function TestComponent() {
+        return (
+          <AutoSaveForm
+            name="testField"
+            schema={testSchema}
+            initialValue="initial"
+            mutationOptions={{
+              mutationFn: () => {
+                const error = new RequestError('POST', '/test/', new Error('test'));
+                error.responseJSON = {detail: 'Organization is suspended'};
+                throw error;
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row label="Name">
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Meta />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        );
+      }
+
+      render(<TestComponent />);
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'new value');
+      await userEvent.tab();
+
+      expect(await screen.findByText('Organization is suspended')).toBeInTheDocument();
     });
 
     it('shows generic error when RequestError has no responseJSON', async () => {

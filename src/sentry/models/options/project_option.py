@@ -82,7 +82,10 @@ OPTION_KEYS = frozenset(
         "sentry:preprod_snapshot_status_checks_fail_on_renamed",
         "sentry:preprod_distribution_pr_comments_enabled_by_customer",
         "sentry:preprod_snapshot_pr_comments_enabled",
-        "sentry:preprod_snapshot_pr_comments_only_if_diff",
+        "sentry:preprod_snapshot_pr_comments_post_on_added",
+        "sentry:preprod_snapshot_pr_comments_post_on_removed",
+        "sentry:preprod_snapshot_pr_comments_post_on_changed",
+        "sentry:preprod_snapshot_pr_comments_post_on_renamed",
         "sentry:scm_source_context_enabled",
         "quotas:spike-protection-disabled",
         "feedback:branding",
@@ -246,3 +249,12 @@ class ProjectOption(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+def get_option(
+    project: int | Project,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return ProjectOption.objects.get_value(project, key, default, validate)

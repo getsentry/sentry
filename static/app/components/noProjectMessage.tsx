@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps, Container} from '@sentry/scraps/layout';
 
 import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -77,20 +77,22 @@ export function NoProjectMessage({
       justify="center"
       gap="3xl"
       padding="lg"
-      direction={{xs: 'column', sm: 'row'}}
+      direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
     >
       <Flex
         align="center"
         justify="center"
         height="auto"
-        width={{xs: '300px', sm: 'auto'}}
+        width={{'screen:xs': '300px', 'screen:sm': 'auto'}}
       >
         <StyledNoProjectEmptyState />
       </Flex>
 
       <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
-        <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
+        <Container marginBottom="xl">
+          {t('You need at least one project to use this view')}
+        </Container>
         <Actions>
           {orgHasProjects ? (
             <Fragment>
@@ -109,10 +111,6 @@ export function NoProjectMessage({
 const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
   width: 100%;
   height: auto;
-`;
-
-const HelpMessage = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Actions = styled((props: GridProps) => (

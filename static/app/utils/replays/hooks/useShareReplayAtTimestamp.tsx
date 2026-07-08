@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -74,6 +74,8 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
 }
 
 export function useShareReplayAtTimestamp() {
+  const {openModal} = useModal();
+
   const {currentTime} = useReplayContext();
 
   const handleShare = useCallback(() => {
@@ -81,7 +83,7 @@ export function useShareReplayAtTimestamp() {
     const currentTimeSec = Math.floor(currentTime / 1000);
 
     openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />);
-  }, [currentTime]);
+  }, [currentTime, openModal]);
   return handleShare;
 }
 

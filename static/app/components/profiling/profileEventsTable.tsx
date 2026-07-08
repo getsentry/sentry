@@ -17,9 +17,9 @@ import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
@@ -79,7 +79,7 @@ export function ProfileEventsTable<F extends FieldType>(
       isLoading={props.isLoading}
       error={props.error}
       data={props.data?.data ?? []}
-      columnOrder={props.columns.map(field => getColumnOrder<F>(field))}
+      columnOrder={props.columns.map(field => getColumnOrder(field))}
       columnSortBy={[props.sort]}
       grid={{
         renderHeadCell: renderTableHead<F>({

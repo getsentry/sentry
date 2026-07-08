@@ -22,8 +22,8 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,17 +37,19 @@ import {ConnectedMonitorsList} from 'sentry/views/automations/components/connect
 import {ConnectedProjectsList} from 'sentry/views/automations/components/connectedProjectsList';
 import {DisabledAlert} from 'sentry/views/automations/components/disabledAlert';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
@@ -67,45 +69,39 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     />
   );
 
+  const hasConnections = !!automation.detectorIds.length;
+
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
-            <AutomationFeedbackButton />
-          </Fragment>
-        ) : (
-          <DetailLayout.Header>
-            <DetailLayout.HeaderContent>
-              {breadcrumbs}
-              <DetailLayout.Title title={automation.name} />
-            </DetailLayout.HeaderContent>
-            <DetailLayout.Actions>
-              <AutomationFeedbackButton />
-              <Actions automation={automation} size="sm" />
-            </DetailLayout.Actions>
-          </DetailLayout.Header>
-        )}
+        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>
             <DisabledAlert automation={automation} />
+
             {automation.enabled && warning && (
               <Alert variant={warning.color === 'warning' ? 'warning' : 'danger'}>
                 {warning.message}
               </Alert>
             )}
+
+            {!hasConnections && (
+              <Alert variant="warning">
+                {t(
+                  'This alert is not connected to a project or monitor and will not trigger.'
+                )}
+              </Alert>
+            )}
+
             <PageFiltersContainer>
-              {hasPageFrameFeature ? (
-                <Flex align="center" justify="between" gap="md">
-                  <DatePageFilter />
-                  <Flex flex={1} justify="end" gap="md">
-                    <Actions automation={automation} size="sm" />
-                  </Flex>
-                </Flex>
-              ) : (
+              <Flex align="center" justify="between" gap="md">
                 <DatePageFilter />
-              )}
+                <Flex flex={1} justify="end" gap="md">
+                  <Actions automation={automation} size="sm" />
+                </Flex>
+              </Flex>
+
               <ErrorBoundary>
                 <AutomationStatsChart
                   automationId={automation.id}
@@ -115,6 +111,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   utc={utc ?? null}
                 />
               </ErrorBoundary>
+
               <DetailSection title={t('History')}>
                 <ErrorBoundary mini>
                   <AutomationHistoryList
@@ -128,6 +125,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   />
                 </ErrorBoundary>
               </DetailSection>
+
               <DetailSection
                 title={t('Connected Projects')}
                 description={t(
@@ -138,6 +136,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   <ConnectedProjectsList automationId={automation.id} />
                 </ErrorBoundary>
               </DetailSection>
+
               <DetailSection
                 title={t('Connected Monitors')}
                 description={t(
@@ -155,6 +154,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               </DetailSection>
             </PageFiltersContainer>
           </DetailLayout.Main>
+
           <DetailLayout.Sidebar>
             <DetailSection title={t('Last Triggered')}>
               {automation.lastTriggered ? (
@@ -253,6 +253,8 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
+  const canEdit = useCanEditAutomation();
+  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
 
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
@@ -272,11 +274,20 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
 
   return (
     <Fragment>
-      <Button variant="secondary" size={size} onClick={toggleDisabled} busy={isUpdating}>
+      <Button
+        variant="secondary"
+        size={size}
+        onClick={toggleDisabled}
+        busy={isUpdating}
+        disabled={!canEdit}
+        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+      >
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
         to={makeAutomationEditPathname(organization.slug, automation.id)}
+        disabled={!canEdit}
+        tooltipProps={{title: permissionTooltipText, isHoverable: true}}
         variant="primary"
         icon={<IconEdit />}
         size={size}

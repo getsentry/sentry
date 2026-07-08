@@ -3,6 +3,8 @@ import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegration
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
+
 import {ScmProviderPills} from './scmProviderPills';
 
 const bitbucketProvider = GitHubIntegrationProviderFixture({
@@ -45,6 +47,21 @@ describe('ScmProviderPills', () => {
     expect(screen.queryByText('More')).not.toBeInTheDocument();
   });
 
+  it('renders primary providers in GitHub, GitLab, Bitbucket order regardless of API order', () => {
+    const providers = [
+      bitbucketProvider,
+      GitLabIntegrationProviderFixture(),
+      GitHubIntegrationProviderFixture(),
+    ];
+
+    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toHaveTextContent('GitHub');
+    expect(buttons[1]).toHaveTextContent('GitLab');
+    expect(buttons[2]).toHaveTextContent('Bitbucket');
+  });
+
   it('shows secondary providers in a "More" dropdown', async () => {
     const providers = [
       GitHubIntegrationProviderFixture(),
@@ -77,10 +94,9 @@ describe('ScmProviderPills', () => {
   });
 
   it('triggers install flow when clicking a dropdown item', async () => {
-    const open = jest.spyOn(window, 'open').mockReturnValue({
-      focus: jest.fn(),
-      close: jest.fn(),
-    } as any);
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
 
     const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
 
@@ -89,7 +105,7 @@ describe('ScmProviderPills', () => {
     await userEvent.click(screen.getByRole('button', {name: 'More'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
 
-    expect(open).toHaveBeenCalledTimes(1);
+    expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
   });
 
   it('does not render "More" dropdown when all providers are primary', () => {

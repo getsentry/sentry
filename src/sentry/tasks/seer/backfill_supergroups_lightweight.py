@@ -16,6 +16,10 @@ from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     make_lightweight_rca_cluster_request,
 )
+from sentry.seer.similarity.utils import (
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
+    event_content_has_stacktrace,
+)
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -316,26 +320,39 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     # Batch fetch all event data from nodestore in one multi-get
     eventstore.bind_nodes(events)
 
-    # Drop events with empty data and security-report event types (CSP/HPKP/
-    # Expect-CT/Expect-Staple/NEL) — they all roll up under ErrorGroupType but
-    # don't carry the application-code signal that RCA clustering needs.
+    # Drop events that Seer can't meaningfully analyze: empty data, security
+    # reports (CSP/HPKP/Expect-CT/Expect-Staple/NEL), events without
+    # stacktraces, and unsupported platforms.  Aligned with the similar-issues
+    # eligibility checks in grouping/ingest/seer.py.
     valid_groups: list[Group] = []
     valid_events: list[Event] = []
-    skipped_security_reports = 0
     for group, event in zip(matched_groups, events):
         if not event.data:
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "no_data"},
+            )
             continue
         if event.get_event_type() in SECURITY_REPORT_INTERFACES:
-            skipped_security_reports += 1
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "security_report"},
+            )
+            continue
+        if not event_content_has_stacktrace(event):
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "no_stacktrace"},
+            )
+            continue
+        if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
+            metrics.incr(
+                "seer.supergroups_backfill_lightweight.event_skipped",
+                tags={"reason": "unsupported_platform"},
+            )
             continue
         valid_groups.append(group)
         valid_events.append(event)
-
-    if skipped_security_reports:
-        metrics.incr(
-            "seer.supergroups_backfill_lightweight.security_reports_skipped",
-            amount=skipped_security_reports,
-        )
 
     if not valid_events:
         return []

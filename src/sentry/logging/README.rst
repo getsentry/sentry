@@ -68,7 +68,7 @@ are defined in ``LOGGING.overridable``.
 Formats
 ```````
 The ``StructlogHandler`` has the ability to write its records based on a specified logging
-format defined in the options by ``system.logging-format``.
+format defined by the ``SENTRY_LOGGING_FORMAT`` Django setting.
 
 Human
 ~~~~~

@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry import tagstore
 from sentry.tagstore.base import TagKeyStatus
+from sentry.tagstore.types import TagKey
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -99,13 +100,12 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         assert response.status_code == 403
 
-        assert (
-            tagstore.backend.get_tag_key(
-                project.id,
-                None,
-                "environment",
-                status=TagKeyStatus.ACTIVE,  # environment_id
-                tenant_ids={"referrer": "test_tagstore", "organization_id": 123},
-            ).status
-            == TagKeyStatus.ACTIVE
+        tag_key = tagstore.backend.get_tag_key(
+            project.id,
+            None,
+            "environment",
+            status=TagKeyStatus.ACTIVE,  # environment_id
+            tenant_ids={"referrer": "test_tagstore", "organization_id": 123},
         )
+        assert isinstance(tag_key, TagKey)
+        assert tag_key.status == TagKeyStatus.ACTIVE

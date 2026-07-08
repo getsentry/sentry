@@ -95,6 +95,8 @@ class PullRequestEventDataParser(msgspec.Struct, gc=False, frozen=True):
     base: PullRequestBranchParser
     is_private_repo: bool
     author: AuthorParser | None
+    draft: bool
+    repository_id: str
 
 
 class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -201,6 +203,8 @@ def deserialize_pull_request_event(event_data: str) -> PullRequestEvent:
                 if parsed.pull_request.author
                 else None
             ),
+            "draft": parsed.pull_request.draft,
+            "repository_id": parsed.pull_request.repository_id,
         },
         subscription_event=_map_subscription_event(parsed.subscription_event),
     )
@@ -265,6 +269,8 @@ def serialize_pull_request_event(event: PullRequestEvent) -> str:
             if event.pull_request["author"]
             else None
         ),
+        draft=event.pull_request["draft"],
+        repository_id=event.pull_request["repository_id"],
     )
     structured_event = PullRequestEventParser(
         action=event.action,

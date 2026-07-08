@@ -118,6 +118,18 @@ describe('tryParsePythonDict', () => {
     expect(tryParsePythonDict("{'key': 'text with \"inner\" quotes'}")).toBeNull();
   });
 
+  it('returns null for double-quoted values with apostrophes', () => {
+    expect(
+      tryParsePythonDict(`[{'role': 'user', 'content': "the user's message"}]`)
+    ).toBeNull();
+  });
+
+  it('parses arrays of Python dicts', () => {
+    expect(tryParsePythonDict("[{'role': 'user', 'content': 'hello'}]")).toEqual([
+      {role: 'user', content: 'hello'},
+    ]);
+  });
+
   it('handles Python dicts where values contain markdown', () => {
     const result = tryParsePythonDict(
       "{'content': 'Given a query, you should **determine** if the passage is relevant'}"

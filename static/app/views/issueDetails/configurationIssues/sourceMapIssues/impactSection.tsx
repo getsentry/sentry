@@ -12,7 +12,7 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
 import {useAffectedReleases} from './queries/useAffectedReleases';
 import {useImpactedEventsCount} from './queries/useImpactedEventsCount';

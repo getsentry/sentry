@@ -12,9 +12,7 @@ from sentry.notifications.notification_action.group_type_notification_registry i
 )
 from sentry.notifications.notification_action.issue_alert_registry import (
     PagerDutyIssueAlertHandler,
-    PluginIssueAlertHandler,
 )
-from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -103,22 +101,8 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             f"[{self.issue_stream_detector.name}]:"
         )
 
-    @mock.patch.object(NotifyEventAction, "after")
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
-        return_value=IssueAlertRegistryHandler,
-    )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
-        return_value=PluginIssueAlertHandler,
-    )
-    def test_plugin_notify_event_action(
-        self,
-        mock_get_issue_alert_handler: mock.MagicMock,
-        mock_get_group_type_handler: mock.MagicMock,
-        mock_after: mock.MagicMock,
-    ) -> None:
-        """Test a Plugin action (NotifyEventAction)"""
+    def test_plugin_action_rejected_as_deprecated(self) -> None:
+        """Test that Plugin actions are rejected as deprecated"""
         action_data = [
             {
                 "type": Action.Type.PLUGIN.value,
@@ -127,9 +111,8 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             }
         ]
 
-        response = self.get_success_response(self.organization.slug, actions=action_data)
-        assert response.status_code == 200
-        assert mock_after.called
+        response = self.get_error_response(self.organization.slug, actions=action_data)
+        assert response.status_code == 400
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
@@ -211,9 +194,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
         action_data = [
             {
-                "type": Action.Type.PLUGIN.value,
+                "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -238,9 +221,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
         action_data = [
             {
-                "type": Action.Type.PLUGIN.value,
+                "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -260,9 +243,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         """Test that an invalid project_slug returns with a 400 error"""
         action_data = [
             {
-                "type": Action.Type.PLUGIN.value,
+                "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -272,6 +255,28 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             project_slug="nonexistent-project",
         )
         assert response.status_code == 400
+
+    def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
+        action_data = [
+            {
+                "type": Action.Type.WEBHOOK.value,
+                "data": {},
+                "config": {
+                    "target_identifier": "twilio",
+                    "target_type": None,
+                },
+            }
+        ]
+
+        response = self.get_error_response(self.organization.slug, actions=action_data)
+        assert response.status_code == 400
+        assert response.data == {
+            "actions": {
+                "service": ["Select a valid choice. twilio is not one of the available choices."]
+            }
+        }
 
     @mock.patch(
         "sentry.notifications.notification_action.types.BaseIssueAlertHandler.send_test_notification"

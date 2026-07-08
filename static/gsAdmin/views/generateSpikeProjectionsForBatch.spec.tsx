@@ -6,9 +6,9 @@ import {GenerateSpikeProjectionsForBatch} from 'admin/views/generateSpikeProject
 
 describe('GenerateSpikeProjectionsForBatch', () => {
   beforeEach(() => {
-    ConfigStore.set('regions', [
-      {name: 'us', url: 'https://us.test/api/0/'},
-      {name: 'eu', url: 'https://eu.test/api/0/'},
+    ConfigStore.set('cells', [
+      {name: 'us', locality_url: 'https://us.test/api/0/'},
+      {name: 'eu', locality_url: 'https://eu.test/api/0/'},
     ]);
   });
 

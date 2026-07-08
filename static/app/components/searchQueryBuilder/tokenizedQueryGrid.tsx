@@ -6,7 +6,10 @@ import type {ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {KeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGrid';
 import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/hooks/useSelectOnDrag';
@@ -34,7 +37,7 @@ interface GridProps extends AriaGridListOptions<ParseResultToken> {
 }
 
 function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
   const autoFocused = useRef(!autoFocus);
 
   useEffect(() => {
@@ -49,7 +52,7 @@ function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
 }
 
 function useApplyFocusOverride(state: ListState<ParseResultToken>) {
-  const {focusOverride, dispatch} = useSearchQueryBuilder();
+  const {focusOverride, dispatch} = useSearchQueryBuilderState();
 
   useLayoutEffect(() => {
     if (focusOverride && !focusOverride.part) {
@@ -68,7 +71,8 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
-  const {size, dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {size} = useSearchQueryBuilderLayout();
   const state = useListState<ParseResultToken>({
     ...props,
     selectionBehavior: 'replace',
@@ -168,7 +172,7 @@ export function TokenizedQueryGrid({
   label,
   actionBarWidth,
 }: TokenizedQueryGridProps) {
-  const {parsedQuery} = useSearchQueryBuilder();
+  const {parsedQuery} = useSearchQueryBuilderState();
 
   // Shouldn't ever get here since we will render the plain text input instead
   if (!parsedQuery) {

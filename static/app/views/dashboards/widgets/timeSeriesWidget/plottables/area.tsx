@@ -56,7 +56,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     };
 
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
-      if (isIncomplete === true) {
+      if (isIncomplete) {
         plottableSeries.push(
           LineSeries({
             ...commonOptions,
@@ -76,14 +76,14 @@ export class Area extends ContinuousTimeSeries implements Plottable {
         );
       }
 
-      if (isIncomplete === false) {
+      if (!isIncomplete) {
         plottableSeries.push(
           LineSeries({
             ...commonOptions,
             stack: `complete-${index}`,
             areaStyle: {
               color,
-              opacity: 1.0,
+              opacity: 1,
             },
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint

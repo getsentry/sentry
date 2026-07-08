@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -27,16 +26,18 @@ import {
   useUrlPlatformOptions,
 } from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const ProductSelectionAvailabilityHook = HookOrDefault({
-  hookName: 'component:product-selection-availability',
+const ProductSelectionAvailabilityHook = OverrideOrDefault({
+  overrideName: 'component:product-selection-availability',
   defaultComponent: ProductSelection,
 });
 

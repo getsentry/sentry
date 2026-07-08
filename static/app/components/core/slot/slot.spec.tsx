@@ -1,5 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
+
 import {slot, withSlots} from './';
 
 describe('slot', () => {
@@ -251,6 +253,108 @@ describe('slot', () => {
       );
 
       expect(refs[0]).toBe(refs[refs.length - 1]);
+    });
+  });
+
+  describe('context bridging', () => {
+    it('bridges SizeContext from Outlet tree to portaled Consumer content', () => {
+      const SlotModule = slot(['content'] as const);
+
+      function SizeReader() {
+        const size = useSizeContext();
+        return <span data-test-id="size-value">{size ?? 'none'}</span>;
+      }
+
+      render(
+        <SlotModule.Provider>
+          <SizeProvider size="sm">
+            <SlotModule.Outlet name="content">
+              {props => <div {...props} data-test-id="outlet" />}
+            </SlotModule.Outlet>
+          </SizeProvider>
+          <SlotModule name="content">
+            <SizeReader />
+          </SlotModule>
+        </SlotModule.Provider>
+      );
+
+      expect(screen.getByTestId('size-value')).toHaveTextContent('sm');
+    });
+
+    it('bridges updated context values when they change', () => {
+      const SlotModule = slot(['content'] as const);
+
+      function SizeReader() {
+        const size = useSizeContext();
+        return <span data-test-id="size-value">{size ?? 'none'}</span>;
+      }
+
+      function TestApp({size}: {size: 'sm' | 'md'}) {
+        return (
+          <SlotModule.Provider>
+            <SizeProvider size={size}>
+              <SlotModule.Outlet name="content">
+                {props => <div {...props} />}
+              </SlotModule.Outlet>
+            </SizeProvider>
+            <SlotModule name="content">
+              <SizeReader />
+            </SlotModule>
+          </SlotModule.Provider>
+        );
+      }
+
+      const {rerender} = render(<TestApp size="sm" />);
+      expect(screen.getByTestId('size-value')).toHaveTextContent('sm');
+
+      rerender(<TestApp size="md" />);
+      expect(screen.getByTestId('size-value')).toHaveTextContent('md');
+    });
+
+    it('bridges custom contexts registered in KNOWN_BRIDGED_CONTEXTS', () => {
+      const SlotModule = slot(['content'] as const);
+
+      function SizeReader() {
+        const size = useSizeContext();
+        return <span data-test-id="size-value">{size ?? 'none'}</span>;
+      }
+
+      render(
+        <SlotModule.Provider>
+          <SizeProvider size="xs">
+            <SlotModule.Outlet name="content">
+              {props => <div {...props} />}
+            </SlotModule.Outlet>
+          </SizeProvider>
+          <SlotModule name="content">
+            <SizeReader />
+          </SlotModule>
+        </SlotModule.Provider>
+      );
+
+      expect(screen.getByTestId('size-value')).toHaveTextContent('xs');
+    });
+
+    it('does not provide bridged context when no provider wraps the Outlet', () => {
+      const SlotModule = slot(['content'] as const);
+
+      function SizeReader() {
+        const size = useSizeContext();
+        return <span data-test-id="size-value">{size ?? 'none'}</span>;
+      }
+
+      render(
+        <SlotModule.Provider>
+          <SlotModule.Outlet name="content">
+            {props => <div {...props} />}
+          </SlotModule.Outlet>
+          <SlotModule name="content">
+            <SizeReader />
+          </SlotModule>
+        </SlotModule.Provider>
+      );
+
+      expect(screen.getByTestId('size-value')).toHaveTextContent('none');
     });
   });
 

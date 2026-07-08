@@ -22,7 +22,7 @@ import type {LLMContextNodeType} from './llmContextTypes';
  *   // Widget rendered inside Dashboard will nest correctly:
  *   // { nodeType: 'dashboard', children: [{ nodeType: 'widget', ... }] }
  */
-export function registerLLMContext<P extends Record<string, unknown>>(
+export function registerLLMContext<P>(
   nodeType: LLMContextNodeType,
   WrappedComponent: ComponentType<P>
 ): ComponentType<P> {

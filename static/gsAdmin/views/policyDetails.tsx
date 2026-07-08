@@ -1,9 +1,9 @@
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -22,6 +22,8 @@ import {PolicyRevisions} from 'admin/components/policies/policyRevisions';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
 export function PolicyDetails() {
+  const {openModal} = useModal();
+
   const api = useApi();
   const {policySlug} = useParams<{policySlug: string}>();
 

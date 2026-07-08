@@ -63,7 +63,7 @@ export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
     (authorCommitsAccumulator, commit) => {
       const email = commit.author?.email ?? 'unknown';
 
-      if (authorCommitsAccumulator.hasOwnProperty(email)) {
+      if (Object.hasOwn(authorCommitsAccumulator, email)) {
         authorCommitsAccumulator[email]!.commitCount += 1;
       } else {
         authorCommitsAccumulator[email] = {
@@ -92,7 +92,7 @@ export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
       <SidebarSection.Content>
         <Collapsible
           expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
+            <Button variant="link" onClick={onExpand}>
               {tn('Show %s other author', 'Show %s other authors', numberOfHiddenItems)}
             </Button>
           )}

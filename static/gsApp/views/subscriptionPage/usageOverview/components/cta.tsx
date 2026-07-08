@@ -50,7 +50,7 @@ function Cta({
       background="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
-      gap={isBanner ? {'2xs': 'xl', xl: '3xl'} : 'xl'}
+      gap={isBanner ? {'screen:2xs': 'xl', 'screen:xl': '3xl'} : 'xl'}
       borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
@@ -69,7 +69,9 @@ function Cta({
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
           {title}
         </Text>
-        <Container maxWidth={{'2xs': '300px', xl: isBanner ? 'unset' : '300px'}}>
+        <Container
+          maxWidth={{'screen:2xs': '300px', 'screen:xl': isBanner ? 'unset' : '300px'}}
+        >
           <Text
             variant="muted"
             size="sm"
@@ -207,7 +209,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -244,7 +246,7 @@ function ProductTrialCta({
                 reasonCode: potentialProductTrial.reasonCode,
               },
             }}
-            priority="primary"
+            variant="primary"
             handleClick={() => setTrialButtonBusy(true)}
             onTrialStarted={() => setTrialButtonBusy(true)}
             onTrialFailed={() => setTrialButtonBusy(false)}
@@ -365,15 +367,23 @@ function SetupCta({
     return null;
   }
 
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
+
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={t(
-        'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-      )}
+      subtitle={
+        hasGitLabSupport
+          ? t(
+              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+          : t(
+              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
+            )
+      }
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton

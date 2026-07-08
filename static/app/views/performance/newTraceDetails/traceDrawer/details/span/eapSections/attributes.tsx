@@ -23,14 +23,15 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
@@ -60,24 +61,46 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   return ellipsize(props.item.value, 100);
 };
 
-export function Attributes({
-  node,
-  attributes,
-  theme,
-  location,
-  organization,
-  project,
-}: {
+interface AttributesProps {
   attributes: TraceItemResponseAttribute[];
   location: Location;
   node: EapSpanNode | UptimeCheckNode;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
-}) {
+}
+
+export function AttributesSection(props: AttributesProps) {
+  return (
+    <FoldSection
+      sectionKey={SectionKey.SPAN_ATTRIBUTES}
+      title={
+        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
+          title={t('Attributes')}
+          tooltipText={t(
+            'These attributes are indexed and can be queried in the Trace Explorer.'
+          )}
+        />
+      }
+      disableCollapsePersistence
+    >
+      <AttributesContent {...props} />
+    </FoldSection>
+  );
+}
+
+export function AttributesContent({
+  node,
+  attributes,
+  theme,
+  location,
+  organization,
+  project,
+}: AttributesProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
   const currentLocation = useLocation();
+  const navigate = useNavigate();
   const traceState = useTraceState();
   const columnCount =
     traceState.preferences.layout === 'drawer left' ||
@@ -187,10 +210,15 @@ export function Attributes({
   // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
   // array values, so SDKs often store array values as JSON-encoded strings.
   sortedAndFilteredAttributes.forEach(attribute => {
-    if (Object.hasOwn(customRenderers, attribute.name)) return;
-    if (attribute.type !== 'str') return;
-    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value))
+    if (Object.hasOwn(customRenderers, attribute.name)) {
       return;
+    }
+    if (attribute.type !== 'str') {
+      return;
+    }
+    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value)) {
+      return;
+    }
 
     customRenderers[attribute.name] = jsonRenderer;
   });
@@ -200,50 +228,38 @@ export function Attributes({
   }
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.SPAN_ATTRIBUTES}
-      title={
-        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-          title={t('Attributes')}
-          tooltipText={t(
-            'These attributes are indexed and can be queried in the Trace Explorer.'
-          )}
-        />
-      }
-      disableCollapsePersistence
-    >
-      <Stack gap="lg" maxWidth="100%">
-        <BaseSearchBar
-          placeholder={t('Search')}
-          onChange={query => setSearchQuery(query)}
-          query={searchQuery}
-          size="sm"
-        />
-        {sortedAndFilteredAttributes.length > 0 ? (
-          <div>
-            <AttributesTree
-              columnCount={columnCount}
-              attributes={sortedAndFilteredAttributes}
-              renderers={customRenderers}
-              rendererExtra={{
-                theme,
-                location,
-                organization,
-              }}
-              getCustomActions={getTraceAttributesTreeActions({
-                location,
-                organization,
-                projectIds: findSpanAttributeValue(attributes, 'project_id'),
-              })}
-            />
-          </div>
-        ) : (
-          <NoAttributesMessage>
-            <p>{t('No matching attributes found')}</p>
-          </NoAttributesMessage>
-        )}
-      </Stack>
-    </FoldSection>
+    <Stack gap="lg" maxWidth="100%">
+      <BaseSearchBar
+        placeholder={t('Search')}
+        onChange={query => setSearchQuery(query)}
+        query={searchQuery}
+        size="sm"
+      />
+      {sortedAndFilteredAttributes.length > 0 ? (
+        <div>
+          <AttributesTree
+            columnCount={columnCount}
+            attributes={sortedAndFilteredAttributes}
+            renderers={customRenderers}
+            rendererExtra={{
+              theme,
+              location,
+              navigate,
+              organization,
+            }}
+            getCustomActions={getTraceAttributesTreeActions({
+              location,
+              organization,
+              projectIds: findSpanAttributeValue(attributes, 'project_id'),
+            })}
+          />
+        </div>
+      ) : (
+        <NoAttributesMessage>
+          <p>{t('No matching attributes found')}</p>
+        </NoAttributesMessage>
+      )}
+    </Stack>
   );
 }
 

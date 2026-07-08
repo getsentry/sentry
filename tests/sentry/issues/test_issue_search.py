@@ -24,6 +24,7 @@ from sentry.issues.issue_search import (
     parse_search_query,
     value_converters,
 )
+from sentry.issues.progress import IssueProgressState
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
@@ -347,6 +348,25 @@ class ConvertSeerActionabilityValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
+class ConvertIssueProgressValueTest(TestCase):
+    def test_valid(self) -> None:
+        for status in IssueProgressState:
+            filters = [
+                SearchFilter(
+                    SearchKey("issue.progress"),
+                    "=",
+                    SearchValue([status]),
+                )
+            ]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [status]
+
+    def test_invalid(self) -> None:
+        filters = [SearchFilter(SearchKey("issue.progress"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 class ConvertDetectorValueTest(TestCase):
     def test_valid(self) -> None:
         filters = [SearchFilter(SearchKey("detector"), "=", SearchValue("412345"))]
@@ -433,27 +453,24 @@ class ConvertFirstReleaseValueTest(TestCase):
 class ConvertCategoryValueTest(TestCase):
     def test(self) -> None:
         error_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.ERROR.value)
-        perf_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE.value)
+        db_query_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.DB_QUERY.value)
         assert (
             set(convert_category_value(["error"], [self.project], self.user, None))
             == error_group_types
         )
         assert (
-            set(convert_category_value(["performance"], [self.project], self.user, None))
-            == perf_group_types
-        )
-        assert (
-            set(convert_category_value(["error", "performance"], [self.project], self.user, None))
-            == error_group_types | perf_group_types
+            set(convert_category_value(["error", "DB_QUERY"], [self.project], self.user, None))
+            == error_group_types | db_query_group_types
         )
 
         # Also works with new categories
         assert set(
             convert_category_value(["outage"], [self.project], self.user, None)
         ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.OUTAGE.value)
-        assert set(
-            convert_category_value(["DB_QUERY"], [self.project], self.user, None)
-        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.DB_QUERY.value)
+        assert (
+            set(convert_category_value(["DB_QUERY"], [self.project], self.user, None))
+            == db_query_group_types
+        )
 
         # Should raise an error for invalid values
         with pytest.raises(InvalidSearchQuery):

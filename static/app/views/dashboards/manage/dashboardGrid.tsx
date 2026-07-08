@@ -16,8 +16,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -59,9 +59,7 @@ function DashboardGrid({
   });
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
-  const [currentDashboards, setCurrentDashboards] = useState<
-    DashboardListItem[] | undefined
-  >(dashboards);
+  const [currentDashboards, setCurrentDashboards] = useState(dashboards);
 
   useEffect(() => {
     if (dashboards?.length) {

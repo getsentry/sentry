@@ -10,6 +10,11 @@ import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {CardHeader, ImageCard, PairCard} from './snapshotCards';
 
+jest.mock('@sentry/scraps/badge', () => ({
+  ...jest.requireActual('sentry/components/core/badge/badge'),
+  ...jest.requireActual('sentry/components/core/badge/tag'),
+}));
+
 jest.mock('@sentry/scraps/layout', () => {
   const actual = jest.requireActual('@sentry/scraps/layout');
   return {
@@ -19,10 +24,6 @@ jest.mock('@sentry/scraps/layout', () => {
     ),
   };
 });
-
-jest.mock('@sentry/scraps/tooltip', () => ({
-  Tooltip: ({children}: {children: React.ReactNode}) => children,
-}));
 
 jest.mock('sentry/utils/useCopyToClipboard', () => ({
   useCopyToClipboard: () => ({copy: jest.fn()}),
@@ -116,24 +117,22 @@ const copyUrl = 'https://example.com/snapshots/button-light';
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
-    content_hash: 'synthetic-content-hash',
     display_name: 'Button / light',
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
+    tags: {lang: 'en', dir: 'ltr', theme: 'light'},
     width: 320,
     ...overrides,
   };
 }
 
 const baseImage = image({
-  content_hash: 'base-content-hash',
   display_name: 'Button / light',
   key: 'base-button-light',
 });
 
 const headImage = image({
-  content_hash: 'head-content-hash',
   key: 'head-button-light',
 });
 
@@ -146,7 +145,6 @@ const changedPair: SnapshotDiffPair = {
 
 const renamedPair: SnapshotDiffPair = {
   base_image: image({
-    content_hash: 'base-renamed-content-hash',
     display_name: 'Button / light old',
     image_file_name: 'button.light.old.png',
     key: 'base-button-light-old',
@@ -154,7 +152,6 @@ const renamedPair: SnapshotDiffPair = {
   diff: null,
   diff_image_key: null,
   head_image: image({
-    content_hash: 'head-renamed-content-hash',
     display_name: 'Button / light',
     image_file_name: 'button.light.png',
     key: 'head-button-light',
@@ -177,6 +174,7 @@ describe('SnapshotCards', () => {
       fileName: 'button.light.png',
       isDark: false,
       onToggleDark: noop,
+      tags: {lang: 'en', dir: 'ltr', theme: 'light'} as Record<string, string>,
     };
 
     it.snapshot(
@@ -191,7 +189,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'card-header-display-name-and-filename'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -201,7 +199,7 @@ describe('SnapshotCards', () => {
           <CardHeader {...headerProps} displayName={null} status={DiffStatus.CHANGED} />
         </Wrapper>
       ),
-      {theme: themeName, state: 'card-header-filename-only'}
+      {tags: {area: 'snapshots'}}
     );
 
     function snapshotCardHeaderStatus({
@@ -225,7 +223,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {theme: themeName, state: `card-header-${state}`}
+        {tags: {area: 'snapshots'}}
       );
     }
 
@@ -257,7 +255,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'card-header-static'}
+      {tags: {area: 'snapshots'}}
     );
 
     function snapshotPairCard({
@@ -290,7 +288,7 @@ describe('SnapshotCards', () => {
             />
           </Wrapper>
         ),
-        {theme: themeName, state: `pair-card-${state}`}
+        {tags: {area: 'snapshots'}}
       );
     }
 
@@ -335,7 +333,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-added-selected-with-display-name'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -354,7 +352,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-removed-unselected'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -374,7 +372,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-renamed-with-pair-metadata'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -393,7 +391,7 @@ describe('SnapshotCards', () => {
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'image-card-solo-filename-only-no-status'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

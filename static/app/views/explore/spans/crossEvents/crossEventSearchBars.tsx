@@ -2,14 +2,13 @@ import {Fragment, useEffect, useEffectEvent} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -18,24 +17,35 @@ import {
   useQueryParamsCrossEvents,
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import {SpansTabCrossEventMetricsSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventMetricsSearchBar';
 import {SpansTabCrossEventSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBar';
+import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {
   getCrossEventDatasetOptions,
   makeCrossEvent,
 } from 'sentry/views/explore/spans/crossEvents/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export function SpansTabCrossEventSearchBars() {
+const EMPTY_CROSS_EVENTS: CrossEvent[] = [];
+
+interface SpansTabCrossEventSearchBarsProps {
+  hasIndependentDateColumn?: boolean;
+}
+
+export function SpansTabCrossEventSearchBars({
+  hasIndependentDateColumn = false,
+}: SpansTabCrossEventSearchBarsProps) {
   const organization = useOrganization();
-  const crossEvents = useQueryParamsCrossEvents();
+  const crossEvents = useQueryParamsCrossEvents() ?? EMPTY_CROSS_EVENTS;
   const setCrossEvents = useSetQueryParamsCrossEvents();
+  const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
 
   // Using an effect event here to make sure we're reading only the latest props and not
   // firing based off of the cross events changing
   const fireErrorToast = useEffectEvent(() => {
-    if (defined(crossEvents) && crossEvents.length > MAX_CROSS_EVENT_QUERIES) {
+    if (crossEvents.length > MAX_CROSS_EVENT_QUERIES) {
       addErrorMessage(
         t(
           'You can add up to a maximum of %s cross event queries.',
@@ -49,11 +59,25 @@ export function SpansTabCrossEventSearchBars() {
     fireErrorToast();
   }, []);
 
-  if (!crossEvents || crossEvents.length === 0) {
+  useEffect(() => {
+    const availableCrossEvents = crossEvents.filter(
+      crossEvent => crossEventDatasetAvailability[crossEvent.type]
+    );
+
+    if (availableCrossEvents.length !== crossEvents.length) {
+      setCrossEvents(availableCrossEvents);
+    }
+  }, [crossEventDatasetAvailability, crossEvents, setCrossEvents]);
+
+  const visibleCrossEvents = crossEvents
+    .map((crossEvent, index) => ({crossEvent, index}))
+    .filter(({crossEvent}) => crossEventDatasetAvailability[crossEvent.type]);
+
+  if (visibleCrossEvents.length === 0) {
     return null;
   }
 
-  return crossEvents.map((crossEvent, index) => {
+  const crossEventRows = visibleCrossEvents.map(({crossEvent, index}, visibleIndex) => {
     let traceItemType = TraceItemDataset.SPANS;
     if (crossEvent.type === 'logs') {
       traceItemType = TraceItemDataset.LOGS;
@@ -61,11 +85,14 @@ export function SpansTabCrossEventSearchBars() {
       traceItemType = TraceItemDataset.TRACEMETRICS;
     }
 
-    const maxCrossEventQueriesReached = index >= MAX_CROSS_EVENT_QUERIES;
+    const maxCrossEventQueriesReached = visibleIndex >= MAX_CROSS_EVENT_QUERIES;
 
     return (
       <Fragment key={`${crossEvent.type}-${index}`}>
-        <Container justifySelf="end" width={{sm: '100%', md: 'min-content'}}>
+        <Container
+          justifySelf="end"
+          width={{'screen:sm': '100%', 'screen:md': 'min-content'}}
+        >
           {props => (
             <CompactSelect
               {...props}
@@ -76,9 +103,11 @@ export function SpansTabCrossEventSearchBars() {
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
               )}
-              options={getCrossEventDatasetOptions(organization)}
+              options={getCrossEventDatasetOptions(crossEventDatasetAvailability)}
               onChange={({value: newValue}) => {
-                if (!isCrossEventType(newValue)) return;
+                if (!isCrossEventType(newValue)) {
+                  return;
+                }
 
                 trackAnalytics('trace.explorer.cross_event_changed', {
                   organization,
@@ -88,7 +117,9 @@ export function SpansTabCrossEventSearchBars() {
 
                 setCrossEvents(
                   crossEvents.map((c, i) => {
-                    if (i === index) return makeCrossEvent(newValue);
+                    if (i === index) {
+                      return makeCrossEvent(newValue);
+                    }
                     return c;
                   })
                 );
@@ -158,4 +189,20 @@ export function SpansTabCrossEventSearchBars() {
       </Fragment>
     );
   });
+
+  if (!hasIndependentDateColumn) {
+    return <Fragment>{crossEventRows}</Fragment>;
+  }
+
+  return (
+    <Grid
+      gap="md"
+      columns={{
+        'screen:sm': '1fr',
+        'screen:md': 'minmax(300px, max-content) 1fr min-content',
+      }}
+    >
+      {crossEventRows}
+    </Grid>
+  );
 }

@@ -46,37 +46,11 @@ describe('Subscription > UsageAlert', () => {
     expect(screen.getByLabelText('Request Additional Quota')).toBeInTheDocument();
   });
 
-  it('renders an upgrade CTA for mm2_b usage exceeded', () => {
-    const organization = OrganizationFixture({access: ['org:billing']});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'mm2_b_100k',
-      usageExceeded: true,
-      // TODO: Add "categories" when mmx plans have error BillingMetricHistory
-    });
-
-    render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
-    expect(screen.getByText('Usage Exceeded')).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/errors capacity/))
-    ).toBeInTheDocument();
-    expect(screen.queryByText('grace period')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
-  });
-
   it('renders am1_f usage exceeded errors with trial', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_f',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({usageExceeded: true}),
       },
@@ -95,8 +69,6 @@ describe('Subscription > UsageAlert', () => {
       screen.getByText(textWithMarkupMatcher(/errors capacity/))
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Start Trial')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
@@ -105,7 +77,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({
           category: DataCategory.ERRORS,
@@ -130,8 +101,6 @@ describe('Subscription > UsageAlert', () => {
       screen.getByText(textWithMarkupMatcher(/errors and transactions capacity/))
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Request Additional Quota')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
@@ -140,7 +109,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am2_team',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({
           usageExceeded: true,
@@ -165,8 +133,6 @@ describe('Subscription > UsageAlert', () => {
       screen.getByText(textWithMarkupMatcher(/errors and performance units capacity/))
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Request Additional Quota')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
@@ -175,7 +141,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am1_team',
-      usageExceeded: false,
       categories: {
         errors: MetricHistoryFixture({
           usageExceeded: true,
@@ -204,8 +169,6 @@ describe('Subscription > UsageAlert', () => {
       screen.getByText(textWithMarkupMatcher(/errors and attachments capacity/))
     ).toBeInTheDocument();
     expect(screen.getByText('Setup On-Demand')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
@@ -226,7 +189,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: plan_id,
-      usageExceeded: true,
       categories: subCategories,
       canTrial: false,
     });
@@ -247,8 +209,6 @@ describe('Subscription > UsageAlert', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Request Upgrade')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
@@ -269,7 +229,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: plan_id,
-      usageExceeded: true,
       categories: subCategories,
       canTrial: false,
     });
@@ -290,8 +249,6 @@ describe('Subscription > UsageAlert', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Request Upgrade')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
@@ -312,7 +269,6 @@ describe('Subscription > UsageAlert', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: plan_id,
-      usageExceeded: true,
       categories: subCategories,
       canTrial: false,
     });
@@ -333,96 +289,10 @@ describe('Subscription > UsageAlert', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Request Upgrade')).toBeInTheDocument();
-
-    expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  describe('grace period', () => {
-    it('renders for grace period', () => {
-      const organization = OrganizationFixture({access: ['org:billing']});
-      const subscription = SubscriptionFixture({organization, canTrial: false});
-
-      render(
-        <UsageAlert
-          subscription={{...subscription, isGracePeriod: true}}
-          usage={emptyUsage}
-        />,
-        {organization}
-      );
-
-      expect(screen.getByTestId('grace-period-alert')).toBeInTheDocument();
-      expect(screen.getByText('Grace Period')).toBeInTheDocument();
-      expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
-
-      expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
-    });
-
-    it('renders for grace period and transactions exceeded', () => {
-      const organization = OrganizationFixture({access: ['org:billing']});
-      const subscription = SubscriptionFixture({organization, canTrial: false});
-
-      render(
-        <UsageAlert
-          subscription={{
-            ...subscription,
-            isGracePeriod: true,
-            categories: {
-              transactions: MetricHistoryFixture({usageExceeded: true}),
-            },
-          }}
-          usage={emptyUsage}
-        />,
-        {organization}
-      );
-
-      expect(screen.getByTestId('grace-period-alert')).toBeInTheDocument();
-      expect(screen.getByText('Grace Period')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Upgrade Plan')).toHaveLength(2);
-
-      expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
-      expect(
-        screen.getByText(textWithMarkupMatcher(/transactions capacity/))
-      ).toBeInTheDocument();
-
-      expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
-    });
-
-    it('renders for am2 grace period and transactions exceeded', () => {
-      const organization = OrganizationFixture({access: ['org:billing']});
-      const subscription = SubscriptionFixture({
-        plan: 'am2_f',
-        organization,
-        canTrial: false,
-      });
-
-      render(
-        <UsageAlert
-          subscription={{
-            ...subscription,
-            isGracePeriod: true,
-            categories: {
-              transactions: MetricHistoryFixture({usageExceeded: true}),
-            },
-          }}
-          usage={emptyUsage}
-        />,
-        {organization}
-      );
-
-      expect(screen.getByTestId('grace-period-alert')).toBeInTheDocument();
-      expect(screen.getByText('Grace Period')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Upgrade Plan')).toHaveLength(2);
-
-      expect(screen.getByTestId('usage-exceeded-alert')).toBeInTheDocument();
-      expect(
-        screen.getByText(textWithMarkupMatcher(/performance units capacity/))
-      ).toBeInTheDocument();
-
-      expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
-    });
-
+  describe('self-serve', () => {
     it('does not render upgrade buttons if cannot self-serve', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
@@ -462,7 +332,6 @@ describe('Subscription > UsageAlert', () => {
           subscription={{
             ...subscription,
             plan: 'am1_f',
-            usageExceeded: false,
             categories: {
               errors: MetricHistoryFixture({
                 usageExceeded: true,
@@ -487,8 +356,6 @@ describe('Subscription > UsageAlert', () => {
       ).toBeInTheDocument();
 
       expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
-
-      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
       expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
     });
 
@@ -520,7 +387,6 @@ describe('Subscription > UsageAlert', () => {
       expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
 
       expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
     it('does not render without projected errors overage', () => {
@@ -590,7 +456,6 @@ describe('Subscription > UsageAlert', () => {
       expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
 
       expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
     it('renders am2 with projected errors and transactions overage', () => {
@@ -639,7 +504,6 @@ describe('Subscription > UsageAlert', () => {
       expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
 
       expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
     it('renders am1 with projected attachments overage', () => {
@@ -675,7 +539,6 @@ describe('Subscription > UsageAlert', () => {
       expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
 
       expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
     it('does not render without projected attachments overage', () => {
@@ -741,7 +604,6 @@ describe('Subscription > UsageAlert', () => {
       expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
 
       expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
     it('does not render without projected profile duration overage', () => {

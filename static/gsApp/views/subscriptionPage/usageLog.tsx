@@ -223,7 +223,7 @@ export default function UsageLog() {
   );
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Activity Logs')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Activity Logs')} />
       {usageLogContent}

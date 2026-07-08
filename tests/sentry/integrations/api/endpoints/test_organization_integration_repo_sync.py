@@ -1,8 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class OrganizationIntegrationRepoSyncTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

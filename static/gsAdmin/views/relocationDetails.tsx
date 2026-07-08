@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
@@ -10,15 +11,14 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Truncate} from 'sentry/components/truncate';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -36,7 +36,7 @@ import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
 import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
 import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
 import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
@@ -172,17 +172,18 @@ const getUserRow = (row: any) => [
 ];
 
 export function RelocationDetails() {
+  const {openModal} = useModal();
+
   const {regionName, relocationUuid} = useParams<{
     regionName: string;
     relocationUuid: string;
   }>();
-  const [artifactsState, setArtifactsState] = useState<ArtifactsState>(
-    ArtifactsState.DISABLED
-  );
+  const [artifactsState, setArtifactsState] = useState(ArtifactsState.DISABLED);
   const navigate = useNavigate();
 
-  const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);
-  const regionClient = new Client({baseUrl: `${region?.url || ''}/api/0`});
+  const localities = getLocalities();
+  const locality = localities.find(l => l.name === regionName);
+  const regionClient = new Client({baseUrl: `${locality?.url || ''}/api/0`});
   const regionApi = useApi({api: regionClient});
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
@@ -190,7 +191,7 @@ export function RelocationDetails() {
       getApiUrl('/relocations/$relocationUuid/', {
         path: {relocationUuid},
       }),
-      {host: region ? region.url : ''},
+      {host: locality ? locality.url : ''},
     ],
     {
       staleTime: 0,
@@ -207,7 +208,7 @@ export function RelocationDetails() {
 
   const relocationData = {
     ...data,
-    region: ConfigStore.get('regions').find((r: any) => r.name === regionName) || {
+    region: localities.find(l => l.name === regionName) || {
       name: regionName,
       url: '',
     },

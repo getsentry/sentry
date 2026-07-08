@@ -1,6 +1,6 @@
 import type {Simplify} from 'type-fest';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -17,7 +17,6 @@ export enum ModuleName {
   MCP_TOOLS = 'mcp-tools',
   MCP_RESOURCES = 'mcp-resources',
   MCP_PROMPTS = 'mcp-prompts',
-  MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
   SESSIONS = 'sessions',
@@ -101,6 +100,7 @@ export enum SpanFields {
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
   GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
+  GEN_AI_REQUEST_REASONING_EFFORT = 'gen_ai.request.reasoning_effort',
   GEN_AI_REQUEST_MESSAGES = 'gen_ai.request.messages',
   GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
   GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
@@ -144,20 +144,31 @@ export enum SpanFields {
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
   // Mobile fields
+  DEVICE_CLASS = 'device.class',
+  DEVICE_MODEL = 'device.model',
+  DEVICE_MANUFACTURER = 'device.manufacturer',
+  APP_VITALS_START_COLD_VALUE = 'app.vitals.start.cold.value',
+  APP_VITALS_START_WARM_VALUE = 'app.vitals.start.warm.value',
+  APP_VITALS_START_TYPE = 'app.vitals.start.type',
+  APP_VITALS_TTID_VALUE = 'app.vitals.ttid.value',
+  APP_VITALS_TTFD_VALUE = 'app.vitals.ttfd.value',
+  APP_VITALS_FRAMES_SLOW_COUNT = 'app.vitals.frames.slow.count',
+  APP_VITALS_FRAMES_FROZEN_COUNT = 'app.vitals.frames.frozen.count',
+  APP_VITALS_FRAMES_TOTAL_COUNT = 'app.vitals.frames.total.count',
+  APP_VITALS_FRAMES_DELAY_VALUE = 'app.vitals.frames.delay.value',
+
+  // Mobile fields (deprecated, prefer app.vitals.* equivalents)
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
-  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
-  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
-  DEVICE_CLASS = 'device.class',
-  DEVICE_MODEL = 'device.model',
-  DEVICE_MANUFACTURER = 'device.manufacturer',
   APP_START_COLD = 'measurements.app_start_cold',
   APP_START_WARM = 'measurements.app_start_warm',
   MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
   APP_START_TYPE = 'app_start_type',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
   TTID = 'sentry.ttid',
   TTFD = 'sentry.ttfd',
 
@@ -177,25 +188,28 @@ export enum SpanFields {
   USER_DISPLAY = 'user.display', // Note: this is not implemented yet, waiting for EAP-123
 
   // Web vital fields
-  LCP_ELEMENT = 'lcp.element',
-  CLS_SOURCE = 'cls.source.1',
-  INP = 'measurements.inp',
+  BROWSER_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value',
+  BROWSER_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value',
+  BROWSER_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value',
+  BROWSER_WEB_VITAL_TTFB_VALUE = 'browser.web_vital.ttfb.value',
+  BROWSER_WEB_VITAL_INP_VALUE = 'browser.web_vital.inp.value',
+
+  // Web vital meta fields
+  BROWSER_WEB_VITAL_LCP_ELEMENT = 'browser.web_vital.lcp.element',
+  BROWSER_WEB_VITAL_CLS_SOURCE_1 = 'browser.web_vital.cls.source.1',
+
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
-  LCP = 'measurements.lcp',
   LCP_SCORE = 'measurements.score.lcp',
   LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
   LCP_SCORE_WEIGHT = 'measurements.score.weight.lcp',
-  CLS = 'measurements.cls',
   CLS_SCORE = 'measurements.score.cls',
   CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   CLS_SCORE_WEIGHT = 'measurements.score.weight.cls',
-  TTFB = 'measurements.ttfb',
   TTFB_SCORE = 'measurements.score.ttfb',
   TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
   TTFB_SCORE_WEIGHT = 'measurements.score.weight.ttfb',
-  FCP = 'measurements.fcp',
   FCP_SCORE = 'measurements.score.fcp',
   FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
   FCP_SCORE_WEIGHT = 'measurements.score.weight.fcp',
@@ -217,6 +231,19 @@ type SpanNumberFields =
   | SpanFields.HTTP_RESPONSE_TRANSFER_SIZE
   | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanFields.CACHE_ITEM_SIZE
+  | SpanFields.APP_VITALS_START_COLD_VALUE
+  | SpanFields.APP_VITALS_START_WARM_VALUE
+  | SpanFields.APP_VITALS_TTID_VALUE
+  | SpanFields.APP_VITALS_TTFD_VALUE
+  | SpanFields.APP_VITALS_FRAMES_SLOW_COUNT
+  | SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT
+  | SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT
+  | SpanFields.APP_VITALS_FRAMES_DELAY_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_LCP_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_FCP_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_CLS_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_INP_VALUE
   | SpanFields.MOBILE_FRAMES_DELAY
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
@@ -235,23 +262,18 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.TOTAL_SCORE
-  | SpanFields.INP
   | SpanFields.INP_SCORE
   | SpanFields.INP_SCORE_RATIO
   | SpanFields.INP_SCORE_WEIGHT
-  | SpanFields.LCP
   | SpanFields.LCP_SCORE
   | SpanFields.LCP_SCORE_RATIO
   | SpanFields.LCP_SCORE_WEIGHT
-  | SpanFields.CLS
   | SpanFields.CLS_SCORE
   | SpanFields.CLS_SCORE_RATIO
   | SpanFields.CLS_SCORE_WEIGHT
-  | SpanFields.TTFB
   | SpanFields.TTFB_SCORE
   | SpanFields.TTFB_SCORE_RATIO
   | SpanFields.TTFB_SCORE_WEIGHT
-  | SpanFields.FCP
   | SpanFields.FCP_SCORE
   | SpanFields.FCP_SCORE_RATIO
   | SpanFields.FCP_SCORE_WEIGHT
@@ -308,8 +330,8 @@ type NonNullableStringFields =
   | SpanFields.USER_USERNAME
   | SpanFields.USER_ID
   | SpanFields.USER_IP
-  | SpanFields.CLS_SOURCE
-  | SpanFields.LCP_ELEMENT
+  | SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT
+  | SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM
@@ -327,6 +349,7 @@ type NonNullableStringFields =
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
   | SpanFields.MESSAGING_MESSAGE_ID
   | SpanFields.TRACE_STATUS
+  | SpanFields.APP_VITALS_START_TYPE
   | SpanFields.APP_START_TYPE
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
@@ -496,6 +519,7 @@ type CustomResponseFields = {
     | 'out_of_range'
     | 'unimplemented'
     | 'internal_error'
+    | 'error'
     | 'unavailable'
     | 'data_loss'
     | 'unauthenticated';

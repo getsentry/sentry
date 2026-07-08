@@ -1,8 +1,10 @@
 from drf_spectacular.utils import OpenApiExample
 
 NOTIFICATION_ACTION_ONE = {
-    "id": "836501735",
-    "organizationId": "62848264",
+    "id": 836501735,
+    "organizationId": 62848264,
+    "integrationId": None,
+    "sentryAppId": None,
     "serviceType": "sentry_notification",
     "targetDisplay": "default",
     "targetIdentifier": "default",
@@ -12,8 +14,10 @@ NOTIFICATION_ACTION_ONE = {
 }
 
 NOTIFICATION_ACTION_TWO = {
-    "id": "73847650",
-    "organizationId": "62848264",
+    "id": 73847650,
+    "organizationId": 62848264,
+    "integrationId": None,
+    "sentryAppId": None,
     "serviceType": "sentry_notification",
     "targetDisplay": "default",
     "targetIdentifier": "default",

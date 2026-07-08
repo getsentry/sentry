@@ -475,9 +475,17 @@ def _split_rows_groupby(rows, groupby):
     return groups
 
 
+class _RawSessionsResult(TypingTypedDict):
+    start: str
+    end: str
+    query: str
+    intervals: list[str]
+    groups: list[_StatsGroup]
+
+
 def massage_sessions_result(
     query, result_totals, result_timeseries, ts_col="bucketed_started"
-) -> dict[str, list[Any]]:
+) -> _RawSessionsResult:
     """
     Post-processes the query result.
 
@@ -546,11 +554,11 @@ def massage_sessions_result(
             name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
         }
 
-    groups = []
+    groups: list[_StatsGroup] = []
     keys = set(total_groups.keys()) | set(timeseries_groups.keys())
     for key in keys:
         by = dict(key)
-        group = {
+        group: _StatsGroup = {
             "by": by,
             "totals": make_totals(total_groups.get(key, [None]), by),
         }
@@ -568,17 +576,32 @@ def massage_sessions_result(
     }
 
 
+class _StatsGroup(TypingTypedDict):
+    by: dict[str, Any]
+    totals: dict[str, Any]
+    series: NotRequired[dict[str, Any]]
+
+
+class StatsApiResponse(TypingTypedDict):
+    start: str
+    end: str
+    intervals: NotRequired[list[str]]
+    groups: list[_StatsGroup]
+
+
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
     result_timeseries: ResultSet | None,
-) -> dict[str, list[Any]]:
-    result: dict[str, list[Any]] = massage_sessions_result(
-        query, result_totals, result_timeseries, ts_col=TS_COL
-    )
-    if result_timeseries is None:
-        del result["intervals"]
-    del result["query"]
+) -> StatsApiResponse:
+    raw = massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL)
+    result: StatsApiResponse = {
+        "start": raw["start"],
+        "end": raw["end"],
+        "groups": raw["groups"],
+    }
+    if result_timeseries is not None:
+        result["intervals"] = raw["intervals"]
     return result
 
 

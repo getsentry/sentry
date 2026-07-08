@@ -15,10 +15,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
@@ -1406,6 +1406,34 @@ describe('Visualize', () => {
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
     });
 
+    it('shows the saved column in the trigger even when missing from attributes', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                // The saved column argument is not returned by the attributes call
+                field: ['p90(my.missing.field)'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      // The column dropdown should reflect the saved state instead of "None"
+      expect(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      ).toHaveTextContent('my.missing.field');
+    });
+
     it('shows the correct column options for the non-aggregate field type', async () => {
       render(
         <WidgetBuilderProvider>
@@ -1434,6 +1462,183 @@ describe('Visualize', () => {
       const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
       expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
       expect(within(listbox).getByText('span.description')).toBeInTheDocument();
+    });
+
+    it('fetches additional attributes from the server while typing in the column dropdown', async () => {
+      // Mock a search-aware attributes endpoint: the cold-start attribute is only
+      // returned when the dropdown forwards a matching search term, mirroring the
+      // capped initial `/attributes` response in production.
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, options, type?) => {
+          if (type === 'number') {
+            const searched =
+              options?.enabled && options?.search?.includes('cold')
+                ? {
+                    'measurements.app_start_cold': {
+                      key: 'measurements.app_start_cold',
+                      name: 'measurements.app_start_cold',
+                      kind: 'measurement',
+                    },
+                  }
+                : {};
+            return {
+              attributes: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                ...searched,
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, secondaryAliases: {}, isLoading: false};
+          }
+
+          return {
+            attributes: {
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
+              },
+            } as TagCollection,
+            secondaryAliases: {},
+            isLoading: false,
+          };
+        });
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['performance-view', 'visibility-explore-view'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['span.duration'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      // The attribute is not part of the initial response.
+      expect(screen.queryByText('measurements.app_start_cold')).not.toBeInTheDocument();
+
+      // Typing forwards the search to the attributes endpoint and the newly
+      // fetched attribute shows up as an option.
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'cold');
+      expect(await screen.findByText('measurements.app_start_cold')).toBeInTheDocument();
+
+      // Closing and reopening resets the search, so the previously fetched
+      // attribute should not linger in the options when there is no query.
+      await userEvent.keyboard('{Escape}');
+      await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+      const reopenedListbox = await screen.findByRole('listbox', {
+        name: 'Column Selection',
+      });
+      expect(within(reopenedListbox).getByText('span.duration')).toBeInTheDocument();
+      expect(
+        within(reopenedListbox).queryByText('measurements.app_start_cold')
+      ).not.toBeInTheDocument();
+    });
+
+    it('matches searched attributes by key even when the display label differs', async () => {
+      // The attribute's display label ("Cold Start") does not contain the
+      // queried substring, but its key does. The dropdown filter must score on
+      // the key so the server match is not dropped client-side.
+      jest
+        .mocked(useTraceItemDatasetAttributes)
+        .mockImplementation((_traceItemType, options, type?) => {
+          if (type === 'number') {
+            const searched =
+              options?.enabled && options?.search?.includes('app_start')
+                ? {
+                    'measurements.app_start_cold': {
+                      key: 'measurements.app_start_cold',
+                      name: 'Cold Start',
+                      kind: 'measurement',
+                    },
+                  }
+                : {};
+            return {
+              attributes: {
+                'span.duration': {
+                  key: 'span.duration',
+                  name: 'span.duration',
+                  kind: 'measurement',
+                },
+                ...searched,
+              } as TagCollection,
+              secondaryAliases: {},
+              isLoading: false,
+            };
+          }
+
+          if (type === 'boolean') {
+            return {attributes: {}, secondaryAliases: {}, isLoading: false};
+          }
+
+          return {
+            attributes: {
+              'span.description': {
+                key: 'span.description',
+                name: 'span.description',
+                kind: 'tag',
+              },
+            } as TagCollection,
+            secondaryAliases: {},
+            isLoading: false,
+          };
+        });
+
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['performance-view', 'visibility-explore-view'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['span.duration'],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      // Searching by the key surfaces the attribute even though its label is
+      // "Cold Start".
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'app_start');
+      expect(await screen.findByText('Cold Start')).toBeInTheDocument();
     });
 
     it('differentiates between function and column values in selection', async () => {
@@ -1923,7 +2128,7 @@ describe('Visualize', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['sum(value,alpha_metric,counter,-)'],
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },

@@ -22,15 +22,19 @@ const sections: SidebarSection[] = [
   {
     type: DiffStatus.CHANGED,
     groups: [
-      {key: 'changed:Button/light', name: 'Button/light', count: 1},
-      {key: 'changed:Alert/dark', name: 'Alert/dark', count: 3},
+      {key: 'changed:Button/light', displayName: 'Button/light', count: 1},
+      {key: 'changed:Alert/dark', displayName: 'Alert/dark', count: 3},
     ],
   },
   {
     type: DiffStatus.UNCHANGED,
     groups: [
-      {key: 'unchanged:Badge/light', name: 'Badge/light', count: 4},
-      {key: 'unchanged:Checkbox/theme-dark', name: 'Checkbox/theme-dark', count: 2},
+      {key: 'unchanged:Badge/light', displayName: 'Badge/light', count: 4},
+      {
+        key: 'unchanged:Checkbox/theme-dark',
+        displayName: 'Checkbox/theme-dark',
+        count: 2,
+      },
     ],
   },
 ];
@@ -41,6 +45,8 @@ const statusCounts: Record<DiffStatus, number> = {
   [DiffStatus.REMOVED]: 0,
   [DiffStatus.RENAMED]: 0,
   [DiffStatus.UNCHANGED]: 2,
+  [DiffStatus.ERRORED]: 0,
+  [DiffStatus.SKIPPED]: 0,
 };
 
 describe('SnapshotSidebarContent', () => {
@@ -65,10 +71,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'default'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -84,10 +91,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'active-group'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -102,10 +110,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'filtered'}
+      {tags: {area: 'snapshots'}}
     );
 
     it.snapshot(
@@ -120,10 +129,11 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
-      {theme: themeName, state: 'no-results'}
+      {tags: {area: 'snapshots'}}
     );
   });
 });

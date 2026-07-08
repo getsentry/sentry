@@ -11,7 +11,7 @@ import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
-import {type ApiQueryKey, parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {type ApiQueryKey, safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -20,7 +20,10 @@ import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {BulkDeleteAlert} from 'sentry/views/explore/replays/list/bulkDeleteAlert';
 import {useReplayIndexTableColumns} from 'sentry/views/explore/replays/list/useReplayIndexTableColumns';
-import {DeadRageSelectorCards} from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
+import {
+  DeadRageSelectorCards,
+  DeadRageSelectorCardsPlaceholder,
+} from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
@@ -30,6 +33,7 @@ interface Props {
   queryKey: ApiQueryKey;
   replays: ReplayListRecord[];
   showDeadRageClickCards: boolean;
+  showDeadRageClickCardsPlaceholder: boolean;
   widgetIsOpen: boolean;
 }
 
@@ -40,6 +44,7 @@ export function ReplayIndexTable({
   queryKey,
   replays,
   showDeadRageClickCards,
+  showDeadRageClickCardsPlaceholder,
   widgetIsOpen,
 }: Props) {
   const queryClient = useQueryClient();
@@ -56,9 +61,12 @@ export function ReplayIndexTable({
   const {allMobileProj} = useAllMobileProj({});
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
-  const {options} = parseQueryKey(queryKey);
+  const endpointOptions = safeParseQueryKey(queryKey)?.options;
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
-    search: options?.query?.query as string | undefined,
+    search:
+      typeof endpointOptions?.query?.query === 'string'
+        ? endpointOptions?.query?.query
+        : undefined,
   });
 
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
@@ -77,12 +85,15 @@ export function ReplayIndexTable({
       ) : null}
 
       {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
+      {widgetIsOpen && showDeadRageClickCardsPlaceholder ? (
+        <DeadRageSelectorCardsPlaceholder />
+      ) : null}
 
       {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ListItemCheckboxProvider
         hits={hasMoreResults ? replays.length + 1 : replays.length}
         knownIds={replays.map(replay => replay.id)}
-        queryKey={queryKey}
+        endpointOptions={endpointOptions}
       >
         {needsSDKUpdateForClickSearch ? (
           <Fragment>

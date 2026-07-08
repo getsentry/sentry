@@ -365,6 +365,60 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."
 
+    def test_truncate_param(self) -> None:
+        long_body = "a" * 100
+        log = self.create_ourlog(
+            {"body": long_body},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_eap_items([log])
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": 64,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["log.body"] == "a" * 64 + "..."
+
+    def test_truncate_param_invalid_type(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": "notanumber",
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "truncate must be a positive integer >= 64"
+
+    def test_truncate_param_zero_value(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": 0,
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "truncate must be a positive integer >= 64"
+
+    def test_truncate_param_small_value(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "truncate": 63,
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "truncate must be a positive integer >= 64"
+
     def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least
         for the initial load"""
@@ -927,6 +981,85 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
+
+    def test_aggregate_condition_filters_grouped_logs(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_ourlog({"body": "foo"}, timestamp=self.ten_mins_ago),
+                self.create_ourlog({"body": "foo"}, timestamp=self.nine_mins_ago),
+                self.create_ourlog({"body": "bar"}, timestamp=self.ten_mins_ago),
+            ]
+        )
+        request = {
+            "field": ["message", "count(message)"],
+            "orderby": "message",
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        unfiltered = self.do_request(request)
+        filtered = self.do_request({**request, "query": "count(message):>1"})
+
+        assert unfiltered.status_code == 200, unfiltered.content
+        assert unfiltered.data["data"] == [
+            {"message": "bar", "count(message)": 1},
+            {"message": "foo", "count(message)": 2},
+        ]
+        assert filtered.status_code == 200, filtered.content
+        assert filtered.data["data"] == [{"message": "foo", "count(message)": 2}]
+
+    def test_resolves_latest_release_alias(self) -> None:
+        self.create_release(version="0.8")
+        self.store_eap_items(
+            [self.create_ourlog(attributes={"sentry.release": "0.8"}, timestamp=self.ten_mins_ago)]
+        )
+
+        request = {
+            "field": ["release"],
+            "query": "release:latest",
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"release": "0.8"}]
+
+        self.create_release(version="0.9")
+        self.store_eap_items(
+            [self.create_ourlog(attributes={"sentry.release": "0.9"}, timestamp=self.ten_mins_ago)]
+        )
+
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"release": "0.9"}]
+
+    def test_resolves_semver_release_filter(self) -> None:
+        self.create_release(version="test@1.2.3")
+        self.create_release(version="test@1.2.4")
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    attributes={"sentry.release": "test@1.2.3"}, timestamp=self.ten_mins_ago
+                ),
+                self.create_ourlog(
+                    attributes={"sentry.release": "test@1.2.4"}, timestamp=self.ten_mins_ago
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": ["release"],
+                "query": "release.version:>1.2.3",
+                "orderby": "release",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"release": "test@1.2.4"}]
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_no_project_sent_logs(self):

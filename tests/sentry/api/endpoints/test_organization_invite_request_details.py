@@ -173,6 +173,56 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
         resp = self.get_response(self.org.slug, self.request_to_join.id, role="manager")
         assert resp.status_code == 403
 
+    def test_manager_cannot_escalate_invite_role_to_owner(self) -> None:
+        self.login_as(user=self.manager)
+        resp = self.get_response(self.org.slug, self.request_to_join.id, role="owner")
+
+        assert resp.status_code == 400
+        assert OrganizationMember.objects.filter(id=self.request_to_join.id, role="member").exists()
+
+    def test_manager_cannot_escalate_invite_orgrole_to_owner(self) -> None:
+        self.login_as(user=self.manager)
+        resp = self.get_response(self.org.slug, self.request_to_join.id, orgRole="owner")
+
+        assert resp.status_code == 400
+        assert OrganizationMember.objects.filter(id=self.request_to_join.id, role="member").exists()
+
+    def test_integration_token_with_member_write_can_update_to_member_role(self) -> None:
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.org, scopes=["member:write"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+
+        resp = self.client.put(
+            f"/api/0/organizations/{self.org.slug}/invite-requests/{self.request_to_join.id}/",
+            data={"role": "member"},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert resp.status_code == 200
+        assert OrganizationMember.objects.filter(id=self.request_to_join.id, role="member").exists()
+
+    def test_integration_token_with_member_write_cannot_escalate_to_owner(self) -> None:
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.org, scopes=["member:write"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+
+        resp = self.client.put(
+            f"/api/0/organizations/{self.org.slug}/invite-requests/{self.request_to_join.id}/",
+            data={"role": "owner"},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+        assert resp.status_code == 400
+        assert OrganizationMember.objects.filter(id=self.request_to_join.id, role="member").exists()
+
 
 class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"

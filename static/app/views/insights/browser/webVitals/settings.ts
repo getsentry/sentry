@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Web Vitals');
@@ -15,9 +16,9 @@ export const DEFAULT_QUERY_FILTER =
 export const MODULE_FEATURES = ['insight-modules'];
 
 export const FIELD_ALIASES = {
-  'p75(measurements.lcp)': 'LCP',
-  'p75(measurements.fcp)': 'FCP',
-  'p75(measurements.inp)': 'INP',
-  'p75(measurements.cls)': 'CLS',
-  'p75(measurements.ttfb)': 'TTFB',
+  [`p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`]: 'LCP',
+  [`p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`]: 'FCP',
+  [`p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`]: 'INP',
+  [`p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`]: 'CLS',
+  [`p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`]: 'TTFB',
 } satisfies Partial<Record<SpanProperty, string>>;

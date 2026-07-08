@@ -16,7 +16,9 @@ const EXCEPT_DIR_NAME = 'static/app/utils/theme';
  * @returns {boolean}
  */
 function isForbiddenImportPath(importPath: string) {
-  if (typeof importPath !== 'string') return false;
+  if (typeof importPath !== 'string') {
+    return false;
+  }
 
   return importPath.includes(TOKEN_PATH);
 }
@@ -37,8 +39,12 @@ export const noTokenImport = ESLintUtils.RuleCreator.withoutDocs({
 
     return {
       ImportDeclaration(node) {
-        if (node?.source.type !== 'Literal') return;
-        if (importerIsInAllowedDir) return;
+        if (node?.source.type !== 'Literal') {
+          return;
+        }
+        if (importerIsInAllowedDir) {
+          return;
+        }
 
         const value = node.source.value;
 

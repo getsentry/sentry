@@ -22,8 +22,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getShortEventId} from 'sentry/utils/events';
-import {type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {
   type ReplayBulkDeletePayload,
@@ -63,9 +63,9 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
           ? projects[0]?.id
           : undefined,
   });
-  const hasOneProjectSelected = Boolean(project);
 
-  const oneProjectEligible = hasOneProjectSelected || hasOnlyOneProject;
+  // Only allow bulk delete if we have successfully resolved a project
+  const oneProjectEligible = Boolean(project);
 
   const {bulkDelete, hasAccess, queryOptionsToPayload} = useDeleteReplays({
     projectSlug: project?.slug ?? '',
@@ -90,7 +90,9 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
     >
       <Tooltip
         disabled={!oneProjectEligible || hasAccess}
-        title={t('You must have project:write or project:admin access to delete replays')}
+        title={t(
+          'You must have project:write, project:admin, or org:admin access to delete replays'
+        )}
       >
         <Button
           disabled={!oneProjectEligible || !hasAccess}

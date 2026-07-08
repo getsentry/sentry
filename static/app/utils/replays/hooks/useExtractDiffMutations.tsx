@@ -250,7 +250,7 @@ export function useExtractDiffMutations({
   leftOffsetMs,
   replay,
   rightOffsetMs,
-}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>, Error> {
+}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>> {
   const startTimestampMs = replay.getReplay().started_at.getTime();
   const rangeStartTimestampMs = startTimestampMs + leftOffsetMs;
   const rangeEndTimestampMs = startTimestampMs + rightOffsetMs;

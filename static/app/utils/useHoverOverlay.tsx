@@ -16,7 +16,7 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 
-import {NODE_ENV} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
@@ -104,7 +104,7 @@ function createDelayGroup(): DelayGroup {
 // tooltip delay semantics are naturally global.
 const defaultDelayGroup = createDelayGroup();
 
-const DelayGroupContext = createContext<DelayGroup>(defaultDelayGroup);
+const DelayGroupContext = createContext(defaultDelayGroup);
 
 /**
  * Scopes a delay group to a React subtree. Overlays inside the provider share
@@ -295,7 +295,7 @@ function useHoverOverlay({
   // Stable identity for this instance — used by warmUpGroup to tell each
   // listener whether it's the one that just opened (skip self-close) or a
   // sibling that should snap shut.
-  const selfTokenRef = useRef<symbol>(Symbol('hoverOverlay'));
+  const selfTokenRef = useRef(Symbol('hoverOverlay'));
 
   const [status, setStatus] = useState<OverlayStatus>('idle');
   const statusRef = useRef<OverlayStatus>('idle');

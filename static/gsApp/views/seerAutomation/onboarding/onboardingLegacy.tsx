@@ -8,13 +8,13 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -31,6 +31,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
+import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -47,8 +49,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 type ProjectState = {
   isPending: boolean;
@@ -121,12 +121,16 @@ function ProjectRowWithUpdate({
   projectStates: ProjectStateMap;
   repositories: Repository[];
 }) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const handleProjectClick = useCallback(() => {
-    if (!repositories) return;
+    if (!repositories) {
+      return;
+    }
 
     const currentPreference = projectStates[project.id]?.preference;
     const currentRepoIds =
@@ -135,12 +139,12 @@ function ProjectRowWithUpdate({
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
-        selectedRepoIds={currentRepoIds}
-        onSave={(repoIds: string[]) => {
+        hiddenExternalIds={currentRepoIds}
+        onSave={({selectedExternalIds}) => {
           const reposData = transformRepositoriesToApiFormat(
             repositories,
             organization.id,
-            repoIds
+            [...currentRepoIds, ...selectedExternalIds]
           );
 
           updateProjectSeerPreferences({repositories: reposData});
@@ -167,6 +171,7 @@ function ProjectRowWithUpdate({
     project.slug,
     onSuccess,
     onUpdateProjectState,
+    openModal,
   ]);
 
   return <ProjectRow onClick={handleProjectClick} project={project} />;
@@ -297,13 +302,19 @@ function ProjectsWithoutRepos({
   }, [projects, projectStates]);
 
   const projectsWithoutRepos = useMemo(() => {
-    if (isLoading) return [];
+    if (isLoading) {
+      return [];
+    }
 
     const filtered = projects.filter(project => {
-      if (successfullyConnectedProjects.has(project.id)) return false;
+      if (successfullyConnectedProjects.has(project.id)) {
+        return false;
+      }
 
       const state = projectStates[project.id];
-      if (!state || state.isPending) return false;
+      if (!state || state.isPending) {
+        return false;
+      }
 
       let repoCount = state.preference?.repositories?.length || 0;
       if (repoCount === 0 && state.codeMappingRepos) {
@@ -313,7 +324,9 @@ function ProjectsWithoutRepos({
     });
 
     // Apply search filter
-    if (!searchQuery.trim()) return filtered;
+    if (!searchQuery.trim()) {
+      return filtered;
+    }
 
     const query = searchQuery.toLowerCase();
     return filtered.filter(
@@ -506,7 +519,7 @@ function AutoTriggerFixesButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableAutoTriggerFixes}
       disabled={fetching || projectsWithRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -580,7 +593,7 @@ function EnableIssueScansButton({
 
   return (
     <Button
-      priority="primary"
+      variant="primary"
       onClick={handleEnableIssueScans}
       disabled={fetching || projectsWithoutRepos.length === 0 || isLoading}
       busy={isLoading}
@@ -608,7 +621,9 @@ export function SeerAutomationOnboarding() {
   const projectsWithoutRepos = useMemo(() => {
     return filteredProjects.filter(project => {
       // Exclude projects that have been successfully connected this session
-      if (successfullyConnectedProjects.has(project.id)) return false;
+      if (successfullyConnectedProjects.has(project.id)) {
+        return false;
+      }
 
       // Exclude projects that already have repositories
       const state = projectStates[project.id];
@@ -795,7 +810,7 @@ export function SeerAutomationOnboarding() {
 
             <GuidedSteps.StepButtons>
               <Button
-                priority="primary"
+                variant="primary"
                 onClick={() => navigate(`/settings/${organization.slug}/seer/`)}
                 size="sm"
               >

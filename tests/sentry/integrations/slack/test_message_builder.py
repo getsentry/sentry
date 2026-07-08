@@ -959,50 +959,21 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         return False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-slack-workflows": True,
-        }
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_shown_when_all_conditions_met(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group).build()
         assert self._has_autofix_button(blocks)
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-slack-workflows": False,
-        }
-    )
-    def test_autofix_button_hidden_without_slack_workflows_flag(
-        self, mock_quota: MagicMock
-    ) -> None:
-        group = self.create_group(project=self.project)
-        blocks = SlackIssuesMessageBuilder(group).build()
-        assert not self._has_autofix_button(blocks)
-
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-slack-workflows": True,
-        }
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_hidden_on_unfurl(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, is_unfurl=True).build()
         assert not self._has_autofix_button(blocks)
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @with_feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-slack-workflows": True,
-        }
-    )
+    @with_feature({"organizations:gen-ai-features": True})
     def test_autofix_button_hidden_when_no_other_actions(self, mock_quota: MagicMock) -> None:
         group = self.create_group(project=self.project)
         blocks = SlackIssuesMessageBuilder(group, issue_details=True).build()
@@ -1306,3 +1277,31 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
         )
         assert not tags
+
+
+class SlackAppUpdateNudgeBlockTest(TestCase):
+    def _build_nudge_text(self, has_mentions_read_scope: bool) -> str:
+        group = self.create_group(project=self.project)
+        block = SlackIssuesMessageBuilder(
+            group,
+            has_mentions_read_scope=has_mentions_read_scope,
+        ).get_slack_app_update_nudge_block()
+        return block["elements"][0]["text"]
+
+    def test_updated_app_has_app_mentions_scope(self) -> None:
+        # app_mentions:read present -> app is up to date.
+        assert (
+            self._build_nudge_text(has_mentions_read_scope=True)
+            == "Mention or tag Sentry to investigate issues more deeply."
+        )
+
+    def test_outdated_app_missing_app_mentions_scope(self) -> None:
+        # Old install missing the mandatory app_mentions:read scope.
+        org = self.organization
+        reinstall_url = org.absolute_url(
+            f"/settings/{org.slug}/integrations/slack/",
+            query="showInstallModal=1&referrer=slack_alert_nudge",
+        )
+        assert self._build_nudge_text(has_mentions_read_scope=False) == (
+            f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."
+        )

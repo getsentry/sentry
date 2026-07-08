@@ -19,7 +19,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -46,7 +45,7 @@ import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/u
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -64,7 +63,7 @@ import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
-import type {TraceReducer, TraceReducerState} from './traceState';
+import type {TraceReducer} from './traceState';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -102,7 +101,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const traceState = useTraceState();
 
-  const traceStateRef = useRef<TraceReducerState>(traceState);
+  const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
   const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
@@ -114,7 +113,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
-  const projectsRef = useRef<Project[]>(projects);
+  const projectsRef = useRef(projects);
   projectsRef.current = projects;
 
   const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});
@@ -387,10 +386,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    if (traceNode && props.tree.eap_spans_count !== props.meta?.data?.span_count) {
+    const metaSpanCount = getTraceMetaSpanCount(props.meta.data);
+
+    if (traceNode && props.tree.eap_spans_count !== metaSpanCount) {
       Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
         trace_eap_span_count: props.tree.eap_spans_count,
-        trace_meta_span_count: props.meta?.data?.span_count,
+        trace_meta_span_count: metaSpanCount,
       });
     }
   }, [props.tree, props.meta]);
@@ -662,6 +663,19 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
+  const onCompressedTimelineChange = useCallback(() => {
+    const value = !traceState.preferences.compressed_timeline;
+
+    addSuccessMessage(
+      value ? t('Compressed timeline enabled') : t('Compressed timeline disabled')
+    );
+    traceAnalytics.trackCompressedTimelinePreferenceChange(props.organization, value);
+    traceDispatch({
+      type: 'set compressed timeline',
+      payload: value,
+    });
+  }, [traceDispatch, traceState.preferences.compressed_timeline, props.organization]);
+
   if (props.tree.type === 'empty' && props.hideIfNoData) {
     return null;
   }
@@ -695,8 +709,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             traceState.preferences.autogroup.parent &&
             traceState.preferences.autogroup.sibling
           }
+          compressedTimeline={traceState.preferences.compressed_timeline}
           missingInstrumentation={traceState.preferences.missing_instrumentation}
           onAutogroupChange={onAutogroupChange}
+          onCompressedTimelineChange={onCompressedTimelineChange}
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </Flex>
@@ -786,6 +802,5 @@ export const TraceGrid = styled('div')<{
         ? 'min-content 1fr'
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
-
-  ${p => `border-radius: ${p.theme.radius.md};`}
+  border-radius: ${p => p.theme.radius.md};
 `;

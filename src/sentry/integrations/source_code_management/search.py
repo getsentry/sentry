@@ -31,7 +31,7 @@ class SourceCodeSearchSerializer(serializers.Serializer[dict[str, str]]):
 
 @control_silo_endpoint
 class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

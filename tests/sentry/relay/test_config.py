@@ -26,7 +26,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
@@ -93,7 +92,6 @@ def _validate_project_config(config):
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
-
     assert normalize_project_config(config) == config
 
 
@@ -169,6 +167,7 @@ def test_project_config_uses_filter_features(
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
     default_project.update_option("filters:chunk-load-error", "0")
+    default_project.update_option("filters:custom-error", "0")
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
@@ -331,14 +330,14 @@ def test_project_config_with_all_biases_enabled(
         "version": 2,
         "rules": [
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.02},
-                "type": "transaction",
+                "samplingValue": {"type": "sampleRate", "value": 0.1 / 3},
+                "type": "trace",
                 "condition": {
                     "op": "or",
                     "inner": [
                         {
                             "op": "glob",
-                            "name": "event.transaction",
+                            "name": "trace.transaction",
                             "value": HEALTH_CHECK_GLOBS,
                         }
                     ],
@@ -460,7 +459,6 @@ def test_project_config_with_trace_health_checks_enabled(
     with Feature(
         {
             "organizations:dynamic-sampling": True,
-            "organizations:ds-health-checks-trace-based": True,
         }
     ):
         with patch(
@@ -786,9 +784,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Chrome",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome",
+                },
+            ],
         },
         "version": "1",
     }
@@ -825,9 +833,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Firefox",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Firefox",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Firefox",
+                },
+            ],
         },
         "version": "1",
     }
@@ -864,9 +882,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Safari",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Safari",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Safari",
+                },
+            ],
         },
         "version": "1",
     }
@@ -903,9 +931,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge",
+                },
+            ],
         },
         "version": "1",
     }
@@ -942,9 +980,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera",
+                },
+            ],
         },
         "version": "1",
     }
@@ -973,6 +1021,16 @@ def test_desktop_performance_calculate_score(default_project) -> None:
                     "name": "event.contexts.browser.name",
                     "value": "Google Chrome",
                 },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Google Chrome",
+                },
             ],
         },
         "version": "1",
@@ -990,9 +1048,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1009,9 +1077,19 @@ def test_desktop_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1061,9 +1139,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Chrome Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1100,9 +1188,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Firefox Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Firefox Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Firefox Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1139,9 +1237,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Mobile Safari",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Mobile Safari",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Mobile Safari",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1178,9 +1286,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1218,9 +1336,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1243,6 +1371,11 @@ def test_mobile_performance_calculate_score(default_project) -> None:
                     "name": "event.contexts.browser.name",
                     "value": "Chrome Mobile",
                 },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Chrome Mobile",
+                },
             ],
         },
         "version": "1",
@@ -1259,9 +1392,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             },
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Edge Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Edge Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Edge Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1277,9 +1420,19 @@ def test_mobile_performance_calculate_score(default_project) -> None:
             }
         ],
         "condition": {
-            "op": "eq",
-            "name": "event.contexts.browser.name",
-            "value": "Opera Mobile",
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Opera Mobile",
+                },
+                {
+                    "op": "eq",
+                    "name": "span.attributes.browser.name.value",
+                    "value": "Opera Mobile",
+                },
+            ],
         },
         "version": "1",
     }
@@ -1323,31 +1476,30 @@ def test_project_config_with_transaction_name_clustering_disabled(
 
 @django_db_all
 @cell_silo_test
-@pytest.mark.parametrize("feature_enabled", [True, False])
-@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
-def test_project_config_trusted_relay_settings(
-    default_project, feature_enabled, project_option_value
-):
+def test_project_config_trusted_relay_settings_enabled(default_project):
     default_project.organization.update_option(
-        "sentry:ingest-through-trusted-relays-only", project_option_value
+        "sentry:ingest-through-trusted-relays-only", "enabled"
     )
 
-    features_dict = {}
-    if feature_enabled:
-        features_dict["organizations:ingest-through-trusted-relays-only"] = True
+    config = get_project_config(default_project).to_dict()
 
-    with Feature(features_dict):
-        config = get_project_config(default_project).to_dict()
+    trusted_relay_settings = config["config"].get("trustedRelaySettings")
+    assert trusted_relay_settings is not None
+    assert trusted_relay_settings["verifySignature"] == "enabled"
 
-        trusted_relay_settings = config["config"].get("trustedRelaySettings")
 
-        if feature_enabled:
-            # trustedRelaySettings should be present
-            assert trusted_relay_settings is not None
-            assert trusted_relay_settings["verifySignature"] == project_option_value
-        else:
-            # trustedRelaySettings should not be present
-            assert trusted_relay_settings is None
+@django_db_all
+@cell_silo_test
+def test_project_config_trusted_relay_settings_disabled(default_project):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", "disabled"
+    )
+
+    config = get_project_config(default_project).to_dict()
+
+    # "disabled" is the default — Relay treats absent and disabled as equivalent,
+    # so we don't write the key at all.
+    assert config["config"].get("trustedRelaySettings") is None
 
 
 @django_db_all

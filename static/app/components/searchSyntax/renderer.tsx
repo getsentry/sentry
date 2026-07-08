@@ -311,7 +311,7 @@ function makeSearchTokenVariants(theme: Theme) {
     searchTokenBackground: {
       valid: theme.tokens.background.transparent.accent.muted,
       validActive: modifyColor(theme.tokens.background.transparent.accent.muted)
-        .opaquer(1.0)
+        .opaquer(1)
         .string(),
       invalid: theme.tokens.background.transparent.danger.muted,
       invalidActive: modifyColor(theme.tokens.background.transparent.danger.muted)
@@ -382,7 +382,7 @@ const Key = styled('span')<{negated: boolean}>`
           border-radius: 2px 0 0 2px;
           padding-left: 1px;
           margin-left: -2px;
-        `};
+        `}
 `;
 
 const ExplicitKey = styled('span')<{prefix: string}>`

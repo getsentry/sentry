@@ -27,7 +27,7 @@ const camelCaseRouteParameter = (word: string) => {
  * Ex: /organizations/:orgid/alerts/new/:alerttype/ ->
  * Organizations :orgid Alerts New :alerttype
  */
-export function getEventPath(matches: Array<UIMatch<unknown, unknown>>) {
+export function getEventPath(matches: UIMatch[]) {
   const routeString = getRouteStringFromRoutes({matches});
   return routeString
     .split('/')

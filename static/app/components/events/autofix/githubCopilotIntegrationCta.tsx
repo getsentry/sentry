@@ -6,8 +6,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -34,14 +34,7 @@ export function GithubCopilotIntegrationCta() {
     integration => integration.provider === 'github_copilot'
   );
 
-  const hasGithubCopilotFeatureFlag = organization.features.includes(
-    'integrations-github-copilot-agent'
-  );
   const hasGithubCopilotIntegration = Boolean(githubCopilotIntegration);
-
-  if (!hasGithubCopilotFeatureFlag) {
-    return null;
-  }
 
   if (isLoadingIntegrations) {
     return (
@@ -80,7 +73,7 @@ export function GithubCopilotIntegrationCta() {
           <div>
             <LinkButton
               to={`/settings/${organization.slug}/integrations/github_copilot/`}
-              priority="default"
+              variant="secondary"
               size="sm"
               onClick={handleInstallClick}
             >

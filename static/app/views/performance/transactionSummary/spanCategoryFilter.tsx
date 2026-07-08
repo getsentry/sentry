@@ -32,9 +32,7 @@ export function SpanCategoryFilter({segmentSpanName}: Props) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
-    spanCategoryUrlParam
-  );
+  const [selectedCategory, setSelectedCategory] = useState(spanCategoryUrlParam);
 
   const {selection} = usePageFilters();
   const navigate = useNavigate();

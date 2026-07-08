@@ -16,7 +16,9 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
+from sentry.grouping.api import GroupingConfig
 from sentry.interfaces.user import EventUserApiContext
+from sentry.issues.issue_occurrence import IssueOccurrenceResponse
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
 from sentry.models.release import Release
@@ -30,6 +32,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
+from sentry.utils.tracing import start_span
 
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
@@ -163,7 +166,7 @@ class BaseEventSerializerResponse(TypedDict):
     type: str
     metadata: Any
     errors: list[Any]
-    occurrence: Any
+    occurrence: IssueOccurrenceResponse | None
     _meta: dict[str, Any]
 
 
@@ -172,7 +175,7 @@ class ErrorEventFields(TypedDict, total=False):
     culprit: str | None
     dateCreated: datetime
     fingerprints: list[str]
-    groupingConfig: Any
+    groupingConfig: GroupingConfig
 
 
 class TransactionEventFields(TypedDict, total=False):
@@ -196,6 +199,11 @@ class IssueEventSerializerResponse(SqlFormatEventSerializerResponse):
     userReport: UserReportSerializerResponse | None
     sdkUpdates: list[dict[str, Any]]
     resolvedWith: list[str]
+
+
+class GroupEventDetailsResponse(IssueEventSerializerResponse):
+    nextEventID: str | None
+    previousEventID: str | None
 
 
 @register(GroupEvent)
@@ -511,7 +519,7 @@ class SqlFormatEventSerializer(EventSerializer):
         include_full_release_data = kwargs.pop("include_full_release_data", False)
         result = super().serialize(obj, attrs, user, **kwargs)
 
-        with sentry_sdk.start_span(op="serialize", name="Format SQL"):
+        with start_span(op="serialize", name="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
             release_info = self._get_release_info(user, obj, include_full_release_data)

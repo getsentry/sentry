@@ -31,12 +31,12 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   NOTIFICATION_SETTING_FIELDS,
   QUOTA_FIELDS,
-  SPEND_FIELDS,
 } from './fields';
 import {NotificationSettingsByEntity} from './notificationSettingsByEntity';
 import type {Identity} from './types';
 import {UnlinkedAlert} from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
+import {WeeklyReportProjectExclusions} from './weeklyReportProjectExclusions';
 
 type Props = {
   notificationType: string; // TODO(steve)? type better
@@ -214,95 +214,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const filterCategoryFields = (
-    fields: Array<{
-      choices: ReadonlyArray<readonly [string, string]>;
-      name: string;
-      help?: React.ReactNode;
-      label?: React.ReactNode;
-    }>
-  ) => {
-    // at least one org exists with am3 tiered plan
-    const hasOrgWithAm3 = organizations.some(organization =>
-      organization.features?.includes('am3-tier')
-    );
-
-    // at least one org exists without am3 tier plan
-    const hasOrgWithoutAm3 = organizations.some(
-      organization => !organization.features?.includes('am3-tier')
-    );
-
-    // at least one org exists with am2 tier plan
-    const hasOrgWithAm2 = organizations.some(organization =>
-      organization.features?.includes('am2-tier')
-    );
-
-    // at least one org exists with am1 tier plan
-    const hasOrgWithAm1 = organizations.some(organization =>
-      organization.features?.includes('am1-tier')
-    );
-
-    // Check if any organization has the continuous-profiling-billing feature flag
-    const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
-      organization.features?.includes('continuous-profiling-billing')
-    );
-
-    const hasSeerBilling = organizations.some(organization =>
-      organization.features?.includes('seer-billing')
-    );
-
-    const hasLogsBilling = organizations.some(organization =>
-      organization.features?.includes('logs-billing')
-    );
-
-    const hasTraceMetricsBilling = organizations.some(organization =>
-      organization.features?.includes('expose-category-trace-metric-byte')
-    );
-
-    const hasSeerUserBilling = organizations.some(organization =>
-      organization.features?.includes('seer-user-billing-launch')
-    );
-
-    const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
-    const includeSpans = hasOrgWithAm3;
-    const includeProfileDuration =
-      (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
-    const includeSeer = hasSeerBilling;
-    const includeLogs = hasLogsBilling;
-    const includeSizeAnalysis = hasOrgWithAm3 || hasOrgWithAm2 || hasOrgWithAm1;
-
-    return fields.filter(field => {
-      if (field.name === 'quotaSpans' && !includeSpans) {
-        return false;
-      }
-      if (field.name === 'quotaTransactions' && excludeTransactions) {
-        return false;
-      }
-      if (
-        ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
-        !includeProfileDuration
-      ) {
-        return false;
-      }
-      if (field.name.startsWith('quotaSeerBudget') && !includeSeer) {
-        return false;
-      }
-      if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
-        return false;
-      }
-      if (field.name.startsWith('quotaTraceMetricBytes') && !hasTraceMetricsBilling) {
-        return false;
-      }
-      if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
-        return false;
-      }
-      if (field.name.startsWith('quotaSize') && !includeSizeAnalysis) {
-        return false;
-      }
-      return true;
-    });
-  };
-
   const removeNotificationMutation = useMutation({
     mutationFn: (id: string) =>
       fetchMutation({method: 'DELETE', url: `/users/me/notification-options/${id}/`}),
@@ -369,20 +280,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
   const unlinkedSlackStagingOrgs = getUnlinkedOrgs('slack_staging');
-  let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
-  if (
-    notificationType === 'quota' &&
-    organizations.some(org => org.features?.includes('spend-visibility-notifications'))
-  ) {
-    notificationDetails = {
-      ...notificationDetails,
-      title: t('Spend Notifications'),
-      description: t('Control the notifications you receive for organization spend.'),
-    };
-  }
-  const {title, description} = notificationDetails;
+  const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
 
   const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
+
+  if (notificationType === 'quota' && ConfigStore.get('isSelfHosted')) {
+    return null;
+  }
 
   if (
     notificationOptionStatus === 'pending' ||
@@ -460,13 +364,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   });
 
   const renderQuotaFields = () => {
-    const hasSpendVisibility = organizations.some(organization =>
-      organization.features?.includes('spend-visibility-notifications')
-    );
-    const sourceFields = hasSpendVisibility ? SPEND_FIELDS : QUOTA_FIELDS;
-    const filteredFields = filterCategoryFields(sourceFields);
-
-    return filteredFields.map(field => {
+    return QUOTA_FIELDS.map(field => {
       const schema = z.object({[field.name]: z.string()});
       return (
         <AutoSaveForm
@@ -526,15 +424,17 @@ export function NotificationSettingsByType({notificationType}: Props) {
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       {description && <TextBlock>{description}</TextBlock>}
-      <FieldGroup
-        title={
-          isGroupedByProject(notificationType)
-            ? t('All Projects')
-            : t('All Organizations')
-        }
-      >
-        {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
-      </FieldGroup>
+      {notificationType !== 'reports' && (
+        <FieldGroup
+          title={
+            isGroupedByProject(notificationType)
+              ? t('All Projects')
+              : t('All Organizations')
+          }
+        >
+          {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
+        </FieldGroup>
+      )}
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
         <FieldGroup title={t('Delivery Method')}>
           <AutoSaveForm
@@ -569,15 +469,29 @@ export function NotificationSettingsByType({notificationType}: Props) {
           </AutoSaveForm>
         </FieldGroup>
       ) : null}
-      <NotificationSettingsByEntity
-        notificationType={notificationType}
-        notificationOptions={notificationOptions}
-        organizations={organizations}
-        handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
-        handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
-        handleEditNotificationOption={option => deleteNotificationMutation.mutate(option)}
-        entityType={entityType}
-      />
+      {notificationType === 'reports' ? (
+        <WeeklyReportProjectExclusions
+          organizations={organizations}
+          notificationOptions={notificationOptions}
+          handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
+          handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
+          handleEditNotificationOption={option =>
+            deleteNotificationMutation.mutate(option)
+          }
+        />
+      ) : (
+        <NotificationSettingsByEntity
+          notificationType={notificationType}
+          notificationOptions={notificationOptions}
+          organizations={organizations}
+          handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
+          handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
+          handleEditNotificationOption={option =>
+            deleteNotificationMutation.mutate(option)
+          }
+          entityType={entityType}
+        />
+      )}
     </Fragment>
   );
 }

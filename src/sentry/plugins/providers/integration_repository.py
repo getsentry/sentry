@@ -19,6 +19,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcCreateRepository, RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.repository import REPOSITORY_NAME_LENGTH, REPOSITORY_URL_LENGTH
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
@@ -155,11 +156,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         config_updates: dict[str, Any] = result.get("config") or {}
         repo_update_params: dict[str, Any] = {
             "external_id": external_id,
-            "url": result.get("url"),
+            "url": result.get("url")[:REPOSITORY_URL_LENGTH],
             "config": config_updates,
             "provider": self.id,
             "integration_id": integration_id,
-            "name": name,
+            "name": name[:REPOSITORY_NAME_LENGTH],
         }
 
         if repo:
@@ -280,6 +281,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         missing_repos: list[RepositoryConfig] = []
         for external_id, repo_config in external_id_to_repo_config.items():
             integration_id = repo_config["integration_id"]
+            if "name" in repo_config:
+                repo_config["name"] = repo_config["name"][:REPOSITORY_NAME_LENGTH]
+            if "url" in repo_config:
+                repo_config["url"] = repo_config["url"][:REPOSITORY_URL_LENGTH]
+
             create_repository = RpcCreateRepository.parse_obj(
                 {**repo_config, "provider": self.id, "status": ObjectStatus.ACTIVE}
             )

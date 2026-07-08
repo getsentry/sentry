@@ -9,7 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
@@ -35,13 +35,8 @@ type Breakpoints = {
   xl: string;
 };
 
-const OnboardingCTAHook = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
-
-const OnboardingAlertHook = HookOrDefault({
-  hookName: 'component:replay-onboarding-alert',
+const OnboardingCTAHook = OverrideOrDefault({
+  overrideName: 'component:replay-onboarding-cta',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
@@ -95,11 +90,9 @@ export function ReplayOnboardingPanel() {
 
   return (
     <Fragment>
-      <OnboardingAlertHook>
-        {hasSelectedProjects && allSelectedProjectsUnsupported && (
-          <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
-        )}
-      </OnboardingAlertHook>
+      {hasSelectedProjects && allSelectedProjectsUnsupported && (
+        <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
+      )}
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA

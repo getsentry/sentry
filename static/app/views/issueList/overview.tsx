@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -13,10 +14,12 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -25,11 +28,13 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
@@ -53,16 +58,19 @@ import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergr
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {useIssuePreviewDrawer} from './pages/useIssuePreviewDrawer';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
+  getStoredIssueSort,
+  setStoredIssueSort,
   isForReviewQuery,
   IssueSortOptions,
   Query,
@@ -76,11 +84,19 @@ const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
 interface Props {
+  /**
+   * Controls what happens when an issue row is clicked.
+   * - 'navigate' (default): navigates to the issue details page.
+   * - 'preview': opens a lightweight issue preview drawer.
+   */
+  clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
+  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
+  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -114,10 +130,7 @@ function useIssuesINPObserver() {
 }
 
 const parsePageQueryParam = (location: Location, defaultPage = 0) => {
-  const page = location.query.page;
-  const pageInt = Array.isArray(page)
-    ? parseInt(page[0] ?? '', 10)
-    : parseInt(page ?? '', 10);
+  const pageInt = parseInt(decodeScalar(location.query.page, ''), 10);
 
   if (isNaN(pageInt)) {
     return defaultPage;
@@ -128,15 +141,20 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
+  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
   headerActions,
+  clickBehavior = 'navigate',
+  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const isPreviewMode = clickBehavior === 'preview';
+  const {openIssuePreview} = useIssuePreviewDrawer({enabled: isPreviewMode});
   const api = useApi();
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -153,12 +171,18 @@ function IssueListOverviewInner({
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
-    {}
+  const organizationUsersProjectIds = useMemo(
+    () => selection.projects.map(String),
+    [selection.projects]
   );
+  const {data: memberList} = useQuery({
+    ...useProjectMembersQueryOptions(organizationUsersProjectIds),
+    select: resp => indexMembersByProject(resp.json),
+  });
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -200,20 +224,24 @@ function IssueListOverviewInner({
   }, [onRealtimePoll, pageLinks]);
 
   const query = defined(location.query.query)
-    ? (location.query.query as string)
+    ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const sort = decodeScalar(
-    location.query.sort,
-    DEFAULT_ISSUE_STREAM_SORT
-  ) as IssueSortOptions;
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
+  );
+  const defaultSort =
+    initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSortDefault
+        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+        : DEFAULT_ISSUE_STREAM_SORT
+      : initialSort;
+  const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
-    let currentPeriod: string;
-    if (typeof location.query?.groupStatsPeriod === 'string') {
-      currentPeriod = location.query.groupStatsPeriod;
-    } else {
-      currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
-    }
+    const currentPeriod = decodeScalar(
+      location.query?.groupStatsPeriod,
+      DEFAULT_GRAPH_STATS_PERIOD
+    );
 
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
@@ -239,7 +267,7 @@ function IssueListOverviewInner({
       params.start = getUtcDateString(params.start);
     }
 
-    if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
+    if (sort !== IssueSortOptions.DATE) {
       params.sort = sort;
     }
 
@@ -259,9 +287,9 @@ function IssueListOverviewInner({
       shortIdLookup: 1,
     };
 
-    const currentQuery = location.query || {};
-    if ('cursor' in currentQuery) {
-      params.cursor = currentQuery.cursor;
+    const cursor = decodeScalar(location.query.cursor);
+    if (cursor) {
+      params.cursor = cursor;
     }
 
     // If no stats period values are set, use default
@@ -373,7 +401,7 @@ function IssueListOverviewInner({
     }
   }, [location.pathname, navigate, location.query]);
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback(async () => {
     resetNewViewQueryParam();
 
     if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
@@ -392,96 +420,126 @@ function IssueListOverviewInner({
     api.clear();
     pollerRef.current?.disable();
 
-    api.request(`/organizations/${organization.slug}/issues/`, {
-      method: 'GET',
-      data: qs.stringify(requestParams),
-      success: async (data, _, resp) => {
-        if (!resp) {
-          return;
+    try {
+      const [data, _, resp] = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/`,
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
+          includeAllArgs: true,
+        }
+      );
+
+      if (!resp) {
+        return;
+      }
+
+      // If this is a direct hit, we redirect to the intended result directly.
+      if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        let redirect: string;
+        if (data[0]?.matchingEventId) {
+          const {id, matchingEventId} = data[0];
+          redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+        } else {
+          const {id} = data[0];
+          redirect = `/organizations/${organization.slug}/issues/${id}/`;
         }
 
-        // If this is a direct hit, we redirect to the intended result directly.
-        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          let redirect: string;
-          if (data[0]?.matchingEventId) {
-            const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-          } else {
-            const {id} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/`;
-          }
+        navigate(
+          normalizeUrl({
+            pathname: redirect,
+            query: {
+              referrer: 'issue-list',
+              ...extractSelectionParameters(location.query),
+            },
+          }),
+          {replace: true}
+        );
+        return;
+      }
 
-          navigate(
-            normalizeUrl({
-              pathname: redirect,
-              query: {
-                referrer: 'issue-list',
-                ...extractSelectionParameters(location.query),
-              },
-            }),
-            {replace: true}
-          );
-          return;
-        }
+      if (undoRef.current) {
+        GroupStore.loadInitialData(data);
+      }
+      GroupStore.add(data);
 
-        if (undoRef.current) {
-          GroupStore.loadInitialData(data);
-        }
-        GroupStore.add(data);
-
-        if (data.length === 0) {
-          trackAnalytics('issue_search.empty', {
-            organization,
-            search_type: 'issues',
-            search_source: 'main_search',
-            query,
-          });
-        }
-
-        const hits = resp.getResponseHeader('X-Hits');
-        const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = resp.getResponseHeader('X-Max-Hits');
-        const newQueryMaxCount =
-          maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const newPageLinks = resp.getResponseHeader('Link');
-
-        setError(null);
-        setIssuesLoading(false);
-        setIssuesSuccessfullyLoaded(true);
-        setQueryCount(newQueryCount);
-        setQueryMaxCount(newQueryMaxCount);
-        setPageLinks(newPageLinks === null ? '' : newPageLinks);
-
-        // Need to wait for stats request to finish before saving to cache
-        await fetchStats(data.map((group: BaseGroup) => group.id));
-        IssueListCacheStore.save(requestParams, {
-          groups: GroupStore.getState() as Group[],
-          queryCount: newQueryCount,
-          queryMaxCount: newQueryMaxCount,
-          pageLinks: newPageLinks ?? '',
-        });
-      },
-      error: err => {
-        trackAnalytics('issue_search.failed', {
+      if (data.length === 0) {
+        trackAnalytics('issue_search.empty', {
           organization,
           search_type: 'issues',
           search_source: 'main_search',
-          error: parseApiError(err),
+          query,
         });
+      }
 
-        setError(parseApiError(err));
-        setIssuesLoading(false);
-        setIssuesSuccessfullyLoaded(false);
-      },
-      complete: () => {
-        resumePolling();
+      const hits = resp.getResponseHeader('X-Hits');
+      const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
+      const maxHits = resp.getResponseHeader('X-Max-Hits');
+      const newQueryMaxCount =
+        maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+      const newPageLinks = resp.getResponseHeader('Link');
 
-        if (!realtimeActive) {
-          actionTakenRef.current = false;
-          undoRef.current = false;
-        }
-      },
-    });
+      setError(null);
+      setIssuesLoading(false);
+      setIssuesSuccessfullyLoaded(true);
+      setQueryCount(newQueryCount);
+      setQueryMaxCount(newQueryMaxCount);
+      setPageLinks(newPageLinks === null ? '' : newPageLinks);
+
+      // AI query analytics
+      const aiQueryRunId = getRunIdForAnalytics();
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'issues',
+          mode: 'samples',
+          referrer: 'issues',
+          resultCount: data.length, // Can also use newQueryCount for total hits
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+        });
+      }
+
+      // Need to wait for stats request to finish before saving to cache
+      await fetchStats(data.map((group: BaseGroup) => group.id));
+      IssueListCacheStore.save(requestParams, {
+        groups: GroupStore.getState() as Group[],
+        queryCount: newQueryCount,
+        queryMaxCount: newQueryMaxCount,
+        pageLinks: newPageLinks ?? '',
+      });
+    } catch (err) {
+      trackAnalytics('issue_search.failed', {
+        organization,
+        search_type: 'issues',
+        search_source: 'main_search',
+        error: parseApiError(err as RequestError),
+      });
+
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+      setIssuesSuccessfullyLoaded(false);
+
+      // AI query analytics
+      const aiQueryRunId = getRunIdForAnalytics();
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'issues',
+          mode: 'samples',
+          referrer: 'issues',
+          resultCount: 0,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+          error: parseApiError(err as RequestError),
+        });
+      }
+    } finally {
+      resumePolling();
+
+      if (!realtimeActive) {
+        actionTakenRef.current = false;
+        undoRef.current = false;
+      }
+    }
   }, [
     resetNewViewQueryParam,
     realtimeActive,
@@ -494,6 +552,7 @@ function IssueListOverviewInner({
     location.query,
     query,
     resumePolling,
+    getRunIdForAnalytics,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);
@@ -562,30 +621,6 @@ function IssueListOverviewInner({
     previousRequestParams,
     requestParams,
   ]);
-
-  // Fetch members on mount
-  useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // If the project selection has changed reload the member list and tag keys
-  // allowing autocomplete and tag sidebar to be more accurate.
-  useEffect(() => {
-    if (isEqual(previousSelection?.projects, selection.projects)) {
-      return;
-    }
-
-    const projectIds = selection.projects.map(projectId => String(projectId));
-
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
-    });
-  }, [api, organization.slug, selection.projects, previousSelection?.projects]);
 
   // Cleanup
   useEffect(() => {
@@ -674,13 +709,14 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
+    if (hasRecommendedSortDefault && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
+      setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
+    }
     transitionTo({sort: newSort});
   };
 
   const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
-    const queryPageInt = Array.isArray(location.query.page)
-      ? NaN
-      : parseInt(location.query.page?.toString() ?? '', 10);
+    const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
     let cursor = nextCursor;
@@ -698,16 +734,14 @@ function IssueListOverviewInner({
 
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
-      const cursor = Array.isArray(location.query.cursor)
-        ? location.query.cursor[0]
-        : (location.query.cursor ?? undefined);
+      const cursor = decodeScalar(location.query.cursor);
       const queryPageInt = parsePageQueryParam(location, 0);
-      const page = location.query.cursor ? queryPageInt : 0;
+      const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
 
-  const undoAction = ({
+  const undoAction = async ({
     data,
     groupItems,
   }: {
@@ -719,17 +753,17 @@ function IssueListOverviewInner({
 
     api.clear();
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      query: {
-        project: projectIds,
-        id: groupItems.map(group => group.id),
-      },
-      success: response => {
-        if (!response) {
-          return;
-        }
+    try {
+      const response = await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data,
+        query: {
+          project: projectIds,
+          id: groupItems.map(group => group.id),
+        },
+      });
+
+      if (response) {
         // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
@@ -737,15 +771,13 @@ function IssueListOverviewInner({
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
-      },
-      error: err => {
-        setError(parseApiError(err as RequestError));
-        setIssuesLoading(false);
-      },
-      complete: () => {
-        fetchData();
-      },
-    });
+      }
+    } catch (err) {
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+    } finally {
+      fetchData();
+    }
   };
 
   const onIssueAction = ({
@@ -843,7 +875,7 @@ function IssueListOverviewInner({
       }
     }
 
-    if ('inbox' in data && data.inbox === false) {
+    if ('inbox' in data && !data.inbox) {
       onIssueAction({
         itemIds,
         actionType: 'Reviewed',
@@ -885,17 +917,25 @@ function IssueListOverviewInner({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
-  const hasPageFrame = useHasPageFrameFeature();
+  // Derive from query (URL state) not initialQuery (prop) so the hint
+  // stays accurate if the user edits the search bar.
+  const isTaxonomyView = query.includes('issue.category:');
+
+  const {data: groupSearchView} = useSelectedGroupSearchView();
 
   useLLMContext({
     contextHint:
-      'Sentry issue list page. Shows a filterable, sortable list of grouped issues. ' +
+      (isTaxonomyView
+        ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
+        : 'Sentry issue list page. ') +
+      'Shows a filterable, sortable list of grouped issues. ' +
+      'viewName is the name of the saved issue view being displayed (if any). ' +
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
-      'Tools: get_issue_details(issue_id) for issue aggregate stats; ' +
-      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+      'You can get issue details for aggregate stats, get event details for a specific error event, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
+    viewName: groupSearchView?.name,
     query,
     sort,
     issueCount: queryCount,
@@ -935,12 +975,7 @@ function IssueListOverviewInner({
           headerActions={headerActions}
         />
         <StyledBody>
-          <Grid
-            area="content"
-            padding={
-              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
-            }
-          >
+          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}
@@ -966,6 +1001,8 @@ function IssueListOverviewInner({
               supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
+              onGroupClick={isPreviewMode ? openIssuePreview : undefined}
+              withColumns={withColumns}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {

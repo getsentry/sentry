@@ -137,6 +137,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         if referrer is not None:
             sentry_sdk.set_tag("referrer", referrer)
+            sentry_sdk.set_attribute("referrer", referrer)
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified

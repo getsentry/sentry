@@ -123,7 +123,7 @@ export function AssertionOpJsonPath({
                   data-test-id="json-path-operators-trigger"
                   {...props}
                   size="zero"
-                  priority="transparent"
+                  variant="transparent"
                   showChevron={false}
                   tooltipProps={{title: combinedTooltip}}
                   aria-label={t('JSON path operators trigger')}

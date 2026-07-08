@@ -209,6 +209,7 @@ export function EventsTable({
       const rendered = fieldRenderer(dataRow, {
         organization,
         location,
+        navigate,
         eventView,
         theme,
         projectSlug,
@@ -291,6 +292,8 @@ export function EventsTable({
 
       if (field === 'profile.id') {
         const target = generateProfileLink()(organization, dataRow, undefined);
+        const isEmptyTarget =
+          typeof target === 'object' && target !== null && isEmptyObject(target);
         const transactionMeetsProfilingRequirements =
           typeof dataRow['transaction.duration'] === 'number' &&
           dataRow['transaction.duration'] > 20;
@@ -311,7 +314,7 @@ export function EventsTable({
             >
               <div>
                 <LinkButton
-                  disabled={!target || isEmptyObject(target)}
+                  disabled={!target || isEmptyTarget}
                   to={target || {}}
                   size="xs"
                 >
@@ -362,6 +365,7 @@ export function EventsTable({
     [
       organization,
       location,
+      navigate,
       eventView,
       theme,
       projectSlug,

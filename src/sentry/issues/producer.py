@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from collections.abc import MutableMapping
 from typing import Any, cast
+from uuid import uuid4
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
@@ -16,8 +17,9 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import json
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,9 @@ def _get_occurrence_producer() -> KafkaProducer:
     )
 
 
-_occurrence_producer = SingletonProducer(
-    _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
+_occurrence_producer = FutureTrackingProducer(
+    name="sentry.issues.producer",
+    producer_factory=_get_occurrence_producer,
 )
 
 
@@ -103,6 +106,29 @@ def _prepare_occurrence_message(
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
     payload_data["payload_type"] = PayloadType.OCCURRENCE.value
     if event_data:
+        # All errors need a trace ID.
+        if get_path(event_data, "contexts", "trace", "trace_id") is None:
+            set_path(
+                event_data,
+                "contexts",
+                "trace",
+                value={
+                    "trace_id": uuid4().hex,
+                    "span_id": None,
+                },
+            )
+
+            set_path(
+                event_data,
+                "_meta",
+                "contexts",
+                "trace",
+                "trace_id",
+                "",
+                "err",
+                value=["trace_id.missing"],
+            )
+
         payload_data["event"] = event_data
 
     if is_buffered_spans:

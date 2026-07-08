@@ -1,15 +1,13 @@
 import type {FocusTrap} from 'focus-trap';
 
-import type {ApiResult} from 'sentry/api';
-import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import type {ApiResult} from 'sentry/types/api';
 
-import type {ParntershipAgreementType} from './hooks';
+import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
   INDICATORS = 'Indicators',
   SETUP_WIZARD = 'SetupWizard',
-  SYSTEM_ALERTS = 'SystemAlerts',
   WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
@@ -28,7 +26,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportedGlobals) => void;
+      onReady: (globals: Record<string, any>) => void;
     };
 
 declare global {
@@ -75,7 +73,6 @@ declare global {
     // TODO: improve typing
     SentryApp?: {
       ConfigStore: any;
-      HookStore: any;
       Modal: any;
       getModalPortal: () => HTMLElement;
       modalFocusTrap?: {
@@ -130,10 +127,16 @@ declare global {
   }
 }
 
-export interface Region {
+export interface Cell {
+  locality_url: string;
+  name: string;
+}
+export interface Locality {
   name: string;
   url: string;
 }
+// Deprecated - Use Locality instead
+export interface Region extends Locality {}
 interface CustomerDomain {
   organizationUrl: string | undefined;
   sentryUrl: string;
@@ -141,6 +144,7 @@ interface CustomerDomain {
 }
 export interface Config {
   apmSampling: number;
+  cells: Cell[];
   csrfCookieName: string;
   customerDomain: CustomerDomain | null;
   demoMode: boolean;
@@ -169,8 +173,8 @@ export interface Config {
     sentryUrl: string;
     superuserUrl?: string;
   };
-  // A list of regions that the user has membership in.
-  memberRegions: Region[];
+  // The list of localities (formerly regions) that are available
+  localities: Locality[];
   /**
    * This comes from django (django.contrib.messages)
    */
@@ -181,20 +185,19 @@ export interface Config {
   }>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
-  // The list of regions the user has has access to.
-  regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
     environment?: string;
-    profilesSampleRate?: number;
+    profileSessionSampleRate?: number;
   };
   // sentryMode intends to supersede isSelfHosted,
   // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
   sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
+  signupLocalities: string[];
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
@@ -226,9 +229,6 @@ export interface Config {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
-  relocationConfig?: {
-    selectableRegions: string[];
-  };
   shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
@@ -258,7 +258,7 @@ export interface Broadcast {
    * Category of the broadcast.
    * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
    */
-  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
+  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video' | 'sdk_update';
   /**
    * The text for the CTA link at the bottom of the panel item
    */

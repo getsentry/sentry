@@ -1,4 +1,5 @@
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export function parseMetricAggregate(aggregate: string): {
@@ -18,7 +19,7 @@ export function parseMetricAggregate(aggregate: string): {
   const offset = parsed.name.endsWith('_if') ? 1 : 0;
   const metricName = args[1 + offset] ?? '';
   const metricType = args[2 + offset] ?? '';
-  const metricUnit = args[3 + offset] === '-' ? undefined : args[3 + offset];
+  const metricUnit = args[3 + offset] === '-' ? NONE_UNIT : args[3 + offset];
 
   return {
     aggregation: parsed.name,

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export enum ThreadStates {
   RUNNABLE = 'Runnable',
@@ -68,7 +68,7 @@ const THREAD_STATE_TERMS: Record<ThreadStates, string> = {
 };
 
 export function getThreadStateHelpText(state: keyof typeof THREAD_STATE_TERMS): string {
-  if (!THREAD_STATE_TERMS.hasOwnProperty(state)) {
+  if (!Object.hasOwn(THREAD_STATE_TERMS, state)) {
     return '';
   }
   return THREAD_STATE_TERMS[state];

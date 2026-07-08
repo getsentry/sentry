@@ -4,13 +4,11 @@ import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
-import sentry_sdk
 from django.utils import timezone as django_timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.options.rollout import in_rollout_group
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     AgentIndexProject,
@@ -19,9 +17,10 @@ from sentry.seer.signed_seer_api import (
     make_agent_index_request,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.statistical_detectors import compute_delay
+from sentry.tasks.utils import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
@@ -54,10 +53,6 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
         projects,
         result_value_getter=lambda p: p.id,
     ):
-        if options.get("seer.explorer_index.killswitch.enable"):
-            logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
-            return
-
         if project.id % 23 != current_hour:
             continue
 
@@ -73,7 +68,9 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             continue
 
         is_eligible = False
-        with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
+        with start_span(
+            op="seer_explorer_index.has_feature", name="seer_explorer_index.has_feature"
+        ):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
 
             if batch_result:
@@ -90,8 +87,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                 ) or org_features.get("organizations:seer-added", False)
 
                 if has_seer_plan and has_gen_ai:
-                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
-                        is_eligible = True
+                    is_eligible = True
 
             else:
                 has_gen_ai = features.has("organizations:gen-ai-features", project.organization)
@@ -107,8 +103,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
                 ) or features.has("organizations:seer-added", project.organization)
 
                 if has_seer_plan and has_gen_ai:
-                    if in_rollout_group("seer.explorer-index.rollout", project.organization_id):
-                        is_eligible = True
+                    is_eligible = True
 
         if not is_eligible:
             continue
@@ -128,8 +123,8 @@ def schedule_explorer_index() -> None:
     """
     logger.info("Started schedule_explorer_index task")
 
-    if not options.get("seer.explorer_index.enable"):
-        logger.info("seer.explorer_index.enable flag is disabled")
+    if options.get("seer.explorer_index.killswitch.enable"):
+        logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
         return
 
     now = django_timezone.now()
@@ -218,7 +213,9 @@ def run_explorer_index_for_projects(
         projects: List of (project_id, organization_id) tuples
         start: ISO format timestamp string for when this batch was scheduled
     """
-    if not options.get("seer.explorer_index.enable"):
+
+    if options.get("seer.explorer_index.killswitch.enable"):
+        logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
         return
 
     if not projects:

@@ -1,5 +1,5 @@
 import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 interface PreprodOnboardingProps {
   projectPlatform: PlatformKey | null;

@@ -1,7 +1,7 @@
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import type {FeedbackModalProps} from 'sentry/components/featureFeedback/feedbackModal';
 import {FeedbackModal, modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import type {Data} from 'sentry/components/forms/types';
@@ -23,6 +23,8 @@ export function FeatureFeedback<T extends Data>({
   buttonProps = {},
   ...props
 }: FeatureFeedbackProps<T>) {
+  const {openModal} = useModal();
+
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
       modalCss,

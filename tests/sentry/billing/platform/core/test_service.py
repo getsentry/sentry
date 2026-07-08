@@ -69,15 +69,17 @@ class TestBillingService:
         mock_metrics.incr.assert_any_call(
             "billing.service.method.called",
             tags={"service": "TestService", "method": "test_method"},
+            sample_rate=1.0,
         )
         mock_metrics.incr.assert_any_call(
             "billing.service.method.success",
             tags={"service": "TestService", "method": "test_method"},
+            sample_rate=1.0,
         )
         mock_metrics.timing.assert_called()
 
         # Verify logging
-        assert mock_logger.info.call_count == 2  # start and success
+        assert mock_logger.info.call_count == 1
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
     def test_service_method_error_handling(self, mock_metrics):
@@ -101,6 +103,7 @@ class TestBillingService:
                 "method": "failing_method",
                 "error_type": "ValueError",
             },
+            sample_rate=1.0,
         )
 
     def test_multiple_methods_on_same_service(self) -> None:

@@ -49,6 +49,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import jwt, metrics
+from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -110,7 +111,7 @@ def is_internal_relay(request, public_key):
         )
         return True
 
-    if is_internal_ip(request):
+    if is_internal_ip(request) and options.get("relay.allow_internal_ip_auth"):
         metrics.incr(
             "relay.is_internal_relay",
             tags={"reason": "internal_ip"},
@@ -128,9 +129,18 @@ def is_static_relay(request):
     Note: Only checks the relay_id (no public key validation is done).
     """
     relay_id = get_header_relay_id(request)
-    static_relays = options.get("relay.static_auth")
+    static_relays = settings.SENTRY_RELAY_STATIC_AUTH
     relay_info = static_relays.get(relay_id)
-    return relay_info is not None
+
+    if relay_info is not None:
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "static_relay"},
+            sample_rate=1.0,
+        )
+        return True
+
+    return False
 
 
 def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
@@ -144,7 +154,7 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
 
     # first see if we have a statically configured relay and therefore we don't
     # need to go to the database for it
-    static_relays = options.get("relay.static_auth")
+    static_relays = settings.SENTRY_RELAY_STATIC_AUTH
     relay_info = static_relays.get(relay_id)
 
     if relay_info is not None:
@@ -193,8 +203,11 @@ class QuietBasicAuthentication(BasicAuthentication):
         if auth_token and entity_id_tag:
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag(entity_id_tag, auth_token.entity_id)
+            if auth_token.entity_id is not None:
+                scope.set_attribute(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
+                scope.set_attribute(k, v.decode() if isinstance(v, bytes) else v)
 
         return (user, auth_token)
 
@@ -243,6 +256,7 @@ class RelayAuthentication(BasicAuthentication):
         self, relay_id: str, relay_sig: str, request=None
     ) -> tuple[AnonymousUser, None]:
         sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
+        sentry_sdk.get_isolation_scope().set_attribute("relay_id", relay_id)
 
         if request is None:
             raise AuthenticationFailed("missing request")
@@ -541,6 +555,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             raise AuthenticationFailed("User inactive or deleted")
 
         if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):
+            logger.info(
+                "api.token.suspended-user",
+                extra={
+                    "user_id": user.id,
+                    "token_id": getattr(token, "id", None),
+                    "ip_address": request.META.get("REMOTE_ADDR"),
+                },
+            )
+            record_suspended_user_rejection("token_auth")
             raise AuthenticationFailed("User account is suspended")
 
         if application_is_inactive:
@@ -637,7 +660,9 @@ class DSNAuthentication(StandardAuthentication):
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
+        scope.set_attribute("api_token_type", self.token_name.decode())
         scope.set_tag("api_project_key", key.id)
+        scope.set_attribute("api_project_key", key.id)
 
         return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
@@ -672,6 +697,7 @@ class RpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -791,6 +817,7 @@ class HmacSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
+        sentry_sdk.get_isolation_scope().set_attribute(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)
 
@@ -850,9 +877,12 @@ class ViewerContextAuthentication(BaseAuthentication):
                     "path": request.path,
                 },
             )
+            if user is not None and getattr(user, "is_suspended", False):
+                record_suspended_user_rejection("viewer_context_auth")
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("viewer_context_auth", True)
         # Viewer context comes from a trusted first-party service. Keep auth
         # session-like for permission derivation, but mark it so org access can
         # avoid requiring browser-session SSO state on service callbacks.

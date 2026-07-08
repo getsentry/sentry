@@ -3,8 +3,12 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import {FieldKind} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {traceItemAttributeKeysOptions} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+import {
+  getTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type Attribute = {
   attributeSource: {
@@ -20,6 +24,18 @@ type ScopedCase = {
   name: string;
   query: Record<string, unknown>;
 };
+
+function makeAttribute(
+  key: string,
+  attributeType: Attribute['attributeType'] = 'string'
+): Attribute {
+  return {
+    attributeSource: {source_type: 'custom'},
+    attributeType,
+    key,
+    name: key,
+  };
+}
 
 describe('traceItemAttributeKeysOptions', () => {
   const organization = OrganizationFixture();
@@ -39,18 +55,6 @@ describe('traceItemAttributeKeysOptions', () => {
     MockApiClient.clearMockResponses();
     queryClient.clear();
   });
-
-  function makeAttribute(
-    key: string,
-    attributeType: Attribute['attributeType'] = 'string'
-  ): Attribute {
-    return {
-      attributeSource: {source_type: 'custom'},
-      attributeType,
-      key,
-      name: key,
-    };
-  }
 
   function addAttributeKeysMock({
     body,
@@ -231,5 +235,64 @@ describe('traceItemAttributeKeysOptions', () => {
     expect(result.json).toEqual(currentBody);
     expect(cachedRequest).toHaveBeenCalledTimes(1);
     expect(currentRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('project and environment filter overrides selection values', async () => {
+    const request = addAttributeKeysMock({
+      substringMatch: 'foo',
+      body: [makeAttribute('foo.bar')],
+      query: {project: ['2'], environment: ['production']},
+    });
+
+    const result = await fetchAttributeKeys({
+      search: 'foo',
+      projectIds: [2],
+      environments: ['production'],
+      selection: PageFiltersFixture({
+        ...selection,
+        projects: [9999],
+        environments: ['not-production'],
+      }),
+    });
+
+    expect(result.json).toEqual([makeAttribute('foo.bar')]);
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/trace-items/attributes/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: ['2'],
+          environment: ['production'],
+        }),
+      })
+    );
+  });
+});
+
+describe('getTraceItemTagCollection', () => {
+  it('preserves plain tags with @ in the tag name', () => {
+    const key = 'custom.metric@primary';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
+      },
+    });
+  });
+
+  it('preserves wrapped number tags with @ in the tag name', () => {
+    const key = 'tags[custom.metric@primary,number]';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.MEASUREMENT,
+        secondaryAliases: [],
+      },
+    });
   });
 });

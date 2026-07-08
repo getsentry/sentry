@@ -11,7 +11,7 @@ import {ProjectLatestAlerts} from './projectLatestAlerts';
 describe('ProjectDetail > ProjectLatestAlerts', () => {
   let endpointMock: jest.Mock;
   let rulesEndpointMock: jest.Mock;
-  const {organization, project, router} = initializeOrg();
+  const {organization, project} = initializeOrg();
 
   beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
@@ -37,7 +37,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         isProjectStabilized
       />
     );
@@ -81,7 +81,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         isProjectStabilized
       />
     );
@@ -109,7 +109,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         isProjectStabilized
       />
     );
@@ -159,7 +159,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         isProjectStabilized
       />
     );
@@ -172,7 +172,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         isProjectStabilized={false}
       />
     );
@@ -191,7 +191,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={router.location}
+        location={LocationFixture()}
         isProjectStabilized
       />
     );

@@ -16,7 +16,6 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -39,6 +38,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -167,8 +167,8 @@ function SupergroupIssueList({
   filterWithCurrentSearch,
 }: {
   groupIds: number[];
+  memberList: IndexedMembersByProject | undefined;
   filterWithCurrentSearch?: boolean;
-  memberList?: IndexedMembersByProject;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -295,8 +295,8 @@ function SupergroupIssueList({
           <DrawerActionsBar groupIds={visibleGroupIds} />
           <PanelBody>
             {sortedGroups.map(group => {
-              const members = memberList?.[group.project?.slug]
-                ? memberList[group.project.slug]
+              const members = group.project
+                ? memberList?.get(group.project.slug)
                 : undefined;
               return (
                 <IssueRow key={group.id}>

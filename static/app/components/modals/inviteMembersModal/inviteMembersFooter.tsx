@@ -40,7 +40,7 @@ export function InviteMembersFooter({canSend}: Props) {
         willInvite={willInvite}
         size="sm"
         data-test-id="send-invites"
-        priority="primary"
+        variant="primary"
         disabled={!canSend || !isValidInvites}
         onClick={() => {
           removeSentInvites();

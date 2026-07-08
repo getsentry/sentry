@@ -22,7 +22,7 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -277,7 +277,11 @@ function Flamegraph(): ReactElement {
     }
 
     return LOADING_OR_FALLBACK_SPAN_TREE;
-  }, [transactionResult]);
+  }, [
+    transactionResult.isPending,
+    transactionResult.data.transactionSpan,
+    transactionResult.data.childSpans,
+  ]);
 
   const spanChart = useMemo(() => {
     if (!profile || !transactionResult.isEnabled) {
@@ -292,7 +296,13 @@ function Flamegraph(): ReactElement {
         profile.unit
       ),
     });
-  }, [spanTree, profile, profileGroup, transactionResult]);
+  }, [
+    spanTree,
+    profile,
+    profileGroup,
+    transactionResult.isEnabled,
+    transactionResult.data.transactionSpan,
+  ]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -314,6 +324,10 @@ function Flamegraph(): ReactElement {
     const span = Sentry.withScope(scope => {
       scope.setTag('sorting', sorting.split(' ').join('_'));
       scope.setTag('view', view.split(' ').join('_'));
+      scope.setAttributes({
+        sorting: sorting.split(' ').join('_'),
+        view: view.split(' ').join('_'),
+      });
 
       return Sentry.startInactiveSpan({
         op: 'import',
@@ -338,7 +352,9 @@ function Flamegraph(): ReactElement {
   }, [
     profile,
     profileGroup,
-    transactionResult,
+    transactionResult.isEnabled,
+    transactionResult.isPending,
+    transactionResult.data.transactionSpan,
     sorting,
     flamegraphProfiles.threadId,
     view,

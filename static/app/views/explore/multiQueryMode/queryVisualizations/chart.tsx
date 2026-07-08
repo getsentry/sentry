@@ -12,8 +12,8 @@ import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,7 +34,7 @@ import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
@@ -42,7 +42,7 @@ interface MultiQueryChartProps {
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
 }
 
 export function MultiQueryModeChart({
@@ -133,7 +133,7 @@ export function MultiQueryModeChart({
     textValue: t('Add to Dashboard'),
     label: (
       <Feature
-        hookName="feature-disabled:dashboards-edit"
+        overrideName="feature-disabled:dashboards-edit"
         features="organizations:dashboards-edit"
         renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
       >
@@ -169,7 +169,7 @@ export function MultiQueryModeChart({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconGraph type={visualizationType} />}
-                priority="transparent"
+                variant="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -193,7 +193,7 @@ export function MultiQueryModeChart({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconClock />}
-                priority="transparent"
+                variant="transparent"
                 showChevron={false}
                 size="xs"
               />
@@ -207,7 +207,7 @@ export function MultiQueryModeChart({
             key="contextMenu"
             triggerProps={{
               size: 'xs',
-              priority: 'transparent',
+              variant: 'transparent',
               showChevron: false,
               icon: <IconEllipsis />,
             }}
