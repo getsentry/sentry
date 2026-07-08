@@ -22,47 +22,44 @@ describe('ConfigureReplayCard', () => {
       const replayRecord = ReplayRecordFixture({
         sdk: {name: 'sentry.cocoa', version: '8.0.0'},
       });
-      render(
-        <ConfigureReplayCard isMobile replayRecord={replayRecord} />,
-        {organization: OrganizationFixture()}
-      );
+      render(<ConfigureReplayCard isMobile replayRecord={replayRecord} />, {
+        organization: OrganizationFixture(),
+      });
 
       await userEvent.click(screen.getByRole('button', {name: 'Configure Replay'}));
 
       expect(captureSpy).not.toHaveBeenCalled();
-      expect(screen.queryAllByRole('option')).not.toHaveLength(0);
+      expect(screen.getAllByRole('menuitemradio')).not.toHaveLength(0);
     });
 
     it('enables menu items for sentry.cocoa.unreal (iOS Unreal via embedded Cocoa SDK)', async () => {
       const replayRecord = ReplayRecordFixture({
         sdk: {name: 'sentry.cocoa.unreal', version: '1.0.0'},
       });
-      render(
-        <ConfigureReplayCard isMobile replayRecord={replayRecord} />,
-        {organization: OrganizationFixture()}
-      );
+      render(<ConfigureReplayCard isMobile replayRecord={replayRecord} />, {
+        organization: OrganizationFixture(),
+      });
 
       await userEvent.click(screen.getByRole('button', {name: 'Configure Replay'}));
 
-      // Should NOT fall through to the default case; no captureMessage call
+      // Should NOT fall through to the default case — no captureMessage call
       expect(captureSpy).not.toHaveBeenCalled();
 
-      // All three items should be enabled (not aria-disabled)
-      const items = screen.getAllByRole('option');
+      // All menu items should be enabled (not aria-disabled)
+      const items = screen.getAllByRole('menuitemradio');
       expect(items.length).toBeGreaterThan(0);
       items.forEach(item => {
         expect(item).not.toHaveAttribute('aria-disabled', 'true');
       });
     });
 
-    it('logs and disables menu items for unknown mobile platforms', async () => {
+    it('logs and disables menu items for unknown mobile platforms', () => {
       const replayRecord = ReplayRecordFixture({
         sdk: {name: 'sentry.unknown.platform', version: '0.0.0'},
       });
-      render(
-        <ConfigureReplayCard isMobile replayRecord={replayRecord} />,
-        {organization: OrganizationFixture()}
-      );
+      render(<ConfigureReplayCard isMobile replayRecord={replayRecord} />, {
+        organization: OrganizationFixture(),
+      });
 
       expect(captureSpy).toHaveBeenCalledWith(
         'Unknown mobile platform in configure card: sentry.unknown.platform'
