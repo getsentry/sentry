@@ -5,8 +5,8 @@ the section list decides *what* is rendered and in what order. This mirrors Seer
 per-section approach, made format-polymorphic so one section list drives every format.
 
 A "section" is a plain function ``(model, formatter, limits) -> str`` that reads the model
-and emits text via the formatter's primitives, returning "" to render nothing. Sections and
-limits live in their own modules; ``limits`` is typed loosely here until that module lands.
+and emits text via the formatter's primitives, returning "" to render nothing. Sections
+themselves live in their own module.
 """
 
 from __future__ import annotations
@@ -15,13 +15,13 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from typing import Any
 
+from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
 
 logger = logging.getLogger(__name__)
 
-SectionFn = Callable[["EventObject", "Formatter", Any], str]
+SectionFn = Callable[["EventObject", "Formatter", Limits], str]
 
 
 def slug(title: str) -> str:
@@ -30,7 +30,7 @@ def slug(title: str) -> str:
 
 
 class Formatter(ABC):
-    def render(self, model: EventObject, sections: Sequence[SectionFn], limits: Any) -> str:
+    def render(self, model: EventObject, sections: Sequence[SectionFn], limits: Limits) -> str:
         parts: list[str] = []
         for section in sections:
             try:

@@ -4,6 +4,7 @@ from sentry.issues.formatting.formatter import (
     XmlFormatter,
     slug,
 )
+from sentry.issues.formatting.limits import LIMITS_DEFAULT
 from sentry.issues.formatting.models import EventObject
 
 
@@ -21,31 +22,31 @@ def boom_section(model: EventObject, fmt: Formatter, limits: object) -> str:
 
 def test_markdown_renders_section() -> None:
     event = EventObject(title="ValueError: boom")
-    out = MarkdownFormatter().render(event, [title_section], limits=None)
+    out = MarkdownFormatter().render(event, [title_section], limits=LIMITS_DEFAULT)
     assert out == "## Title\nValueError: boom"
 
 
 def test_xml_renders_section_with_slugged_tag() -> None:
     event = EventObject(title="ValueError: boom")
-    out = XmlFormatter().render(event, [title_section], limits=None)
+    out = XmlFormatter().render(event, [title_section], limits=LIMITS_DEFAULT)
     assert out == "<title>\nValueError: boom\n</title>"
 
 
 def test_empty_sections_are_skipped() -> None:
     event = EventObject(title="t")
-    out = MarkdownFormatter().render(event, [empty_section, title_section], limits=None)
+    out = MarkdownFormatter().render(event, [empty_section, title_section], limits=LIMITS_DEFAULT)
     assert out == "## Title\nt"  # no leading blank from the empty section
 
 
 def test_sections_joined_with_blank_line() -> None:
     event = EventObject(title="t")
-    out = MarkdownFormatter().render(event, [title_section, title_section], limits=None)
+    out = MarkdownFormatter().render(event, [title_section, title_section], limits=LIMITS_DEFAULT)
     assert out == "## Title\nt\n\n## Title\nt"
 
 
 def test_failing_section_does_not_sink_output() -> None:
     event = EventObject(title="t")
-    out = MarkdownFormatter().render(event, [boom_section, title_section], limits=None)
+    out = MarkdownFormatter().render(event, [boom_section, title_section], limits=LIMITS_DEFAULT)
     assert out == "## Title\nt"  # boom_section swallowed, title still rendered
 
 
