@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0027_backfill_night_shift_result_idempotency_key"),
+        ("seer", "0026_add_night_shift_result_idempotency_key"),
         ("sentry", "1127_discover_to_explore_queries_self_hosted"),
     ]
 
