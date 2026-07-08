@@ -193,7 +193,7 @@ const TimelineRow = memo(function TimelineRow({
         <RowContainer
           type="button"
           className={className}
-          isSelected={isSelected}
+          data-selected={isSelected}
           indent={indent}
           onClick={() => onSelectNode(node)}
         >
@@ -433,7 +433,6 @@ const EllipsisTag = styled(Tag)`
 
 const RowContainer = styled('button')<{
   indent: number;
-  isSelected: boolean;
 }>`
   width: 100%;
   border: none;
@@ -442,21 +441,27 @@ const RowContainer = styled('button')<{
   text-align: left;
   padding: ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
-  border-radius: ${p => (p.isSelected ? p.theme.radius.xs : 0)};
+  border-radius: 0;
   cursor: pointer;
-  background-color: ${p =>
-    p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+  background-color: transparent;
 
-  &:hover {
+  /* Hover/active feedback only applies while the row is not selected, so the
+   * selected background is never masked. */
+  &:not([data-selected='true']):hover {
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &:active {
+  &:not([data-selected='true']):active {
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+
+  &[data-selected='true'] {
+    border-radius: ${p => p.theme.radius.xs};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 `;
 
