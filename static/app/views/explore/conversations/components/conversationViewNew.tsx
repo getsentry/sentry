@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
@@ -62,10 +62,9 @@ export function ConversationViewContentNew({
     onSelectSpan,
     focusedTool,
     isLoading,
-    // The transcript opens the span detail only on user action; the timeline
-    // auto-selects a default span on load, but not once the user explicitly
-    // closes the detail (which deselects the span).
-    autoSelectDefaultNode: isTimeline && detailState.detailOpen,
+    // Neither view auto-selects a span on load. The span detail only opens on
+    // user action or when a span is deep-linked in the URL.
+    autoSelectDefaultNode: false,
   });
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
@@ -74,16 +73,6 @@ export function ConversationViewContentNew({
     },
     [handleSelectNode, setDetailState]
   );
-
-  // Open the span detail whenever the user enters the timeline view, so the
-  // auto-selected span's detail shows without an extra click.
-  const wasTimeline = useRef(false);
-  useEffect(() => {
-    if (isTimeline && !wasTimeline.current) {
-      setDetailState({detailOpen: true});
-    }
-    wasTimeline.current = isTimeline;
-  }, [isTimeline, setDetailState]);
 
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
@@ -128,8 +117,10 @@ export function ConversationViewContentNew({
           )
         }
         right={
-          // The timeline auto-selects a span, so its detail pane skeletons while loading.
-          detailState.detailOpen && (isLoading ? isTimeline : Boolean(selectedNode)) ? (
+          // Only show the detail pane (and its loading skeleton) when a span is
+          // deep-linked in the URL, or once the user has selected one.
+          detailState.detailOpen &&
+          (isLoading ? Boolean(selectedSpanId) : Boolean(selectedNode)) ? (
             <ConversationSpanDetail
               isLoading={isLoading}
               scrollResetKey={activeTab}
