@@ -1,12 +1,10 @@
-import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
@@ -16,7 +14,15 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 
-const CLEAR_PASSWORD_BUTTON_SIZE = 22;
+const LAYOUT_OPTIONS = Object.entries(DEBUG_SOURCE_LAYOUTS).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+const CASING_OPTIONS = Object.entries(DEBUG_SOURCE_CASINGS).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 type InitialData = {
   id: string;
@@ -32,250 +38,189 @@ type InitialData = {
   username?: string;
 };
 
-type Data = Partial<Pick<InitialData, 'name' | 'url'>> &
-  Omit<InitialData, 'name' | 'url' | 'password' | 'layout'> & {
-    'layout.casing': keyof typeof DEBUG_SOURCE_CASINGS;
-    'layout.type': keyof typeof DEBUG_SOURCE_LAYOUTS;
-    password?: string;
-  };
+type SubmitData = {
+  id: string;
+  ['layout.casing']: keyof typeof DEBUG_SOURCE_CASINGS;
+  ['layout.type']: keyof typeof DEBUG_SOURCE_LAYOUTS;
+  name: string;
+  url: string;
+  password?:
+    | {
+        'hidden-secret': boolean;
+      }
+    | string;
+  username?: string;
+};
 
-type SubmitData = Omit<Data, 'password' | 'name' | 'url'> &
-  Pick<InitialData, 'name' | 'url'> & {
-    password?:
-      | {
-          'hidden-secret': boolean;
-        }
-      | string;
-  };
+const schema = z.object({
+  id: z.string(),
+  name: z.string().min(1, t('Name is required')),
+  url: z.string().min(1, t('Download Url is required')),
+  username: z.string().optional(),
+  // `undefined` means the previously stored password should be kept untouched.
+  password: z.string().optional(),
+  layoutType: z.string(),
+  layoutCasing: z.string(),
+});
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   onSubmit: (data: SubmitData) => void;
   initialData?: InitialData;
 };
 
-export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
-  const initialData: Data = {
-    id: props.initialData?.id ?? uniqueId(),
-    name: props.initialData?.name,
-    url: props.initialData?.url,
-    username: props.initialData?.username,
-    password: typeof props.initialData?.password === 'object' ? undefined : '',
-    'layout.type': props.initialData?.layout.type ?? 'native',
-    'layout.casing': props.initialData?.layout.casing ?? 'default',
+export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
+  const isEditing = !!initialData;
+
+  const defaultValues: z.input<typeof schema> = {
+    id: initialData?.id ?? uniqueId(),
+    name: initialData?.name ?? '',
+    url: initialData?.url ?? '',
+    username: initialData?.username ?? '',
+    // When editing a repository with a stored password we start with
+    // `undefined` to represent "unchanged".
+    password: typeof initialData?.password === 'object' ? undefined : '',
+    layoutType: initialData?.layout.type ?? 'native',
+    layoutCasing: initialData?.layout.casing ?? 'default',
   };
 
-  const [data, setData] = useState(initialData);
-
-  function isFormInvalid() {
-    return !data.name || !data.url;
-  }
-
-  function formUnchanged() {
-    return data === initialData;
-  }
-
-  function handleSubmit() {
-    const validData = data as SubmitData;
-    onSubmit({
-      id: validData.id,
-      name: validData.name,
-      url: validData.url,
-      'layout.type': validData['layout.type'],
-      'layout.casing': validData['layout.casing'],
-      username: validData.username,
-      password:
-        validData.password === undefined
-          ? {'hidden-secret': true}
-          : validData.password
-            ? validData.password
-            : undefined,
-    });
-  }
-
-  function handleClearPassword() {
-    setData({...data, password: ''});
-  }
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      onSubmit({
+        id: value.id,
+        name: value.name,
+        url: value.url,
+        username: value.username,
+        'layout.type': value.layoutType as keyof typeof DEBUG_SOURCE_LAYOUTS,
+        'layout.casing': value.layoutCasing as keyof typeof DEBUG_SOURCE_CASINGS,
+        password:
+          value.password === undefined
+            ? {'hidden-secret': true}
+            : value.password
+              ? value.password
+              : undefined,
+      });
+    },
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
-        {initialData
+        {isEditing
           ? tct('Update [name] Repository', {name: DEBUG_SOURCE_TYPES.http})
           : tct('Add [name] Repository', {name: DEBUG_SOURCE_TYPES.http})}
       </Header>
       <Body>
-        <FieldGroup
-          label={t('Name')}
-          inline={false}
-          help={t('A display name for this repository')}
-          flexibleControlStateSize
-          stacked
-          required
-        >
-          <Input
-            type="text"
-            name="name"
-            placeholder={t('New Repository')}
-            value={data.name}
-            onChange={e =>
-              setData({
-                ...data,
-                name: e.target.value,
-              })
-            }
-          />
-        </FieldGroup>
-        <hr />
-        <FieldGroup
-          label={t('Download Url')}
-          inline={false}
-          help={t('Full URL to the symbol server')}
-          flexibleControlStateSize
-          stacked
-          required
-        >
-          <Input
-            type="text"
-            name="url"
-            placeholder="https://msdl.microsoft.com/download/symbols/"
-            value={data.url}
-            onChange={e =>
-              setData({
-                ...data,
-                url: e.target.value,
-              })
-            }
-          />
-        </FieldGroup>
-        <FieldGroup
-          label={t('User')}
-          inline={false}
-          help={t('User for HTTP basic auth')}
-          flexibleControlStateSize
-          stacked
-        >
-          <Input
-            type="text"
-            name="username"
-            placeholder="admin"
-            value={data.username}
-            onChange={e =>
-              setData({
-                ...data,
-                username: e.target.value,
-              })
-            }
-          />
-        </FieldGroup>
-        <FieldGroup
-          label={t('Password')}
-          inline={false}
-          help={t('Password for HTTP basic auth')}
-          flexibleControlStateSize
-          stacked
-        >
-          <PasswordInput
-            type={data.password === undefined ? 'text' : 'password'}
-            name="url"
-            placeholder={
-              data.password === undefined ? t('(Password unchanged)') : 'open-sesame'
-            }
-            value={data.password}
-            onChange={e =>
-              setData({
-                ...data,
-                password: e.target.value,
-              })
-            }
-          />
-          {(data.password === undefined ||
-            (typeof data.password === 'string' && !!data.password)) && (
-            <ClearPasswordButton
-              onClick={handleClearPassword}
-              icon={<IconClose size="sm" />}
-              size="xs"
-              tooltipProps={{title: t('Clear password')}}
-              aria-label={t('Clear password')}
-              variant="transparent"
-            />
-          )}
-        </FieldGroup>
-        <hr />
-        <StyledSelectField
-          name="layout.type"
-          label={t('Directory Layout')}
-          help={t('The layout of the folder structure.')}
-          options={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => ({
-            value: key,
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            label: DEBUG_SOURCE_LAYOUTS[key],
-          }))}
-          value={data['layout.type']}
-          onChange={(value: any) =>
-            setData({
-              ...data,
-              ['layout.type']: value,
-            })
-          }
-          inline={false}
-          flexibleControlStateSize
-          stacked
-        />
-        <StyledSelectField
-          name="layout.casing"
-          label={t('Path Casing')}
-          help={t('The case of files and folders.')}
-          options={Object.keys(DEBUG_SOURCE_CASINGS).map(key => ({
-            value: key,
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            label: DEBUG_SOURCE_CASINGS[key],
-          }))}
-          value={data['layout.casing']}
-          onChange={(value: any) =>
-            setData({
-              ...data,
-              ['layout.casing']: value,
-            })
-          }
-          inline={false}
-          flexibleControlStateSize
-          stacked
-        />
+        <Stack gap="xl">
+          <form.AppField name="name">
+            {field => (
+              <field.Layout.Stack
+                label={t('Name')}
+                hintText={t('A display name for this repository')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('New Repository')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="url">
+            {field => (
+              <field.Layout.Stack
+                label={t('Download Url')}
+                hintText={t('Full URL to the symbol server')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="https://msdl.microsoft.com/download/symbols/"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="username">
+            {field => (
+              <field.Layout.Stack
+                label={t('User')}
+                hintText={t('User for HTTP basic auth')}
+              >
+                <field.Input
+                  value={field.state.value ?? ''}
+                  onChange={field.handleChange}
+                  placeholder="admin"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="password">
+            {field => {
+              const isUnchanged = field.state.value === undefined;
+              const showClearButton = isUnchanged || !!field.state.value;
+              return (
+                <field.Layout.Stack
+                  label={t('Password')}
+                  hintText={t('Password for HTTP basic auth')}
+                >
+                  <field.Input
+                    type={isUnchanged ? 'text' : 'password'}
+                    placeholder={isUnchanged ? t('(Password unchanged)') : 'open-sesame'}
+                    value={field.state.value ?? ''}
+                    onChange={field.handleChange}
+                    trailingItems={
+                      showClearButton ? (
+                        <Button
+                          size="xs"
+                          variant="transparent"
+                          icon={<IconClose size="xs" />}
+                          aria-label={t('Clear password')}
+                          onClick={() => field.handleChange('')}
+                        />
+                      ) : undefined
+                    }
+                  />
+                </field.Layout.Stack>
+              );
+            }}
+          </form.AppField>
+          <form.AppField name="layoutType">
+            {field => (
+              <field.Layout.Stack
+                label={t('Directory Layout')}
+                hintText={t('The layout of the folder structure.')}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={LAYOUT_OPTIONS}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="layoutCasing">
+            {field => (
+              <field.Layout.Stack
+                label={t('Path Casing')}
+                hintText={t('The case of files and folders.')}
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={CASING_OPTIONS}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
       <Footer>
-        <Button
-          onClick={handleSubmit}
-          variant="primary"
-          disabled={isFormInvalid() || formUnchanged()}
-        >
-          {t('Save changes')}
-        </Button>
+        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }
-
-const StyledSelectField = styled(SelectField)`
-  padding-right: 0;
-`;
-
-const PasswordInput = styled(Input)`
-  padding-right: ${p => p.theme.form.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
-`;
-
-const ClearPasswordButton = styled(Button)`
-  background: transparent;
-  height: ${CLEAR_PASSWORD_BUTTON_SIZE}px;
-  width: ${CLEAR_PASSWORD_BUTTON_SIZE}px;
-  padding: 0;
-  position: absolute;
-  top: 50%;
-  right: ${p => p.theme.space.sm};
-  transform: translateY(-50%);
-  svg {
-    color: ${p => p.theme.colors.gray500};
-    :hover {
-      color: hsl(0, 0%, 60%);
-    }
-  }
-`;

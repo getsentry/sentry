@@ -4,16 +4,14 @@ import {css} from '@emotion/react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
-import {Form} from 'sentry/components/forms/form';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
-import {getDebugSourceName} from 'sentry/data/debugFileSources';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 
 import {Http} from './http';
-import {getFinalData, getFormFieldsAndInitialData} from './utils';
+import {GcsRepository, S3Repository} from './objectStorage';
+import {getFinalData} from './utils';
 
 type HttpInitialData = React.ComponentProps<typeof Http>['initialData'];
 
@@ -65,53 +63,20 @@ function DebugFileCustomRepository({
     <Feature organization={organization} features="custom-symbol-sources">
       {({hasFeature, features}) => {
         if (hasFeature) {
-          if (sourceType === CustomRepoType.HTTP) {
-            return (
-              <Http
-                Header={Header}
-                Body={Body}
-                Footer={Footer}
-                onSubmit={handleSave}
-                initialData={sourceConfig as HttpInitialData}
-              />
-            );
+          const commonProps = {Header, Body, Footer, onSubmit: handleSave};
+
+          switch (sourceType) {
+            case CustomRepoType.HTTP:
+              return (
+                <Http {...commonProps} initialData={sourceConfig as HttpInitialData} />
+              );
+            case CustomRepoType.S3:
+              return <S3Repository {...commonProps} sourceConfig={sourceConfig} />;
+            case CustomRepoType.GCS:
+              return <GcsRepository {...commonProps} sourceConfig={sourceConfig} />;
+            default:
+              return null;
           }
-
-          const {initialData, fields} = getFormFieldsAndInitialData(
-            sourceType,
-            sourceConfig
-          );
-
-          return (
-            <Fragment>
-              <Header closeButton>
-                {sourceConfig
-                  ? tct('Update [name] Repository', {
-                      name: getDebugSourceName(sourceType),
-                    })
-                  : tct('Add [name] Repository', {name: getDebugSourceName(sourceType)})}
-              </Header>
-              {fields && (
-                <Form
-                  allowUndo
-                  requireChanges
-                  initialData={initialData}
-                  onSubmit={handleSave}
-                  footerClass="modal-footer"
-                >
-                  {fields.map((field, i) => (
-                    <FieldFromConfig
-                      key={field?.name || i}
-                      // @ts-expect-error TS(2322): Type '(CustomType & BaseField) | ({ type: "select"... Remove this comment to see the full error message
-                      field={field}
-                      inline={false}
-                      stacked
-                    />
-                  ))}
-                </Form>
-              )}
-            </Fragment>
-          );
         }
 
         return (
