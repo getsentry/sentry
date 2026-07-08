@@ -369,7 +369,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_review_comment_reaction_uses_pulls_endpoint(
+    def test_review_comment_does_not_react(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
@@ -382,11 +382,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
 
-        # A review comment must react via the pulls/comments endpoint, not the
-        # issue-comment one, or GitHub 404s on the mismatched ID namespace.
+        # Inline review comments need the pulls/comments reactions endpoint, which
+        # the SCM platform does not expose, so we skip the reaction for now.
         self._call(source_type="github-pr-review-comment")
 
-        mock_client.create_pull_request_comment_reaction.assert_called_once()
+        mock_enqueue.assert_called_once()
         mock_client.create_comment_reaction.assert_not_called()
 
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)

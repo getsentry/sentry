@@ -351,15 +351,14 @@ def trigger_pr_iteration_from_comment(
     if comment_id is None:
         return None
 
-    # Review comment IDs live in a separate namespace from issue comment IDs and
-    # need the pulls/comments reactions endpoint.
+    # Only top-level PR comments get the eyes reaction. Inline review comments
+    # need the pulls/comments reactions endpoint, which the SCM platform does not
+    # yet expose; skip rather than reach for a bespoke client method.
+    if source_type != "github-pr-comment":
+        return None
+
     try:
-        if source_type == "github-pr-review-comment":
-            client.create_pull_request_comment_reaction(
-                repo.name, str(comment_id), GitHubReaction.EYES
-            )
-        else:
-            client.create_comment_reaction(repo.name, str(comment_id), GitHubReaction.EYES)
+        client.create_comment_reaction(repo.name, str(comment_id), GitHubReaction.EYES)
     except Exception as e:
         sentry_sdk.capture_exception(e)
     return None
