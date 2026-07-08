@@ -11,6 +11,9 @@ import type {DateString} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
+import {parseTraceMetricFromQuery} from 'sentry/views/explore/metrics/utils';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+import {makeCrossEvent} from 'sentry/views/explore/spans/crossEvents/utils';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 
 import type {
@@ -147,11 +150,33 @@ export function buildSeerMutationResult<T extends QueryTokensProps>(
   };
 }
 
+function buildCrossEvents(item: SeerRawResponseItem): CrossEvent[] {
+  const crossEvents: CrossEvent[] = [];
+  if (item.span_query) {
+    crossEvents.push(makeCrossEvent('spans', item.span_query));
+  }
+  if (item.log_query) {
+    crossEvents.push(makeCrossEvent('logs', item.log_query));
+  }
+  if (item.metric_query) {
+    // A metric cross-event needs a parseable metric identity (metric.name/type)
+    // in the query. parseTraceMetricFromQuery returns no metric when it's absent
+    // (e.g. an aggregate-mode sibling whose identity lives in the visualization),
+    // and we drop the cross-event in that case.
+    const {metric, rest} = parseTraceMetricFromQuery(item.metric_query);
+    if (metric) {
+      crossEvents.push({type: 'metrics', query: rest, metric});
+    }
+  }
+  return crossEvents;
+}
+
 export function mapSeerResponseItem(
   item: SeerRawResponseItem,
   defaultMode = 'samples'
 ): AskSeerSearchQuery {
   const interval = getRawSeerInterval(item);
+  const crossEvents = defaultMode === 'spans' ? buildCrossEvents(item) : [];
   return {
     visualizations:
       item.visualization
@@ -170,6 +195,7 @@ export function mapSeerResponseItem(
     end: item.end ?? null,
     mode: item.mode || defaultMode,
     ...(interval ? {interval} : {}),
+    ...(crossEvents.length ? {crossEvents} : {}),
   };
 }
 

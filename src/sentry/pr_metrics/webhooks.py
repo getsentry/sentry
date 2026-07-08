@@ -21,7 +21,6 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
@@ -162,15 +161,16 @@ def handle_attribution(
     if pr is None:
         return
 
-    if action == "opened":
+    # SENTRY_APP author attribution is recorded on open and re-checked on close.
+    # This is for the unlikely event that we missed the open webhook or for cases
+    # where the PR open and closes super fast and the webhooks might be out of order
+    if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
         _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     if action == "opened" and pull_request is not None:
-        provider_hint = _is_delegated_agent_candidate(pull_request)
-        if provider_hint and org_has_coding_agent_for_provider(organization, provider_hint):
-            _detect_delegated_agent(pr, pull_request, repo, provider_hint=provider_hint)
+        _attribute_delegated_agent(pr, pull_request, repo, organization, github_user)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -373,9 +373,9 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; only
-    the webhook-sourced columns are written, leaving the Seer-derived ones
-    (verdict, participants_count, reviews_count) untouched.
+    reflects the final counts. Gated by the emit flag, the sole consumer; it
+    writes only the webhook-sourced counters, leaving the other columns to their
+    own producers.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -685,13 +685,9 @@ def handle_check_suite(
         return
 
     check_suite = event.get("check_suite") or {}
-    sender = event.get("sender") or {}
     app = check_suite.get("app") or {}
     payload = asdict(
         CheckSuiteCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_suite.get("head_sha"),
             conclusion=check_suite.get("conclusion") or "",
             app_slug=app.get("slug", ""),
             check_runs_count=check_suite.get("latest_check_runs_count") or 0,
@@ -731,13 +727,9 @@ def handle_check_run(
         return
 
     check_run = event.get("check_run") or {}
-    sender = event.get("sender") or {}
     app = check_run.get("app") or {}
     payload = asdict(
         CheckRunCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_run.get("head_sha"),
             check_name=check_run.get("name", ""),
             conclusion=check_run.get("conclusion") or "",
             app_slug=app.get("slug", ""),
@@ -990,6 +982,55 @@ def _write_author_attribution(
     )
 
 
+def _record_delegated_candidate(provider: str, outcome: str) -> None:
+    """Count where an opened PR lands in the delegated-agent attribution funnel.
+
+    ``provider`` is the provider hint (or ``"unknown"`` when none could be
+    derived); ``outcome`` is the terminal stage. Every stage that previously
+    returned silently records here, so drop-offs before the Seer match request
+    are visible instead of invisible.
+    """
+    metrics.incr(
+        "pr_metrics.delegated_agent.candidate",
+        tags={"provider": provider, "outcome": outcome},
+    )
+
+
+def _attribute_delegated_agent(
+    pr: PullRequest,
+    webhook_pull_request: Mapping[str, Any],
+    repository: Repository,
+    organization: Organization,
+    github_user: Mapping[str, Any],
+) -> None:
+    """Route an opened PR toward the Seer delegated-agent match, recording where
+    it drops off.
+
+    The funnel is scoped to PRs plausibly opened by an agent — either a provider
+    hint (branch prefix / bot login) or authorship by the Sentry/Seer app — so
+    the counter isn't swamped by ordinary human PRs that legitimately carry no
+    hint.
+    """
+    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
+
+    if not provider_hint:
+        # Claude opens PRs as the Sentry app with no distinct bot login, so the
+        # ``claude/`` branch prefix is its only signal; a non-``claude/`` branch
+        # leaves no hint and the PR never reaches the match. Surface that only
+        # for app-authored PRs — the cohort that should have matched — since
+        # human PRs with no hint are expected and would dominate the metric.
+        user_id = github_user.get("id")
+        if user_id is not None and _detect_app_signal(user_id) is not None:
+            _record_delegated_candidate("unknown", "no_provider_hint")
+        return
+
+    if not org_has_coding_agent_for_provider(organization, provider_hint):
+        _record_delegated_candidate(provider_hint, "no_org_integration")
+        return
+
+    _detect_delegated_agent(pr, webhook_pull_request, repository, provider_hint=provider_hint)
+
+
 def _detect_delegated_agent(
     pr: PullRequest,
     webhook_pull_request: Mapping[str, Any],
@@ -1004,6 +1045,7 @@ def _detect_delegated_agent(
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
+        _record_delegated_candidate(provider_hint, "no_group_ids")
         return
 
     repo_name_sections = repository.name.split("/")
@@ -1012,6 +1054,7 @@ def _detect_delegated_agent(
             "pr_metrics.delegated_agent.invalid_repo_name",
             extra={"pull_request_id": pr.id, "repo_name": repository.name},
         )
+        _record_delegated_candidate(provider_hint, "bad_repo")
         return
 
     if not repository.provider or not repository.external_id:
@@ -1023,6 +1066,7 @@ def _detect_delegated_agent(
                 "has_external_id": bool(repository.external_id),
             },
         )
+        _record_delegated_candidate(provider_hint, "bad_repo")
         return
 
     pr_url = webhook_pull_request.get("html_url") or ""
@@ -1060,11 +1104,7 @@ def _send_seer_delegated_agent_match(
         response = make_match_coding_agent_pr_request(request_body, timeout=5)
     except Exception:
         logger.warning("pr_metrics.delegated_agent.seer_match.error", extra=log_extra)
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.error",
-            1,
-            attributes={"reason": "exception"},
-        )
+        _record_delegated_candidate(provider_hint, "seer_error_exception")
         return
 
     if response.status >= 400:
@@ -1072,18 +1112,10 @@ def _send_seer_delegated_agent_match(
             "pr_metrics.delegated_agent.seer_match.error",
             extra={**log_extra, "status_code": response.status},
         )
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.error",
-            1,
-            attributes={"reason": "bad_status"},
-        )
+        _record_delegated_candidate(provider_hint, "seer_error_bad_status")
         return
 
-    sentry_sdk.metrics.count(
-        "pr_metrics.delegated_agent.seer_match.sent",
-        1,
-        attributes={"provider": provider_hint},
-    )
+    _record_delegated_candidate(provider_hint, "sent")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -1156,18 +1188,18 @@ def _build_activity_payload(
     base = pull_request.get("base") or {}
     sender = event.get("sender") or pull_request.get("user") or {}
 
-    base_kw: dict[str, Any] = dict(
+    sender_kw: dict[str, Any] = dict(
         sender_login=sender.get("login", ""),
         sender_type=sender.get("type", ""),
-        head_sha=head.get("sha"),
-        base_sha=base.get("sha"),
     )
 
     match action:
         case "opened":
             return asdict(
                 OpenedPayload(
-                    **base_kw,
+                    **sender_kw,
+                    head_sha=head.get("sha"),
+                    base_sha=base.get("sha"),
                     additions=pull_request.get("additions", 0),
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
@@ -1177,51 +1209,49 @@ def _build_activity_payload(
         case "synchronize":
             return asdict(
                 SynchronizePayload(
-                    **base_kw,
+                    **sender_kw,
                     before_sha=event.get("before"),
                     after_sha=event.get("after"),
                 )
             )
         case "labeled":
             label = event.get("label") or {}
-            return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "unlabeled":
             label = event.get("label") or {}
-            return asdict(UnlabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(UnlabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "review_requested":
             return asdict(
                 ReviewRequestedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "review_request_removed":
             return asdict(
                 ReviewRequestRemovedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "assigned":
             assignee = event.get("assignee") or {}
-            return asdict(AssignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(AssignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "unassigned":
             assignee = event.get("assignee") or {}
-            return asdict(UnassignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(UnassignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "converted_to_draft":
-            return asdict(ConvertedToDraftPayload(**base_kw))
+            return asdict(ConvertedToDraftPayload(**sender_kw))
         case "ready_for_review":
-            return asdict(ReadyForReviewPayload(**base_kw))
+            return asdict(ReadyForReviewPayload(**sender_kw))
         case "auto_merge_enabled":
             auto_merge = pull_request.get("auto_merge") or {}
             return asdict(
-                AutoMergeEnabledPayload(
-                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
-                )
+                AutoMergeEnabledPayload(merge_method=auto_merge.get("merge_method") or "")
             )
         case "auto_merge_disabled":
-            return asdict(AutoMergeDisabledPayload(**base_kw))
+            return asdict(AutoMergeDisabledPayload())
         case "enqueued":
-            return asdict(EnqueuedPayload(**base_kw))
+            return asdict(EnqueuedPayload())
         case "dequeued":
-            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
+            return asdict(DequeuedPayload(reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")

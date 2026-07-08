@@ -102,7 +102,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
-    def test_app_attribution_only_written_on_opened(self) -> None:
+    def test_app_attribution_not_written_on_non_terminal_actions(self) -> None:
         self._call(action="synchronize", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
         self._call(action="labeled", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
@@ -111,12 +111,34 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.SENTRY_APP,
         ).exists()
 
+    def test_app_attribution_written_on_closed(self) -> None:
+        # A Sentry-authored PR that never got a row at open (e.g. opened before the
+        # flag, or resolving no issues) is still attributed at the terminal close
+        # event so it can be tracked for emission.
+        self._call(action="closed", user_id=settings.SENTRY_GITHUB_APP_USER_ID)
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_type == PullRequestAttributionSignalType.SENTRY_APP
+        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
+        assert attr.is_valid is True
+
+    def test_app_attribution_idempotent_across_open_then_close(self) -> None:
+        self._call(action="opened", user_id=settings.SENTRY_GITHUB_APP_USER_ID)
+        self._call(action="closed", user_id=settings.SENTRY_GITHUB_APP_USER_ID)
+
+        assert (
+            PullRequestAttribution.objects.filter(
+                pull_request=self.pr,
+                signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            ).count()
+            == 1
+        )
+
     # --- Action gate ---
 
     def test_irrelevant_actions_skipped(self) -> None:
         for action in (
             "synchronize",
-            "closed",
             "labeled",
             "assigned",
         ):
@@ -794,7 +816,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.event_type == PullRequestActivityType.UNASSIGNED
         assert activity.payload["assignee_login"] == "dev"
 
-    # --- sender_type in base payload ---
+    # --- sender_type in opened payload ---
 
     def test_bot_sender_type_stored_in_payload(self) -> None:
         self._call(action="opened", extra_event={"sender": {"login": "testbot", "type": "Bot"}})
@@ -1527,8 +1549,6 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.payload["conclusion"] == "success"
         assert activity.payload["app_slug"] == "github-actions"
         assert activity.payload["check_runs_count"] == 6
-        assert activity.payload["head_sha"] == "headsha1"
-        assert activity.payload["sender_type"] == "Bot"
 
     def test_check_suite_non_completed_action_skipped(self) -> None:
         for action in ("requested", "rerequested"):
@@ -1618,7 +1638,6 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.payload["check_name"] == "lint"
         assert activity.payload["conclusion"] == "failure"
         assert activity.payload["app_slug"] == "github-actions"
-        assert activity.payload["head_sha"] == "headsha1"
 
     def test_check_run_non_completed_action_skipped(self) -> None:
         for action in ("created", "rerequested", "requested_action"):
@@ -1857,6 +1876,16 @@ class HandleDelegatedAgentDetectionTest(TestCase):
     def _mock_org_check(self) -> Any:
         return patch(f"{MODULE}.org_has_coding_agent_for_provider", return_value=True)
 
+    def _candidate_outcome(self, mock_incr: MagicMock) -> dict[str, str] | None:
+        """The tags of the single ``delegated_agent.candidate`` funnel emission."""
+        calls = [
+            c
+            for c in mock_incr.call_args_list
+            if c.args and c.args[0] == "pr_metrics.delegated_agent.candidate"
+        ]
+        assert len(calls) == 1
+        return calls[0].kwargs.get("tags")
+
     # --- Candidate detection calls Seer ---
 
     def test_claude_branch_prefix_sends_to_seer(self) -> None:
@@ -1898,15 +1927,14 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         with (
             self._mock_org_check(),
             self._mock_seer(status=202),
-            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
         ):
             self._call(head_ref="claude/fix")
 
-        assert any(
-            call.args[0] == "pr_metrics.delegated_agent.seer_match.sent"
-            and call.kwargs.get("attributes", {}).get("provider") == "claude_code"
-            for call in mock_incr.call_args_list
-        )
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "sent",
+        }
 
     # --- Error handling ---
 
@@ -1914,27 +1942,27 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         with (
             self._mock_org_check(),
             self._mock_seer(status=500),
-            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
         ):
             self._call(head_ref="claude/fix")
 
-        assert any(
-            call.kwargs.get("attributes", {}).get("reason") == "bad_status"
-            for call in mock_incr.call_args_list
-        )
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_status",
+        }
 
     def test_seer_exception_logs_warning_and_error_metric(self) -> None:
         with (
             self._mock_org_check(),
             patch(MATCH_RPC, side_effect=Exception("network error")),
-            patch(f"{MODULE}.sentry_sdk.metrics.count") as mock_incr,
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
         ):
             self._call(head_ref="claude/fix")
 
-        assert any(
-            call.kwargs.get("attributes", {}).get("reason") == "exception"
-            for call in mock_incr.call_args_list
-        )
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_exception",
+        }
 
     def test_seer_exception_does_not_propagate(self) -> None:
         with self._mock_org_check(), patch(MATCH_RPC, side_effect=Exception("network error")):
@@ -2013,3 +2041,72 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()
+
+    # --- Funnel drop-off metrics ---
+    #
+    # Each stage that drops a PR before the Seer match used to return silently;
+    # these lock in the ``delegated_agent.candidate`` outcome it now records.
+
+    def test_app_authored_non_candidate_records_no_provider_hint(self) -> None:
+        # Claude opens PRs as the Sentry app with no ``claude/`` branch here, so
+        # there's no hint — the load-bearing blind spot. Only app-authored PRs
+        # are counted, keyed as provider "unknown".
+        with patch(f"{MODULE}.metrics.incr") as mock_incr:
+            self._call(
+                user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID,
+                head_ref="feature/x",
+            )
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "unknown",
+            "outcome": "no_provider_hint",
+        }
+
+    def test_human_non_candidate_records_nothing(self) -> None:
+        # An ordinary human PR with no hint must not enter the funnel at all,
+        # else the metric drowns in non-agent PRs.
+        with patch(f"{MODULE}.metrics.incr") as mock_incr:
+            self._call(user_id=999, login="a-human", head_ref="feature/x")
+
+        assert not any(
+            c.args and c.args[0] == "pr_metrics.delegated_agent.candidate"
+            for c in mock_incr.call_args_list
+        )
+
+    def test_no_org_integration_records_outcome(self) -> None:
+        with (
+            patch(f"{MODULE}.org_has_coding_agent_for_provider", return_value=False),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "no_org_integration",
+        }
+
+    def test_no_linked_groups_records_outcome(self) -> None:
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=self.pr.id,
+        ).delete()
+
+        with self._mock_org_check(), patch(f"{MODULE}.metrics.incr") as mock_incr:
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "no_group_ids",
+        }
+
+    def test_bad_repo_name_records_outcome(self) -> None:
+        self.repo.name = "repowithoutseparator"
+        self.repo.save()
+
+        with self._mock_org_check(), patch(f"{MODULE}.metrics.incr") as mock_incr:
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "bad_repo",
+        }

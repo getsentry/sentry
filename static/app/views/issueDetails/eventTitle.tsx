@@ -164,7 +164,7 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
-      p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
+    p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
     gap: ${p => p.theme.space.xs};
     padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};

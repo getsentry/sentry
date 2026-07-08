@@ -96,7 +96,11 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integrations"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integrations",
+        url_names=["sentry-api-0-group-integrations"],
+    )
     def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user

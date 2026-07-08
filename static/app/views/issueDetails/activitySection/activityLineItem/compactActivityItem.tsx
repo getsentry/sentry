@@ -25,6 +25,7 @@ import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
+import {getProviderName} from './compactActivityItem/provider';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
@@ -45,24 +46,6 @@ function getAuthorName(item: GroupActivity) {
     return item.data.pullRequest.author.name;
   }
   return 'Sentry';
-}
-
-function getProviderName(provider: null | string | undefined) {
-  const normalized = provider?.toLowerCase();
-
-  if (!normalized) {
-    return t('Git provider');
-  }
-  if (normalized.includes('github')) {
-    return t('GitHub');
-  }
-  if (normalized.includes('gitlab')) {
-    return t('GitLab');
-  }
-  if (normalized.includes('bitbucket')) {
-    return t('Bitbucket');
-  }
-  return provider;
 }
 
 function getPullRequestProvider(pullRequest: PullRequest) {
@@ -254,11 +237,8 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Issue resolved'),
         details: integrationLink
-          ? tct('by [author] via [integration]', {
-              author,
-              integration: integrationLink,
-            })
-          : tct('by [author]', {author}),
+          ? tct('via [integration]', {integration: integrationLink})
+          : undefined,
       };
     }
     case GroupActivityType.SET_RESOLVED_BY_AGE: {
@@ -340,7 +320,7 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.REFERENCED_IN_COMMIT:
       return {
-        title: t('Commit created'),
+        title: t('Referenced in commit'),
         details: activity.data.commit
           ? tct('on [provider] [commit]', {
               commit: <CommitChip commit={activity.data.commit} />,
@@ -349,7 +329,7 @@ export function getCompactGroupActivityItem({
                   activity.data.commit.repository?.provider?.id
               ),
             })
-          : t('in a commit'),
+          : undefined,
       };
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
@@ -360,23 +340,20 @@ export function getCompactGroupActivityItem({
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : t('in a pull request'),
+          : null,
       };
     }
     case GroupActivityType.PULL_REQUEST_CLOSED: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Pull Request closed'),
+        title: t('Pull request closed'),
         details: pullRequest
           ? tct('by [author] on [provider] [pullRequest]', {
               author,
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : tct('by [author]. [pullRequest]', {
-              author,
-              pullRequest: t('PR not available'),
-            }),
+          : tct('by [author]', {author}),
       };
     }
     case GroupActivityType.SET_UNRESOLVED: {
@@ -392,12 +369,9 @@ export function getCompactGroupActivityItem({
 
       const integrationLink = getIntegrationLink({data: activity.data, organization});
       return {
-        title: t('Unresolved'),
+        title: t('Issue unresolved'),
         details: integrationLink
-          ? tct('by [author] via [integration]', {
-              author,
-              integration: integrationLink,
-            })
+          ? tct('via [integration]', {integration: integrationLink})
           : null,
       };
     }
@@ -411,13 +385,11 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.SET_PUBLIC:
       return {
-        title: t('Made public'),
-        details: tct('by [author]', {author}),
+        title: t('Issue made public'),
       };
     case GroupActivityType.SET_PRIVATE:
       return {
-        title: t('Made private'),
-        details: tct('by [author]', {author}),
+        title: t('Issue made private'),
       };
     case GroupActivityType.SET_REGRESSION: {
       const {data} = activity;
@@ -454,13 +426,16 @@ export function getCompactGroupActivityItem({
                 />
               ),
             })
-          : tct('by [author]', {author}),
+          : undefined,
         subtext: comparison,
       };
     }
     case GroupActivityType.CREATE_ISSUE:
       return {
-        title: activity.data.new === false ? t('Linked Issue') : t('Created Issue'),
+        title:
+          activity.data.new === false
+            ? t('External issue linked')
+            : t('External issue created'),
         details: tct('on [provider] [title]', {
           provider: activity.data.provider,
           title: (
@@ -476,20 +451,18 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Merged'),
         details: tn(
-          '%1$s issue into this issue by %2$s',
-          '%1$s issues into this issue by %2$s',
-          activity.data.issues.length,
-          author
+          '%s issue into this issue',
+          '%s issues into this issue',
+          activity.data.issues.length
         ),
       };
     case GroupActivityType.UNMERGE_SOURCE:
       return {
         title: t('Unmerged'),
         details: tn(
-          '%1$s fingerprint to %3$s by %2$s',
-          '%1$s fingerprints to %3$s by %2$s',
+          '%1$s fingerprint to %2$s',
+          '%1$s fingerprints to %2$s',
           activity.data.fingerprints.length,
-          author,
           activity.data.destination ? (
             <Link
               to={`${issuesLink}${activity.data.destination.id}?referrer=group-activity-unmerged-source`}
@@ -505,10 +478,9 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Unmerged'),
         details: tn(
-          '%1$s fingerprint from %3$s by %2$s',
-          '%1$s fingerprints from %3$s by %2$s',
+          '%1$s fingerprint from %2$s',
+          '%1$s fingerprints from %2$s',
           activity.data.fingerprints.length,
-          author,
           activity.data.source ? (
             <Link
               to={`${issuesLink}${activity.data.source.id}?referrer=group-activity-unmerged-destination`}
@@ -533,27 +505,22 @@ export function getCompactGroupActivityItem({
       return getAssignedActivityItem({activity, author});
     case GroupActivityType.UNASSIGNED:
       return {
-        title: t('Unassigned'),
-        details: tct('by [author]', {author}),
+        title: t('Issue unassigned'),
       };
     case GroupActivityType.REPROCESS:
       return {
-        title: t('Reprocessed events'),
-        details: tct('by [author]. [newEvents]', {
-          author,
-          newEvents: (
-            <Link
-              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
-            >
-              {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
-            </Link>
-          ),
-        }),
+        title: t('Events reprocessed'),
+        details: (
+          <Link
+            to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
+          >
+            {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
+          </Link>
+        ),
       };
     case GroupActivityType.MARK_REVIEWED:
       return {
         title: t('Issue reviewed'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.AUTO_SET_ONGOING:
       return {
@@ -575,7 +542,6 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.DELETED_ATTACHMENT:
       return {
         title: t('Attachment deleted'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.SEER_RCA_STARTED:
       return {
@@ -615,12 +581,12 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.SEER_ITERATION_STARTED:
       return {
-        title: t('PR iteration started'),
+        title: t('Pull request iteration started'),
       };
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
-        title: t('Pull Request updated'),
+        title: t('Pull request updated'),
         details: pullRequest
           ? tct('on [provider] [pullRequest]', {
               provider: getProviderName(pullRequest.provider),

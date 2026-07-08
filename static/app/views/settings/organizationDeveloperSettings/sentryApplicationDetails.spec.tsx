@@ -91,7 +91,7 @@ describe('Sentry Application Details', () => {
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Action'}));
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Member'}), 'Admin');
       await selectEvent.select(
@@ -485,9 +485,9 @@ describe('Sentry Application Details', () => {
     it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
-      expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeChecked();
       await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
-      expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).not.toBeChecked();
     });
   });
 
@@ -545,6 +545,31 @@ describe('Sentry Application Details', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             redirectUrl: 'https://hello.com/',
+            events: [],
+          }),
+          method: 'PUT',
+        })
+      );
+    });
+
+    it('strips events no longer backed by scopes on load, so saving succeeds', async () => {
+      // Scopes can be reduced through the API without resubmitting events,
+      // leaving a subscription the backend would reject on the next save.
+      sentryApp.scopes = ['project:read'];
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(editAppRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
             events: [],
           }),
           method: 'PUT',

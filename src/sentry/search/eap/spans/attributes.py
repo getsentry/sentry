@@ -261,6 +261,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.usage.reasoning.output_tokens",
+            internal_name="gen_ai.usage.reasoning.output_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.cache_read.input_tokens",
+            internal_name="gen_ai.usage.cache_read.input_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.usage.cache_creation.input_tokens",
+            internal_name="gen_ai.usage.cache_creation.input_tokens",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.total_tokens",
             internal_name="gen_ai.usage.total_tokens",
             search_type="integer",
@@ -284,6 +299,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="gen_ai.usage.total_cost",
             internal_name="gen_ai.usage.total_cost",
             search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.request.reasoning_effort",
+            internal_name="gen_ai.request.reasoning_effort",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.query.bindings",
+            internal_name="cloudflare.durable_object.query.bindings",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.response.rows_read",
+            internal_name="cloudflare.durable_object.response.rows_read",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.response.rows_written",
+            internal_name="cloudflare.durable_object.response.rows_written",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="http.decoded_response_content_length",

@@ -1,7 +1,6 @@
 import type React from 'react';
 import {Fragment, useMemo} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -26,6 +25,7 @@ import {
   getConversationUser,
   getTraceUrl,
 } from 'sentry/views/explore/conversations/components/conversationSummary';
+import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
@@ -99,11 +99,7 @@ export function ConversationSummaryNew({
     >
       <Stack gap="md" minWidth={0} flex={1}>
         <Container minWidth={0}>
-          <Tooltip
-            title={conversationId}
-            showOnlyOnOverflow={!isUUID(conversationId)}
-            skipWrapper
-          >
+          <Tooltip title={conversationId} showOnlyOnOverflow={!isUUID(conversationId)}>
             <Heading as="h2" ellipsis>
               {displayId}
             </Heading>
@@ -116,6 +112,10 @@ export function ConversationSummaryNew({
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
               </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="12px" height="12px" />
+                <Placeholder width="40px" height="14px" />
+              </Flex>
               <Flex align="center" gap="sm">
                 <Placeholder width="72px" height="20px" />
                 <Placeholder width="72px" height="20px" />
@@ -127,13 +127,13 @@ export function ConversationSummaryNew({
                 <IconUser size="md" />
                 {userDisplayName ? (
                   <Tooltip title={userDisplayName} showOnlyOnOverflow skipWrapper>
-                    <Text size="xs" variant="muted" ellipsis>
+                    <Text size="sm" variant="muted" ellipsis>
                       {userDisplayName}
                     </Text>
                   </Tooltip>
                 ) : (
                   <InfoText
-                    size="xs"
+                    size="sm"
                     variant="muted"
                     title={<UserNotInstrumentedTooltip />}
                   >
@@ -152,7 +152,7 @@ export function ConversationSummaryNew({
                 >
                   <Flex align="center" gap="xs">
                     <IconOpen size="xs" />
-                    <Text size="xs" variant="inherit" wrap="nowrap">
+                    <Text size="sm" variant="inherit" wrap="nowrap">
                       {tn('Trace', 'Traces', traces.length)}
                     </Text>
                   </Flex>
@@ -232,10 +232,6 @@ export function ConversationSummaryNew({
   );
 }
 
-function ToolTag({name, hasError}: {hasError: boolean; name: string}) {
-  return <Tag variant={hasError ? 'danger' : 'muted'}>{name}</Tag>;
-}
-
 function Stat({
   label,
   value,
@@ -260,7 +256,7 @@ function Stat({
         <Placeholder width="32px" height="24px" />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="inherit" wrap="nowrap">
+          <Text size="xl" tabular variant="danger" wrap="nowrap">
             {value}
           </Text>
         </Link>

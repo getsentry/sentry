@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0027_unique_night_shift_result_run_group
 
-sentry: 1124_weeklyreportprojectexclusion
+sentry: 1127_discover_to_explore_queries_self_hosted
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

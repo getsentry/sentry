@@ -23,6 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -148,6 +149,11 @@ export interface ExplorerAutofixState {
   } | null;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
+  warnings?: Array<{
+    warning_type: string;
+    installation_id?: string;
+    repo_name?: string;
+  }>;
 }
 
 /**
@@ -736,7 +742,7 @@ export function useExplorerAutofix(
           if (permissionFailures.length > 0) {
             const installationId = permissionFailures[0]?.github_installation_id;
             const installationUrl = installationId
-              ? `https://github.com/settings/installations/${installationId}`
+              ? getGithubPermissionsUpdateUrl(installationId)
               : undefined;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
@@ -839,6 +845,7 @@ export function useExplorerAutofix(
      */
     dismissCodingAgentError: (id: number) =>
       setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
+    warnings: runState?.warnings ?? [],
   };
 }
 
