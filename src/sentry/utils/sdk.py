@@ -227,7 +227,7 @@ def span_first_profiles_sampler(sampling_context):
         "consumer.join": options.get("consumer.join.profiling.rate"),
         "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
-    if "transaction_context" in sampling_context:
+    if "span_context" in sampling_context:
         span_name = sampling_context["span_context"].get("name")
 
         if span_name in PROFILES_SAMPLING_RATE:
