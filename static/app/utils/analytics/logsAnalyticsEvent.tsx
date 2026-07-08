@@ -79,6 +79,12 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table';
   };
+  'logs.table.pinned_row_unavailable': {
+    log_id: string;
+    organization: Organization;
+    page_source: LogsAnalyticsPageSource;
+    reason: 'not_found' | 'error';
+  };
   'logs.table.pinned_row_view_in_table': {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
@@ -140,4 +146,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
   'logs.table.row_link_copied': 'Logs Row Link Copied',
   'logs.table.pinned_row_view_in_table': 'Logs Pinned Row View In Table',
+  'logs.table.pinned_row_unavailable': 'Logs Pinned Row Unavailable',
 };

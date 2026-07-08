@@ -10,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
@@ -168,6 +169,32 @@ describe('PinnedLogs', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Collapse 1 pinned'})).toBeInTheDocument();
     expect(router.location.query.logsPinned).toBe('missing-log');
+  });
+
+  it('tracks an analytics event when a pinned log resolves as unavailable', async () => {
+    const trackSpy = jest.spyOn(analytics, 'trackAnalytics');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
+    });
+
+    renderPinnedLogs({
+      initialRouterConfig: {
+        location: {pathname: '/', query: {logsPinned: 'missing-log'}},
+      },
+    });
+
+    expect(
+      await screen.findByText('Pinned log unavailable in the selected time range')
+    ).toBeInTheDocument();
+
+    expect(trackSpy).toHaveBeenCalledWith('logs.table.pinned_row_unavailable', {
+      log_id: 'missing-log',
+      organization,
+      page_source: LogsAnalyticsPageSource.EXPLORE_LOGS,
+      reason: 'not_found',
+    });
   });
 
   it('keeps a resolved-unavailable pin shown while a newly pinned log is still loading', async () => {

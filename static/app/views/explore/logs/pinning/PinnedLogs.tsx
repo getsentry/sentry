@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
+import {useReportUnavailablePinnedLogs} from 'sentry/views/explore/logs/pinning/useReportUnavailablePinnedLogs';
 import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
 import {
   OurLogKnownFieldKey,
@@ -51,6 +52,12 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
     }
     return map;
   }, [allRows, fetchedPinnedRows]);
+
+  useReportUnavailablePinnedLogs({
+    pinnedRows,
+    rowById,
+    statusById: pinnedRowStatusById,
+  });
 
   if (!pinnedRows.length) {
     return null;
