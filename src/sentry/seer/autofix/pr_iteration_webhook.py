@@ -30,6 +30,7 @@ from sentry.seer.autofix.autofix_agent import Feedback, GithubPrCommentFeedbackS
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
 from sentry.seer.webhooks import SentryIterateCommand, sentry_command
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.taskworker.namespaces import seer_tasks
@@ -269,7 +270,17 @@ def trigger_pr_iteration_from_comment(
         return None
 
     client = integration.get_installation(organization_id=organization_id).get_client()
-    pull_request = client.get_pull_request(repo.name, str(pr_number))
+    try:
+        # Async task: the PR may be deleted, made private, or GitHub may return a
+        # transient error between webhook receipt and execution.
+        pull_request = client.get_pull_request(repo.name, str(pr_number))
+    except ApiError:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
+            extra={"organization_id": organization_id, "pr_number": pr_number},
+            exc_info=True,
+        )
+        return None
     pr_id = pull_request.get("id")
     if pr_id is None:
         return None

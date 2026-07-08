@@ -7,6 +7,7 @@ from sentry.seer.autofix.pr_iteration_webhook import (
     handle_pull_request_review_comment_for_autofix_iteration,
     trigger_pr_iteration_from_comment,
 )
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 WEBHOOK_PATH = "sentry.seer.autofix.pr_iteration_webhook"
@@ -216,6 +217,21 @@ class TriggerPrIterationFromCommentTest(TestCase):
             feedback="fix it",
             comment=self.comment if comment is None else comment,
         )
+
+    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    def test_returns_early_when_get_pull_request_fails(
+        self, mock_get_integration: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        # PR deleted/private or a transient GitHub error during async execution.
+        mock_integration = self._mock_integration()
+        mock_client = mock_integration.get_installation.return_value.get_client.return_value
+        mock_client.get_pull_request.side_effect = ApiError("not found", code=404)
+        mock_get_integration.return_value = mock_integration
+
+        self._call()
+
+        mock_get_state.assert_not_called()
 
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
     def test_returns_early_when_repo_deleted(self, mock_get_integration: MagicMock) -> None:
