@@ -1,5 +1,8 @@
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
@@ -99,7 +102,29 @@ export function IssueListSortOptions({
           {...triggerProps}
           size={triggerSize}
           icon={showIcon && <IconSort />}
-        />
+        >
+          {organization.features.includes('issue-stream-recommended-sort-default') &&
+          sortKey === IssueSortOptions.RECOMMENDED ? (
+            <Flex as="span" gap="sm" align="center">
+              {triggerProps.children}
+              <FeatureBadge
+                type="new"
+                tooltipProps={{
+                  position: 'bottom',
+                  title: (
+                    <Text as="div" align="left">
+                      {t(
+                        "Issues now default to the Recommended sort. Pick a different sort and we'll remember your choice."
+                      )}
+                    </Text>
+                  ),
+                }}
+              />
+            </Flex>
+          ) : (
+            triggerProps.children
+          )}
+        </OverlayTrigger.Button>
       )}
     />
   );

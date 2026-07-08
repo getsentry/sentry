@@ -47,6 +47,8 @@ interface UserMessageBlockProps {
 export function UserMessageBlock({children, className, expand}: UserMessageBlockProps) {
   return (
     <MessageBlock justify="end" className={className}>
+      {/* Placeholder for spacing as we want to keep the right aligned look even on smaller screens */}
+      <Container paddingLeft="3xl" flexShrink={0} />
       <UserBubble
         maxWidth={AI_MESSAGE_MAX_WIDTH}
         width={expand ? '100%' : 'fit-content'}

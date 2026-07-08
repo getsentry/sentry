@@ -5,6 +5,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,12 +16,7 @@ import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
 
 import type {AssistantBlockProps} from './shared';
-import {
-  BLOCK_WRAPPER_SELECTOR,
-  SeerMarkdown,
-  MessagePlaceholder,
-  hasValidContent,
-} from './shared';
+import {BLOCK_WRAPPER_SELECTOR, MessagePlaceholder, hasValidContent} from './shared';
 
 export function AssistantBlock({
   block,

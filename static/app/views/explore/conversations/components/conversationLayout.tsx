@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -79,6 +79,92 @@ export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   return (
     <Flex direction="column" flex={1} minWidth="0" minHeight="0" overflow="hidden">
       {children}
+    </Flex>
+  );
+}
+
+export function SpanDetailCard({
+  children,
+  embedded,
+  ref,
+}: {
+  children: React.ReactNode;
+  embedded?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <Stack
+      ref={ref}
+      background="primary"
+      border={embedded ? undefined : 'primary'}
+      radius={embedded ? undefined : 'md'}
+      padding="xl"
+      gap="lg"
+      flex="1"
+      minWidth="0"
+      minHeight="0"
+      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
+      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
+      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
+    >
+      {children}
+    </Stack>
+  );
+}
+
+export function ConversationTimelineLayout({
+  left,
+  right,
+  leftPadding = 'md',
+}: {
+  left: React.ReactNode;
+  leftPadding?: React.ComponentProps<typeof Container>['padding'];
+  right?: React.ReactNode;
+}) {
+  return (
+    <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
+      <ConversationLeftPanel>
+        <Container
+          containerType="inline-size"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          background="secondary"
+        >
+          <Flex
+            direction={{xs: 'column', sm: 'row'}}
+            height="100%"
+            width="100%"
+            gap="md"
+            minHeight="0"
+            overflowY="auto"
+            overflowX="hidden"
+          >
+            <Container
+              flex={{xs: '0 0 auto', sm: '1'}}
+              minWidth="0"
+              minHeight={{xs: 'auto', sm: '0'}}
+              padding={leftPadding}
+              background="primary"
+              border="primary"
+              radius="md"
+              overflowX="hidden"
+              overflowY={{xs: 'hidden', sm: 'auto'}}
+            >
+              {left}
+            </Container>
+            {right ? (
+              <Flex
+                width={{xs: '100%', sm: '430px'}}
+                flex="0 0 auto"
+                minHeight={{xs: 'auto', sm: '0'}}
+              >
+                {right}
+              </Flex>
+            ) : null}
+          </Flex>
+        </Container>
+      </ConversationLeftPanel>
     </Flex>
   );
 }
