@@ -51,6 +51,9 @@ export function ConversationViewContentNew({
     onSelectSpan,
     focusedTool,
     isLoading,
+    // The transcript opens the span detail only on user action; the timeline
+    // still auto-selects a default span on load.
+    autoSelectDefaultNode: isTimeline,
   });
 
   const [detailState, setDetailState] = useQueryStates(
