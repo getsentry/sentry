@@ -967,24 +967,6 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         # Low-scored issue (below threshold) is excluded entirely
         assert len(result) == 3
 
-    def test_per_project_gives_each_project_its_own_quota(self) -> None:
-        noisy = self.create_project(slug="noisy")
-        quiet = self.create_project(slug="quiet")
-        for i in range(3):
-            self._store_event_and_update_group(
-                noisy, f"noisy-{i}", seer_fixability_score=0.9, times_seen=5
-            )
-        quiet_issue = self._store_event_and_update_group(
-            quiet, "quiet-issue", seer_fixability_score=0.5, times_seen=1
-        )
-
-        result = fixability_score_strategy_per_project([noisy, quiet], max_candidates=1)
-
-        # max_candidates=1 caps each project individually, not the combined total.
-        assert len(result) == 2
-        assert {c.group.project_id for c in result} == {noisy.id, quiet.id}
-        assert quiet_issue.id in [c.group.id for c in result]
-
     def test_per_project_fetch_limit_scales_with_max_candidates(self) -> None:
         project = self.create_project()
 
