@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
+import {AssigneeBadge, type AssignmentDetails} from 'sentry/components/assigneeBadge';
 import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
@@ -34,6 +34,7 @@ interface AssigneeSelectorProps {
     options?: HandleAssignOptions
   ) => void;
   additionalMenuFooterItems?: React.ReactNode;
+  assignmentDetails?: AssignmentDetails;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   showLabel?: boolean;
@@ -102,6 +103,7 @@ export function AssigneeSelector({
   handleAssigneeChange,
   owners,
   additionalMenuFooterItems,
+  assignmentDetails,
   showLabel = false,
 }: AssigneeSelectorProps) {
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
@@ -135,12 +137,7 @@ export function AssigneeSelector({
           <AssigneeBadge
             assignedTo={group.assignedTo ?? undefined}
             assignedUser={assignedUser}
-            assignmentReason={
-              group.owners?.find(owner => {
-                const [_ownershipType, ownerId] = owner.owner.split(':');
-                return ownerId === group.assignedTo?.id;
-              })?.type
-            }
+            assignmentDetails={assignmentDetails}
             loading={assigneeLoading}
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
