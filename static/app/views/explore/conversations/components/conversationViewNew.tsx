@@ -2,22 +2,14 @@ import {useCallback, useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {
-  ConversationLeftPanel,
-  ConversationViewSkeleton,
-} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationTimelineLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {
-  MessagesPanelNew,
-  MessagesPanelSkeleton,
-} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -96,12 +88,6 @@ export function ConversationViewContentNew({
 
   const isTranscript = !isTimeline;
 
-  // The transcript renders its own chat-shaped skeleton inside the layout below;
-  // the timeline tab keeps the legacy span-detail skeleton.
-  if (isLoading && !isTranscript) {
-    return <ConversationViewSkeleton />;
-  }
-
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
@@ -112,76 +98,43 @@ export function ConversationViewContentNew({
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
-        <ConversationLeftPanel>
-          <Container
-            containerType="inline-size"
-            flex="1"
-            minHeight="0"
-            width="100%"
-            background="secondary"
-          >
-            <Flex
-              direction={{xs: 'column', sm: 'row'}}
-              height="100%"
-              width="100%"
-              gap="md"
-              minHeight="0"
-              overflowY="auto"
-              overflowX="hidden"
-            >
-              <Container
-                flex={{xs: '0 0 auto', sm: '1'}}
-                minWidth="0"
-                minHeight={{xs: 'auto', sm: '0'}}
-                padding={isTranscript ? '0' : 'md'}
-                background="primary"
-                border="primary"
-                radius="md"
-                overflowX="hidden"
-                overflowY={{xs: 'hidden', sm: 'auto'}}
-              >
-                {isTranscript ? (
-                  isLoading ? (
-                    <MessagesPanelSkeleton />
-                  ) : (
-                    <MessagesPanelNew
-                      nodes={nodes}
-                      selectedNodeId={selectedNode?.id ?? null}
-                      onSelectNode={handleSelectAndOpenDetail}
-                      nodeTraceMap={nodeTraceMap}
-                    />
-                  )
-                ) : (
-                  <AiSpanTimeline
-                    nodes={nodes}
-                    selectedNodeKey={selectedNode?.id ?? ''}
-                    onSelectNode={handleSelectAndOpenDetail}
-                    nodeTraceMap={nodeTraceMap}
-                    compressGaps
-                  />
-                )}
-              </Container>
-              {detailState.detailOpen && selectedNode ? (
-                <Flex
-                  width={{xs: '100%', sm: '430px'}}
-                  flex="0 0 auto"
-                  minHeight={{xs: 'auto', sm: '0'}}
-                >
-                  <ConversationSpanDetail
-                    scrollResetKey={activeTab}
-                    node={selectedNode}
-                    traceId={nodeTraceMap?.get(selectedNode.id) ?? ''}
-                    activeTab={detailState.detailTab}
-                    onTabChange={detailTab => setDetailState({detailTab})}
-                    onClose={() => setDetailState({detailOpen: false, detailTab: null})}
-                  />
-                </Flex>
-              ) : null}
-            </Flex>
-          </Container>
-        </ConversationLeftPanel>
-      </Flex>
+      <ConversationTimelineLayout
+        leftPadding={isTranscript ? '0' : 'md'}
+        left={
+          isTranscript ? (
+            <MessagesPanelNew
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeId={selectedNode?.id ?? null}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+            />
+          ) : (
+            <AiSpanTimeline
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeKey={selectedNode?.id ?? ''}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+              compressGaps
+            />
+          )
+        }
+        right={
+          // The timeline auto-selects a span, so its detail pane skeletons while loading.
+          detailState.detailOpen && (isLoading ? isTimeline : Boolean(selectedNode)) ? (
+            <ConversationSpanDetail
+              isLoading={isLoading}
+              scrollResetKey={activeTab}
+              node={selectedNode ?? undefined}
+              traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
+              activeTab={detailState.detailTab}
+              onTabChange={detailTab => setDetailState({detailTab})}
+              onClose={() => setDetailState({detailOpen: false, detailTab: null})}
+            />
+          ) : null
+        }
+      />
     </TraceStateProvider>
   );
 }

@@ -16,6 +16,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
@@ -58,7 +59,6 @@ type SpanAttributes = Parameters<typeof getAIInputMessages>[1];
 
 interface ConversationSpanDetailProps {
   activeTab: DetailTab;
-  node: AITraceSpanNode;
   onTabChange: (tab: DetailTab) => void;
   traceId: string;
   /**
@@ -71,6 +71,10 @@ interface ConversationSpanDetailProps {
    * border and radius. Off, it renders as a standalone bordered card.
    */
   embedded?: boolean;
+  /** Renders the loading skeleton while the conversation is still fetching. */
+  isLoading?: boolean;
+  /** The span to show. May be undefined while loading. */
+  node?: AITraceSpanNode;
   /** When provided, a close button is shown in the header. */
   onClose?: () => void;
   /** Scrolls the panel back to the top whenever this value changes. */
@@ -85,6 +89,7 @@ export function ConversationSpanDetail({
   onClose,
   avgDuration,
   embedded,
+  isLoading,
   scrollResetKey,
 }: ConversationSpanDetailProps) {
   const theme = useTheme();
@@ -96,8 +101,12 @@ export function ConversationSpanDetail({
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
   // returned by the conversation list endpoint, so they're fetched per span.
-  const eapValue = isEAPSpanNode(node) ? node.value : null;
-  const {data, isLoading, isError} = useTraceItemDetails({
+  const eapValue = node && isEAPSpanNode(node) ? node.value : null;
+  const {
+    data,
+    isLoading: isAttributesLoading,
+    isError,
+  } = useTraceItemDetails({
     traceItemId: eapValue?.event_id ?? '',
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
@@ -106,6 +115,10 @@ export function ConversationSpanDetail({
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
+  if (isLoading || !node) {
+    return <SpanDetailSkeleton embedded={embedded} />;
+  }
+
   const attributes = data?.attributes;
 
   const title = node.op || node.description || t('Span');
@@ -118,27 +131,14 @@ export function ConversationSpanDetail({
   );
 
   return (
-    <Stack
-      ref={scrollContainerRef}
-      background="primary"
-      border={embedded ? undefined : 'primary'}
-      radius={embedded ? undefined : 'md'}
-      padding="xl"
-      gap="lg"
-      flex="1"
-      minWidth="0"
-      minHeight="0"
-      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
-      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
-      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
-    >
+    <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <Flex flexShrink={0} style={{color: squareColor}}>
-            {getGenAiOpTypeIcon(getGenAiOpType(node))}
+            {getGenAiOpTypeIcon(getGenAiOpType(node), 'md')}
           </Flex>
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-            <Text size="md" bold ellipsis>
+            <Text size="lg" bold ellipsis>
               {title}
             </Text>
           </Tooltip>
@@ -154,9 +154,9 @@ export function ConversationSpanDetail({
         ) : null}
       </Flex>
 
-      <Stack gap="md" flexShrink={0}>
+      <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text size="md">{getDuration(duration, 2, true, true)}</Text>
+          <Text size="lg">{getDuration(duration, 2, true, true)}</Text>
           {duration > 0 &&
           comparison &&
           comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
@@ -197,7 +197,7 @@ export function ConversationSpanDetail({
               <InputTab
                 node={node}
                 attributes={attributes}
-                isLoading={isLoading}
+                isLoading={isAttributesLoading}
                 isError={isError}
               />
             </TabPanels.Item>
@@ -205,7 +205,7 @@ export function ConversationSpanDetail({
               <OutputTab
                 node={node}
                 attributes={attributes}
-                isLoading={isLoading}
+                isLoading={isAttributesLoading}
                 isError={isError}
               />
             </TabPanels.Item>
@@ -213,14 +213,14 @@ export function ConversationSpanDetail({
               <AttributesTab
                 node={node}
                 attributes={attributes}
-                isLoading={isLoading}
+                isLoading={isAttributesLoading}
                 isError={isError}
               />
             </TabPanels.Item>
           </TabPanels>
         </Container>
       </TabStateProvider>
-    </Stack>
+    </SpanDetailCard>
   );
 }
 
@@ -242,7 +242,7 @@ function SpanMetadata({
   }
 
   return (
-    <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
+    <Grid columns="max-content minmax(0, 1fr)" gap="lg" align="center">
       {rows.map(row => (
         <Fragment key={row.name}>
           <Text size="md" variant="muted">
@@ -462,5 +462,31 @@ function EmptyTab({message}: {message: string}) {
     <Flex flex="1" background="secondary" radius="md" padding="xl">
       <Text variant="muted">{message}</Text>
     </Flex>
+  );
+}
+
+function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
+  return (
+    <SpanDetailCard embedded={embedded}>
+      <Flex align="center" gap="lg" flexShrink={0}>
+        <Placeholder height="16px" width="16px" />
+        <Placeholder height="16px" width="180px" />
+      </Flex>
+      <Stack gap="md" flexShrink={0}>
+        <Placeholder height="16px" width="60px" />
+        <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
+          <Placeholder height="14px" width="80px" />
+          <Placeholder height="14px" width="200px" />
+          <Placeholder height="14px" width="60px" />
+          <Placeholder height="14px" width="160px" />
+        </Grid>
+      </Stack>
+      <Flex gap="lg" flexShrink={0}>
+        <Placeholder height="16px" width="44px" />
+        <Placeholder height="16px" width="56px" />
+        <Placeholder height="16px" width="96px" />
+      </Flex>
+      <Placeholder height="240px" width="100%" />
+    </SpanDetailCard>
   );
 }

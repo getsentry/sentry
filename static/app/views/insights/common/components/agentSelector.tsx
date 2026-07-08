@@ -76,10 +76,12 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
     });
 
     // Show the agents that were selected when the menu opened at the top of the
-    // list. sortBy is stable, so the count-desc order is preserved within the
-    // selected and unselected groups.
+    // list, then sort each group alphabetically.
     const anchor = new Set(orderAnchor);
-    return sortBy(list, option => !anchor.has(option.value));
+    return sortBy(list, [
+      option => !anchor.has(option.value),
+      option => option.label.toLowerCase(),
+    ]);
   }, [agentData, selectedAgents, orderAnchor]);
 
   return (
