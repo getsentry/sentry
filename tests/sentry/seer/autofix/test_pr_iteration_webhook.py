@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
+from sentry.seer.autofix.autofix_agent import GithubPrCommentFeedbackType
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration_webhook import (
     handle_issue_comment_for_autofix_iteration,
@@ -210,7 +211,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_integration.get_installation.return_value.get_client.return_value = mock_client
         return mock_integration
 
-    def _call(self, comment: dict | None = None, source_type: str = "github-pr-comment") -> None:
+    def _call(
+        self,
+        comment: dict | None = None,
+        source_type: GithubPrCommentFeedbackType = "github-pr-comment",
+    ) -> None:
         trigger_pr_iteration_from_comment(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
