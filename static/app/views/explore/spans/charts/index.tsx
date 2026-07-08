@@ -219,7 +219,6 @@ function Chart({
         !visualize.visible && plottablesCanBeVisualized(plottables) ? (
           <TimeSeriesWidgetVisualization
             plottables={plottables}
-            notMerge={false}
             showLegend="never"
             showXAxis="never"
             showYAxis="never"

@@ -17,6 +17,18 @@ import type {
   SeerProjectReposResponse,
 } from 'sentry/utils/seer/types';
 
+export function isGitHubProvider(provider: string): boolean {
+  // Provider strings arrive in two shapes depending on the source: the bare
+  // form (`github`) from Seer/autofix repos and the prefixed form
+  // (`integrations:github`) from Sentry integration configs.
+  return (
+    provider === 'github' ||
+    provider === 'github_enterprise' ||
+    provider === 'integrations:github' ||
+    provider === 'integrations:github_enterprise'
+  );
+}
+
 function toOptimisticRepo(
   repo: SeerProjectRepoCreateInput,
   index: number,

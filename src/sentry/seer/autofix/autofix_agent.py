@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
@@ -60,6 +61,7 @@ from sentry.utils import json, metrics
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.seer.agent.client_models import MemoryBlock
 
 logger = logging.getLogger(__name__)
 
@@ -272,19 +274,39 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
     return step_to_action_type[step][is_completed]
 
 
-def get_latest_iteration_index(state: SeerRunState) -> int:
-    for block in reversed(state.blocks):
+@dataclass(frozen=True)
+class Iteration:
+    index: int
+    start_index: int
+    blocks: list[MemoryBlock]
+
+
+def get_iterations(state: SeerRunState) -> list[Iteration]:
+    """PR iterations in order, each holding its own blocks. A PR_ITERATION block
+    opens an iteration; every following block belongs to it until the next
+    PR_ITERATION block."""
+    iterations: list[Iteration] = []
+    for i, block in enumerate(state.blocks):
         metadata = block.message.metadata or {}
+
         if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-            iteration_index = metadata.get("iteration_index")
-            if iteration_index is None:
-                logger.error(
-                    "autofix.get_latest_iteration_index.missing_iteration_index",
-                    extra={"run_id": state.run_id},
-                )
-                return 0
-            return int(iteration_index)
-    return 0
+            iter_idx = metadata.get("iteration_index")
+            assert iter_idx is not None, "PR_ITERATION block missing iteration_index"
+
+            iterations.append(Iteration(index=int(iter_idx), start_index=i, blocks=[block]))
+        elif iterations:
+            iterations[-1].blocks.append(block)
+
+    return iterations
+
+
+def get_latest_iteration_index(state: SeerRunState) -> int:
+    try:
+        iterations = get_iterations(state)
+    except Exception:
+        logger.exception("autofix.get_latest_iteration_index.failed")
+        return 0
+    return iterations[-1].index if iterations else 0
 
 
 def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:

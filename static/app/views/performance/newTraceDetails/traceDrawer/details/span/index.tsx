@@ -283,8 +283,8 @@ function SpanNodeDetailsContent({
   );
 }
 
-function useAvgSpanDuration(
-  span: TraceTree.EAPSpan,
+export function useAvgSpanDuration(
+  span: TraceTree.EAPSpan | undefined,
   location: Location
 ): number | undefined {
   const dataset = useSpansDataset();
@@ -292,15 +292,15 @@ function useAvgSpanDuration(
   const eventView = useMemo(() => {
     const search = new MutableSearch('');
 
-    search.addFilterValue('span.op', span.op);
-    search.addFilterValue('span.description', span.description ?? '');
+    search.addFilterValue('span.op', span?.op ?? '');
+    search.addFilterValue('span.description', span?.description ?? '');
 
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace View - Span Avg Duration',
       fields: ['avg(span.duration)'],
       query: search.formatString(),
-      projects: [span.project_id],
+      projects: span ? [span.project_id] : [],
       version: 2,
       range: '24h',
       dataset,
@@ -310,7 +310,7 @@ function useAvgSpanDuration(
   }, [span, location, dataset]);
 
   const result = useSpansQueryWithoutPageFilters({
-    enabled: !!span.description && !!span.op,
+    enabled: !!span?.description && !!span?.op,
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer

@@ -331,6 +331,7 @@ export function SeerExplorerContent({
       start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
       end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
       project: SEER_AGENTS_PROJECT_ID,
+      referrer: 'seer.agent.in-chat-link',
     });
   }, [runId, blocks]);
 

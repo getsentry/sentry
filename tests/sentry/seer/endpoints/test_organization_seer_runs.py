@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.seer.models.run import SeerRunType
-from sentry.seer.run_questions import QUESTIONS
+from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.seer.runs_query import filtered_runs_queryset
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -341,7 +341,9 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
                 last_triggered_at=before_now(minutes=i),
             )
 
-        response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "questions"}
+        )
 
         assert len(response.data) == 10
         assert 'rel="next"; results="true"' in response.headers["Link"]
@@ -354,8 +356,8 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
                 last_triggered_at=before_now(minutes=i),
             )
 
-        # Without ?outputs the small default doesn't apply, so all runs fit on
-        # the first page.
+        # Without expanded questions the small default doesn't apply, so all runs
+        # fit on the first page.
         response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 11
@@ -386,9 +388,11 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             organization=self.organization, user_id=self.user.id, seer_run_state_id=1
         )
 
-        # Feature off: the flag is ignored, no one-shot calls, no outputs field.
+        # Feature off: expand=questions is ignored, no one-shot calls, no outputs.
         with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
-            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "questions"}
+            )
 
         assert "outputs" not in response.data[0]
         assert mock_run.call_count == 0
@@ -405,7 +409,9 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             return {"answer": f"answer to: {payload['question']}"}
 
         with patch("sentry.seer.run_questions.run_oneshot", side_effect=fake_oneshot) as mock_run:
-            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "questions"}
+            )
 
         row = next(r for r in response.data if r["id"] == str(run.uuid))
         assert [q["key"] for q in row["outputs"]] == [q.key for q in QUESTIONS]
@@ -413,6 +419,37 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             f"answer to: {q.question}" for q in QUESTIONS
         ]
         assert mock_run.call_count == len(QUESTIONS)
+
+    @with_feature("organizations:seer-run-questions")
+    def test_builtin_and_user_questions_are_additive(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+        user_questions = ["What broke?", "Who is affected?"]
+
+        def fake_oneshot(
+            oneshot_id: str, payload: Mapping[str, Any], organization: Any, **kwargs: Any
+        ) -> dict[str, str]:
+            return {"answer": f"answer to: {payload['question']}"}
+
+        with patch("sentry.seer.run_questions.run_oneshot", side_effect=fake_oneshot) as mock_run:
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={"expand": "questions", "question": user_questions},
+            )
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        # Built-in questions come first (no echoed prompt), then the user ones in
+        # request order (with their prompt echoed).
+        assert [o["key"] for o in row["outputs"]] == [
+            *(q.key for q in QUESTIONS),
+            "user_0",
+            "user_1",
+        ]
+        for output in row["outputs"][: len(QUESTIONS)]:
+            assert "question" not in output
+        assert [o["question"] for o in row["outputs"][len(QUESTIONS) :]] == user_questions
+        assert mock_run.call_count == len(QUESTIONS) + len(user_questions)
 
     @with_feature("organizations:seer-run-questions")
     def test_outputs_skips_non_explorer_runs(self) -> None:
@@ -424,7 +461,9 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         )
 
         with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
-            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "questions"}
+            )
 
         row = next(r for r in response.data if r["id"] == str(pr_review.uuid))
         # Non-explorer runs carry an empty list and trigger no one-shot calls.
@@ -438,10 +477,158 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         )
 
         with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
-            response = self.get_success_response(self.organization.slug, qs_params={"outputs": "1"})
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "questions"}
+            )
 
         row = next(r for r in response.data if r["id"] == str(run.uuid))
         assert row["outputs"] == []
+        assert mock_run.call_count == 0
+
+    @with_feature("organizations:seer-run-questions")
+    def test_builtin_outputs_include_hash_and_omit_question(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+
+        with patch(
+            "sentry.seer.run_questions.run_oneshot",
+            return_value={"answer": "an answer"},
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "questions"}
+            )
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        for output, builtin in zip(row["outputs"], QUESTIONS):
+            assert output["hash"] == question_hash(builtin.question)
+            # Built-in questions don't echo their prompt text.
+            assert "question" not in output
+
+    @with_feature("organizations:seer-run-questions")
+    def test_user_questions_without_expand_are_user_only(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+        questions = ["What broke?", "Who is affected?"]
+
+        def fake_oneshot(
+            oneshot_id: str, payload: Mapping[str, Any], organization: Any, **kwargs: Any
+        ) -> dict[str, str]:
+            return {"answer": f"answer to: {payload['question']}"}
+
+        with patch("sentry.seer.run_questions.run_oneshot", side_effect=fake_oneshot) as mock_run:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"question": questions}
+            )
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        # Without expand=questions the built-in set is not included, so only the
+        # supplied questions are answered.
+        assert [o["key"] for o in row["outputs"]] == ["user_0", "user_1"]
+        assert [o["question"] for o in row["outputs"]] == questions
+        assert [o["hash"] for o in row["outputs"]] == [question_hash(q) for q in questions]
+        assert [o["answer"] for o in row["outputs"]] == [f"answer to: {q}" for q in questions]
+        assert mock_run.call_count == len(questions)
+
+    @with_feature("organizations:seer-run-questions")
+    def test_user_questions_strip_and_ignore_blanks(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+
+        with patch(
+            "sentry.seer.run_questions.run_oneshot",
+            return_value={"answer": "an answer"},
+        ) as mock_run:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"question": ["  What broke?  ", "   "]}
+            )
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        assert [o["question"] for o in row["outputs"]] == ["What broke?"]
+        assert mock_run.call_count == 1
+
+    def test_user_questions_require_feature(self) -> None:
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"question": "What broke?"}
+            )
+
+        assert "outputs" not in response.data[0]
+        assert mock_run.call_count == 0
+
+    @with_feature("organizations:seer-run-questions")
+    def test_too_many_questions_returns_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"question": [f"q{i}" for i in range(6)]},
+            status_code=400,
+        )
+
+    def test_post_lists_runs(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=1
+        )
+
+        response = self.get_success_response(self.organization.slug, method="post")
+
+        assert [r["id"] for r in response.data] == [str(run.uuid)]
+        assert "outputs" not in response.data[0]
+
+    @with_feature("organizations:seer-run-questions")
+    def test_post_builtin_and_user_questions_are_additive(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+        user_questions = ["What broke?", "Who is affected?"]
+
+        def fake_oneshot(
+            oneshot_id: str, payload: Mapping[str, Any], organization: Any, **kwargs: Any
+        ) -> dict[str, str]:
+            return {"answer": f"answer to: {payload['question']}"}
+
+        with patch("sentry.seer.run_questions.run_oneshot", side_effect=fake_oneshot) as mock_run:
+            response = self.get_success_response(
+                self.organization.slug,
+                method="post",
+                expand=["questions"],
+                question=user_questions,
+            )
+
+        row = next(r for r in response.data if r["id"] == str(run.uuid))
+        assert [o["key"] for o in row["outputs"]] == [
+            *(q.key for q in QUESTIONS),
+            "user_0",
+            "user_1",
+        ]
+        assert [o["question"] for o in row["outputs"][len(QUESTIONS) :]] == user_questions
+        assert mock_run.call_count == len(QUESTIONS) + len(user_questions)
+
+    @with_feature("organizations:seer-run-questions")
+    def test_post_too_many_questions_returns_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            method="post",
+            question=[f"q{i}" for i in range(6)],
+            status_code=400,
+        )
+
+    def test_post_questions_require_feature(self) -> None:
+        self.create_seer_run(
+            organization=self.organization, user_id=self.user.id, seer_run_state_id=99
+        )
+
+        with patch("sentry.seer.run_questions.run_oneshot") as mock_run:
+            response = self.get_success_response(
+                self.organization.slug, method="post", question=["What broke?"]
+            )
+
+        assert "outputs" not in response.data[0]
         assert mock_run.call_count == 0
 
 

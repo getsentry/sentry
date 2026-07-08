@@ -424,7 +424,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
               display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`}
+              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction

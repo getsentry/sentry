@@ -552,6 +552,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Threshold for inlining attachments in relay.
+register(
+    "relay.attachment-inline.limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rollout rate for double writing sessions to EAP.
 register(
     "relay.sessions-eap.rollout-rate",
@@ -612,6 +620,12 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.required-permissions",
+    type=Dict,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "github-app.rate-limit-sensitive-orgs",
     type=Sequence,
