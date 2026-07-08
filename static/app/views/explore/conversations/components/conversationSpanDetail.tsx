@@ -135,10 +135,10 @@ export function ConversationSpanDetail({
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <Flex flexShrink={0} style={{color: squareColor}}>
-            {getGenAiOpTypeIcon(getGenAiOpType(node))}
+            {getGenAiOpTypeIcon(getGenAiOpType(node), 'md')}
           </Flex>
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-            <Text size="md" bold ellipsis>
+            <Text size="lg" bold ellipsis>
               {title}
             </Text>
           </Tooltip>
@@ -154,9 +154,9 @@ export function ConversationSpanDetail({
         ) : null}
       </Flex>
 
-      <Stack gap="md" flexShrink={0}>
+      <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text size="md">{getDuration(duration, 2, true, true)}</Text>
+          <Text size="lg">{getDuration(duration, 2, true, true)}</Text>
           {duration > 0 &&
           comparison &&
           comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
@@ -242,7 +242,7 @@ function SpanMetadata({
   }
 
   return (
-    <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
+    <Grid columns="max-content minmax(0, 1fr)" gap="lg" align="center">
       {rows.map(row => (
         <Fragment key={row.name}>
           <Text size="md" variant="muted">
