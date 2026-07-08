@@ -266,7 +266,11 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
       synchronize payload carries no commit count — so a bot app that pushes a
       batch of commits counts as one bot push.
     - ``opened_by_bot``/``closed_by_bot``: the account class of the opener/closer,
-      or ``None`` when that terminal row was never recorded.
+      or ``None`` when that terminal row was never recorded. The opener is the
+      earliest ``OPENED`` row and the closer is the *latest* ``CLOSED``/``MERGED``
+      row — a PR can carry more than one terminal row (closed unmerged, reopened,
+      then merged), and the latest matches the PR's final state, so the rows are
+      read in ``date_added`` order rather than relying on the DB's default order.
     - ``opened_and_closed_by_same_actor``: whether the opener and closer logins
       match, or ``None`` when either is unknown.
 
@@ -274,9 +278,9 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
     counts are 0 and the bool signals ``None``).
     """
     rows = list(
-        PullRequestActivity.objects.filter(pull_request=pull_request).values_list(
-            "event_type", "payload__sender_login", "payload__sender_type"
-        )
+        PullRequestActivity.objects.filter(pull_request=pull_request)
+        .order_by("date_added", "id")
+        .values_list("event_type", "payload__sender_login", "payload__sender_type")
     )
 
     participant_logins = {
@@ -297,6 +301,7 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
     ]
     pushes_bot_count = sum(1 for sender_type in push_sender_types if _is_bot(sender_type))
 
+    # Earliest opener, latest closer — rows are ordered oldest-first above.
     opened = next(
         (
             (login, sender_type)
@@ -305,14 +310,10 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
         ),
         None,
     )
-    closed = next(
-        (
-            (login, sender_type)
-            for event_type, login, sender_type in rows
-            if event_type in (PullRequestActivityType.CLOSED, PullRequestActivityType.MERGED)
-        ),
-        None,
-    )
+    closed = None
+    for event_type, login, sender_type in rows:
+        if event_type in (PullRequestActivityType.CLOSED, PullRequestActivityType.MERGED):
+            closed = (login, sender_type)
     same_actor = (opened[0] == closed[0]) if opened and closed and opened[0] and closed[0] else None
 
     return {

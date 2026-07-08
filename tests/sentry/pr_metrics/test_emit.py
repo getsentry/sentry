@@ -659,6 +659,25 @@ class PrMetricsEmissionTest(TestCase):
         assert result["closed_by_bot"] is False
         assert result["opened_and_closed_by_same_actor"] is True
 
+    def test_activity_derived_metrics_closer_is_latest_terminal_row(self) -> None:
+        # A PR can be closed unmerged, reopened, then merged, leaving two terminal
+        # rows. The closer must be the latest (the merge), not an earlier close.
+        self._activity(
+            webhook_id="t1", event_type=PullRequestActivityType.OPENED, sender_login="author"
+        )
+        self._activity(
+            webhook_id="t2", event_type=PullRequestActivityType.CLOSED, sender_login="early-closer"
+        )
+        self._activity(
+            webhook_id="t3",
+            event_type=PullRequestActivityType.MERGED,
+            sender_login="merger",
+            sender_type="Bot",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["closed_by_bot"] is True  # the merger (Bot), not early-closer (human)
+        assert result["opened_and_closed_by_same_actor"] is False
+
     def test_activity_derived_metrics_same_actor_null_when_closer_missing(self) -> None:
         self._activity(
             webhook_id="m1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
