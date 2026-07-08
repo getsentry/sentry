@@ -35,10 +35,13 @@ export function LogsAggregateExportModalButton({
     sort: aggregateSortBys.map(formatExportSort),
   });
 
-  // When there's no further page, the loaded rows are the entire result set, so the
-  // export can run locally in the browser. Otherwise fall back to the server-side cap.
-  const hasNextPage = parseLinkHeader(pageLinks ?? null).next?.results === true;
-  const estimatedRowCount = hasNextPage ? AGGREGATE_EXPORT_MAX_ROWS : tableData.length;
+  // Only when there's neither a next nor a previous page are the loaded rows the entire
+  // result set, letting the export run locally in the browser. On any page of a paginated
+  // result (including the last) fall back to the server-side cap so the full export stays
+  // available.
+  const links = parseLinkHeader(pageLinks ?? null);
+  const isSinglePage = links.next?.results !== true && links.previous?.results !== true;
+  const estimatedRowCount = isSinglePage ? tableData.length : AGGREGATE_EXPORT_MAX_ROWS;
 
   return (
     <LogsExportModalButton

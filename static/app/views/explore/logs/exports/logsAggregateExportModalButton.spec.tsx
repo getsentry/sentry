@@ -43,6 +43,10 @@ describe('LogsAggregateExportModalButton', () => {
   const nextPageLink =
     '<https://sentry.io/api/0/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
+  const lastPageLinks =
+    '<https://sentry.io/api/0/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", ' +
+    '<https://sentry.io/api/0/?cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
+
   ProjectsStore.loadInitialData([project]);
   PageFiltersStore.init();
   PageFiltersStore.onInitializeUrlState({
@@ -115,6 +119,22 @@ describe('LogsAggregateExportModalButton', () => {
     });
 
     renderButton(nextPageLink);
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(exportRequest).toHaveBeenCalled();
+    });
+  });
+
+  it('routes through the server export on the last page of a paginated result', async () => {
+    const exportRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {},
+    });
+
+    renderButton(lastPageLinks);
     await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
 
