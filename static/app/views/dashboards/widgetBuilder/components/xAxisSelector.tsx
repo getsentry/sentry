@@ -97,7 +97,7 @@ export function WidgetBuilderXAxisSelector() {
         label: prettifyTagKey(tag.name),
         value: tag.key,
         textValue: tag.key,
-        trailingItems: () => <TypeBadge valueKind={FieldValueKind.TAG} />,
+        trailingItems: () => <TypeBadge kind={tag.kind} />,
       }));
     }
 

@@ -8,13 +8,13 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer_base 
     get_subject,
 )
 from sentry.notifications.platform.types import (
-    CodeBlock,
+    BlockQuoteSection,
+    ItalicTextBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationSource,
     NotificationTemplate,
-    PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
 
@@ -36,9 +36,9 @@ class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineA
             subject="Seer Solution Completed for EXAMPLE-1",
             body=[
                 *get_example_issue_description(),
-                CodeBlock(
+                BlockQuoteSection(
                     blocks=[
-                        PlainTextBlock(
+                        ItalicTextBlock(
                             text="Add a null check before accessing user.session in the authentication middleware."
                         )
                     ]
@@ -57,8 +57,8 @@ class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineA
         fallback = "View the details in Sentry."
         body: list[NotificationSection] = [*get_issue_description(group)]
         if activity.data:
-            summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
-            body.append(CodeBlock(blocks=[summary_block]))
+            summary_block = ItalicTextBlock(text=activity.data.get("summary", fallback))
+            body.append(BlockQuoteSection(blocks=[summary_block]))
         return build_template(
             data=data, subject=get_subject("Planning Completed", group), body=body
         )

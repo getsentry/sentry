@@ -130,17 +130,6 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.TAGS:
-      crumbs.push({
-        label: t('Tags'),
-        to: getBreadCrumbTarget(
-          normalizeUrl(
-            `/organizations/${organization.slug}/${transactionSummaryUrl}/tags`
-          ),
-          location.query
-        ),
-      });
-      break;
     default:
       crumbs.push({
         label: t('Transaction Summary'),

@@ -93,7 +93,7 @@ def test_task_silo_limit_call_monolith() -> None:
 
 @pytest.mark.parametrize(
     "method_name",
-    ("apply_async", "delay"),
+    ("apply_async", "apply_async_with_future", "delay"),
 )
 @override_settings(SILO_MODE=SiloMode.CONTROL)
 def test_task_silo_limit_task_methods(method_name: str) -> None:

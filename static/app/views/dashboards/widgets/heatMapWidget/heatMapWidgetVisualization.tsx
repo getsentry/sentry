@@ -23,6 +23,7 @@ import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -75,6 +76,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+  const timezone = utc ? 'UTC' : getUserTimezone();
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   // yes i am aware that this is UGLY but it's a hack so that we can use proper react routing.
@@ -340,7 +342,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           heatMapTimeAxis({
             min: meta.xAxis.start,
             max: meta.xAxis.end,
-            utc: utc ?? undefined,
+            timezone,
           }),
         ]}
         yAxes={[
