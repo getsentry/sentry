@@ -26,7 +26,11 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.autofix_agent import Feedback, GithubPrCommentFeedbackSource
+from sentry.seer.autofix.autofix_agent import (
+    Feedback,
+    GithubPrCommentFeedbackSource,
+    GithubPrCommentFeedbackType,
+)
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
 from sentry.seer.webhooks import SentryIterateCommand, sentry_command
@@ -118,6 +122,7 @@ def _dispatch_autofix_iteration_from_comment(
     repo: Repository,
     integration: RpcIntegration | None,
     log_extra: Mapping[str, Any],
+    source_type: GithubPrCommentFeedbackType,
 ) -> None:
     command = sentry_command(comment.get("body"))
     if not isinstance(command, SentryIterateCommand):
@@ -153,6 +158,7 @@ def _dispatch_autofix_iteration_from_comment(
         pr_number=pr_number,
         feedback=command.feedback,
         comment=comment,
+        source_type=source_type,
     )
     return None
 
@@ -182,6 +188,7 @@ def handle_pull_request_review_comment_for_autofix_iteration(
         repo=repo,
         integration=integration,
         log_extra=context.log_extra,
+        source_type="github-pr-review-comment",
     )
     return None
 
@@ -216,6 +223,7 @@ def handle_issue_comment_for_autofix_iteration(
         repo=repo,
         integration=integration,
         log_extra=context.log_extra,
+        source_type="github-pr-comment",
     )
     return None
 
@@ -234,6 +242,7 @@ def trigger_pr_iteration_from_comment(
     pr_number: int,
     feedback: str,
     comment: Mapping[str, Any],
+    source_type: GithubPrCommentFeedbackType,
 ) -> None:
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
@@ -313,13 +322,12 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    source: GithubPrCommentFeedbackSource = {"type": "github-pr-comment", "comment": comment}
-    # ``pull_request_review_comment`` payloads are line-anchored (``path`` is
-    # required); ``issue_comment`` payloads have neither.
-    if "path" in comment:
-        source["file_path"] = comment.get("path")
-        source["line"] = comment.get("line")
-
+    source: GithubPrCommentFeedbackSource = {
+        "type": source_type,
+        "comment": comment,
+        "file_path": comment.get("path"),
+        "line": comment.get("line"),
+    }
     feedback_obj = Feedback(text=feedback, source=source)
 
     enqueue_autofix_feedback(
@@ -343,12 +351,10 @@ def trigger_pr_iteration_from_comment(
     if comment_id is None:
         return None
 
-    # Inline review comments (``pull_request_review_comment``, identified by
-    # ``path``) live in a separate ID namespace from issue comments and need the
-    # pulls/comments reactions endpoint.
-    is_review_comment = "path" in comment
+    # Review comment IDs live in a separate namespace from issue comment IDs and
+    # need the pulls/comments reactions endpoint.
     try:
-        if is_review_comment:
+        if source_type == "github-pr-review-comment":
             client.create_pull_request_comment_reaction(
                 repo.name, str(comment_id), GitHubReaction.EYES
             )

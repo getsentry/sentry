@@ -61,6 +61,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
                 "user": {"login": "octocat"},
                 "html_url": "https://github.com/getsentry/sentry/pull/7#issuecomment-999",
             },
+            source_type="github-pr-comment",
         )
 
     @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
@@ -147,6 +148,7 @@ class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
                 "html_url": "https://github.com/getsentry/sentry/pull/7#discussion_r999",
                 "pull_request_review_id": 100,
             },
+            source_type="github-pr-review-comment",
         )
 
     @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
@@ -208,7 +210,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_integration.get_installation.return_value.get_client.return_value = mock_client
         return mock_integration
 
-    def _call(self, comment: dict | None = None) -> None:
+    def _call(self, comment: dict | None = None, source_type: str = "github-pr-comment") -> None:
         trigger_pr_iteration_from_comment(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
@@ -216,6 +218,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             pr_number=7,
             feedback="fix it",
             comment=self.comment if comment is None else comment,
+            source_type=source_type,
         )
 
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
@@ -243,6 +246,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             pr_number=7,
             feedback="fix it",
             comment=self.comment,
+            source_type="github-pr-comment",
         )
         mock_get_integration.assert_not_called()
 
@@ -373,9 +377,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
 
-        # A review comment (has "path") must react via the pulls/comments endpoint,
-        # not the issue-comment one, or GitHub 404s on the mismatched ID namespace.
-        self._call(comment={**self.comment, "path": "src/sentry/foo.py", "line": 42})
+        # A review comment must react via the pulls/comments endpoint, not the
+        # issue-comment one, or GitHub 404s on the mismatched ID namespace.
+        self._call(source_type="github-pr-review-comment")
 
         mock_client.create_pull_request_comment_reaction.assert_called_once()
         mock_client.create_comment_reaction.assert_not_called()
@@ -398,9 +402,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
         self._call(
             comment={**self.comment, "path": "src/sentry/foo.py", "line": 42},
+            source_type="github-pr-review-comment",
         )
 
         source = mock_enqueue.call_args.kwargs["feedback"].source
+        assert source["type"] == "github-pr-review-comment"
         assert source["file_path"] == "src/sentry/foo.py"
         assert source["line"] == 42
 
@@ -409,7 +415,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_issue_comment_omits_file_and_line(
+    def test_issue_comment_has_null_file_and_line(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
@@ -420,9 +426,10 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state()
 
-        # self.comment has no "path" (a top-level issue_comment).
+        # A top-level issue_comment is not line-anchored.
         self._call()
 
         source = mock_enqueue.call_args.kwargs["feedback"].source
-        assert "file_path" not in source
-        assert "line" not in source
+        assert source["type"] == "github-pr-comment"
+        assert source["file_path"] is None
+        assert source["line"] is None

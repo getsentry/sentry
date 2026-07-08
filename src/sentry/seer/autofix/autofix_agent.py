@@ -85,22 +85,14 @@ class UserUIFeedbackSource(TypedDict):
     user: NotRequired[Any]
 
 
-class _GithubPrCommentFeedbackSourceRequired(TypedDict):
-    type: Literal["github-pr-comment"]
-    # Raw GitHub ``comment`` payload, stored verbatim so the UI can read any
-    # field (e.g. ``user.login``, ``html_url``) without the backend threading it.
+GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-comment"]
+
+
+class GithubPrCommentFeedbackSource(TypedDict):
+    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``)."""
+
+    type: GithubPrCommentFeedbackType
     comment: Mapping[str, Any]
-
-
-class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceRequired, total=False):
-    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``).
-
-    ``total=False`` keeps the anchor fields below optional under pydantic v1,
-    which treats ``NotRequired`` on a total TypedDict as required.
-    """
-
-    # Anchor for inline review comments, hoisted from ``comment.path``/``.line``.
-    # Absent for top-level PR comments.
     file_path: str | None
     line: int | None
 
