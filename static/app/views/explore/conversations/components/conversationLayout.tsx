@@ -17,6 +17,8 @@ const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
 const DETAIL_MIN_WIDTH = 360;
+const DETAIL_DEFAULT_WIDTH = 430;
+const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
  * Resizable two-column layout for conversation views.
@@ -117,10 +119,8 @@ export function SpanDetailCard({
 
 /**
  * Layout for the conversation content (transcript/timeline) and the span detail.
- * When a detail is shown it's a resizable side-by-side split. The content pane's
- * width persists under the shared conversation-split key, so a size set here (or
- * in the other conversation/trace views) carries over. With no detail, content
- * fills the whole area.
+ * When a detail is shown it's a resizable side-by-side split whose detail width
+ * persists to localStorage. With no detail, content fills the whole area.
  */
 export function ConversationTimelineLayout({
   left,
@@ -177,51 +177,26 @@ function ConversationDetailSplit({
   content: React.ReactNode;
   detail: React.ReactNode;
 }) {
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions({elementRef: measureRef});
-
-  // Measure first: useLocalStorageState captures its default on mount, so we
-  // need the width to seed a half-content default for fresh visits.
-  return (
-    <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
-      {width > 0 ? (
-        <MeasuredDetailSplit width={width} content={content} detail={detail} />
-      ) : null}
-    </Flex>
-  );
-}
-
-function MeasuredDetailSplit({
-  width,
-  content,
-  detail,
-}: {
-  content: React.ReactNode;
-  detail: React.ReactNode;
-  width: number;
-}) {
-  // Size the content pane and persist under the shared conversation-split key,
-  // so the width is interchangeable with the other conversation/trace views.
-  const defaultContent = Math.max(CONTENT_MIN_WIDTH, (width - DIVIDER_WIDTH) * 0.5);
-  const [storedSize, setStoredSize] = useLocalStorageState(
-    DEFAULT_STORAGE_KEY,
-    defaultContent
+  const [storedWidth, setStoredWidth] = useLocalStorageState(
+    SPLIT_LAYOUT_STORAGE_KEY,
+    DETAIL_DEFAULT_WIDTH
   );
 
   return (
     <SplitPanel
       orientation="horizontal"
-      defaultSize={defaultContent}
-      initialSize={storedSize}
-      minSize={CONTENT_MIN_WIDTH}
-      fillMinSize={DETAIL_MIN_WIDTH}
-      onResizeEnd={({endSize}) => setStoredSize(endSize)}
-      sized={
+      placement="end"
+      defaultSize={DETAIL_DEFAULT_WIDTH}
+      initialSize={storedWidth}
+      minSize={DETAIL_MIN_WIDTH}
+      fillMinSize={CONTENT_MIN_WIDTH}
+      onResizeEnd={({endSize}) => setStoredWidth(endSize)}
+      fill={
         <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingRight="md">
           {content}
         </Flex>
       }
-      fill={
+      sized={
         <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingLeft="md">
           {detail}
         </Flex>
