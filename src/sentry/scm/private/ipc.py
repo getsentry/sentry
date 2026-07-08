@@ -122,7 +122,6 @@ class CheckSuiteEventDataParser(msgspec.Struct, gc=False, frozen=True):
     id: str
     status: BuildStatus
     conclusion: BuildConclusion | None
-    html_url: str
     pull_request_ids: list[str]
 
 
@@ -261,7 +260,7 @@ def deserialize_check_suite_event(event_data: str) -> CheckSuiteEvent:
             "id": parsed.check_suite.id,
             "status": parsed.check_suite.status,
             "conclusion": parsed.check_suite.conclusion,
-            "html_url": parsed.check_suite.html_url,
+            "html_url": "",
             "pull_request_ids": parsed.check_suite.pull_request_ids,
         },
         subscription_event=_map_subscription_event(parsed.subscription_event),
@@ -358,7 +357,6 @@ def serialize_check_suite_event(event: CheckSuiteEvent) -> str:
         id=event.check_suite["id"],
         status=event.check_suite["status"],
         conclusion=event.check_suite["conclusion"],
-        html_url=event.check_suite["html_url"],
         pull_request_ids=event.check_suite["pull_request_ids"],
     )
     structured_event = CheckSuiteEventParser(
