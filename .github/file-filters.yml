@@ -30,15 +30,6 @@ typecheckable_rules_changed: &typecheckable_rules_changed
   - added|deleted|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
   - added|deleted|modified: 'static/**/*.mdx'
 
-# Trigger whether to run MDX typechecking
-mdx_typecheckable: &mdx_typecheckable
-  - *sentry_frontend_workflow_file
-  - added|modified: '.github/file-filters.yml'
-  - added|deleted|modified: '**/tsconfig*.json'
-  - added|deleted|modified: 'static/**/*.mdx'
-  - added|deleted|modified: 'static/app/components/core/**/*.{ts,tsx}'
-  - added|deleted|modified: 'static/**/__stories__/**/*.{ts,tsx}'
-
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
