@@ -111,6 +111,7 @@ class GitHubApiRequestType(StrEnum):
     CREATE_COMMENT_REACTION = "create_comment_reaction"
     CREATE_ISSUE = "create_issue"
     CREATE_ISSUE_REACTION = "create_issue_reaction"
+    CREATE_PULL_REQUEST_COMMENT_REACTION = "create_pull_request_comment_reaction"
     DELETE_ISSUE_REACTION = "delete_issue_reaction"
     GET_ARCHIVE_LINK = "get_archive_link"
     GET_ASSIGNEES = "get_assignees"
@@ -949,6 +950,27 @@ class GitHubBaseClient(
             endpoint,
             data={"content": reaction.value},
             api_request_type=GitHubApiRequestType.CREATE_COMMENT_REACTION,
+        )
+
+    def create_pull_request_comment_reaction(
+        self, repo: str, comment_id: str, reaction: GitHubReaction
+    ) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-a-pull-request-review-comment
+
+        PR review (inline) comments live in a separate ID namespace from issue
+        comments, so they need this endpoint rather than ``create_comment_reaction``.
+
+        Args:
+            repo: Repository name in "owner/repo" format
+            comment_id: The ID of the pull request review comment
+            reaction: The reaction type
+        """
+        endpoint = f"/repos/{repo}/pulls/comments/{comment_id}/reactions"
+        return self.post(
+            endpoint,
+            data={"content": reaction.value},
+            api_request_type=GitHubApiRequestType.CREATE_PULL_REQUEST_COMMENT_REACTION,
         )
 
     def get_user(self, gh_username: str) -> Any:

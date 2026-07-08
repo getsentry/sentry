@@ -343,8 +343,17 @@ def trigger_pr_iteration_from_comment(
     if comment_id is None:
         return None
 
+    # Inline review comments (``pull_request_review_comment``, identified by
+    # ``path``) live in a separate ID namespace from issue comments and need the
+    # pulls/comments reactions endpoint.
+    is_review_comment = "path" in comment
     try:
-        client.create_comment_reaction(repo.name, str(comment_id), GitHubReaction.EYES)
+        if is_review_comment:
+            client.create_pull_request_comment_reaction(
+                repo.name, str(comment_id), GitHubReaction.EYES
+            )
+        else:
+            client.create_comment_reaction(repo.name, str(comment_id), GitHubReaction.EYES)
     except Exception as e:
         sentry_sdk.capture_exception(e)
     return None

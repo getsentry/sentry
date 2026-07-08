@@ -360,6 +360,31 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    def test_review_comment_reaction_uses_pulls_endpoint(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_consume: MagicMock,
+        mock_has_access: MagicMock,
+    ) -> None:
+        mock_integration = self._mock_integration()
+        mock_client = mock_integration.get_installation.return_value.get_client.return_value
+        mock_get_integration.return_value = mock_integration
+        mock_get_state.return_value = self._agent_state()
+
+        # A review comment (has "path") must react via the pulls/comments endpoint,
+        # not the issue-comment one, or GitHub 404s on the mismatched ID namespace.
+        self._call(comment={**self.comment, "path": "src/sentry/foo.py", "line": 42})
+
+        mock_client.create_pull_request_comment_reaction.assert_called_once()
+        mock_client.create_comment_reaction.assert_not_called()
+
+    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
     def test_review_comment_hoists_file_and_line(
         self,
         mock_get_integration: MagicMock,

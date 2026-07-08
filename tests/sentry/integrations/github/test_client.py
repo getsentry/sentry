@@ -654,6 +654,29 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_create_pull_request_comment_reaction(self, get_jwt) -> None:
+        response_data = {
+            "id": 1,
+            "node_id": "MDg6UmVhY3Rpb24x",
+            "user": {"login": "octocat", "id": 1},
+            "content": "eyes",
+            "created_at": "2016-05-20T20:09:31Z",
+        }
+        responses.add(
+            responses.POST,
+            f"https://api.github.com/repos/{self.repo.name}/pulls/comments/123/reactions",
+            json=response_data,
+            status=201,
+        )
+
+        result = self.github_client.create_pull_request_comment_reaction(
+            repo=self.repo.name, comment_id="123", reaction=GitHubReaction.EYES
+        )
+        assert result == response_data
+        assert orjson.loads(responses.calls[0].request.body) == {"content": "eyes"}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_issue_reactions(self, get_jwt) -> None:
         responses.add(
             method=responses.GET,
