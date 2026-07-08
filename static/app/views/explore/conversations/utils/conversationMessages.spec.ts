@@ -631,6 +631,26 @@ describe('conversationMessages utilities', () => {
       expect(merged[0]?.generation.id).toBe('gen-1');
     });
 
+    it('folds consecutive empty LLM calls into one placeholder turn', () => {
+      const turns = [
+        makeTurn({
+          generation: {id: 'gen-1'} as any,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+        }),
+        makeTurn({
+          generation: {id: 'gen-2'} as any,
+          toolCalls: [{name: 'calc', nodeId: 'tool-2', hasError: false}],
+        }),
+      ];
+
+      const merged = mergeEmptyTurns(turns);
+
+      expect(merged).toHaveLength(1);
+      expect(merged[0]?.assistantContent).toBe(EMPTY_TEXT_CONTENT);
+      expect(merged[0]?.generation.id).toBe('gen-2');
+      expect(merged[0]?.toolCalls.map(t => t.name)).toEqual(['search', 'calc']);
+    });
+
     it('keeps trailing empty LLM calls visible', () => {
       const turns = [
         makeTurn({
@@ -797,6 +817,36 @@ describe('conversationMessages utilities', () => {
 
       const assistantMessages = messages.filter(m => m.role === 'assistant');
       expect(assistantMessages).toHaveLength(1);
+    });
+
+    it('folds adjacent assistant placeholders into one message', () => {
+      const messages = turnsToMessages([
+        makeTurn({
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'Question',
+          assistantContent: EMPTY_TEXT_CONTENT,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+        }),
+        makeTurn({
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 1200, end_timestamp: 1300},
+          } as any,
+          assistantContent: EMPTY_TEXT_CONTENT,
+          toolCalls: [{name: 'calc', nodeId: 'tool-2', hasError: false}],
+        }),
+      ]);
+
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(assistantMessages).toHaveLength(1);
+      expect(assistantMessages[0]?.content).toBe(EMPTY_TEXT_CONTENT);
+      expect(assistantMessages[0]?.toolCalls?.map(t => t.name)).toEqual([
+        'search',
+        'calc',
+      ]);
     });
 
     it('does not deduplicate [Filtered] messages across turns', () => {
@@ -1221,7 +1271,7 @@ describe('conversationMessages utilities', () => {
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
     });
 
-    it('surfaces every generation span with no input/output as a placeholder', () => {
+    it('folds consecutive generation spans with no input/output into one placeholder', () => {
       const gen1 = createMockNode({id: 'gen-1', startTimestamp: 1000});
       const tool = createMockToolNode({
         id: 'tool-1',
@@ -1233,13 +1283,10 @@ describe('conversationMessages utilities', () => {
       const messages = extractMessagesFromNodes([gen1, tool, gen2] as any);
 
       const assistantMessages = messages.filter(m => m.role === 'assistant');
-      expect(assistantMessages).toHaveLength(2);
-      expect(assistantMessages.map(m => m.content)).toEqual([
-        EMPTY_TEXT_CONTENT,
-        EMPTY_TEXT_CONTENT,
-      ]);
-      expect(assistantMessages[1]?.toolCalls).toHaveLength(1);
-      expect(assistantMessages[1]?.toolCalls?.[0]?.name).toBe('search');
+      expect(assistantMessages).toHaveLength(1);
+      expect(assistantMessages[0]?.content).toBe(EMPTY_TEXT_CONTENT);
+      expect(assistantMessages[0]?.toolCalls).toHaveLength(1);
+      expect(assistantMessages[0]?.toolCalls?.[0]?.name).toBe('search');
     });
   });
 

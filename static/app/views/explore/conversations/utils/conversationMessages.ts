@@ -165,12 +165,25 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
       pendingToolCalls = [];
       pendingToolSpanNodes = [];
     } else if (!turn.userContent) {
-      result.push({
-        ...turn,
-        assistantContent: EMPTY_TEXT_CONTENT,
-        toolCalls: allToolCalls,
-        toolSpanNodes: allToolSpanNodes,
-      });
+      const previousTurn = result.at(-1);
+      if (
+        previousTurn?.assistantContent === EMPTY_TEXT_CONTENT &&
+        !previousTurn.userContent
+      ) {
+        result.splice(-1, 1, {
+          ...turn,
+          assistantContent: EMPTY_TEXT_CONTENT,
+          toolCalls: [...previousTurn.toolCalls, ...allToolCalls],
+          toolSpanNodes: [...(previousTurn.toolSpanNodes ?? []), ...allToolSpanNodes],
+        });
+      } else {
+        result.push({
+          ...turn,
+          assistantContent: EMPTY_TEXT_CONTENT,
+          toolCalls: allToolCalls,
+          toolSpanNodes: allToolSpanNodes,
+        });
+      }
       pendingToolCalls = [];
       pendingToolSpanNodes = [];
     } else if (allToolCalls.length > 0 || allToolSpanNodes.length > 0) {
@@ -287,7 +300,32 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   }
 
   messages.sort((a, b) => a.timestamp - b.timestamp);
-  return messages;
+  return foldConsecutiveEmptyAssistantMessages(messages);
+}
+
+function foldConsecutiveEmptyAssistantMessages(
+  messages: ConversationMessage[]
+): ConversationMessage[] {
+  const foldedMessages: ConversationMessage[] = [];
+
+  for (const message of messages) {
+    const previousMessage = foldedMessages.at(-1);
+    if (
+      previousMessage?.role === 'assistant' &&
+      message.role === 'assistant' &&
+      previousMessage.content === EMPTY_TEXT_CONTENT &&
+      message.content === EMPTY_TEXT_CONTENT
+    ) {
+      foldedMessages.splice(-1, 1, {
+        ...message,
+        toolCalls: [...(previousMessage.toolCalls ?? []), ...(message.toolCalls ?? [])],
+      });
+    } else {
+      foldedMessages.push(message);
+    }
+  }
+
+  return foldedMessages;
 }
 
 function findToolSpansBetween(

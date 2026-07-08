@@ -72,7 +72,7 @@ describe('MessagesPanelNew', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows one placeholder bubble for each generation span without input/output', () => {
+  it('folds consecutive generation spans without input/output into one placeholder bubble', () => {
     const genNode1 = createMockNode({id: 'gen-1', startTimestamp: 1000});
     const genNode2 = createMockNode({id: 'gen-2', startTimestamp: 2000});
 
@@ -85,7 +85,7 @@ describe('MessagesPanelNew', () => {
       />
     );
 
-    expect(screen.getAllByText(EMPTY_TEXT_CONTENT)).toHaveLength(2);
+    expect(screen.getAllByText(EMPTY_TEXT_CONTENT)).toHaveLength(1);
     expect(
       screen.queryByText('Message inputs and outputs were not captured')
     ).not.toBeInTheDocument();
