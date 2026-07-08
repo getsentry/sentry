@@ -64,6 +64,7 @@ def _fetch_and_score(
     fetch_limit: int,
 ) -> list[ScoredCandidate]:
     """
+    Fetch top recommended unresolved issues that haven't been triaged by Seer yet.
     Issues with a fixability score above the threshold are taken first (sorted by
     fixability), then backfilled with unscored issues in their original recommended
     sort order.
