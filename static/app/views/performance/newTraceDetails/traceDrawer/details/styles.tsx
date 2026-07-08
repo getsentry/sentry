@@ -1138,40 +1138,50 @@ const CardValueText = styled('span')`
 function MultilineText({
   children,
   renderFormatted,
+  clip = true,
 }: {
   children: string;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
   const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  const content = (
+    <MultilineTextWrapper {...hoverProps}>
+      <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
+        {isHovered && (
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={value => setShowRaw(value === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </Container>
+      {showRaw
+        ? children.trim()
+        : (renderFormatted?.(children) ?? (
+            <MarkedText as={MarkdownContainer} text={children} />
+          ))}
+    </MultilineTextWrapper>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
   return (
-    <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
-        <MultilineTextWrapper {...hoverProps}>
-          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
-            {isHovered && (
-              <SegmentedControl
-                size="xs"
-                value={showRaw ? 'raw' : 'formatted'}
-                onChange={value => setShowRaw(value === 'raw')}
-              >
-                <SegmentedControl.Item key="formatted">
-                  {t('Pretty')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-          </Container>
-          {showRaw
-            ? children.trim()
-            : (renderFormatted?.(children) ?? (
-                <MarkedText as={MarkdownContainer} text={children} />
-              ))}
-        </MultilineTextWrapper>
-      </StyledClippedBox>
-    </Fragment>
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
@@ -1252,9 +1262,15 @@ function MultilineJSON({
   value,
   maxDefaultDepth = 2,
   autoCollapseLimit,
+  clip = false,
 }: {
   value: any;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1269,7 +1285,7 @@ function MultilineJSON({
     return Array.from(new Set(['$', ...childPaths]));
   }, [maxDefaultDepth, json, autoCollapseLimit]);
 
-  return (
+  const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
@@ -1310,6 +1326,16 @@ function MultilineJSON({
         />
       )}
     </MultilineTextWrapperMonospace>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
+  return (
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
