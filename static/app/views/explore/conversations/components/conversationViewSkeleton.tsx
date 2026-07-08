@@ -43,8 +43,6 @@ function TimelineSkeleton() {
             <Flex align="center" gap="md">
               <Placeholder height="16px" width="16px" />
               <Placeholder height="14px" width={row.title} />
-              {/* Column widths mirror TimelineRow in aiSpanTimeline.tsx so the
-               * layout doesn't shift when the real content loads. */}
               <Flex flex="1" minWidth="0">
                 {row.secondary ? (
                   <Placeholder height="14px" width={row.secondary} />
@@ -81,7 +79,6 @@ function SpanDetailSkeleton() {
           <Placeholder height="14px" width="160px" />
         </Grid>
       </Stack>
-      {/* Mirrors the flat TabList: labels with no full-width divider. */}
       <Flex gap="lg" flexShrink={0}>
         <Placeholder height="16px" width="44px" />
         <Placeholder height="16px" width="56px" />
