@@ -1,9 +1,9 @@
-from typing import Optional, assert_never
+import logging
+from typing import Literal, Optional, assert_never
 
 import msgspec
+from scm.providers.github.provider import GITHUB_CONCLUSION_MAP, GITHUB_STATUS_MAP
 from scm.types import (
-    BuildConclusion,
-    BuildStatus,
     CheckRunAction,
     CheckSuiteAction,
     CommentAction,
@@ -12,6 +12,20 @@ from scm.types import (
     PullRequestReviewAction,
     PullRequestReviewState,
 )
+
+# Raw GitHub Checks-API enum values, normalized to BuildStatus/BuildConclusion
+# via GITHUB_STATUS_MAP/GITHUB_CONCLUSION_MAP.
+GitHubCheckStatus = Literal["queued", "requested", "waiting", "pending", "in_progress", "completed"]
+GitHubCheckConclusion = Literal[
+    "success",
+    "failure",
+    "neutral",
+    "cancelled",
+    "skipped",
+    "timed_out",
+    "action_required",
+    "stale",
+]
 
 from sentry.scm.types import (
     CheckRunEvent,
@@ -22,6 +36,8 @@ from sentry.scm.types import (
     PullRequestReviewEvent,
     SubscriptionEvent,
 )
+
+logger = logging.getLogger(__name__)
 
 # Remaining types in use:
 #   * "installation"
@@ -114,9 +130,8 @@ class GitHubCheckSuitePullRequest(msgspec.Struct, gc=False):
 
 class GitHubCheckSuite(msgspec.Struct, gc=False):
     id: int
-    status: BuildStatus
-    conclusion: BuildConclusion | None
-    html_url: str
+    status: GitHubCheckStatus
+    conclusion: GitHubCheckConclusion | None
     pull_requests: list[GitHubCheckSuitePullRequest]
 
 
@@ -203,15 +218,20 @@ def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullReque
 
 def deserialize_github_check_suite_event(event: SubscriptionEvent) -> CheckSuiteEvent:
     e = check_suite_decoder.decode(event["event"])
+    pull_request_ids = [str(pr.number) for pr in e.check_suite.pull_requests]
+    status = GITHUB_STATUS_MAP.get(e.check_suite.status, "pending")
+    conclusion = (
+        GITHUB_CONCLUSION_MAP.get(e.check_suite.conclusion) if e.check_suite.conclusion else None
+    )
 
     return CheckSuiteEvent(
         action=e.action,
         check_suite={
             "id": str(e.check_suite.id),
-            "status": e.check_suite.status,
-            "conclusion": e.check_suite.conclusion,
-            "html_url": e.check_suite.html_url,
-            "pull_request_ids": [str(pr.number) for pr in e.check_suite.pull_requests],
+            "status": status,
+            "conclusion": conclusion,
+            "html_url": "",
+            "pull_request_ids": pull_request_ids,
         },
         subscription_event=event,
     )
