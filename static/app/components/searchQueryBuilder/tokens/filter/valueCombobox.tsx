@@ -48,6 +48,8 @@ import {
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
+import {SeverityValueIndicator} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/severityValueIndicator';
+import {isSeverityFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
 import type {
   SuggestionItem,
   SuggestionSection,
@@ -217,7 +219,8 @@ export function getPredefinedValues({
     return null;
   }
 
-  const definedValues = key?.values ?? fieldDefinition?.values;
+  const keyValues = Array.isArray(key?.values) ? key.values : undefined;
+  const definedValues = keyValues ?? fieldDefinition?.values;
   const valueType = getFilterValueType(token, fieldDefinition);
 
   if (!definedValues?.length) {
@@ -281,7 +284,8 @@ export function tokenSupportsMultipleValues(
     case FilterType.TEXT: {
       // The search parser defaults to the text type, so we need to do further
       // checks to ensure that the filter actually supports multiple values
-      const key = keys[getKeyName(token.key)];
+      const keyName = getKeyName(token.key);
+      const key = Object.hasOwn(keys, keyName) ? keys[keyName] : undefined;
       if (!key) {
         return true;
       }
@@ -377,7 +381,7 @@ function useFilterSuggestions({
     getTagKeys,
     getTagValues,
   } = useSearchQueryBuilderConfig();
-  const key = filterKeys[keyName];
+  const key = Object.hasOwn(filterKeys, keyName) ? filterKeys[keyName] : undefined;
   const fieldDefinition = getFieldDefinition(keyName);
   const valueType = getFilterValueType(token, fieldDefinition);
   const predefinedValues = useMemo(
@@ -471,8 +475,11 @@ function useFilterSuggestions({
         details: suggestion.description,
         textValue: typeof label === 'string' ? label : suggestion.value,
         hideCheck: true,
+        leadingItems: isSeverityFilterKey(keyName) ? (
+          <SeverityValueIndicator value={suggestion.value} />
+        ) : undefined,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
-        trailingItems: ({isFocused, disabled}: any) => {
+        trailingItems: ({disabled}: any) => {
           const count =
             suggestion.count === undefined ? null : (
               <ValueCount>{formatAbbreviatedNumber(suggestion.count)}</ValueCount>
@@ -485,17 +492,13 @@ function useFilterSuggestions({
           return (
             <Fragment>
               {count}
-              <ItemCheckbox
-                isFocused={isFocused}
-                disabled={disabled}
-                value={suggestion.value}
-              />
+              <ItemCheckbox disabled={disabled} value={suggestion.value} />
             </Fragment>
           );
         },
       };
     },
-    [canSelectMultipleValues, filterValue, valueType]
+    [canSelectMultipleValues, filterValue, keyName, valueType]
   );
 
   const suggestionGroups = useMemo(() => {
@@ -566,17 +569,8 @@ function useFilterSuggestions({
   };
 }
 
-function ItemCheckbox({
-  isFocused,
-  disabled,
-  value,
-}: {
-  disabled: boolean;
-  isFocused: boolean;
-  value: string;
-}) {
-  const {analyticsData, ctrlKeyPressed, selectedValueMap, token} =
-    useValueComboboxContext();
+function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
+  const {analyticsData, selectedValueMap, token} = useValueComboboxContext();
   const {dispatch} = useSearchQueryBuilderState();
   const selected = selectedValueMap.get(value) ?? false;
 
@@ -586,7 +580,7 @@ function ItemCheckbox({
       onMouseUp={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      <CheckWrap visible={isFocused || selected || ctrlKeyPressed} role="presentation">
+      <CheckWrap role="presentation">
         <Checkbox
           size="sm"
           checked={selected}
@@ -788,8 +782,8 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const valueComboboxContextValue = useMemo(
-    () => ({token, ctrlKeyPressed, selectedValueMap, analyticsData}),
-    [token, ctrlKeyPressed, selectedValueMap, analyticsData]
+    () => ({token, selectedValueMap, analyticsData}),
+    [token, selectedValueMap, analyticsData]
   );
 
   const handleSelectAbsoluteDate = useCallback(
@@ -1174,11 +1168,10 @@ const ValueCount = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const CheckWrap = styled('div')<{visible: boolean}>`
+const CheckWrap = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  opacity: ${p => (p.visible ? 1 : 0)};
   padding-top: ${p => p.theme.space['2xs']};
   padding-right: 0;
   padding-bottom: ${p => p.theme.space['2xs']};

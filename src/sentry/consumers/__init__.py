@@ -343,40 +343,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
         "click_options": issue_occurrence_options(),
     },
-    "events-subscription-results": {
-        "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events"},
-    },
-    "transactions-subscription-results": {
-        "topic": Topic.TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "transactions"},
-    },
-    "generic-metrics-subscription-results": {
-        "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-        "validate_schema": True,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "generic_metrics"},
-    },
-    "metrics-subscription-results": {
-        "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "metrics"},
-    },
-    "subscription-results-eap-items": {
-        "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {
-            "dataset": "events_analytics_platform",
-            "topic_override": "subscription-results-eap-items",
-        },
-    },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",

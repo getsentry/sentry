@@ -47,7 +47,8 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
-  projects: number[]
+  projects: number[],
+  referrer = 'conversations-table'
 ): string {
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
@@ -63,6 +64,7 @@ export function getConversationDetailUrl(
   for (const project of projects) {
     params.append('project', String(project));
   }
+  params.set('referrer', referrer);
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
@@ -211,7 +213,10 @@ export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
-      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+      {/* inline: no block <p>/<pre> children, so white-space:nowrap clamps to
+          one line without relying on `* {display:inline}` (Safari drops it on
+          MarkedText's async innerHTML swap, growing rows on back-nav). */}
+      <MarkedText inline text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
 }

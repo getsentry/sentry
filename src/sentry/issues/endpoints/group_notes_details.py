@@ -42,7 +42,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
     @extend_schema(responses={204: RESPONSE_NO_CONTENT})
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-note-details",
+        url_names=["sentry-api-0-group-note-details"],
+    )
     def delete(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
@@ -101,7 +105,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-note-details",
+        url_names=["sentry-api-0-group-note-details"],
+    )
     def put(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")

@@ -215,6 +215,16 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
               organization.features.includes('code-review-beta')),
         },
         {
+          path: `${organizationSettingsPathPrefix}/seer/connectors/`,
+          title: t('Connectors'),
+          description: t('Connect monitoring providers to Seer'),
+          id: 'seer-connectors',
+          show: ({organization}) =>
+            !!organization &&
+            showNewSeer(organization) &&
+            organization.features.includes('seer-infra-telemetry'),
+        },
+        {
           path: `${organizationSettingsPathPrefix}/seer/advanced/`,
           title: t('Advanced Settings'),
           description: t('Configure advanced Seer settings'),

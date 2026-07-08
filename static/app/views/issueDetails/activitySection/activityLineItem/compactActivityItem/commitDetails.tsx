@@ -1,16 +1,51 @@
 import moment from 'moment-timezone';
 
-import {CommitLink} from 'sentry/components/commitLink';
-import {t, tct} from 'sentry/locale';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {t, tct, tn} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {BaseRelease} from 'sentry/types/release';
+import {CommitChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/commitChip';
+import {getCommitRepository} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/commitRepository';
 import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/releaseChip';
+import {getProviderName} from 'sentry/views/issueDetails/activitySection/activityLineItem/compactActivityItem/provider';
 
-function CommitActivityLink({commit}: {commit: Commit}) {
-  return <CommitLink inline commitId={commit.id} repository={commit.repository} />;
+const MAX_OTHER_RELEASES_IN_TOOLTIP = 5;
+
+function ReleaseOverflow({releases}: {releases: BaseRelease[]}) {
+  const count = releases.length;
+  const visibleReleases = releases.slice(0, MAX_OTHER_RELEASES_IN_TOOLTIP);
+  const hiddenCount = count - visibleReleases.length;
+
+  return (
+    <Tooltip
+      skipWrapper
+      maxWidth={320}
+      title={
+        <Stack gap="xs">
+          {visibleReleases.map(release => (
+            <Text key={release.version} as="span" size="sm" ellipsis>
+              {release.version}
+            </Text>
+          ))}
+          {hiddenCount > 0 ? (
+            <Text as="span" size="sm" variant="muted">
+              {tn('+%s more release', '+%s more releases', hiddenCount)}
+            </Text>
+          ) : null}
+        </Stack>
+      }
+    >
+      <Text as="span" size="sm" variant="muted">
+        {tn('%s other', '%s others', count)}
+      </Text>
+    </Tooltip>
+  );
 }
 
 export function getResolvedInCommitDetails(
@@ -27,35 +62,43 @@ export function getResolvedInCommitDetails(
     .filter(release => release.dateReleased !== null)
     .sort((a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf());
   const firstRelease = deployedReleases[0];
+  const repository = getCommitRepository(commit);
+  const provider = getProviderName(
+    repository?.provider?.name ?? repository?.provider?.id
+  );
+  const commitChip = <CommitChip commit={commit} />;
 
-  if (deployedReleases.length === 1 && firstRelease) {
-    return tct('in [commit], released in [release]', {
-      commit: <CommitActivityLink commit={commit} />,
-      release: (
-        <ActivityRelease
-          organization={organization}
-          project={project}
-          version={firstRelease.version}
-        />
-      ),
+  if (!firstRelease) {
+    return tct('by commit [commit] on [provider]', {
+      commit: commitChip,
+      provider,
     });
   }
 
-  if (deployedReleases.length > 1 && firstRelease) {
-    return tct('in [commit], released in [release] and [otherCount] others', {
-      commit: <CommitActivityLink commit={commit} />,
-      otherCount: deployedReleases.length - 1,
-      release: (
-        <ActivityRelease
-          organization={organization}
-          project={project}
-          version={firstRelease.version}
-        />
-      ),
+  const releaseChip = (
+    <ActivityRelease
+      organization={organization}
+      project={project}
+      version={firstRelease.version}
+    />
+  );
+  const otherReleases = deployedReleases.slice(1);
+
+  if (otherReleases.length === 0) {
+    return tct('by commit [commit] on [provider], released in [release]', {
+      commit: commitChip,
+      provider,
+      release: releaseChip,
     });
   }
 
-  return tct('in [commit]', {
-    commit: <CommitActivityLink commit={commit} />,
-  });
+  return tct(
+    'by commit [commit] on [provider], released in [release] and [otherReleases]',
+    {
+      commit: commitChip,
+      otherReleases: <ReleaseOverflow releases={otherReleases} />,
+      provider,
+      release: releaseChip,
+    }
+  );
 }

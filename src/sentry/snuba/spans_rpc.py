@@ -95,7 +95,7 @@ class Spans(rpc_dataset_common.RPCBase):
 
         trace_attributes = [
             "parent_span",
-            "description",
+            "span.description",
             "span.op",
             "span.name",
             "is_transaction",

@@ -1022,7 +1022,6 @@ export function normalizeMetricHistory(
       customPrice: null,
       order: 0,
       paygCpe: null,
-      sentUsageWarning: false,
       softCapType: null,
       usageExceeded: false,
     }

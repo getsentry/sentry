@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
+    _activity_derived_counters,
     active_attributions,
     build_pr_metrics_row,
     emit_pr_metrics_row,
@@ -516,6 +517,81 @@ class PrMetricsEmissionTest(TestCase):
         emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is False
         assert mock_record.call_count == 0
+
+    # --- _activity_derived_counters (participants_count, reviews_count) ---
+
+    def _activity(
+        self,
+        *,
+        webhook_id: str,
+        event_type: str = PullRequestActivityType.COMMENT_CREATED,
+        sender_login: str = "",
+        sender_type: str = "User",
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=event_type,
+            payload={"sender_login": sender_login, "sender_type": sender_type},
+        )
+
+    def test_activity_derived_counters_zero_without_activity(self) -> None:
+        assert _activity_derived_counters(self.pull_request) == {
+            "participants_count": 0,
+            "reviews_count": 0,
+        }
+
+    def test_activity_derived_counters_counts_reviews_and_distinct_participants(self) -> None:
+        self._activity(
+            webhook_id="a1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        self._activity(webhook_id="a2", sender_login="octocat")  # same participant again
+        self._activity(webhook_id="a3", sender_login="reviewer")
+        self._activity(
+            webhook_id="a4",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="reviewer",
+        )
+        self._activity(
+            webhook_id="a5",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="reviewer",
+        )
+        assert _activity_derived_counters(self.pull_request) == {
+            "participants_count": 2,  # distinct octocat, reviewer
+            "reviews_count": 2,  # two REVIEW_SUBMITTED rows, not distinct reviewers
+        }
+
+    def test_activity_derived_counters_excludes_bots_and_blank_logins(self) -> None:
+        self._activity(webhook_id="b1", sender_login="human")
+        self._activity(webhook_id="b2", sender_login="dependabot", sender_type="Bot")
+        self._activity(
+            webhook_id="b3", event_type=PullRequestActivityType.SYNCHRONIZED, sender_login=""
+        )
+        assert _activity_derived_counters(self.pull_request) == {
+            "participants_count": 1,  # "human"; bot + blank login excluded
+            "reviews_count": 0,
+        }
+
+    @patch("sentry.analytics.record")
+    def test_emit_persists_and_carries_activity_derived_counts(self, mock_record: Any) -> None:
+        self._track()
+        self._activity(webhook_id="c1", sender_login="octocat")
+        self._activity(
+            webhook_id="c2",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="reviewer",
+        )
+        emit_pr_metrics_row(pull_request=self.pull_request)
+
+        # Persisted onto the metrics row so recovery re-reads them post-cleanup...
+        row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert row.participants_count == 2
+        assert row.reviews_count == 1
+        # ...and carried on the emitted analytics row.
+        emitted = mock_record.call_args[0][0]
+        assert emitted.participants_count == 2
+        assert emitted.reviews_count == 1
 
     # --- _commit_shas_from_activity ---
 

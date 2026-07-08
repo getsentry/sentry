@@ -218,6 +218,11 @@ def launch_coding_agents(
             "run_id": run_id,
             "repos_succeeded": len(successes),
             "repos_failed": len(failures),
+            # The launched agent ids are the only join key between this run and the
+            # provider webhooks that later report completion (keyed on agent_id). Seer's
+            # handoff record carries run_id but no agent_id, so without this a webhook's
+            # attribution outcome cannot be traced back to the run that launched it.
+            "agent_ids": [state.id for state in states_to_store],
         },
     )
 

@@ -189,12 +189,22 @@ export function getPythonSpanFilterSnippet(
 
 
 def before_send_transaction(event, hint):
-    event["spans"] = [
-        span for span in event.get("spans", [])
-        if not (
+    reparent = {}
+    kept_spans = []
+    # Filtering span and rewriting parent_id
+    for span in event.get("spans", []):
+        parent = span.get("parent_span_id")
+        while parent in reparent:
+            parent = reparent[parent]
+        if (
 ${conditions.join('\n')}
-        )
-    ]
+        ):
+            reparent[span.get("span_id")] = parent
+        else:
+            span["parent_span_id"] = parent
+            kept_spans.append(span)
+
+    event["spans"] = kept_spans
     return event
 
 

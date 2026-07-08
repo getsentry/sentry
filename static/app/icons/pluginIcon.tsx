@@ -6,11 +6,13 @@ import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import claude_code from 'sentry-logos/logo-claude.svg';
 import cursor from 'sentry-logos/logo-cursor.svg';
+import datadog from 'sentry-logos/logo-datadog.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
+import google from 'sentry-logos/logo-google.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import jira from 'sentry-logos/logo-jira.svg';
@@ -47,6 +49,8 @@ const PLUGIN_ICONS = {
   aws_lambda: aws,
   claude_code,
   cursor,
+  datadog,
+  datadog_pat: datadog,
   asana,
   bitbucket,
   bitbucket_pipelines: bitbucket,
@@ -55,6 +59,7 @@ const PLUGIN_ICONS = {
   github,
   github_copilot: github,
   github_enterprise: githubEnterprise,
+  gcp: google,
   gitlab,
   heroku,
   jira,

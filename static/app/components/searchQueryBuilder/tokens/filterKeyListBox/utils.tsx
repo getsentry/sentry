@@ -92,10 +92,11 @@ export function createSection(
     label: section.label,
     options: section.children
       .map(key => {
-        if (!keys[key]) {
+        const tag = Object.hasOwn(keys, key) ? keys[key] : undefined;
+        if (!tag) {
           return null;
         }
-        return createItem(keys[key], getFieldDefinition(key), section);
+        return createItem(tag, getFieldDefinition(key), section);
       })
       .filter(defined),
     type: 'section',
