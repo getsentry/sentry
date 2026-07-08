@@ -37,10 +37,10 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of users affected.');
     case IssueSortOptions.RECOMMENDED:
       return t('Issues ranked by combined recency, severity, and impact signals.');
+    case IssueSortOptions.RECOMMENDED_V1:
+      return t('The base recommended scorer, without relevance and lifecycle signals.');
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t(
-        'Experimental recommended sort with additional relevance and lifecycle signals.'
-      );
+      return t('The recommended scorer with additional relevance and lifecycle signals.');
     case IssueSortOptions.PROGRESS:
       return t('Issues ranked by how far along they are toward a fix.');
     case IssueSortOptions.DATE:
@@ -64,9 +64,10 @@ export function IssueListSortOptions({
     // user with a stored non-recommended sort can't switch back to it.
     organization.features.includes('issue-stream-recommended-sort-default') ||
     sort === IssueSortOptions.RECOMMENDED;
-  // The experimental flag now serves recommended_v2 behind the regular Recommended
-  // sort server-side, so the separate option only renders for stale URLs that still
-  // carry the recommended_v2 sort value.
+  // The experimental flag serves recommended_v2 behind the regular Recommended sort
+  // server-side. The explicit v1/v2 options only render when the sort query param
+  // already carries them — an escape hatch for comparing the two scorers.
+  const hasV1RecommendedSort = sort === IssueSortOptions.RECOMMENDED_V1;
   const hasExperimentalRecommendedSort =
     sort === IssueSortOptions.RECOMMENDED_EXPERIMENTAL;
   const hasProgressSort =
@@ -81,6 +82,7 @@ export function IssueListSortOptions({
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
     ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    ...(hasV1RecommendedSort ? [IssueSortOptions.RECOMMENDED_V1] : []),
     ...(hasExperimentalRecommendedSort
       ? [IssueSortOptions.RECOMMENDED_EXPERIMENTAL]
       : []),
