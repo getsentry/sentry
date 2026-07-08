@@ -222,6 +222,21 @@ def profiles_sampler(sampling_context):
     return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
 
 
+def span_first_profiles_sampler(sampling_context):
+    PROFILES_SAMPLING_RATE = {
+        "consumer.join": options.get("consumer.join.profiling.rate"),
+        "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
+    }
+    if "transaction_context" in sampling_context:
+        span_name = sampling_context["span_context"].get("name")
+
+        if span_name in PROFILES_SAMPLING_RATE:
+            return PROFILES_SAMPLING_RATE[span_name]
+
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
+
+
 def before_send_transaction(event: Event, _: Hint) -> Event | None:
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
@@ -558,6 +573,8 @@ def configure_sdk():
         sdk_options.setdefault("_experiments", {}).update(
             trace_lifecycle="stream",
         )
+
+        sdk_options["profiles_sampler"] = span_first_profiles_sampler
 
         sentry_sdk.init(
             dsn=dsns.sentry_mirror,
