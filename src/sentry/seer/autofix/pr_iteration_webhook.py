@@ -242,7 +242,7 @@ def trigger_pr_iteration_from_comment(
     pr_number: int,
     feedback: str,
     comment: Mapping[str, Any],
-    source_type: GithubPrCommentFeedbackType,
+    source_type: GithubPrCommentFeedbackType = "github-pr-comment",
 ) -> None:
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
