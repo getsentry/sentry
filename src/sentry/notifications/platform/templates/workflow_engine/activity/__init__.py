@@ -8,6 +8,11 @@ from .seer.rca_completed import SeerRcaCompletedActivityTemplate
 from .seer.rca_started import SeerRcaStartedActivityTemplate
 from .seer.solution_completed import SeerSolutionCompletedActivityTemplate
 from .seer.solution_started import SeerSolutionStartedActivityTemplate
+from .set_resolved.set_resolved import SetResolvedActivityTemplate
+from .set_resolved.set_resolved_by_age import SetResolvedByAgeActivityTemplate
+from .set_resolved.set_resolved_in_commit import SetResolvedInCommitActivityTemplate
+from .set_resolved.set_resolved_in_pull_request import SetResolvedInPullRequestActivityTemplate
+from .set_resolved.set_resolved_in_release import SetResolvedInReleaseActivityTemplate
 
 __all__ = (
     "ACTIVITY_TYPE_TO_SOURCE",
@@ -21,4 +26,9 @@ __all__ = (
     "SeerPrCreatedActivityTemplate",
     "SeerIterationStartedActivityTemplate",
     "SeerIterationCompletedActivityTemplate",
+    "SetResolvedActivityTemplate",
+    "SetResolvedInReleaseActivityTemplate",
+    "SetResolvedByAgeActivityTemplate",
+    "SetResolvedInCommitActivityTemplate",
+    "SetResolvedInPullRequestActivityTemplate",
 )
