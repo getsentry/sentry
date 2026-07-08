@@ -518,10 +518,8 @@ def _get_eligible_projects(
 
 
 def _should_use_per_project_quotas(source: NightShiftRunSource, organization_id: int) -> bool:
-    """allowed_project_slugs is an internal ops override (org_tweaks), not a
-    customer setting. When set, give each allowed project its own quota
-    instead of one shared pool. Manual runs bypass allowed_project_slugs (see
-    _get_eligible_projects), so they never get per-project quotas."""
+    """When allowed_project_slugs (org_tweaks) is set, give each project its
+    own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
     if source != "cron":
         return False
     org_tweaks = get_night_shift_org_tweaks(organization_id)

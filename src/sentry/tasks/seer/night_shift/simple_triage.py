@@ -20,9 +20,7 @@ from sentry.types.group import PriorityLevel
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
-# Per-project fetch limit is a multiple of max_candidates rather than the flat
-# NIGHT_SHIFT_ISSUE_FETCH_LIMIT, since each project only needs to fill its own
-# quota rather than compete in a shared pool.
+# Scales the per-project fetch limit instead of using the flat limit above.
 NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER = 3
 FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
 
@@ -40,13 +38,8 @@ def fixability_score_strategy(
     projects: Sequence[Project],
     max_candidates: int,
 ) -> list[ScoredCandidate]:
-    """
-    Fetch top recommended unresolved issues that haven't been triaged by Seer yet,
-    scored across all projects combined. A project with disproportionately more
-    issues can consume the whole max_candidates budget — see
-    fixability_score_strategy_per_project for an alternative that guarantees each
-    project a share.
-    """
+    """Scores candidates across all projects combined — a busy project can eat
+    the whole max_candidates budget. See fixability_score_strategy_per_project."""
     return _fetch_and_score(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
 
 
@@ -54,11 +47,8 @@ def fixability_score_strategy_per_project(
     projects: Sequence[Project],
     max_candidates: int,
 ) -> list[ScoredCandidate]:
-    """
-    Like fixability_score_strategy, but queries and scores each project on its
-    own and takes up to max_candidates from each, so no single project can crowd
-    out the others' share of the org's candidates.
-    """
+    """Like fixability_score_strategy, but scores each project independently so
+    no project can crowd out the others' share of max_candidates."""
     fetch_limit = min(
         NIGHT_SHIFT_ISSUE_FETCH_LIMIT, max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
     )
