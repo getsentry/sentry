@@ -211,7 +211,8 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
 ) -> None:
-    """Delete derived state so it is rebuilt from scratch on the next pass.
+    """Delete derived state so it is rebuilt from scratch on the next pass,
+    then kicks off an async task to regenerate the derived data.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
     row is only deleted when its cursor is at or past that point; otherwise
@@ -220,6 +221,7 @@ def invalidate_group_derived_data(
     """
     if cursor is None:
         GroupDerivedData.objects.filter(group_id=group_id).delete()
+        process_group_log_task.delay(group_id)
         return
 
     # Only invalidate if the row has already processed past the affected point.
@@ -237,3 +239,4 @@ def invalidate_group_derived_data(
                 "cursor_id": cursor_id,
             },
         )
+        process_group_log_task.delay(group_id)
