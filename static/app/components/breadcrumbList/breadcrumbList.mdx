@@ -11,7 +11,7 @@ resources:
 import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
-import {IconEllipsis, IconGlobe, IconSettings, IconStar} from 'sentry/icons';
+import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
@@ -58,7 +58,7 @@ Pass a typed `items` array. Each entry is a discriminated union with a `type` ke
 
 ### `'link'` — parent page
 
-A clickable, muted-weight crumb that navigates to a parent page. Use for every item except the current page. Set `preservePageFilters` to carry project/environment/date filters across the navigation. Labels are truncated at 132px and wrapped in a tooltip showing the full text.
+A clickable, muted-weight crumb that navigates to a parent page. Use for every item except the current page. Set `preservePageFilters` to carry project/environment/date filters across the navigation.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -81,7 +81,7 @@ A clickable, muted-weight crumb that navigates to a parent page. Use for every i
 
 ### `'page-title'` — current page
 
-The final crumb — bold, non-interactive, and always visible. Represents the page the user is currently on. Labels are truncated at 200px and wrapped in a tooltip showing the full text.
+The final crumb — bold, non-interactive, and always visible. Represents the page the user is currently on.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -133,13 +133,13 @@ A `CompactSelect` trigger used in settings pages where the user can switch betwe
 }
 ```
 
-## Leading graphics
+## Leading graphic
 
 ```tsx
 import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 ```
 
-All item types accept an optional `leadingGraphic` prop typed as `React.ReactElement<LeadingGraphicProps>`. Pass a `<LeadingGraphic />` element — platform icons, Sentry icons, or avatars.
+All item types accept an optional `leadingGraphic` prop typed as `React.ReactElement<LeadingGraphicProps>`. Pass a `<LeadingGraphic />` element — a project badge, Sentry icon, or avatar. See the [LeadingGraphic](/stories/display/leadinggraphic/) story for every variant.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -147,20 +147,13 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
       {
         type: 'link',
         props: {
-          label: 'Settings',
-          to: '/settings/',
+          label: 'My Projects',
+          to: '/settings/sentry/projects/',
           leadingGraphic: (
-            <LeadingGraphic variant="icon" icon={<IconSettings size="md" />} />
-          ),
-        },
-      },
-      {
-        type: 'link',
-        props: {
-          label: 'javascript',
-          to: '/settings/sentry/projects/javascript/',
-          leadingGraphic: (
-            <LeadingGraphic variant="badge-project" projectPlatforms={['javascript']} />
+            <LeadingGraphic
+              variant="badge-project"
+              projectPlatforms={['python', 'javascript']}
+            />
           ),
         },
       },
@@ -175,10 +168,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
   />
 </Storybook.Demo>
 ```tsx leadingGraphic=
-{<LeadingGraphic variant="icon" icon={<IconSettings size="md" />} />}
-leadingGraphic=
-{<LeadingGraphic variant="badge-project" projectPlatforms={['javascript']} />}
-leadingGraphic={<LeadingGraphic variant="icon" icon={<IconStar size="md" />} />}
+{<LeadingGraphic variant="badge-project" projectPlatforms={['python', 'javascript']} />}
 ```
 
 ## Editable title
