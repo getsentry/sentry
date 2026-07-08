@@ -51,8 +51,7 @@ export interface RecentQueryItem extends SelectOptionWithKey<string> {
 
 /**
  * A suggestion that converts "humanized ESQ" the user typed (e.g. "is unresolved
- * assigned is me") into real ESQ ("is:unresolved assigned:me"). `value` is the
- * converted ESQ. See tokens/../askSeerCombobox/humanizedToEsq.
+ * assigned is me") into real ESQ ("is:unresolved assigned:me").
  */
 export interface ConvertHumanizedItem extends SelectOptionWithKey<string> {
   hideCheck: boolean;
