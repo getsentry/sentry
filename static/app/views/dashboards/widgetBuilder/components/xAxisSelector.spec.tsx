@@ -39,24 +39,20 @@ describe('WidgetBuilderXAxisSelector', () => {
   });
 
   function renderSelector() {
-    return render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderXAxisSelector />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.CATEGORICAL_BAR,
-            },
+    return render(<WidgetBuilderXAxisSelector />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.CATEGORICAL_BAR,
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
   }
 
   it('fetches attributes from the server while typing', async () => {
