@@ -930,13 +930,16 @@ function useCenteredSeekWindow({
   }, [anchorTimestampPrecise]);
 
   useEffect(() => {
-    if (anchorTimestampPrecise === null || !isAnchoredPageSettled) {
+    if (
+      anchorTimestampPrecise === null ||
+      !isAnchoredPageSettled ||
+      balancedAnchorRef.current === anchorTimestampPrecise
+    ) {
       return;
     }
-    if (balancedAnchorRef.current === anchorTimestampPrecise) {
-      return;
-    }
+
     balancedAnchorRef.current = anchorTimestampPrecise;
+
     if (hasAnchoredRows && hasPreviousPage) {
       Promise.resolve(fetchPreviousPage()).finally(() => setIsSeekSettled(true));
     } else {
