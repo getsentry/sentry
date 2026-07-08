@@ -227,10 +227,10 @@ class DataCondition(DefaultFieldsModel):
         return result
 
     def evaluate_value(self, value: T) -> DataConditionEvaluation:
-        condition_type = Condition(self.type)
-        result: DataConditionResult
-
         try:
+            condition_type = Condition(self.type)
+            result: DataConditionResult
+
             if condition_type in CONDITION_OPS:
                 result = self._evaluate_operator(condition_type, value)
             else:
@@ -240,9 +240,16 @@ class DataCondition(DefaultFieldsModel):
 
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
+        if isinstance(result, bool):
+            logic_result = result
+            result = self.get_condition_result() if result else None
+        else:
+            logic_result = bool(result)
+
         return DataConditionEvaluation(
-            evaluation=result,
-            result=self.get_condition_result() if isinstance(result, bool) and result else None,
+            value=value,
+            logic_result=logic_result,
+            result=result,
         )
 
 
