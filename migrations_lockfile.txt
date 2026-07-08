@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0027_unique_night_shift_result_run_group
+seer: 0028_unique_night_shift_result_run_kind_idempotency_key
 
 sentry: 1127_discover_to_explore_queries_self_hosted
 

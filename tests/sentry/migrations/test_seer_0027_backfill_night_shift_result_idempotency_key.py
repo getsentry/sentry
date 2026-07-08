@@ -1,10 +1,10 @@
 from sentry.testutils.cases import TestMigrations
 
 
-class DedupeNightShiftRunResultsTest(TestMigrations):
+class BackfillNightShiftResultIdempotencyKeyTest(TestMigrations):
     app = "seer"
-    migrate_from = "0025_add_seerrun_referrer_index"
-    migrate_to = "0026_dedupe_night_shift_run_results"
+    migrate_from = "0026_add_night_shift_result_idempotency_key"
+    migrate_to = "0027_backfill_night_shift_result_idempotency_key"
 
     def setup_before_migration(self, apps):
         SeerNightShiftRun = apps.get_model("seer", "SeerNightShiftRun")
@@ -23,26 +23,32 @@ class DedupeNightShiftRunResultsTest(TestMigrations):
                 run_id=run_id, kind="agentic_triage", group_id=group_id, extras={}
             )
 
-        # Duplicate pair: the first row must survive, the second must go.
+        # Duplicate pair: the first row must survive (backfilled), the second must go.
         self.kept = create_result(run.id, self.group.id)
         self.dupe = create_result(run.id, self.group.id)
         # Same group on a different run, and a different group on the same run:
-        # not duplicates, both must survive.
+        # not duplicates, both must survive and get backfilled.
         self.other_run_result = create_result(other_run.id, self.group.id)
         self.other_group_result = create_result(run.id, self.other_group.id)
-        # Group-less rows are outside the constraint and must be untouched.
+        # Group-less rows have nothing to backfill from and are left alone.
         self.groupless_a = create_result(run.id, None)
         self.groupless_b = create_result(run.id, None)
 
-    def test_dedupe(self):
+    def test_backfill_and_dedupe(self):
         from sentry.seer.models.night_shift import SeerNightShiftRunResult
 
-        remaining_ids = set(SeerNightShiftRunResult.objects.values_list("id", flat=True))
-        assert self.dupe.id not in remaining_ids
-        assert remaining_ids == {
+        remaining = {r.id: r for r in SeerNightShiftRunResult.objects.all()}
+        assert self.dupe.id not in remaining
+        assert set(remaining) == {
             self.kept.id,
             self.other_run_result.id,
             self.other_group_result.id,
             self.groupless_a.id,
             self.groupless_b.id,
         }
+
+        assert remaining[self.kept.id].idempotency_key == str(self.group.id)
+        assert remaining[self.other_run_result.id].idempotency_key == str(self.group.id)
+        assert remaining[self.other_group_result.id].idempotency_key == str(self.other_group.id)
+        assert remaining[self.groupless_a.id].idempotency_key is None
+        assert remaining[self.groupless_b.id].idempotency_key is None
