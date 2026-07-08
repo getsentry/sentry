@@ -250,7 +250,15 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    repo = Repository.objects.get(id=repo_id, organization_id=organization_id)
+    # The task runs async, so the repo can be deleted between webhook receipt
+    # and execution; guard the lookup instead of crashing.
+    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    if repo is None:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.missing_repo",
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+        )
+        return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:

@@ -217,6 +217,19 @@ class TriggerPrIterationFromCommentTest(TestCase):
             comment=self.comment if comment is None else comment,
         )
 
+    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    def test_returns_early_when_repo_deleted(self, mock_get_integration: MagicMock) -> None:
+        # Repo removed between webhook receipt and async task execution.
+        trigger_pr_iteration_from_comment(
+            organization_id=self.organization.id,
+            repo_id=self.repo.id + 12345,
+            integration_id=42,
+            pr_number=7,
+            feedback="fix it",
+            comment=self.comment,
+        )
+        mock_get_integration.assert_not_called()
+
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
