@@ -161,7 +161,12 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
         type: 'page-title',
         props: {
           label: 'Client Keys (DSN)',
-          leadingGraphic: <LeadingGraphic variant="icon" icon={<IconStar size="md" />} />,
+          leadingGraphic: (
+            <LeadingGraphic
+              variant="badge-project"
+              projectPlatforms={['python', 'javascript']}
+            />
+          ),
         },
       },
     ]}
