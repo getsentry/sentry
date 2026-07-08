@@ -81,7 +81,18 @@ class SelectRequester:
                     )
                 )
 
-                response = json.loads(body)
+                try:
+                    response = json.loads(body)
+                except (json.JSONDecodeError, ValueError) as e:
+                    halt_reason = FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestHaltReason.BAD_RESPONSE
+                    )
+                    lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
+                    raise SentryAppIntegratorError(
+                        message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}: invalid JSON response",
+                        webhook_context={"error_type": halt_reason, **extras},
+                        status_code=502,
+                    ) from e
                 extras.update({"response": response})
             except RequestException as e:
                 halt_reason = FAILURE_REASON_BASE.format(
