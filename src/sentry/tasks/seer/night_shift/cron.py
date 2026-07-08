@@ -317,10 +317,7 @@ def run_night_shift_execution(
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
         return None
 
-    per_project_quotas = _should_use_per_project_quotas(resolved_options["source"], organization.id)
-    _dispatch_to_seer_feature(
-        run, organization, eligible, resolved_options, log_extra, start_time, per_project_quotas
-    )
+    _dispatch_to_seer_feature(run, organization, eligible, resolved_options, log_extra, start_time)
 
 
 def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
@@ -566,7 +563,6 @@ def _dispatch_to_seer_feature(
     resolved_options: SeerNightShiftRunOptions,
     log_extra: dict[str, object],
     start_time: float,
-    per_project_quotas: bool,
 ) -> None:
     """Shard the scored candidates into chunks of seer.night_shift.shard_size and
     dispatch each chunk as its own Seer feature run, recorded as a
@@ -574,6 +570,7 @@ def _dispatch_to_seer_feature(
     deliver_feature_result."""
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
+    per_project_quotas = _should_use_per_project_quotas(resolved_options["source"], organization.id)
     score_strategy = (
         fixability_score_strategy_per_project if per_project_quotas else fixability_score_strategy
     )
