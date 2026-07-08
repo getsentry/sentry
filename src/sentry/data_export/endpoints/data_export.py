@@ -52,6 +52,10 @@ SUPPORTED_DATASETS = {
 
 logger = logging.getLogger(__name__)
 MAX_EXPORT_LIMIT = 10_000
+# Largest in-product (browser) export we assemble during the request so the user
+# gets an immediate download link instead of an email. Keep in sync with
+# ROW_COUNT_VALUE_SYNC_LIMIT in the frontend.
+SYNC_EXPORT_ROW_LIMIT = 1_000
 
 
 def is_api_or_agent_request(request: Request) -> bool:
@@ -296,8 +300,11 @@ class DataExportEndpoint(OrganizationEndpoint):
           - Browser/session requests (`is_api_request=False`):
               - logs full export: hard cap of ``MAX_EXPORT_LIMIT`` (the
                 sync download path is sized for this).
-              - discover / spans: no enforced cap; existing behavior is
-                preserved to avoid regressing in-product exports.
+              - discover / explore (spans): no enforced cap; existing
+                behavior is preserved to avoid regressing in-product exports.
+                Exports at or below ``SYNC_EXPORT_ROW_LIMIT`` are assembled
+                during the request so the user gets an immediate download
+                link instead of an email; larger ones stay async.
         """
         limit = data.get("limit")
 
@@ -312,11 +319,22 @@ class DataExportEndpoint(OrganizationEndpoint):
             and data["query_info"].get("dataset") == "logs"
         )
 
+        # Small in-product exports run synchronously so the user gets an
+        # immediate download instead of an email, matching the logs path.
+        is_small_browser_export = (
+            not is_api_request
+            and data["query_type"] in (ExportQueryType.DISCOVER_STR, ExportQueryType.EXPLORE_STR)
+            and limit is not None
+            and limit <= SYNC_EXPORT_ROW_LIMIT
+        )
+
+        run_sync = is_logs_full_export or is_small_browser_export
+
         if is_api_request or is_logs_full_export:
             if limit is None or limit > MAX_EXPORT_LIMIT:
                 limit = MAX_EXPORT_LIMIT
 
-        return limit, is_logs_full_export
+        return limit, run_sync
 
     def post(self, request: Request, organization: Organization) -> Response:
         """

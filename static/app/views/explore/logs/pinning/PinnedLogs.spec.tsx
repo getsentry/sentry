@@ -30,12 +30,14 @@ const allRows: OurLogsResponseItem[] = [
     [OurLogKnownFieldKey.PROJECT_ID]: '1',
     [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
     [OurLogKnownFieldKey.MESSAGE]: 'first pinned log',
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 2_000_000_000_000_000_000,
   }),
   LogFixture({
     [OurLogKnownFieldKey.ID]: 'log-2',
     [OurLogKnownFieldKey.PROJECT_ID]: '1',
     [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
     [OurLogKnownFieldKey.MESSAGE]: 'second pinned log',
+    [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1_000_000_000_000_000_000,
   }),
 ];
 
@@ -254,6 +256,23 @@ describe('PinnedLogs', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
     expect(await screen.findByTestId('pinned-row-missing-log')).toBeInTheDocument();
+  });
+
+  it('renders pinned rows in ascending order when sorted ascending', () => {
+    renderPinnedLogs({
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {logsPinned: 'log-1,log-2', logsSortBys: 'timestamp'},
+        },
+      },
+    });
+
+    const renderedIds = screen
+      .getAllByTestId(/^pinned-row-/)
+      .map(row => row.getAttribute('data-test-id'));
+
+    expect(renderedIds).toEqual(['pinned-row-log-2', 'pinned-row-log-1']);
   });
 
   it('shows the count of pinned rows in the collapse toggle label', () => {

@@ -2480,6 +2480,25 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('does not crash when opening values for Object prototype filter keys', async () => {
+      const mockGetTagValues = jest.fn().mockResolvedValue(['tag_value_one']);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagValues={mockGetTagValues}
+          initialQuery="constructor:something"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: constructor'})
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'tag_value_one'})
+      ).toBeInTheDocument();
+    });
+
     it('shows value counts in the dropdown when the response includes them', async () => {
       const mockGetTagValues = jest
         .fn()

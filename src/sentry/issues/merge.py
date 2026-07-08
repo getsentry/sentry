@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from typing import TypedDict
 from uuid import uuid4
@@ -15,6 +16,9 @@ from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 class MergedGroup(TypedDict):
@@ -37,6 +41,16 @@ def handle_merge(
 
     max_times_seen = options.get("issues.merge-unmerge.max-group-times-seen")
     if max_times_seen and any(group.times_seen > max_times_seen for group in group_list):
+        metrics.incr("issues.merge_unmerge.restricted", tags={"op": "merge"})
+        logger.info(
+            "merge_unmerge.restricted",
+            extra={
+                "op": "merge",
+                "project_id": group_list[0].project_id,
+                "group_ids": [group.id for group in group_list],
+                "max_times_seen": max_times_seen,
+            },
+        )
         raise rest_framework.exceptions.ValidationError(
             detail="Large merges and unmerges are temporarily restricted at this time."
         )

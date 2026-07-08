@@ -284,7 +284,7 @@
     "jest-fail-on-console": "3.3.4",
     "knip": "6.24.0",
     "odiff-bin": "4.3.8",
-    "oxfmt": "^0.41.0",
+    "oxfmt": "^0.58.0",
     "playwright": "^1.61.1",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.18.0",
