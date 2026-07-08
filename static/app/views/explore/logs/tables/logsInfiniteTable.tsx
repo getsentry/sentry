@@ -514,7 +514,8 @@ export function LogsInfiniteTable({
               return;
             }
             const timestampPrecise = dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
-            if (timestampPrecise && seekToTimestamp(timestampPrecise)) {
+            const timestamp = dataRow[OurLogKnownFieldKey.TIMESTAMP];
+            if (timestampPrecise && seekToTimestamp(timestampPrecise, timestamp)) {
               requestSeekScroll(rowId);
             }
           }}

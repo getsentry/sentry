@@ -292,6 +292,31 @@ describe('useInfiniteLogsQuery', () => {
     expect(result.current.isSeeking).toBe(false);
   });
 
+  it('seeks using the millisecond timestamp when timestamp_precise is not an integer', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    // A fractional `timestamp_precise` would make a bare `BigInt()` throw; the seek
+    // should still succeed by falling back to the millisecond timestamp.
+    let didSeek = false;
+    act(() => {
+      didSeek = result.current.seekToTimestamp(1.5, '2025-04-03T15:50:10+00:00');
+    });
+
+    expect(didSeek).toBe(true);
+    expect(result.current.isSeeking).toBe(true);
+  });
+
   it('settles the seek when the anchored page is empty so the table can show its empty state', async () => {
     const eventsEndpoint = `/organizations/${organization.slug}/events/`;
 

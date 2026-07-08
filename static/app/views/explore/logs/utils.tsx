@@ -264,6 +264,31 @@ export function getLogRowTimestampMillis(row: LogTableRowItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
 }
 
+/**
+ * `timestamp_precise` is a nanosecond value that usually parses straight to a bigint,
+ * but it round-trips through a JS number and can arrive as a non-integer float that
+ * `BigInt()` rejects. Fall back to the millisecond `timestamp` scaled to nanoseconds.
+ */
+export function logTimestampPreciseToBigInt(
+  timestampPrecise: string | number | null | undefined,
+  fallbackTimestamp?: string | number | null
+): bigint | null {
+  if (timestampPrecise) {
+    try {
+      return BigInt(timestampPrecise);
+    } catch {
+      // Non-integer float or otherwise unparseable — fall back to the ms timestamp.
+    }
+  }
+  if (fallbackTimestamp) {
+    const milliseconds = new Date(fallbackTimestamp).getTime();
+    if (!Number.isNaN(milliseconds)) {
+      return BigInt(milliseconds) * 1_000_000n;
+    }
+  }
+  return null;
+}
+
 function getLogRowSortValue(
   row: LogTableRowItem,
   field: OurLogFieldKey
@@ -272,11 +297,12 @@ function getLogRowSortValue(
     field === OurLogKnownFieldKey.TIMESTAMP ||
     field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
   ) {
-    try {
-      return BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-    } catch {
-      return BigInt(new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
-    }
+    return (
+      logTimestampPreciseToBigInt(
+        row[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+        row[OurLogKnownFieldKey.TIMESTAMP]
+      ) ?? 0n
+    );
   }
   return (isRegularLogResponseItem(row) ? row[field] : undefined) ?? '';
 }

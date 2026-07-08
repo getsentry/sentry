@@ -48,7 +48,10 @@ import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {
+  getTimeBasedSortBy,
+  logTimestampPreciseToBigInt,
+} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsCursor,
   useQueryParamsFields,
@@ -263,21 +266,21 @@ function getPageParam(
       return pageParam;
     }
 
-    let firstTimestamp: bigint;
-    let lastTimestamp: bigint;
-    try {
-      firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-      lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-    } catch {
-      logger.warn('No timestamp precise found for log row, using timestamp instead', {
+    const firstTimestamp = logTimestampPreciseToBigInt(
+      firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+      firstRow[OurLogKnownFieldKey.TIMESTAMP]
+    );
+    const lastTimestamp = logTimestampPreciseToBigInt(
+      lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+      lastRow[OurLogKnownFieldKey.TIMESTAMP]
+    );
+    if (firstTimestamp === null || lastTimestamp === null) {
+      logger.warn('No usable timestamp for log row, stopping pagination', {
         logId: firstRow[OurLogKnownFieldKey.ID],
         timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
         timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
       });
-      firstTimestamp =
-        BigInt(new Date(firstRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
-      lastTimestamp =
-        BigInt(new Date(lastRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+      return pageParam;
     }
 
     const logId = isGetPreviousPage
@@ -536,17 +539,15 @@ export function useInfiniteLogsQuery({
   });
 
   const seekToTimestamp = useCallback(
-    (timestampPrecise: string | number) => {
+    (timestampPrecise: string | number, fallbackTimestamp?: string | number) => {
       // Anchoring only works when sorting by timestamp — otherwise the anchored page
       // param is dropped and the seek would silently no-op. Bail so the caller doesn't
       // show a loading state for a seek that can never resolve.
       if (!getTimeBasedSortBy(sortBys)) {
         return false;
       }
-      let value: bigint;
-      try {
-        value = BigInt(timestampPrecise);
-      } catch {
+      const value = logTimestampPreciseToBigInt(timestampPrecise, fallbackTimestamp);
+      if (value === null) {
         return false;
       }
       setSeekAnchor({baseQuerySignature, timestampPrecise: value});
