@@ -1,12 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Access} from 'sentry/components/acl/access';
+import {Access, hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -33,7 +36,8 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -123,43 +127,6 @@ type ProjectThreshold = {
   id?: string;
 };
 
-const formFields: Field[] = [
-  {
-    name: 'metric',
-    type: 'select',
-    label: t('Calculation Method'),
-    options: [
-      {value: 'duration', label: t('Transaction Duration')},
-      {value: 'lcp', label: t('Largest Contentful Paint')},
-    ],
-    help: tct(
-      'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
-      {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/" />
-        ),
-      }
-    ),
-  },
-  {
-    name: 'threshold',
-    type: 'string',
-    label: t('Response Time Threshold (ms)'),
-    placeholder: t('300'),
-    help: tct(
-      'Define what a satisfactory response time is based on the calculation method above. This will affect how your [link1:Apdex] and [link2:User Misery] thresholds are calculated. For example, misery will be 4x your satisfactory response time.',
-      {
-        link1: (
-          <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
-        ),
-        link2: (
-          <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
-        ),
-      }
-    ),
-  },
-];
-
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
   getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
@@ -180,6 +147,31 @@ const getPerformanceIssueSettingsQueryKey = (
     }
   ),
 ];
+
+const getGeneralSettingsQueryKey = (
+  orgSlug: string,
+  projectSlug: string
+): ApiQueryKey => [
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/', {
+    path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+  }),
+];
+
+const generalSettingsSchema = z.object({
+  enable_images: z.boolean(),
+});
+
+const thresholdSettingsSchema = z.object({
+  metric: z.enum(['duration', 'lcp']).nullable(),
+  threshold: z.string(),
+});
+
+const regressionAdminSchema = z.object({
+  transaction_duration_regression_detection_enabled: z.boolean(),
+  function_duration_regression_detection_enabled: z.boolean(),
+});
+
+type GeneralSettings = {enable_images?: boolean};
 
 export function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
@@ -227,15 +219,8 @@ export function ProjectPerformance() {
     data: general,
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
-  } = useApiQuery<any>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        }
-      ),
-    ],
+  } = useApiQuery<GeneralSettings>(
+    getGeneralSettingsQueryKey(organization.slug, projectSlug),
     {
       staleTime: 0,
     }
@@ -311,8 +296,11 @@ export function ProjectPerformance() {
 
   const requiredScopes: Scope[] = ['project:write'];
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
+  const generalSettingsEndpoint = `/projects/${organization.slug}/${projectSlug}/performance/configure/`;
+  const thresholdEndpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
   const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
   const isSuperUser = isActiveSuperuser();
+  const hasWriteAccess = hasEveryAccess(requiredScopes, {organization, project});
 
   const initialData = {
     metric: threshold?.metric,
@@ -617,40 +605,15 @@ export function ProjectPerformance() {
     },
   };
 
-  const performanceRegressionAdminFields: Field[] = [
-    {
-      name: DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED,
-      type: 'boolean',
-      label: t('Transaction Duration Regression Enabled'),
-      defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            transaction_duration_regression_detection_enabled: value,
-          })
-        );
-      },
-    },
-    {
-      name: DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED,
-      type: 'boolean',
-      label: t('Function Duration Regression Enabled'),
-      defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            function_duration_regression_detection_enabled: value,
-          })
-        );
-      },
-    },
-  ];
+  const onSuperUserError = (error: Error) => {
+    if (error instanceof RequestError && error.status === 403) {
+      addErrorMessage(
+        t(
+          'This action requires active super user access. Please re-authenticate to make changes.'
+        )
+      );
+    }
+  };
 
   const project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
     const disabledText = t('Detection of this issue has been disabled.');
@@ -1149,70 +1112,155 @@ export function ProjectPerformance() {
       <SentryDocumentTitle title={t('Performance')} projectSlug={projectSlug} />
       <SettingsPageHeader title={t('Performance')} />
       <ProjectPermissionAlert project={project} />
-      <Access access={requiredScopes} project={project}>
-        {({hasAccess}) => (
-          <Feature features="organizations:insight-modules">
-            <Form
-              initialData={general}
-              saveOnBlur
-              apiEndpoint={`/projects/${organization.slug}/${projectSlug}/performance/configure/`}
-            >
-              <JsonForm
-                disabled={!hasAccess}
-                fields={[
-                  {
-                    name: 'enable_images',
-                    type: 'boolean',
-                    label: t('Images'),
-                    help: t('Enables images from real data to be displayed'),
-                  },
-                ]}
-                title={t('General')}
-              />
-            </Form>
-          </Feature>
-        )}
-      </Access>
+      <Feature features="organizations:insight-modules">
+        <FieldGroup title={t('General')}>
+          <AutoSaveForm
+            name="enable_images"
+            schema={generalSettingsSchema}
+            initialValue={Boolean(general?.enable_images)}
+            mutationOptions={{
+              mutationFn: (data: {enable_images: boolean}) =>
+                fetchMutation({
+                  url: generalSettingsEndpoint,
+                  method: 'POST',
+                  data,
+                }),
+              onSuccess: (_data, variables) => {
+                setApiQueryData<GeneralSettings>(
+                  queryClient,
+                  getGeneralSettingsQueryKey(organization.slug, projectSlug),
+                  prev => ({...prev, enable_images: variables.enable_images})
+                );
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Images')}
+                hintText={t('Enables images from real data to be displayed')}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={!hasWriteAccess}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+      </Feature>
 
-      <Form
-        saveOnBlur
-        allowUndo
-        initialData={initialData}
-        apiMethod="POST"
-        apiEndpoint={`/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`}
-        onSubmitSuccess={resp => {
-          const initial = initialData;
-          const changedThreshold = initial.metric === resp.metric;
-          trackAnalytics('performance_views.project_transaction_threshold.change', {
-            organization,
-            from: changedThreshold ? initial.threshold : initial.metric,
-            to: changedThreshold ? resp.threshold : resp.metric,
-            key: changedThreshold ? 'threshold' : 'metric',
-          });
-          setApiQueryData(
-            queryClient,
-            getThresholdQueryKey(organization.slug, projectSlug),
-            resp
-          );
-        }}
-      >
-        <Access access={requiredScopes} project={project}>
-          {({hasAccess}) => (
-            <JsonForm
-              title={t('Threshold Settings')}
-              fields={formFields}
-              disabled={!hasAccess}
-              renderFooter={() => (
-                <Actions>
-                  <Button onClick={() => resetThresholdSettings()}>
-                    {t('Reset All')}
-                  </Button>
-                </Actions>
+      <FieldGroup title={t('Threshold Settings')}>
+        <AutoSaveForm
+          name="metric"
+          schema={thresholdSettingsSchema}
+          initialValue={
+            threshold?.metric === 'lcp' || threshold?.metric === 'duration'
+              ? threshold.metric
+              : null
+          }
+          mutationOptions={{
+            mutationFn: (data: {metric: 'duration' | 'lcp' | null}) =>
+              fetchMutation<ProjectThreshold>({
+                url: thresholdEndpoint,
+                method: 'POST',
+                data,
+              }),
+            onSuccess: data => {
+              trackAnalytics('performance_views.project_transaction_threshold.change', {
+                organization,
+                from: initialData.metric,
+                to: data.metric,
+                key: 'metric',
+              });
+              setApiQueryData(
+                queryClient,
+                getThresholdQueryKey(organization.slug, projectSlug),
+                data
+              );
+            },
+          }}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Calculation Method')}
+              hintText={tct(
+                'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/" />
+                  ),
+                }
               )}
-            />
+            >
+              <field.Select
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasWriteAccess}
+                options={[
+                  {value: 'duration' as const, label: t('Transaction Duration')},
+                  {value: 'lcp' as const, label: t('Largest Contentful Paint')},
+                ]}
+              />
+            </field.Layout.Row>
           )}
-        </Access>
-      </Form>
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="threshold"
+          schema={thresholdSettingsSchema}
+          initialValue={threshold?.threshold ?? ''}
+          mutationOptions={{
+            mutationFn: (data: {threshold: string}) =>
+              fetchMutation<ProjectThreshold>({
+                url: thresholdEndpoint,
+                method: 'POST',
+                data,
+              }),
+            onSuccess: data => {
+              trackAnalytics('performance_views.project_transaction_threshold.change', {
+                organization,
+                from: initialData.threshold,
+                to: data.threshold,
+                key: 'threshold',
+              });
+              setApiQueryData(
+                queryClient,
+                getThresholdQueryKey(organization.slug, projectSlug),
+                data
+              );
+            },
+          }}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Response Time Threshold (ms)')}
+              hintText={tct(
+                'Define what a satisfactory response time is based on the calculation method above. This will affect how your [link1:Apdex] and [link2:User Misery] thresholds are calculated. For example, misery will be 4x your satisfactory response time.',
+                {
+                  link1: (
+                    <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
+                  ),
+                  link2: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
+                  ),
+                }
+              )}
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('300')}
+                disabled={!hasWriteAccess}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <Flex justify="end">
+          <Button onClick={() => resetThresholdSettings()}>{t('Reset All')}</Button>
+        </Flex>
+      </FieldGroup>
       <Feature features="organizations:dynamic-sampling">
         <Form
           saveOnBlur
@@ -1265,32 +1313,92 @@ export function ProjectPerformance() {
       </Feature>
       <Fragment>
         {isSuperUser && (
-          <Fragment>
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={performanceIssueSettings}
-              apiMethod="PUT"
-              onSubmitError={error => {
-                if (error.status === 403) {
-                  addErrorMessage(
-                    t(
-                      'This action requires active super user access. Please re-authenticate to make changes.'
-                    )
+          <FieldGroup
+            title={t(
+              '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+            )}
+          >
+            <AutoSaveForm
+              name="transaction_duration_regression_detection_enabled"
+              schema={regressionAdminSchema}
+              initialValue={Boolean(
+                performanceIssueSettings[
+                  DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED
+                ]
+              )}
+              mutationOptions={{
+                mutationFn: (data: {
+                  transaction_duration_regression_detection_enabled: boolean;
+                }) =>
+                  fetchMutation({
+                    url: performanceIssuesEndpoint,
+                    method: 'PUT',
+                    data,
+                  }),
+                onSuccess: (_data, variables) => {
+                  setApiQueryData<ProjectPerformanceSettings>(
+                    queryClient,
+                    getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+                    prev => ({
+                      ...prev,
+                      transaction_duration_regression_detection_enabled:
+                        variables.transaction_duration_regression_detection_enabled,
+                    })
                   );
-                }
+                },
+                onError: onSuperUserError,
               }}
-              apiEndpoint={performanceIssuesEndpoint}
             >
-              <JsonForm
-                title={t(
-                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-                )}
-                fields={performanceRegressionAdminFields}
-                disabled={!isSuperUser}
-              />
-            </Form>
-          </Fragment>
+              {field => (
+                <field.Layout.Row label={t('Transaction Duration Regression Enabled')}>
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+            <AutoSaveForm
+              name="function_duration_regression_detection_enabled"
+              schema={regressionAdminSchema}
+              initialValue={Boolean(
+                performanceIssueSettings[
+                  DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED
+                ]
+              )}
+              mutationOptions={{
+                mutationFn: (data: {
+                  function_duration_regression_detection_enabled: boolean;
+                }) =>
+                  fetchMutation({
+                    url: performanceIssuesEndpoint,
+                    method: 'PUT',
+                    data,
+                  }),
+                onSuccess: (_data, variables) => {
+                  setApiQueryData<ProjectPerformanceSettings>(
+                    queryClient,
+                    getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+                    prev => ({
+                      ...prev,
+                      function_duration_regression_detection_enabled:
+                        variables.function_duration_regression_detection_enabled,
+                    })
+                  );
+                },
+                onError: onSuperUserError,
+              }}
+            >
+              {field => (
+                <field.Layout.Row label={t('Function Duration Regression Enabled')}>
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          </FieldGroup>
         )}
         <Form
           allowUndo
