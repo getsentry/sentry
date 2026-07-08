@@ -17,6 +17,11 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 interface AIContentRendererProps {
   text: string;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall text content behind a "Show More" button. Disable when the
+   * container scrolls on its own. Only applies to non-inline text.
+   */
+  clip?: boolean;
   collapsibleXmlTags?: boolean;
   inline?: boolean;
   maxJsonDepth?: number;
@@ -105,6 +110,7 @@ export function AIContentRenderer({
   maxJsonDepth = 2,
   autoCollapseLimit,
   collapsibleXmlTags,
+  clip = true,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
 
@@ -141,6 +147,7 @@ export function AIContentRenderer({
       }
       return (
         <TraceDrawerComponents.MultilineText
+          clip={clip}
           renderFormatted={rawText => (
             <MarkdownWithXmlRenderer
               text={rawText}
@@ -157,7 +164,9 @@ export function AIContentRenderer({
         return <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={text} />;
       }
       return (
-        <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText clip={clip}>
+          {text}
+        </TraceDrawerComponents.MultilineText>
       );
 
     case 'plain-text':
@@ -166,7 +175,9 @@ export function AIContentRenderer({
         return <Fragment>{text}</Fragment>;
       }
       return (
-        <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText clip={clip}>
+          {text}
+        </TraceDrawerComponents.MultilineText>
       );
   }
 }

@@ -310,7 +310,7 @@ function InputTab({
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
       ) : null}
       {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText clip={false}>
           {embeddingsInput.toString()}
         </TraceDrawerComponents.MultilineText>
       ) : null}
@@ -349,7 +349,7 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseText} />
+          <AIContentRenderer text={responseText} clip={false} />
         </Fragment>
       ) : null}
       {responseObject ? (
@@ -357,7 +357,7 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseObject} />
+          <AIContentRenderer text={responseObject} clip={false} />
         </Fragment>
       ) : null}
       {toolCalls ? (
@@ -377,7 +377,7 @@ function OutputTab({
 
 function MessageContent({content}: {content: unknown}) {
   return typeof content === 'string' ? (
-    <AIContentRenderer text={content} />
+    <AIContentRenderer text={content} clip={false} />
   ) : (
     <TraceDrawerComponents.MultilineJSON value={content} maxDefaultDepth={2} />
   );
