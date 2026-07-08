@@ -794,6 +794,112 @@ describe('LogsInfiniteTable', () => {
     expect(await screen.findByText(/No logs found/)).toBeInTheDocument();
   });
 
+  it('recovers the table when filters change before a "View in table" seek settles', async () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    const meta = {
+      fields: {
+        [OurLogKnownFieldKey.ID]: 'string',
+        [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: 'integer',
+        [OurLogKnownFieldKey.MESSAGE]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+      },
+      units: {},
+    };
+    const makeLog = (id: string, timestampPrecise: number) =>
+      LogFixture({
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+        [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+        [OurLogKnownFieldKey.ID]: id,
+        [OurLogKnownFieldKey.MESSAGE]: `test log body ${id}`,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+      });
+
+    // The pinned row (999) is fetched by id so the pinned section still renders.
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      match: [(_, options) => (options?.query?.query ?? '').includes('id:[999]')],
+      body: {data: [makeLog('999', 500)], meta},
+    });
+
+    // The re-anchored page never resolves, so the seek stays unsettled and the table
+    // sits in its awaiting-seek loading state.
+    MockApiClient.addMockResponse({
+      url: eventsEndpoint,
+      asyncDelay: Infinity,
+      match: [
+        (_, options) =>
+          (options?.query?.query ?? '').includes(
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=1500`
+          ),
+      ],
+      body: {data: [], meta},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/999/`,
+      method: 'GET',
+      body: {
+        itemId: '999',
+        links: null,
+        meta: {},
+        timestamp: '2025-04-03T15:50:10+00:00',
+        attributes: [],
+      },
+    });
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_QUERY_KEY]: 'severity:error',
+              logsPinning: 'true',
+              logsPinned: '999',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+
+    const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+    const rows = await screen.findAllByTestId('log-table-row');
+    const pinnedRow = rows.find(row => pinnedTableBody.contains(row))!;
+
+    const [actionsButton] = within(pinnedRow).getAllByRole('button', {name: 'Actions'});
+    await userEvent.click(actionsButton!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View in table'}));
+
+    // The seek is pending, so the main table hides its rows behind the seek loader.
+    await waitFor(() =>
+      expect(screen.queryByText('test log body 1')).not.toBeInTheDocument()
+    );
+
+    // The user changes filters before the seek resolves, dropping the seek anchor.
+    const search = new URLSearchParams();
+    for (const field of visibleColumnFields) {
+      search.append(LOGS_FIELDS_KEY, field);
+    }
+    search.set(LOGS_SORT_BYS_KEY, '-timestamp');
+    search.set(LOGS_QUERY_KEY, 'severity:warning');
+    search.set('logsPinning', 'true');
+    search.set('logsPinned', '999');
+    router.navigate({
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      search: `?${search.toString()}`,
+    });
+
+    // The table falls back to its normal window instead of freezing on the loader.
+    expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+  });
+
   it('does not show "View in table" on a non-pinned row', async () => {
     renderWithProviders(
       <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,

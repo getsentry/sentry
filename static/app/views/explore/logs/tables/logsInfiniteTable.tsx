@@ -152,6 +152,7 @@ export function LogsInfiniteTable({
     fetchPreviousPage,
     seekToTimestamp,
     isSeekSettled,
+    isSeeking,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -477,6 +478,7 @@ export function LogsInfiniteTable({
   }, [data]);
 
   const {requestSeekScroll, isAwaitingSeekWindow} = useScrollToSeekTarget({
+    isSeeking,
     isSeekSettled,
     rowIndexById,
     virtualizer,
@@ -620,6 +622,7 @@ export function LogsInfiniteTable({
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay &&
             isEmpty &&
+            !isAwaitingSeekWindow &&
             (emptyRenderer ? (
               emptyRenderer()
             ) : (
@@ -946,12 +949,14 @@ const SEEK_SCROLL_FRAMES = 8;
  * is superseded.
  */
 function useScrollToSeekTarget({
+  isSeeking,
   isSeekSettled,
   rowIndexById,
   virtualizer,
   setHoveredRowId,
 }: {
   isSeekSettled: boolean;
+  isSeeking: boolean;
   rowIndexById: Map<string, number>;
   setHoveredRowId: Dispatch<SetStateAction<string | null>>;
   virtualizer: Virtualizer<HTMLElement, Element>;
@@ -961,6 +966,16 @@ function useScrollToSeekTarget({
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   );
+
+  // The query drops the anchor when the user changes filters mid-seek, which leaves
+  // `isSeekSettled` false forever. Without an active anchor a pending seek can never
+  // resolve, so clear it here to release `isAwaitingSeekWindow` instead of freezing
+  // the table on the loader.
+  useEffect(() => {
+    if (!isSeeking) {
+      setPendingSeekRowId(null);
+    }
+  }, [isSeeking]);
 
   // Layout effect so the scroll lands before paint — the target is in place on the
   // first frame the centered window renders, rather than visibly jumping.

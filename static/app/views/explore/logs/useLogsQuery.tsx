@@ -847,6 +847,7 @@ export function useInfiniteLogsQuery({
     fetchPreviousPage: _fetchPreviousPage,
     seekToTimestamp,
     isSeekSettled,
+    isSeeking: anchorTimestampPrecise !== null,
     refetch,
     hasNextPage,
     queryKey: queryKeyWithInfinite,
