@@ -7,6 +7,7 @@ import {
   useLogsQueryInfo,
 } from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import type {OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
+import {getLogsAggregatesFields} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -31,7 +32,7 @@ export function LogsAggregateExportModalButton({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
   const queryInfo = useLogsQueryInfo({
-    field: [...groupBys.filter(Boolean), ...visualizes.map(visualize => visualize.yAxis)],
+    field: getLogsAggregatesFields(groupBys, visualizes),
     sort: aggregateSortBys.map(formatExportSort),
   });
 
