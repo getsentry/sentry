@@ -10,10 +10,7 @@ import {
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {ConversationViewSkeletonNew} from 'sentry/views/explore/conversations/components/conversationViewSkeleton';
-import {
-  MessagesPanelNew,
-  MessagesPanelSkeleton,
-} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -115,16 +112,13 @@ export function ConversationViewContentNew({
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           isTranscript ? (
-            isLoading ? (
-              <MessagesPanelSkeleton />
-            ) : (
-              <MessagesPanelNew
-                nodes={nodes}
-                selectedNodeId={selectedNode?.id ?? null}
-                onSelectNode={handleSelectAndOpenDetail}
-                nodeTraceMap={nodeTraceMap}
-              />
-            )
+            <MessagesPanelNew
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeId={selectedNode?.id ?? null}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+            />
           ) : (
             <AiSpanTimeline
               nodes={nodes}

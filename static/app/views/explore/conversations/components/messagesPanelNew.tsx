@@ -36,6 +36,7 @@ interface MessagesPanelNewProps {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
+  isLoading?: boolean;
 }
 
 /**
@@ -48,6 +49,7 @@ export function MessagesPanelNew({
   selectedNodeId,
   onSelectNode,
   nodeTraceMap,
+  isLoading,
 }: MessagesPanelNewProps) {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -70,6 +72,10 @@ export function MessagesPanelNew({
     }
     return map;
   }, [nodes]);
+
+  if (isLoading) {
+    return <MessagesPanelSkeleton />;
+  }
 
   if (messages.length === 0) {
     return (
@@ -250,7 +256,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * user bubbles and left-aligned assistant bubbles with a metadata column — so
  * the skeleton reads as a conversation rather than a generic list.
  */
-export function MessagesPanelSkeleton() {
+function MessagesPanelSkeleton() {
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">
