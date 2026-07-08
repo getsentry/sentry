@@ -705,16 +705,11 @@ export function handleAddQueryToDashboard({
         queries: [
           {
             ...defaultWidgetQuery,
-            aggregates: [
-              ...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()'])),
-            ],
-            ...{
-              // The widget query params filters out aggregate fields
-              // so we can use the fields as columns. This is so yAxes
-              // can be grouped by the fields.
-              fields: widgetAsQueryParams?.field ?? [],
-              columns: widgetAsQueryParams?.field ?? [],
-            },
+            ...widgetQueryFieldsForDisplayType(
+              displayType,
+              typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']),
+              widgetAsQueryParams?.field ?? []
+            ),
           },
         ],
         interval: eventView.interval!,
@@ -774,9 +769,11 @@ export function handleAddMultipleQueriesToDashboard({
       queries: [
         {
           ...defaultWidgetQuery,
-          aggregates: toArray(yAxis ?? 'count()'),
-          fields: widgetAsQueryParams?.field ?? [],
-          columns: widgetAsQueryParams?.field ?? [],
+          ...widgetQueryFieldsForDisplayType(
+            displayType,
+            toArray(yAxis ?? 'count()'),
+            widgetAsQueryParams?.field ?? []
+          ),
         },
       ],
       interval: eventView.interval!,
@@ -793,6 +790,27 @@ export function handleAddMultipleQueriesToDashboard({
     source,
     actions: ['add-and-stay-on-current-page', 'add-and-open-dashboard'],
   });
+}
+
+/**
+ * Builds the `aggregates`/`fields`/`columns` for a widget query when adding to a
+ * dashboard, given the resolved aggregates and group-by columns.
+ *
+ * Time-series widgets store aggregates in `yAxis` and use `fields`/`columns` for
+ * the group-by columns (aggregates are filtered out of `field`). Heat maps,
+ * however, have no group by and the widget builder reads their aggregate from
+ * `fields` rather than `yAxis` — so the aggregate must live in `fields`,
+ * otherwise the "Visualize" selection is lost and the saved widget is broken.
+ */
+function widgetQueryFieldsForDisplayType(
+  displayType: DisplayType,
+  aggregates: string[],
+  groupByFields: string[]
+): Pick<WidgetQuery, 'aggregates' | 'fields' | 'columns'> {
+  if (displayType === DisplayType.HEATMAP) {
+    return {aggregates, fields: aggregates, columns: []};
+  }
+  return {aggregates, fields: groupByFields, columns: groupByFields};
 }
 
 export function getTargetForTransactionSummaryLink(

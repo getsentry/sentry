@@ -18,6 +18,7 @@ import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
 import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
+import {ServiceWorkerProvider} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 function buildRouter() {
@@ -39,28 +40,30 @@ export function Main() {
     <AppQueryClientProvider>
       <DocumentTitleManager>
         <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
-          <ThemeAndStyleProvider>
-            <NuqsAdapter defaultOptions={{shallow: false}}>
-              <CommandPaletteProvider>
-                <RouteConfigProvider value={router.routes}>
-                  <RouterProvider router={router} />
-                </RouteConfigProvider>
-              </CommandPaletteProvider>
-            </NuqsAdapter>
-            {USE_TANSTACK_DEVTOOL && (
-              <TanStackDevtools
-                config={{position: 'bottom-right'}}
-                plugins={[
-                  {
-                    name: 'TanStack Query',
-                    render: <ReactQueryDevtoolsPanel />,
-                  },
-                  formDevtoolsPlugin(),
-                  pacerDevtoolsPlugin(),
-                ]}
-              />
-            )}
-          </ThemeAndStyleProvider>
+          <ServiceWorkerProvider>
+            <ThemeAndStyleProvider>
+              <NuqsAdapter defaultOptions={{shallow: false}}>
+                <CommandPaletteProvider>
+                  <RouteConfigProvider value={router.routes}>
+                    <RouterProvider router={router} />
+                  </RouteConfigProvider>
+                </CommandPaletteProvider>
+              </NuqsAdapter>
+              {USE_TANSTACK_DEVTOOL && (
+                <TanStackDevtools
+                  config={{position: 'bottom-right'}}
+                  plugins={[
+                    {
+                      name: 'TanStack Query',
+                      render: <ReactQueryDevtoolsPanel />,
+                    },
+                    formDevtoolsPlugin(),
+                    pacerDevtoolsPlugin(),
+                  ]}
+                />
+              )}
+            </ThemeAndStyleProvider>
+          </ServiceWorkerProvider>
         </FrontendVersionProvider>
       </DocumentTitleManager>
     </AppQueryClientProvider>

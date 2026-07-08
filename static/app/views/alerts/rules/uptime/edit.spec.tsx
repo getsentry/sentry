@@ -46,7 +46,6 @@ describe('uptime/edit', () => {
       <UptimeRulesEdit
         {...routerProps}
         onChangeTitle={handleChangeTitle}
-        userTeamIds={[]}
         organization={organization}
         params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,
@@ -82,7 +81,6 @@ describe('uptime/edit', () => {
       <UptimeRulesEdit
         {...routerProps}
         onChangeTitle={handleChangeTitle}
-        userTeamIds={[]}
         organization={organization}
         params={{projectId: project.slug, ruleId: uptimeRule.id}}
       />,

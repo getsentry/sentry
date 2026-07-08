@@ -27,12 +27,7 @@ import {
   type QueryFieldValue,
   type ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {
-  classifyTagKey,
-  FieldKind,
-  FieldValueType,
-  prettifyTagKey,
-} from 'sentry/utils/fields';
+import {classifyTagKey, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
@@ -48,6 +43,7 @@ import {
   ColumnCompactSelect,
   SelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
@@ -375,26 +371,10 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             trailingItems: () => <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
-      ...Object.values(booleanSpanTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
-        };
-      }),
-      ...Object.values(stringSpanTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          trailingItems: () => <TypeBadge kind={FieldKind.TAG} />,
-        };
-      }),
-      ...Object.values(numericSpanTags).map(tag => {
-        return {
-          label: prettifyTagKey(tag.name),
-          value: tag.key,
-          trailingItems: () => <TypeBadge kind={FieldKind.MEASUREMENT} />,
-        };
+      ...buildTraceItemColumnOptions({
+        booleanTags: booleanSpanTags,
+        stringTags: stringSpanTags,
+        numberTags: numericSpanTags,
       }),
     ];
     options.sort(_sortFn);

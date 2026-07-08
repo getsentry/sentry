@@ -612,6 +612,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Cooldown (seconds) between a PR's terminal close/merge webhook and emitting its
+# scm.pr.closed metrics row, so late attribution and activity can settle first.
+register(
+    "pr_metrics.emit_cooldown_seconds",
+    default=3600,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1992,6 +1999,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.trace-item-details-timebuffer-minutes",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # minutes
+register(
     "performance.traces.query_timestamp_projects",
     type=Bool,
     default=False,
@@ -2991,6 +3004,12 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.buffer.process-segments-task-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
@@ -3685,13 +3704,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Global flag to enable API token async flush
-register(
-    "api-token-async-flush",
-    default=False,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cells
 
@@ -3744,14 +3756,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
-register(
-    "tasks.producer.occurrences.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rolls out the new TaskProducer to the clock_pulse task
 register(
     "tasks.producer.clock-pulse.rollout",
@@ -3779,14 +3783,6 @@ register(
 # Rolls out the new TaskProducer to replays tasks
 register(
     "tasks.producer.replays.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rolls out the new TaskProducer to track_outcome in tasks
-register(
-    "tasks.producer.track_outcome.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

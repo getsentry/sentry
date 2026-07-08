@@ -285,27 +285,28 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
-const isIntegrationUpToDate = (integration: Integration): boolean =>
-  integration.provider.key !== 'slack' ||
-  (integration.scopes?.includes('app_mentions:read') ?? false);
-
-const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
-  return integrations.every(isIntegrationUpToDate);
-};
-
 /**
  * Whether a single integration installation is running an outdated app and
  * should surface an "Update Now" prompt. Checked per-workspace so that, e.g.,
  * an outdated Slack workspace doesn't flag a sibling workspace that is current.
  */
 export const integrationRequiresUpgrade = (integration: Integration): boolean =>
-  !isIntegrationUpToDate(integration);
+  integration.outOfDate === true;
+
+/**
+ * URL where a user can review and accept a GitHub App installation's updated
+ * permissions. Mirrors `_build_permissions_update_url` on the backend.
+ */
+export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
+  `https://github.com/settings/installations/${installationId}/permissions/update`;
 
 export const canManageIntegrations = (organization: Organization): boolean =>
   isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
 
 export function getIntegrationNoun(slug: string): string {
   switch (slug) {
+    case 'github':
+      return t('GitHub App installation');
     case 'slack':
       return t('workspace');
     default:
@@ -314,11 +315,24 @@ export function getIntegrationNoun(slug: string): string {
 }
 
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
-  return isSlackIntegrationUpToDate(integrations || [])
-    ? undefined
-    : t(
+  const outdated = (integrations || []).find(integrationRequiresUpgrade);
+
+  if (!outdated) {
+    return undefined;
+  }
+
+  switch (outdated.provider.key) {
+    case 'github':
+      return t(
+        'Update to the latest version of our GitHub App to get access to the latest features.'
+      );
+    case 'slack':
+      return t(
         'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app on your workspace to get started.'
       );
+    default:
+      return undefined;
+  }
 };
 
 /**

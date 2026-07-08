@@ -39,7 +39,6 @@ import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLay
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
-import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -91,8 +90,6 @@ export function TransactionHeader({
       };
 
       switch (newTab) {
-        case Tab.TAGS:
-          return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
@@ -162,9 +159,6 @@ export function TransactionHeader({
     >
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-      <TabList.Item key={Tab.TAGS} hidden>
-        {t('Tags')}
-      </TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} limit={REPLAY_COUNT_LIMIT} />
@@ -330,9 +324,6 @@ export function TransactionHeader({
       >
         <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
         <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item key={Tab.TAGS} hidden>
-          {t('Tags')}
-        </TabList.Item>
         <TabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}
