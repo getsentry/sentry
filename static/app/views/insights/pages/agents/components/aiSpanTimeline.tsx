@@ -114,14 +114,14 @@ const TIMELINE_SKELETON_ROWS: Array<{
   indent?: boolean;
   secondary?: string;
 }> = [
-  {title: '130px', secondary: '90px'},
-  {title: '90px', secondary: '60px', indent: true},
-  {title: '110px', indent: true},
-  {title: '80px', secondary: '100px', indent: true},
-  {title: '85px', secondary: '55px', indent: true},
-  {title: '120px', indent: true},
-  {title: '100px', secondary: '70px'},
-  {title: '95px', secondary: '85px', indent: true},
+  {title: '170px', secondary: '90px'},
+  {title: '130px', secondary: '60px', indent: true},
+  {title: '150px', indent: true},
+  {title: '120px', secondary: '100px', indent: true},
+  {title: '125px', secondary: '55px', indent: true},
+  {title: '160px', indent: true},
+  {title: '140px', secondary: '70px'},
+  {title: '135px', secondary: '85px', indent: true},
 ];
 
 function TimelineSkeleton() {

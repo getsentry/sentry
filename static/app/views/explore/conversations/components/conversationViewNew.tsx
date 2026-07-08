@@ -91,10 +91,6 @@ export function ConversationViewContentNew({
 
   const isTranscript = !isTimeline;
 
-  // The timeline auto-selects a span, so its detail pane skeletons while loading.
-  const showSpanDetail =
-    detailState.detailOpen && (isLoading ? isTimeline : Boolean(selectedNode));
-
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
@@ -128,7 +124,8 @@ export function ConversationViewContentNew({
           )
         }
         right={
-          showSpanDetail ? (
+          // The timeline auto-selects a span, so its detail pane skeletons while loading.
+          detailState.detailOpen && (isLoading ? isTimeline : Boolean(selectedNode)) ? (
             <ConversationSpanDetail
               isLoading={isLoading}
               scrollResetKey={activeTab}
