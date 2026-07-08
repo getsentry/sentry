@@ -1,5 +1,6 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LeadingGraphicProps} from '@sentry/scraps/leadingGraphic';
+import {Text} from '@sentry/scraps/text';
 
 import {EditableText} from 'sentry/components/editableText';
 
@@ -44,8 +45,12 @@ export function BreadcrumbItemPageTitleEditable({
     // edit affordance, so (unlike page-title) there is nothing to reveal on hover.
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
       {leadingGraphic}
+      {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's
+          compact label/input inherit font-weight from this context. */}
       <Container minWidth={0} width="auto" data-test-id="breadcrumb-item">
-        {title}
+        <Text as="div" bold>
+          {title}
+        </Text>
       </Container>
     </Flex>
   );
