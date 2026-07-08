@@ -81,10 +81,11 @@ function SpanDetailSkeleton() {
           <Placeholder height="14px" width="160px" />
         </Grid>
       </Stack>
-      <Flex gap="lg" flexShrink={0} borderBottom="primary" paddingBottom="sm">
-        <Placeholder height="16px" width="40px" />
-        <Placeholder height="16px" width="48px" />
-        <Placeholder height="16px" width="72px" />
+      {/* Mirrors the flat TabList: labels with no full-width divider. */}
+      <Flex gap="lg" flexShrink={0}>
+        <Placeholder height="16px" width="44px" />
+        <Placeholder height="16px" width="56px" />
+        <Placeholder height="16px" width="96px" />
       </Flex>
       <Placeholder height="240px" width="100%" />
     </SpanDetailCard>
