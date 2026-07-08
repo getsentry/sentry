@@ -814,14 +814,20 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     app_icon_id = models.CharField(max_length=255, null=True)
     # The name of the app, e.g. "My App"
     app_name = models.CharField(max_length=255, null=True)
-    # Miscellaneous fields that we don't need columns for
+    # Miscellaneous fields that we don't need columns for.
+    # Known keys:
+    #   build_number_raw (str): unparsed build identifier (e.g. raw CFBundleVersion)
+    #   for display, since build_number may be a synthesized sortable int.
     extras = models.JSONField(null=True)
 
     def format_version_string(self, default: str = "--") -> str:
         parts: list[str] = []
         if self.build_version:
             parts.append(self.build_version)
-        if self.build_number:
+        build_number_raw = self.extras.get("build_number_raw") if self.extras else None
+        if build_number_raw:
+            parts.append(f"({build_number_raw})")
+        elif self.build_number:
             parts.append(f"({self.build_number})")
         return " ".join(parts) if parts else default
 

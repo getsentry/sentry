@@ -43,6 +43,7 @@ class BuildDetailsAppInfo(BaseModel):
     name: str | None
     version: str | None
     build_number: int | None = None
+    build_number_raw: str | None = None
     date_added: str | None = None
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType | None = None
@@ -209,6 +210,11 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         name=mobile_app_info.app_name if mobile_app_info else None,
         version=(mobile_app_info.build_version if mobile_app_info else None),
         build_number=(mobile_app_info.build_number if mobile_app_info else None),
+        build_number_raw=(
+            mobile_app_info.extras.get("build_number_raw")
+            if mobile_app_info and mobile_app_info.extras
+            else None
+        ),
         date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
         date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
         artifact_type=artifact.artifact_type,

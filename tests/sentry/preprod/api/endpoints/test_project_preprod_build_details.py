@@ -69,7 +69,21 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["app_info"]["name"] == self.mobile_app_info.app_name
         assert resp_data["app_info"]["version"] == self.mobile_app_info.build_version
         assert resp_data["app_info"]["build_number"] == self.mobile_app_info.build_number
+        assert resp_data["app_info"]["build_number_raw"] is None
         assert resp_data["app_info"]["artifact_type"] == self.preprod_artifact.artifact_type
+
+    def test_get_build_details_build_number_raw(self) -> None:
+        self.mobile_app_info.extras = {"build_number_raw": "1.2.3"}
+        self.mobile_app_info.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["app_info"]["build_number_raw"] == "1.2.3"
 
     def test_get_build_details_distribution_info(self) -> None:
         self.preprod_artifact.extras = {"release_notes": "Build notes"}
