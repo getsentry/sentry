@@ -49,6 +49,7 @@ import {
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
   useQueryParamsId,
@@ -196,7 +197,12 @@ function SpanTabContentSectionInner({
   const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
   const crossEventQueries = useCrossEventQueries(crossEventDatasetAvailability);
   const sortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
+
+  // In aggregate mode the table is driven by aggregateSortBys, not the
+  // samples sort (which falls back to `-timestamp`), so pick accordingly.
+  const activeSortBys = tab === Mode.AGGREGATE ? aggregateSortBys : sortBys;
 
   // Push page state into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -208,7 +214,7 @@ function SpanTabContentSectionInner({
     activeTab: tab,
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
-    sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
   });
 
