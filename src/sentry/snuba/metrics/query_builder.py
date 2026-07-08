@@ -143,7 +143,9 @@ def parse_public_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
-def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+def transform_null_transaction_to_unparameterized(
+    use_case_id: UseCaseID, org_id: int, alias: str | None = None
+) -> Function:
     """
     This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
     as such in any query using that tag value.
@@ -514,11 +516,11 @@ class QueryDefinition:
 
     def __init__(
         self,
-        projects,
-        query_params,
+        projects: Sequence[Project],
+        query_params: Any,
         allow_mri: bool = False,
-        paginator_kwargs: dict | None = None,
-    ):
+        paginator_kwargs: dict[str, Any] | None = None,
+    ) -> None:
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
@@ -567,7 +569,9 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params, allow_mri: bool = False):
+    def _parse_orderby(
+        query_params: Any, allow_mri: bool = False
+    ) -> list[MetricsOrderBy] | None:
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -585,19 +589,19 @@ class QueryDefinition:
         return orderby_list
 
     @staticmethod
-    def _parse_limit(paginator_kwargs) -> Limit | None:
+    def _parse_limit(paginator_kwargs: Mapping[str, Any]) -> Limit | None:
         if "limit" not in paginator_kwargs:
             return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
-    def _parse_offset(paginator_kwargs) -> Offset | None:
+    def _parse_offset(paginator_kwargs: Mapping[str, Any]) -> Offset | None:
         if "offset" not in paginator_kwargs:
             return None
         return Offset(paginator_kwargs["offset"])
 
 
-def get_date_range(params: Mapping) -> tuple[datetime, datetime, int]:
+def get_date_range(params: Mapping[str, Any]) -> tuple[datetime, datetime, int]:
     """Get start, end, rollup for the given parameters.
 
     Apply a similar logic as `sessions_v2.get_constrained_date_range`,
@@ -1067,18 +1071,18 @@ class SnubaQueryBuilder:
 
     def __build_totals_and_series_queries(
         self,
-        entity,
-        select,
-        where,
-        having,
-        groupby,
-        orderby,
-        limit,
-        offset,
-        rollup,
-        intervals_len,
-    ):
-        rv = {}
+        entity: MetricEntity,
+        select: Sequence[Any],
+        where: Sequence[BooleanCondition | Condition],
+        having: Sequence[BooleanCondition | Condition],
+        groupby: Sequence[Column] | None,
+        orderby: Sequence[OrderBy] | None,
+        limit: Limit | None,
+        offset: Offset | None,
+        rollup: Granularity,
+        intervals_len: int,
+    ) -> dict[str, Query]:
+        rv: dict[str, Query] = {}
         totals_query = Query(
             match=Entity(entity),
             groupby=groupby,
@@ -1095,6 +1099,7 @@ class SnubaQueryBuilder:
             rv["totals"] = totals_query
 
         if self._metrics_query.include_series:
+            assert limit is not None
             series_limit = limit.limit * intervals_len
             if self._metrics_query.max_limit:
                 series_limit = self._metrics_query.max_limit
@@ -1161,7 +1166,9 @@ class SnubaQueryBuilder:
                     fields_in_entities.setdefault(entity, []).append(metric_key)
         return metric_mri_to_obj_dict
 
-    def get_snuba_queries(self):
+    def get_snuba_queries(
+        self,
+    ) -> tuple[dict[MetricEntity, dict[str, Query]], dict[MetricEntity, list[MetricQueryFieldKey]]]:
         metric_mri_to_obj_dict: dict[MetricQueryFieldKey, MetricExpressionBase] = {}
         fields_in_entities: dict[MetricEntity, list[MetricQueryFieldKey]] = {}
 
@@ -1291,9 +1298,9 @@ class SnubaResultConverter:
         metrics_query: DeprecatingMetricsQuery,
         fields_in_entities: dict[MetricEntity, list[MetricQueryFieldKey]],
         intervals: list[datetime],
-        results,
+        results: Mapping[MetricEntity, Mapping[str, Any]],
         use_case_id: UseCaseID,
-    ):
+    ) -> None:
         self._organization_id = organization_id
         self._intervals = intervals
         self._results = results
@@ -1331,7 +1338,11 @@ class SnubaResultConverter:
 
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
-    def _extract_data(self, data, groups: dict[tuple[tuple[str, str], ...], _SeriesTotals]) -> None:
+    def _extract_data(
+        self,
+        data: dict[str, Any],
+        groups: dict[tuple[tuple[str, Any], ...], _SeriesTotals],
+    ) -> None:
         group_key_aliases = (
             {metric_groupby_obj.alias for metric_groupby_obj in self._metrics_query.groupby}
             if self._metrics_query.groupby
@@ -1391,8 +1402,8 @@ class SnubaResultConverter:
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value
 
-    def translate_result_groups(self):
-        groups_d: dict[tuple[tuple[str, str], ...], _SeriesTotals] = {}
+    def translate_result_groups(self) -> list[_BySeriesTotals]:
+        groups_d: dict[tuple[tuple[str, Any], ...], _SeriesTotals] = {}
         for _, subresults in self._results.items():
             for k in "totals", "series":
                 if k in subresults:
