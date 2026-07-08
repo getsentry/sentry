@@ -21,6 +21,11 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
       ),
     },
     {
+      path: 'connectors/',
+      name: t('Connectors'),
+      component: make(() => import('getsentry/views/seerAutomation/connectors')),
+    },
+    {
       // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
       index: true,
       name: t('Seer Automation'),

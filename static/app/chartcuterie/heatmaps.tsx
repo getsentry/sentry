@@ -35,7 +35,11 @@ export function buildHeatmapChartOption({
   // so we have a bit more control
   const labelFont = {fontSize: FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY};
 
-  const timeAxis = heatMapTimeAxis({min: xAxisMeta.start, max: xAxisMeta.end, utc: true});
+  const timeAxis = heatMapTimeAxis({
+    min: xAxisMeta.start,
+    max: xAxisMeta.end,
+    timezone: 'UTC',
+  });
   const valueAxis = heatMapValueAxis({
     min: yAxisMeta.start,
     max: yAxisMeta.end,

@@ -65,6 +65,13 @@ class PullRequestVerdict(models.TextChoices):
     # event won't forward twice; Seer's callback overwrites it with a real verdict.
     # Never a judge *result* — the callback rejects it coming back from Seer.
     JUDGE_IN_PROGRESS = "judge_in_progress"
+    # Transient, internal: a terminal event has been claimed at the close/merge
+    # webhook and an emission task scheduled, but the cooldown window (during which
+    # late attribution and activity settle) hasn't elapsed yet. Reuses the verdict
+    # column as the redelivery guard so a redelivered terminal event won't schedule
+    # a second task; the cooldown task overwrites it with a real verdict (or the
+    # JUDGE_IN_PROGRESS sentinel). Never a judge *result*.
+    WAITING_EVENT_COOLDOWN = "waiting_event_cooldown"
 
 
 # SCM providers that can legitimately back a Repository. A reporting source (Seer, a

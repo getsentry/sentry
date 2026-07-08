@@ -71,6 +71,7 @@ from sentry.sentry_apps.utils.webhooks import (
     MetricAlertActionType,
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
+    is_subscribed,
 )
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
@@ -351,7 +352,7 @@ def _process_resource_change(
                 for installation in app_service.installations_for_organization(
                     organization_id=org.id
                 )
-                if event in installation.sentry_app.events
+                if is_subscribed(installation.sentry_app.events, event)
             ]
             data: dict[str, Any] = {}
             if isinstance(instance, (Event, GroupEvent)):
@@ -1150,13 +1151,10 @@ def broadcast_webhooks_for_organization(
         # Get installations for this organization
         installations = app_service.installations_for_organization(organization_id=organization_id)
 
-        # Filter for installations that subscribe to the event category
-        from sentry.sentry_apps.logic import consolidate_events
-
         relevant_installations = [
             installation
             for installation in installations
-            if resource_name in consolidate_events(installation.sentry_app.events)
+            if is_subscribed(installation.sentry_app.events, event_type)
         ]
 
         if not relevant_installations:

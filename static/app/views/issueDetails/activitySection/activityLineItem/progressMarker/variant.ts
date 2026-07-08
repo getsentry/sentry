@@ -1,29 +1,25 @@
+import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import {formatProgressState, ProgressState} from 'sentry/views/issueList/utils/progress';
 
-export type ProgressMarkerVariant =
-  | 'diagnosed'
-  | 'dot'
-  | 'fix-applied'
-  | 'fix-proposed'
-  | 'identified'
-  | 'routed';
+export type ActivityMarkerState = ProgressState | 'activity';
 
-export function getProgressMarkerVariant(item: GroupActivity): ProgressMarkerVariant {
+export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState {
   switch (item.type) {
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
     case GroupActivityType.REFERENCED_IN_COMMIT:
     case GroupActivityType.SEER_PR_CREATED:
-      return 'fix-proposed';
+      return ProgressState.FIX_PROPOSED;
     case GroupActivityType.SET_RESOLVED:
     case GroupActivityType.SET_RESOLVED_BY_AGE:
     case GroupActivityType.SET_RESOLVED_IN_RELEASE:
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
     case GroupActivityType.MARK_REVIEWED:
-      return 'fix-applied';
+      return ProgressState.FIX_APPLIED;
     case GroupActivityType.SET_ESCALATING:
     case GroupActivityType.SEER_RCA_COMPLETED:
-      return 'diagnosed';
+      return ProgressState.DIAGNOSED;
     case GroupActivityType.SEER_RCA_STARTED:
     case GroupActivityType.SEER_SOLUTION_STARTED:
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
@@ -35,19 +31,29 @@ export function getProgressMarkerVariant(item: GroupActivity): ProgressMarkerVar
     case GroupActivityType.SET_PUBLIC:
     case GroupActivityType.SET_PRIVATE:
     case GroupActivityType.SET_PRIORITY:
-      return 'dot';
+      return 'activity';
     case GroupActivityType.SET_REGRESSION:
-      return 'identified';
+      return ProgressState.IDENTIFIED;
     case GroupActivityType.SET_IGNORED:
-      return 'routed';
+      return ProgressState.ASSIGNED;
     case GroupActivityType.SET_UNRESOLVED:
-      return 'forecast' in item.data && item.data.forecast ? 'diagnosed' : 'identified';
+      return 'forecast' in item.data && item.data.forecast
+        ? ProgressState.DIAGNOSED
+        : ProgressState.IDENTIFIED;
     case GroupActivityType.NOTE:
-      return 'dot';
+      return 'activity';
     case GroupActivityType.ASSIGNED:
     case GroupActivityType.UNASSIGNED:
-      return 'routed';
+      return ProgressState.ASSIGNED;
     default:
-      return 'identified';
+      return ProgressState.IDENTIFIED;
   }
+}
+
+export function formatActivityMarkerState(state: ActivityMarkerState) {
+  if (state === 'activity') {
+    return t('Activity update');
+  }
+
+  return formatProgressState(state);
 }
