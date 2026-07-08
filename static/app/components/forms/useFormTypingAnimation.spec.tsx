@@ -1,7 +1,5 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {FormModel} from 'sentry/components/forms/model';
-
 import {useFormTypingAnimation} from './useFormTypingAnimation';
 
 describe('useFormTypingAnimation', () => {
@@ -18,46 +16,46 @@ describe('useFormTypingAnimation', () => {
   });
 
   it('animates text into the target form field', () => {
-    const formModel = new FormModel();
+    let value = 'initial';
+    const setValue = (next: string) => {
+      value = next;
+    };
     const {result} = renderHook(useTestHook, {
       initialProps: {speed: 80},
     });
 
     act(() => {
-      result.current.triggerFormTypingAnimation({
-        formModel,
-        fieldName: 'name',
-        text: 'Hello',
-      });
+      result.current.triggerFormTypingAnimation({setValue, text: 'Hello'});
     });
 
-    expect(formModel.getValue('name')).toBe('');
+    expect(value).toBe('');
 
     act(() => {
       jest.advanceTimersByTime(48);
     });
 
-    const intermediateValue = formModel.getValue<string>('name') ?? '';
-    expect(intermediateValue.length).toBeGreaterThan(0);
-    expect(intermediateValue.length).toBeLessThan('Hello'.length);
+    expect(value.length).toBeGreaterThan(0);
+    expect(value.length).toBeLessThan('Hello'.length);
 
     act(() => {
       jest.runAllTimers();
     });
 
-    expect(formModel.getValue('name')).toBe('Hello');
+    expect(value).toBe('Hello');
   });
 
   it('restarts animation when triggered again', () => {
-    const formModel = new FormModel();
+    let value = '';
+    const setValue = (next: string) => {
+      value = next;
+    };
     const {result} = renderHook(useTestHook, {
       initialProps: {speed: 10},
     });
 
     act(() => {
       result.current.triggerFormTypingAnimation({
-        formModel,
-        fieldName: 'name',
+        setValue,
         text: 'First generated title',
       });
     });
@@ -68,8 +66,7 @@ describe('useFormTypingAnimation', () => {
 
     act(() => {
       result.current.triggerFormTypingAnimation({
-        formModel,
-        fieldName: 'name',
+        setValue,
         text: 'New title',
         speed: 120,
       });
@@ -79,6 +76,6 @@ describe('useFormTypingAnimation', () => {
       jest.runAllTimers();
     });
 
-    expect(formModel.getValue('name')).toBe('New title');
+    expect(value).toBe('New title');
   });
 });
