@@ -15,7 +15,8 @@ from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssign
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
 from sentry.issues.ownership.grammar import (
     CODEOWNERS,
     Matcher,

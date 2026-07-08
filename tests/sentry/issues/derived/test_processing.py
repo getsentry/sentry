@@ -5,9 +5,10 @@ from django.db import router, transaction
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.issues.action_log.base import ActionSource, publish_action
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
+    ActionSource,
     GroupAction,
     GroupActionActor,
     GroupActionType,

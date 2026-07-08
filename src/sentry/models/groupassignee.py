@@ -13,7 +13,7 @@ from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_re
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
-from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import AssignAction, UnassignAction
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner

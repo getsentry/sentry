@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Literal, Optional, TypedDict
 
 from pydantic import BaseModel
@@ -118,6 +118,34 @@ class GroupActionType(IntEnum):
     SEER_PR_CREATED = 1035
     SEER_ITERATION_STARTED = 1036
     SEER_ITERATION_COMPLETED = 1037
+
+
+class ActionSource(StrEnum):
+    WEB = "web"
+    SENTRY_CLI = "sentry-cli"
+    API = "api"
+    SYSTEM = "system"
+    MCP = "mcp"
+    SEER_EXPLORER = "seer:explorer"
+    SEER_SLACK = "seer:slack"
+    SLACK = "slack"
+    SLACK_STAGING = "slack_staging"
+    DISCORD = "discord"
+    MSTEAMS = "msteams"
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    GITLAB = "gitlab"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "vsts"
+    BITBUCKET = "bitbucket"
+    BITBUCKET_SERVER = "bitbucket_server"
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+    PERFORCE = "perforce"
+    UNKNOWN = (
+        "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
+    )
 
 
 class GroupAction(BaseModel, abc.ABC):
