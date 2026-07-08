@@ -18,6 +18,7 @@ import {
   LOGS_REFRESH_INTERVAL_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -258,6 +259,37 @@ describe('useInfiniteLogsQuery', () => {
         query: expect.objectContaining({sampling: SAMPLING_MODE.HIGH_ACCURACY}),
       })
     );
+  });
+
+  it('refuses to seek when the table is not sorted by timestamp', async () => {
+    mockLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          [LOGS_FIELDS_KEY]: [OurLogKnownFieldKey.MESSAGE, OurLogKnownFieldKey.SEVERITY],
+          [LOGS_SORT_BYS_KEY]: OurLogKnownFieldKey.SEVERITY,
+        },
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+      headers: linkHeaders,
+    });
+
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    let didSeek = true;
+    act(() => {
+      didSeek = result.current.seekToTimestamp('100');
+    });
+
+    expect(didSeek).toBe(false);
+    expect(result.current.isSeeking).toBe(false);
   });
 
   it('settles the seek when the anchored page is empty so the table can show its empty state', async () => {
