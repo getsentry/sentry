@@ -42,9 +42,8 @@ function DiscoverContainer() {
       location.query.queryDataset !== SavedQueryDatasets.TRANSACTIONS &&
       location.query.dataset !== Dataset.TRANSACTIONS
     ) {
-      const discoverPath = location.pathname
-        .replace('/explore/discover/', '')
-        .replaceAll('/', '');
+      const match = location.pathname.match(/\/explore\/discover\/([^/]+)\//);
+      const discoverPath = match?.[1] ?? 'homepage';
       const targetPath = makeDiscoverPathname({
         path: `/${discoverPath}/`,
         organization,
