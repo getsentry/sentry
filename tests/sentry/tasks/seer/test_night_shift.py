@@ -525,72 +525,6 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         mock_score.assert_called_once()
         assert [p.id for p in mock_score.call_args.args[0]] == [enabled.id]
 
-    def test_allowed_project_slugs_triggers_per_project_quotas(self) -> None:
-        org = self.create_organization()
-        keep = self.create_project(organization=org, slug="keep")
-        self._make_eligible(keep)
-
-        with (
-            self.options(
-                {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
-            ),
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy_per_project",
-                return_value=[],
-            ) as mock_per_project,
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
-                return_value=[],
-            ) as mock_global,
-        ):
-            run_night_shift_for_org(org.id)
-
-        mock_per_project.assert_called_once()
-        mock_global.assert_not_called()
-
-    def test_without_allowed_project_slugs_uses_global_strategy(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        self._make_eligible(project)
-
-        with (
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy_per_project",
-                return_value=[],
-            ) as mock_per_project,
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
-                return_value=[],
-            ) as mock_global,
-        ):
-            run_night_shift_for_org(org.id)
-
-        mock_global.assert_called_once()
-        mock_per_project.assert_not_called()
-
-    def test_manual_run_ignores_allowed_project_slugs_for_quota_strategy(self) -> None:
-        org = self.create_organization()
-        keep = self.create_project(organization=org, slug="keep")
-        self._make_eligible(keep)
-
-        with (
-            self.options(
-                {"seer.night_shift.org_tweaks": {str(org.id): {"allowed_project_slugs": ["keep"]}}}
-            ),
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy_per_project",
-                return_value=[],
-            ) as mock_per_project,
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
-                return_value=[],
-            ) as mock_global,
-        ):
-            run_night_shift_for_org(org.id, options={"source": "manual"}, project_ids=[keep.id])
-
-        mock_global.assert_called_once()
-        mock_per_project.assert_not_called()
-
 
 @django_db_all
 class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCase):
@@ -714,6 +648,44 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_allowed_project_slugs_gives_each_project_its_own_quota(self) -> None:
+        org = self.create_organization()
+        noisy = self._make_eligible(self.create_project(organization=org, slug="noisy"))
+        quiet = self._make_eligible(self.create_project(organization=org, slug="quiet"))
+
+        for i in range(3):
+            self._store_event_and_update_group(
+                noisy, f"noisy-{i}", seer_fixability_score=0.9, times_seen=5
+            )
+        quiet_issue = self._store_event_and_update_group(
+            quiet, "quiet-issue", seer_fixability_score=0.5, times_seen=1
+        )
+
+        with (
+            self.feature("organizations:gen-ai-features"),
+            self.options(
+                {
+                    "seer.night_shift.org_tweaks": {
+                        str(org.id): {
+                            "max_candidates": 1,
+                            "allowed_project_slugs": ["noisy", "quiet"],
+                        }
+                    }
+                }
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        shard = run.shards.get()
+        candidate_group_ids = self._shard_group_ids(shard)
+
+        # max_candidates=1 would only leave room for one of noisy's higher-scored
+        # issues under the combined strategy; per-project quotas give quiet a
+        # guaranteed slot too.
+        assert len(candidate_group_ids) == 2
+        assert quiet_issue.id in candidate_group_ids
 
     def test_shards_candidates_across_feature_runs(self) -> None:
         org = self.create_organization()
