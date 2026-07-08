@@ -6,8 +6,8 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useReportUnavailablePinnedLogs} from 'sentry/views/explore/logs/pinning/useReportUnavailablePinnedLogs';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
+import {useReportUnavailablePinnedLogs} from 'sentry/views/explore/logs/pinning/useReportUnavailablePinnedLogs';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
