@@ -24,6 +24,7 @@ from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
     InstallationRepositoriesEventWebhook,
+    IssueCommentEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
@@ -146,6 +147,10 @@ class GitHubEnterpriseIssuesEventWebhook(GitHubEnterpriseWebhook, IssuesEventWeb
     pass
 
 
+class GitHubEnterpriseIssueCommentEventWebhook(GitHubEnterpriseWebhook, IssueCommentEventWebhook):
+    pass
+
+
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -156,6 +161,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         "installation": GitHubEnterpriseInstallationEventWebhook,
         "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
+        "issue_comment": GitHubEnterpriseIssueCommentEventWebhook,
     }
 
     def _get_host(self, request: HttpRequest) -> str | None:
