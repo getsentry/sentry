@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
@@ -34,31 +35,48 @@ export function EmptyState({
 }: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
-    <Container>
+    <Flex
+      flex={1}
+      direction="column"
+      align="center"
+      justify="center"
+      gap="xl"
+      padding={{'2xs': 'xl', xs: '3xl'}}
+    >
       {isLoading ? (
         <Fragment>
           <LoadingIndicator size={32} />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
+          <Container maxWidth={300}>
+            <Text as="div" variant="muted" size="md" align="center">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </Container>
         </Fragment>
       ) : isError ? (
         <Fragment>
           <IconSeer size="xl" />
-          <Text>
-            {errorStatusCode === 404
-              ? tct('Session not found (run_id=[runIdDisplay]).', {
-                  runIdDisplay,
-                })
-              : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
-                  runIdDisplay,
-                })}
-          </Text>
+          <Container maxWidth={300}>
+            <Text as="div" variant="muted" size="md" align="center">
+              {errorStatusCode === 404
+                ? tct('Session not found (run_id=[runIdDisplay]).', {
+                    runIdDisplay,
+                  })
+                : tct(`Error loading this session (run_id=[runIdDisplay]).`, {
+                    runIdDisplay,
+                  })}
+            </Text>
+          </Container>
         </Fragment>
       ) : (
         <Fragment>
           <IconSeer size="xl" animation="waiting" />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
+          <Container maxWidth={300}>
+            <Text as="div" variant="muted" size="md" align="center">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </Container>
           {onSuggestionClick && (
-            <Flex direction="column" align="center" gap="md" paddingTop="2xl">
+            <Flex direction="column" align="center" gap="md">
               {SUGGESTED_QUESTIONS.map(question => (
                 <SuggestionButton
                   key={question}
@@ -71,29 +89,19 @@ export function EmptyState({
             </Flex>
           )}
           {displaySlackAgentReminder && (
-            <Text>
-              {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
-            </Text>
+            <Container maxWidth={300}>
+              <Text as="div" variant="muted" size="md" align="center">
+                {t(
+                  'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
+                )}
+              </Text>
+            </Container>
           )}
         </Fragment>
       )}
-    </Container>
+    </Flex>
   );
 }
-
-const Container = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['3xl']};
-  text-align: center;
-
-  @container seer-explorer-root (max-width: 400px) {
-    padding: ${p => p.theme.space.xl};
-  }
-`;
 
 const SuggestionButton = styled(Button)`
   height: auto;
@@ -111,12 +119,4 @@ const SuggestionButton = styled(Button)`
     flex-grow: 1;
     width: 100%;
   }
-`;
-
-const Text = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.4;
-  max-width: 300px;
 `;
