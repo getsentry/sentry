@@ -25,7 +25,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -346,8 +345,6 @@ function ToolCallsCell({
   dataRow: Conversation;
   isRowHovered: boolean;
 }) {
-  const [isCellHovered, setIsCellHovered] = useState(false);
-
   // Prefetch the breakdown on row hover so the card is already populated by the
   // time it opens. Shares the card's query key, so this only warms the cache —
   // it never fires a second request. The card fetches on its own when opened
@@ -361,55 +358,43 @@ function ToolCallsCell({
     return <Text as="div">{formatAbbreviatedNumber(dataRow.toolCalls)}</Text>;
   }
 
-  // Hovering anywhere in the cell force-opens the tooltip, but it stays anchored
-  // to the number itself (`position="top"` over the number-sized count) rather
-  // than the center of the wide cell. Once the pointer leaves the cell we hand
-  // control back to the tooltip's own hover handling (forceVisible falls through
-  // to undefined) so the hoverable breakdown card and its close delay still work.
-  //
-  // Each cell gets its own hover-overlay group so a neighbouring cell opening
-  // can't snap this one closed — that snap-close state can't be cleared through
-  // the force-visible path, which would otherwise leave a hovered cell blank.
+  // The number itself is the tooltip trigger, so the card stays anchored over
+  // it (`position="top"`). To make the whole cell a hover target without moving
+  // that anchor, the trigger carries a transparent `::before` that fills the
+  // (relative) cell: pointer events over the pseudo-element dispatch to the
+  // trigger, driving the tooltip's native hover — while popper measures only the
+  // number's own box, so the anchor and the hoverable-card handoff are unchanged.
   return (
-    <Flex flex="1" align="center">
-      {props => (
-        <div
-          {...props}
-          onMouseEnter={() => setIsCellHovered(true)}
-          onMouseLeave={() => setIsCellHovered(false)}
-        >
-          <HoverOverlayGroupProvider>
-            <Tooltip
-              // `undefined` (not `false`) hands control back to native hover so
-              // the card stays reachable; `false` would force it shut on leave.
-              forceVisible={isCellHovered || undefined}
-              isHoverable
-              skipWrapper
-              position="top"
-              maxWidth={400}
-              title={
-                <ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />
-              }
-            >
-              <Text
-                tabIndex={0}
-                css={(theme: Theme) => css`
-                  text-decoration: underline dotted ${theme.tokens.content.secondary};
-                  text-decoration-thickness: 0.75px;
-                  text-underline-offset: 1.25px;
-                  outline: none;
+    <Flex flex="1" align="center" position="relative">
+      <Tooltip
+        isHoverable
+        skipWrapper
+        position="top"
+        maxWidth={400}
+        title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
+      >
+        <Text
+          tabIndex={0}
+          css={(theme: Theme) => css`
+            text-decoration: underline dotted ${theme.tokens.content.secondary};
+            text-decoration-thickness: 0.75px;
+            text-underline-offset: 1.25px;
+            outline: none;
 
-                  &:focus-visible {
-                    ${theme.focusRing()}
-                  }
-                `}
-              >
-                {formatAbbreviatedNumber(dataRow.toolCalls)}
-              </Text>
-            </Tooltip>
-          </HoverOverlayGroupProvider>
-        </div>
-      )}
+            &::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+            }
+
+            &:focus-visible {
+              ${theme.focusRing()}
+            }
+          `}
+        >
+          {formatAbbreviatedNumber(dataRow.toolCalls)}
+        </Text>
+      </Tooltip>
     </Flex>
   );
 }
