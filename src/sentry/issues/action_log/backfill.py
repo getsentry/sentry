@@ -134,8 +134,8 @@ def backfill_group_activities(
     while True:
         qs = Activity.objects.filter(group_id=group_id)
         if cursor is not None:
-            qs = qs.filter(id__lt=cursor)
-        batch = list(qs.order_by("-id")[:batch_size])
+            qs = qs.filter(id__gt=cursor)
+        batch = list(qs.order_by("id")[:batch_size])
 
         if not batch:
             break
