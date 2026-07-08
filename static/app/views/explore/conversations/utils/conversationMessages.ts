@@ -25,6 +25,12 @@ export interface ToolCall {
   duration?: number;
 }
 
+// Temporary render-order metadata for the new transcript. Long term, split the
+// transcript into ordered items instead of embedding UI blocks in ConversationMessage.
+export type ConversationAssistantBlock =
+  | {toolCalls: ToolCall[]; type: 'toolCalls'}
+  | {reasoning: string; type: 'reasoning'};
+
 export interface ConversationMessage {
   content: string;
   id: string;
@@ -32,6 +38,7 @@ export interface ConversationMessage {
   role: 'user' | 'assistant';
   timestamp: number;
   agentName?: string;
+  assistantBlocks?: ConversationAssistantBlock[];
   duration?: number;
   modelName?: string;
   reasoning?: string;
@@ -247,6 +254,8 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       }
       const modelName = getStringAttr(turn.generation, SpanFields.GEN_AI_RESPONSE_MODEL);
 
+      const assistantBlocks = getOrderedAssistantBlocks(turn.generation, turn.toolCalls);
+
       messages.push({
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
@@ -254,6 +263,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         timestamp: endTs,
         nodeId: turn.generation.id,
         toolCalls: hasToolCalls ? turn.toolCalls : undefined,
+        assistantBlocks,
         duration,
         agentName: agentName || undefined,
         modelName: modelName || undefined,
@@ -275,6 +285,135 @@ function findToolSpansBetween(
     const ts = getNodeTimestamp(span);
     return ts > startTime && ts < endTime;
   });
+}
+
+function getOrderedAssistantBlocks(
+  node: AITraceSpanNode,
+  toolCalls: ToolCall[]
+): ConversationAssistantBlock[] | undefined {
+  if (toolCalls.length < 2) {
+    return undefined;
+  }
+
+  const raw =
+    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
+
+  if (!raw || raw === FILTERED) {
+    return undefined;
+  }
+
+  const messages = parseRawMessages(raw);
+  if (messages.length === 0) {
+    return undefined;
+  }
+
+  const blocks: ConversationAssistantBlock[] = [];
+  let toolResultCount = 0;
+  let matchedToolCount = 0;
+  let matchedReasoning = false;
+
+  for (const message of messages) {
+    const reasoning = getReasoningFromMessage(message);
+    if (reasoning) {
+      blocks.push({type: 'reasoning', reasoning});
+      matchedReasoning = true;
+    }
+
+    if (isToolResultMessage(message)) {
+      toolResultCount++;
+      if (matchedToolCount < toolCalls.length) {
+        const toolCall = toolCalls[matchedToolCount];
+        if (!toolCall) {
+          continue;
+        }
+        blocks.push({type: 'toolCalls', toolCalls: [toolCall]});
+        matchedToolCount++;
+      }
+    }
+  }
+
+  if (
+    toolResultCount !== toolCalls.length ||
+    matchedToolCount !== toolCalls.length ||
+    !matchedReasoning
+  ) {
+    return undefined;
+  }
+
+  return blocks;
+}
+
+function parseRawMessages(raw: string): unknown[] {
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    if (isRecord(parsed) && Array.isArray(parsed.messages)) {
+      return parsed.messages;
+    }
+  } catch {
+    // Existing parsing paths handle invalid JSON; ordered blocks are best-effort.
+  }
+  return [];
+}
+
+function getReasoningFromMessage(message: unknown): string | null {
+  if (!isRecord(message) || message.role !== 'assistant') {
+    return null;
+  }
+
+  const parts = getMessageParts(message);
+  const reasoning = parts
+    .map(part => {
+      if (!isRecord(part)) {
+        return null;
+      }
+      const type = getStringValue(part.type);
+      if (type !== 'reasoning' && type !== 'thinking') {
+        return null;
+      }
+      return getStringValue(part.content) ?? getStringValue(part.text);
+    })
+    .filter(Boolean);
+
+  return reasoning.length > 0 ? reasoning.join('\n') : null;
+}
+
+function isToolResultMessage(message: unknown): boolean {
+  if (!isRecord(message)) {
+    return false;
+  }
+  if (message.role === 'tool') {
+    return true;
+  }
+
+  return getMessageParts(message).some(part => {
+    if (!isRecord(part)) {
+      return false;
+    }
+    const type = getStringValue(part.type);
+    return type === 'tool_result' || type === 'tool_call_response';
+  });
+}
+
+function getMessageParts(message: Record<string, unknown>): unknown[] {
+  if (Array.isArray(message.parts)) {
+    return message.parts;
+  }
+  if (Array.isArray(message.content)) {
+    return message.content;
+  }
+  return [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getStringValue(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }
 
 /**

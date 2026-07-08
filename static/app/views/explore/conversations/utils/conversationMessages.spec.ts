@@ -971,6 +971,49 @@ describe('conversationMessages utilities', () => {
       const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
       expect(assistant?.reasoning).toBe('Let me think step by step...');
     });
+
+    it('orders thinking between matched tool outputs from input history', () => {
+      const inputMessages = JSON.stringify([
+        {role: 'user', content: 'Question'},
+        {role: 'assistant', parts: [{type: 'tool_call', toolName: 'search'}]},
+        {role: 'tool', content: 'Search result'},
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'reasoning', content: 'Thinking between tools'},
+            {type: 'tool_call', toolName: 'calculator'},
+          ],
+        },
+        {role: 'tool', content: 'Calculator result'},
+      ]);
+      const turns = [
+        makeTurn({
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+            attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: inputMessages},
+          } as any,
+          assistantContent: 'Final answer',
+          toolCalls: [
+            {name: 'search', nodeId: 'tool-1', hasError: false},
+            {name: 'calculator', nodeId: 'tool-2', hasError: false},
+          ],
+        }),
+      ];
+
+      const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
+      expect(assistant?.assistantBlocks).toEqual([
+        {
+          type: 'toolCalls',
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+        },
+        {type: 'reasoning', reasoning: 'Thinking between tools'},
+        {
+          type: 'toolCalls',
+          toolCalls: [{name: 'calculator', nodeId: 'tool-2', hasError: false}],
+        },
+      ]);
+    });
   });
 
   describe('extractMessagesFromNodes (integration)', () => {

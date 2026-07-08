@@ -159,24 +159,49 @@ function AssistantTurn({
   const hasMeta =
     cost !== undefined || (message.duration !== undefined && message.duration > 0);
   const meta = <AssistantMeta cost={cost} duration={message.duration} />;
+  const assistantBlocks = message.assistantBlocks ?? [];
 
   return (
     <Fragment>
-      {message.toolCalls && message.toolCalls.length > 0 && (
-        <MessageBlock>
-          <MessageToolCallsNew
-            toolCalls={message.toolCalls}
-            selectedNodeId={selectedNodeId}
-            nodeMap={nodeMap}
-            nodeTraceMap={nodeTraceMap}
-            onSelectNode={onSelectNode}
-          />
-        </MessageBlock>
-      )}
-      {message.reasoning && (
-        <MessageBlock>
-          <ReasoningSection reasoning={message.reasoning} />
-        </MessageBlock>
+      {assistantBlocks.length > 0 ? (
+        assistantBlocks.map((block, index) =>
+          block.type === 'toolCalls' ? (
+            <MessageBlock
+              key={`tool-${index}-${block.toolCalls.map(toolCall => toolCall.nodeId).join('-')}`}
+            >
+              <MessageToolCallsNew
+                toolCalls={block.toolCalls}
+                selectedNodeId={selectedNodeId}
+                nodeMap={nodeMap}
+                nodeTraceMap={nodeTraceMap}
+                onSelectNode={onSelectNode}
+              />
+            </MessageBlock>
+          ) : (
+            <MessageBlock key={`reasoning-${index}`}>
+              <ReasoningSection reasoning={block.reasoning} />
+            </MessageBlock>
+          )
+        )
+      ) : (
+        <Fragment>
+          {message.toolCalls && message.toolCalls.length > 0 && (
+            <MessageBlock>
+              <MessageToolCallsNew
+                toolCalls={message.toolCalls}
+                selectedNodeId={selectedNodeId}
+                nodeMap={nodeMap}
+                nodeTraceMap={nodeTraceMap}
+                onSelectNode={onSelectNode}
+              />
+            </MessageBlock>
+          )}
+          {message.reasoning && (
+            <MessageBlock>
+              <ReasoningSection reasoning={message.reasoning} />
+            </MessageBlock>
+          )}
+        </Fragment>
       )}
       {message.content === '' ? (
         // Tool/reasoning-only turn: still surface the turn's cost and duration.
