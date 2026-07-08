@@ -36,6 +36,7 @@ interface MessagesPanelNewProps {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
+  isLoading?: boolean;
 }
 
 /**
@@ -48,6 +49,7 @@ export function MessagesPanelNew({
   selectedNodeId,
   onSelectNode,
   nodeTraceMap,
+  isLoading,
 }: MessagesPanelNewProps) {
   const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
@@ -80,6 +82,10 @@ export function MessagesPanelNew({
     }
   };
 
+  if (isLoading) {
+    return <MessagesPanelSkeleton />;
+  }
+
   if (messages.length === 0) {
     return (
       <PanelContainer>
@@ -103,7 +109,6 @@ export function MessagesPanelNew({
                     text={message.content}
                     inline
                     autoCollapseLimit={10}
-                    collapsibleXmlTags
                   />
                 </MessageText>
               </UserMessageBlock>
@@ -195,12 +200,7 @@ function AssistantTurn({
           onClick={onClick}
         >
           <MessageText align="left">
-            <AIContentRenderer
-              text={message.content}
-              inline
-              autoCollapseLimit={10}
-              collapsibleXmlTags
-            />
+            <AIContentRenderer text={message.content} inline autoCollapseLimit={10} />
           </MessageText>
         </AssistantMessageBlock>
       )}
@@ -254,12 +254,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
     >
       <Container padding="xs md">
         <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer
-            text={reasoning}
-            inline
-            autoCollapseLimit={10}
-            collapsibleXmlTags
-          />
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
       </Container>
     </CollapsibleContent>

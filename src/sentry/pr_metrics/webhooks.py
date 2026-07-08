@@ -161,7 +161,10 @@ def handle_attribution(
     if pr is None:
         return
 
-    if action == "opened":
+    # SENTRY_APP author attribution is recorded on open and re-checked on close.
+    # This is for the unlikely event that we missed the open webhook or for cases
+    # where the PR open and closes super fast and the webhooks might be out of order
+    if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
         _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
