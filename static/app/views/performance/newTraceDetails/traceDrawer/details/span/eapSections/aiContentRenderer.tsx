@@ -124,6 +124,7 @@ export function AIContentRenderer({
           value={detection.parsedData}
           maxDefaultDepth={maxJsonDepth}
           autoCollapseLimit={autoCollapseLimit}
+          clip={clip}
         />
       );
 
@@ -134,6 +135,7 @@ export function AIContentRenderer({
             value={detection.parsedData}
             maxDefaultDepth={maxJsonDepth}
             autoCollapseLimit={autoCollapseLimit}
+            clip={clip}
           />
           <Text size="xs" variant="muted">
             {t('Truncated')}

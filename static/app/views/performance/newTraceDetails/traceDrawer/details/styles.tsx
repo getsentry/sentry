@@ -1262,9 +1262,15 @@ function MultilineJSON({
   value,
   maxDefaultDepth = 2,
   autoCollapseLimit,
+  clip = false,
 }: {
   value: any;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1279,7 +1285,7 @@ function MultilineJSON({
     return Array.from(new Set(['$', ...childPaths]));
   }, [maxDefaultDepth, json, autoCollapseLimit]);
 
-  return (
+  const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
@@ -1320,6 +1326,16 @@ function MultilineJSON({
         />
       )}
     </MultilineTextWrapperMonospace>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
+  return (
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 

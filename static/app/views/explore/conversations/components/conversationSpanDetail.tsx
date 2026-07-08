@@ -380,7 +380,11 @@ function MessageContent({content, clip = false}: {content: unknown; clip?: boole
   return typeof content === 'string' ? (
     <AIContentRenderer text={content} clip={clip} />
   ) : (
-    <TraceDrawerComponents.MultilineJSON value={content} maxDefaultDepth={2} />
+    <TraceDrawerComponents.MultilineJSON
+      value={content}
+      maxDefaultDepth={2}
+      clip={clip}
+    />
   );
 }
 
