@@ -2,7 +2,6 @@
   "files.exclude": {
     "*.egg-info": true,
     "*.log": false,
-    "*.tsbuildinfo": true,
     "**/*.js.map": true,
     "**/*.min.js": true,
     "**/*.pyc": true,
