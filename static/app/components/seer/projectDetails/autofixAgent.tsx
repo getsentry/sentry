@@ -1,18 +1,31 @@
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useEffect} from 'react';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {
+  NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
+import {
+  getSeerProjectReposInfiniteQueryOptions,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
@@ -42,12 +55,67 @@ export function AutofixAgent({canWrite, project}: Props) {
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
 
+  // Only GitHub repos can hand off to an external coding agent, so the agent
+  // dropdown is disabled when this project has any non-GitHub repo attached.
+  const reposResult = useInfiniteQuery(
+    getSeerProjectReposInfiniteQueryOptions({organization, project: {slug: project.slug}})
+  );
+  useFetchAllPages({result: reposResult});
+  // An empty or partially-loaded page list would make `.every(isGithub)` true,
+  // so gate on the query being fully settled: until every page is in we can't
+  // know the project is GitHub-only, and must not enable the dropdown or hide
+  // the warning (a repos-fetch error keeps handoff restricted, which is safe).
+  const reposLoaded =
+    reposResult.isSuccess && !reposResult.hasNextPage && !reposResult.isFetchingNextPage;
+  const hasNonGithubRepo = (reposResult.data?.pages ?? [])
+    .flatMap(page => page.json)
+    .some(repo => !isGitHubProvider(repo.provider));
+  const restrictToSeer = reposLoaded && hasNonGithubRepo;
+
+  // `isIdle` is true only until the first attempt settles, so the effect below
+  // fires at most once. This matters because the mutation rolls back its
+  // optimistic update on error; without a one-shot guard a failed persist would
+  // restore the coding agent, re-satisfy the condition, and loop indefinitely.
+  const {mutate: persistAgentOption, isIdle: agentPersistNotAttempted} = useMutation(
+    getMutateSeerProjectSettingsOptions({
+      organization,
+      project: {slug: project.slug},
+      queryClient,
+      knownAgents,
+    })
+  );
+
   const {data, isPending, isError, error} = useQuery(
     getSeerProjectSettingsQueryOptions({
       organization,
       project: {slug: project.slug},
     })
   );
+
+  // A non-GitHub repo means the stored agent can no longer hand off, so persist
+  // Seer (rather than only overriding the dropdown's display value) to keep the
+  // saved setting consistent with what the user sees. The optimistic update in
+  // the mutation flips `storedAgent` to 'seer', so this fires at most once.
+  const storedAgent = data
+    ? coalesePreferredAgent(data.agent, data.integrationId)
+    : undefined;
+  useEffect(() => {
+    if (
+      canWrite &&
+      restrictToSeer &&
+      storedAgent !== undefined &&
+      storedAgent !== 'seer' &&
+      agentPersistNotAttempted
+    ) {
+      persistAgentOption({agentOption: 'seer'});
+    }
+  }, [
+    canWrite,
+    restrictToSeer,
+    storedAgent,
+    agentPersistNotAttempted,
+    persistAgentOption,
+  ]);
 
   if (isPending) {
     return (
@@ -87,30 +155,33 @@ export function AutofixAgent({canWrite, project}: Props) {
         })}
       >
         {field => (
-          <field.Layout.Row
-            label={t('Handoff to Agent')}
-            hintText={tct(
-              'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
-              {
-                manageLink: (
-                  <Link
-                    to={{
-                      pathname: `/settings/${organization.slug}/integrations/`,
-                      query: {category: 'coding agent'},
-                    }}
-                  />
-                ),
-              }
-            )}
-          >
-            <field.Select
-              disabled={!canWrite}
-              multiple={false}
-              onChange={field.handleChange}
-              options={agentSelectOptions}
-              value={field.state.value}
-            />
-          </field.Layout.Row>
+          <Stack gap="md">
+            {restrictToSeer && <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>}
+            <field.Layout.Row
+              label={t('Handoff to Agent')}
+              hintText={tct(
+                'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
+                {
+                  manageLink: (
+                    <Link
+                      to={{
+                        pathname: `/settings/${organization.slug}/integrations/`,
+                        query: {category: 'coding agent'},
+                      }}
+                    />
+                  ),
+                }
+              )}
+            >
+              <field.Select
+                disabled={!canWrite || !reposLoaded || hasNonGithubRepo}
+                multiple={false}
+                onChange={field.handleChange}
+                options={agentSelectOptions}
+                value={restrictToSeer ? 'seer' : field.state.value}
+              />
+            </field.Layout.Row>
+          </Stack>
         )}
       </AutoSaveForm>
 

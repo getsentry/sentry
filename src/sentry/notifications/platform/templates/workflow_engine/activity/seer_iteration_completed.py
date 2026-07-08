@@ -15,7 +15,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
     NotificationTextBlock,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
@@ -38,7 +38,7 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
             subject="Seer PR Iteration Completed for EXAMPLE-1",
             body=[
                 *get_example_issue_description(),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text="Iteration #2: "),
                         LinkTextBlock(
@@ -84,7 +84,7 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[WorkflowEngine
             if not detail_blocks:
                 detail_blocks.append(PlainTextBlock(text=prefix))
 
-            body.append(ParagraphBlock(blocks=detail_blocks))
+            body.append(ParagraphSection(blocks=detail_blocks))
 
         return build_template(
             data=data,

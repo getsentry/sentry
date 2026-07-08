@@ -96,9 +96,8 @@ export const InteractionStateLayer = styled(
           `}
         `}
 
-
   *:disabled &&,
-  *[aria-disabled="true"] && {
+  *[aria-disabled='true'] && {
     opacity: 0;
   }
 `;

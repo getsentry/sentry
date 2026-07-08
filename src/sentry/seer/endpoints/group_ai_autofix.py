@@ -217,7 +217,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-autofix",
+        url_names=["sentry-api-0-group-autofix"],
+    )
     def post(
         self, request: Request, group: Group
     ) -> (
@@ -441,7 +445,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         },
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-autofix",
+        url_names=["sentry-api-0-group-autofix"],
+    )
     def get(self, request: Request, group: Group) -> Response[AutofixStateResponse]:
         """
         Retrieve the current detailed state of an issue fix process for a specific issue including:

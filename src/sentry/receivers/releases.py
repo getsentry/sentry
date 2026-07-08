@@ -5,7 +5,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.issues.action_log import (
@@ -26,7 +26,6 @@ from sentry.models.grouphistory import (
 )
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
@@ -279,13 +278,6 @@ def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
     """
     try:
         if instance.state != PullRequestLifecycleState.CLOSED:
-            return
-
-        try:
-            organization = Organization.objects.get_from_cache(id=instance.organization_id)
-        except Organization.DoesNotExist:
-            return
-        if not features.has("organizations:pr-group-activity", organization):
             return
 
         if instance.pk is not None:

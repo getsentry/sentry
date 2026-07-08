@@ -107,6 +107,7 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
@@ -326,6 +327,9 @@ export function GlobalCommandPaletteActions() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+
+  const {supportsNotifications, permission, askNotificationPermission} =
+    useNotificationPermission();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -1144,6 +1148,26 @@ export function GlobalCommandPaletteActions() {
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
               window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+            }}
+          />
+        ))}
+
+      {user.isStaff &&
+        supportsNotifications &&
+        (permission === 'granted' ? (
+          <CMDKAction
+            display={{label: 'Browser Notifications (granted)', icon: <IconSubscribed />}}
+            keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
+            onAction={() => {
+              askNotificationPermission();
+            }}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: 'Allow Browser Notifications', icon: <IconSubscribed />}}
+            keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
+            onAction={() => {
+              askNotificationPermission();
             }}
           />
         ))}

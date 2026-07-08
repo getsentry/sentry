@@ -60,24 +60,26 @@ class WorkflowEngineRuleEndpoint(RuleEndpoint):
             method_flag is not None and features.has(method_flag, project.organization)
         )
         if use_workflow_engine:
-            try:
-                arw = AlertRuleWorkflow.objects.get(
-                    rule_id=rule_id,
-                    workflow__organization=project.organization,
-                    workflow__status=ObjectStatus.ACTIVE,
-                )
+            arw = AlertRuleWorkflow.objects.filter(
+                rule_id=rule_id,
+                workflow__organization=project.organization,
+                workflow__status=ObjectStatus.ACTIVE,
+                workflow__detectorworkflow__detector__project=project,
+            ).first()
+            if arw is not None:
                 kwargs["rule"] = arw.workflow
-            except AlertRuleWorkflow.DoesNotExist:
+            else:
                 # XXX: this means the workflow was single written and has no ARW or related Rule object
-                try:
-                    workflow_id = get_object_id_from_fake_id(int(rule_id))
-                    kwargs["rule"] = Workflow.objects.get(
-                        id=workflow_id,
-                        organization=project.organization,
-                        status=ObjectStatus.ACTIVE,
-                    )
-                except (AlertRuleWorkflow.DoesNotExist, Workflow.DoesNotExist):
+                workflow_id = get_object_id_from_fake_id(int(rule_id))
+                workflow = Workflow.objects.filter(
+                    id=workflow_id,
+                    organization=project.organization,
+                    status=ObjectStatus.ACTIVE,
+                    detectorworkflow__detector__project=project,
+                ).first()
+                if workflow is None:
                     raise ResourceDoesNotExist
+                kwargs["rule"] = workflow
 
             return args, kwargs
 
