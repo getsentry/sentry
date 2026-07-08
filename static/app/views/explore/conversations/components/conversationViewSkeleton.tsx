@@ -43,9 +43,17 @@ function TimelineSkeleton() {
             <Flex align="center" gap="md">
               <Placeholder height="16px" width="16px" />
               <Placeholder height="14px" width={row.title} />
-              {row.secondary ? <Placeholder height="14px" width={row.secondary} /> : null}
-              <Flex flex="1" justify="end" gap="md">
+              {/* Column widths mirror TimelineRow in aiSpanTimeline.tsx so the
+               * layout doesn't shift when the real content loads. */}
+              <Flex flex="1" minWidth="0">
+                {row.secondary ? (
+                  <Placeholder height="14px" width={row.secondary} />
+                ) : null}
+              </Flex>
+              <Flex flexShrink={0} width="100px" justify="end">
                 <Placeholder height="14px" width="48px" />
+              </Flex>
+              <Flex flexShrink={0} width="56px" justify="end">
                 <Placeholder height="14px" width="40px" />
               </Flex>
             </Flex>
