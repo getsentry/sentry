@@ -618,7 +618,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/'
       );
       expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
-      expect(within(breadcrumbs).getAllByRole('img')).toHaveLength(1);
+      // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
+      // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
+      // so there are no visible imgs in this view-only crumb.
+      expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
       expect(
         screen.queryByRole('heading', {name: 'Custom Errors'})
       ).not.toBeInTheDocument();

@@ -1,10 +1,17 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 
+import {BreadcrumbCopyAction} from './actions/breadcrumbCopyAction';
+import {BreadcrumbMenuAction} from './actions/breadcrumbMenuAction';
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
 import {BreadcrumbItemLink} from './items/breadcrumbItemLink';
 import {BreadcrumbItemMenuBreadcrumbs} from './items/breadcrumbItemMenuBreadcrumbs';
 import type {BreadcrumbItemPageTitleProps} from './items/breadcrumbItemPageTitle';
 import {BreadcrumbItemPageTitle} from './items/breadcrumbItemPageTitle';
+import type {BreadcrumbItemPageTitleEditableProps} from './items/breadcrumbItemPageTitleEditable';
+import {
+  BreadcrumbEditableTitle,
+  BreadcrumbItemPageTitleEditable,
+} from './items/breadcrumbItemPageTitleEditable';
 import type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
@@ -13,6 +20,7 @@ import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 export type BreadcrumbItem =
   | {props: BreadcrumbItemLinkProps; type: 'link'}
   | {props: BreadcrumbItemPageTitleProps; type: 'page-title'}
+  | {props: BreadcrumbItemPageTitleEditableProps; type: 'editable-title'}
   | {props: BreadcrumbItemSelectProjectsProps; type: 'select-projects'};
 
 /** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
@@ -26,6 +34,8 @@ function renderItem(item: BreadcrumbItem) {
       return <BreadcrumbItemLink {...item.props} />;
     case 'page-title':
       return <BreadcrumbItemPageTitle {...item.props} />;
+    case 'editable-title':
+      return <BreadcrumbItemPageTitleEditable {...item.props} />;
     case 'select-projects':
       return <BreadcrumbItemSelectProjects {...item.props} />;
     default:
@@ -49,7 +59,7 @@ function renderItem(item: BreadcrumbItem) {
  *
  * @public Consumed once call sites migrate onto the typed API in a downstream PR.
  */
-export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
+function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
   if (items.length === 0) {
     return null;
   }
@@ -114,3 +124,16 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
     </Container>
   );
 }
+
+/**
+ * Compound component. Element-slot parts (`EditableTitle`) and trailing-action
+ * parts (`CopyAction`, `MenuAction`) are attached here so consumers pass typed
+ * elements into item props rather than arbitrary ReactNodes.
+ *
+ * @public Consumed once call sites migrate onto the typed API in a downstream PR.
+ */
+export const BreadcrumbList = Object.assign(BreadcrumbListRoot, {
+  EditableTitle: BreadcrumbEditableTitle,
+  CopyAction: BreadcrumbCopyAction,
+  MenuAction: BreadcrumbMenuAction,
+});

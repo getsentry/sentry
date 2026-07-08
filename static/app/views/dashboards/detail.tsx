@@ -25,7 +25,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
@@ -1194,20 +1194,34 @@ class DashboardDetail extends Component<Props, State> {
               {this.isEmbedded ? null : (
                 <Fragment>
                   <TopBar.Slot name="title">
-                    <Breadcrumbs
-                      crumbs={[
+                    <BreadcrumbList
+                      items={[
                         {
-                          label: t('Dashboards'),
-                          to: `/organizations/${organization.slug}/dashboards/`,
+                          type: 'link',
+                          props: {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
                         },
                         {
-                          label: (
-                            <DashboardTitle
-                              dashboard={modifiedDashboard ?? dashboard}
-                              onUpdate={this.setModifiedDashboard}
-                              isEditingDashboard={this.isEditingDashboard}
-                            />
-                          ),
+                          type: 'editable-title',
+                          props: {
+                            title: (
+                              <BreadcrumbList.EditableTitle
+                                value={(modifiedDashboard ?? dashboard).title}
+                                onChange={newTitle =>
+                                  this.setModifiedDashboard({
+                                    ...(modifiedDashboard ?? dashboard),
+                                    title: newTitle,
+                                  })
+                                }
+                                isDisabled={!this.isEditingDashboard}
+                                errorMessage={t('Please set a title for this dashboard')}
+                                autoSelect
+                                aria-label={t('Edit Dashboard Name')}
+                              />
+                            ),
+                          },
                         },
                       ]}
                     />

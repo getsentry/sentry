@@ -11,7 +11,7 @@ resources:
 import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
-import {IconSettings, IconStar} from 'sentry/icons';
+import {IconEllipsis, IconGlobe, IconSettings, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
@@ -181,9 +181,47 @@ leadingGraphic=
 leadingGraphic={<LeadingGraphic variant="icon" icon={<IconStar size="md" />} />}
 ```
 
+## Editable title
+
+The `'editable-title'` item renders the current page as a click-to-edit field instead of static text — for pages that let you rename in place (dashboards, automations, detectors, Discover). Pass a `<BreadcrumbList.EditableTitle />` element as the `title` prop; it wraps `EditableText` in its compact variant so it inherits the crumb row's size and weight. It accepts the same `leadingGraphic` and `trailingActions` slots as `'page-title'`.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Dashboards', to: '/organizations/sentry/dashboards/'}},
+      {
+        type: 'editable-title',
+        props: {
+          title: (
+            <BreadcrumbList.EditableTitle
+              value="Frontend Overview"
+              onChange={() => {}}
+              aria-label="Edit dashboard name"
+            />
+          ),
+        },
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+{
+  type: 'editable-title',
+  props: {
+    title: (
+      <BreadcrumbList.EditableTitle
+        value={dashboard.title}
+        onChange={handleRename}
+        aria-label="Edit dashboard name"
+      />
+    ),
+  },
+}
+```
+
 ## Pagination
 
-The `'page-title'` item accepts an optional `pagination` prop for pages where the user can step through a list of items (e.g. issues, replays, traces). Pass a `{previous, next}` object — each with a `to` URL, `ariaLabel`, optional `disabled` flag, and an optional rich `tooltip`. The two chevron buttons are rendered internally.
+The `'page-title'` item accepts an optional `pagination` prop for pages where the user can step through a list of items (e.g. issues, replays, traces). Pass a `{previous, next}` object — each with an `ariaLabel`, an optional `to` URL (when omitted the chevron renders disabled — useful at the ends of a list), an optional `disabled` flag, and an optional rich `tooltip`. The two chevron buttons are rendered internally.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -211,12 +249,58 @@ The `'page-title'` item accepts an optional `pagination` prop for pages where th
 
 ## Trailing actions
 
-The `'page-title'` item also accepts a `trailingActions` slot for up to 52px of action buttons rendered after the label — e.g. a bookmark or share button.
+The `'page-title'` and `'editable-title'` items accept a `trailingActions` slot rendered after the label — e.g. copy, share, or a page-level actions menu. The slot is **bounded**: it takes the component's own compound parts (`BreadcrumbList.CopyAction`, `BreadcrumbList.MenuAction`) or a plain `Button`/`LinkButton`, or an array of them (falsy entries are dropped so you can inline conditionals) — never an arbitrary node. This keeps the trailing area visually consistent across pages.
 
-```tsx
-trailingActions={
-  <Button size="zero" priority="transparent" icon={<IconStar size="md" />} aria-label="Bookmark" />
-}
+By default trailing actions reveal on crumb hover/focus; pass `alwaysVisible` on a `CopyAction` to pin it. Clipboard and analytics wiring live in the consumer via `text`/`onCopy`.
+
+<Storybook.Demo>
+  <BreadcrumbList
+    items={[
+      {type: 'link', props: {label: 'Issues', to: '/organizations/sentry/issues/'}},
+      {
+        type: 'page-title',
+        props: {
+          label: 'JAVASCRIPT-2X9',
+          leadingGraphic: <LeadingGraphic variant="icon" icon={<IconStar size="md" />} />,
+          trailingActions: [
+            <BreadcrumbList.CopyAction
+              key="copy"
+              text="JAVASCRIPT-2X9"
+              label="Copy Short-ID"
+              alwaysVisible
+            />,
+            <BreadcrumbList.MenuAction
+              key="menu"
+              triggerLabel="More actions"
+              triggerIcon={<IconEllipsis />}
+              items={[{key: 'share', label: 'Share', leadingItems: <IconGlobe />}]}
+            />,
+          ],
+        },
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx trailingActions=
+{[
+  <BreadcrumbList.CopyAction
+    key="copy"
+    text={group.shortId}
+    label="Copy Short-ID"
+    alwaysVisible
+    onCopy={() => trackAnalytics('issue.shortid_copied', {organization})}
+  />,
+  isPublic && shareUrl && (
+    <Button
+      key="share"
+      size="zero"
+      variant="transparent"
+      icon={<IconGlobe />}
+      aria-label="Share"
+      onClick={openShareModal}
+    />
+  ),
+]}
 ```
 
 ## Overflow (container query)

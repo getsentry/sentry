@@ -8,7 +8,8 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import type {BreadcrumbItem} from 'sentry/components/breadcrumbList';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -29,7 +30,7 @@ import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {useIssueIdBreadcrumbItem} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -74,12 +75,16 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const crumbs = [
+  const issueItem = useIssueIdBreadcrumbItem({project, group});
+  const crumbs: BreadcrumbItem[] = [
     {
-      label: 'Issues',
-      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
+      type: 'link',
+      props: {
+        label: t('Issues'),
+        to: {pathname: `/organizations/${organization.slug}/issues/`, query},
+      },
     },
-    {label: <IssueIdBreadcrumb project={project} group={group} />},
+    ...(issueItem ? [issueItem] : []),
   ];
 
   return (
@@ -88,7 +93,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         <Flex justify="between">
           <Flex align="center" gap="md">
             <TopBar.Slot name="title">
-              <StyledBreadcrumbs crumbs={crumbs} />
+              <BreadcrumbList items={crumbs} />
             </TopBar.Slot>
             {hasErrorUpsampling && (
               <Tooltip
@@ -328,10 +333,6 @@ const Title = styled('div')`
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
-`;
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
 `;
 
 const StyledTag = styled(Tag)`

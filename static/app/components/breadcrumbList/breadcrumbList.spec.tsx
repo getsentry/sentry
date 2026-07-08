@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 
@@ -212,5 +212,125 @@ describe('BreadcrumbList container-query collapse', () => {
 
     // Parents give up width first (high flex-shrink) so the current page truncates last.
     expect(rulesForElement(parentLi).some(r => /flex-shrink:\s*999/.test(r))).toBe(true);
+  });
+});
+
+describe('BreadcrumbList rich page-title items', () => {
+  it('renders a pagination chevron disabled when it has no destination', () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {
+            type: 'page-title',
+            props: {
+              label: 'Issue',
+              pagination: {
+                previous: {ariaLabel: 'Previous issue', to: '/issues/1/'},
+                // No `to` — this is the last item in the list, so it disables.
+                next: {ariaLabel: 'Next issue'},
+              },
+            },
+          },
+        ]}
+      />
+    );
+
+    // LinkButton renders role="button" for both link and disabled states.
+    expect(screen.getByRole('button', {name: 'Next issue'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Previous issue'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('renders an always-visible copy trailing action', () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {type: 'link', props: {label: 'Issues', to: '/issues/'}},
+          {
+            type: 'page-title',
+            props: {
+              label: 'JAVASCRIPT-2X9',
+              trailingActions: (
+                <BreadcrumbList.CopyAction
+                  text="JAVASCRIPT-2X9"
+                  label="Copy Short-ID"
+                  alwaysVisible
+                />
+              ),
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Copy Short-ID'})).toBeInTheDocument();
+  });
+
+  it('drops falsy entries in a trailing-actions array', () => {
+    const isPublic = false;
+    render(
+      <BreadcrumbList
+        items={[
+          {
+            type: 'page-title',
+            props: {
+              label: 'JAVASCRIPT-2X9',
+              trailingActions: [
+                <BreadcrumbList.CopyAction
+                  key="copy"
+                  text="JAVASCRIPT-2X9"
+                  label="Copy Short-ID"
+                  alwaysVisible
+                />,
+                isPublic && (
+                  <BreadcrumbList.MenuAction
+                    key="menu"
+                    triggerLabel="More actions"
+                    items={[]}
+                  />
+                ),
+              ],
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Copy Short-ID'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'More actions'})).not.toBeInTheDocument();
+  });
+
+  it('renders an editable-title as a click-to-edit field', async () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {type: 'link', props: {label: 'Dashboards', to: '/dashboards/'}},
+          {
+            type: 'editable-title',
+            props: {
+              title: (
+                <BreadcrumbList.EditableTitle
+                  value="My Dashboard"
+                  onChange={() => {}}
+                  aria-label="Edit dashboard name"
+                />
+              ),
+            },
+          },
+        ]}
+      />
+    );
+
+    // Shows the current title, and clicking it swaps in a labelled textbox.
+    const label = screen.getByText('My Dashboard');
+    await userEvent.click(label);
+    expect(
+      screen.getByRole('textbox', {name: 'Edit dashboard name'})
+    ).toBeInTheDocument();
   });
 });

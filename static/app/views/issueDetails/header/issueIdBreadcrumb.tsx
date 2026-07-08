@@ -3,10 +3,13 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {BreadcrumbItem} from 'sentry/components/breadcrumbList';
+import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
@@ -24,6 +27,105 @@ interface ShortIdBreadcrumbProps {
   project: Project;
 }
 
+/**
+ * Builds the current-page (`page-title`) breadcrumb item for an issue: the
+ * project badge as a leading graphic, the short-id as the label with an
+ * always-on explanatory tooltip, and trailing copy + share actions. Returns
+ * null when the issue has no short-id (nothing to show). Used by the issue
+ * details header trail (`GroupHeader`).
+ */
+export function useIssueIdBreadcrumbItem({
+  project,
+  group,
+}: ShortIdBreadcrumbProps): BreadcrumbItem | null {
+  const {openModal} = useModal();
+  const organization = useOrganization();
+  const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
+
+  const handleCopyShortId = useCallback(() => {
+    trackAnalytics('issue_details.copy_issue_short_id_clicked', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      streamline: true,
+    });
+  }, [organization, group]);
+
+  if (!group.shortId) {
+    return null;
+  }
+
+  return {
+    type: 'page-title',
+    props: {
+      label: group.shortId,
+      leadingGraphic: (
+        <LeadingGraphic
+          variant="avatar"
+          avatar={
+            <ProjectBadge
+              project={project}
+              avatarSize={16}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          }
+        />
+      ),
+      labelTooltip: t(
+        'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+      ),
+      trailingActions: [
+        <BreadcrumbList.CopyAction
+          key="copy"
+          text={group.shortId}
+          label={t('Copy Issue Short-ID')}
+          tooltip={t('Copy Issue Short-ID')}
+          alwaysVisible
+          onCopy={handleCopyShortId}
+        />,
+        group.isPublic && shareUrl ? (
+          <Button
+            key="share"
+            size="zero"
+            variant="transparent"
+            aria-label={t('View issue share settings')}
+            icon={<IconGlobe size="xs" variant="muted" />}
+            tooltipProps={{
+              isHoverable: true,
+              title: tct('This issue has been shared [link:with a public link].', {
+                link: <ExternalLink href={shareUrl} />,
+              }),
+            }}
+            onClick={() =>
+              openModal(modalProps => (
+                <ShareIssueModal
+                  {...modalProps}
+                  organization={organization}
+                  projectSlug={group.project.slug}
+                  groupId={group.id}
+                  onToggle={() =>
+                    trackAnalytics('issue.shared_publicly', {
+                      organization,
+                    })
+                  }
+                  event={null}
+                  hasIssueShare
+                />
+              ))
+            }
+          />
+        ) : null,
+      ],
+    },
+  };
+}
+
+/**
+ * Standalone short-id crumb rendered outside the header trail (e.g. the issue
+ * preview drawer header), where there is no breadcrumb trail or page `<h1>`.
+ * Renders the project badge, the copyable short-id, and a share affordance
+ * inline. The header trail uses {@link useIssueIdBreadcrumbItem} instead.
+ */
 export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const {openModal} = useModal();
 
