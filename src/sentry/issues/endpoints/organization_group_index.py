@@ -183,6 +183,15 @@ def search_issues(
         query_kwargs["environments"] = environments if environments else None
 
         query_kwargs["actor"] = request.user
+        # Serve the v2 scorer behind the single "Recommended" sort; clients never
+        # see the recommended_v2 sort key, so the flag can flip scoring per-org
+        # without any client state changing.
+        if query_kwargs["sort_by"] == "recommended" and features.has(
+            "organizations:issue-stream-recommended-sort-experimental",
+            organization,
+            actor=request.user,
+        ):
+            query_kwargs["sort_by"] = "recommended_v2"
         if query_kwargs["sort_by"] == "progress" and not features.has(
             "organizations:issue-stream-progress-sort", organization, actor=request.user
         ):
