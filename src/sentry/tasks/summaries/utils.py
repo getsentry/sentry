@@ -11,10 +11,12 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, LimitBy, OrderBy
+from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
+from sentry import search
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.constants import DataCategory
 from sentry.issues.grouptype import (
     PERFORMANCE_ISSUE_CATEGORIES,
@@ -28,12 +30,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
-from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
@@ -129,172 +126,110 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-def project_key_errors(
-    ctx: OrganizationReportContext, project: Project, referrer: str
-) -> list[dict[str, Any]] | None:
-    if not project.first_event:
-        return None
-    # Take the 3 most frequently occuring events
-    op = "weekly_reports.project_key_errors"
-
+def org_top_issues(
+    ctx: OrganizationReportContext,
+    projects: Sequence[Project],
+    sort_by: str,
+    referrer: str,
+    limit: int = 50,
+) -> tuple[dict[int, list[tuple[int, int]]], dict[int, list[tuple[Group, int]]]]:
+    """
+    Fetch top issues (error + performance) for all org projects using the search backend.
+    Returns:
+      - errors_by_project: {project_id: [(group_id, count), ...]} (top 3 per project)
+      - perf_by_project: {project_id: [(Group, count), ...]} (top 3 per project)
+    """
+    op = "weekly_reports.org_top_issues"
     with start_span(op=op, name=op):
-        snuba_rows = _project_key_errors_snuba(ctx=ctx, project=project, referrer=referrer)
-        query_result = snuba_rows
+        result = search.backend.query(
+            projects=projects,
+            sort_by=sort_by,
+            limit=limit,
+            search_filters=[
+                SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
+            ],
+            date_from=ctx.start,
+            date_to=ctx.end,
+            referrer=referrer,
+        )
 
-        callsite = "tasks.summaries.project_key_errors"
-        if EAPOccurrencesComparator.should_check_experiment(callsite):
-            eap_rows = _project_key_errors_eap(
-                ctx=ctx,
-                project=project,
+        groups = result.results
+        if not groups:
+            return {}, {}
+
+        error_groups: list[Group] = []
+        perf_groups: list[Group] = []
+        for group in groups:
+            if group.type is None:
+                error_groups.append(group)
+                continue
+            try:
+                cat = group.issue_category
+            except InvalidGroupTypeError:
+                continue
+            if cat == GroupCategory.ERROR:
+                error_groups.append(group)
+            elif cat == GroupCategory.PERFORMANCE or cat in PERFORMANCE_ISSUE_CATEGORIES:
+                perf_groups.append(group)
+
+        error_counts: dict[int, int] = {}
+        perf_counts: dict[int, int] = {}
+
+        if error_groups:
+            error_counts = _count_error_events(
+                ctx,
+                project_ids=list({g.project_id for g in error_groups}),
+                group_ids=[g.id for g in error_groups],
                 referrer=referrer,
             )
-            query_result = EAPOccurrencesComparator.check_and_choose(
-                snuba_rows,
-                eap_rows,
-                callsite,
-                is_experimental_data_nullish=len(eap_rows) == 0,
-                reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
-                    snuba,
-                    eap,
-                    key_fn=lambda row: int(row["events.group_id"]),
-                ),
-                debug_context={
-                    "organization_id": ctx.organization.id,
-                    "project_id": project.id,
-                    "start": ctx.start.isoformat(),
-                    "end": ctx.end.isoformat(),
-                },
+
+        if perf_groups:
+            perf_counts = _count_search_issue_events(
+                ctx,
+                project_ids=list({g.project_id for g in perf_groups}),
+                group_ids=[g.id for g in perf_groups],
+                referrer=referrer,
             )
 
-        # Set project_ctx.key_errors_by_id to be an array of (group_id, count) for now.
-        # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
-        return query_result
+        errors_by_project: dict[int, list[tuple[int, int]]] = {}
+        for group in error_groups:
+            count = error_counts.get(group.id, 0)
+            pid = group.project_id
+            if pid not in errors_by_project:
+                errors_by_project[pid] = []
+            if len(errors_by_project[pid]) < 3:
+                errors_by_project[pid].append((group.id, count))
+
+        perf_by_project: dict[int, list[tuple[Group, int]]] = {}
+        for group in perf_groups:
+            count = perf_counts.get(group.id, 0)
+            pid = group.project_id
+            if pid not in perf_by_project:
+                perf_by_project[pid] = []
+            if len(perf_by_project[pid]) < 3:
+                perf_by_project[pid].append((group, count))
+
+        return errors_by_project, perf_by_project
 
 
-def _project_key_errors_snuba(
+def _count_error_events(
     ctx: OrganizationReportContext,
-    project: Project,
+    project_ids: list[int],
+    group_ids: list[int],
     referrer: str,
-) -> list[dict[str, Any]]:
-    events_entity = Entity("events", alias="events")
-    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+) -> dict[int, int]:
     query = Query(
-        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
-        select=[Column("group_id", entity=events_entity), Function("count", [])],
+        match=Entity("events"),
+        select=[Column("group_id"), Function("count", [])],
         where=[
-            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
-            Condition(
-                Column("timestamp", entity=events_entity),
-                Op.LT,
-                ctx.end,
-            ),
-            Condition(
-                Column(
-                    "project_id",
-                    entity=events_entity,
-                ),
-                Op.EQ,
-                project.id,
-            ),
-            Condition(
-                Column(
-                    "project_id",
-                    entity=group_attributes_entity,
-                ),
-                Op.EQ,
-                project.id,
-            ),
-            Condition(
-                Column("group_status", entity=group_attributes_entity),
-                Op.EQ,
-                GroupStatus.UNRESOLVED,
-            ),
-            Condition(Column("level", entity=events_entity), Op.EQ, "error"),
+            Condition(Column("timestamp"), Op.GTE, ctx.start),
+            Condition(Column("timestamp"), Op.LT, ctx.end),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("group_id"), Op.IN, group_ids),
         ],
-        groupby=[Column("group_id", entity=events_entity)],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        groupby=[Column("group_id")],
+        limit=Limit(len(group_ids)),
     )
-
-    request = Request(
-        dataset=Dataset.Events.value,
-        app_id="reports",
-        query=query,
-        tenant_ids={"organization_id": ctx.organization.id},
-    )
-    query_result = raw_snql_query(request, referrer=referrer)
-    return query_result["data"]
-
-
-_KEY_ERRORS_CHUNK_SIZE = 100
-
-
-def _org_key_errors_snuba(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-    per_project_limit: int = 3,
-) -> dict[int, list[dict[str, Any]]]:
-    if not project_ids:
-        return {}
-
-    results: dict[int, list[dict[str, Any]]] = {}
-    for i in range(0, len(project_ids), _KEY_ERRORS_CHUNK_SIZE):
-        chunk = project_ids[i : i + _KEY_ERRORS_CHUNK_SIZE]
-        chunk_results = _org_key_errors_snuba_chunk(ctx, chunk, referrer, per_project_limit)
-        results.update(chunk_results)
-
-    return results
-
-
-def _org_key_errors_snuba_chunk(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-    per_project_limit: int,
-) -> dict[int, list[dict[str, Any]]]:
-    events_entity = Entity("events", alias="events")
-    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
-    query = Query(
-        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
-        select=[
-            Column("project_id", entity=events_entity),
-            Column("group_id", entity=events_entity),
-            Function("count", []),
-        ],
-        where=[
-            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
-            Condition(
-                Column("timestamp", entity=events_entity),
-                Op.LT,
-                ctx.end,
-            ),
-            Condition(
-                Column("project_id", entity=events_entity),
-                Op.IN,
-                project_ids,
-            ),
-            Condition(
-                Column("project_id", entity=group_attributes_entity),
-                Op.IN,
-                project_ids,
-            ),
-            Condition(
-                Column("group_status", entity=group_attributes_entity),
-                Op.EQ,
-                GroupStatus.UNRESOLVED,
-            ),
-            Condition(Column("level", entity=events_entity), Op.EQ, "error"),
-        ],
-        groupby=[
-            Column("project_id", entity=events_entity),
-            Column("group_id", entity=events_entity),
-        ],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limitby=LimitBy([Column("project_id", entity=events_entity)], per_project_limit),
-        limit=Limit(len(project_ids) * per_project_limit),
-    )
-
     request = Request(
         dataset=Dataset.Events.value,
         app_id="reports",
@@ -302,199 +237,26 @@ def _org_key_errors_snuba_chunk(
         tenant_ids={"organization_id": ctx.organization.id},
     )
     rows = raw_snql_query(request, referrer=referrer)["data"]
-
-    results: dict[int, list[dict[str, Any]]] = {}
-    for row in rows:
-        pid = row["events.project_id"]
-        if pid not in results:
-            results[pid] = []
-        results[pid].append({"events.group_id": row["events.group_id"], "count()": row["count()"]})
-
-    return results
+    return {row["group_id"]: row["count()"] for row in rows}
 
 
-def org_key_errors(
+def _count_search_issue_events(
     ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-) -> dict[int, list[dict[str, Any]]]:
-    op = "weekly_reports.org_key_errors"
-    with start_span(op=op, name=op):
-        if not project_ids:
-            return {}
-
-        return _org_key_errors_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
-
-
-def _project_key_errors_eap(
-    ctx: OrganizationReportContext,
-    project: Project,
-    referrer: str,
-    top_k: int = 50,
-) -> list[dict[str, Any]]:
-    snuba_params = SnubaParams(
-        start=ctx.start,
-        end=ctx.end,
-        organization=ctx.organization,
-        projects=[project],
-    )
-    try:
-        eap_response = Occurrences.run_table_query(
-            params=snuba_params,
-            query_string="level:error",
-            selected_columns=["group_id", "count()"],
-            orderby=["-count()"],
-            offset=0,
-            limit=top_k,
-            referrer=referrer,
-            config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.ERROR,
-        )
-    except Exception:
-        logger.exception(
-            "summaries.key_errors.eap_query_failed",
-            extra={
-                "organization_id": ctx.organization.id,
-                "project_id": project.id,
-            },
-        )
-        return []
-
-    normalized_rows: list[dict[str, Any]] = []
-    for row in eap_response.get("data", []):
-        group_id = row.get("group_id")
-        count = row.get("count()")
-        if group_id is None or count is None:
-            continue
-        normalized_rows.append({"group_id": int(group_id), "count()": int(count)})
-
-    group_ids = [row["group_id"] for row in normalized_rows]
-    unresolved_group_ids = set(
-        Group.objects.filter(
-            id__in=group_ids,
-            project_id=project.id,
-            status=GroupStatus.UNRESOLVED,
-        ).values_list("id", flat=True)
-    )
-    unresolved_count_in_top_k = sum(
-        1 for row in normalized_rows if row["group_id"] in unresolved_group_ids
-    )
-    did_hit_top_k_limit = len(normalized_rows) == top_k
-    if did_hit_top_k_limit and unresolved_count_in_top_k < 3:
-        logger.warning(
-            "summaries.key_errors.eap_topk_may_truncate_unresolved",
-            extra={
-                "organization_id": ctx.organization.id,
-                "project_id": project.id,
-                "top_k": top_k,
-                "raw_row_count": len(normalized_rows),
-                "unresolved_count_in_top_k": unresolved_count_in_top_k,
-            },
-        )
-
-    filtered_rows = [
-        {"events.group_id": row["group_id"], "count()": row["count()"]}
-        for row in normalized_rows
-        if row["group_id"] in unresolved_group_ids
-    ][:3]
-
-    return filtered_rows
-
-
-def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
-    if not project.first_event:
-        return
-
-    op = "weekly_reports.project_key_performance_issues"
-
-    with start_span(op=op, name=op):
-        # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
-        # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
-        # We do this to limit the number of group_ids snuba has to join with.
-        groups_qs = Group.objects.filter(
-            project_id=project.id,
-            status=GroupStatus.UNRESOLVED,
-            last_seen__gte=ctx.end - timedelta(days=30),
-            # performance issue range
-            type__gte=1000,
-            type__lt=2000,
-        ).order_by("-times_seen")[:50]
-
-        # Django doesn't have a .limit function, and this will actually do its magic to use the LIMIT statement.
-        groups = list(groups_qs)
-        group_id_to_group = {group.id: group for group in groups}
-
-        if len(group_id_to_group) == 0:
-            return
-
-        snuba_rows = _project_key_performance_issues_snuba(
-            ctx=ctx,
-            project=project,
-            referrer=referrer,
-            group_ids=list(group_id_to_group.keys()),
-        )
-        query_result = snuba_rows
-
-        callsite = "tasks.summaries.project_key_performance_issues"
-        if EAPOccurrencesComparator.should_check_experiment(callsite):
-            eap_rows = _project_key_performance_issues_eap(
-                ctx=ctx,
-                project=project,
-                referrer=referrer,
-                group_ids=list(group_id_to_group.keys()),
-            )
-            query_result = EAPOccurrencesComparator.check_and_choose(
-                snuba_rows,
-                eap_rows,
-                callsite,
-                is_experimental_data_nullish=len(eap_rows) == 0,
-                reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
-                    snuba,
-                    eap,
-                    key_fn=lambda row: int(row["group_id"]),
-                ),
-                debug_context={
-                    "organization_id": ctx.organization.id,
-                    "project_id": project.id,
-                    "candidate_group_ids_count": len(group_id_to_group),
-                    "start": ctx.start.isoformat(),
-                    "end": ctx.end.isoformat(),
-                },
-            )
-
-        key_performance_issues = []
-        for result in query_result:
-            count = result["count()"]
-            group_id = result["group_id"]
-            group = group_id_to_group.get(group_id)
-            if group:
-                key_performance_issues.append((group, count))
-
-        return key_performance_issues
-
-
-def _project_key_performance_issues_snuba(
-    ctx: OrganizationReportContext,
-    project: Project,
-    referrer: str,
+    project_ids: list[int],
     group_ids: list[int],
-) -> list[dict[str, Any]]:
-    # Fine grained query for 3 most frequent events happened during last week.
+    referrer: str,
+) -> dict[int, int]:
     query = Query(
         match=Entity("search_issues"),
-        select=[
-            Column("group_id"),
-            Function("count", []),
-        ],
+        select=[Column("group_id"), Function("count", [])],
         where=[
-            Condition(Column("group_id"), Op.IN, group_ids),
             Condition(Column("timestamp"), Op.GTE, ctx.start),
             Condition(Column("timestamp"), Op.LT, ctx.end),
-            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("group_id"), Op.IN, group_ids),
         ],
         groupby=[Column("group_id")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(len(group_ids)),
     )
     request = Request(
         dataset=Dataset.IssuePlatform.value,
@@ -502,63 +264,12 @@ def _project_key_performance_issues_snuba(
         query=query,
         tenant_ids={"organization_id": ctx.organization.id},
     )
-    return raw_snql_query(request, referrer=referrer)["data"]
-
-
-def _project_key_performance_issues_eap(
-    ctx: OrganizationReportContext,
-    project: Project,
-    referrer: str,
-    group_ids: list[int],
-) -> list[dict[str, Any]]:
-    if len(group_ids) == 1:
-        query_string = f"group_id:{group_ids[0]}"
-    else:
-        query_string = f"group_id:[{', '.join(str(group_id) for group_id in group_ids)}]"
-
-    snuba_params = SnubaParams(
-        start=ctx.start,
-        end=ctx.end,
-        organization=ctx.organization,
-        projects=[project],
-    )
-
-    try:
-        eap_response = Occurrences.run_table_query(
-            params=snuba_params,
-            query_string=query_string,
-            selected_columns=["group_id", "count()"],
-            orderby=["-count()"],
-            offset=0,
-            limit=3,
-            referrer=referrer,
-            config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
-        )
-    except Exception:
-        logger.exception(
-            "summaries.key_performance_issues.eap_query_failed",
-            extra={
-                "organization_id": ctx.organization.id,
-                "project_id": project.id,
-                "group_ids_count": len(group_ids),
-            },
-        )
-        return []
-
-    normalized_rows = []
-    for row in eap_response.get("data", []):
-        group_id = row.get("group_id")
-        count = row.get("count()")
-        if group_id is None or count is None:
-            continue
-        normalized_rows.append({"group_id": int(group_id), "count()": int(count)})
-
-    return normalized_rows
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    return {row["group_id"]: row["count()"] for row in rows}
 
 
 def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
-    # Organization pass. Depends on project_key_errors.
+    # Organization pass. Depends on org_top_issues populating key_errors_by_id.
     all_key_error_group_ids = []
     for project_ctx in ctx.projects_context_map.values():
         all_key_error_group_ids.extend([group_id for group_id, _ in project_ctx.key_errors_by_id])
@@ -584,7 +295,7 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
 
 
 def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
-    # Organization pass. Depends on project_key_performance_issue.
+    # Organization pass. Depends on org_top_issues populating key_performance_issues.
     all_groups = []
     for project_ctx in ctx.projects_context_map.values():
         all_groups.extend([group for group, count in project_ctx.key_performance_issues])
