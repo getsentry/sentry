@@ -174,21 +174,3 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
         timing = f" ({span.exclusive_time_ms}ms)" if span.exclusive_time_ms is not None else ""
         lines.append(f"{label}{timing}".strip())
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
-
-
-def issue_meta_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    # issue-level aggregates (mcp profile); omitted when formatting a bare event
-    fields = {
-        "Issue ID": model.short_id,
-        "Status": model.status,
-        "Level": model.level,
-        "Events": str(model.count) if model.count is not None else None,
-        "Users": str(model.user_count) if model.user_count is not None else None,
-        "First seen": model.first_seen.isoformat() if model.first_seen else None,
-        "Last seen": model.last_seen.isoformat() if model.last_seen else None,
-        "Link": model.permalink,
-    }
-    present = [fmt.field(k, v) for k, v in fields.items() if v]
-    if not present:
-        return ""
-    return fmt.block("Issue", "\n".join(present))
