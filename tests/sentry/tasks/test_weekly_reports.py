@@ -461,8 +461,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
             }
-            assert len(context["key_errors"]) == 0
-            assert len(context["key_performance_issues"]) == 2
+            assert len(context["top_issues"]) == 2
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
@@ -544,8 +543,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 4,
             }
-            assert len(context["key_errors"]) == 2
-            assert len(context["key_performance_issues"]) == 2
+            assert len(context["top_issues"]) == 4
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
@@ -618,7 +616,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
             }
-            assert len(context["key_errors"]) == 2
+            assert len(context["top_issues"]) == 2
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -712,7 +710,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 0,
             }
-            assert len(context["key_errors"]) == 0
+            assert len(context["top_issues"]) == 0
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
@@ -920,7 +918,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         unique_enum_count = len(enum_values)
         assert len(group_status_to_color) == unique_enum_count
 
-    def test_key_errors_and_performance_issues_share_substatus_badges(self) -> None:
+    def test_top_issues_share_substatus_badges(self) -> None:
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
         error_group = self.create_group(
@@ -954,15 +952,15 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         rendered_context = render_template_context(ctx, user.id)
 
         assert rendered_context is not None
-        key_error = rendered_context["key_errors"][0]
-        performance_issue = rendered_context["key_performance_issues"][0]
+        issues = rendered_context["top_issues"]
+        assert len(issues) == 2
         substatus_fields = (
             "group_substatus",
             "group_substatus_color",
             "group_substatus_text_color",
         )
-        assert {field: key_error[field] for field in substatus_fields} == {
-            field: performance_issue[field] for field in substatus_fields
+        assert {field: issues[0][field] for field in substatus_fields} == {
+            field: issues[1][field] for field in substatus_fields
         }
 
     @mock.patch("sentry.analytics.record")
@@ -1385,8 +1383,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = message_params["context"]
 
         assert ctx["enhanced_privacy"]
-        assert len(ctx["key_errors"]) == 0
-        assert len(ctx["key_performance_issues"]) == 0
+        assert len(ctx["top_issues"]) == 0
         assert ctx["trends"]["total_error_count"] == 2
         assert ctx["issue_summary"] is not None
 
@@ -1834,4 +1831,4 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             context = call_args.kwargs["context"]
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
-            assert len(context["key_errors"]) == 1
+            assert len(context["top_issues"]) == 1
