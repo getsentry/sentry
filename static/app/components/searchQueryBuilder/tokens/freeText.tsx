@@ -299,14 +299,20 @@ function SearchQueryBuilderInputInternal({
 
   // Best-effort local conversion of "humanized ESQ".
   // Runs on every keystroke; returns null when the input isn't cleanly invertible
+  const hasHumanizedEsq = organization.features.includes(
+    'search-query-builder-humanized-esq'
+  );
   const humanizedEsqSuggestion = useMemo(() => {
+    if (!hasHumanizedEsq) {
+      return null;
+    }
     const trimmed = inputValue.trim();
     if (!trimmed) {
       return null;
     }
     const esq = humanizedToEsq(trimmed, key => Boolean(filterKeys[key]));
     return esq && esq !== trimmed ? esq : null;
-  }, [inputValue, filterKeys]);
+  }, [hasHumanizedEsq, inputValue, filterKeys]);
 
   const baseItems = customMenu ? sectionItems : sortedFilteredItems;
   const items =
