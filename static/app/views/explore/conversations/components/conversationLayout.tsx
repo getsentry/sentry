@@ -153,7 +153,7 @@ export function ConversationTimelineLayout({
           background="secondary"
         >
           {right ? (
-            <ContentDetailSplit content={content} detail={right} />
+            <ResizableSplit content={content} detail={right} />
           ) : (
             <Flex height="100%" width="100%" minHeight="0" overflow="hidden">
               {content}
@@ -165,18 +165,16 @@ export function ConversationTimelineLayout({
   );
 }
 
-function ContentDetailSplit({
+function ResizableSplit({
   content,
   detail,
 }: {
   content: React.ReactNode;
   detail: React.ReactNode;
 }) {
-  // Side by side on wide panels, stacked below md so neither pane is crushed on
-  // a narrow screen; SplitPanel resolves the responsive orientation internally.
-  const [storedSize, setStoredSize] = useLocalStorageState(
+  const [storedSize, setStoredSize] = useLocalStorageState<number | undefined>(
     SPLIT_LAYOUT_STORAGE_KEY,
-    DETAIL_DEFAULT_WIDTH
+    undefined
   );
 
   return (
