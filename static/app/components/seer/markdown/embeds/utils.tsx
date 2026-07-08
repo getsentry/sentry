@@ -3,7 +3,7 @@ import type {z} from 'zod';
 
 import {NODE_ENV} from 'sentry/constants/env';
 
-import {SeerEmbedRegistry, type SeerEmbedProps} from './registry';
+import type {SeerEmbedProps} from './registry';
 import {SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
 
 type EmbedOutput<N extends SeerEmbedName> = z.output<
@@ -32,7 +32,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
     }
     return render(parsed.data as EmbedOutput<N>);
   }
+  Embed.displayName = name;
 
-  SeerEmbedRegistry.register(name, Embed);
   return Embed;
 }
