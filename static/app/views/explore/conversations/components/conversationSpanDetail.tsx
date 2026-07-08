@@ -303,7 +303,8 @@ function InputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {capitalize(message.role)}
           </TraceDrawerComponents.MultilineTextLabel>
-          <MessageContent content={message.content} />
+          {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
+          <MessageContent content={message.content} clip={message.role === 'system'} />
         </Fragment>
       ))}
       {toolArgs ? (
@@ -375,9 +376,9 @@ function OutputTab({
   );
 }
 
-function MessageContent({content}: {content: unknown}) {
+function MessageContent({content, clip = false}: {content: unknown; clip?: boolean}) {
   return typeof content === 'string' ? (
-    <AIContentRenderer text={content} clip={false} />
+    <AIContentRenderer text={content} clip={clip} />
   ) : (
     <TraceDrawerComponents.MultilineJSON value={content} maxDefaultDepth={2} />
   );
