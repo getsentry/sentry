@@ -988,6 +988,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables the shared issue/event formatter module (markdown/xml output for LLMs).
+register(
+    "issues.standardized-markdown-for-llm",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for all Seer services
 #
 # TODO: So far this is only being checked when calling the Seer similar issues service during
