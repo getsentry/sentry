@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Literal, Optional, TypedDict
 
 from pydantic import BaseModel
@@ -76,6 +76,7 @@ class GroupActionType(IntEnum):
     ROOT_CAUSE_IDENTIFIED = 26
     AUTOFIX_CODING_COMPLETE = 27
     PULL_REQUEST_CLOSED = 29
+    RECONCILE_STATUS = 30
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -117,6 +118,34 @@ class GroupActionType(IntEnum):
     SEER_PR_CREATED = 1035
     SEER_ITERATION_STARTED = 1036
     SEER_ITERATION_COMPLETED = 1037
+
+
+class ActionSource(StrEnum):
+    WEB = "web"
+    SENTRY_CLI = "sentry-cli"
+    API = "api"
+    SYSTEM = "system"
+    MCP = "mcp"
+    SEER_EXPLORER = "seer:explorer"
+    SEER_SLACK = "seer:slack"
+    SLACK = "slack"
+    SLACK_STAGING = "slack_staging"
+    DISCORD = "discord"
+    MSTEAMS = "msteams"
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    GITLAB = "gitlab"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "vsts"
+    BITBUCKET = "bitbucket"
+    BITBUCKET_SERVER = "bitbucket_server"
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+    PERFORCE = "perforce"
+    UNKNOWN = (
+        "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
+    )
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -618,3 +647,19 @@ class RelatedPullRequestClosedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_CLOSED
+
+
+class ReconcileStatusAction(GroupAction):
+    """Force-set the derived status to a known-correct value.
+
+    Used when out-of-log information (e.g. the Group model) disagrees with
+    the derived status computed from the action log.
+    """
+
+    # Must stay in sync with IssueStatus in sentry.issues.derived.features.
+    status: Literal["open", "closed"]
+    reason: Optional[str] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.RECONCILE_STATUS

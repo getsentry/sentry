@@ -62,7 +62,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
 
   return (
     <DetailLayout>
-      <DetectorDetailsHeader detector={detector} project={project} />
+      <DetectorDetailsHeader detector={detector} />
       <DetailLayout.Body>
         <DetailLayout.Main>
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
