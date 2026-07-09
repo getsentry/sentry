@@ -402,6 +402,80 @@ class MarkFailedTestCase(TestCase):
         assert group_assignee.user_id == monitor.owner_user_id
 
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_issue_threshold_simultaneous_timeouts(
+        self, mock_dispatch_incident_occurrence: mock.MagicMock
+    ) -> None:
+        """
+        Regression test for https://github.com/getsentry/sentry/issues/118344
+
+        When failure_issue_threshold > 1 and multiple check-ins time out
+        simultaneously (within the same clock tick), exactly ONE occurrence
+        should be dispatched when the threshold is first crossed — not one
+        occurrence per check-in in the threshold window.
+        """
+        failure_issue_threshold = 2
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": [5, "minute"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+
+        # Prior successful check-in so the threshold window starts clean
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
+        # Two check-ins that both time out in the same clock minute — the
+        # scenario from the bug report. They are processed sequentially
+        # (Kafka partitioned by monitor_environment_id) but both arrive
+        # before any status change is committed.
+        checkin_1 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.TIMEOUT,
+        )
+        checkin_2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.TIMEOUT,
+        )
+
+        # Processing checkin_1: the window includes the prior OK, so the
+        # threshold is not yet reached.
+        mark_failed(checkin_1, failed_at=checkin_1.date_added)
+        assert mock_dispatch_incident_occurrence.call_count == 0
+
+        # Processing checkin_2: now both failures are in the window — threshold
+        # is crossed. Exactly ONE occurrence should be dispatched, not two.
+        mark_failed(checkin_2, failed_at=checkin_2.date_added)
+
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.status == MonitorStatus.ERROR
+
+        assert mock_dispatch_incident_occurrence.call_count == 1, (
+            "Expected exactly 1 occurrence when threshold is first crossed, "
+            f"got {mock_dispatch_incident_occurrence.call_count}. "
+            "Duplicate occurrences cause duplicate alert notifications."
+        )
+
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
     @mock.patch("sentry.monitors.logic.incident_occurrence.resolve_incident_group")
     def test_mark_failed_fingerprint_after_resolution(
         self, mock_resolve_incident_group, mock_dispatch_incident_occurrence
