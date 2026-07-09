@@ -8,7 +8,7 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
 const stringTags: TagCollection = {
@@ -46,6 +46,24 @@ const booleanTags: TagCollection = {
   exclusive_time_lost: {
     key: 'exclusive_time_lost',
     name: 'exclusive_time_lost',
+    kind: FieldKind.BOOLEAN,
+  },
+};
+
+const enrichedNumberTags: TagCollection = {
+  ...numberTags,
+  'custom.duration': {
+    key: 'custom.duration',
+    name: 'custom.duration',
+    kind: FieldKind.MEASUREMENT,
+  },
+};
+
+const enrichedBooleanTags: TagCollection = {
+  ...booleanTags,
+  'custom.enabled': {
+    key: 'custom.enabled',
+    name: 'custom.enabled',
     kind: FieldKind.BOOLEAN,
   },
 };
@@ -370,5 +388,60 @@ describe('ColumnEditorModal', () => {
     expect(columns[0]).toHaveTextContent('boolean');
     expect(columns[1]).toHaveTextContent('id');
     expect(columns[1]).toHaveTextContent('string');
+  });
+
+  it('renders existing columns with types from supplied tags', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['custom.duration', 'custom.enabled']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={enrichedNumberTags}
+            booleanTags={enrichedBooleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('editor-column');
+    expect(columns[0]).toHaveTextContent('custom.duration');
+    expect(columns[0]).toHaveTextContent('number');
+    expect(columns[1]).toHaveTextContent('custom.enabled');
+    expect(columns[1]).toHaveTextContent('boolean');
+  });
+
+  it('renders existing columns with types from validated field types', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['sentry.duration']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+            validatedFieldTypes={{'sentry.duration': FieldValueType.NUMBER}}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const column = screen.getByTestId('editor-column');
+    expect(column).toHaveTextContent('sentry.duration');
+    expect(column).toHaveTextContent('number');
   });
 });

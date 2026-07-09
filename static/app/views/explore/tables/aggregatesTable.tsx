@@ -20,7 +20,7 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -42,7 +42,6 @@ import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggrega
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
@@ -55,6 +54,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
+import {addValidatedFieldTypesToMeta} from 'sentry/views/explore/tables/spansTable';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -62,9 +62,19 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
 }
 
-export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
+export function AggregatesTable({
+  aggregatesTableResult,
+  booleanTags,
+  numberTags,
+  stringTags,
+  validatedFieldTypes,
+}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -110,11 +120,14 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
     }
   );
 
-  const meta = result.meta ?? {};
-
-  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToMeta({
+        meta: result.meta ?? {},
+        validatedFieldTypes,
+      }),
+    [result.meta, validatedFieldTypes]
+  );
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
@@ -130,12 +143,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const columns = useMemo(() => {
     return eventView
-      .getColumns()
+      .getColumns(meta)
       .reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
       }, {});
-  }, [eventView]);
+  }, [eventView, meta]);
 
   return (
     <Fragment>
