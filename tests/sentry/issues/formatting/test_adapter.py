@@ -1,7 +1,9 @@
+from typing import Any
+
 from sentry.issues.formatting.adapter import event_response_to_model
 
 
-def _serialized_event() -> dict:
+def _serialized_event() -> dict[str, Any]:
     return {
         "id": "abc123",
         "eventID": "abc123",
@@ -72,6 +74,7 @@ def test_maps_camelcase_frame_and_handled_flag() -> None:
     exc = m.exceptions[0]
     assert exc.type == "ValueError"
     assert exc.is_handled is False  # from mechanism.handled
+    assert exc.stacktrace is not None
     frame = exc.stacktrace.frames[0]
     assert frame.line_no == 42  # lineNo -> line_no
     assert frame.col_no == 5  # colNo -> col_no
@@ -82,11 +85,13 @@ def test_maps_camelcase_frame_and_handled_flag() -> None:
 def test_maps_breadcrumbs_request_spans_user_tags() -> None:
     m = event_response_to_model(_serialized_event())
     assert m.breadcrumbs[0].message == "started"
-    assert m.request.method == "GET"
     assert m.spans[0].exclusive_time_ms == 12.5  # exclusiveTime -> exclusive_time_ms
+    assert ("environment", "prod") in m.tags
+    assert m.request is not None
+    assert m.request.method == "GET"
+    assert m.user is not None
     assert m.user.email == "user@example.com"
     assert m.user.ip_address == "1.2.3.4"  # ipAddress -> ip_address
-    assert ("environment", "prod") in m.tags
 
 
 def test_no_truncation_in_adapter() -> None:
