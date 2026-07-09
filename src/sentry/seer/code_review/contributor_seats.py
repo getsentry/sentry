@@ -103,7 +103,7 @@ def track_contributor_seat(
         organization_id=organization.id,
         integration_id=integration_id,
         external_identifier=str(user_id),
-        defaults={"alias": user_username},
+        defaults={"alias": user_username, "provider": provider},
     )
 
     if not should_increment_contributor_seat(organization, repo, contributor):
@@ -146,7 +146,7 @@ def record_contributor_action(
         organization_id=organization.id,
         integration_id=integration_id,
         external_identifier=str(user_id),
-        defaults={"alias": user_username},
+        defaults={"alias": user_username, "provider": provider},
     )
 
     if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):
