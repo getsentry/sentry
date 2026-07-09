@@ -268,7 +268,7 @@ def run_night_shift_execution(
     (from run_night_shift_for_org) and async dispatch (apply_async)."""
     run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
-        logger.info("night_shift.missing_run", extra={"run_id": run_id})
+        logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
 
     organization = run.organization
@@ -277,7 +277,7 @@ def run_night_shift_execution(
     log_extra: dict[str, object] = {
         "organization_id": organization.id,
         "organization_slug": organization.slug,
-        "run_id": run.id,
+        "night_shift_run_id": run.id,
     }
     if project_ids is not None:
         log_extra["project_ids"] = project_ids
