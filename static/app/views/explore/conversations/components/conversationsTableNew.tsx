@@ -306,7 +306,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
         </Text>
       );
     case 'input':
