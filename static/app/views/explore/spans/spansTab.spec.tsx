@@ -23,6 +23,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -168,6 +169,26 @@ describe('SpansTabContent', () => {
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'aggregates'})
     );
+  });
+
+  it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {
+    let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+    function Component() {
+      ({getLLMContext} = useLLMContext());
+      return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
+    }
+
+    render(<Component />, {organization, additionalWrapper: Wrapper});
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
+    await screen.findByText(/No spans found/);
+
+    await waitFor(() => {
+      const node = getLLMContext!().nodes.find(n => n.nodeType === 'traces-explorer');
+      const data = node?.data as Record<string, unknown>;
+      expect(data.activeTab).toBe('aggregate');
+      expect(data.sortBys).toEqual(['-count(span.duration)']);
+    });
   });
 
   it('inserts group bys from aggregate mode as fields in samples mode', async () => {

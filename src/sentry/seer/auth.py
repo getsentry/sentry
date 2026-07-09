@@ -21,23 +21,29 @@ class SeerRpcViewerContextAuthentication(BaseAuthentication):
 
     A co-equal alternative to :class:`SeerRpcSignatureAuthentication` (HMAC). The
     JWT is verified with ``SEER_API_SHARED_SECRET`` using the shared
-    ``sentry.viewer_context`` verification logic --- the same trust envelope the
+    ``sentry.viewer_context`` verification logic — the same trust envelope the
     rest of the Sentry API already relies on.
 
     Unlike the REST ``ViewerContextAuthentication``, this accepts org-only
-    contexts (no ``user_id``) --- the common near-term case for RPC callers ---
-    and returns a truthy ``auth`` value so the endpoint's ``_is_authorized``
-    gate passes. The user is resolved opportunistically when a ``user_id`` is
-    present.
+    contexts (no ``user_id``) — the common near-term case for RPC callers — and
+    returns a truthy ``auth`` value so the endpoint's ``_is_authorized`` gate
+    passes. The user is resolved opportunistically when a ``user_id`` is present.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         header = request.META.get("HTTP_X_VIEWER_CONTEXT")
         if not header:
+            # No viewer context: leave authentication to the HMAC authenticator.
             return None
 
         vc = viewer_context_from_header(header)
         if vc is None or vc.organization_id is None:
+            # Reject a viewer context that is unverifiable OR carries no
+            # organization: every seer RPC call acts on behalf of an org, so a
+            # VC used for auth MUST name one. We fall through (do not raise) so a
+            # valid HMAC on the same request can still win; otherwise the
+            # endpoint denies via _is_authorized. This guarantees every
+            # VC-authenticated call carries an attested org to enforce against.
             return None
 
         user: Any = AnonymousUser()
@@ -47,7 +53,14 @@ class SeerRpcViewerContextAuthentication(BaseAuthentication):
                 user = resolved
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_viewer_context_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_viewer_context_auth", True)
 
+        # Stash the verified context so the org-binding guard reads the signed
+        # value directly. (The middleware contextvar can drop organization_id when
+        # it resolves the user and prefers the request context, so it is not a
+        # reliable source for the binding check.)
         setattr(request, "_seer_rpc_viewer_context", vc)
 
+        # Return the raw header as a truthy ``auth`` so ``_is_authorized`` passes,
+        # mirroring the HMAC authenticator's (user, token) shape.
         return (user, header)

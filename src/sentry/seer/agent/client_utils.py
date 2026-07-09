@@ -47,6 +47,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
+from sentry.utils.strings import strip_lone_surrogates
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +227,23 @@ def make_feature_run_request(
     )
 
 
+def _sanitize_json_strings(payload: dict[str, Any]) -> dict[str, Any]:
+    """Postgres jsonb rejects \\u0000 and lone surrogates, which show up in run
+    bodies built from customer event data (e.g. exception titles). The outbox
+    payload is a JSONField, so scrub strings recursively before saving."""
+
+    def scrub(value: object) -> object:
+        if isinstance(value, str):
+            return strip_lone_surrogates(value).replace("\x00", "")
+        if isinstance(value, dict):
+            return {scrub(k): scrub(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [scrub(v) for v in value]
+        return value
+
+    return {k: scrub(v) for k, v in payload.items()}
+
+
 def enqueue_seer_run(
     *,
     organization: Organization,
@@ -265,10 +283,12 @@ def enqueue_seer_run(
                 shard_identifier=run.id,
                 category=OutboxCategory.SEER_RUN_CREATE,
                 object_identifier=run.id,
-                payload={
-                    "body": dict(body),
-                    "viewer_context": dict(viewer_context) if viewer_context else None,
-                },
+                payload=_sanitize_json_strings(
+                    {
+                        "body": dict(body),
+                        "viewer_context": dict(viewer_context) if viewer_context else None,
+                    }
+                ),
             ).save()
     except (OutboxFlushError, OutboxDatabaseError):
         metrics.incr("seer.outbox_flush_error", tags={"type": run_type.value})

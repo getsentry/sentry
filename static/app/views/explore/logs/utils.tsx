@@ -260,8 +260,44 @@ export function parseLinkHeaderFromLogsPage(
   return parseLinkHeader(linkHeader ?? null);
 }
 
-export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
+export function getLogRowTimestampMillis(row: LogTableRowItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
+}
+
+function getLogRowSortValue(
+  row: LogTableRowItem,
+  field: OurLogFieldKey
+): string | number | bigint {
+  if (
+    field === OurLogKnownFieldKey.TIMESTAMP ||
+    field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  ) {
+    try {
+      return BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
+      return BigInt(new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+    }
+  }
+  return (isRegularLogResponseItem(row) ? row[field] : undefined) ?? '';
+}
+
+export function compareLogRowsBySortBys(
+  a: LogTableRowItem,
+  b: LogTableRowItem,
+  sortBys: readonly Sort[]
+): number {
+  for (const sortBy of sortBys) {
+    const direction = sortBy.kind === 'desc' ? -1 : 1;
+    const aValue = getLogRowSortValue(a, sortBy.field);
+    const bValue = getLogRowSortValue(b, sortBy.field);
+    if (aValue < bValue) {
+      return -1 * direction;
+    }
+    if (aValue > bValue) {
+      return direction;
+    }
+  }
+  return 0;
 }
 
 export function quantizeTimestampToMinutes(

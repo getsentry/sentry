@@ -292,5 +292,16 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);
   }
 
+  if (args?.crossEvents && args.crossEvents.length > 0) {
+    const crossEventText = args.crossEvents
+      .map(crossEvent =>
+        crossEvent.type === 'metrics'
+          ? `${crossEvent.type} ${crossEvent.metric.name}`
+          : `${crossEvent.type} ${crossEvent.query}`
+      )
+      .join(', ');
+    parts.push(`cross-event filters are '${crossEventText}'`);
+  }
+
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';
 }

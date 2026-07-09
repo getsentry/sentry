@@ -100,10 +100,12 @@ from sentry.seer.agent.tools import (
     get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
+    get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
+    get_team_members,
     get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
@@ -175,7 +177,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -270,6 +272,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -295,7 +298,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @sentry_sdk.trace
+    @trace
     def _is_authorized(self, request: Request) -> bool:
         return bool(request.auth) and isinstance(
             request.successful_authenticator,
@@ -335,7 +338,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             )
             raise PermissionDenied("Viewer context organization does not match request")
 
-    @sentry_sdk.trace
+    @trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -347,7 +350,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return result.dict()
         return result
 
-    @sentry_sdk.trace
+    @trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)
@@ -1250,6 +1253,8 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
+    "get_issue_ownership": seer_rpc(get_issue_ownership),
+    "get_team_members": seer_rpc(get_team_members),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),

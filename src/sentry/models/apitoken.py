@@ -185,10 +185,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     category = OutboxCategory.API_TOKEN_UPDATE
     replication_version = 2
 
-    # Outbox settings
-    enqueue_after_flush = True
-    _default_flush: bool | None = None
-
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
@@ -609,21 +605,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             return install_token.sentry_app_installation.organization_id
 
         return installation.organization_id
-
-    @property
-    def default_flush(self) -> bool:
-        from sentry import options
-
-        has_async_flush = options.get("api-token-async-flush")
-
-        if self._default_flush is not None:
-            return self._default_flush
-
-        return not has_async_flush
-
-    @default_flush.setter
-    def default_flush(self, value: bool) -> None:
-        self._default_flush = value
 
 
 def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:

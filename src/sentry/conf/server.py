@@ -860,6 +860,12 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# The topic a namespace produces to when it is not explicitly routed via
+# TASKWORKER_ROUTES. When unset, region silos fall back to the `taskworker`
+# topic (control silos always use `taskworker-control`). Set per-region to make
+# a different pool the catch-all, e.g. `taskworker-push` in s4s2.
+TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -938,7 +944,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
-    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
@@ -956,6 +961,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.seer.autofix",
+    "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
     "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",

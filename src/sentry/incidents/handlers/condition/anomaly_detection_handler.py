@@ -13,7 +13,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Condition
-from sentry.workflow_engine.models.data_condition import DataConditionEvaluationException
+from sentry.workflow_engine.processors.evaluations import DataConditionEvaluationException
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
 
