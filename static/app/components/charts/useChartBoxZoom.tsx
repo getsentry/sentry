@@ -190,7 +190,7 @@ export function useChartBoxZoom({
       teardown();
       scheduleTooltipRestore();
 
-      if (!isDrag(start, end)) {
+      if (!isDragAboveThreshold(start, end)) {
         return;
       }
 
@@ -244,7 +244,7 @@ function clampPointToBounds({x, y}: Point, bounds: RectangularBounds): Point {
   };
 }
 
-function isDrag(a: Point, b: Point): boolean {
+function isDragAboveThreshold(a: Point, b: Point): boolean {
   return Math.abs(b.x - a.x) >= MIN_DRAG_PX && Math.abs(b.y - a.y) >= MIN_DRAG_PX;
 }
 
