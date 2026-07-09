@@ -635,7 +635,6 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "duration": ["duration", "started_at", "finished_at"],
     "urls": ["urls_sorted", "agg_urls"],
     "url": ["urls_sorted", "agg_urls"],
-    "segment_names": ["segment_names"],
     "count_errors": ["count_errors"],
     "count_urls": ["count_urls"],
     "count_segments": ["count_segments"],
@@ -770,11 +769,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         "groupArray",
         parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
         alias="agg_urls",
-    ),
-    "segment_names": Function(
-        "groupUniqArrayArray",
-        parameters=[Column("segment_names")],
-        alias="segment_names",
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
     "count_urls": Function(
