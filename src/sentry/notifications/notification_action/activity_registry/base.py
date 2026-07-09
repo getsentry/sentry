@@ -8,7 +8,7 @@ from sentry.notifications.notification_action.registry import activity_handler_r
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.workflow_engine import (
     ACTIVITY_TYPE_TO_SOURCE,
-    WorkflowEngineActivityAction,
+    ActivityAlertAction,
 )
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
@@ -35,16 +35,14 @@ def get_supported_action_types() -> frozenset[Action.Type]:
     )
 
 
-def build_activity_data(
-    invocation: ActionInvocation, activity: Activity
-) -> WorkflowEngineActivityAction:
+def build_activity_data(invocation: ActionInvocation, activity: Activity) -> ActivityAlertAction:
     detector = invocation.detector
 
     source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
     if source is None:
         raise ValueError(f"No notification source for activity type: {activity.type}")
 
-    return WorkflowEngineActivityAction(
+    return ActivityAlertAction(
         source=source,
         workflow_id=invocation.workflow_id,
         activity_type=activity.type,
@@ -60,7 +58,7 @@ def send_activity_notification(
     target: NotificationTarget,
 ) -> None:
     data = build_activity_data(invocation, activity)
-    NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(targets=[target])
+    NotificationService[ActivityAlertAction](data=data).notify_sync(targets=[target])
 
 
 def require_config(action: Action, key: str) -> str:

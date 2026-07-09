@@ -30,7 +30,8 @@ SUPPORTED_ACTIVITIES = [
     ActivityType.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_RESOLVED_BY_AGE,
     ActivityType.SET_RESOLVED_IN_COMMIT,
-    ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+    # We omit SET_RESOLVED_IN_PULL_REQUEST because it's a misnomer.
+    # When it fires, it means the issue was referenced in a pull request, not resolved.
 ]
 
 

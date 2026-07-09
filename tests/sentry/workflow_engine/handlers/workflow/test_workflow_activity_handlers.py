@@ -165,7 +165,6 @@ class GenericActivityHandlerTest(TestCase):
             ActivityType.SET_RESOLVED_IN_RELEASE,
             ActivityType.SET_RESOLVED_BY_AGE,
             ActivityType.SET_RESOLVED_IN_COMMIT,
-            ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
         ]
         assert set(resolution_activity_types) <= set(SUPPORTED_ACTIVITIES)
 
