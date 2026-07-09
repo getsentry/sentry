@@ -1,4 +1,5 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -61,11 +62,11 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
 
   useLayoutEffect(() => {
     if (pendingValidatedGroupBys.current) {
-      if (arraysAreEqual(groupBys, pendingValidatedGroupBys.current.to)) {
+      if (isEqual(groupBys, pendingValidatedGroupBys.current.to)) {
         pendingValidatedGroupBys.current = null;
       } else if (
-        arraysAreEqual(groupBys, pendingValidatedGroupBys.current.from) &&
-        arraysAreEqual(validatedGroupBys, pendingValidatedGroupBys.current.to)
+        isEqual(groupBys, pendingValidatedGroupBys.current.from) &&
+        isEqual(validatedGroupBys, pendingValidatedGroupBys.current.to)
       ) {
         return;
       }
@@ -88,8 +89,8 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
     }
 
     if (
-      !arraysAreEqual(groupBys, validationGroupBySnapshot.groupBys) ||
-      arraysAreEqual(groupBys, validatedGroupBys)
+      !isEqual(groupBys, validationGroupBySnapshot.groupBys) ||
+      isEqual(groupBys, validatedGroupBys)
     ) {
       return;
     }
@@ -282,10 +283,6 @@ function shouldHideGroupByForValidation(
   }
 
   return validationIsPending || field?.valid === false;
-}
-
-function arraysAreEqual(a: readonly string[], b: readonly string[]): boolean {
-  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 function mergeValidatedTags({
