@@ -375,6 +375,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/'
   | '/organizations/$organizationIdOrSlug/trace-explorer-ai/setup/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/'
+  | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/context/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/validate/'

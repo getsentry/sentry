@@ -430,6 +430,20 @@ def build_sentry_attribute_context(
     return result
 
 
+def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
+    """
+    Whether ``name`` is an attribute Sentry defines — a column public/secondary
+    alias, a virtual context, a column internal name, or a sentry-conventions
+    entry (keyed by either public or internal name). Custom names resolve to
+    none of these and return False.
+    """
+    if name in definitions.columns or name in definitions.contexts:
+        return True
+    if name in {column.internal_name for column in definitions.columns.values()}:
+        return True
+    return ATTRIBUTE_METADATA.get(name) is not None
+
+
 def as_attribute_key(
     name: str,
     attr_type: Literal["string", "number", "boolean"],
