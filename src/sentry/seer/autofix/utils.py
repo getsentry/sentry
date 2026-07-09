@@ -256,6 +256,20 @@ def make_match_coding_agent_pr_request(
     )
 
 
+class DelegatedAgentMatch(BaseModel):
+    """A match resolved synchronously by ``/v1/pr-metrics/delegated-agent-match``.
+
+    Returned as a ``200`` body instead of the async ``202`` + ``record_pr_attribution``
+    RPC callback. ``match_path`` isn't consumed on the Sentry side today; it's kept
+    here to mirror the full wire contract.
+    """
+
+    run_id: int
+    agent_id: str
+    signal_type: str
+    match_path: str
+
+
 def make_store_coding_agent_states_request(
     body: StoreCodingAgentStatesRequest,
     connection_pool: HTTPConnectionPool | None = None,
