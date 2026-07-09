@@ -34,11 +34,11 @@ export function useInitialSeerQuery(): string {
     autoSubmitFromCurrentQuery && autoSubmitSeer && displayAskSeer;
 
   const queryDetails = useMemo(() => {
-    const queryToUse = isAutoSubmittingCurrentQuery
-      ? query
-      : committedQuery.length > 0
-        ? committedQuery
-        : query;
+    let queryToUse = query;
+    if (!isAutoSubmittingCurrentQuery && committedQuery.length > 0) {
+      queryToUse = committedQuery;
+    }
+
     const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
   }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
