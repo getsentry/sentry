@@ -551,7 +551,7 @@ class User(Model, AbstractBaseUser):
                 DatabaseLostPasswordHashService,
             )
 
-            serializer_cls = BaseUserSerializer
+            serializer_cls: type[BaseUserSerializer]
             if scope not in {ImportScope.Config, ImportScope.Global}:
                 serializer_cls = UserSerializer
             else:
