@@ -213,6 +213,17 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "c@example.com"
         assert user.username == "diff@example.com"
 
+    def test_cannot_take_another_users_email_as_username(self) -> None:
+        self.create_user(email="user_a@example.com", username="sso-abc123")
+        user_b = self.create_user(email="b_user@example.com", username="user_b@example.com")
+        self.login_as(user=user_b)
+
+        resp = self.get_error_response("me", username="user_a@example.com", status_code=400)
+        assert resp.data["username"] == ["That username is already in use."]
+
+        user_b = User.objects.get(id=user_b.id)
+        assert user_b.username == "user_b@example.com"
+
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_user_cannot_elevate_when_superuser_org_not_configured(self) -> None:
         """Verify users cannot elevate when SUPERUSER_ORG_ID is None (not configured)"""

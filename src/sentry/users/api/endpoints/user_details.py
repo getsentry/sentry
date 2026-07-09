@@ -6,6 +6,7 @@ from typing import Any, cast
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
+from django.db.models import Q
 from django.utils import timezone as django_timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
@@ -159,15 +160,16 @@ class BaseUserSerializer(CamelSnakeModelSerializer[User]):
     def validate_username(self, value: str) -> str:
         assert isinstance(self.instance, User), "Should be a single record not a sequence"
 
-        if (
-            User.objects.filter(username__iexact=value)
-            # Django throws an exception if `id` is `None`, which it will be when we're importing
-            # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
-            # make Django happy here.
-            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
-            .exists()
-        ):
+        # Django throws an exception if `id` is `None`, which it will be when we're importing
+        # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
+        # make Django happy here.
+        others = User.objects.exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
+
+        # Reject a value already taken as a username OR another user's email
+        # because login resolves username before falling back to email.
+        if others.filter(Q(username__iexact=value) | Q(email__iexact=value)).exists():
             raise serializers.ValidationError("That username is already in use.")
+
         return value
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
