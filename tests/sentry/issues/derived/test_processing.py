@@ -13,8 +13,10 @@ from sentry.issues.action_log.types import (
     GroupActionActor,
     GroupActionType,
     GroupActorType,
+    PullRequestClosedAction,
     ResolveAction,
     ResolvedInPullRequestAction,
+    RootCauseIdentifiedAction,
     UnresolveAction,
     ViewAction,
 )
@@ -266,7 +268,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.view_count == 2  # rebuilt from scratch
 
-    def test_resolved_in_pull_request_closes(self) -> None:
+    def test_resolved_in_pull_request_proposes_fix(self) -> None:
         group = self.create_group()
         user = self.user
 
@@ -276,7 +278,75 @@ class ProcessGroupLogTest(TestCase):
             actor=GroupActionActor.user(user.id),
         )
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "closed"
+        # An open PR referencing the issue proposes a fix; the issue stays open.
+        assert derived.data["status"] == "open"
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+    def test_pull_request_close_demotes_progress(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.DIAGNOSED.value
+
+    def test_pull_request_close_with_remaining_keeps_progress(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=True),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+    def test_pull_request_close_invalidate_and_replay_matches(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        first = process_group_log(group.id)
+        first_data = first.data.copy()
+        first_progress = first.progress
+        first_last_progressed_at = first.last_progressed_at
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+
+        assert second.data == first_data
+        assert second.progress == first_progress
+        assert second.last_progressed_at == first_last_progressed_at
+        assert second.progress == IssueProgressState.DIAGNOSED.value
 
 
 # --- Pure Python tests (no DB) ---
