@@ -76,15 +76,13 @@
       border-style: hidden;
       width: 100%;
     }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.issues {
       padding-right: 10px;
-    }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions {
-      padding-left: 10px;
       border: 1px solid #C4C4C4;
     }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions-empty {
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
       padding-left: 10px;
+      border: 1px solid #C4C4C4;
     }
     .project-breakdown .total-count-title {
       margin-top: 0;
@@ -199,6 +197,47 @@
     {% with height=110 %}
     <table class="project-breakdown-graph-deck"><tbody><tr>
 
+    <td class="project-breakdown-graph-cell issues">
+    <h4 class="total-count-title">Total Project Issues</h4>
+    <h1 style="margin: 0;" class="total-count">
+      {{ trends.total_issue_count|small_count:1 }}
+      {% if show_week_over_week_metric and trends.issue_pct_change %}
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #3A1873;">{{ trends.issue_pct_change }}</span>
+      {% endif %}
+    </h1>
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
+    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
+    <a href="{% org_url organization issue_list query=query %}"
+       style="font-size: 12px; margin-bottom: 16px; display: block;">View All Issues</a>
+
+    <table class="graph">
+      <tr>
+        {% for timestamp, project_values in trends.series %}
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
+            <table class="bar">
+              {% for project_value in project_values %}
+                <tr>
+                  <td height="{% widthratio project_value.issue_count trends.issue_maximum height %}" style="background-color: {{ project_value.color }};">&nbsp;</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #DAD9DE;"></td>
+                </tr>
+              {% endfor %}
+            </table>
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for timestamp, project_values in trends.series %}
+          <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
+            {{ timestamp|date:"D" }}
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+    </td>
+
     <td class="project-breakdown-graph-cell errors">
     <h4 class="total-count-title">Total Project Errors</h4>
     <h1 style="margin: 0;" class="total-count">
@@ -207,9 +246,7 @@
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #3A1873;">{{ trends.error_pct_change }}</span>
       {% endif %}
     </h1>
-    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
-    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-    <a href="{% org_url organization issue_list query=query %}"
+    <a href="{% org_url organization '/explore/discover/homepage/' query=errors_discover_query %}"
        style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
 
     <table class="graph">
@@ -240,70 +277,17 @@
     </table>
     </td>
 
-    {% if trends.total_transaction_count > 0 %}
-    <td class="project-breakdown-graph-cell transactions">
-      <h4 class="total-count-title">Total Project Transactions</h4>
-      <h1 style="margin: 0;" class="total-count">
-        {{ trends.total_transaction_count|small_count:1 }}
-        {% if show_week_over_week_metric and trends.transaction_pct_change %}
-        <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #3A1873;">{{ trends.transaction_pct_change }}</span>
-        {% endif %}
-      </h1>
-      {% url 'sentry-organization-performance' organization.slug as performance_landing %}
-      {% querystring referrer="weekly_report_view_all" notification_uuid=notification_uuid as query %}
-      <a href="{% org_url organization performance_landing query=query %}"
-         style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
-      <table class="graph">
-        <tr>
-          {% for timestamp, project_values in trends.series %}
-          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
-              <table class="bar">
-                {% for project_value in project_values %}
-                  <tr>
-                    <td height="{% widthratio project_value.transaction_count trends.transaction_maximum height %}" style="background-color: {{ project_value.color }};">&nbsp;</td>
-                  </tr>
-                {% empty %}
-                  <tr>
-                    <td height="1" style="background-color: #DAD9DE;"></td>
-                  </tr>
-                {% endfor %}
-              </table>
-            </td>
-          {% endfor %}
-        </tr>
-        <tr>
-          {% for timestamp, project_values in trends.series %}
-            <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
-              {{ timestamp|date:"D" }}
-            </td>
-          {% endfor %}
-        </tr>
-      </table>
-      </td>
-    {% else %}
-      <td class="project-breakdown-graph-cell transactions-empty">
-        <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
-          <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
-          <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
-          <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
-          {% url 'sentry-organization-performance' organization.slug as performance_landing %}
-          {% querystring referrer="weekly_report_upsell" notification_uuid=notification_uuid as query %}
-          <a href="{% org_url organization performance_landing query=query %}"
-             class="btn" style="margin-top: 8px;">Set Up Tracing</a>
-        </div>
-      </td>
-    {% endif %}
-
-
     </tr></tbody></table>
 
     <table class="summary">
       <thead>
         <tr>
           <th style="width: 2em; padding-right: 0.5em"></th>
-          <th>Project</th>
-          <th style="width: 5em; padding-right: 2em;" class="numeric">Errors</th>
-          <th style="width: 7em;" class="numeric">Transactions</th>
+          <th style="font-size: 12px; text-align: left;">Project name</th>
+          <th style="width: 7em; font-size: 12px; text-align: right;" class="numeric">Errors</th>
+          <th style="width: 7em; font-size: 12px; text-align: right;" class="numeric">New<br>Issues</th>
+          <th style="width: 8em; font-size: 12px; text-align: right;" class="numeric">Escalating<br>Issues</th>
+          <th style="width: 7em; font-size: 12px; text-align: right;" class="numeric">Regressed<br>Issues</th>
         </tr>
       </thead>
       <tbody>
@@ -315,8 +299,10 @@
           <td>
               {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
-          <td class="numeric" style="padding-right: 2em;">{{ project.accepted_error_count|small_count:1 }}</td>
-          <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{{ project.accepted_error_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{{ project.new_substatus_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{{ project.escalating_substatus_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{{ project.regression_substatus_count|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>

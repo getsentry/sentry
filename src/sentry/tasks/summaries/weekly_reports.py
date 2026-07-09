@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Final
+from urllib.parse import urlencode
 
 import sentry_sdk
 from django.conf import settings
@@ -857,6 +858,20 @@ def render_template_context(
 
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
+    errors_discover_query = urlencode(
+        [
+            ("field", "title"),
+            ("field", "event.type"),
+            ("field", "project"),
+            ("field", "user.display"),
+            ("field", "timestamp"),
+            ("dataset", "errors"),
+            ("sort", "-timestamp"),
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+        ]
+    )
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -869,6 +884,7 @@ def render_template_context(
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "errors_discover_query": errors_discover_query,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
