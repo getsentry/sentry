@@ -29,6 +29,7 @@ class TestCodeReviewPreflightService(TestCase):
         self,
         integration_id: int | None = None,
         external_identifier: str | None = None,
+        provider: str | None = "github",
     ) -> CodeReviewPreflightService:
         return CodeReviewPreflightService(
             organization=self.organization,
@@ -37,6 +38,7 @@ class TestCodeReviewPreflightService(TestCase):
             pr_author_external_id=(
                 external_identifier if external_identifier is not None else self.external_identifier
             ),
+            provider=provider,
         )
 
     # -------------------------------------------------------------------------
@@ -83,6 +85,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -122,6 +125,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -148,6 +152,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -196,6 +201,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -228,6 +234,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -262,6 +269,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -279,7 +287,7 @@ class TestCodeReviewPreflightService(TestCase):
     # -------------------------------------------------------------------------
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
-    def test_denied_when_missing_integration_id(self) -> None:
+    def test_denied_when_missing_provider(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
@@ -288,8 +296,9 @@ class TestCodeReviewPreflightService(TestCase):
         service = CodeReviewPreflightService(
             organization=self.organization,
             repo=self.repo,
-            integration_id=None,
+            integration_id=self.integration.id,
             pr_author_external_id=self.external_identifier,
+            provider=None,
         )
         result = service.check()
 
@@ -308,6 +317,7 @@ class TestCodeReviewPreflightService(TestCase):
             repo=self.repo,
             integration_id=self.integration.id,
             pr_author_external_id=None,
+            provider="github",
         )
         result = service.check()
 
@@ -341,6 +351,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -372,6 +383,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
         )
 
         service = self._create_service()
@@ -400,6 +412,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
+            provider="github",
             alias="dependabot[bot]",
         )
 

@@ -45,11 +45,13 @@ class CodeReviewPreflightService:
         repo: Repository,
         integration_id: int | None = None,
         pr_author_external_id: str | None = None,
+        provider: str | None = None,
     ):
         self.organization = organization
         self.repo = repo
         self.integration_id = integration_id
         self.pr_author_external_id = pr_author_external_id
+        self.provider = provider
 
         repo_settings = RepositorySettings.objects.filter(repository=repo).first()
         self._repo_settings = repo_settings.get_code_review_settings() if repo_settings else None
@@ -101,16 +103,19 @@ class CodeReviewPreflightService:
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
         """
-        if self.integration_id is None or self.pr_author_external_id is None:
+        if self.provider is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-        try:
-            contributor = OrganizationContributors.objects.get(
+        contributor = (
+            OrganizationContributors.objects.filter(
                 organization_id=self.organization.id,
-                integration_id=self.integration_id,
+                provider=self.provider,
                 external_identifier=self.pr_author_external_id,
             )
-        except OrganizationContributors.DoesNotExist:
+            .order_by("id")
+            .first()
+        )
+        if contributor is None:
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
         # Excluded author check applies to all organization types

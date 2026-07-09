@@ -264,6 +264,7 @@ class TrackContributorSeatTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="12345",
+            provider="github",
             alias="testuser",
             num_actions=5,
         )
@@ -397,6 +398,7 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="123",
+            provider="github",
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
         )
@@ -419,6 +421,7 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="123",
+            provider="github",
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
         )

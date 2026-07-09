@@ -88,6 +88,38 @@ def should_increment_contributor_seat(
     )
 
 
+def _get_or_create_contributor(
+    *,
+    organization: Organization,
+    integration_id: int,
+    external_identifier: str,
+    provider: str,
+    alias: str | None,
+) -> OrganizationContributors:
+    """
+    TODO(CW-1539): Replace with get_or_create after the contributor deduplication
+    migration has completed.
+    """
+    contributor = (
+        OrganizationContributors.objects.filter(
+            organization_id=organization.id,
+            provider=provider,
+            external_identifier=external_identifier,
+        )
+        .order_by("id")
+        .first()
+    )
+    if contributor is None:
+        contributor = OrganizationContributors.objects.create(
+            organization_id=organization.id,
+            integration_id=integration_id,
+            external_identifier=external_identifier,
+            provider=provider,
+            alias=alias,
+        )
+    return contributor
+
+
 def track_contributor_seat(
     *,
     organization: Organization,
@@ -99,11 +131,12 @@ def track_contributor_seat(
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
-    contributor, _ = OrganizationContributors.objects.get_or_create(
-        organization_id=organization.id,
+    contributor = _get_or_create_contributor(
+        organization=organization,
         integration_id=integration_id,
         external_identifier=str(user_id),
-        defaults={"alias": user_username, "provider": provider},
+        provider=provider,
+        alias=user_username,
     )
 
     if not should_increment_contributor_seat(organization, repo, contributor):
@@ -142,11 +175,12 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
-    contributor, _ = OrganizationContributors.objects.get_or_create(
-        organization_id=organization.id,
+    contributor = _get_or_create_contributor(
+        organization=organization,
         integration_id=integration_id,
         external_identifier=str(user_id),
-        defaults={"alias": user_username, "provider": provider},
+        provider=provider,
+        alias=user_username,
     )
 
     if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):

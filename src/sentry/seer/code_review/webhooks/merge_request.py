@@ -432,6 +432,7 @@ def handle_merge_request_event(
         repo=repo,
         integration_id=integration.id,
         pr_author_external_id=str(author_id) if author_id else None,
+        provider="gitlab",
     ).check()
 
     if not preflight.allowed:
@@ -914,6 +915,7 @@ def handle_merge_request_note_event(
         repo=repo,
         integration_id=integration.id,
         pr_author_external_id=str(mr_author_id) if mr_author_id else None,
+        provider="gitlab",
     ).check()
 
     if not preflight.allowed:
