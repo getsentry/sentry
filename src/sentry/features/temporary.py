@@ -379,6 +379,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow users to exclude specific projects from their weekly email reports
     manager.add("organizations:weekly-report-project-exclusions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Show Total Issues chart instead of Total Transactions in weekly email reports
+    manager.add("organizations:weekly-report-issues-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable week-over-week percentage change metric in weekly email reports
     manager.add("organizations:weekly-report-week-over-week-metric", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows

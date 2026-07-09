@@ -873,6 +873,9 @@ def render_template_context(
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
+        "show_issues_chart": features.has(
+            "organizations:weekly-report-issues-chart", ctx.organization
+        ),
     }
 
 
