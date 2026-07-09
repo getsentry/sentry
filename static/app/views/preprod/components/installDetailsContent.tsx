@@ -45,6 +45,7 @@ interface InstallDetailsContentProps {
   projectSlug: string;
   distributionErrorCode?: string | null;
   distributionErrorMessage?: string | null;
+  installGroups?: string[] | null;
   size?: 'sm' | 'lg';
 }
 
@@ -54,6 +55,7 @@ export function InstallDetailsContent({
   size = 'sm',
   distributionErrorCode,
   distributionErrorMessage,
+  installGroups,
 }: InstallDetailsContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -288,6 +290,20 @@ export function InstallDetailsContent({
               {t('The install link will expire in 12 hours')}
             </Text>
           </Stack>
+          {installGroups && installGroups.length > 0 && (
+            <Flex direction="column" gap="md" width="100%">
+              <Heading as="h3">{t('Install Groups')}</Heading>
+              <Container
+                padding="xl"
+                background="secondary"
+                border="primary"
+                radius="md"
+                width="100%"
+              >
+                <Text>{installGroups.join(', ')}</Text>
+              </Container>
+            </Flex>
+          )}
           {installDetails.release_notes && (
             <Flex direction="column" gap="md" width="100%">
               <Heading as="h3">{t('Release Notes')}</Heading>

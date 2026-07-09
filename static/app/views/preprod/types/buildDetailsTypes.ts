@@ -22,6 +22,7 @@ interface BuildDetailsDistributionInfo {
   is_installable: boolean;
   download_count: number;
   release_notes: string | null;
+  install_groups: string[] | null;
   error_code?: string | null;
   error_message?: string | null;
 }
