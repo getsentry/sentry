@@ -2,6 +2,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    BoundedPositiveBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -14,7 +15,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class ExternalActorReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    externalactor_id = BoundedPositiveIntegerField()
+    externalactor_id = BoundedPositiveBigIntegerField()
     team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey("sentry.User", null=True, db_index=True, on_delete=models.CASCADE)
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
