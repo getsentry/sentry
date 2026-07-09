@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1127_discover_to_explore_queries_self_hosted"),
+        ("sentry", "1129_drop_saved_search"),
     ]
 
     operations = [

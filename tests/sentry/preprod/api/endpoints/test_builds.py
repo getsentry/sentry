@@ -73,6 +73,7 @@ class BuildsEndpointTest(APITestCase):
                     "name": None,
                     "version": None,
                     "build_number": None,
+                    "build_number_raw": None,
                     "date_added": ANY,
                     "date_built": None,
                     "artifact_type": 2,

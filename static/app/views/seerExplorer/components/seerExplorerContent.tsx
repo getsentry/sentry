@@ -640,7 +640,6 @@ export function SeerExplorerContent({
         canSendMessage={canSendMessage}
         interruptState={interruptState}
         isTimedOut={isTimedOut}
-        onClear={clearInput}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}

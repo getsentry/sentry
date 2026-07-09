@@ -10,7 +10,6 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsgo -p tsconfig.json && tsgo -p static/app/serviceWorker/worker/tsconfig.json",
-    "typecheck:mdx": "node build-utils/mdx-typecheck.ts",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",
@@ -240,7 +239,6 @@
     "@figma/code-connect": "^1.4.8",
     "@jest/environment": "30.4.1",
     "@jest/types": "30.4.1",
-    "@mdx-js/language-service": "^0.7.3",
     "@sentry-internal/rrweb-types": "2.43.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "10.63.0",
@@ -260,7 +258,6 @@
     "@typescript-eslint/rule-tester": "8.58.0",
     "@typescript-eslint/utils": "8.58.0",
     "@typescript/native-preview": "7.0.0-dev.20260609.1",
-    "@volar/typescript": "^2.4.28",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",

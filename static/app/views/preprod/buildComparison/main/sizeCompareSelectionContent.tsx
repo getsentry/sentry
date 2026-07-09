@@ -38,8 +38,6 @@ import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
   baseBuildDetails?: BuildDetailsApiResponse;
-  onBaseBuildClear?: () => void;
-  onBaseBuildSelect?: () => void;
 }
 
 export function SizeCompareSelectionContent({

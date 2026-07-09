@@ -26,14 +26,12 @@ type Props = {
   onChangeTitle: (data: string) => void;
   organization: Organization;
   project: Project;
-  userTeamIds: string[];
 } & RouteComponentProps<RouteParams>;
 
 export function MetricRulesEdit({
   organization,
   params,
   project,
-  userTeamIds,
   onChangeTitle,
   ...props
 }: Props) {
@@ -109,7 +107,6 @@ export function MetricRulesEdit({
       key={JSON.stringify(rule)}
       params={params}
       project={project}
-      userTeamIds={userTeamIds}
       organization={organization}
       ruleId={params.ruleId}
       rule={rule}

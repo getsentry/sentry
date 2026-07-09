@@ -7,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
-  AI_MESSAGE_MAX_WIDTH,
   AssistantMessageBlock,
   MessageBlock,
   UserMessageBlock,
@@ -239,7 +238,6 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
 
   return (
     <CollapsibleContent
-      maxWidth={AI_MESSAGE_MAX_WIDTH}
       title={
         <Text size="sm" variant="muted" monospace>
           {t('Thinking...')}
