@@ -118,6 +118,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+      defaultToAskSeerOnFreeTextSearch: true,
       replaceRawSearchKeys: ['span.description'],
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},

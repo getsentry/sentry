@@ -33,6 +33,7 @@ export type TraceItemSearchQueryBuilderProps = {
   allowedAttributeKeys?: string[];
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
+  defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
@@ -112,6 +113,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowLogicalOperators,
   disableRecentSearches,
   disabled,
+  defaultToAskSeerOnFreeTextSearch,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
@@ -206,6 +208,7 @@ export function useTraceItemSearchQueryBuilderProps({
       disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
+      defaultToAskSeerOnFreeTextSearch,
       recentSearches: disableRecentSearches
         ? undefined
         : itemTypeToRecentSearches(itemType),
@@ -230,6 +233,7 @@ export function useTraceItemSearchQueryBuilderProps({
       caseInsensitive,
       disableRecentSearches,
       disabled,
+      defaultToAskSeerOnFreeTextSearch,
       disallowFreeText,
       disallowLogicalOperators,
       filterKeySections,
@@ -277,6 +281,7 @@ export function TraceItemSearchQueryBuilder({
   projects,
   supportedAggregates = [],
   disabled,
+  defaultToAskSeerOnFreeTextSearch,
   namespace,
   caseInsensitive,
   onCaseInsensitiveClick,
@@ -319,6 +324,7 @@ export function TraceItemSearchQueryBuilder({
     disallowLogicalOperators,
     disableRecentSearches,
     disabled,
+    defaultToAskSeerOnFreeTextSearch,
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
