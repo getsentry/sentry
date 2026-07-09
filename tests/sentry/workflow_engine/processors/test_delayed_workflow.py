@@ -39,7 +39,6 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
-    TriggerResult,
     get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
@@ -59,6 +58,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 

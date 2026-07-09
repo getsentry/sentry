@@ -22,11 +22,11 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContextData,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
-    TriggerResult,
     get_data_conditions_for_group,
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
     WorkflowEvaluation,

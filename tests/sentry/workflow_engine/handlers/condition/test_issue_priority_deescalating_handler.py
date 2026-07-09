@@ -121,4 +121,5 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
     def test_missing_open_period_for_supported_type(self) -> None:
         GroupOpenPeriod.objects.filter(group=self.group).delete()
         evaluation = self.deescalating_dc_warning.evaluate_value(self.event_data)
-        assert isinstance(evaluation.result, ConditionError)
+        assert evaluation.result is None
+        assert isinstance(evaluation.error, ConditionError)
