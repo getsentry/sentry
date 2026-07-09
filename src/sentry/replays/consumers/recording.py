@@ -112,7 +112,9 @@ def process_message(message: bytes) -> ProcessedEvent | None:
     try:
         recording_event = parse_recording_event(message)
         set_tag("org_id", recording_event["context"]["org_id"])
+        sentry_sdk.set_attribute("org_id", recording_event["context"]["org_id"])
         set_tag("project_id", recording_event["context"]["project_id"])
+        sentry_sdk.set_attribute("project_id", recording_event["context"]["project_id"])
         return process_recording_event(
             recording_event,
             use_new_recording_parser=options.get("replay.consumer.msgspec_recording_parser"),
