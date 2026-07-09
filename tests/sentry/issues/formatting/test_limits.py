@@ -17,6 +17,7 @@ def test_count_caps_default() -> None:
     # folded-in count caps (Seer hardcodes these)
     assert LIMITS_DEFAULT.max_frames == 16
     assert LIMITS_DEFAULT.max_breadcrumbs == 10
+    assert LIMITS_DEFAULT.max_threads == 8
 
 
 def test_limits_are_frozen() -> None:
