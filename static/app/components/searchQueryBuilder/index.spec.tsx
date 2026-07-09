@@ -2611,6 +2611,72 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
+    it('splits a pasted comma-separated value into chips before committing', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.paste('foo,bar');
+
+      // "foo" becomes its own chip immediately rather than sitting in the input
+      // as raw comma-separated text; the trailing "bar" stays in the input.
+      expect(
+        await screen.findByRole('button', {name: 'Edit value: foo'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+        'bar'
+      );
+    });
+
+    it('drops empty segments from consecutive commas when pasting', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      // Consecutive commas must not produce blank or literal-comma chips
+      await userEvent.paste('foo,,,');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,foo]',
+          expect.anything()
+        );
+      });
+    });
+
+    it('commits nothing when pasting only commas', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.paste(',,,');
+
+      // No stray chip is created; only the original Firefox chip remains
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
+      expect(screen.getAllByRole('button', {name: /^Edit value:/})).toHaveLength(1);
+      expect(
+        screen.getByRole('button', {name: 'Edit value: Firefox'})
+      ).toBeInTheDocument();
+    });
+
     it('strips multiple wildcards into a single wildcard', async () => {
       const mockOnChange = jest.fn();
       render(
@@ -3841,6 +3907,118 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
         expect(
           await screen.findByRole('row', {name: 'browser.name:[1,Chrome,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('splits a value at the cursor when a comma is typed mid-value', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:abcd" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the chip into the input and move the cursor to the middle
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: abcd'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('abcd');
+        });
+
+        // Typing a comma after "ab" splits it off as a chip, leaving "cd" in the
+        // input rather than re-committing the whole value unchanged
+        await userEvent.type(input, '{ArrowLeft}{ArrowLeft},');
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: ab'})
+        ).toBeInTheDocument();
+        expect(input).toHaveValue('cd');
+      });
+
+      it('leaves the caret at the split boundary after a mid-value comma', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.type(input, 'abc{ArrowLeft}{ArrowLeft},');
+
+        // "a" splits off; the caret sits at the start of the remaining "bc"
+        expect(input).toHaveValue('bc');
+        if (!(input instanceof HTMLInputElement)) {
+          throw new Error('expected an input element');
+        }
+        await waitFor(() => {
+          expect(input.selectionStart).toBe(0);
+        });
+      });
+
+      it('does not reset the caret on later input after pasting only commas', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        // Pasting only commas commits nothing and leaves the input empty, so the
+        // caret adjustment must not carry over to the next keystroke.
+        await userEvent.paste(',,,');
+        await userEvent.type(input, 'x');
+
+        expect(input).toHaveValue('x');
+        if (!(input instanceof HTMLInputElement)) {
+          throw new Error('expected an input element');
+        }
+        expect(input.selectionStart).toBe(1);
+      });
+
+      it('keeps a split value adjacent when editing a middle chip', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip and split a new value off it
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('c');
+        });
+
+        // Typing ",z" keeps "z" next to "c" instead of shoving it to the end
+        await userEvent.type(input, ',z');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,c,z,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps pasted values adjacent when editing a middle chip', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('c');
+        });
+
+        // Replace the lifted "c" with a pasted multi-value string; the completed
+        // values land in place and the trailing partial stays adjacent
+        await userEvent.clear(input);
+        await userEvent.paste('p,q,r');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,p,q,r,3]'})
         ).toBeInTheDocument();
       });
 
