@@ -229,8 +229,7 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         pending_deletion_repos = [
             r
             for r in all_repos
-            if r.status
-            in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+            if r.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
             and r.external_id
         ]
 
@@ -238,7 +237,9 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
         sentry_pending_ids = {r.external_id for r in pending_deletion_repos}
 
-        new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids - sentry_pending_ids
+        new_ids = (
+            provider_external_ids - sentry_active_ids - sentry_disabled_ids - sentry_pending_ids
+        )
         # Skip removals entirely if we didn't manage to fetch all repos for this integration.
         # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
         removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids

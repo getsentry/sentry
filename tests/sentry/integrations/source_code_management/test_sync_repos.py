@@ -344,9 +344,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             # Still exactly one row, still in PENDING_DELETION — not duplicated.
-            repos = Repository.objects.filter(
-                organization_id=self.organization.id, external_id="1"
-            )
+            repos = Repository.objects.filter(organization_id=self.organization.id, external_id="1")
             assert repos.count() == 1
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.PENDING_DELETION
@@ -372,9 +370,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
-            repos = Repository.objects.filter(
-                organization_id=self.organization.id, external_id="1"
-            )
+            repos = Repository.objects.filter(organization_id=self.organization.id, external_id="1")
             assert repos.count() == 1
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DELETION_IN_PROGRESS
