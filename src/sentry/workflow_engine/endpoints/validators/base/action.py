@@ -6,7 +6,10 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
+from sentry.workflow_engine.endpoints.validators.utils import (
+    NestedInitialDataMixin,
+    validate_json_schema,
+)
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.registry import action_handler_registry
@@ -27,7 +30,7 @@ class ActionInput(TypedDict):
     status: NotRequired[str]
 
 
-class BaseActionValidator(CamelSnakeSerializer[Any]):
+class BaseActionValidator(NestedInitialDataMixin, CamelSnakeSerializer[Any]):
     data = serializers.JSONField()  # type: ignore[assignment]
     config = serializers.JSONField()
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])

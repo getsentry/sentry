@@ -780,6 +780,47 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         other_action.refresh_from_db()
         assert other_action.config == original_config
 
+    def test_update_existing_action_preserves_id(self) -> None:
+        """An action referenced by id is updated in place, keeping its id (not duplicated)."""
+        dcg = DataConditionGroup.objects.create(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        action = Action.objects.create(
+            type=Action.Type.EMAIL,
+            config={"target_type": ActionTarget.TEAM, "target_identifier": "1"},
+            data={},
+        )
+        DataConditionGroupAction.objects.create(action=action, condition_group=dcg)
+        WorkflowDataConditionGroup.objects.create(condition_group=dcg, workflow=self.workflow)
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "id": str(dcg.id),
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            "id": str(action.id),
+                            "type": "email",
+                            "config": {"targetType": "team", "targetIdentifier": "2"},
+                            "data": {},
+                        }
+                    ],
+                }
+            ],
+        }
+
+        self.get_success_response(self.organization.slug, self.workflow.id, raw_data=data)
+
+        action.refresh_from_db()
+        # Same action updated in place — id preserved and no duplicate created.
+        assert action.config["target_identifier"] == "2"
+        assert DataConditionGroupAction.objects.filter(condition_group=dcg).count() == 1
+        assert Action.objects.filter(id=action.id).exists()
+
     def test_update_trigger_condition_from_different_organization(self) -> None:
         """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
         other_org = self.create_organization()

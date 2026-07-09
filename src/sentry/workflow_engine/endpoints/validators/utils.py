@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.db import router, transaction
 from django.db.models import QuerySet
@@ -28,6 +28,31 @@ logger = logging.getLogger(__name__)
 # Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
 SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
 USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
+
+
+if TYPE_CHECKING:
+    # For typing only: the mixin is always combined with a Serializer, so this
+    # gives mypy `to_internal_value`/`initial_data`. At runtime the base is
+    # `object` and `super()` resolves to the real serializer via the MRO.
+    _SerializerBase = serializers.Serializer[Any]
+else:
+    _SerializerBase = object
+
+
+class NestedInitialDataMixin(_SerializerBase):
+    """
+    Populate ``initial_data`` when a serializer is used as a nested field.
+
+    DRF only sets ``initial_data`` on the top-level serializer instantiated with
+    ``data=...``. Validators whose field-level validation reads a sibling field via
+    ``self.initial_data`` (e.g. to look up a type-specific handler) break when used
+    as nested children (``many=True``). Stashing the raw item here keeps them
+    working both standalone and nested.
+    """
+
+    def to_internal_value(self, data: Any) -> Any:
+        self.initial_data = data
+        return super().to_internal_value(data)
 
 
 def is_system_created_detector(detector: Detector) -> bool:

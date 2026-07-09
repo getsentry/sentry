@@ -17,6 +17,9 @@ from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     WORKFLOW_TRIGGERS_HELP_TEXT,
 )
 from sentry.workflow_engine.endpoints.validators.base.action import ActionInput, BaseActionValidator
+from sentry.workflow_engine.endpoints.validators.base.data_condition import (
+    BaseDataConditionValidator,
+)
 from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
     BaseDataConditionGroupValidator,
     DataConditionGroupInput,
@@ -58,6 +61,36 @@ class WorkflowInput(TypedDict):
     detectorIds: NotRequired[list[int]]
 
 
+class WorkflowDataConditionGroupValidator(BaseDataConditionGroupValidator):
+    # Type `conditions` as a nested serializer (rather than the base's bare
+    # ListField) so the OpenAPI schema — and the generated SDK — describe each
+    # condition's shape ({type, comparison, conditionResult}). Scoped to the
+    # workflow endpoints so the shared base (used by detectors, metric alerts,
+    # etc.) is unchanged.
+    conditions = BaseDataConditionValidator(many=True, required=False)  # type: ignore[assignment]
+
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        # The typed `conditions` field already validates each item; override the
+        # base hook (which would re-run BaseDataConditionValidator on the
+        # already-validated data) with a passthrough.
+        return value
+
+
+class ActionValidator(BaseActionValidator):
+    # `id` targets an existing action on updates. The base action validator omits
+    # it, so declare it here to keep it through nested validation. IntegerField
+    # (matching the condition `id` and the `int(action_id)` ownership check) so a
+    # non-numeric id fails as a clean 400 rather than 500ing later.
+    id = serializers.IntegerField(required=False)
+
+
+class ActionFilterValidator(WorkflowDataConditionGroupValidator):
+    # An action filter is a data condition group plus the actions to fire.
+    # Typing `actions` (rather than a bare DictField) lets the OpenAPI schema —
+    # and the generated SDK — describe each action's shape.
+    actions = ActionValidator(many=True)
+
+
 class WorkflowValidator(CamelSnakeSerializer[Any]):
     id = serializers.CharField(required=False, help_text="The ID of the existing alert")
     name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
@@ -79,12 +112,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         help_text="The name of the environment for the alert to evaluate in",
     )
 
-    triggers = BaseDataConditionGroupValidator(
+    triggers = WorkflowDataConditionGroupValidator(
         required=False,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
-    action_filters = serializers.ListField(
-        child=serializers.DictField(),
+    action_filters = ActionFilterValidator(
+        many=True,
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
     )
@@ -107,28 +140,6 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def validate_config(self, value: Any) -> bool:
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
-
-    def validate_action_filters(self, value: ListInputData) -> ListInputData:
-        for action_filter in value:
-            actions, condition_group = self._split_action_and_condition_group(action_filter)
-            dcg_validator = BaseDataConditionGroupValidator(
-                data=condition_group, context=self.context
-            )
-            dcg_validator.is_valid(raise_exception=True)
-            action_filter.update(dcg_validator.validated_data)
-
-            validated_actions = []
-            for action in actions:
-                action_validator = BaseActionValidator(data=action, context=self.context)
-                action_validator.is_valid(raise_exception=True)
-
-                # update because the validated data does not contain "id" for updates
-                action.update(action_validator.validated_data)
-                validated_actions.append(action)
-
-            action_filter["actions"] = validated_actions
-
-        return value
 
     def has_seer_activity_trigger(self, triggers: InputData | None) -> bool:
         from sentry.workflow_engine.models import DataCondition

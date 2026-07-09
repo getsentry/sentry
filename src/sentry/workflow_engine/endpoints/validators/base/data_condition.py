@@ -7,6 +7,7 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.endpoints.validators.utils import (
+    NestedInitialDataMixin,
     validate_json_primitive,
     validate_json_schema,
 )
@@ -44,6 +45,7 @@ class AbstractDataConditionValidator(
 
 
 class BaseDataConditionValidator(
+    NestedInitialDataMixin,
     AbstractDataConditionValidator[Any, Any],
 ):
     @property
