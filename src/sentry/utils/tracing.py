@@ -1,3 +1,5 @@
+import functools
+import inspect
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -11,17 +13,38 @@ if TYPE_CHECKING:
 
 
 def trace(func=None, *, op=None, name=None):
-    client = sentry_sdk.get_client()
-    if has_span_streaming_enabled(client.options):
-        decorator = sentry_sdk.traces.trace(
+    def decorator(f):
+        streaming_wrapped = sentry_sdk.traces.trace(
             name=name,
             attributes={} if op is None else {"sentry.op": op},
-        )
-    else:
-        decorator = sentry_sdk.trace(
+        )(f)
+        non_streaming_wrapped = sentry_sdk.trace(
             op=op,
             name=name,
-        )
+        )(f)
+
+        def use_streaming():
+            client = sentry_sdk.get_client()
+            return has_span_streaming_enabled(client.options)
+
+        if inspect.iscoroutinefunction(f):
+
+            @functools.wraps(f)
+            async def async_wrapper(*args, **kwargs):
+                if use_streaming():
+                    return await streaming_wrapped(*args, **kwargs)
+                return await non_streaming_wrapped(*args, **kwargs)
+
+            return async_wrapper
+
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            if use_streaming():
+                return streaming_wrapped(*args, **kwargs)
+            return non_streaming_wrapped(*args, **kwargs)
+
+        return wrapper
+
     if func is not None:
         return decorator(func)
     return decorator
