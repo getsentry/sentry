@@ -31,7 +31,7 @@ EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/example/issues/1/"
 EXAMPLE_ALERT_URL = "https://sentry.io/organizations/example/monitors/alerts/1/"
 
 
-class WorkflowEngineActivityAction(NotificationData):
+class ActivityAlertAction(NotificationData):
     source: NotificationSource
     workflow_id: int
     activity_id: int

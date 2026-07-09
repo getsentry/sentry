@@ -1,8 +1,8 @@
 from django.conf import settings
 
 from sentry.models.group import Group
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    WorkflowEngineActivityAction,
+from sentry.notifications.platform.templates.alerts.activity.base import (
+    ActivityAlertAction,
     build_alert_footer,
     build_example_alert_footer,
 )
@@ -50,7 +50,7 @@ def get_view_autofix_button(group: Group) -> NotificationRenderedAction:
 
 
 def build_template(
-    data: WorkflowEngineActivityAction,
+    data: ActivityAlertAction,
     subject: list[NotificationTextBlock],
     body: list[NotificationSection],
 ) -> NotificationRenderedTemplate:

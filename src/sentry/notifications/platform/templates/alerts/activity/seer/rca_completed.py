@@ -1,8 +1,8 @@
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    WorkflowEngineActivityAction,
+from sentry.notifications.platform.templates.alerts.activity.base import (
+    ActivityAlertAction,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
+from sentry.notifications.platform.templates.alerts.activity.seer.base import (
     build_template,
     get_example_issue_description,
     get_example_template,
@@ -22,9 +22,9 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_RCA_COMPLETED)
-class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
-    category = NotificationCategory.WORKFLOW_ENGINE
-    example_data = WorkflowEngineActivityAction(
+class SeerRcaCompletedActivityTemplate(NotificationTemplate[ActivityAlertAction]):
+    category = NotificationCategory.ALERTS
+    example_data = ActivityAlertAction(
         source=NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         notification_uuid="1234567890",
         workflow_id=1,
@@ -48,7 +48,7 @@ class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivi
             ],
         )
 
-    def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
+    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
         from sentry.notifications.notification_action.activity_registry.base import (
             extract_notification_models_by_activity,
         )

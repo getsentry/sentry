@@ -1,19 +1,19 @@
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.notifications.platform.templates.workflow_engine.activity import (
-    ACTIVITY_TYPE_TO_SOURCE,
-)
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.alerts.activity.base import (
     build_alert_footer,
     build_issue_link,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
+from sentry.notifications.platform.templates.alerts.activity.seer.base import (
     get_issue_description,
     get_subject,
     get_view_autofix_button,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
+from sentry.notifications.platform.templates.alerts.activity.set_resolved.base import (
     get_resolution_subject,
+)
+from sentry.notifications.platform.templates.workflow_engine.activity import (
+    ACTIVITY_TYPE_TO_SOURCE,
 )
 from sentry.notifications.platform.types import (
     NotificationRenderedAction,
@@ -23,7 +23,7 @@ from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
 
-class AlertActivityBaseTest(TestCase):
+class ActivityAlertBaseTest(TestCase):
     def test_all_seer_activity_types_mapped(self) -> None:
         seer_types = [
             ActivityType.SEER_RCA_STARTED,
@@ -67,7 +67,7 @@ class AlertActivityBaseTest(TestCase):
         assert label.text == group.qualified_short_id
 
 
-class SeerAlertActivityBaseTest(TestCase):
+class ActivitySeerAlertBaseTest(TestCase):
     def test_get_subject_with_qualified_short_id(self) -> None:
         group = self.create_group()
         assert group.qualified_short_id is not None
@@ -108,7 +108,7 @@ class SeerAlertActivityBaseTest(TestCase):
         assert "seerDrawer=true" in action.link
 
 
-class SetResolvedAlertActivityBaseTest(TestCase):
+class ActivitySetResolvedAlertBaseTest(TestCase):
     def test_get_resolution_subject_with_short_id(self) -> None:
         group = self.create_group()
         assert group.qualified_short_id is not None

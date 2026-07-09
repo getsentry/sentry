@@ -13,7 +13,7 @@ from sentry.notifications.notification_action.activity_registry.msteams import (
 )
 from sentry.notifications.notification_action.activity_registry.slack import SlackActivityHandler
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.templates.workflow_engine import WorkflowEngineActivityAction
+from sentry.notifications.platform.templates.workflow_engine import ActivityAlertAction
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationSource,
@@ -69,7 +69,7 @@ class TestBuildActivityData(BaseWorkflowTest):
 
         data = build_activity_data(invocation, activity)
 
-        assert isinstance(data, WorkflowEngineActivityAction)
+        assert isinstance(data, ActivityAlertAction)
         assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
         assert data.workflow_id == self.workflow.id
         assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
@@ -113,7 +113,7 @@ class TestSendActivityNotification(BaseWorkflowTest):
         mock_subscripted = mock_service_cls.__getitem__.return_value
         mock_subscripted.assert_called_once()
         data = mock_subscripted.call_args[1]["data"]
-        assert isinstance(data, WorkflowEngineActivityAction)
+        assert isinstance(data, ActivityAlertAction)
 
         mock_instance = mock_subscripted.return_value
         mock_instance.notify_sync.assert_called_once_with(targets=[target])

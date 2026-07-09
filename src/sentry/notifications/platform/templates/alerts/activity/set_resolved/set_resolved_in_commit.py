@@ -1,12 +1,12 @@
 from sentry.models.commit import Commit
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    WorkflowEngineActivityAction,
+from sentry.notifications.platform.templates.alerts.activity.base import (
+    ActivityAlertAction,
     build_alert_footer,
     build_example_issue_link,
     build_issue_link,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
+from sentry.notifications.platform.templates.alerts.activity.set_resolved.base import (
     get_resolution_subject,
     render_resolution_example,
 )
@@ -26,9 +26,9 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT)
-class SetResolvedInCommitActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
-    category = NotificationCategory.WORKFLOW_ENGINE
-    example_data = WorkflowEngineActivityAction(
+class SetResolvedInCommitActivityTemplate(NotificationTemplate[ActivityAlertAction]):
+    category = NotificationCategory.ALERTS
+    example_data = ActivityAlertAction(
         source=NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
         notification_uuid="1234567890",
         workflow_id=1,
@@ -50,7 +50,7 @@ class SetResolvedInCommitActivityTemplate(NotificationTemplate[WorkflowEngineAct
             ]
         )
 
-    def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
+    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
         from sentry.notifications.notification_action.activity_registry.base import (
             extract_notification_models_by_activity,
         )

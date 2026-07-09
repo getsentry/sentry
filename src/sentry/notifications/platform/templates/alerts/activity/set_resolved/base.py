@@ -1,6 +1,6 @@
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.alerts.activity.base import (
     build_example_alert_footer,
 )
 from sentry.notifications.platform.types import (
