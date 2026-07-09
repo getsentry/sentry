@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AI_MESSAGE_MAX_WIDTH} from 'sentry/components/ai/chat/messageBlock';
 import {IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -100,7 +99,7 @@ export function MessageToolCallsNew({
             }}
           >
             <Flex align="center" justify="between" gap="md" width="100%">
-              <Flex align="center" gap="sm" minWidth={0} maxWidth={AI_MESSAGE_MAX_WIDTH}>
+              <Flex align="center" gap="sm" minWidth={0}>
                 <Flex align="center" flexShrink={0}>
                   <IconFix size="sm" variant="accent" />
                 </Flex>
