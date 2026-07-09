@@ -49,7 +49,11 @@ export function useInitialSeerQuery(): string {
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
       token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+        !(
+          token.type === Token.FREE_TEXT &&
+          inputValue &&
+          (isAutoSubmittingCurrentQuery || token.text.includes(inputValue))
+        )
     )
     ?.map(token => stringifyToken(token))
     ?.join(' ')
