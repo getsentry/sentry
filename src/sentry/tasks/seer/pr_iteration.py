@@ -15,6 +15,7 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
@@ -26,8 +27,8 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback_queue import (
     QueuedAutofixFeedback,
-    enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.seer.models import SeerPermissionError
@@ -46,6 +47,31 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     if len(referrers) == 1:
         return referrers.pop()
     return AutofixReferrer.UNKNOWN
+
+
+def trigger_consume_pr_iteration_feedback(
+    *,
+    run_id: int,
+    organization_id: int,
+    group_id: int,
+    feedback: Feedback,
+    run_state: SeerRunState,
+    bypass: bool = False,
+    delay: int | None = None,
+) -> None:
+    should_trigger = feedback.source.should_trigger(run_state)
+
+    if not bypass and not should_trigger:
+        return
+
+    consume_queued_autofix_feedback.apply_async(
+        kwargs={
+            "run_id": run_id,
+            "organization_id": organization_id,
+            "group_id": group_id,
+        },
+        countdown=delay,
+    )
 
 
 @instrumented_task(
@@ -92,7 +118,7 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
         feedback_items = []
         seen_comment_ids: set[int] = set()
         for item in queued_items:
-            if not item.feedback.is_valid_for_run_state(state):
+            if not item.feedback.source.should_consume(state):
                 logger.info(
                     "autofix.pr_iteration.consume_feedback.stale_feedback",
                     extra={
@@ -193,7 +219,6 @@ def trigger_pr_iteration_from_comment(
     repo_id: int,
     integration_id: int,
     pr_number: int,
-    feedback: str,
     comment: Mapping[str, Any],
 ) -> None:
     """
@@ -262,24 +287,25 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    # `source.text` is derived from the stored comment body.
     feedback_obj = Feedback(
-        text=feedback,
-        source={"type": "github-pr-comment", "comment": comment},
+        source=GithubPrCommentFeedbackSource(comment=comment),
     )
 
-    enqueue_autofix_feedback(
+    try_enqueue_autofix_feedback(
         run_id=agent_state.run_id,
         organization_id=organization_id,
         group_id=group_id,
         feedback=feedback_obj,
         referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+        run_state=agent_state,
     )
-    consume_queued_autofix_feedback.apply_async(
-        kwargs={
-            "run_id": agent_state.run_id,
-            "organization_id": organization_id,
-            "group_id": group_id,
-        }
+    trigger_consume_pr_iteration_feedback(
+        run_id=agent_state.run_id,
+        organization_id=organization_id,
+        group_id=group_id,
+        feedback=feedback_obj,
+        run_state=agent_state,
     )
 
     metrics.incr("autofix.pr_iteration.comment_trigger.success")

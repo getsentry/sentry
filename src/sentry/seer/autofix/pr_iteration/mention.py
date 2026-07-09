@@ -60,8 +60,6 @@ def handle_issue_comment_for_autofix_iteration(
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
 
-    feedback = command.feedback
-
     pr_number = issue.get("number")
     # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
     # log at info to make any silent drop debuggable.
@@ -100,7 +98,6 @@ def handle_issue_comment_for_autofix_iteration(
         repo_id=repo.id,
         integration_id=integration.id,
         pr_number=pr_number,
-        feedback=feedback,
         comment=comment,
     )
     return None
