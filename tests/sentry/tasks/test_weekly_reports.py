@@ -1280,7 +1280,7 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["issue_pct_change"] == "▲ 100%"
+            assert context["trends"]["issue_pct_change"] == {"direction": "up", "pct": "100%"}
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -1347,10 +1347,13 @@ class WeeklyReportsTest(
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
             # e/t come from cache: current 10 vs prev 5, current 20 vs prev 40
-            assert context["trends"]["error_pct_change"] == "▲ 100%"
-            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["trends"]["error_pct_change"] == {"direction": "up", "pct": "100%"}
+            assert context["trends"]["transaction_pct_change"] == {
+                "direction": "down",
+                "pct": "50%",
+            }
             # i comes from ORM fallback: current 1 vs prev 2
-            assert context["trends"]["issue_pct_change"] == "▼ 50%"
+            assert context["trends"]["issue_pct_change"] == {"direction": "down", "pct": "50%"}
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_multi_project(self, message_builder: mock.MagicMock) -> None:
@@ -2115,8 +2118,11 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] == "▲ 100%"
-            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["trends"]["error_pct_change"] == {"direction": "up", "pct": "100%"}
+            assert context["trends"]["transaction_pct_change"] == {
+                "direction": "down",
+                "pct": "50%",
+            }
             assert context["show_week_over_week_metric"] is True
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
@@ -2191,13 +2197,16 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] == "▲ 100%"
-            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["trends"]["error_pct_change"] == {"direction": "up", "pct": "100%"}
+            assert context["trends"]["transaction_pct_change"] == {
+                "direction": "down",
+                "pct": "50%",
+            }
 
     def test_pct_change_helper(self) -> None:
-        assert _pct_change(150, 100) == "▲ 50%"
-        assert _pct_change(50, 100) == "▼ 50%"
-        assert _pct_change(0, 100) == "▼ 100%"
+        assert _pct_change(150, 100) == {"direction": "up", "pct": "50%"}
+        assert _pct_change(50, 100) == {"direction": "down", "pct": "50%"}
+        assert _pct_change(0, 100) == {"direction": "down", "pct": "100%"}
         assert _pct_change(100, 0) is None
         assert _pct_change(0, 0) is None
         assert _pct_change(100, 100) is None

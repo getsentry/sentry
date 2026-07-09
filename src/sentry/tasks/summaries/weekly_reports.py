@@ -519,16 +519,14 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> str | None:
-    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     if previous == 0:
         return None
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
         return None
-    arrow = "▲" if change > 0 else "▼"
-    return f"{arrow} {abs(pct)}%"
+    return {"direction": "up" if change > 0 else "down", "pct": f"{abs(pct)}%"}
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -889,6 +887,7 @@ def render_template_context(
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
+        "notification_settings_link": "/settings/account/notifications/reports/",
     }
 
 
