@@ -778,7 +778,19 @@ export function SearchQueryBuilderValueCombobox({
     if (selectedValues[editingChip.index]?.value === liftedValue) {
       return;
     }
-    const newIndex = selectedValues.findIndex(v => v.value === liftedValue);
+    // The value can appear more than once, so re-anchor to the occurrence
+    // nearest the previous index — an external change shifts the edited chip by a
+    // small offset rather than moving it to the first match.
+    const oldIndex = editingChip.index;
+    let newIndex = -1;
+    selectedValues.forEach((v, i) => {
+      if (v.value !== liftedValue) {
+        return;
+      }
+      if (newIndex === -1 || Math.abs(i - oldIndex) < Math.abs(newIndex - oldIndex)) {
+        newIndex = i;
+      }
+    });
     if (newIndex === -1) {
       setEditingChip(null);
       setInputValue('');
