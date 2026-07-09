@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
+import moment from 'moment-timezone';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
@@ -19,6 +20,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getFormat, getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
@@ -270,12 +272,27 @@ export const issueAndEventToMarkdown = ({
   let markdownText = `# ${group.title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
 
+  if (group.shortId) {
+    markdownText += `**Short ID:** ${group.shortId}\n`;
+  }
+
   if (group.project?.slug) {
     markdownText += `**Project:** ${group.project?.slug}\n`;
   }
 
-  if (event && typeof event.dateCreated === 'string') {
-    markdownText += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
+  // In the detailed event payload, `dateCreated` is populated for error/default
+  // events but not transactions (perf issues like N+1 DB). `dateReceived` is
+  // present on every event, so fall back to it.
+  const eventDate = event?.dateCreated ?? event?.dateReceived;
+  if (typeof eventDate === 'string') {
+    // Render in the viewer's preferred timezone and 12h/24h clock, and include
+    // the timezone abbreviation so the timestamp is unambiguous once copied.
+    const timezone =
+      getUserTimezone() ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const formattedDate = moment
+      .tz(eventDate, timezone)
+      .format(getFormat({year: true, seconds: true, timeZone: true}));
+    markdownText += `**Date:** ${formattedDate}\n`;
   }
 
   // Mirror Seer: include the event message only when it adds something beyond
