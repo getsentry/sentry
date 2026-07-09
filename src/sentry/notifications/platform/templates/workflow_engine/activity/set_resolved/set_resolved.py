@@ -2,13 +2,12 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
     build_alert_footer,
-    build_example_alert_footer,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
     get_example_resolution_issue_label,
-    get_example_resolution_subject,
     get_resolution_issue_label,
     get_resolution_subject,
+    render_resolution_example,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -34,17 +33,15 @@ class SetResolvedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAct
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(
-            subject=get_example_resolution_subject(),
+        return render_resolution_example(
             body=[
                 ParagraphSection(
                     blocks=[
                         get_example_resolution_issue_label(),
                         PlainTextBlock(text="had its status changed to resolved."),
                     ]
-                )
-            ],
-            footer=build_example_alert_footer(),
+                ),
+            ]
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:

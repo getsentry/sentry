@@ -4,13 +4,12 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
     build_alert_footer,
-    build_example_alert_footer,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
     get_example_resolution_issue_label,
-    get_example_resolution_subject,
     get_resolution_issue_label,
     get_resolution_subject,
+    render_resolution_example,
 )
 from sentry.notifications.platform.types import (
     BlockQuoteSection,
@@ -40,8 +39,7 @@ class SetResolvedInPullRequestActivityTemplate(NotificationTemplate[WorkflowEngi
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(
-            subject=get_example_resolution_subject(),
+        return render_resolution_example(
             body=[
                 ParagraphSection(
                     blocks=[
@@ -52,9 +50,8 @@ class SetResolvedInPullRequestActivityTemplate(NotificationTemplate[WorkflowEngi
                             url="https://github.com/getsentry/sentry/pull/1234",
                         ),
                     ]
-                )
-            ],
-            footer=build_example_alert_footer(),
+                ),
+            ]
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
@@ -77,8 +74,9 @@ class SetResolvedInPullRequestActivityTemplate(NotificationTemplate[WorkflowEngi
                 pass
             else:
                 pr_label = f"{repo.name} (#{pr.key})"
-                if repo.url:
-                    pr_url = f"{repo.url}/pull/{pr.key}"
+                pr_url = pr.get_external_url()
+                pr_description = pr.title or pr.message
+                if pr_url:
                     resolution_blocks = [
                         PlainTextBlock(text="was resolved in"),
                         LinkTextBlock(text=pr_label, url=pr_url),
@@ -87,11 +85,10 @@ class SetResolvedInPullRequestActivityTemplate(NotificationTemplate[WorkflowEngi
                     resolution_blocks = [
                         PlainTextBlock(text=f"was resolved in {pr_label}."),
                     ]
-                    pr_description = pr.title or pr.message
-                    if pr_description:
-                        extra_body_sections.append(
-                            BlockQuoteSection(blocks=[PlainTextBlock(text=pr_description)])
-                        )
+                if pr_description:
+                    extra_body_sections.append(
+                        BlockQuoteSection(blocks=[PlainTextBlock(text=pr_description)])
+                    )
 
         return NotificationRenderedTemplate(
             subject=get_resolution_subject(activity, group),
