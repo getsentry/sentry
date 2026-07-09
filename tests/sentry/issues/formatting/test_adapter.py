@@ -69,6 +69,27 @@ def test_maps_event_level_fields() -> None:
     assert m.contexts == {"browser": {"name": "Firefox"}}
 
 
+def test_maps_top_level_culprit() -> None:
+    data = _serialized_event() | {"culprit": "app.views.checkout"}
+    assert event_response_to_model(data).culprit == "app.views.checkout"
+
+
+def test_message_falls_back_to_entry_message_then_top_level() -> None:
+    # message entry with `message` but no `formatted`
+    entry_only = {"title": "t", "entries": [{"type": "message", "data": {"message": "raw msg"}}]}
+    assert event_response_to_model(entry_only).message == "raw msg"
+    # no message entry at all -> top-level message fallback
+    top_level = {"title": "t", "message": "top msg"}
+    assert event_response_to_model(top_level).message == "top msg"
+    # formatted wins when present
+    both = {
+        "title": "t",
+        "message": "top msg",
+        "entries": [{"type": "message", "data": {"formatted": "fmt", "message": "raw"}}],
+    }
+    assert event_response_to_model(both).message == "fmt"
+
+
 def test_maps_camelcase_frame_and_handled_flag() -> None:
     m = event_response_to_model(_serialized_event())
     exc = m.exceptions[0]

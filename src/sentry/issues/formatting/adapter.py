@@ -140,13 +140,21 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     """Map a serialized event response into an ``EventObject``."""
     entries = _entries_by_type(data)
-    message = entries.get("message")
     tags, transaction_name = _tags(data)
+
+    # prefer the message entry's formatted text, then its raw message, then the top-level message
+    message_entry = entries.get("message")
+    message = (
+        message_entry.get("formatted") or message_entry.get("message")
+        if isinstance(message_entry, Mapping)
+        else None
+    ) or data.get("message")
 
     return EventObject(
         event_id=data.get("eventID") or data.get("id"),
         title=data.get("title") or "",
-        message=message.get("formatted") if isinstance(message, Mapping) else None,
+        message=message,
+        culprit=data.get("culprit"),
         platform=data.get("platform"),
         transaction_name=transaction_name,
         timestamp=data.get("dateCreated") or data.get("dateReceived"),
