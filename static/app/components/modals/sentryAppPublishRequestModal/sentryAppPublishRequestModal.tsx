@@ -80,7 +80,7 @@ type Props = ModalRenderProps & {
 };
 
 export function SentryAppPublishRequestModal(props: Props) {
-  const {app, closeModal, Header, Body, onPublishSubmission} = props;
+  const {app, closeModal, Header, Body, Footer, onPublishSubmission} = props;
 
   const {mutateAsync: submitPublishRequest} = useMutation({
     mutationFn: (data: {questionnaire: Array<{answer: string; question: string}>}) =>
@@ -118,7 +118,7 @@ export function SentryAppPublishRequestModal(props: Props) {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    validators: {onChange: schema},
+    validators: {onDynamic: schema},
     onSubmit: ({value}) => {
       const parsed = schema.parse(value);
       const questionnaire = QUESTIONS.map(({name, question}) => ({
@@ -151,7 +151,7 @@ export function SentryAppPublishRequestModal(props: Props) {
               >
                 <field.TextArea
                   autosize
-                  rows={1}
+                  rows={3}
                   value={field.state.value}
                   onChange={field.handleChange}
                 />
@@ -249,7 +249,7 @@ export function SentryAppPublishRequestModal(props: Props) {
           </form.AppField>
         </Flex>
 
-        <Flex direction="column" gap="md" paddingTop="xl">
+        <Flex direction="column" gap="lg" paddingTop="xl">
           <Text as="p">
             {t(
               'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
@@ -267,8 +267,9 @@ export function SentryAppPublishRequestModal(props: Props) {
           </Text>
           <Text as="p">{t('Thank you for contributing to the Sentry community!')}</Text>
         </Flex>
-
-        <Flex gap="md" justify="end">
+      </Body>
+      <Footer>
+        <Flex gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <form.Subscribe selector={state => state.canSubmit}>
             {canSubmit => (
@@ -278,7 +279,7 @@ export function SentryAppPublishRequestModal(props: Props) {
             )}
           </form.Subscribe>
         </Flex>
-      </Body>
+      </Footer>
     </form.AppForm>
   );
 }
