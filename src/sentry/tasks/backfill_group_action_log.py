@@ -71,12 +71,12 @@ def reset_and_backfill_group_action_log(
         )
         return
 
+    invalidate_group_derived_data(group_id)
+
     deleted_count, _ = GroupActionLogEntry.objects.filter(
         group_id=group_id,
         source="backfill:activity",
     ).delete()
-
-    invalidate_group_derived_data(group_id)
 
     logger.info(
         "backfill_group_action_log.reset_completed",
