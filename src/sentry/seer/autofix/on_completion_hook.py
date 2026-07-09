@@ -271,6 +271,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             _, is_synced = state.has_code_changes()
             if not is_synced and not cls._iteration_terminal_errored_repos(state):
                 return
+
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
             webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
@@ -500,12 +501,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # update that PR. _push_changes is a no-op once the repos are synced, so
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
-            cls._push_changes(group, run_id, state)
-            # Feedback may have been enqueued while this iteration was running.
-            # The consume task is a no-op while the run is still processing and
-            # only triggers a new iteration once the run settles, so it's safe
-            # to always kick it after handling an iteration completion.
-            cls._consume_queued_feedback(organization, run_id, group)
+            pushed = cls._push_changes(group, run_id, state)
+
+            if not pushed:
+                # we want to consume queued feedback _after_ we know changes have been pushed
+                # because some feedback in the queue could be filtered out
+                # since it's only applicable to a single revision of the code
+                # e.g.
+                # if we have CI failure feedback in the queue but our last iteration
+                # updated the code for that PR, we should filter it out and see if it
+                # fails again
+                cls._consume_queued_feedback(organization, run_id, group)
             return
 
         if stopping_point is None or reached_stopping_point:
@@ -625,8 +631,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return []
 
     @classmethod
-    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
-        """Push code changes to create PRs."""
+    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> bool:
+        """Push code changes to create PRs. Returns True if changes were pushed."""
         # Check if there are code changes to push
         has_changes, is_synced = state.has_code_changes()
         if not has_changes or is_synced:
@@ -639,7 +645,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "is_synced": is_synced,
                 },
             )
-            return
+            return False
 
         # Errored repos are terminal — re-pushing would re-fire this hook in a loop.
         errored_repos = cls._iteration_terminal_errored_repos(state)
@@ -652,7 +658,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "errored_repos": errored_repos,
                 },
             )
-            return
+            return False
 
         logger.info(
             "autofix.on_completion_hook.pushing_changes",
@@ -671,6 +677,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "autofix.on_completion_hook.push_changes_failed",
                 extra={"run_id": run_id, "organization_id": group.organization.id},
             )
+            return False
+
+        return True
 
     @classmethod
     def _get_handoff_config_if_applicable(

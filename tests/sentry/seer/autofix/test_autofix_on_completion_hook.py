@@ -307,6 +307,47 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             state=state,
         )
 
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_pr_iteration_does_not_consume_feedback_when_pushed(
+        self, mock_push_changes, mock_consume
+    ):
+        """When PR iteration pushes new changes, queued feedback is left for the next run."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_push_changes.assert_called_once()
+        mock_consume.assert_not_called()
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_pr_iteration_consumes_feedback_when_nothing_pushed(
+        self, mock_push_changes, mock_consume
+    ):
+        """When PR iteration has no new changes to push, queued feedback is consumed now."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="synced-sha")],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")
+        }
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_push_changes.assert_not_called()
+        mock_consume.assert_called_once_with(self.organization, 123, self.group)
+
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):
         """Does not re-push when every un-synced repo is already in pr_creation_status='error'."""
@@ -328,7 +369,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 pr_creation_error="No write access to repository test-repo",
             )
         }
-        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        pushed = AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        assert pushed is False
         mock_push_changes.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
@@ -367,7 +409,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 pr_creation_error="No write access to repository test-repo",
             )
         }
-        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        pushed = AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        assert pushed is True
         mock_push_changes.assert_called_once()
 
 
