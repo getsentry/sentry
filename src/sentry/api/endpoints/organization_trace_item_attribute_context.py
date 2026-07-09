@@ -111,16 +111,17 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         except NoProjects:
             return Response({"detail": "No projects available."}, status=400)
 
-        # Scope to a single project, or org-wide for `project=-1`; no subset in between.
-        if "-1" in request.GET.getlist("project"):
+        # Scope to a single project, or org-wide for the all-projects sentinel
+        # (`-1`/`$all`); no subset in between.
+        if self.get_requested_project_params_unchecked(request).has_all_projects_sentinel:
             scope_project = None
         elif len(snuba_params.projects) == 1:
             scope_project = snuba_params.projects[0]
         else:
             return Response(
                 {
-                    "detail": "Pass a single `project`, or `project=-1` for "
-                    "organization-wide context."
+                    "detail": "Pass a single `project`, or all projects "
+                    "(`-1`/`$all`) for organization-wide context."
                 },
                 status=400,
             )

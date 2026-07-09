@@ -191,6 +191,25 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
         assert context.project_id is None
 
+    def test_org_wide_context_all_projects_sentinel(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        # `$all` is the other all-projects sentinel and must also scope org-wide.
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+            query={"project": "$all", "statsPeriod": "7d"},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["project"] is None
+        context = TraceItemAttributeContext.objects.get(attribute_key="my_custom_attr")
+        assert context.project_id is None
+
     def test_rejects_sentry_convention_attribute(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
