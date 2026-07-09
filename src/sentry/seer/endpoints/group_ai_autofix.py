@@ -383,7 +383,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     kwargs={
                         "run_id": resolved_run_id,
                         "organization_id": group.organization.id,
-                        "group_id": group.id,
                     }
                 )
 

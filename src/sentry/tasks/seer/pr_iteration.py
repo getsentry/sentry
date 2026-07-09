@@ -13,15 +13,15 @@ from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.services.integration import integration_service
 from sentry.locks import locks
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
-    get_autofix_run_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -31,7 +31,7 @@ from sentry.seer.autofix.pr_iteration.feedback_queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
@@ -53,7 +53,6 @@ def trigger_consume_pr_iteration_feedback(
     *,
     run_id: int,
     organization_id: int,
-    group_id: int,
     feedback: Feedback,
     run_state: SeerRunState,
     bypass: bool = False,
@@ -68,7 +67,6 @@ def trigger_consume_pr_iteration_feedback(
         kwargs={
             "run_id": run_id,
             "organization_id": organization_id,
-            "group_id": group_id,
         },
         countdown=delay,
     )
@@ -80,7 +78,7 @@ def trigger_consume_pr_iteration_feedback(
     processing_deadline_duration=60,
     retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
 )
-def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id: int) -> None:
+def consume_queued_autofix_feedback(run_id: int, organization_id: int) -> None:
     lock = locks.get(
         f"autofix:feedback:lock:{run_id}",
         duration=60,
@@ -88,22 +86,22 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
     )
 
     with lock.acquire():
-        group = Group.objects.filter(
-            id=group_id,
-            project__organization_id=organization_id,
-        ).first()
-        if group is None:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+
+        try:
+            state = fetch_run_status(run_id, organization)
+        except (SeerApiError, ValueError):
             logger.warning(
-                "autofix.pr_iteration.consume_feedback.group_not_found",
-                extra={"run_id": run_id, "group_id": group_id},
+                "autofix.pr_iteration.consume_feedback.run_state_not_found",
+                extra={"run_id": run_id, "organization_id": organization_id},
             )
             return
 
-        try:
-            state = get_autofix_run_state(group, run_id)
-        except SeerPermissionError:
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        group = Group.objects.filter(id=group_id).first() if group_id else None
+        if group is None:
             logger.warning(
-                "autofix.pr_iteration.consume_feedback.run_state_not_found",
+                "autofix.pr_iteration.consume_feedback.group_not_found",
                 extra={"run_id": run_id, "group_id": group_id},
             )
             return
@@ -303,7 +301,6 @@ def trigger_pr_iteration_from_comment(
     trigger_consume_pr_iteration_feedback(
         run_id=agent_state.run_id,
         organization_id=organization_id,
-        group_id=group_id,
         feedback=feedback_obj,
         run_state=agent_state,
     )
