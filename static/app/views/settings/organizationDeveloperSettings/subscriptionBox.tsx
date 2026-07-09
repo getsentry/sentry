@@ -12,6 +12,7 @@ import {
   PERMISSIONS_MAP,
   RESOURCE_EVENTS,
   webhookEventLabel,
+  webhookResourceLabel,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 type Resource = (typeof EVENT_CHOICES)[number];
@@ -66,7 +67,7 @@ export function SubscriptionBox({
       <SubscriptionGridItem disabled={disabled}>
         <Stack alignSelf="center">
           <SubscriptionTitle>
-            {resource}
+            {webhookResourceLabel(resource)}
             {isNew && <FeatureBadge type="new" />}
           </SubscriptionTitle>
           <SubscriptionDescription>{description}</SubscriptionDescription>

@@ -1,4 +1,5 @@
 import type {WebhookEvent} from 'sentry/types/integrations';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 export const EVENT_CHOICES = [
   'issue',
@@ -38,14 +39,27 @@ export const RESOURCE_EVENTS = {
 
 export type WebhookGranularEvent = (typeof RESOURCE_EVENTS)[WebhookEvent][number];
 
-// The product renamed these actions; subscription tokens kept the old names.
+// Display names the token transform in webhookEventLabel can't produce
 const EVENT_LABELS: Partial<Record<WebhookGranularEvent, string>> = {
-  'issue.ignored': 'archived',
-  'comment.updated': 'edited',
+  'issue.ignored': 'Archived',
+  'comment.updated': 'Edited',
+  'seer.pr_created': 'PR created',
 };
 
 export function webhookEventLabel(event: WebhookGranularEvent): string {
-  return EVENT_LABELS[event] ?? event.split('.')[1]!;
+  return EVENT_LABELS[event] ?? capitalize(event.split('.')[1]!.replaceAll('_', ' '));
+}
+
+const RESOURCE_LABELS: Record<WebhookEvent, string> = {
+  issue: 'Issues',
+  error: 'Errors',
+  comment: 'Comments',
+  seer: 'Seer',
+  preprod_artifact: 'Preprod Artifacts',
+};
+
+export function webhookResourceLabel(resource: WebhookEvent): string {
+  return RESOURCE_LABELS[resource];
 }
 
 export const PERMISSIONS_MAP = {
