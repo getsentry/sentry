@@ -126,7 +126,6 @@ class TestBuildActivityData(BaseWorkflowTest):
         assert result["details"]["user"]["id"] == self.user.id
         assert result["details"]["user"]["name"] == self.user.get_display_name()
         assert result["details"]["user"]["username"] == self.user.username
-        assert result["details"]["user"]["email"] == self.user.email
 
 
 class TestBuildWorkflowData(BaseWorkflowTest):

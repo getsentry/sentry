@@ -119,7 +119,6 @@ def _build_activity_data(activity: Activity) -> ActivityData:
                 "id": user.id,
                 "name": user.get_display_name(),
                 "username": user.username,
-                "email": user.email,
             }
 
     if not activity.data:
