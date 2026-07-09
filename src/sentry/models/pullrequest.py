@@ -394,6 +394,7 @@ class PullRequestActivityType(models.TextChoices):
     AUTO_MERGE_ENABLED = "auto_merge_enabled"
     CHECK_RUN_COMPLETED = "check_run_completed"
     CHECK_SUITE_COMPLETED = "check_suite_completed"
+    CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
     COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
@@ -402,6 +403,7 @@ class PullRequestActivityType(models.TextChoices):
     ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
+    MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
     REVIEW_DISMISSED = "review_dismissed"
@@ -483,6 +485,22 @@ class PullRequestMetrics(DefaultFieldsModel):
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)
+    # Human-involvement splits derived from the activity log at the terminal event
+    # (see ``pr_metrics.emit``). ``reviews_count`` = reviews_bot_count +
+    # reviews_human_count. Pushes count push events (opened + synchronize), not
+    # individual commits, split by the pusher's account class. All 0 when activity
+    # isn't tracked.
+    reviews_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    reviews_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    # Who opened / closed the PR, by account class: True = Bot, False = human, null
+    # = the event was never recorded (activity not tracked, or a missed webhook).
+    # ``opened_and_closed_by_same_actor`` compares the opener's and closer's logins;
+    # null when either side is unknown.
+    opened_by_bot = models.BooleanField(null=True)
+    closed_by_bot = models.BooleanField(null=True)
+    opened_and_closed_by_same_actor = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"

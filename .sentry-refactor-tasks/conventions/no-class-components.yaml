@@ -108,4 +108,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'extends (React\\.)?(Pure)?Component' {repo_path}/static/app/"
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'extends (React\\.)?(Pure)?Component' {repo_path}/static/"
