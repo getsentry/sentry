@@ -29,7 +29,7 @@ from sentry.seer.autofix.pr_iteration.feedback_queue import (
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
 )
-from sentry.seer.autofix.pr_iteration.types import Feedback
+from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.seer.models import SeerPermissionError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -90,6 +90,7 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
             return
 
         feedback_items = []
+        seen_comment_ids: set[int] = set()
         for item in queued_items:
             if not item.feedback.is_valid_for_run_state(state):
                 logger.info(
@@ -102,6 +103,14 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
                 )
 
                 continue
+
+            source = item.feedback.source
+            if isinstance(source, GithubPrCommentFeedbackSource):
+                comment_id = source.comment.get("id")
+                if comment_id is not None:
+                    if comment_id in seen_comment_ids:
+                        continue
+                    seen_comment_ids.add(comment_id)
 
             feedback_items.append(item.feedback)
 
