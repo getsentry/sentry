@@ -305,10 +305,10 @@ function SearchQueryBuilderInputInternal({
   const items = customMenu ? sectionItems : sortedFilteredItems;
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
-  const hasValidFilter = [...state.collection].some(
-    collectionItem =>
-      collectionItem.value.type === Token.FILTER && collectionItem.value.invalid === null
-  );
+  const hasValidFilter = [...state.collection].some(collectionItem => {
+    const collectionValue = collectionItem.value;
+    return collectionValue?.type === Token.FILTER && collectionValue.invalid === null;
+  });
 
   useEffect(() => {
     if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
