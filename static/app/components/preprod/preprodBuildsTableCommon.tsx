@@ -138,7 +138,7 @@ export function PreprodBuildsRowCells({
                 {build.app_info?.version}
               </Text>
             )}
-            {buildNumber !== null && (
+            {buildNumber && (
               <Text size="lg" variant="muted">
                 ({buildNumber})
               </Text>

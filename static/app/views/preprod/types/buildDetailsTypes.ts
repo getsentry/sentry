@@ -50,13 +50,12 @@ interface AndroidAppInfo {
   has_proguard_mapping?: boolean;
 }
 
-// build_number can be a synthesized sortable int (e.g. for Apple builds with a
-// dotted CFBundleVersion); build_number_raw is the original unparsed value and
-// should always be preferred for display when present.
+// Prefer the raw build number for display; `||` (not `??`) since the backend
+// allows build_number_raw to be an empty string.
 export function getBuildNumber(
   appInfo: BuildDetailsAppInfo | null | undefined
 ): string | null | undefined {
-  return appInfo?.build_number_raw ?? appInfo?.build_number;
+  return appInfo?.build_number_raw || appInfo?.build_number;
 }
 
 export interface BuildDetailsVcsInfo {
