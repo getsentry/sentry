@@ -51,6 +51,7 @@ INVITED_ORGANIZATION_MEMBER = {
     "id": "57377908165",
     "email": "rockhopper@antarcticarocks.com",
     "name": "Rockhopper",
+    "user": None,
     "orgRole": "member",
     "pending": True,
     "expired": False,
