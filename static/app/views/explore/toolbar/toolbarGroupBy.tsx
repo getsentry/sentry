@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -59,19 +59,7 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
     [groupBys, validatedSearchQueryData?.field, validationIsPending]
   );
 
-  useEffect(() => {
-    if (
-      validatedSearchQueryData &&
-      validationGroupBys.current?.data !== validatedSearchQueryData
-    ) {
-      validationGroupBys.current = {
-        data: validatedSearchQueryData,
-        groupBys,
-      };
-    }
-  }, [groupBys, validatedSearchQueryData]);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pendingValidatedGroupBys.current) {
       if (arraysAreEqual(groupBys, pendingValidatedGroupBys.current.to)) {
         pendingValidatedGroupBys.current = null;
@@ -83,11 +71,24 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
       }
     }
 
+    if (validationIsPending || !validatedSearchQueryData) {
+      return;
+    }
+
+    let validationGroupBySnapshot = validationGroupBys.current;
     if (
-      validationIsPending ||
-      !validatedSearchQueryData ||
-      validationGroupBys.current?.data !== validatedSearchQueryData ||
-      !arraysAreEqual(groupBys, validationGroupBys.current.groupBys) ||
+      !validationGroupBySnapshot?.data ||
+      validationGroupBySnapshot.data !== validatedSearchQueryData
+    ) {
+      validationGroupBySnapshot = {
+        data: validatedSearchQueryData,
+        groupBys,
+      };
+      validationGroupBys.current = validationGroupBySnapshot;
+    }
+
+    if (
+      !arraysAreEqual(groupBys, validationGroupBySnapshot.groupBys) ||
       arraysAreEqual(groupBys, validatedGroupBys)
     ) {
       return;
