@@ -1,4 +1,5 @@
 import type {WebhookEvent} from 'sentry/types/integrations';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 export const EVENT_CHOICES = [
   'issue',
@@ -39,12 +40,28 @@ export const RESOURCE_EVENTS = {
 export type WebhookGranularEvent = (typeof RESOURCE_EVENTS)[WebhookEvent][number];
 
 const EVENT_LABEL_OVERRIDES: Partial<Record<WebhookGranularEvent, string>> = {
-  'issue.ignored': 'archived', // the product renamed ignore → archive
-  'comment.updated': 'edited', // the product renamed update → edit
+  'issue.ignored': 'Archived', // the product renamed ignore → archive
+  'comment.updated': 'Edited', // the product renamed update → edit
+  'seer.pr_created': 'PR created', // the transform below would render "Pr created"
 };
 
 export function webhookEventLabel(event: WebhookGranularEvent): string {
-  return EVENT_LABEL_OVERRIDES[event] ?? event.slice(event.indexOf('.') + 1);
+  return (
+    EVENT_LABEL_OVERRIDES[event] ??
+    capitalize(event.slice(event.indexOf('.') + 1).replaceAll('_', ' '))
+  );
+}
+
+const RESOURCE_LABELS: Record<WebhookEvent, string> = {
+  issue: 'Issues',
+  error: 'Errors',
+  comment: 'Comments',
+  seer: 'Seer',
+  preprod_artifact: 'Preprod Artifacts',
+};
+
+export function webhookResourceLabel(resource: WebhookEvent): string {
+  return RESOURCE_LABELS[resource];
 }
 
 export const PERMISSIONS_MAP = {
