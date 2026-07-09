@@ -244,13 +244,16 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if not dry_run:
+        if not dry_run and features.has(
+            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        ):
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
                     project_metrics[project_id] = {
                         "e": project_ctx.accepted_error_count,
                         "t": project_ctx.accepted_transaction_count,
+                        "i": project_ctx.total_substatus_count,
                     }
                 if project_metrics:
                     cache_project_metrics(organization_id, project_metrics)
@@ -640,6 +643,8 @@ def render_template_context(
         # All other items are merged to "Others"
         projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
 
+        total_issue = sum(p.total_substatus_count for p in projects_associated_with_user)
+
         # Calculate legend
         legend: list[dict[str, Any]] = [
             {
@@ -650,6 +655,9 @@ def render_template_context(
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
+                "new_substatus_count": project_ctx.new_substatus_count,
+                "escalating_substatus_count": project_ctx.escalating_substatus_count,
+                "regression_substatus_count": project_ctx.regression_substatus_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -665,6 +673,13 @@ def render_template_context(
                     "color": other_color,
                     "accepted_error_count": others_error,
                     "accepted_transaction_count": others_transaction,
+                    "new_substatus_count": sum(p.new_substatus_count for p in projects_not_taken),
+                    "escalating_substatus_count": sum(
+                        p.escalating_substatus_count for p in projects_not_taken
+                    ),
+                    "regression_substatus_count": sum(
+                        p.regression_substatus_count for p in projects_not_taken
+                    ),
                 }
             )
         if len(projects_taken) > 1:
@@ -674,6 +689,15 @@ def render_template_context(
                     "color": total_color,
                     "accepted_error_count": total_error,
                     "accepted_transaction_count": total_transaction,
+                    "new_substatus_count": sum(
+                        p.new_substatus_count for p in projects_associated_with_user
+                    ),
+                    "escalating_substatus_count": sum(
+                        p.escalating_substatus_count for p in projects_associated_with_user
+                    ),
+                    "regression_substatus_count": sum(
+                        p.regression_substatus_count for p in projects_associated_with_user
+                    ),
                 }
             )
 
@@ -686,6 +710,7 @@ def render_template_context(
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
                     "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                    "issue_count": project_ctx.issue_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -701,6 +726,10 @@ def render_template_context(
                             project_ctx.transaction_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
+                        "issue_count": sum(
+                            project_ctx.issue_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
+                        ),
                     }
                 )
             series.append((to_datetime(t), project_series))
@@ -710,19 +739,27 @@ def render_template_context(
         prev_week_transaction = sum(
             p.prev_week_accepted_transaction_count for p in projects_associated_with_user
         )
+        prev_week_issue = sum(
+            p.prev_week_total_substatus_count for p in projects_associated_with_user
+        )
 
         return {
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
+            "total_issue_count": total_issue,
             "error_pct_change": _pct_change(total_error, prev_week_error),
             "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
+            "issue_pct_change": _pct_change(total_issue, prev_week_issue),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
+            ),
+            "issue_maximum": max(  # The max issue count on any single day
+                sum(value["issue_count"] for value in values) for timestamp, values in series
             ),
         }
 
