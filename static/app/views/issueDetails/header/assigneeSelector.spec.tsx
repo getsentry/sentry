@@ -121,62 +121,6 @@ describe('GroupHeaderAssigneeSelector', () => {
     );
   });
 
-  it('shows who assigned the current assignee from manual integration activity', async () => {
-    const assignedUser = UserFixture({
-      id: '91',
-      email: 'frodo@sentry.io',
-      name: 'Frodo',
-    });
-    const assigningUser = UserFixture({
-      id: '92',
-      email: 'sam@sentry.io',
-      name: 'Sam',
-    });
-    const assignedGroup = GroupFixture({
-      assignedTo: {id: assignedUser.id, name: assignedUser.name, type: 'user'},
-      activity: [
-        {
-          type: GroupActivityType.ASSIGNED,
-          id: 'assignment-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            assignee: assignedUser.id,
-            assigneeType: 'user',
-            integration: 'discord',
-          },
-          user: assigningUser,
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
-      body: {owners: [], rule: ['path', ''], rules: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {committers: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/users/`,
-      body: [MemberFixture({user: assignedUser}), MemberFixture({user: assigningUser})],
-    });
-
-    render(
-      <GroupHeaderAssigneeSelector
-        group={assignedGroup}
-        project={project}
-        event={event}
-      />
-    );
-
-    await userEvent.hover(await screen.findByText(assignedUser.name));
-    const tooltipLine = await screen.findByText(`By ${assigningUser.name}`);
-
-    expect(tooltipLine.closest('[data-tooltip="true"]')?.textContent).toBe(
-      `Assigned to ${assignedUser.name}By ${assigningUser.name}`
-    );
-  });
-
   it('shows assignment provenance from matching assignment activity', async () => {
     const assignedUser = UserFixture({
       id: '91',

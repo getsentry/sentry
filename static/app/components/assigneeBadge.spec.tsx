@@ -56,7 +56,7 @@ describe('AssigneeBadge', () => {
     render(
       <AssigneeBadge
         assignedTo={{id: user.id, name: user.name, type: 'user'}}
-        assignmentDetails={{source: 'ownership-rule'}}
+        assignmentDetails={{source: 'ownershipRule'}}
         showLabel
       />
     );
@@ -79,5 +79,24 @@ describe('AssigneeBadge', () => {
     await userEvent.hover(screen.getByText(user.name));
 
     expect(await screen.findByText('Self-assigned')).toBeInTheDocument();
+  });
+
+  it('shows who assigned the assignee', async () => {
+    const actorLabel = 'Sam';
+
+    render(
+      <AssigneeBadge
+        assignedTo={{id: user.id, name: user.name, type: 'user'}}
+        assignmentDetails={{actorLabel}}
+        showLabel
+      />
+    );
+
+    await userEvent.hover(screen.getByText(user.name));
+    const tooltipLine = await screen.findByText(`By ${actorLabel}`);
+
+    expect(tooltipLine.closest('[data-tooltip="true"]')?.textContent).toBe(
+      `Assigned to ${user.name}By ${actorLabel}`
+    );
   });
 });

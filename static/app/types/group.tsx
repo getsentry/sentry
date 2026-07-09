@@ -888,7 +888,6 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'discord'
       | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;

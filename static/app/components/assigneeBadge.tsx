@@ -16,10 +16,17 @@ import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
+type AssignmentSource =
+  | 'codeowners'
+  | 'ownershipRule'
+  | 'projectOwnership'
+  | 'suspectCommit'
+  | 'suspectCommitter';
+
 export type AssignmentDetails = {
   actorLabel?: string;
   isSelfAssigned?: boolean;
-  source?: 'codeowners' | 'ownership-rule' | 'suspect-commit';
+  source?: AssignmentSource;
 };
 
 type AssigneeBadgeProps = {
@@ -88,9 +95,11 @@ function getAssignmentSourceLabel(source: AssignmentDetails['source']) {
   switch (source) {
     case 'codeowners':
       return t('Matching Codeowners Rule');
-    case 'ownership-rule':
+    case 'ownershipRule':
+    case 'projectOwnership':
       return t('Matching Issue Owners Rule');
-    case 'suspect-commit':
+    case 'suspectCommit':
+    case 'suspectCommitter':
       return t('Based on commit data');
     default:
       return null;

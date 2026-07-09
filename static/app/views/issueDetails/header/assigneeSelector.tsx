@@ -62,11 +62,9 @@ function getAssignmentSource(
 ): AssignmentDetails['source'] | undefined {
   switch (activity?.data.integration) {
     case 'projectOwnership':
-      return 'ownership-rule';
     case 'codeowners':
-      return 'codeowners';
     case 'suspectCommitter':
-      return 'suspect-commit';
+      return activity.data.integration;
     default:
       return undefined;
   }
@@ -132,6 +130,7 @@ export function GroupHeaderAssigneeSelector({
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
       showLabel
+      useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
           onClick={() => {
