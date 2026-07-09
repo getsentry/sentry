@@ -220,6 +220,7 @@ class DebugWeeklyReportView(MailPreviewView):
             context["show_week_over_week_metric"] = (
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
+            context["show_issues_chart"] = request.GET.get("show_issues_chart", "1") != "0"
             context["show_past_issues"] = True
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
