@@ -92,6 +92,7 @@ class GroupEndpoint(Endpoint):
         self.check_object_permissions(request, group)
 
         sentry_sdk.get_isolation_scope().set_tag("project", group.project_id)
+        sentry_sdk.get_isolation_scope().set_attribute("project", group.project_id)
 
         # we didn't bind context above, so do it now
         if not organization:

@@ -652,7 +652,9 @@ def check_tag_for_scope_bleed(
         }
         if add_to_scope:
             scope.set_tag("possible_mistag", True)
+            scope.set_attribute("possible_mistag", True)
             scope.set_tag(f"scope_bleed.{tag_key}", True)
+            scope.set_attribute(f"scope_bleed.{tag_key}", True)
             merge_context_into_scope("scope_bleed", extra, scope)
         logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
@@ -730,6 +732,7 @@ def capture_exception_with_scope_check(
         # TODO: We probably should add this data to the scope in `check_current_scope_transaction`
         # instead, but the whole point is that right now it's unclear how trustworthy ambient scope is
         extra_scope.set_tag("scope_bleed.transaction", True)
+        extra_scope.set_attribute("scope_bleed.transaction", True)
         merge_context_into_scope("scope_bleed", transaction_mismatch, extra_scope)
 
     return sentry_sdk.capture_exception(error, scope=extra_scope)
@@ -748,7 +751,9 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
+        scope.set_attribute("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
+        scope.set_attribute("organization.slug", organization.slug)
         scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
         if helper:
             try:

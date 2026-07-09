@@ -1427,6 +1427,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             pg_overflow_fallback = True
             # Surface the silent ranking degradation on the trace, next to `search.sort`.
             sentry_sdk.set_tag("search.sort_fallback", sort_by)
+            sentry_sdk.set_attribute("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
             # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
             # sorts like "inbox"), have no aggregation and must fall back to `date` instead

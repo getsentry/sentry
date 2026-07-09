@@ -272,6 +272,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -315,6 +316,7 @@ class SeerRpcViewerContextAuthentication(BaseAuthentication):
                 user = resolved
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_viewer_context_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_viewer_context_auth", True)
 
         # Stash the verified context so the org-binding guard reads the signed
         # value directly. (The middleware contextvar can drop organization_id when
