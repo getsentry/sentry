@@ -1188,6 +1188,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "device": {"name": None, "brand": None, "model": None, "family": None},
                     "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
                     "urls": None,
+                    "segment_names": None,
                     "started_at": None,
                     "count_errors": None,
                     "count_dead_clicks": None,
