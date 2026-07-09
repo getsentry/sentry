@@ -231,9 +231,7 @@ def test_run_check_suite_listener() -> None:
 
     check_suite_event = CheckSuiteEventParser(
         action="completed",
-        check_suite=CheckSuiteEventDataParser(
-            "1", "completed", "success", "https://example.com", ["10", "20"]
-        ),
+        check_suite=CheckSuiteEventDataParser("1", "completed", "success", ["10", "20"]),
         subscription_event=SubscriptionEventParser(None, "", {}, 0, [], "github"),
     )
     message = msgspec.json.encode(check_suite_event).decode("utf-8")
@@ -254,7 +252,6 @@ def test_run_check_suite_listener() -> None:
     assert event.check_suite["status"] == "completed"
     assert event.check_suite["conclusion"] == "success"
     assert event.check_suite["pull_request_ids"] == ["10", "20"]
-    assert event.check_suite["html_url"] == "https://example.com"
 
 
 def test_run_pull_request_review_listener() -> None:
@@ -638,7 +635,7 @@ def test_serialize_deserialize_check_suite_event() -> None:
     assert deserialized.check_suite["id"] == event.check_suite["id"]
     assert deserialized.check_suite["status"] == event.check_suite["status"]
     assert deserialized.check_suite["conclusion"] == event.check_suite["conclusion"]
-    assert deserialized.check_suite["html_url"] == event.check_suite["html_url"]
+    assert deserialized.check_suite["html_url"] == ""
     assert deserialized.check_suite["pull_request_ids"] == event.check_suite["pull_request_ids"]
     assert deserialized.subscription_event["type"] == event.subscription_event["type"]
 
@@ -852,7 +849,7 @@ def test_deserialize_event_dispatches_correctly() -> None:
 
     check_suite_parser = CheckSuiteEventParser(
         action="completed",
-        check_suite=CheckSuiteEventDataParser("1", "completed", "success", "url", []),
+        check_suite=CheckSuiteEventDataParser("1", "completed", "success", []),
         subscription_event=SubscriptionEventParser(None, "", {}, 0, None, "github"),
     )
     check_suite_bytes = msgspec.json.encode(check_suite_parser).decode("utf-8")
