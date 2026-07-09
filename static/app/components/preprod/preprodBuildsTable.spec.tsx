@@ -27,6 +27,7 @@ const baseBuild = {
     is_installable: true,
     download_count: 1234,
     release_notes: null,
+    install_groups: null,
   },
   vcs_info: {
     head_sha: 'abcdef1',

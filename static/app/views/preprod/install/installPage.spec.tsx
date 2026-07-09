@@ -81,6 +81,39 @@ describe('InstallPage', () => {
     expect(within(topbarSlot).queryByText('Install')).not.toBeInTheDocument();
   });
 
+  it('surfaces install groups from build details', async () => {
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [],
+          base_size_metrics: [],
+        },
+        {
+          distribution_info: {
+            is_installable: true,
+            download_count: 0,
+            release_notes: null,
+            install_groups: ['qa', 'beta'],
+          },
+        }
+      ),
+    });
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      method: 'GET',
+      body: {platform: 'ios', install_url: 'https://example.com/install'},
+    });
+
+    renderInstallPage();
+
+    expect(await screen.findByText('Install Groups')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+  });
+
   it('keeps the Releases breadcrumb clickable when build details fail to load', async () => {
     MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,

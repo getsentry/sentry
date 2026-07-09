@@ -87,6 +87,9 @@ export default function InstallPage() {
                         distributionErrorMessage={
                           buildDetailsQuery.data.distribution_info?.error_message
                         }
+                        installGroups={
+                          buildDetailsQuery.data.distribution_info?.install_groups
+                        }
                       />
                     )}
                   </Container>
