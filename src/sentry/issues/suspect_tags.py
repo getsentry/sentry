@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import NamedTuple
 
-import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry.models.environment import Environment
@@ -13,6 +12,7 @@ from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
+from sentry.utils.tracing import trace
 
 
 class Score(NamedTuple):
@@ -20,7 +20,7 @@ class Score(NamedTuple):
     score: float
 
 
-@sentry_sdk.trace
+@trace
 def get_suspect_tag_scores(
     org_id: int,
     project_id: int,
@@ -52,7 +52,7 @@ def get_suspect_tag_scores(
     ]
 
 
-@sentry_sdk.trace
+@trace
 def query_baseline_set(
     organization_id: int,
     project_id: int,
@@ -138,7 +138,7 @@ def query_baseline_set(
     ]
 
 
-@sentry_sdk.trace
+@trace
 def query_selection_set(
     organization_id: int,
     project_id: int,
@@ -292,7 +292,7 @@ def _query_error_counts_eap(
     )
 
 
-@sentry_sdk.trace
+@trace
 def query_error_counts(
     organization_id: int,
     project_id: int,

@@ -15,7 +15,7 @@ import msgpack
 import sentry_sdk
 import vroomrs
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp
 from packaging.version import InvalidVersion
@@ -51,7 +51,6 @@ from sentry.models.projectsdk import (
 )
 from sentry.objectstore import default_attachment_retention
 from sentry.objectstore.metrics import measure_storage_operation
-from sentry.options.rollout import in_random_rollout
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -67,9 +66,8 @@ from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks
-from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
@@ -101,56 +99,36 @@ def _get_profiles_producer_from_topic(
     )
 
 
-def _get_task_producer_name(name: str) -> str:
-    return f"sentry.profiles.{name}.taskproducer"
+def _get_producer_name(name: str) -> str:
+    return f"sentry.profiles.{name}.producer"
 
 
-processed_profiles_producer = SingletonProducer(
-    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
-    max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
-)
-processed_profiles_name = _get_task_producer_name("processed")
-processed_profiles_task_producer = get_task_producer(
+processed_profiles_name = _get_producer_name("processed")
+processed_profiles_producer = FutureTrackingProducer(
     processed_profiles_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, processed_profiles_name),
 )
 
-profile_functions_producer = SingletonProducer(
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
-    max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
-)
-profile_functions_name = _get_task_producer_name("functions")
-profile_functions_task_producer = get_task_producer(
+profile_functions_name = _get_producer_name("functions")
+profile_functions_producer = FutureTrackingProducer(
     profile_functions_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, profile_functions_name),
 )
 
-profile_chunks_producer = SingletonProducer(
-    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
-    max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
-)
-profile_chunks_name = _get_task_producer_name("chunks")
-profile_chunks_task_producer = get_task_producer(
+profile_chunks_name = _get_producer_name("chunks")
+profile_chunks_producer = FutureTrackingProducer(
     profile_chunks_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, profile_chunks_name),
 )
 
-profile_occurrences_producer = SingletonProducer(
-    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES),
-    max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
-)
-profile_occurrences_name = _get_task_producer_name("occurrences")
-profile_occurrences_task_producer = get_task_producer(
+profile_occurrences_name = _get_producer_name("occurrences")
+profile_occurrences_producer = FutureTrackingProducer(
     profile_occurrences_name,
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, profile_occurrences_name),
 )
 
-eap_producer = SingletonProducer(
-    lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS),
-    max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
-)
-profile_eap_name = _get_task_producer_name("eap")
-eap_task_producer = get_task_producer(
+profile_eap_name = _get_producer_name("eap")
+eap_producer = FutureTrackingProducer(
     profile_eap_name,
     lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, profile_eap_name),
 )
@@ -1502,10 +1480,7 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         topic = ArroyoTopic(
                             get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
                         )
-                        if in_random_rollout("tasks.producer.profiles.rollout"):
-                            profile_occurrences_task_producer.produce(topic, payload)
-                        else:
-                            profile_occurrences_producer.produce(topic, payload)
+                        profile_occurrences_producer.produce(topic, payload)
             # function metrics are extracted for both sampled and unsampled profiles
             with start_span(op="processing", name="extract functions metrics"):
                 functions = prof.extract_functions_metrics(
@@ -1516,10 +1491,7 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                     topic = ArroyoTopic(
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
-                    if in_random_rollout("tasks.producer.profiles.rollout"):
-                        profile_functions_task_producer.produce(topic, payload)
-                    else:
-                        profile_functions_producer.produce(topic, payload)
+                    profile_functions_producer.produce(topic, payload)
             if features.has("projects:profile-functions-metrics-eap-ingestion", project):
                 with start_span(op="processing", name="extract functions metrics (eap)"):
                     eap_functions = prof.extract_functions_metrics(
@@ -1534,10 +1506,7 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         )
                         tot = 0
                         for payload in build_profile_functions_eap_trace_items(prof, eap_functions):
-                            if in_random_rollout("tasks.producer.profiles.rollout"):
-                                eap_task_producer.produce(topic, payload)
-                            else:
-                                eap_producer.produce(topic, payload)
+                            eap_producer.produce(topic, payload)
                             tot += 1
                         metrics.incr(
                             "process_profile.eap_functions_metrics.ingested.count",
@@ -1552,10 +1521,7 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                     topic = ArroyoTopic(
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
                     )
-                    if in_random_rollout("tasks.producer.profiles.rollout"):
-                        processed_profiles_task_producer.produce(topic, payload)
-                    else:
-                        processed_profiles_producer.produce(topic, payload)
+                    processed_profiles_producer.produce(topic, payload)
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1596,10 +1562,7 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
             with start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
                 topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])
-                if in_random_rollout("tasks.producer.profiles.rollout"):
-                    profile_chunks_task_producer.produce(topic, payload)
-                else:
-                    profile_chunks_producer.produce(topic, payload)
+                profile_chunks_producer.produce(topic, payload)
             with start_span(op="processing", name="extract functions metrics"):
                 functions = chunk.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
@@ -1609,10 +1572,7 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     topic = ArroyoTopic(
                         get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                     )
-                    if in_random_rollout("tasks.producer.profiles.rollout"):
-                        profile_functions_task_producer.produce(topic, payload)
-                    else:
-                        profile_functions_producer.produce(topic, payload)
+                    profile_functions_producer.produce(topic, payload)
             if features.has("projects:profile-functions-metrics-eap-ingestion", project):
                 with start_span(op="processing", name="extract functions metrics (eap)"):
                     eap_functions = chunk.extract_functions_metrics(
@@ -1627,10 +1587,7 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                         )
                         tot = 0
                         for payload in build_chunk_functions_eap_trace_items(chunk, eap_functions):
-                            if in_random_rollout("tasks.producer.profiles.rollout"):
-                                eap_task_producer.produce(topic, payload)
-                            else:
-                                eap_producer.produce(topic, payload)
+                            eap_producer.produce(topic, payload)
                             tot += 1
                         metrics.incr(
                             "process_profile.eap_functions_metrics.ingested.count",

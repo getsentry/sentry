@@ -12,6 +12,7 @@ from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.models.group import Group
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -41,9 +42,6 @@ def _ensure_derived(group_id: int) -> GroupDerivedData:
         return GroupDerivedData.objects.get(group_id=group_id)
     except GroupDerivedData.DoesNotExist:
         pass
-
-    # Deferred to avoid circular import: group.py → action_log → processing.py
-    from sentry.models.group import Group
 
     try:
         derived, _created = GroupDerivedData.objects.get_or_create(
