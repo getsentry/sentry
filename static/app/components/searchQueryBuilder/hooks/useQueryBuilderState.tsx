@@ -103,7 +103,6 @@ type UpdateFreeTextActionOnCommit = {
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_COMMIT';
   focusOverride?: FocusOverride;
-  skipRawSearchReplacement?: boolean;
 };
 
 type UpdateFreeTextActionOnExit = {
@@ -1177,10 +1176,7 @@ export function useQueryBuilderState({
             action,
             parseQuery,
             searchSource,
-            action.type === 'UPDATE_FREE_TEXT_ON_COMMIT' &&
-              action.skipRawSearchReplacement
-              ? undefined
-              : replaceRawSearchKeys
+            replaceRawSearchKeys
           );
 
           return {

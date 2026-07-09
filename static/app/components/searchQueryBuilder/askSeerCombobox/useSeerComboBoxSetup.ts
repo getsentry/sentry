@@ -43,9 +43,7 @@ export function useInitialSeerQuery(): string {
     return {parsedQuery, queryToUse};
   }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
-  const inputValue = isAutoSubmittingCurrentQuery
-    ? ''
-    : currentInputValueRef.current.trim();
+  const inputValue = currentInputValueRef.current.trim();
 
   // Only filter out FREE_TEXT tokens if there's actual input value to filter by
   const filteredCommittedQuery = queryDetails?.parsedQuery

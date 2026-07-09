@@ -553,13 +553,6 @@ function SearchQueryBuilderInputInternal({
         }}
         onCustomValueCommitted={value => {
           if (defaultToAskSeerOnFreeTextSearch && value.trim()) {
-            dispatch({
-              type: 'UPDATE_FREE_TEXT_ON_COMMIT',
-              tokens: [token],
-              text: value,
-              shouldCommitQuery: false,
-              skipRawSearchReplacement: true,
-            });
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);

@@ -6377,6 +6377,16 @@ describe('SearchQueryBuilder', () => {
           );
         });
         expect(mockOnSearch).not.toHaveBeenCalled();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
+
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('row', {name: 'find slow spans'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
       });
 
       it('does not submit free text to ask seer when defaulting to ask seer is disabled', async () => {
