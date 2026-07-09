@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
@@ -117,6 +117,17 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
 
 @cell_silo_test
 class ProcessChunkTest(TestCase):
+    def test_comparison_defaults_images_errored_to_zero(self):
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head,
+            base_snapshot_metrics=base,
+        )
+        assert comparison.images_errored == 0
+
     def test_chunk_processes_slice_and_records_done_index(self):
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
@@ -524,6 +535,43 @@ class FinalizeSnapshotComparisonTest(TestCase):
 
         return ChunkResult(chunk_index=0, images={"a.png": ComparisonImageResult(status="changed")})
 
+    def _finalize_with_extras(self, extras):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[0])
+        comparison.extras = extras
+        comparison.save()
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(self._changed_chunk_result().dict()),
+        }
+        session = _dict_backed_session(stored)
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
+            patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        diff_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c.args and c.args[0] == "preprod.snapshots.diff.duration_s"
+        ]
+        return comparison, diff_calls
+
+    def test_finalize_skips_diff_duration_metric_on_missing_or_invalid_timestamp(self):
+        missing, missing_calls = self._finalize_with_extras({})
+        assert missing.state == PreprodSnapshotComparison.State.SUCCESS
+        assert missing_calls == []
+
+        invalid, invalid_calls = self._finalize_with_extras(
+            {"diff_processing_started_at": "not-a-date"}
+        )
+        assert invalid.state == PreprodSnapshotComparison.State.SUCCESS
+        assert invalid_calls == []
+
     def test_terminal_state_skips_finalize(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
@@ -556,6 +604,19 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert called_head_artifact.id == h.id
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
+
+    def test_finalize_writes_images_errored_column(self):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[1])
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
+        session = _dict_backed_session(stored)
+        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_errored == 1
 
     def test_finalize_is_exactly_once(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
@@ -1562,6 +1623,8 @@ class EndToEndFanoutTest(TestCase):
         return {h: b"img" for h in hashes}, set()
 
     def test_full_flow_reaches_success(self):
+        from datetime import datetime
+
         from sentry.preprod.snapshots.tasks import (
             compare_snapshots,
             finalize_snapshot_comparison,
@@ -1602,6 +1665,7 @@ class EndToEndFanoutTest(TestCase):
                 side_effect=lambda kwargs, **_: dispatched.append(kwargs),
             ),
             patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
         ):
             compare_snapshots(**kwargs)
 
@@ -1640,3 +1704,15 @@ class EndToEndFanoutTest(TestCase):
         manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
         assert manifest["summary"]["changed"] == 3
         assert manifest["summary"]["added"] == 1
+
+        # The orchestrator stamps the processing-start timestamp at fan-out, and
+        # finalize reads it to emit the diff-duration metric — assert the full round-trip.
+        extras = comparison.extras
+        assert extras is not None
+        assert datetime.fromisoformat(extras["diff_processing_started_at"])
+        mock_metrics.distribution.assert_any_call(
+            "preprod.snapshots.diff.duration_s",
+            ANY,
+            sample_rate=1.0,
+            tags={"app_id_temp": head_artifact.app_id or ""},
+        )

@@ -12,12 +12,10 @@ from sentry.notifications.notification_action.group_type_notification_registry i
 from sentry.notifications.notification_action.issue_alert_registry import (
     EmailIssueAlertHandler,
     PagerDutyIssueAlertHandler,
-    PluginIssueAlertHandler,
 )
 from sentry.notifications.notification_action.issue_alert_registry.handlers.sentry_app_issue_alert_handler import (
     SentryAppIssueAlertHandler,
 )
-from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
@@ -59,12 +57,12 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
                 integration_key=service_info["integration_key"],
             )
 
-    @mock.patch.object(NotifyEventAction, "after")
     @mock.patch(
-        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
-        return_value=PluginIssueAlertHandler,
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
     )
-    def test_actions(self, mock_get_handler, action) -> None:
+    def test_actions(self, mock_send) -> None:
+        # NotifyEventAction only dual-writes a WEBHOOK action when webhooks are enabled.
+        self.project.update_option("webhooks:enabled", True)
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -72,7 +70,22 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         ]
 
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
-        assert action.called
+        assert mock_send.called
+
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
+    )
+    def test_actions_notify_event_webhooks_disabled(self, mock_send) -> None:
+        # With webhooks disabled, NotifyEventAction translates to no action, so the test-fire should
+        # skip it gracefully (success, nothing fired) rather than raising an IndexError -> 400.
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            }
+        ]
+
+        self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
+        assert not mock_send.called
 
     def test_unknown_action_returns_400(self) -> None:
         action_data = [
@@ -181,6 +194,24 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
 
         assert mock_notify.call_count == 1
+
+    def test_deprecated_plugin_returns_400(self) -> None:
+        self.project.update_option("twilio:enabled", True)
+
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "twilio",
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, actions=action_data
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            "actions": ["Select a valid choice. twilio is not one of the available choices."]
+        }
 
     @mock.patch(
         "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"

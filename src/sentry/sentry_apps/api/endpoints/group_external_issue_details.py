@@ -25,7 +25,11 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-external-issues-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-external-issues-details",
+        url_names=["sentry-api-0-group-external-issues-details"],
+    )
     def delete(self, request: Request, external_issue_id, group) -> Response:
         try:
             external_issue = PlatformExternalIssue.objects.get(
@@ -42,8 +46,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=group.project.organization_id,
-            project_id=external_issue.project_id or group.project_id,
+            project=group.project,
             actor=(
                 GroupActionActor.user(request.user.id)
                 if request.user.is_authenticated

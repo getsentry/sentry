@@ -250,8 +250,6 @@ function ReleasesListInnerPage() {
       : selectedIds.map(id => `${id}`);
   }, [selection.projects]);
 
-  const hasSnapshotsFeature = organization.features?.includes('preprod-snapshots');
-
   const {statsPeriod, start, end, utc} = normalizeDateTimeParams(location.query);
   const buildsProbeQuery = useQuery({
     ...buildDetailsApiOptions({
@@ -287,27 +285,14 @@ function ReleasesListInnerPage() {
     !buildsProbeQuery.isPending && (buildsProbeQuery.data?.length ?? 0) > 0;
 
   const shouldShowMobileBuildsTab = hasBuildsData || hasAnyStrictlyMobileProject;
-  const shouldShowSnapshotsTab = !!hasSnapshotsFeature;
-  const shouldShowPreprodTabs = shouldShowMobileBuildsTab || shouldShowSnapshotsTab;
 
   const selectedTab = useMemo(() => {
-    if (!shouldShowPreprodTabs) {
-      return 'releases';
-    }
     const tab = decodeScalar(location.query.tab) as ReleaseTab | undefined;
-    if (tab === 'snapshots' && !shouldShowSnapshotsTab) {
-      return 'releases';
-    }
     if (tab === 'mobile-builds' && !shouldShowMobileBuildsTab) {
       return 'releases';
     }
     return tab || 'releases';
-  }, [
-    shouldShowPreprodTabs,
-    shouldShowMobileBuildsTab,
-    shouldShowSnapshotsTab,
-    location.query.tab,
-  ]);
+  }, [shouldShowMobileBuildsTab, location.query.tab]);
 
   useLLMContext({
     contextHint:
@@ -472,7 +457,7 @@ function ReleasesListInnerPage() {
       <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleasesHeader />
-          <ReleasesBodySearch hasTabs={shouldShowPreprodTabs}>
+          <ReleasesBodySearch hasTabs>
             <Layout.Main width="full">
               <Stack gap="md">
                 <PageFilterBar condensed>
@@ -489,62 +474,59 @@ function ReleasesListInnerPage() {
                     )}
                   />
                 </PageFilterBar>
-                {shouldShowPreprodTabs && (
-                  <Tabs value={selectedTab} onChange={handleTabChange}>
-                    <TabList aria-label={t('Releases tab selector')}>
-                      <TabList.Item
-                        key="releases"
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: undefined,
-                          },
-                        }}
-                        textValue={t('Releases')}
-                      >
-                        {t('Releases')}
-                      </TabList.Item>
-                      <TabList.Item
-                        key="mobile-builds"
-                        hidden={!shouldShowMobileBuildsTab}
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: 'mobile-builds',
-                          },
-                        }}
-                        textValue={t('Mobile Builds')}
-                      >
-                        <Flex align="center" gap="sm">
-                          {t('Mobile Builds')}
-                          <FeatureBadge type="new" />
-                        </Flex>
-                      </TabList.Item>
-                      <TabList.Item
-                        key="snapshots"
-                        hidden={!shouldShowSnapshotsTab}
-                        to={{
-                          pathname: location.pathname,
-                          query: {
-                            ...location.query,
-                            query: undefined,
-                            tab: 'snapshots',
-                          },
-                        }}
-                        textValue={t('Snapshots')}
-                      >
-                        <Flex align="center" gap="sm">
-                          {t('Snapshots')}
-                          <FeatureBadge type="beta" />
-                        </Flex>
-                      </TabList.Item>
-                    </TabList>
-                  </Tabs>
-                )}
+                <Tabs value={selectedTab} onChange={handleTabChange}>
+                  <TabList aria-label={t('Releases tab selector')}>
+                    <TabList.Item
+                      key="releases"
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: undefined,
+                        },
+                      }}
+                      textValue={t('Releases')}
+                    >
+                      {t('Releases')}
+                    </TabList.Item>
+                    <TabList.Item
+                      key="mobile-builds"
+                      hidden={!shouldShowMobileBuildsTab}
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'mobile-builds',
+                        },
+                      }}
+                      textValue={t('Mobile Builds')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Mobile Builds')}
+                        <FeatureBadge type="new" />
+                      </Flex>
+                    </TabList.Item>
+                    <TabList.Item
+                      key="snapshots"
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...location.query,
+                          query: undefined,
+                          tab: 'snapshots',
+                        },
+                      }}
+                      textValue={t('Snapshots')}
+                    >
+                      <Flex align="center" gap="sm">
+                        {t('Snapshots')}
+                        <FeatureBadge type="beta" />
+                      </Flex>
+                    </TabList.Item>
+                  </TabList>
+                </Tabs>
               </Stack>
             </Layout.Main>
           </ReleasesBodySearch>
@@ -557,7 +539,7 @@ function ReleasesListInnerPage() {
                 />
               )}
 
-              {selectedTab === 'snapshots' && shouldShowSnapshotsTab && (
+              {selectedTab === 'snapshots' && (
                 <MobileBuilds
                   organization={organization}
                   selectedProjectIds={selectedProjectIds}

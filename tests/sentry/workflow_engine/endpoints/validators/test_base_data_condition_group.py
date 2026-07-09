@@ -95,6 +95,26 @@ class TestBaseDataConditionGroupValidator(TestCase):
         validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
+    def test_rejects_non_integer_id(self) -> None:
+        self.valid_data["id"] = "not-a-number"
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+        assert "id" in validator.errors
+
+    def test_accepts_integer_id(self) -> None:
+        dcg = self.create_data_condition_group(organization_id=self.organization.id)
+        self.valid_data["id"] = dcg.id
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        assert validator.validated_data["id"] == dcg.id
+
+    def test_accepts_string_encoded_integer_id(self) -> None:
+        dcg = self.create_data_condition_group(organization_id=self.organization.id)
+        self.valid_data["id"] = str(dcg.id)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        assert validator.validated_data["id"] == dcg.id
+
 
 class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValidator):
     def test_create(self) -> None:

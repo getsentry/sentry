@@ -50,7 +50,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    ReleaseParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
@@ -86,7 +92,9 @@ from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.sdk import bind_organization_context
+from sentry.utils.tracing import trace
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -211,14 +219,22 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField()
+    projects = ListField(help_text="A list of project slugs that are involved in this release.")
     headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,
+        help_text="(Deprecated) Use `refs` instead. An optional list of head commits to associate with the release, one per repository.",
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="An optional list of commit references, one per repository, used to associate commits with the release.",
+    )
 
 
-@sentry_sdk.trace
+@trace
 def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
@@ -306,10 +322,10 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -357,11 +373,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="List an Organization's Releases",
+        operation_id="listOrganizationReleases",
+        summary="List an Organization's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
             ReleaseParams.QUERY,
+            VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
         responses={
@@ -491,9 +510,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     (
                         filter_params["start"]
                         if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
+                        else deprecated_utcnow() - timedelta(days=90)
                     ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    filter_params["end"] if filter_params["end"] else deprecated_utcnow(),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data
@@ -669,9 +688,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     (
                         filter_params["start"]
                         if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
+                        else deprecated_utcnow() - timedelta(days=90)
                     ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    filter_params["end"] if filter_params["end"] else deprecated_utcnow(),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data
@@ -737,7 +756,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="Create a New Release for an Organization",
+        operation_id="createOrganizationRelease",
+        summary="Create a New Release for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ReleaseSerializerWithProjects,
         responses={
@@ -938,7 +958,7 @@ class OrganizationReleaseTimeseriesData(TypedDict):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

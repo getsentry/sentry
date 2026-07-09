@@ -11,6 +11,7 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
+from sentry.utils.tracing import trace
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
@@ -93,6 +94,7 @@ def enqueue_workflows(
     project_to_workflow: dict[int, list[int]] = {}
     if not items_by_project_id:
         sentry_sdk.set_tag("delayed_workflow_items", items)
+        sentry_sdk.set_attribute("delayed_workflow_items", items)
         return
 
     for project_id, queue_items in items_by_project_id.items():
@@ -104,6 +106,7 @@ def enqueue_workflows(
         project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
+    sentry_sdk.set_attribute("delayed_workflow_items", items)
 
     client.add_project_ids(list(items_by_project_id.keys()))
 
@@ -130,7 +133,7 @@ def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, l
     )
 
 
-@sentry_sdk.trace
+@trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
@@ -234,7 +237,7 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow, stats
 
 
-@sentry_sdk.trace
+@trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
     triggered_workflows: dict[Workflow, TriggerResult],
@@ -563,6 +566,9 @@ def process_workflows(
     workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     sentry_sdk.set_tag(
+        "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
+    )
+    sentry_sdk.set_attribute(
         "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
     )
 

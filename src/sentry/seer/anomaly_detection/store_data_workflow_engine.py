@@ -34,9 +34,7 @@ from sentry.workflow_engine.types import DetectorException, DetectorPriorityLeve
 logger = logging.getLogger(__name__)
 
 
-def _fetch_related_models(
-    detector: Detector, method: str
-) -> tuple[DataSource, DataCondition, SnubaQuery]:
+def _fetch_related_models(detector: Detector, method: str) -> tuple[DataSource, SnubaQuery]:
     # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
     data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
     if not data_source_detector:
@@ -55,8 +53,18 @@ def _fetch_related_models(
         raise DetectorException(
             f"Could not {method} detector, snuba query {query_subscription.snuba_query_id} not found."
         )
+    return data_source, snuba_query
+
+
+def _fetch_anomaly_data_condition(detector: Detector, method: str) -> DataCondition:
+    """
+    Read the detector's single persisted anomaly detection condition. Only valid for
+    detectors that are already dynamic (e.g. create, or a data-source-only update). A
+    detector being converted to anomaly detection does not have an anomaly condition
+    persisted yet, so its caller must supply the condition.
+    """
     try:
-        data_condition = DataCondition.objects.get(
+        return DataCondition.objects.get(
             condition_group=detector.workflow_condition_group,
             condition_result__in=[
                 DetectorPriorityLevel.HIGH,
@@ -64,7 +72,9 @@ def _fetch_related_models(
             ],
         )
     except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
-        # there should only ever be one non-resolution data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
+        # An already-dynamic detector has exactly one non-resolution condition, so neither
+        # branch is expected here. A detector mid-conversion can still have multiple matching
+        # conditions — that case must build the condition in memory and never call this.
         dcg_id = (
             detector.workflow_condition_group.id
             if detector.workflow_condition_group is not None
@@ -73,22 +83,24 @@ def _fetch_related_models(
         raise DetectorException(
             f"Could not {method} detector, data condition {dcg_id} not found or too many found."
         )
-    return data_source, data_condition, snuba_query
 
 
 def update_detector_data(
     detector: Detector,
     updated_fields: dict[str, Any],
+    data_condition: DataCondition | None = None,
 ) -> None:
-    data_source, data_condition, snuba_query = _fetch_related_models(detector, "update")
+    data_source, snuba_query = _fetch_related_models(detector, "update")
+
+    # When a detector is being converted to anomaly detection the new condition is
+    # supplied by the caller, since the detector's persisted conditions still describe
+    # its previous (e.g. static) configuration. Otherwise read it from the detector's
+    # single persisted anomaly condition.
+    if data_condition is None:
+        data_condition = _fetch_anomaly_data_condition(detector, "update")
 
     # use setattr to avoid saving the models until the Seer call has successfully finished,
     # otherwise they would be in a bad state
-    updated_data_condition_data = updated_fields.get("condition_group", {}).get("conditions")
-    if updated_data_condition_data:
-        for k, v in updated_data_condition_data[0].items():
-            setattr(data_condition, k, v)
-
     event_types = snuba_query.event_types
     updated_data_source_data = updated_fields.get("data_sources")
     if updated_data_source_data:
@@ -130,7 +142,8 @@ def send_new_detector_data(detector: Detector) -> None:
     """
     Send historical data for a new Detector to Seer.
     """
-    data_source, data_condition, snuba_query = _fetch_related_models(detector, "create")
+    data_source, snuba_query = _fetch_related_models(detector, "create")
+    data_condition = _fetch_anomaly_data_condition(detector, "create")
 
     try:
         handle_send_historical_data_to_seer(

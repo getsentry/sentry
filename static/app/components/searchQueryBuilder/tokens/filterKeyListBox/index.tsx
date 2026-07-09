@@ -216,7 +216,10 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
         | string
         | undefined)
     : undefined;
-  const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
+  const focusedKey =
+    focusedItem && Object.hasOwn(filterKeys, focusedItem)
+      ? filterKeys[focusedItem]
+      : null;
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
@@ -224,7 +227,10 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
     <Fragment>
       {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
-        <RecentFiltersPane>
+        <RecentFiltersPane
+          // PanelBody applies legacy textStyles to plain ul elements; opt this layout row out.
+          data-panel-body-text-styles="ignore"
+        >
           {recentFilters.map(filter => (
             <RecentSearchFilterOption
               key={getKeyName(filter.key)}

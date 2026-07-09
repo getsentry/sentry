@@ -9,7 +9,10 @@ import {
 } from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getBuildNumber,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formatBuildName,
   getBaseBuildPath,
@@ -81,7 +84,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
                 }
                 const buildName = formatBuildName(
                   buildDetailsData.base_build_info.version,
-                  buildDetailsData.base_build_info.build_number
+                  getBuildNumber(buildDetailsData.base_build_info)
                 );
                 const baseBuildUrl = buildDetailsData.base_artifact_id
                   ? getBaseBuildPath(
@@ -163,7 +166,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
       radius="md"
       padding="md"
       width="100%"
-      marginBottom={{xs: 'lg', lg: '0'}}
+      marginBottom={{'screen:xs': 'lg', 'screen:lg': '0'}}
     >
       <Flex direction="column" gap="sm">
         <Text bold>{t('Missing Git metadata')}</Text>

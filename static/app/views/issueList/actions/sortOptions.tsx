@@ -1,5 +1,8 @@
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
@@ -33,7 +36,11 @@ function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.USER:
       return t('Number of users affected.');
     case IssueSortOptions.RECOMMENDED:
+    case IssueSortOptions.RECOMMENDED_V1:
+    case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
       return t('Issues ranked by combined recency, severity, and impact signals.');
+    case IssueSortOptions.PROGRESS:
+      return t('Issues ranked by how far along they are toward a fix.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -49,18 +56,35 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
+  );
+  const hasProgressSort =
+    organization.features.includes('issue-stream-progress-sort') ||
+    sort === IssueSortOptions.PROGRESS;
+  // The explicit v1/v2 sort values are URL-only escape hatches for pinning one of
+  // the two recommended scorers; the dropdown just shows them as Recommended.
+  const isPinnedRecommended =
+    sort === IssueSortOptions.RECOMMENDED_V1 ||
+    sort === IssueSortOptions.RECOMMENDED_EXPERIMENTAL;
+  const sortKey = isPinnedRecommended
+    ? IssueSortOptions.RECOMMENDED
+    : sort || IssueSortOptions.DATE;
   const hasRecommendedSort =
     organization.features.includes('issue-stream-recommended-sort') ||
-    sort === IssueSortOptions.RECOMMENDED;
-  const sortKey = sort || IssueSortOptions.DATE;
+    // If Recommended is the default sort it must also be selectable, otherwise a
+    // user with a stored non-recommended sort can't switch back to it.
+    organization.features.includes('issue-stream-recommended-sort-default') ||
+    sortKey === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
   return (
@@ -72,6 +96,9 @@ export function IssueListSortOptions({
         value: key,
         label: getSortLabel(key),
         details: getSortTooltip(key),
+        ...(key === IssueSortOptions.RECOMMENDED
+          ? {trailingItems: <FeatureBadge type="new" />}
+          : {}),
       }))}
       menuWidth={240}
       value={sortKey}
@@ -80,7 +107,28 @@ export function IssueListSortOptions({
           {...triggerProps}
           size={triggerSize}
           icon={showIcon && <IconSort />}
-        />
+        >
+          {hasRecommendedSortDefault && sortKey === IssueSortOptions.RECOMMENDED ? (
+            <Flex as="span" gap="sm" align="center">
+              {triggerProps.children}
+              <FeatureBadge
+                type="new"
+                tooltipProps={{
+                  position: 'bottom',
+                  title: (
+                    <Text as="div" align="left">
+                      {t(
+                        "Issues now default to the Recommended sort. Pick a different sort and we'll remember your choice."
+                      )}
+                    </Text>
+                  ),
+                }}
+              />
+            </Flex>
+          ) : (
+            triggerProps.children
+          )}
+        </OverlayTrigger.Button>
       )}
     />
   );

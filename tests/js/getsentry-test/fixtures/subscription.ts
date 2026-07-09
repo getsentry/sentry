@@ -3,11 +3,7 @@ import {
   PlanDetailsLookupFixture,
   type PlanIds,
 } from 'getsentry-test/fixtures/planDetailsLookup';
-import {
-  DynamicSamplingReservedBudgetFixture,
-  ReservedBudgetMetricHistoryFixture,
-  SeerReservedBudgetFixture,
-} from 'getsentry-test/fixtures/reservedBudget';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -15,7 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isTrialPlan} from 'getsentry/utils/billing';
+
+const TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t', 'am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
+
+// Derives whether a plan id is a trial plan, so the fixture can set the
+// trial-related fields the backend resolves from the subscription.
+const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -77,7 +78,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hasDismissedForcedTrialNotice: false,
     hasDismissedTrialEndingNotice: false,
     hasMigratedToBillingPlatform: false,
-    hasOverageNotificationsDisabled: false,
     hasRestrictedIntegration: false,
     hadCustomDynamicSampling: false,
     id: '',
@@ -93,12 +93,12 @@ export function SubscriptionFixture(props: Props): TSubscription {
     status: 'active',
     totalProjects: 0,
     trialPlan: null,
-    trialTier: null,
     onDemandPeriodStart: '2018-09-25',
     trialEnd: null,
     countryCode: null,
     cancelAtPeriodEnd: false,
     isTrial,
+    onTrialPlan: isTrial,
     paymentSource: {
       last4: '4242',
       countryCode: 'US',
@@ -113,11 +113,9 @@ export function SubscriptionFixture(props: Props): TSubscription {
     partner: null,
     planDetails,
     totalMembers: 1,
-    contractInterval: 'monthly',
     totalLicenses: 1,
     billingPeriodStart: '2018-09-25',
     suspensionReason: null,
-    planTier: 'am1',
     accountBalance: -10000,
     companyName: null,
     isSuspended: false,
@@ -132,19 +130,15 @@ export function SubscriptionFixture(props: Props): TSubscription {
     usedLicenses: 1,
     membersDeactivatedFromLimit: 0,
     type: BillingType.CREDIT_CARD,
-    hasSoftCap: false,
     isPastDue: false,
     onDemandDisabled: false,
     onDemandInvoiced: false,
-    contractPeriodStart: '2018-09-25',
     onDemandMaxSpend: 0,
     productTrials: [],
     isManaged: false,
-    contractPeriodEnd: '2018-10-24',
     canTrial: true,
     slug: organization.slug,
     pendingChanges: null,
-    usageExceeded: false,
     name: organization.name,
     billingInterval: planDetails.billingInterval || 'monthly',
     dateJoined: '2018-09-10T23:58:10.167Z',
@@ -330,54 +324,18 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
 }
 
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
-  const planData = {plan: 'am2_business_ent_auf', planTier: 'am2', ...props};
+  const planData = {plan: 'am2_business_ent_auf', ...props};
   const planDetails = PlanDetailsLookupFixture(planData.plan as PlanIds);
   const subscription = SubscriptionFixture({
     ...props,
     planDetails,
     plan: planDetails?.id,
-    planTier: planData.planTier,
     canSelfServe: false,
     type: BillingType.INVOICED,
     channel: 'sales',
     accountBalance: 0,
     isFree: false,
   });
-
-  return subscription;
-}
-
-export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription {
-  const {organization: _organization, ...params} = props;
-  const planData = {plan: 'am3_business_ent_ds_auf', ...params};
-
-  const subscription = InvoicedSubscriptionFixture({
-    ...props,
-    plan: planData.plan,
-    planTier: planData.planTier,
-  });
-  subscription.reservedBudgets = [
-    ...(subscription.reservedBudgets || []),
-    DynamicSamplingReservedBudgetFixture({
-      id: '11',
-      reservedBudget: 100_000_00,
-      totalReservedSpend: 60_000_00,
-      freeBudget: 0,
-      percentUsed: 0.6,
-      categories: {
-        spans: ReservedBudgetMetricHistoryFixture({
-          reservedCpe: 1,
-          reservedSpend: 40_000_00,
-        }),
-        spansIndexed: ReservedBudgetMetricHistoryFixture({
-          reservedCpe: 2,
-          reservedSpend: 20_000_00,
-        }),
-      },
-    }),
-  ];
-  subscription.categories.spans!.reserved = RESERVED_BUDGET_QUOTA;
-  subscription.categories.spansIndexed!.reserved = RESERVED_BUDGET_QUOTA;
 
   return subscription;
 }

@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -8,8 +9,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.activity import ActivitySerializerResponse
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import RESPONSE_NO_CONTENT
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     GroupActionActor,
@@ -37,7 +41,12 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    @extend_schema(responses={204: RESPONSE_NO_CONTENT})
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-note-details",
+        url_names=["sentry-api-0-group-note-details"],
+    )
     def delete(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
@@ -68,8 +77,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             CommentDeleteAction(comment_id=note_id_int),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=group.organization.id,
-            project_id=group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(request.user.id),
         )
 
@@ -91,7 +99,17 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         return Response(status=204)
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    @extend_schema(
+        request=NoteSerializer,
+        responses={
+            200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
+        },
+    )
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-note-details",
+        url_names=["sentry-api-0-group-note-details"],
+    )
     def put(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
@@ -121,8 +139,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 CommentEditAction(comment_id=note.id),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=group.organization.id,
-                project_id=group.project_id,
+                project=group.project,
                 actor=GroupActionActor.user(request.user.id),
             )
 

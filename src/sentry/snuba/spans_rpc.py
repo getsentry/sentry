@@ -30,6 +30,7 @@ from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils import json, snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -42,7 +43,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return project.flags.has_transactions
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_table_query(
         cls,
         *,
@@ -80,7 +81,7 @@ class Spans(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_trace_query(
         cls,
         *,
@@ -95,7 +96,7 @@ class Spans(rpc_dataset_common.RPCBase):
 
         trace_attributes = [
             "parent_span",
-            "description",
+            "span.description",
             "span.op",
             "span.name",
             "is_transaction",
@@ -111,6 +112,10 @@ class Spans(rpc_dataset_common.RPCBase):
             "sdk.name",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
+            "measurements.app_start_cold",
+            "measurements.app_start_warm",
+            "measurements.frames_slow_rate",
+            "measurements.frames_frozen_rate",
             "measurements.lcp",
             "measurements.score.ratio.lcp",
             "measurements.fcp",
@@ -121,6 +126,19 @@ class Spans(rpc_dataset_common.RPCBase):
             "measurements.score.ratio.cls",
             "measurements.ttfb",
             "measurements.score.ratio.ttfb",
+            # span v2 web vital values
+            "browser.web_vital.lcp.value",
+            "browser.web_vital.cls.value",
+            "browser.web_vital.inp.value",
+            "browser.web_vital.ttfb.value",
+            "browser.web_vital.fcp.value",
+            # The UI does not currently use FP values, so do not request it yet.
+            # "browser.web_vital.fp.value",
+            # span v2 mobile vital values
+            "app.vitals.start.cold.value",
+            "app.vitals.start.warm.value",
+            "app.vitals.ttid.value",
+            "app.vitals.ttfd.value",
             *additional_attributes,
         ]
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
@@ -143,7 +161,7 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
-        @sentry_sdk.tracing.trace
+        @trace
         def process_item_groups(item_groups: Any) -> None:
             for item_group in item_groups:
                 for span_item in item_group.items:
@@ -212,7 +230,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return spans
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_stats_query(
         cls,
         *,

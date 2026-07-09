@@ -81,9 +81,11 @@ from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .orgauthtoken import *  # NOQA
+from .profilechunkattachment import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
+from .custominboundfilter import *  # NOQA
 from .projectkey import *  # NOQA
 from .projectkeymapping import *  # NOQA
 from .projectownership import *  # NOQA
@@ -122,3 +124,4 @@ from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .userreport import *  # NOQA
+from .weeklyreportprojectexclusion import *  # NOQA

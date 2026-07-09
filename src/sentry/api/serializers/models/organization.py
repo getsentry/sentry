@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
 from django.db.models.functions import Cast
@@ -90,6 +89,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.display_name_filter import is_spam_display_name
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
@@ -473,7 +473,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", name="check batch features"):
+        with start_span(op="features.check", name="check batch features"):
             # Evaluate flags purely to populate the response — the user has not
             # actually encountered any experiments yet, so suppress the auto
             # exposure events the entity handler would otherwise log.
@@ -493,7 +493,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", name="check individual features"):
+        with start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):
@@ -670,6 +670,7 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     scrapeJavaScript: bool
     allowJoinRequests: bool
     relayPiiConfig: str | None
+    relayDsnEndpoint: str | None
     trustedRelays: list[TrustedRelaySerializerResponse]
     pendingAccessRequests: int
     hideAiFeatures: bool
@@ -827,6 +828,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
             ),
             "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+            "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
@@ -904,11 +906,10 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
-        if features.has("organizations:ingest-through-trusted-relays-only", obj):
-            context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
-                "sentry:ingest-through-trusted-relays-only",
-                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
-            )
+        context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
+            "sentry:ingest-through-trusted-relays-only",
+            INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+        )
 
         context["enabledConsolePlatforms"] = obj.get_option(
             "sentry:enabled_console_platforms",

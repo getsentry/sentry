@@ -395,10 +395,10 @@ const Header = styled(Body)`
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
   }
   align-items: center;
-  border-radius: 4px;
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {

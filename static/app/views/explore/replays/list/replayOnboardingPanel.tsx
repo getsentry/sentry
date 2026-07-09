@@ -40,11 +40,6 @@ const OnboardingCTAHook = OverrideOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-const OnboardingAlertHook = OverrideOrDefault({
-  overrideName: 'component:replay-onboarding-alert',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
-
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
@@ -95,11 +90,9 @@ export function ReplayOnboardingPanel() {
 
   return (
     <Fragment>
-      <OnboardingAlertHook>
-        {hasSelectedProjects && allSelectedProjectsUnsupported && (
-          <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
-        )}
-      </OnboardingAlertHook>
+      {hasSelectedProjects && allSelectedProjectsUnsupported && (
+        <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
+      )}
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA

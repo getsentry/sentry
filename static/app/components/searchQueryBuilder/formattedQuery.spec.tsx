@@ -102,4 +102,16 @@ describe('FormattedQuery', () => {
 
     expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
   });
+
+  it('renders an escaped asterisk with the escape visible', () => {
+    render(<FormattedQuery {...defaultProps} query={'message:foo\\*bar'} />);
+
+    expect(screen.getByText('foo\\*bar')).toBeInTheDocument();
+  });
+
+  it('renders a wildcard asterisk without an escape', () => {
+    render(<FormattedQuery {...defaultProps} query="message:foo*bar" />);
+
+    expect(screen.getByText('foo*bar')).toBeInTheDocument();
+  });
 });

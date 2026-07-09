@@ -16,12 +16,13 @@ import {
   DiffStatus,
   getImageName,
   getSnapshotImageUrl,
+  isPairSidebarItem,
 } from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {CardHeader, DarkAware} from './snapshotCards';
+import {CardHeader, DarkAware, ErroredBanner, useCanvasTheme} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
@@ -62,9 +63,11 @@ interface SnapshotMainContentProps {
   onDiffModeChange: (mode: DiffMode) => void;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onOverlayColorChange: (color: string) => void;
+  onOverlayOpacityChange: (opacity: number) => void;
   onToggleSoloView: () => void;
   onViewModeChange: (mode: ViewMode) => void;
   overlayColor: string;
+  overlayOpacity: number;
   selectedItem: SidebarItem | null;
   variantIndex: number;
   viewMode: ViewMode;
@@ -84,6 +87,8 @@ export function SnapshotMainContent({
   diffImageBaseUrl,
   overlayColor,
   onOverlayColorChange,
+  overlayOpacity,
+  onOverlayOpacityChange,
   diffMode,
   onDiffModeChange,
   viewMode,
@@ -107,8 +112,18 @@ export function SnapshotMainContent({
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
-  const [isDark, setIsDark] = useState(false);
-  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const selectedImage = useMemo(() => {
+    if (!selectedItem) {
+      return null;
+    }
+    return isPairSidebarItem(selectedItem)
+      ? selectedItem.pairs[variantIndex]?.head_image
+      : selectedItem.images[variantIndex];
+  }, [selectedItem, variantIndex]);
+  const {isDark, toggleIsDark} = useCanvasTheme(
+    selectedImage?.canvas_theme,
+    selectedImage?.key // reused across images: resync the canvas on navigation
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
@@ -117,10 +132,7 @@ export function SnapshotMainContent({
     let total = 0;
     for (const item of listItems) {
       offsets.push(total);
-      const count =
-        item.type === 'changed' || item.type === 'renamed'
-          ? item.pairs.length
-          : item.images.length;
+      const count = isPairSidebarItem(item) ? item.pairs.length : item.images.length;
       total += count;
     }
     return {cardOffsets: offsets, totalCards: total};
@@ -200,7 +212,12 @@ export function SnapshotMainContent({
   const diffControls = hasChangedInList ? (
     <Fragment>
       {diffMode === 'split' && (
-        <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
+        <ColorPickerButton
+          color={overlayColor}
+          onChange={onOverlayColorChange}
+          opacity={overlayOpacity}
+          onOpacityChange={onOverlayOpacityChange}
+        />
       )}
       <DiffModeToggle
         diffMode={diffMode}
@@ -241,6 +258,7 @@ export function SnapshotMainContent({
           onScrollProgress={handleListScrollProgress}
           diffMode={diffMode}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
         />
@@ -266,16 +284,17 @@ export function SnapshotMainContent({
 
   const groupName = isItemUngrouped(selectedItem) ? null : selectedItem.name;
 
-  if (selectedItem.type === 'changed') {
+  if (selectedItem.type === 'changed' || selectedItem.type === 'errored') {
     const currentPair = selectedItem.pairs[variantIndex];
     if (!currentPair) {
       return null;
     }
     const image = currentPair.head_image;
+    const isChanged = selectedItem.type === 'changed';
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -289,7 +308,7 @@ export function SnapshotMainContent({
           displayName: image.display_name,
           fileName: image.image_file_name,
           tags: image.tags,
-          status: DiffStatus.CHANGED,
+          status: isChanged ? DiffStatus.CHANGED : DiffStatus.ERRORED,
           diffPercent: currentPair.diff,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
@@ -297,22 +316,24 @@ export function SnapshotMainContent({
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
-              diff_status: 'changed',
+              diff_status: selectedItem.type,
             }),
           onCopyMetadata: () =>
             trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
               organization,
-              diff_status: 'changed',
+              diff_status: selectedItem.type,
             }),
         }}
-        diffControls={diffControls}
+        diffControls={isChanged ? diffControls : undefined}
+        banner={isChanged ? undefined : <ErroredBanner />}
         body={
           <DiffImageDisplay
             pair={currentPair}
             imageBaseUrl={imageBaseUrl}
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
-            diffMode={diffMode}
+            overlayOpacity={overlayOpacity}
+            diffMode={isChanged ? diffMode : 'split'}
             headLabel={headBranch ?? t('Head')}
           />
         }
@@ -330,7 +351,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -391,7 +412,7 @@ export function SnapshotMainContent({
   return (
     <SingleViewLayout
       isDark={isDark}
-      onToggleDark={toggleDark}
+      onToggleDark={toggleIsDark}
       groupName={groupName}
       toggle={toggle}
       soloDiffToggle={soloDiffToggle}
@@ -438,6 +459,7 @@ function SingleViewLayout({
   navButtonRefs,
   headerProps,
   body,
+  banner,
   diffControls,
 }: {
   body: React.ReactNode;
@@ -453,6 +475,7 @@ function SingleViewLayout({
   soloDiffToggle: React.ReactNode;
   sortDropdown: React.ReactNode;
   toggle: React.ReactNode;
+  banner?: React.ReactNode;
   diffControls?: React.ReactNode;
 }) {
   const wheelCooldownRef = useRef(false);
@@ -521,6 +544,7 @@ function SingleViewLayout({
         onToggleDark={onToggleDark}
         showBottomBorder={false}
       />
+      {banner}
       <Flex direction="column" flex="1" minHeight="0">
         {body}
       </Flex>
@@ -555,7 +579,7 @@ function SingleViewLayout({
           <Container
             flexShrink={0}
             onClick={e => e.stopPropagation()}
-            display={{'2xs': 'none', sm: 'block'}}
+            display={{'screen:2xs': 'none', 'screen:sm': 'block'}}
           >
             <NavGutter>
               <Tooltip title={t('Previous (↑)')} skipWrapper>
@@ -602,7 +626,7 @@ const SingleViewScroll = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
 `;

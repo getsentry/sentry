@@ -50,7 +50,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)
-        assert result["desc"] == action.target_display
+        assert result["desc"] == "Send an email to [removed]"
 
     @responses.activate
     def test_discord(self) -> None:
@@ -135,7 +135,25 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         result = serialize(action)
         self.assert_action_serialized(action, result)
         assert result["priority"] == priority
-        assert result["desc"] == "Send a critical level PagerDuty notification to test"
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=AlertTarget("123", "test"),
+    )
+    def test_pagerduty_no_priority(self, mock_get: MagicMock) -> None:
+        alert_rule = self.create_alert_rule()
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        action = create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.PAGERDUTY,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="123",
+        )
+        result = serialize(action)
+        self.assert_action_serialized(action, result)
+        assert result["priority"] is None
+        assert "None" not in result["desc"]
+        assert result["desc"] == "Send a PagerDuty notification to test"
 
     @responses.activate
     @patch(

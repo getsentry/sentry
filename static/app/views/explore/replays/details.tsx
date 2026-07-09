@@ -42,7 +42,7 @@ function ReplayDetailsInner() {
               align="center"
               gap="md"
               wrap="wrap"
-              padding={{sm: 'sm lg', md: 'md xl'}}
+              padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
             >
               {t('Replay Details')}
             </Flex>
@@ -116,7 +116,7 @@ function ReplayDetailsContent() {
         align="center"
         gap="md"
         wrap="wrap"
-        padding={{sm: 'md lg', md: 'md xl'}}
+        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
         borderBottom="secondary"
       >
         <ReplayDetailsUserBadge readerResult={readerResult} />

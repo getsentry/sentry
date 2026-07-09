@@ -45,7 +45,14 @@ export interface GetTagValuesParams {
   tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
 }
 
-export type GetTagValues = (params: GetTagValuesParams) => Promise<string[]>;
+export interface TagValueWithCount {
+  value: string;
+  count?: number;
+}
+
+export type GetTagValues = (
+  params: GetTagValuesParams
+) => Promise<Array<string | TagValueWithCount>>;
 
 export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
@@ -80,6 +87,12 @@ export interface SearchQueryBuilderProps {
    */
   caseInsensitive?: CaseInsensitive;
   className?: string;
+  /**
+   * When true, submitting free text will open Ask Seer and submit the full query.
+   * Requires AI search to be enabled and the organization to have the
+   * gen-ai-default-to-ask-seer feature.
+   */
+  defaultToAskSeerOnFreeTextSearch?: boolean;
   disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.

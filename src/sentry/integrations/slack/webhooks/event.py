@@ -274,6 +274,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         if len(link_types) > 0:
             sentry_sdk.set_tag("slack.link_type", ",".join(sorted(link_types)))
+            sentry_sdk.set_attribute("slack.link_type", ",".join(sorted(link_types)))
 
         return matches
 
@@ -320,6 +321,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         if organization:
             sentry_sdk.set_tag("organization.slug", organization.slug)
+            sentry_sdk.set_attribute("organization.slug", organization.slug)
         identity_user = slack_request.get_identity_user()
         if identity_user:
             sentry_sdk.set_user(
@@ -603,6 +605,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             return self.on_url_verification(request, slack_request.data)
 
         sentry_sdk.set_tag("slack.event_type", slack_request.type)
+        sentry_sdk.set_attribute("slack.event_type", slack_request.type)
 
         if slack_request.type == "reaction_added":
             return self.on_reaction_added(slack_request)

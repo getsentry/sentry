@@ -42,6 +42,9 @@ class Locality:
     visible: bool = True
     """Whether the locality is visible in API responses."""
 
+    signup_visible: bool = True
+    """Whether or not a locality should be visible for org signup/relocation."""
+
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this locality.
 
@@ -96,9 +99,6 @@ class Cell:
     and `system.region-api-url-template`
     """
 
-    # TODO(cells): drop once category is fully moved to Locality
-    category: RegionCategory
-
     api_gateway_address: str | None = None
     """optional address for API gateway traffic."""
 
@@ -123,7 +123,7 @@ class Cell:
         cases to ensure that legacy data is handled correctly.
         """
 
-        return self.name == settings.SENTRY_MONOLITH_REGION
+        return self.name == settings.SENTRY_FALLBACK_CELL
 
     def api_serialize(self) -> dict[str, Any]:
         """Serialize a Cell into a JSON compatible dict"""
@@ -177,18 +177,11 @@ class CellDirectory:
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
         return self._localities_by_name.get(locality_name)
 
-    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
-        if category is None:
-            return iter(self._cells)
+    def get_cells(self) -> Iterable[Cell]:
+        return iter(self._cells)
 
-        return (
-            r
-            for r in self._cells
-            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
-        )
-
-    def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.get_cells(category))
+    def get_cell_names(self) -> Iterable[str]:
+        return (r.name for r in self.get_cells())
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -229,13 +222,13 @@ class CellDirectory:
                     f"which is not in its cells={set(loc.cells)!r}"
                 )
 
-        # SENTRY_MONOLITH_REGION is resolved as a live cell at runtime
+        # SENTRY_FALLBACK_CELL is resolved as a live cell at runtime
         # (historic monolith region lookups), so a dangling name should fail
         # here rather than at request time.
-        if settings.SENTRY_MONOLITH_REGION not in defined_cells:
+        if settings.SENTRY_FALLBACK_CELL not in defined_cells:
             raise CellConfigurationError(
-                "The SENTRY_MONOLITH_REGION setting must point to a cell name "
-                f"({settings.SENTRY_MONOLITH_REGION=!r}; "
+                "The SENTRY_FALLBACK_CELL setting must point to a cell name "
+                f"({settings.SENTRY_FALLBACK_CELL=!r}; "
                 f"cell names = {sorted(defined_cells)!r})"
             )
 
@@ -245,7 +238,6 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
         yield Cell(
             name=config_value["name"],
             snowflake_id=config_value["snowflake_id"],
-            category=RegionCategory(config_value["category"]),
             address=config_value["address"],
             api_gateway_address=config_value.get("api_gateway_address", None),
             visible=config_value.get("visible", True),
@@ -258,17 +250,16 @@ def generate_monolith_cell_directory() -> CellDirectory:
 
     Monolith environments (single-tenant, self-hosted) don't define
     SENTRY_CELLS or SENTRY_LOCALITIES; they get a single cell named after
-    SENTRY_MONOLITH_REGION with a matching 1:1 locality.
+    SENTRY_FALLBACK_CELL with a matching 1:1 locality.
     """
     cell = Cell(
-        name=settings.SENTRY_MONOLITH_REGION,
+        name=settings.SENTRY_FALLBACK_CELL,
         snowflake_id=0,
         address=options.get("system.url-prefix"),
-        category=RegionCategory.MULTI_TENANT,
     )
     locality = Locality(
         name=cell.name,
-        category=cell.category,
+        category=RegionCategory.MULTI_TENANT,
         cells=frozenset([cell.name]),
         new_org_cell=cell.name,
         visible=cell.visible,
@@ -286,22 +277,23 @@ def _parse_locality_config(
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
+            signup_visible=bool(config_value.get("signup_visible", True)),
         )
 
 
 def load_from_config(
-    region_config: list[CellConfig],
+    cell_config: list[CellConfig],
     locality_config: list[LocalityConfig],
 ) -> CellDirectory:
     try:
-        if not region_config and not locality_config:
+        if not cell_config and not locality_config:
             return generate_monolith_cell_directory()
-        cells = set(_parse_raw_config(region_config))
+        cells = set(_parse_raw_config(cell_config))
         localities = set(_parse_locality_config(locality_config))
         return CellDirectory(cells, localities)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise CellConfigurationError("Unable to parse region_config.") from e
+        raise CellConfigurationError("Unable to parse cell config.") from e
 
 
 _global_directory: CellDirectory | None = None
@@ -336,10 +328,7 @@ def get_cell_by_name(name: str) -> Cell:
     if cell is not None:
         return cell
     else:
-        cell_names = list(cell_regions.get_cell_names(RegionCategory.MULTI_TENANT))
-        raise CellResolutionError(
-            f"No cell with name: {name!r} (expected one of {cell_names!r} or a single-tenant name)"
-        )
+        raise CellResolutionError(f"No cell with name: {name!r}")
 
 
 def get_new_org_cell_for_locality(name: str) -> Cell:
@@ -425,7 +414,7 @@ def get_local_cell() -> Cell:
     """
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        return get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
 
     if SiloMode.get_current_mode() != SiloMode.CELL:
         raise CellContextError("Not a cell silo")
@@ -440,7 +429,7 @@ def get_local_cell() -> Cell:
 
     if not settings.SENTRY_LOCAL_CELL:
         if in_test_environment():
-            return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+            return get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
         else:
             raise Exception("SENTRY_LOCAL_CELL must be set when server is in CELL silo mode")
     return get_cell_by_name(settings.SENTRY_LOCAL_CELL)
@@ -461,7 +450,7 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {settings.SENTRY_MONOLITH_REGION}
+        return {settings.SENTRY_FALLBACK_CELL}
     else:
         return set(
             OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
@@ -473,7 +462,7 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
 @control_silo_function
 def find_cells_for_user(user_id: int) -> set[str]:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {settings.SENTRY_MONOLITH_REGION}
+        return {settings.SENTRY_FALLBACK_CELL}
 
     org_ids = _find_orgs_for_user(user_id)
     return find_cells_for_orgs(org_ids)
@@ -485,7 +474,7 @@ def find_cells_for_sentry_app(sentry_app: SentryApp) -> set[str]:
     from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {settings.SENTRY_MONOLITH_REGION}
+        return {settings.SENTRY_FALLBACK_CELL}
 
     organizations_with_installations = SentryAppInstallation.objects.filter(
         sentry_app=sentry_app
@@ -502,14 +491,6 @@ def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
 
 
-def find_all_multitenant_cell_names() -> list[str]:
-    """
-    Return all visible multi_tenant cells.
-    """
-    cells = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
-    return list([c.name for c in cells if c.visible])
-
-
 def find_all_multitenant_locality_names() -> list[str]:
     """
     Return all visible multi-tenant localities.
@@ -518,4 +499,15 @@ def find_all_multitenant_locality_names() -> list[str]:
         loc.name
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
+    ]
+
+
+def find_all_signup_locality_names() -> list[str]:
+    """
+    Return all locality names that are visible to org signup.
+    """
+    return [
+        loc.name
+        for loc in get_global_directory().localities
+        if loc.category == RegionCategory.MULTI_TENANT and loc.visible and loc.signup_visible
     ]

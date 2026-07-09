@@ -4,11 +4,10 @@ from unittest.mock import MagicMock
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
-    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
+    SUPPORTED_ACTIVITIES,
     activity_handler,
     seer_activity_handler,
 )
@@ -35,14 +34,6 @@ class SeerActivityHandlerTest(TestCase):
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
-    def test_feature_flag_disabled(self, mock_process_workflow_activity: MagicMock) -> None:
-        seer_activity_handler(self.group, self.activity, None)
-        mock_process_workflow_activity.delay.assert_not_called()
-
-    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
-    @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
-    )
     def test_all_supported_activity_types_dispatch(
         self, mock_process_workflow_activity: MagicMock
     ) -> None:
@@ -59,7 +50,6 @@ class SeerActivityHandlerTest(TestCase):
                 detector_id=self.detector.id,
             )
 
-    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -71,7 +61,6 @@ class SeerActivityHandlerTest(TestCase):
 
         mock_process_workflow_activity.delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -86,7 +75,6 @@ class SeerActivityHandlerTest(TestCase):
 
         mock_process_workflow_activity.delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -104,7 +92,6 @@ class SeerActivityHandlerTest(TestCase):
             detector_id=detector.id,
         )
 
-    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -133,20 +120,12 @@ class GenericActivityHandlerTest(TestCase):
         )
         self.detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
 
-    @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
-    )
-    def test_feature_flag_disabled(self, mock_process_workflow_activity: MagicMock) -> None:
-        activity_handler(self.group, self.activity, self.detector.id)
-        mock_process_workflow_activity.delay.assert_not_called()
-
     @mock.patch("sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.metrics")
     def test_invalid_activity_type(self, mock_metrics: MagicMock) -> None:
         self.activity.type = -1
         activity_handler(self.group, self.activity, self.detector.id)
         mock_metrics.incr.assert_not_called()
 
-    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -158,7 +137,6 @@ class GenericActivityHandlerTest(TestCase):
 
         mock_process_workflow_activity.delay.assert_not_called()
 
-    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -173,7 +151,37 @@ class GenericActivityHandlerTest(TestCase):
             detector_id=self.detector.id,
         )
 
-    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_resolution_activity_types_dispatch(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        # Enumerate the resolution types explicitly (rather than looping over
+        # SUPPORTED_ACTIVITIES) so that removing any of these from the source list makes
+        # this test fail rather than silently test fewer types.
+        resolution_activity_types = [
+            ActivityType.SET_RESOLVED,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ActivityType.SET_RESOLVED_BY_AGE,
+            ActivityType.SET_RESOLVED_IN_COMMIT,
+            ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+        ]
+        assert set(resolution_activity_types) <= set(SUPPORTED_ACTIVITIES)
+
+        for activity_type in resolution_activity_types:
+            mock_process_workflow_activity.reset_mock()
+            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+            activity_handler(self.group, activity, self.detector.id)
+            assert mock_process_workflow_activity.delay.called, (
+                f"Task not dispatched for {activity_type.value}"
+            )
+            mock_process_workflow_activity.delay.assert_called_once_with(
+                activity_id=activity.id,
+                group_id=self.group.id,
+                detector_id=self.detector.id,
+            )
+
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -189,7 +197,6 @@ class GenericActivityHandlerTest(TestCase):
             detector_id=self.detector.id,
         )
 
-    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )

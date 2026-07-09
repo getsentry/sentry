@@ -59,6 +59,7 @@ import {
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
@@ -196,7 +197,7 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{xs: 'none', sm: 'block'}}>
+                <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
                   <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
                 </Container>
               </Flex>
@@ -240,7 +241,7 @@ function getConversationIdStep(integration: string, isPython: boolean): Onboardi
       ? {
           type: 'code' as const,
           language: 'python',
-          code: `import sentry_sdk
+          code: `import sentry_sdk.ai
 
 # Call this at the start of each conversation
 sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
@@ -268,6 +269,39 @@ Sentry.setConversationId("my-conversation-123");`,
 
   return {
     title: t('Set Conversation ID'),
+    content,
+  };
+}
+
+function getSetUserStep(isPython: boolean): OnboardingStep {
+  const content: ContentBlock[] = [
+    {
+      type: 'text',
+      text: t(
+        'Identify the user behind each conversation so the Conversations view can show who sent each message:'
+      ),
+    },
+    isPython
+      ? {
+          type: 'code' as const,
+          language: 'python',
+          code: `import sentry_sdk
+
+# Call this once per request / session, before any AI calls
+sentry_sdk.set_user({"id": "user_123", "email": "jane@example.com", "username": "jane"})`,
+        }
+      : {
+          type: 'code' as const,
+          language: 'javascript',
+          code: `import * as Sentry from "@sentry/node";
+
+// Call this once per request / session, before any AI calls
+Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });`,
+        },
+  ];
+
+  return {
+    title: t('Identify Users (optional)'),
     content,
   };
 }
@@ -368,6 +402,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
     getConversationIdStep(selectedIntegration, isPythonPlatform),
+    getSetUserStep(isPythonPlatform),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
   ].filter(s => !s.collapsible);
 
@@ -441,9 +476,7 @@ function UnsupportedPlatformOnboarding({
           {tct(
             '[link:Manually instrument] your agents using the Sentry SDK, or let an AI coding agent set it up for you.',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-              ),
+              link: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
             }
           )}
         </Text>

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -14,7 +15,7 @@ import {
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
-import {FTCConsentLocation, PlanTier} from 'getsentry/types';
+import {FTCConsentLocation} from 'getsentry/types';
 import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts

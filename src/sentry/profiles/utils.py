@@ -5,7 +5,6 @@ from typing import Any, Self
 from urllib.parse import urlencode, urlparse
 
 import brotli
-import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
@@ -16,6 +15,7 @@ from sentry.grouping.enhancer import EnhancementsConfig, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.tracing import start_span
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, list[Any]]
@@ -111,7 +111,7 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        with sentry_sdk.start_span(op="json.dumps"):
+        with start_span(op="json.dumps", name="json.dumps"):
             data = json.dumps(json_data).encode("utf-8")
         set_span_attribute("payload.size", len(data))
         if metric:

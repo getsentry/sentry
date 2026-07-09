@@ -1,12 +1,11 @@
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload
 from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
-from sentry.utils.pubsub import KafkaPublisher
+from sentry.utils.arroyo_producer import get_arroyo_producer
+from sentry.utils.kafka_config import get_topic_definition
 
 #
 # EAP PRODUCER
@@ -14,6 +13,10 @@ from sentry.utils.pubsub import KafkaPublisher
 
 
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
+
+# The raw-mode taskbroker task that processes ingest-replay-recordings. tasks.py
+# references this constant as the task's name so the two can't drift.
+PROCESS_REPLAY_RECORDING_TASK_NAME = "sentry.replays.tasks.process_replay_recording"
 
 
 def _get_eap_items_producer():
@@ -24,7 +27,18 @@ def _get_eap_items_producer():
     )
 
 
-eap_producer = SingletonProducer(_get_eap_items_producer)
+eap_producer = FutureTrackingProducer(
+    name="sentry.replays.lib.kafka.eap_items",
+    producer_factory=_get_eap_items_producer,
+)
+
+
+def write_trace_items(trace_items: list[TraceItem]) -> None:
+    """Publish trace-items to the EAP trace-items topic."""
+    topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+    for trace_item in trace_items:
+        payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
+        eap_producer.produce(topic, payload)
 
 
 #
@@ -39,7 +53,10 @@ def _get_ingest_replay_events_producer():
     )
 
 
-ingest_replay_events_producer = SingletonProducer(_get_ingest_replay_events_producer)
+ingest_replay_events_producer = FutureTrackingProducer(
+    name="sentry.replays.lib.kafka.ingest_replay_events",
+    producer_factory=_get_ingest_replay_events_producer,
+)
 
 
 def publish_replay_event(message: str) -> None:
@@ -48,53 +65,3 @@ def publish_replay_event(message: str) -> None:
         ArroyoTopic(get_topic_definition(Topic.INGEST_REPLAY_EVENTS)["real_topic_name"]),
         payload=KafkaPayload(None, message.encode("utf-8"), []),
     )
-
-
-#
-# LEGACY PRODUCERS
-#
-
-# We keep a synchronous and asynchronous singleton because a shared singleton could lead
-# to synchronous publishing when asynchronous publishing was desired and vice-versa.
-sync_publisher: KafkaPublisher | None = None
-async_publisher: KafkaPublisher | None = None
-
-
-def initialize_replays_publisher(is_async: bool = False) -> KafkaPublisher:
-    if is_async:
-        global async_publisher
-
-        if async_publisher is None:
-            async_publisher = _init_replay_publisher(is_async=True)
-
-        return async_publisher
-    else:
-        global sync_publisher
-
-        if sync_publisher is None:
-            sync_publisher = _init_replay_publisher(is_async=False)
-
-        return sync_publisher
-
-
-def _init_replay_publisher(is_async: bool) -> KafkaPublisher:
-    # TODO(markus): Everything should go through get_arroyo_producer
-    config = get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
-    producer_config = get_kafka_producer_cluster_options(config["cluster"])
-    producer_config["client.id"] = (
-        "sentry.replays.lib.kafka.publisher.async"
-        if is_async
-        else "sentry.replays.lib.kafka.publisher.sync"
-    )
-    return KafkaPublisher(
-        producer_config,
-        asynchronous=is_async,
-    )
-
-
-def clear_replay_publisher() -> None:
-    global sync_publisher
-    global async_publisher
-
-    sync_publisher = None
-    async_publisher = None

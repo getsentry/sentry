@@ -5,7 +5,7 @@ import uuid
 from typing import Any
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from django.db.models import Sum
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
@@ -24,7 +24,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.search.eap.rpc_utils import anyvalue
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -267,4 +267,7 @@ def _get_eap_items_producer() -> KafkaProducer:
     )
 
 
-_eap_producer = SingletonProducer(_get_eap_items_producer)
+_eap_producer = FutureTrackingProducer(
+    name="sentry.preprod.lib.kafka.eap_items",
+    producer_factory=_get_eap_items_producer,
+)

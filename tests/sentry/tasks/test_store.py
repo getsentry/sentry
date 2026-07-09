@@ -6,42 +6,31 @@ import pytest
 from sentry import options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
-from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import (
     is_process_disabled,
     preprocess_event,
     process_event,
     save_event,
     save_event_transaction,
+    should_process,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
 
-class BasicPreprocessorPlugin(Plugin2):
-    def get_event_preprocessors(self, data):
-        def remove_extra(data):
-            del data["extra"]
-            return data
+def _remove_extra(data):
+    del data["extra"]
+    return data
 
-        def put_on_hold(data):
-            data["unprocessed"] = True
-            return data
 
-        if data.get("platform") == "mattlang":
-            return [remove_extra, lambda x: None]
+def _noop(data):
+    return None
 
-        if data.get("platform") == "noop":
-            return [lambda data: None]
 
-        if data.get("platform") == "holdmeclose":
-            return [put_on_hold]
-
-        return []
-
-    def is_enabled(self, project=None) -> bool:
-        return True
+def _put_on_hold(data):
+    data["unprocessed"] = True
+    return data
 
 
 @pytest.fixture
@@ -86,11 +75,21 @@ def mock_refund():
         yield m
 
 
+@pytest.fixture
+def mock_get_preprocessors():
+    with mock.patch("sentry.tasks.store.get_event_preprocessors") as m:
+        yield m
+
+
 @django_db_all
 def test_move_to_process_event(
-    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+    default_project,
+    mock_process_event,
+    mock_save_event,
+    mock_symbolicate_event,
+    mock_get_preprocessors,
 ):
-    register_plugin(globals(), BasicPreprocessorPlugin)
+    mock_get_preprocessors.return_value = [_remove_extra, _noop]
     data = {
         "project": default_project.id,
         "platform": "mattlang",
@@ -107,10 +106,41 @@ def test_move_to_process_event(
 
 
 @django_db_all
-def test_move_to_save_event(
-    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+def test_move_to_process_event_inline_save_event_still_submits_process_event(
+    default_project,
+    mock_process_event,
+    mock_save_event,
+    mock_symbolicate_event,
+    mock_get_preprocessors,
 ):
-    register_plugin(globals(), BasicPreprocessorPlugin)
+    mock_get_preprocessors.return_value = [_noop]
+    data = {
+        "project": default_project.id,
+        "platform": "noop",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline_save_event=True)
+
+    assert mock_symbolicate_event.delay.call_count == 0
+    mock_process_event.delay.assert_called_once_with(
+        cache_key="e:1",
+        start_time=None,
+        event_id=EVENT_ID,
+        data_has_changed=False,
+        from_symbolicate=False,
+        has_attachments=False,
+    )
+    assert mock_save_event.call_count == 0
+    assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
+def test_move_to_save_event(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event
+):
     data = {
         "project": default_project.id,
         "platform": "NOTMATTLANG",
@@ -127,10 +157,36 @@ def test_move_to_save_event(
 
 
 @django_db_all
-def test_process_event_mutate_and_save(
-    default_project, mock_event_processing_store, mock_save_event, register_plugin
+def test_move_to_save_event_inline(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event
 ):
-    register_plugin(globals(), BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "NOTMATTLANG",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline_save_event=True)
+
+    assert mock_symbolicate_event.delay.call_count == 0
+    assert mock_process_event.delay.call_count == 0
+    mock_save_event.assert_called_once_with(
+        cache_key="e:1",
+        data=None,
+        start_time=None,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+    assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
+def test_process_event_mutate_and_save(
+    default_project, mock_event_processing_store, mock_save_event, mock_get_preprocessors
+):
+    mock_get_preprocessors.return_value = [_remove_extra, _noop]
 
     data = {
         "project": default_project.id,
@@ -157,9 +213,9 @@ def test_process_event_mutate_and_save(
 
 @django_db_all
 def test_process_event_no_mutate_and_save(
-    default_project, mock_event_processing_store, mock_save_event, register_plugin
+    default_project, mock_event_processing_store, mock_save_event, mock_get_preprocessors
 ):
-    register_plugin(globals(), BasicPreprocessorPlugin)
+    mock_get_preprocessors.return_value = [_noop]
 
     data = {
         "project": default_project.id,
@@ -183,9 +239,9 @@ def test_process_event_no_mutate_and_save(
 
 @django_db_all
 def test_process_event_unprocessed(
-    default_project, mock_event_processing_store, mock_save_event, register_plugin
+    default_project, mock_event_processing_store, mock_save_event, mock_get_preprocessors
 ):
-    register_plugin(globals(), BasicPreprocessorPlugin)
+    mock_get_preprocessors.return_value = [_put_on_hold]
 
     data = {
         "project": default_project.id,
@@ -209,9 +265,7 @@ def test_process_event_unprocessed(
 
 
 @django_db_all
-def test_hash_discarded_raised(default_project, mock_refund, register_plugin) -> None:
-    register_plugin(globals(), BasicPreprocessorPlugin)
-
+def test_hash_discarded_raised(default_project, mock_refund) -> None:
     data = {
         "project": default_project.id,
         "platform": "NOTMATTLANG",
@@ -244,24 +298,16 @@ def test_scrubbing_after_processing(
     default_project,
     default_organization,
     mock_save_event,
-    register_plugin,
+    mock_get_preprocessors,
     mock_event_processing_store,
     setting_method: str,
     options_model,
 ):
-    class TestPlugin(Plugin2):
-        def get_event_preprocessors(self, data):
-            # Right now we do not scrub data from event preprocessors
-            def more_extra(data):
-                data["extra"]["ooo2"] = "event preprocessor"
-                return data
+    def more_extra(data):
+        data["extra"]["ooo2"] = "event preprocessor"
+        return data
 
-            return [more_extra]
-
-        def is_enabled(self, project=None) -> bool:
-            return True
-
-    register_plugin(globals(), TestPlugin)
+    mock_get_preprocessors.return_value = [more_extra]
 
     if setting_method == "datascrubbers":
         options_model.update_option("sentry:sensitive_fields", ["o"])
@@ -307,11 +353,7 @@ def test_killswitch() -> None:
 
 
 @django_db_all
-def test_transactions_store(
-    default_project, register_plugin, mock_transaction_processing_store
-) -> None:
-    register_plugin(globals(), BasicPreprocessorPlugin)
-
+def test_transactions_store(default_project, mock_transaction_processing_store) -> None:
     data = {
         "project": default_project.id,
         "platform": "transaction",
@@ -341,12 +383,9 @@ def test_store_consumer_type(
     default_project,
     mock_save_event,
     mock_save_event_transaction,
-    register_plugin,
     mock_event_processing_store,
     mock_transaction_processing_store,
 ):
-    register_plugin(globals(), BasicPreprocessorPlugin)
-
     data = {
         "project": default_project.id,
         "platform": "python",
@@ -395,3 +434,68 @@ def test_store_consumer_type(
     mock_transaction_processing_store.get.assert_called_once_with("tx:3")
     mock_transaction_processing_store.delete_by_key.assert_called_once_with("tx:3")
     mock_transaction_processing_store.store.assert_not_called()
+
+
+@django_db_all
+def test_should_process_new_path_js(default_project):
+    data = {
+        "project": default_project.id,
+        "platform": "javascript",
+        "event_id": EVENT_ID,
+    }
+    assert should_process(data) is True
+
+
+@django_db_all
+def test_should_process_new_path_java_proguard(default_project):
+    data = {
+        "project": default_project.id,
+        "platform": "java",
+        "event_id": EVENT_ID,
+        "debug_meta": {"images": [{"type": "proguard", "uuid": "1234-abcd"}]},
+    }
+    assert should_process(data) is True
+
+
+@django_db_all
+def test_should_process_new_path_no_preprocessor(default_project):
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+    }
+    assert should_process(data) is False
+
+
+@django_db_all
+def test_process_event_new_path_js(default_project, mock_event_processing_store, mock_save_event):
+    data = {
+        "project": default_project.id,
+        "platform": "javascript",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:1"
+
+    process_event(cache_key="e:1", start_time=1)
+
+    mock_save_event.delay.assert_called_once()
+
+
+@django_db_all
+def test_preprocess_routes_to_save_new_path_python(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event
+):
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    preprocess_event(cache_key="", data=data)
+
+    assert mock_process_event.delay.call_count == 0
+    assert mock_save_event.delay.call_count == 1

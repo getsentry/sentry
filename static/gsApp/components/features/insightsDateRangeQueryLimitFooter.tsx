@@ -34,7 +34,7 @@ const useHasRequiredFeatures = (
   organization: Organization,
   subscription: Subscription
 ) => {
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+  const {data: billingConfig} = useBillingConfig({organization});
   const subscriptionPlan = subscription.planDetails;
   const subscriptionPlanFeatures = subscriptionPlan?.features ?? [];
 

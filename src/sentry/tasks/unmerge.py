@@ -10,10 +10,10 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, similarity, tsdb
-from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
+from sentry import similarity, tsdb
+from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -88,6 +88,11 @@ def merge_mappings(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _initial_level(event: GroupEvent, group: Group) -> int:
+    level = parse_log_level(event.get_tag("level"))
+    return logging.ERROR if level is None else level
+
+
 initial_fields = {
     "culprit": lambda event, group: generate_culprit(event.data),
     "data": lambda event, group: {
@@ -96,7 +101,7 @@ initial_fields = {
         "metadata": event.data["metadata"],
     },
     "last_seen": lambda event, group: event.datetime,
-    "level": lambda event, group: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
+    "level": _initial_level,
     "message": lambda event, group: event.search_message,
     "times_seen": lambda event, group: 0,
     "status": lambda event, group: group.status,
@@ -359,12 +364,6 @@ def repair_group_release_data(
 
 
 def get_event_user_from_interface(value: dict[str, Any], project: Project) -> EventUser:
-    analytics.record(
-        EventUserEndpointRequest(
-            project_id=project.id,
-            endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
-        )
-    )
     return EventUser(
         user_ident=value.get("id"),
         email=value.get("email"),
@@ -507,6 +506,15 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
     extra = {"source_id": args.source_id, "project_id": args.project_id}
     logger.info("unmerge.start.task", extra=extra)
+
+    if killswitch_matches_context("unmerge.killswitch-projects", {"project_id": args.project_id}):
+        logger.warning("unmerge.halted_by_killswitch", extra=extra)
+        if isinstance(args, SuccessiveUnmergeArgs):
+            unlock_hashes(args.project_id, list(args.locked_primary_hashes))
+            for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
+                if eventstream_state:
+                    args.replacement.stop_snuba_replacement(eventstream_state)
+        return
 
     source = Group.objects.get(project_id=args.project_id, id=args.source_id)
 

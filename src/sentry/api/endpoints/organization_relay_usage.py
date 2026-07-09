@@ -29,7 +29,8 @@ class OrganizationRelayUsage(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's trusted Relays",
+        operation_id="listOrganizationRelayUsage",
+        summary="List an Organization's trusted Relays",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={

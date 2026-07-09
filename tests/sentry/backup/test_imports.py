@@ -55,7 +55,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
@@ -1618,36 +1617,6 @@ class CollisionTests(ImportTestCase):
                 with open(tmp_path, "rb") as tmp_file:
                     verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
-    @expect_models(COLLISION_TESTED, SavedSearch)
-    def test_colliding_saved_search(self, expected_models: list[type[Model]]) -> None:
-        self.create_organization("some-org", owner=self.user)
-        SavedSearch.objects.create(
-            name="Global Search",
-            query="saved query",
-            is_global=True,
-            visibility=Visibility.ORGANIZATION,
-        )
-        assert SavedSearch.objects.count() == 1
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            assert SavedSearch.objects.count() == 0
-
-            # Allow `is_global` searches for `ImportScope.Global` imports.
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
-
-            assert SavedSearch.objects.count() == 1
-
-            # Disallow `is_global` searches for `ImportScope.Organization` imports.
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
-
-            assert SavedSearch.objects.count() == 1
-
-            with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
-
     @expect_models(COLLISION_TESTED, DataSource)
     def test_colliding_data_source(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner")
@@ -2227,6 +2196,59 @@ class CollisionTests(ImportTestCase):
                 assert len(useremail_chunk.existing_map) == 0
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+    @expect_models(COLLISION_TESTED, Organization, OrganizationMember, User, UserEmail)
+    def test_colliding_user_email_unique_with_merging_disabled_in_organization_scope(
+        self, expected_models: list[type[Model]]
+    ):
+        # Create an owner, and set email_unique as it isn't populated by factory methods.
+        owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
+        owner.email_unique = owner.email
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            owner.save()
+
+        org = self.create_organization("some-org", owner=owner)
+        old_org_membership = OrganizationMember.objects.get(organization=org)
+        old_org_membership.regenerate_token()
+        old_org_membership.save()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                # Create a user with a colliding username & email address,
+                # and set email_unique again.
+                colliding_owner = self.create_exhaustive_user(
+                    username="owner", email="importing@example.com"
+                )
+                colliding_owner.email_unique = colliding_owner.email
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    colliding_owner.save()
+
+                org = self.create_organization("other-org", owner=colliding_owner)
+
+                import_in_organization_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=False),
+                    printer=NOOP_PRINTER,
+                )
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                colliding_owner.refresh_from_db()
+                imported_user = User.objects.get(username__icontains="owner-")
+
+                # The colliding_owner should retain its original attributes.
+                assert colliding_owner.email == "importing@example.com"
+                assert colliding_owner.email_unique == "importing@example.com"
+
+                # The imported user should not have email_unique defined as it would conflict
+                assert imported_user.email == "importing@example.com"
+                assert imported_user.email_unique is None
+
+                assert User.objects.count() == 2
+                assert UserEmail.objects.count() == 2
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))

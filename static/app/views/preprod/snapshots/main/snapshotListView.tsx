@@ -18,6 +18,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -40,6 +41,7 @@ interface SnapshotListViewProps {
   onSelectSnapshot?: (key: string | null) => void;
   onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
   ref?: React.Ref<SnapshotListViewHandle>;
   selectedSnapshotKey?: string | null;
 }
@@ -61,6 +63,7 @@ type GroupCard =
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
+      status: DiffStatus;
       type: 'pair-card';
     }
   | {
@@ -84,6 +87,7 @@ interface GroupRow {
 // Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
 const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
+const ERRORED_BANNER_HEIGHT = 56;
 const CARD_GAP = 0;
 const GROUP_PADDING = 0;
 const ROW_PADDING_BOTTOM = 16;
@@ -108,7 +112,7 @@ function estimateCardHeight(
 }
 
 export function isItemUngrouped(item: SidebarItem): boolean {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return !item.pairs[0]?.head_image.group;
   }
   return !item.images[0]?.group;
@@ -118,16 +122,20 @@ function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed') {
+    if (item.type === 'changed' || item.type === 'errored') {
+      const status = item.type === 'errored' ? DiffStatus.ERRORED : DiffStatus.CHANGED;
+      const bannerHeight = status === DiffStatus.ERRORED ? ERRORED_BANNER_HEIGHT : 0;
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
           id: `c:${item.key}:${pair.head_image.image_file_name}`,
           pair,
-          estimatedHeight: Math.max(
-            estimateCardHeight(pair.head_image, true, contentWidth),
-            estimateCardHeight(pair.base_image, true, contentWidth)
-          ),
+          status,
+          estimatedHeight:
+            Math.max(
+              estimateCardHeight(pair.head_image, true, contentWidth),
+              estimateCardHeight(pair.base_image, true, contentWidth)
+            ) + bannerHeight,
         });
       }
     } else if (item.type === 'renamed') {
@@ -187,6 +195,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   onScrollProgress,
   diffMode = 'split',
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
   ref,
   onVisibleGroupChange,
@@ -596,6 +605,7 @@ export const SnapshotListView = memo(function SnapshotListView({
                 onOpenSnapshot={onOpenSnapshot}
                 diffMode={diffMode}
                 overlayColor={overlayColor}
+                overlayOpacity={overlayOpacity}
                 diffImageBaseUrl={diffImageBaseUrl}
               />
             </RowPositioner>
@@ -615,6 +625,7 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot,
   diffMode,
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
 }: {
   diffMode: DiffMode;
@@ -626,13 +637,14 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const organization = useOrganization();
   const cards = group.cards.map(card => {
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
-    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
     const onCopyLink = () =>
       trackAnalytics('preprod.snapshots.details.image_link_copied', {
         organization,
@@ -647,12 +659,14 @@ const GroupContainer = memo(function GroupContainer({
       <PairCard
         key={card.id}
         pair={card.pair}
+        status={card.status}
         imageBaseUrl={imageBaseUrl}
         headBranch={headBranch}
         isSelected={isSelected}
         copyUrl={copyUrl}
         diffMode={diffMode}
         overlayColor={overlayColor}
+        overlayOpacity={overlayOpacity}
         diffImageBaseUrl={diffImageBaseUrl}
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
@@ -700,7 +714,7 @@ const ScrollContainer = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
   background: ${p => p.theme.tokens.background.secondary};

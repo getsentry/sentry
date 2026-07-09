@@ -8,6 +8,7 @@ import {
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
+  isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
@@ -58,7 +59,8 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
   return (
     <Flex direction="column" gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {autofix.runState?.status === 'completed' && (
+      {(autofix.runState?.status === 'completed' ||
+        isLastStepPrIteration(autofix.runState)) && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (
@@ -110,7 +112,14 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
         }
 
         if (isCodeChangesSection(section)) {
-          return <CodeChangesCard key={key} autofix={autofix} section={section} />;
+          return (
+            <CodeChangesCard
+              key={key}
+              autofix={autofix}
+              section={section}
+              groupId={groupId}
+            />
+          );
         }
 
         if (isPullRequestsSection(section)) {

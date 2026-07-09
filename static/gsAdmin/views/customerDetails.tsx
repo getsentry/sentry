@@ -73,9 +73,9 @@ import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocation
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {
   hasActiveVCFeature,
+  hasPerformance,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
@@ -236,8 +236,8 @@ export function CustomerDetails() {
     if (!subscription?.planDetails) {
       return {};
     }
-    // We display all categories that are in either checkoutCategories or onDemandCategories,
-    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // We display all plan categories that are giftable (have a freeEventsMultiple),
+    // then disable the button if the category cannot be gifted on this particular subscription (ie. unlimited quota).
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
@@ -331,7 +331,6 @@ export function CustomerDetails() {
     localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
       level: 'danger',
@@ -431,18 +430,6 @@ export function CustomerDetails() {
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
           },
           {
-            key: 'changeSoftCap',
-            name: subscription.hasSoftCap
-              ? 'Remove Legacy Soft Cap'
-              : 'Add Legacy Soft Cap',
-            help: subscription.hasSoftCap
-              ? 'Remove the legacy soft cap from this account.'
-              : 'Add legacy soft cap to this account.',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, softCap: !subscription.hasSoftCap}),
-            ...actionRequiresBillingAdmin,
-          },
-          {
             key: 'changeBalance',
             name: 'Add or Remove Credit',
             help: 'Add or remove credit from this account.',
@@ -469,23 +456,6 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
-            key: 'changeOverageNotification',
-            name: subscription.hasOverageNotificationsDisabled
-              ? 'Enable Overage Notification'
-              : 'Disable Overage Notification',
-            help: subscription.hasOverageNotificationsDisabled
-              ? 'Enable overage notifications on this account.'
-              : 'Disable overage notifications on this account.',
-            visible: subscription.hasSoftCap,
-            onAction: params =>
-              onUpdateMutation.mutate({
-                ...params,
-                overageNotificationsDisabled:
-                  !subscription.hasOverageNotificationsDisabled,
-              }),
-            ...actionRequiresBillingAdmin,
-          },
-          {
             key: 'toggleBillingPlatformMigration',
             name: subscription.hasMigratedToBillingPlatform
               ? '[Do Not Use] Unmigrate to Billing Platform'
@@ -498,6 +468,18 @@ export function CustomerDetails() {
                 ...params,
                 migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
               }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'recreateBillingPlatformModels',
+            name: 'Recreate Billing Platform Models',
+            help: 'Delete this org’s billing platform models and recreate them from the legacy subscription state.',
+            confirmModalOpts: {
+              priority: 'danger',
+              confirmText: 'Recreate Billing Platform Models',
+            },
+            onAction: params =>
+              onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
             ...actionRequiresBillingAdmin,
           },
           {
@@ -516,7 +498,7 @@ export function CustomerDetails() {
             name: 'Terminate Contract',
             help: 'Terminate the contract (charges an early termination fee for contracts with 3 or more months remaining).',
             visible:
-              subscription.contractInterval === 'annual' &&
+              subscription.billingInterval === 'annual' &&
               subscription.canCancel &&
               !subscription.cancelAtPeriodEnd,
             onAction: params =>
@@ -861,12 +843,9 @@ export function CustomerDetails() {
             name: 'Migrate From Legacy Seer',
             help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
             disabled:
-              ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
-                subscription.planTier as PlanTier
-              ) || !subscription.addOns?.legacySeer?.enabled,
-            disabledReason: [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
-              subscription.planTier as PlanTier
-            )
+              !hasPerformance(subscription.planDetails) ||
+              !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: hasPerformance(subscription.planDetails)
               ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
               : 'Only available for AM1, AM2, and AM3 plans.',
             confirmModalOpts: {

@@ -1,12 +1,12 @@
 import datetime
 import logging
 
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -52,7 +52,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         if isinstance(request.user, AnonymousUser):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        signing_secret = options.get("intercom.sentry-api-secret")
+        signing_secret = settings.SENTRY_INTERCOM_API_SECRET
         if not signing_secret:
             logger.warning("intercom.sentry-api-secret is not configured")
             return Response(

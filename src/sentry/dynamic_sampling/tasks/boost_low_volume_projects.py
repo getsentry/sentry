@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import sentry_sdk
 from snuba_sdk import (
@@ -66,6 +66,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.utils import metrics
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import raw_snql_query
 
 # This set contains all the projects for which we want to start extracting the sample rate over time. This is done
@@ -330,8 +331,8 @@ def query_project_counts_by_org(
     use_case_id = config["use_case_id"]
 
     where_conditions = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("timestamp"), Op.GTE, deprecated_utcnow() - query_interval),
+        Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
         Condition(Column("metric_id"), Op.EQ, metric_id),
         Condition(Column("org_id"), Op.IN, org_ids),
         Condition(Column("project_id"), Op.IN, project_ids),

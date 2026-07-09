@@ -39,7 +39,8 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     }
 
     @extend_schema(
-        operation_id="Create an External User",
+        operation_id="createOrganizationExternalUser",
+        summary="Create an External User",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ExternalUserSerializer,
         responses={

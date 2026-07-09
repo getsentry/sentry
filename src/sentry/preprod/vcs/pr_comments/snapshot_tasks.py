@@ -6,7 +6,6 @@ from typing import Any
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.preprod.integration_utils import get_commit_context_client
@@ -35,7 +34,6 @@ POST_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_added"
 POST_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_removed"
 POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_changed"
 POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
-FEATURE_FLAG = "organizations:preprod-snapshot-pr-comments"
 
 
 @instrumented_task(
@@ -96,13 +94,6 @@ def create_preprod_snapshot_pr_comment_task(
         return
 
     organization = artifact.project.organization
-    if not features.has(FEATURE_FLAG, organization):
-        logger.info(
-            "preprod.snapshot_pr_comments.create.feature_disabled",
-            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
-        )
-        return
-
     client = get_commit_context_client(
         organization, commit_comparison.head_repo_name, commit_comparison.provider
     )
@@ -203,13 +194,16 @@ def create_preprod_snapshot_pr_comment_task(
             )
 
             has_changes = any(changes_map.values())
-            # Failed comparisons are absent from changes_map (which only tracks
-            # SUCCESS state), so check comparisons_map directly to avoid
-            # suppressing failure reports.
-            has_failures = any(
-                c.state == PreprodSnapshotComparison.State.FAILED for c in comparisons_map.values()
+            # Failed comparisons and errored images are absent from changes_map
+            # (which only tracks SUCCESS state with diffs), so check
+            # comparisons_map directly to avoid suppressing these reports.
+            has_failures_or_errors = any(
+                c.state == PreprodSnapshotComparison.State.FAILED
+                or (c.state == PreprodSnapshotComparison.State.SUCCESS and c.images_errored > 0)
+                for c in comparisons_map.values()
             )
-            if not has_changes and not has_failures and not existing_comment_id:
+            # Suppress brand-new comments on uneventful runs to avoid PR noise.
+            if not (has_changes or has_failures_or_errors or existing_comment_id):
                 logger.info(
                     "preprod.snapshot_pr_comments.create.skipped_no_diff",
                     extra={"preprod_artifact_id": artifact.id},

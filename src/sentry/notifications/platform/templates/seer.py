@@ -12,7 +12,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 from sentry.organizations.services.organization.service import organization_service
@@ -44,11 +44,12 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         source=NotificationSource.SEER_AUTOFIX_ERROR,
         error_message="(401): Could not connect to your GitHub repository for this project.",
     )
+    hide_from_debugger = True
 
     def render(self, data: SeerAutofixError) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=data.error_title,
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
         )
 
 
@@ -180,7 +181,7 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
     def render(self, data: SeerAgentError) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=data.error_title,
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
         )
 
 

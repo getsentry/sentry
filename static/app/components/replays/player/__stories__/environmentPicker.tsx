@@ -11,9 +11,9 @@ export function EnvironmentPicker({
   onChange,
   project,
 }: {
-  environment: string | undefined;
-  onChange: (environment: string) => void;
-  project: string | undefined;
+  environment: string | null | undefined;
+  onChange: (environment: string | null) => void;
+  project: string | null;
 }) {
   const {projects} = useProjects();
   const environments = uniq(
@@ -29,14 +29,14 @@ export function EnvironmentPicker({
 
   return (
     <CompactSelect
-      onChange={selected => onChange(selected.value)}
+      onChange={selected => onChange(selected?.value ?? null)}
       options={options}
       search
       size="xs"
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix="Environment" />
       )}
-      value={environment}
+      value={environment ?? undefined}
     />
   );
 }

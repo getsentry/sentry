@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
@@ -12,6 +13,8 @@ import sentry.models.group
 import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
@@ -22,8 +25,8 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.types import (
+    ActionSource,
     ArchiveAction,
     AssignAction,
     CreateExternalIssueAction,
@@ -39,10 +42,12 @@ from sentry.issues.action_log.types import (
     UnlinkExternalIssueAction,
     ViewAction,
 )
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
@@ -63,6 +68,10 @@ def _make_request(
 
 
 MCP_USER_AGENT = "sentry-mcp/0.18.0 (https://mcp.sentry.dev)"
+
+
+class IntentionalRollback(Exception):
+    """Raised to force a transaction rollback in tests."""
 
 
 class TestResolveActionSource(TestCase):
@@ -223,8 +232,7 @@ class TestPublishAction(TestCase):
                 ResolveAction(),
                 source="mcp:claude-code",
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
                 actor=GroupActionActor.user(4),
             )
         assert len(logs.records) == 1
@@ -240,8 +248,7 @@ class TestPublishAction(TestCase):
                 ResolveAction(),
                 source="web",
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
                 actor=GroupActionActor.user(99),
             )
         assert getattr(logs.records[0], "actor_type") == "user"
@@ -251,8 +258,7 @@ class TestPublishAction(TestCase):
                 ResolveAction(),
                 source="system",
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
             )
         assert getattr(logs.records[0], "actor_type") == "system"
 
@@ -265,8 +271,7 @@ class TestPublishActionFromContext(TestCase):
             publish_action_from_context(
                 ResolveAction(),
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
             )
         error_records = [r for r in logs.records if r.levelname == "ERROR"]
         assert any("without ActionContext" in r.message for r in error_records)
@@ -574,13 +579,12 @@ class TestPublishActionWrite(TestCase):
         self.group = self.create_group()
 
     def test_creates_log_entry(self) -> None:
-        with self.options({"issues.action-log.write-to-db": True}):
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             publish_action(
                 ViewAction(),
                 source=ActionSource.API,
                 group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
+                project=self.group.project,
                 actor=GroupActionActor.user(self.user.id),
             )
 
@@ -593,13 +597,12 @@ class TestPublishActionWrite(TestCase):
         assert entry.date_added is not None
 
     def test_system_action(self) -> None:
-        with self.options({"issues.action-log.write-to-db": True}):
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             publish_action(
                 ViewAction(),
                 source=ActionSource.SYSTEM,
                 group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
+                project=self.group.project,
                 actor=SYSTEM_ACTOR,
             )
 
@@ -608,14 +611,13 @@ class TestPublishActionWrite(TestCase):
         assert entry.actor_id == 0
 
     def test_multiple_entries_ordered(self) -> None:
-        with self.options({"issues.action-log.write-to-db": True}):
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             for _ in range(3):
                 publish_action(
                     ViewAction(),
                     source=ActionSource.API,
                     group_id=self.group.id,
-                    organization_id=self.group.project.organization_id,
-                    project_id=self.group.project_id,
+                    project=self.group.project,
                     actor=GroupActionActor.user(self.user.id),
                 )
 
@@ -625,15 +627,122 @@ class TestPublishActionWrite(TestCase):
         assert len(entries) == 3
         assert entries[0].id < entries[1].id < entries[2].id
 
-    def test_option_disabled_skips_write(self) -> None:
-        with self.options({"issues.action-log.write-to-db": False}):
+    def test_rolled_back_transaction_does_not_persist(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            try:
+                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                    publish_action(
+                        ViewAction(),
+                        source=ActionSource.API,
+                        group_id=self.group.id,
+                        project=self.group.project,
+                        actor=GroupActionActor.user(self.user.id),
+                    )
+                    assert CellOutbox.objects.filter(
+                        category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                    ).exists()
+                    raise IntentionalRollback()
+            except IntentionalRollback:
+                pass
+
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+
+    def test_savepoint_rollback_discards_only_inner(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with outbox_runner():
+                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                    publish_action(
+                        ViewAction(),
+                        source=ActionSource.API,
+                        group_id=self.group.id,
+                        project=self.group.project,
+                        actor=GroupActionActor.user(self.user.id),
+                    )
+                    try:
+                        with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                            publish_action(
+                                ResolveAction(),
+                                source=ActionSource.API,
+                                group_id=self.group.id,
+                                project=self.group.project,
+                                actor=GroupActionActor.user(self.user.id),
+                            )
+                            raise IntentionalRollback()
+                    except IntentionalRollback:
+                        pass
+
+        entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
+        assert len(entries) == 1
+        assert entries[0].type == GroupActionType.VIEW
+
+    def test_feature_disabled_skips_write(self) -> None:
+        publish_action(
+            ViewAction(),
+            source=ActionSource.API,
+            group_id=self.group.id,
+            project=self.group.project,
+            actor=GroupActionActor.user(self.user.id),
+        )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+
+    def test_flush_false_defers_drain(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with outbox_context(flush=False):
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    project=self.group.project,
+                    actor=GroupActionActor.user(self.user.id),
+                )
+
+            assert CellOutbox.objects.filter(
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+            ).exists()
+            assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+
+            with outbox_runner():
+                pass
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    @patch("sentry.issues.derived.processing.process_group_log_task")
+    def test_force_async_derived_dispatches_task(self, mock_task: MagicMock) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             publish_action(
                 ViewAction(),
                 source=ActionSource.API,
                 group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                force_async_derived=True,
+            )
+
+        # GALE is written
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+        # Derived data was NOT processed inline
+        assert not GroupDerivedData.objects.filter(group_id=self.group.id).exists()
+        # Task was dispatched instead
+        mock_task.delay.assert_called_once_with(self.group.id)
+
+    @patch("sentry.issues.derived.processing.process_group_log_task")
+    def test_inline_derived_processes_without_task(self, mock_task: MagicMock) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
                 actor=GroupActionActor.user(self.user.id),
             )
 
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+        # Derived data WAS processed inline
+        derived = GroupDerivedData.objects.get(group_id=self.group.id)
+        assert derived.view_count == 1
+        # No async task needed (single entry = caught up)
+        mock_task.delay.assert_not_called()

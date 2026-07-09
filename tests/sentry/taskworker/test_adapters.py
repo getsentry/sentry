@@ -3,12 +3,12 @@ import contextlib
 import orjson
 import pytest
 from django.test.utils import override_settings
+from taskbroker_client.metrics import NoOpMetricsBackend
 from taskbroker_client.registry import TaskRegistry
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.taskworker.adapters import (
-    SentryMetricsBackend,
     SentryRouter,
     ViewerContextHook,
     make_producer,
@@ -23,7 +23,7 @@ def test_registry_create_namespace_route_setting() -> None:
             application="sentry",
             producer_factory=make_producer,
             router=SentryRouter(),
-            metrics=SentryMetricsBackend(),
+            metrics=NoOpMetricsBackend(),
         )
 
         # namespaces without routes resolve to the default topic.
@@ -57,6 +57,29 @@ def test_default_router_topic_region_silo() -> None:
 @pytest.mark.django_db(databases=["default", "control"])
 def test_default_router_topic_control_silo() -> None:
     with override_settings(SILO_MODE=SiloMode.CONTROL):
+        router = SentryRouter()
+        topic = router.route_namespace("test.tasks.test_router.control")
+        assert topic == Topic.TASKWORKER_CONTROL.value
+
+
+@pytest.mark.django_db
+def test_default_router_topic_override() -> None:
+    with override_settings(
+        SILO_MODE=SiloMode.CELL,
+        TASKWORKER_DEFAULT_TOPIC=Topic.TASKWORKER_PUSH.value,
+    ):
+        router = SentryRouter()
+        topic = router.route_namespace("test.tasks.test_router.unrouted")
+        assert topic == Topic.TASKWORKER_PUSH.value
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+def test_default_router_topic_override_ignored_in_control_silo() -> None:
+    # The region default-topic override must never redirect control-silo tasks.
+    with override_settings(
+        SILO_MODE=SiloMode.CONTROL,
+        TASKWORKER_DEFAULT_TOPIC=Topic.TASKWORKER_PUSH.value,
+    ):
         router = SentryRouter()
         topic = router.route_namespace("test.tasks.test_router.control")
         assert topic == Topic.TASKWORKER_CONTROL.value

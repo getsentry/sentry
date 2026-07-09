@@ -7,7 +7,10 @@ import {Input} from '@sentry/scraps/input';
 
 import {t} from 'sentry/locale';
 import type {Column} from 'sentry/utils/discover/fields';
-import {generateFieldAsString, isLegalEquationColumn} from 'sentry/utils/discover/fields';
+import {
+  generateEquationFieldAsString,
+  isLegalEquationColumn,
+} from 'sentry/utils/discover/fields';
 
 const NONE_SELECTED = -1;
 
@@ -359,7 +362,7 @@ function makeFieldOptions(
     .map(option => ({
       kind: 'field' as const,
       active: false,
-      value: generateFieldAsString(option),
+      value: generateEquationFieldAsString(option),
     }))
     .filter(({value}) => {
       if (fieldValues.has(value)) {

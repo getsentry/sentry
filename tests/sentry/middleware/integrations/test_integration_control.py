@@ -7,12 +7,10 @@ from django.test import RequestFactory, override_settings
 from sentry.middleware.integrations.classifications import (
     BaseClassification,
     IntegrationClassification,
-    PluginClassification,
 )
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
-from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo.base import SiloMode
 
@@ -20,13 +18,12 @@ from sentry.silo.base import SiloMode
 @patch.object(
     IntegrationControlMiddleware,
     "classifications",
-    [IntegrationClassification, PluginClassification],
+    [IntegrationClassification],
 )
 class IntegrationControlMiddlewareTest(TestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response=get_response)
     integration_cls = IntegrationClassification(response_handler=get_response)
-    plugin_cls = PluginClassification(response_handler=get_response)
 
     def setUp(self) -> None:
         self.factory = RequestFactory()
@@ -63,10 +60,7 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
-    @patch.object(PluginClassification, "should_operate", wraps=plugin_cls.should_operate)
-    def test_attempts_all_classifications(
-        self, mock_plugin_operate, mock_integration_operate
-    ) -> None:
+    def test_attempts_all_classifications(self, mock_integration_operate) -> None:
         class NewClassification(BaseClassification):
             pass
 
@@ -80,19 +74,8 @@ class IntegrationControlMiddlewareTest(TestCase):
         ):
             self.middleware(self.factory.post("/"))
             assert mock_integration_operate.called
-            assert mock_plugin_operate.called
             assert mock_new_should_operate.called
             assert mock_new_get_response.called
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
-    @patch.object(PluginClassification, "should_operate", wraps=plugin_cls.should_operate)
-    def test_attempts_ordered_classifications(
-        self, mock_plugin_operate, mock_integration_operate
-    ) -> None:
-        self.middleware(self.factory.post("/extensions/slack/webhook/"))
-        assert mock_integration_operate.called
-        assert not mock_plugin_operate.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(SlackRequestParser, "get_response")
@@ -136,11 +119,3 @@ class IntegrationControlMiddlewareTest(TestCase):
     def test_handles_missing_integration(self) -> None:
         response = self.middleware(self.factory.post("/extensions/jira/issue-updated/"))
         assert response.status_code == 404
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(PluginRequestParser, "get_response")
-    def test_returns_parser_get_response_plugin(self, mock_parser_get_response) -> None:
-        result = HttpResponse(status=204)
-        mock_parser_get_response.return_value = result
-        response = self.middleware(self.factory.post("/plugins/bitbucket/organizations/1/webhook/"))
-        assert result == response

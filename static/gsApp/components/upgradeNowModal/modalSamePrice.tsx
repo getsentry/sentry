@@ -66,7 +66,6 @@ function UpgradeNowModal({
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {
           organization,
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),

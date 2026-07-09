@@ -78,6 +78,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         # reuse it instead of re-resolving the integration.
         org = bind_org_context_from_integration(rpc_integration.id, {"webhook": "issue_updated"})
         sentry_sdk.set_tag("integration_id", rpc_integration.id)
+        sentry_sdk.set_attribute("integration_id", rpc_integration.id)
 
         data = request.data
 

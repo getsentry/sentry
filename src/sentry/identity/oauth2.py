@@ -25,7 +25,6 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineErrorReason,
     IntegrationPipelineHaltReason,
@@ -232,6 +231,7 @@ class OAuth2Provider(Provider):
 
 def record_event(event: IntegrationPipelineViewType, provider: str):
     from sentry.identity import default_manager as identity_manager
+    from sentry.integrations.base import IntegrationDomain
 
     try:
         identity_manager.get(provider)

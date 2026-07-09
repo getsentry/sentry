@@ -4,12 +4,13 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MONTHLY} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import {type Subscription} from 'getsentry/types';
 import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 
 type SliderInfo = {
@@ -79,7 +80,6 @@ describe('ReserveAdditionalVolume', () => {
     const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf');
 
     const stepProps = {
-      checkoutTier: PlanTier.AM2,
       subscription,
       isActive: true,
       stepNumber: 2,
@@ -208,7 +208,6 @@ describe('ReserveAdditionalVolume', () => {
     const bizPlanMonthly = PlanDetailsLookupFixture('am3_business');
 
     const stepProps: any = {
-      checkoutTier: PlanTier.AM3,
       isActive: true,
       stepNumber: 2,
       onUpdate: jest.fn(),
@@ -301,7 +300,6 @@ describe('ReserveAdditionalVolume', () => {
       const trialSub = SubscriptionFixture({
         organization,
         plan: 'am3_t',
-        planTier: PlanTier.AM3,
         isTrial: true, // This is true for both subscription trials and plan trials
         categories: {
           // These are high trial volumes that should NOT be used in checkout

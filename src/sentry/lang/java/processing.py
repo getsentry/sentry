@@ -28,6 +28,8 @@ def deobfuscate_exception_value(data: Any) -> Any:
         and raw_frame
         and frame.get("module")
         and frame.get("function")
+        and raw_frame.get("module")
+        and raw_frame.get("function")
         and exception.get("value")
     ):
         deobfuscated_method_name = f"{frame['module']}.{frame['function']}"

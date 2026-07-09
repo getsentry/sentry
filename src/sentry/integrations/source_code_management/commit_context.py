@@ -266,7 +266,9 @@ class CommitContextIntegration(ABC):
             )
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
+            scope.set_attribute("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
+            scope.set_attribute("queue_comment_check.organization_id", commit.organization_id)
 
             # client will raise an Exception if the request is not successful
             try:

@@ -18,19 +18,14 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiConflictError
-
-_MULTI_METRICS_PREFIX = "onboarding-scm.platform_detection.multi"
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 
 
 @cell_silo_endpoint
 class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint):
-    """Measurement-only endpoint for the tree-based multi-platform detector.
+    """Endpoint for the tree-based multi-platform detector.
 
-    Runs ``detect_platforms_multi`` and emits metrics under
-    ``onboarding-scm.platform_detection.multi.*``. Returns 204 No Content;
-    the frontend fires this fire-and-forget alongside the live detection
-    request.
+    Will replace the existing `OrganizationRepositoryPlatformsEndpoint`.
     """
 
     owner = ApiOwner.INTEGRATION_PLATFORM
@@ -70,14 +65,23 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
 
         client = GitHubApiClient(integration=integration, org_integration_id=org_integration.id)
 
+        attributes = {"repo_id": repo.id, "repo_name": repo.name}
         try:
-            detect_platforms_multi(client, repo.name)
-        except Exception as e:
+            result = detect_platforms_multi(client, repo.name)
+        except ApiConflictError:
+            # Empty / unprocessable repo (e.g. empty git tree).
             sentry_logger.warning(
-                f"{_MULTI_METRICS_PREFIX}.failed",
-                attributes={"repo_id": repo.id, "repo_name": repo.name},
+                "github.platform_detection.multi.empty_repo", attributes=attributes
             )
-            if not isinstance(e, ApiConflictError):
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("scm_platform_detection", "empty_repo")
                 sentry_sdk.capture_exception()
+            return Response({"platforms": []})
+        except (ApiError, ValueError):
+            sentry_logger.error("github.platform_detection.multi.failed", attributes=attributes)
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("scm_platform_detection", "failed")
+                sentry_sdk.capture_exception()
+            return Response({"detail": "Failed to detect platforms from GitHub."}, status=502)
 
-        return Response(status=204)
+        return Response({"platforms": result["platforms"]})
