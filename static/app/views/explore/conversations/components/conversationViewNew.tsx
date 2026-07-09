@@ -4,7 +4,7 @@ import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {ConversationTimelineLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
@@ -94,7 +94,7 @@ export function ConversationViewContentNew({
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationTimelineLayout
+      <ConversationContentLayout
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           isTranscript ? (

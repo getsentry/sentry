@@ -15,6 +15,12 @@ const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
+const CONTENT_MIN_WIDTH = 400;
+const CONTENT_MAX_WIDTH = 900;
+const DETAIL_MIN_WIDTH = 400;
+const CONTENT_WIDTH_RATIO = 0.6;
+const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
+
 /**
  * Resizable two-column layout for conversation views.
  * Left panel holds messages/spans, right panel holds span details.
@@ -103,16 +109,16 @@ export function SpanDetailCard({
       flex="1"
       minWidth="0"
       minHeight="0"
-      height={embedded ? '100%' : {xs: 'auto', sm: '100%'}}
-      overflowY={embedded ? 'auto' : {xs: 'visible', sm: 'auto'}}
-      overflowX={embedded ? 'hidden' : {xs: 'visible', sm: 'hidden'}}
+      height="100%"
+      overflowY="auto"
+      overflowX="hidden"
     >
       {children}
     </Stack>
   );
 }
 
-export function ConversationTimelineLayout({
+export function ConversationContentLayout({
   left,
   right,
   leftPadding = 'md',
@@ -121,6 +127,9 @@ export function ConversationTimelineLayout({
   leftPadding?: React.ComponentProps<typeof Container>['padding'];
   right?: React.ReactNode;
 }) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: measureRef});
+
   return (
     <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
       <ConversationLeftPanel>
@@ -131,41 +140,90 @@ export function ConversationTimelineLayout({
           width="100%"
           background="secondary"
         >
-          <Flex
-            direction={{xs: 'column', sm: 'row'}}
-            height="100%"
-            width="100%"
-            gap="md"
-            minHeight="0"
-            overflowY="auto"
-            overflowX="hidden"
-          >
-            <Container
-              flex={{xs: '0 0 auto', sm: '1'}}
-              minWidth="0"
-              minHeight={{xs: 'auto', sm: '0'}}
-              padding={leftPadding}
-              background="primary"
-              border="primary"
-              radius="md"
-              overflowX="hidden"
-              overflowY={{xs: 'hidden', sm: 'auto'}}
-            >
-              {left}
-            </Container>
-            {right ? (
-              <Flex
-                width={{xs: '100%', sm: '430px'}}
-                flex="0 0 auto"
-                minHeight={{xs: 'auto', sm: '0'}}
-              >
-                {right}
-              </Flex>
+          <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
+            {width > 0 ? (
+              <MeasuredContentSplit
+                width={width}
+                detail={right}
+                content={
+                  <Container
+                    flex="1"
+                    minWidth="0"
+                    minHeight="0"
+                    padding={leftPadding}
+                    background="primary"
+                    border="primary"
+                    radius="md"
+                    overflowX="hidden"
+                    overflowY="auto"
+                  >
+                    {left}
+                  </Container>
+                }
+              />
             ) : null}
           </Flex>
         </Container>
       </ConversationLeftPanel>
     </Flex>
+  );
+}
+
+function MeasuredContentSplit({
+  content,
+  detail,
+  width,
+}: {
+  content: React.ReactNode;
+  width: number;
+  detail?: React.ReactNode;
+}) {
+  const defaultContent = Math.max(
+    CONTENT_MIN_WIDTH,
+    Math.round((width - DIVIDER_WIDTH) * CONTENT_WIDTH_RATIO)
+  );
+  const [storedSize, setStoredSize] = useLocalStorageState(
+    SPLIT_LAYOUT_STORAGE_KEY,
+    defaultContent
+  );
+
+  return (
+    <SplitPanel
+      orientation={{xs: 'vertical', md: 'horizontal'}}
+      defaultSize={defaultContent}
+      initialSize={storedSize}
+      minSize={CONTENT_MIN_WIDTH}
+      maxSize={CONTENT_MAX_WIDTH}
+      fillMinSize={DETAIL_MIN_WIDTH}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
+      sized={
+        <Flex
+          direction="column"
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          maxWidth={`${CONTENT_MAX_WIDTH}px`}
+          paddingRight={{xs: '0', md: 'md'}}
+          paddingBottom={{xs: 'md', md: '0'}}
+        >
+          {content}
+        </Flex>
+      }
+      fill={
+        detail ? (
+          <Flex
+            direction="column"
+            flex="1"
+            minWidth="0"
+            minHeight="0"
+            paddingLeft={{xs: '0', md: 'md'}}
+            paddingTop={{xs: 'md', md: '0'}}
+          >
+            {detail}
+          </Flex>
+        ) : undefined
+      }
+    />
   );
 }
 
