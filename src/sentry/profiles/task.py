@@ -59,6 +59,7 @@ from sentry.profiles.java import (
     merge_jvm_frames_with_android_methods,
 )
 from sentry.profiles.utils import (
+    PROFILE_FORMAT_V2_ANDROID_TRACE,
     Profile,
     apply_stack_trace_rules_to_profile,
     is_android_trace_format,
@@ -1578,8 +1579,16 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
             with start_span(op="json.unmarshal", name="json.unmarshal"):
+                # Detect the android trace format before trusting `version`,
+                # analogous to how `symbolicate()` special-cases android: a
+                # faulty version can't be relied on, so a trace profile is
+                # always deserialized as "2.android-trace".
                 version = profile.get("version")
-                if version is not None:
+                if is_android_trace_format(profile):
+                    chunk = vroomrs.profile_chunk_from_json_str_and_version(
+                        json_profile, PROFILE_FORMAT_V2_ANDROID_TRACE
+                    )
+                elif version is not None:
                     chunk = vroomrs.profile_chunk_from_json_str_and_version(json_profile, version)
                 else:
                     chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
