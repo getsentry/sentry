@@ -29,19 +29,25 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
-    def _review_item(self, comment_id: int, message: str = "fix it") -> QueuedAutofixFeedback:
+    def _review_item(
+        self,
+        comment_id: int,
+        message: str = "fix it",
+        file_path: str | None = "src/sentry/foo.py",
+        line: int | None = 42,
+        start_line: int | None = None,
+    ) -> QueuedAutofixFeedback:
+        source: dict = {
+            "type": "github-pr-review-comment",
+            "comment": {"id": comment_id},
+            "file_path": file_path,
+            "line": line,
+            "start_line": start_line,
+        }
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
-            feedback=Feedback(
-                text=message,
-                source={
-                    "type": "github-pr-review-comment",
-                    "comment": {"id": comment_id},
-                    "file_path": "src/sentry/foo.py",
-                    "line": 42,
-                },
-            ),
+            feedback=Feedback(text=message, source=source),
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
@@ -116,6 +122,48 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
 
         mock_trigger.assert_called_once()
         assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
+
+    def test_review_comment_range_anchor_in_user_context(
+        self, mock_state: MagicMock, mock_pop: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_state.return_value = self._state()
+        mock_pop.return_value = [self._review_item(888, message="fix it", line=42, start_line=40)]
+
+        self._consume()
+
+        mock_trigger.assert_called_once()
+        assert (
+            mock_trigger.call_args.kwargs["user_context"]
+            == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        )
+
+    def test_review_comment_single_line_anchor_in_user_context(
+        self, mock_state: MagicMock, mock_pop: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_state.return_value = self._state()
+        mock_pop.return_value = [self._review_item(999, message="fix it", line=42)]
+
+        self._consume()
+
+        mock_trigger.assert_called_once()
+        assert (
+            mock_trigger.call_args.kwargs["user_context"]
+            == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        )
+
+    def test_non_review_feedback_text_passed_through(
+        self, mock_state: MagicMock, mock_pop: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_state.return_value = self._state()
+        mock_pop.return_value = [
+            self._gh_item(1001, message="top level"),
+            self._ui_item(message="ui feedback"),
+        ]
+
+        self._consume()
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["user_context"] == "top level\n\nui feedback"
 
     def test_skips_review_comment_already_processed(
         self, mock_state: MagicMock, mock_pop: MagicMock, mock_trigger: MagicMock
