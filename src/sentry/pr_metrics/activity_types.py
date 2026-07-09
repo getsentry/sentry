@@ -95,6 +95,21 @@ class ReadyForReviewPayload(BaseActivityPayload, SenderMixin):
 
 
 @dataclass
+class ClosedPayload(BaseActivityPayload, SenderMixin):
+    # GitHub fires one "closed" action for both outcomes; a set ``merged_at`` on the
+    # PR row disambiguates. This payload is the closed-without-merge case, so the
+    # sender is whoever closed the PR (Bot vs human is the human-involvement signal).
+    action: str = "closed"
+
+
+@dataclass
+class MergedPayload(BaseActivityPayload, SenderMixin):
+    # The merged case of GitHub's "closed" action: the sender is whoever merged the
+    # PR (or the app, for auto-merge).
+    action: str = "merged"
+
+
+@dataclass
 class AssignedPayload(BaseActivityPayload, SenderMixin):
     action: str = "assigned"
     # Login of the account that was added as an assignee.

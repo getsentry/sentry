@@ -6,7 +6,6 @@ from datetime import datetime
 from hashlib import md5
 from typing import Any, TypedDict
 
-import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 
@@ -36,7 +35,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.utils.tracing import set_span_tag, start_span
+from sentry.utils.tracing import set_span_tag, start_span, trace
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -51,7 +50,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -123,7 +122,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -156,7 +155,7 @@ class OccurrenceMetadata(TypedDict):
     last_received: str
 
 
-@sentry_sdk.tracing.trace
+@trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -193,7 +192,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     }
 
 
-@sentry_sdk.tracing.trace
+@trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -383,7 +382,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
-@sentry_sdk.tracing.trace
+@trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:

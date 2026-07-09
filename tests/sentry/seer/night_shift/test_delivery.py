@@ -452,6 +452,41 @@ class TestDeliverNightShiftResult(TestCase):
 
         assert SeerNightShiftRunResult.objects.filter(run=run).count() == 1
 
+    def test_redelivery_of_pre_idempotency_key_row_is_idempotent(self) -> None:
+        """A result row written before idempotency_key existed (null key, group_id
+        still set) must still block redelivery."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        SeerNightShiftRunResult.objects.create(
+            run=run,
+            kind="agentic_triage",
+            group=group,
+            idempotency_key=None,
+            extras={"action": TriageAction.AUTOFIX.value},
+        )
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "fixable"}
+            ]
+        }
+
+        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_trigger:
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+            mock_trigger.assert_not_called()
+
+        assert SeerNightShiftRunResult.objects.filter(run=run).count() == 1
+
     def test_result_links_seer_run(self) -> None:
         """When the SeerRun mirror row exists, the result row links it."""
         org = self.create_organization()

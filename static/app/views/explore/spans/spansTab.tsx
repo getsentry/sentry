@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -70,7 +70,6 @@ import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/sp
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -274,18 +273,6 @@ function SpanTabContentSectionInner({
       },
     });
 
-  const confidences = useMemo(
-    () =>
-      visualizes.map(visualize => {
-        const dedupedYAxes = [visualize.yAxis];
-        const series = dedupedYAxes
-          .flatMap(yAxis => timeseriesResult.data[yAxis])
-          .filter(defined);
-        return combineConfidenceForSeries(series);
-      }),
-    [timeseriesResult.data, visualizes]
-  );
-
   const [interval] = useChartInterval();
 
   useAnalytics({
@@ -358,7 +345,6 @@ function SpanTabContentSectionInner({
         {props => (
           <div {...props}>
             <ExploreCharts
-              confidences={confidences}
               query={query}
               extrapolate={extrapolate}
               timeseriesResult={timeseriesResult}
@@ -371,7 +357,6 @@ function SpanTabContentSectionInner({
               aggregatesTableResult={aggregatesTableResult}
               spansTableResult={spansTableResult}
               tracesTableResult={tracesTableResult}
-              confidences={confidences}
               tab={tab}
               setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {

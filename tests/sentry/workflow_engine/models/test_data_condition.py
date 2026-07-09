@@ -4,7 +4,8 @@ from unittest import mock
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.evaluations import DataConditionEvaluationException
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
 
@@ -49,8 +50,13 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
-        assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
-        assert dc.evaluate_value(1) is None
+        evaluation = dc.evaluate_value(2)
+        assert evaluation.condition_met is True
+        assert evaluation.result == DetectorPriorityLevel.HIGH
+
+        evaluation = dc.evaluate_value(1)
+        assert evaluation.condition_met is False
+        assert evaluation.result is None
 
     def test_dict_comparison_result(self) -> None:
         def evaluate_value(
@@ -66,11 +72,12 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
             evaluate_value, ["sentry.workflow_engine.models.data_condition"]
         )
         dc.update(comparison={"baz": MockDataConditionEnum.BAR})
-        assert dc.evaluate_value(2) == DetectorPriorityLevel.HIGH
+        evaluation = dc.evaluate_value(2)
+        assert evaluation.result == DetectorPriorityLevel.HIGH
 
         dc.update(comparison={"baz": MockDataConditionEnum.FOO})
-        result = dc.evaluate_value(0)
-        assert result == DetectorPriorityLevel.OK
+        evaluation = dc.evaluate_value(0)
+        assert evaluation.result == DetectorPriorityLevel.OK
         self.teardown_condition_mocks()
 
     def test_bad_condition(self) -> None:
@@ -92,9 +99,12 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
 
     def test_condition_result_comparison_fails(self) -> None:
         dc = self.create_data_condition(
-            type=Condition.GREATER, comparison=1.0, condition_result="wrong"
+            type=Condition.GREATER,
+            comparison=1.0,
+            condition_result="wrong",
         )
-        assert dc.evaluate_value(2) == ConditionError(msg="Invalid condition result")
+        evaluation = dc.evaluate_value(2)
+        assert evaluation.result == ConditionError(msg="Invalid condition result")
 
     def test_condition_evaluation__data_condition_exception(self) -> None:
         def evaluate_value(value: int, comparison: int) -> bool:

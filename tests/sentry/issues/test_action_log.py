@@ -25,8 +25,8 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.types import (
+    ActionSource,
     ArchiveAction,
     AssignAction,
     CreateExternalIssueAction,

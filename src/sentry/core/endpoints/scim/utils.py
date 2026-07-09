@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TypedDict
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
@@ -16,6 +15,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.utils.tracing import get_current_span, set_span_tag
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
@@ -25,9 +25,9 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400, scim_type=None):
-        transaction = sentry_sdk.get_current_scope().transaction
-        if transaction is not None:
-            transaction.set_tag("http.status_code", status_code)
+        span = get_current_span()
+        if span is not None:
+            set_span_tag(span, "http.status_code", status_code)
         error_body = {
             "schemas": [SCIM_API_ERROR],
             "status": str(status_code),

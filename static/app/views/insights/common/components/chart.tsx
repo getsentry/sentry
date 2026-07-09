@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import type {
-  MarkLineOption,
   TooltipFormatterCallback,
   TopLevelFormatterParams,
   XAXisOption,
@@ -89,12 +88,10 @@ type Props = {
   error?: Error | null;
   grid?: AreaChartProps['grid'];
   height?: number;
-  hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
   legendFormatter?: (name: string) => string;
   legendOptions?: LegendComponentOption;
   log?: boolean;
-  markLine?: MarkLineOption;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
   onHighlight?: EChartHighlightHandler;
