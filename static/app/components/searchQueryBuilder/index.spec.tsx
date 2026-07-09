@@ -6338,7 +6338,51 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
-      it('submits free text with the existing query to ask seer when defaulting to ask seer is enabled', async () => {
+      it('submits free text to ask seer when defaulting to ask seer is enabled', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+        });
+        expect(mockOnSearch).not.toHaveBeenCalled();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
+
+        expect(
+          screen.queryByRole('row', {name: 'find slow spans'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
+      });
+
+      it('does not submit free text to ask seer when valid filters are present', async () => {
         const mockOnSearch = jest.fn();
         const mockAskSeer = makeMockAskSeer();
         const props = {
@@ -6365,28 +6409,13 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.type(getLastInput(), 'find slow spans{enter}');
 
-        expect(
-          await screen.findByRole('combobox', {
-            name: 'Ask Seer with Natural Language',
-          })
-        ).toHaveValue('browser.name is firefox find slow spans ');
         await waitFor(() => {
-          expect(mockAskSeer).toHaveBeenCalledWith(
-            'browser.name is firefox find slow spans',
+          expect(mockOnSearch).toHaveBeenCalledWith(
+            'browser.name:firefox find slow spans',
             expect.anything()
           );
         });
-        expect(mockOnSearch).not.toHaveBeenCalled();
-
-        await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
-
-        expect(
-          screen.getByRole('row', {name: 'browser.name:firefox'})
-        ).toBeInTheDocument();
-        expect(
-          screen.queryByRole('row', {name: 'find slow spans'})
-        ).not.toBeInTheDocument();
-        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
+        expect(mockAskSeer).not.toHaveBeenCalled();
       });
 
       it('does not submit free text to ask seer when defaulting to ask seer is disabled', async () => {

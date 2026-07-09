@@ -305,6 +305,10 @@ function SearchQueryBuilderInputInternal({
   const items = customMenu ? sectionItems : sortedFilteredItems;
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
+  const hasValidFilter = [...state.collection].some(
+    collectionItem =>
+      collectionItem.value.type === Token.FILTER && collectionItem.value.invalid === null
+  );
 
   useEffect(() => {
     if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
@@ -552,7 +556,7 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim()) {
+          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasValidFilter) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);
