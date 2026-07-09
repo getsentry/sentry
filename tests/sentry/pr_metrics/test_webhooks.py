@@ -18,6 +18,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
     PullRequestMetrics,
     PullRequestVerdict,
 )
@@ -1023,6 +1024,45 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.DEQUEUED
         assert activity.payload["reason"] == "MERGE_CONFLICT"
+
+    def test_closed_unmerged_writes_closed_activity_with_sender(self) -> None:
+        self._call(action="closed", merged=False)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.CLOSED
+        assert activity.payload["sender_login"] == "testuser"
+        assert activity.payload["sender_type"] == "User"
+
+    def test_closed_merged_writes_merged_activity_with_sender(self) -> None:
+        self._call(action="closed", merged=True)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.MERGED
+        assert activity.payload["sender_login"] == "testuser"
+        assert activity.payload["sender_type"] == "User"
+
+    def test_terminal_event_written_despite_terminal_state(self) -> None:
+        # The close/merge webhook stamps the terminal state before this runs, so
+        # the terminal row (recording the closer) must still be written even though
+        # the PR's state already reads terminal.
+        self.pr.state = PullRequestLifecycleState.MERGED
+        self.pr.save()
+
+        self._call(action="closed", merged=True)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.MERGED
+
+    def test_terminal_pr_activity_stops_once_verdict_claimed(self) -> None:
+        # Not short-circuiting CLOSED/MERGED means a stray later event could be
+        # recorded; the verdict gate bounds that once the PR is settled.
+        self.pr.state = PullRequestLifecycleState.MERGED
+        self.pr.save()
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call(action="synchronize", before="a", after="b")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     # --- Unhandled actions ---
 

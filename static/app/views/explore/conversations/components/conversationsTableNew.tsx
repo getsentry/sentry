@@ -59,7 +59,7 @@ export function ConversationsTableNew() {
   const {selection} = usePageFilters();
   const {openModal} = useModal();
   const {columns, setColumns} = useConversationsTableColumns();
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor} = useConversations();
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
   const columnOrder = useMemo<Array<GridColumnOrder<ConversationColumnKey>>>(
@@ -97,7 +97,7 @@ export function ConversationsTableNew() {
   );
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -179,7 +179,7 @@ export function ConversationsTableNew() {
         </Button>
       </Flex>
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isFetching}
         error={error}
         data={data}
         columnOrder={columnOrder}

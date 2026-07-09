@@ -503,18 +503,21 @@ class OrganizationReleaseDetailsEndpoint(
             projects = release.projects.all()
         except Release.DoesNotExist:
             scope.set_tag("failure_reason", "Release.DoesNotExist")
+            scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(
             request, organization, release, require_all_projects=True
         ):
             scope.set_tag("failure_reason", "no_release_permission")
+            scope.set_attribute("failure_reason", "no_release_permission")
             raise ResourceDoesNotExist
 
         serializer = OrganizationReleaseSerializer(data=request.data)
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
+            scope.set_attribute("failure_reason", "serializer_error")
             return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
@@ -569,6 +572,7 @@ class OrganizationReleaseDetailsEndpoint(
         if refs:
             if not request.user.is_authenticated and not request.auth:
                 scope.set_tag("failure_reason", "user_not_authenticated")
+                scope.set_attribute("failure_reason", "user_not_authenticated")
                 return Response(
                     {"refs": ["You must use an authenticated API token to fetch refs"]},
                     status=400,
@@ -578,6 +582,7 @@ class OrganizationReleaseDetailsEndpoint(
                 release.set_refs(refs, request.user.id, fetch=fetch_commits)
             except InvalidRepository as e:
                 scope.set_tag("failure_reason", "InvalidRepository")
+                scope.set_attribute("failure_reason", "InvalidRepository")
                 return Response({"refs": [str(e)]}, status=400)
 
         if not was_released and release.date_released:
