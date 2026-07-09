@@ -65,8 +65,9 @@ def trace(
 
         return wrapper
 
-    if func is not None:
+    if func:
         return decorator(func)
+
     return decorator
 
 
