@@ -16,6 +16,7 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
@@ -512,6 +513,7 @@ export function useExplorerAutofix(
   const organization = useOrganization();
   const user = useUser();
   const orgSlug = organization.slug;
+  const serviceWorker = useServiceWorker();
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
@@ -565,6 +567,27 @@ export function useExplorerAutofix(
         userContext?: string;
       }
     ) => {
+      if (
+        organization.features.includes('autofix-browser-notifications') ||
+        serviceWorker.isServiceWorkerSupported
+      ) {
+        serviceWorker.controller
+          .postMessage({
+            type: 'event',
+            name: 'autofix.startStep',
+            data: {
+              organizationIdOrSlug: orgSlug,
+              issueId: groupId,
+              step,
+              insertIndex: startStepOptions?.insertIndex,
+              runId: startStepOptions?.runId,
+              userContext: startStepOptions?.userContext,
+            },
+          })
+          .catch(error => {
+            addErrorMessage(error instanceof Error ? error.message : String(error));
+          });
+      }
       setWaitingForResponse(true);
 
       try {
@@ -617,7 +640,7 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, queryClient, serviceWorker, organization.features]
   );
 
   /**

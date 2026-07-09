@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
@@ -25,8 +25,7 @@ export function ArtifactLoadingDetails({
 
   return (
     <ArtifactDetails>
-      <Flex
-        direction="column"
+      <Stack
         gap="md"
         ref={containerRef}
         maxHeight="200px"
@@ -49,13 +48,13 @@ export function ArtifactLoadingDetails({
 
           return null;
         })}
-        <Flex direction="row" gap="md">
+        <Flex gap="md" align="center">
           <StyledLoadingIndicator size={16} />
           <Text variant="muted" density="compressed">
             {loadingMessage}
           </Text>
         </Flex>
-      </Flex>
+      </Stack>
     </ArtifactDetails>
   );
 }

@@ -5,6 +5,7 @@ import {getUnhandledRejectionError} from 'sentry/serviceWorker/worker/getUnhandl
 import {handleInboundEvent} from 'sentry/serviceWorker/worker/handleInboundEvent';
 import {handleInboundRequest} from 'sentry/serviceWorker/worker/handleInboundRequest';
 import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
@@ -100,4 +101,31 @@ sw.addEventListener('message', event => {
       }
     )
   );
+});
+
+sw.addEventListener('notificationclick', (event: NotificationEvent) => {
+  console.log('On notification click:', event);
+  event.notification.close();
+
+  if ('to' in event.notification.data) {
+    event.waitUntil(
+      sw.clients.matchAll({type: 'window'}).then(windowClients => {
+        const targetUrl = new URL(event.notification.data.url);
+        const normalTargetUrl = new URL(normalizeUrl(event.notification.data.url));
+        for (const windowClient of windowClients) {
+          const windowUrl = new URL(windowClient.url);
+
+          if (
+            (windowUrl.pathname === targetUrl.pathname ||
+              windowUrl.pathname === normalTargetUrl.pathname) &&
+            'focus' in windowClient
+          ) {
+            return windowClient.focus();
+          }
+        }
+
+        return sw.clients.openWindow(targetUrl);
+      })
+    );
+  }
 });

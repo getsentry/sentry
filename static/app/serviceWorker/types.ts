@@ -1,7 +1,15 @@
-export type EventMessage = {
-  name: 'ping';
-  type: 'event';
-};
+import type {AutofixStartStepData} from 'sentry/serviceWorker/worker/handleAutofixStartStep';
+
+export type EventMessage =
+  | {
+      name: 'ping';
+      type: 'event';
+    }
+  | {
+      data: AutofixStartStepData;
+      name: 'autofix.startStep';
+      type: 'event';
+    };
 
 /**
  * The web `NotificationOptions` type only covers the widely-supported fields.

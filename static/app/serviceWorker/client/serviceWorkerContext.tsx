@@ -20,6 +20,7 @@ function getWorkerUrl(): string {
 }
 
 const Context = createContext({
+  isServiceWorkerSupported: isServiceWorkerSupported(),
   controller: new ServiceWorkerController(),
 });
 

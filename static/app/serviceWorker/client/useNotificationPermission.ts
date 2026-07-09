@@ -65,9 +65,9 @@ function getSnapshot(): NotificationPermission {
 // emit manually to force subscribers to re-read the snapshot.
 function askNotificationPermission() {
   if (!supportsNotifications) {
-    return;
+    return Promise.reject(new Error('Notifications are not supported'));
   }
-  Notification.requestPermission().then(emitChange);
+  return Notification.requestPermission().then(emitChange);
 }
 
 export function useNotificationPermission() {
