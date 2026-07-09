@@ -295,6 +295,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-use-agent-sandbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable delivery of custom webhook headers configured on a SentryApp
     manager.add("organizations:sentry-apps-custom-webhook-headers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Allow SentryApps to subscribe to individual webhook events instead of whole resources
+    manager.add("organizations:sentry-apps-granular-events", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -319,8 +321,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-stream-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Make the "recommended" sort the default sort in the issue stream
     manager.add("organizations:issue-stream-recommended-sort-default", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Show the experimental "recommended" sort (recommended_v2) as an option in the issue stream sort dropdown
-    manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Serve the recommended_v2 scorer behind the issue stream's "recommended" sort
+    manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the "progress" sort option (by issue fix-cycle progress) in the issue stream
     manager.add("organizations:issue-stream-progress-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
@@ -359,6 +361,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enables view hierarchy attachment scrubbing
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the redesigned page breadcrumbs (BreadcrumbList) on migrated pages
+    manager.add("organizations:ui-migration-breadcrumbs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-powered assertion suggestions for uptime monitors
     manager.add("organizations:uptime-ai-assertion-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auto spam classification at User Feedback ingest time
@@ -395,6 +399,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-issue-alert-endpoints-put", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Switches remaining (non-logs) Explore data exports from one-click button to a the modal
+    manager.add("organizations:explore-modal-export", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product (known internally as ourlogs) in UI and backend
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
@@ -444,7 +450,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     ###########################
     # Enables quick testing of disabling transaction name clustering for a project.
     manager.add("projects:transaction-name-clustering-disabled", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=False)
-    manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable error upsampling
     manager.add("projects:error-upsampling", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Enable calculating a severity score for events which create a new group

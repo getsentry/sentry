@@ -23,6 +23,7 @@ export interface UseSpanSearchQueryBuilderProps {
   autoFocus?: boolean;
   caseInsensitive?: CaseInsensitive;
   datetime?: PageFilters['datetime'];
+  defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
   disableLoadingTags?: boolean;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   onBlur?: (query: string, state: CallbackSearchState) => void;

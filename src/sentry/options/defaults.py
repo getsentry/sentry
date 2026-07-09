@@ -340,6 +340,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
+register(
+    "taskworker.selfchain_idempotency.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.selfchain_idempotency.ttl",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -611,6 +626,13 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Cooldown (seconds) between a PR's terminal close/merge webhook and emitting its
+# scm.pr.closed metrics row, so late attribution and activity can settle first.
+register(
+    "pr_metrics.emit_cooldown_seconds",
+    default=3600,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Integration
@@ -3697,13 +3719,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Global flag to enable API token async flush
-register(
-    "api-token-async-flush",
-    default=False,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cells
 
@@ -3783,14 +3798,6 @@ register(
 # Rolls out the new TaskProducer to replays tasks
 register(
     "tasks.producer.replays.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rolls out the new TaskProducer to track_outcome in tasks
-register(
-    "tasks.producer.track_outcome.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

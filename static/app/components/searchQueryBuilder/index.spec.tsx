@@ -17,6 +17,7 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {useInitialSeerQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -6237,6 +6238,45 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('free text', () => {
+      type AskSeerTestResponse = {
+        queries: never[];
+        status: string;
+        unsupported_reason: string | null;
+      };
+
+      function makeMockAskSeer() {
+        return jest.fn((_query: string) =>
+          Promise.resolve<AskSeerTestResponse>({
+            queries: [],
+            status: 'ok',
+            unsupported_reason: null,
+          })
+        );
+      }
+
+      function AskSeerAutoSubmitTestComponent({
+        children,
+        mockAskSeer,
+      }: {
+        children: React.ReactNode;
+        mockAskSeer: ReturnType<typeof makeMockAskSeer>;
+      }) {
+        const {displayAskSeer} = useSearchQueryBuilderAI();
+        const initialSeerQuery = useInitialSeerQuery();
+
+        return displayAskSeer ? (
+          <AskSeerComboBox
+            initialQuery={initialSeerQuery}
+            applySeerSearchQuery={() => {}}
+            askSeerMutationOptions={mutationOptions({
+              mutationFn: mockAskSeer,
+            })}
+          />
+        ) : (
+          children
+        );
+      }
+
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
         render(
@@ -6254,6 +6294,272 @@ describe('SearchQueryBuilder', () => {
         expect(
           screen.getByRole('option', {name: /Ask AI to build your query/i})
         ).toBeInTheDocument();
+      });
+
+      it('submits typed free text when opening ask seer from the dropdown', async () => {
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          enableAISearch: true,
+          initialQuery: 'browser.name:firefox',
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans');
+
+        const askSeer = await screen.findByRole('option', {
+          name: /Ask AI to build your query/,
+        });
+        await userEvent.click(askSeer);
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('browser.name is firefox find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith(
+            'browser.name is firefox find slow spans',
+            expect.anything()
+          );
+        });
+      });
+
+      it('submits free text to ask seer when defaulting to ask seer is enabled', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+        });
+        expect(mockOnSearch).not.toHaveBeenCalled();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
+
+        expect(
+          screen.queryByRole('row', {name: 'find slow spans'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
+      });
+
+      it('does not duplicate committed free text when defaulting to ask seer', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          initialQuery: 'find slow',
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(screen.getByRole('row', {name: 'find slow'}));
+        await userEvent.type(screen.getByDisplayValue('find slow'), ' spans{enter}');
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalledWith(
+          'find slow find slow spans',
+          expect.anything()
+        );
+        expect(mockOnSearch).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer when valid filters are present', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          initialQuery: 'browser.name:firefox',
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith(
+            'browser.name:firefox find slow spans',
+            expect.anything()
+          );
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer when incomplete filters are present', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          initialQuery: 'browser.name:',
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalled();
+        });
+        expect(mockOnSearch.mock.calls.at(-1)?.[0]).toEqual(
+          expect.stringContaining('browser.name:')
+        );
+        expect(mockOnSearch.mock.calls.at(-1)?.[0]).toEqual(
+          expect.stringContaining('find slow spans')
+        );
+        expect(mockAskSeer).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer when defaulting to ask seer is disabled', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'some free text{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer without the defaulting feature flag', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'some free text{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
       });
     });
 
