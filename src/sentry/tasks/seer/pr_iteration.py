@@ -29,8 +29,14 @@ from sentry.seer.autofix.pr_iteration.feedback_queue import (
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
 )
-from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
+from sentry.seer.autofix.pr_iteration.types import (
+    Feedback,
+    GithubPrCommentFeedbackSource,
+    GithubPrCommentFeedbackType,
+    GithubPrReviewCommentFeedbackSource,
+)
 from sentry.seer.models import SeerPermissionError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
@@ -90,7 +96,9 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
             return
 
         feedback_items = []
-        seen_comment_ids: set[int] = set()
+        # Keyed by (source class, comment id): issue-comment and review-comment
+        # ids come from separate GitHub namespaces, so dedupe within each type.
+        seen_comment_keys: set[tuple[type, int]] = set()
         for item in queued_items:
             if not item.feedback.is_valid_for_run_state(state):
                 logger.info(
@@ -105,12 +113,15 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
                 continue
 
             source = item.feedback.source
-            if isinstance(source, GithubPrCommentFeedbackSource):
+            if isinstance(
+                source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
+            ):
                 comment_id = source.comment.get("id")
                 if comment_id is not None:
-                    if comment_id in seen_comment_ids:
+                    key = (type(source), comment_id)
+                    if key in seen_comment_keys:
                         continue
-                    seen_comment_ids.add(comment_id)
+                    seen_comment_keys.add(key)
 
             feedback_items.append(item.feedback)
 
@@ -195,6 +206,7 @@ def trigger_pr_iteration_from_comment(
     pr_number: int,
     feedback: str,
     comment: Mapping[str, Any],
+    source_type: GithubPrCommentFeedbackType = "github-pr-comment",
 ) -> None:
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
@@ -229,7 +241,17 @@ def trigger_pr_iteration_from_comment(
         return None
 
     client = integration.get_installation(organization_id=organization_id).get_client()
-    pull_request = client.get_pull_request(repo.name, str(pr_number))
+    try:
+        # Async task: the PR may be deleted, made private, or GitHub may return a
+        # transient error between webhook receipt and execution.
+        pull_request = client.get_pull_request(repo.name, str(pr_number))
+    except ApiError:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
+            extra={"organization_id": organization_id, "pr_number": pr_number},
+            exc_info=True,
+        )
+        return None
     pr_id = pull_request.get("id")
     if pr_id is None:
         return None
@@ -262,10 +284,17 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    feedback_obj = Feedback(
-        text=feedback,
-        source={"type": "github-pr-comment", "comment": comment},
-    )
+    source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
+    if source_type == "github-pr-review-comment":
+        source = GithubPrReviewCommentFeedbackSource(
+            comment=comment,
+            file_path=comment.get("path"),
+            line=comment.get("line"),
+            start_line=comment.get("start_line"),
+        )
+    else:
+        source = GithubPrCommentFeedbackSource(comment=comment)
+    feedback_obj = Feedback(text=feedback, source=source)
 
     enqueue_autofix_feedback(
         run_id=agent_state.run_id,
@@ -286,6 +315,12 @@ def trigger_pr_iteration_from_comment(
 
     comment_id = comment.get("id")
     if comment_id is None:
+        return None
+
+    # Only top-level PR comments get the eyes reaction. Inline review comments
+    # need the pulls/comments reactions endpoint, which the SCM platform does not
+    # yet expose; skip rather than reach for a bespoke client method.
+    if source_type != "github-pr-comment":
         return None
 
     try:
