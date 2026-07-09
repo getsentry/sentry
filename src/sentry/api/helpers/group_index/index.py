@@ -6,7 +6,6 @@ from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,7 +22,6 @@ from sentry.models.group import Group, looks_like_short_id
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.signals import advanced_search_feature_gated
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.user import User
@@ -91,39 +89,11 @@ def build_query_params_from_request(
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
 
-    has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
         query = DEFAULT_QUERY
 
     query = query.strip()
-
-    if request.GET.get("savedSearch") == "0" and request.user and not has_query:
-        saved_searches = (
-            SavedSearch.objects
-            # Do not include pinned or personal searches from other users in
-            # the same organization. DOES include the requesting users pinned
-            # search
-            .exclude(
-                ~Q(owner_id=request.user.id),
-                visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
-            )
-            .filter(
-                Q(organization=organization) | Q(is_global=True),
-            )
-            .extra(order_by=["name"])
-        )
-        selected_search_id = request.GET.get("searchId", None)
-        if selected_search_id:
-            # saved search requested by the id
-            saved_search = saved_searches.filter(id=int(selected_search_id)).first()
-        else:
-            # pinned saved search
-            saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
-
-        if saved_search:
-            query_kwargs["sort_by"] = saved_search.sort
-            query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_attribute("search.query", query)
@@ -176,27 +146,27 @@ def validate_search_filter_permissions(
                 )
 
 
-def get_by_short_id(
+def get_by_short_ids(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
     *,
     project_ids: Collection[int] | None,
-) -> Group | None:
+) -> list[Group]:
+    # Match short id tokens anywhere in the query
     if is_short_id_lookup != "1":
-        return None
-    # A short id token anywhere in the query is treated as a direct hit,
-    # so it composes with filters. project_ids scopes the lookup so a short id for a project
-    # the caller cannot access does not resolve; pass None only for org-wide callers.
-    for token in query.split():
-        if looks_like_short_id(token):
-            try:
-                return Group.objects.by_qualified_short_id(
-                    organization_id, token, project_ids=project_ids
-                )
-            except Group.DoesNotExist:
-                continue
-    return None
+        return []
+    groups: list[Group] = []
+    for token in set(query.split()):
+        if not looks_like_short_id(token):
+            continue
+        try:
+            groups.append(
+                Group.objects.by_qualified_short_id(organization_id, token, project_ids=project_ids)
+            )
+        except Group.DoesNotExist:
+            continue
+    return groups
 
 
 def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFunction]:

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from functools import partial
 from typing import TypedDict
@@ -8,6 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -37,11 +39,14 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
 
+logger = logging.getLogger(__name__)
+
 
 class GroupHashesResult(TypedDict):
     id: str
     latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
     mergedBySeer: bool
+    seerMatchDistance: float | None
 
 
 @extend_schema(tags=["Events"])
@@ -54,7 +59,8 @@ class GroupHashesEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Issue's Hashes",
+        operation_id="listOrganizationIssueHashes",
+        summary="List an Issue's Hashes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -79,7 +85,11 @@ class GroupHashesEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_HASHES,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-hashes",
+        url_names=["sentry-api-0-group-hashes"],
+    )
     def get(self, request: Request, group: Group) -> Response[list[GroupHashesResult]]:
         """
         List the hashes that make up an issue. Each hash represents a grouping
@@ -110,7 +120,11 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-hashes",
+        url_names=["sentry-api-0-group-hashes"],
+    )
     def put(self, request: Request, group: Group) -> Response:
         """
         Perform an unmerge by reassigning events with hash values corresponding to the given
@@ -122,6 +136,24 @@ class GroupHashesEndpoint(GroupEndpoint):
         grouphash_ids = request.GET.getlist("id")
         if not grouphash_ids:
             return Response()
+
+        max_times_seen = options.get("issues.merge-unmerge.max-group-times-seen")
+        if max_times_seen and group.times_seen > max_times_seen:
+            metrics.incr("issues.merge_unmerge.restricted", tags={"op": "unmerge"})
+            logger.info(
+                "merge_unmerge.restricted",
+                extra={
+                    "op": "unmerge",
+                    "project_id": group.project_id,
+                    "source_id": group.id,
+                    "grouphash_ids": grouphash_ids,
+                    "max_times_seen": max_times_seen,
+                },
+            )
+            return Response(
+                {"detail": "Large merges and unmerges are temporarily restricted at this time."},
+                status=400,
+            )
 
         grouphashes = list(
             GroupHash.objects.filter(
@@ -179,15 +211,19 @@ class GroupHashesEndpoint(GroupEndpoint):
         grouphash: GroupHash | None = None,
     ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
-        merged_by_seer = bool(
-            grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash
-        )
+        if grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash:
+            merged_by_seer = True
+            seer_match_distance = grouphash.metadata.seer_match_distance
+        else:
+            merged_by_seer = False
+            seer_match_distance = None
 
         serializer = EventSerializer if full else SimpleEventSerializer
         response: GroupHashesResult = {
             "id": result["primary_hash"],
             "latestEvent": serialize(event, user, serializer()),
             "mergedBySeer": merged_by_seer,
+            "seerMatchDistance": seer_match_distance,
         }
 
         return response

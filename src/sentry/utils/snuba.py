@@ -21,6 +21,8 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk.traces import StreamedSpan
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
@@ -46,6 +48,7 @@ from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow, outside_retention_with_modified_start
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -247,6 +250,10 @@ SPAN_EAP_COLUMN_MAP = {
     "user.ip": "attr_str[sentry.user.ip]",
     "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
     "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
+    "gen_ai.request.reasoning_effort": "attr_str[gen_ai.request.reasoning_effort]",
+    "cloudflare.durable_object.query.bindings": "attr_num[cloudflare.durable_object.query.bindings]",
+    "cloudflare.durable_object.response.rows_read": "attr_num[cloudflare.durable_object.response.rows_read]",
+    "cloudflare.durable_object.response.rows_written": "attr_num[cloudflare.durable_object.response.rows_written]",
     "http.decoded_response_content_length": "attr_num[http.decoded_response_content_length]",
     "http.response_content_length": "attr_num[http.response_content_length]",
     "http.response_transfer_size": "attr_num[http.response_transfer_size]",
@@ -527,7 +534,7 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
-        with sentry_sdk.start_span(op="snuba_pool.retry.increment") as span:
+        with start_span(op="snuba_pool.retry.increment", name="snuba_pool.retry.increment") as span:
             # This next block is all debugging to try to track down a bug where we're seeing duplicate snuba requests
             # Wrapping the entire thing in a try/except to be safe cause none of it actually needs to run
             try:
@@ -535,14 +542,14 @@ class RetrySkipTimeout(urllib3.Retry):
                     error_class = error.__class__
                     module = error_class.__module__
                     name = error_class.__name__
-                    span.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+                    set_span_tag(span, "snuba_pool.retry.error", f"{module}.{name}")
                 else:
-                    span.set_tag("snuba_pool.retry.error", "None")
-                span.set_tag("snuba_pool.retry.total", self.total)
-                span.set_tag("snuba_pool.response.status", "unknown")
+                    set_span_tag(span, "snuba_pool.retry.error", "None")
+                set_span_tag(span, "snuba_pool.retry.total", self.total)
+                set_span_tag(span, "snuba_pool.response.status", "unknown")
                 if response:
                     if response.status:
-                        span.set_tag("snuba_pool.response.status", response.status)
+                        set_span_tag(span, "snuba_pool.response.status", response.status)
             except Exception:
                 pass
 
@@ -1180,8 +1187,14 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.transaction:
-        parent_api = scope.transaction.name
+
+    if has_span_streaming_enabled(sentry_sdk.get_client().options):
+        span = scope.streamed_span
+        if type(span) is StreamedSpan:
+            parent_api = span._segment.name
+    else:
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
@@ -1239,8 +1252,8 @@ def _is_rejected_query(body: Any) -> bool:
 def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
     snuba_requests_list = list(snuba_requests)
 
-    with sentry_sdk.start_span(op="snuba_query") as span:
-        span.set_tag("snuba.num_queries", len(snuba_requests_list))
+    with start_span(op="snuba_query", name="snuba_query") as span:
+        set_span_tag(span, "snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
             with ContextPropagatingThreadPoolExecutor(
@@ -1299,13 +1312,15 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             allocation_policy_prefix = "allocation_policy."
             bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
             if bytes_scanned is not None:
-                span.set_data(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
+                set_span_data(span, f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
                     if isinstance(v, dict):
                         for nested_k, nested_v in v.items():
-                            span.set_tag(allocation_policy_prefix + k + "." + nested_k, nested_v)
+                            set_span_tag(
+                                span, allocation_policy_prefix + k + "." + nested_k, nested_v
+                            )
                             sentry_sdk.set_tag(
                                 allocation_policy_prefix + k + "." + nested_k, nested_v
                             )
@@ -1313,7 +1328,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                                 allocation_policy_prefix + k + "." + nested_k, nested_v
                             )
                     else:
-                        span.set_tag(allocation_policy_prefix + k, v)
+                        set_span_tag(span, allocation_policy_prefix + k, v)
                         sentry_sdk.set_tag(allocation_policy_prefix + k, v)
                         sentry_sdk.set_attribute(allocation_policy_prefix + k, v)
 
@@ -1465,12 +1480,12 @@ def _raw_delete_query(
     # Enter hub such that http spans are properly nested
     with metrics.timer("snuba.client.delete_query"):
         referrer = headers.get("referer", "unknown")
-        with sentry_sdk.start_span(op="snuba_delete.validation", name=referrer) as span:
-            span.set_tag("snuba.referrer", referrer)
+        with start_span(op="snuba_delete.validation", name=referrer) as span:
+            set_span_tag(span, "snuba.referrer", referrer)
             body = request.serialize()
 
-        with sentry_sdk.start_span(op="snuba_delete.run", name=body) as span:
-            span.set_tag("snuba.referrer", referrer)
+        with start_span(op="snuba_delete.run", name=body) as span:
+            set_span_tag(span, "snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "DELETE", f"/{query.storage_name}", body=body, headers=headers
             )
@@ -1483,12 +1498,12 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
 
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
         serialized_req = request.serialize()
-        with sentry_sdk.start_span(op="snuba_mql.validation", name=referrer) as span:
-            span.set_tag("snuba.referrer", referrer)
+        with start_span(op="snuba_mql.validation", name=referrer) as span:
+            set_span_tag(span, "snuba.referrer", referrer)
             body = serialized_req
 
-        with sentry_sdk.start_span(op="snuba_mql.run", name=serialized_req) as span:
-            span.set_tag("snuba.referrer", referrer)
+        with start_span(op="snuba_mql.run", name=serialized_req) as span:
+            set_span_tag(span, "snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
             )
@@ -1500,12 +1515,12 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
         referrer = headers.get("referer", "<unknown>")
 
         serialized_req = request.serialize()
-        with sentry_sdk.start_span(op="snuba_snql.validation", name=referrer) as span:
-            span.set_tag("snuba.referrer", referrer)
+        with start_span(op="snuba_snql.validation", name=referrer) as span:
+            set_span_tag(span, "snuba.referrer", referrer)
             body = serialized_req
 
-        with sentry_sdk.start_span(op="snuba_snql.run", name=serialized_req) as span:
-            span.set_tag("snuba.referrer", referrer)
+        with start_span(op="snuba_snql.run", name=serialized_req) as span:
+            set_span_tag(span, "snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers
             )
@@ -1746,7 +1761,7 @@ def aliased_query(**kwargs):
     This method should be used sparingly. Instead prefer to use sentry.eventstore
     sentry.tagstore, or sentry.snuba.discover instead when reading data.
     """
-    with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
+    with start_span(op="sentry.snuba.aliased_query", name="sentry.snuba.aliased_query"):
         return _aliased_query_impl(**kwargs)
 
 

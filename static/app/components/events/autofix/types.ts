@@ -128,10 +128,20 @@ function isDiffLine(value: unknown): value is DiffLine {
   );
 }
 
-export interface AutofixRepoDefinition {
+interface AutofixRepo {
+  default_branch: string;
+  external_id: string;
+  has_read_access: boolean;
+  has_write_access: boolean;
   name: string;
   owner: string;
   provider: string;
+  repo_name: string;
+  integration_id?: number;
+}
+
+export interface AutofixReposResponse {
+  repos: AutofixRepo[];
 }
 
 interface BranchOverride {

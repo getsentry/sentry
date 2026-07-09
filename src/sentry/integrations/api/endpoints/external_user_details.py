@@ -59,7 +59,8 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         return args, kwargs
 
     @extend_schema(
-        operation_id="Update an External User",
+        operation_id="updateOrganizationExternalUser",
+        summary="Update an External User",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.EXTERNAL_USER_ID],
         request=ExternalUserSerializer,
         responses={
@@ -96,7 +97,8 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete an External User",
+        operation_id="deleteOrganizationExternalUser",
+        summary="Delete an External User",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.EXTERNAL_USER_ID],
         request=None,
         responses={

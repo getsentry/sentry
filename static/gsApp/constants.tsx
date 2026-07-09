@@ -34,10 +34,6 @@ export enum BillingConfigTier {
   ALL = 'all',
 }
 
-const BASIC_TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t'];
-const ENTERPRISE_TRIAL_PLANS = ['am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
-export const TRIAL_PLANS = [...BASIC_TRIAL_PLANS, ...ENTERPRISE_TRIAL_PLANS];
-
 // While we no longer offer or support unlimited ondemand we still
 // need to render billing history records that have unlimited ondemand.
 export const UNLIMITED_ONDEMAND = -1;

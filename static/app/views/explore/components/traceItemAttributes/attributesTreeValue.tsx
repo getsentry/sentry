@@ -1,4 +1,3 @@
-import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -45,7 +44,7 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
 }: {
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
-} & AttributesFieldRender<RendererExtra> & {theme: Theme}) {
+} & AttributesFieldRender<RendererExtra>) {
   const {originalAttribute} = content;
   if (!originalAttribute) {
     return null;

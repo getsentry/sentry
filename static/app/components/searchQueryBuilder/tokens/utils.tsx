@@ -144,7 +144,7 @@ export function resolveFilterKey({
     return trimmedKey;
   }
 
-  if (filterKeys[trimmedKey]) {
+  if (Object.hasOwn(filterKeys, trimmedKey)) {
     return trimmedKey;
   }
 

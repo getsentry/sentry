@@ -89,7 +89,6 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -108,6 +107,8 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
@@ -279,8 +280,6 @@ export function GlobalCommandPaletteActions() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const {openSeerExplorer} = useSeerExplorerContext();
-
   const queryProjectIds = new Set(decodeList(location.query.project));
   const currentProjects = params.projectId
     ? projects.filter(p => p.slug === params.projectId)
@@ -327,6 +326,9 @@ export function GlobalCommandPaletteActions() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+
+  const {supportsNotifications, permission, askNotificationPermission} =
+    useNotificationPermission();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -413,7 +415,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
               display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`}
+              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction
@@ -787,38 +789,6 @@ export function GlobalCommandPaletteActions() {
               onAction={() => exitSuperuser()}
             />
           )}
-          <CMDKAction
-            display={{label: t('Night Shift Chats'), icon: <IconSeer />}}
-            keywords={[
-              t('seer'),
-              t('ai'),
-              t('chat'),
-              t('agent'),
-              t('explorer'),
-              t('nightshift'),
-              t('autofix'),
-            ]}
-            limit={10}
-            resource={() => {
-              return cmdkQueryOptions({
-                ...apiOptions.as<{data: Array<{run_id: number; title: string}>}>()(
-                  '/organizations/$organizationIdOrSlug/seer/explorer-runs/',
-                  {
-                    path: {organizationIdOrSlug: organization.slug},
-                    query: {per_page: 10, category_key: 'night_shift', owner: 'false'},
-                    staleTime: 30_000,
-                  }
-                ),
-                select: data =>
-                  data.json.data.map(session => ({
-                    display: {label: session.title, icon: <IconSeer />},
-                    onAction: () => openSeerExplorer({runId: session.run_id}),
-                  })),
-              });
-            }}
-          >
-            {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
         </CMDKAction>
       )}
 
@@ -1149,6 +1119,45 @@ export function GlobalCommandPaletteActions() {
           }}
         />
       )}
+
+      {user.isStaff &&
+        (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
+          <CMDKAction
+            display={{label: 'Disable Analytics Debug Mode', icon: <IconOpen />}}
+            keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
+            onAction={() => {
+              window.localStorage?.setItem('DEBUG_ANALYTICS', '0');
+            }}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: 'Enable Analytics Debug Mode', icon: <IconOpen />}}
+            keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
+            onAction={() => {
+              window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+            }}
+          />
+        ))}
+
+      {user.isStaff &&
+        supportsNotifications &&
+        (permission === 'granted' ? (
+          <CMDKAction
+            display={{label: 'Browser Notifications (granted)', icon: <IconSubscribed />}}
+            keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
+            onAction={() => {
+              askNotificationPermission();
+            }}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: 'Allow Browser Notifications', icon: <IconSubscribed />}}
+            keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
+            onAction={() => {
+              askNotificationPermission();
+            }}
+          />
+        ))}
     </CommandPaletteSlot>
   );
 }

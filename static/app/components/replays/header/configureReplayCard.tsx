@@ -13,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function ConfigureReplayCard({
   isMobile,
@@ -23,7 +22,6 @@ export function ConfigureReplayCard({
   replayRecord: ReplayRecord | undefined;
 }) {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
     <DropdownMenu
@@ -35,11 +33,7 @@ export function ConfigureReplayCard({
       }}
       items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
       trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          isOpen={isOpen}
-          size={hasPageFrameFeature ? 'sm' : 'xs'}
-        >
+        <DropdownButton {...triggerProps} isOpen={isOpen} size="sm">
           {t('Configure Replay')}
         </DropdownButton>
       )}
@@ -50,6 +44,7 @@ export function ConfigureReplayCard({
 function getPath(sdkName: string | null | undefined) {
   switch (sdkName) {
     case 'sentry.cocoa':
+    case 'sentry.cocoa.unreal': // Session Replay on iOS builds of Unreal Engine games via the embedded Cocoa SDK
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
     case 'sentry.java.android':
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/

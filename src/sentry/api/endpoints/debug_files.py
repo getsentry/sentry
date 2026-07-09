@@ -1,6 +1,8 @@
 import logging
 import posixpath
 import re
+import shutil
+import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
@@ -11,11 +13,13 @@ from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from objectstore_client import RequestError
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
+from urllib3.exceptions import HTTPError
 
 from sentry.apidocs.response_types import DetailResponse
 
@@ -272,17 +276,23 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
-            assert debug_file.file is not None
-            fp = debug_file.file.getfile()
+            fp = debug_file.get_file()
+
+            def stream_debug_file():
+                try:
+                    yield from iter(lambda: fp.read(4096), b"")
+                finally:
+                    fp.close()
+
             response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
+                stream_debug_file(), content_type="application/octet-stream"
             )
-            response["Content-Length"] = debug_file.file.size
+            response["Content-Length"] = debug_file.get_file_size()
             response["Content-Disposition"] = (
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
-        except OSError:
+        except (OSError, RequestError, Project.DoesNotExist, HTTPError):
             raise Http404
 
     @extend_schema(
@@ -339,7 +349,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
             for file_format in file_formats:
                 known_file_format = DIF_MIMETYPES.get(file_format)
                 if known_file_format:
-                    file_format_q |= Q(file__headers__icontains=known_file_format)
+                    file_format_q |= Q(file__headers__icontains=known_file_format) | Q(
+                        content_type__icontains=known_file_format
+                    )
             q &= file_format_q
 
         queryset = None
@@ -370,11 +382,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 | Q(code_id__icontains=query)
                 | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
+                | Q(content_type__icontains=query)
             )
 
             known_file_format = DIF_MIMETYPES.get(query)
             if known_file_format:
-                query_q |= Q(file__headers__icontains=known_file_format)
+                query_q |= Q(file__headers__icontains=known_file_format) | Q(
+                    content_type__icontains=known_file_format
+                )
 
             q &= query_q
 
@@ -775,15 +790,22 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
     """Builds a per-row match score for ProGuard clone-source selection.
 
     The annotation returns ``1`` when a row belongs to one of the requested
-    checksums, points at a ``project.dif`` file, and its linked ``File`` has
-    headers exactly matching the stored ProGuard content type. It returns ``0``
-    for all other rows.
+    checksums and is a ProGuard mapping — either via the linked ``File``
+    (type ``project.dif`` with matching content-type header) or via the
+    Objectstore path (``file`` is NULL, ``content_type`` matches directly).
+    It returns ``0`` for all other rows.
     """
+    proguard_ct = DIF_MIMETYPES["proguard"]
     return Case(
         When(
-            checksum__in=checksums,
-            file__type="project.dif",
-            file__headers={"Content-Type": DIF_MIMETYPES["proguard"]},
+            Q(checksum__in=checksums)
+            & (
+                Q(
+                    file__type="project.dif",
+                    file__headers={"Content-Type": proguard_ct},
+                )
+                | Q(file__isnull=True, content_type=proguard_ct)
+            ),
             then=Value(1),
         ),
         default=Value(0),
@@ -813,7 +835,21 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    if debug_file.file is not None:
+        dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    elif debug_file.storage_path is not None:
+        source_fileobj = debug_file.get_file()
+        try:
+            # Spool into a temporary file to get a seekable stream.
+            with tempfile.TemporaryFile() as tmp:
+                shutil.copyfileobj(source_fileobj, tmp)
+                tmp.seek(0)
+                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
+        finally:
+            source_fileobj.close()
+    else:
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
     if created:
         record_last_upload(project)
 

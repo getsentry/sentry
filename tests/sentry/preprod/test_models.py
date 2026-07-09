@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -1599,3 +1599,43 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
         assert len(result) == 1
         assert result[head_artifact.id] == base_artifact_with_config
+
+
+@cell_silo_test
+class PreprodArtifactMobileAppInfoFormatVersionStringTest(PreprodArtifactModelTestBase):
+    """Tests for PreprodArtifactMobileAppInfo.format_version_string."""
+
+    def _create_mobile_app_info(self, **kwargs) -> PreprodArtifactMobileAppInfo:
+        preprod_artifact = self.create_preprod_artifact(project=self.project)
+        return self.create_preprod_artifact_mobile_app_info(preprod_artifact, **kwargs)
+
+    def test_format_version_string_prefers_raw_build_number(self) -> None:
+        mobile_app_info = self._create_mobile_app_info(
+            build_version="1.2.3",
+            build_number=1_000_002_000_003,
+            extras={"build_number_raw": "1.2.3"},
+        )
+
+        assert mobile_app_info.format_version_string() == "1.2.3 (1.2.3)"
+
+    def test_format_version_string_falls_back_to_build_number(self) -> None:
+        mobile_app_info = self._create_mobile_app_info(
+            build_version="1.2.3",
+            build_number=9999,
+        )
+
+        assert mobile_app_info.format_version_string() == "1.2.3 (9999)"
+
+    def test_format_version_string_ignores_unrelated_extras(self) -> None:
+        mobile_app_info = self._create_mobile_app_info(
+            build_version="1.2.3",
+            build_number=9999,
+            extras={"some_other_key": "value"},
+        )
+
+        assert mobile_app_info.format_version_string() == "1.2.3 (9999)"
+
+    def test_format_version_string_default_when_empty(self) -> None:
+        mobile_app_info = self._create_mobile_app_info()
+
+        assert mobile_app_info.format_version_string() == "--"

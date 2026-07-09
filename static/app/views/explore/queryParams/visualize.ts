@@ -16,6 +16,10 @@ export const MAX_VISUALIZES = 8;
 
 interface VisualizeOptions {
   chartType?: ChartType;
+  // The internal expression is used to store the reference format for
+  // equations so we can properly update the correct references when
+  // dependencies change
+  internalExpression?: string;
   visible?: boolean;
 }
 
@@ -38,8 +42,10 @@ export abstract class Visualize {
     chartType,
     visible,
     yAxis,
+    internalExpression,
   }: {
     chartType?: ChartType;
+    internalExpression?: string;
     visible?: boolean;
     yAxis?: string;
   }): Visualize;
@@ -66,6 +72,7 @@ export abstract class Visualize {
         return new VisualizeEquation(yAxis, {
           chartType: json.chartType,
           visible: json.visible,
+          internalExpression: json.internalExpression,
         });
       }
       return new VisualizeFunction(yAxis, {
@@ -98,6 +105,7 @@ export class VisualizeFunction extends Visualize {
     yAxis,
   }: {
     chartType?: ChartType;
+    internalExpression?: string;
     visible?: boolean;
     yAxis?: string;
   }): VisualizeFunction {
@@ -111,15 +119,18 @@ export class VisualizeFunction extends Visualize {
 export class VisualizeEquation extends Visualize {
   readonly kind = 'equation';
   readonly expression: Expression;
+  readonly internalExpression?: string;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     super(yAxis, options);
     this.expression = new Expression(stripEquationPrefix(yAxis));
+    this.internalExpression = options?.internalExpression;
   }
 
   clone(): Visualize {
     return new VisualizeEquation(this.yAxis, {
       chartType: this.selectedChartType,
+      internalExpression: this.internalExpression,
     });
   }
 
@@ -127,15 +138,26 @@ export class VisualizeEquation extends Visualize {
     chartType,
     visible,
     yAxis,
+    internalExpression,
   }: {
     chartType?: ChartType;
+    internalExpression?: string;
     visible?: boolean;
     yAxis?: string;
   }): Visualize {
     return new VisualizeEquation(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
+      internalExpression: internalExpression ?? this.internalExpression,
     });
+  }
+
+  override serialize(): BaseVisualize {
+    const json = super.serialize();
+    if (this.internalExpression) {
+      json.internalExpression = this.internalExpression;
+    }
+    return json;
   }
 }
 
@@ -188,6 +210,7 @@ export function isVisualizeEquation(
 export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
+  internalExpression?: string;
   visible?: boolean;
 }
 

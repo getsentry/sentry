@@ -60,12 +60,23 @@ export function useStreamingAnimation(
       }
       activeAnimations = [];
 
+      const newElements: HTMLElement[] = [];
       for (const mutation of mutations) {
         for (const addedNode of mutation.addedNodes) {
-          if (addedNode instanceof Element) {
-            activeAnimations.push(animateElement(addedNode));
+          if (addedNode instanceof HTMLElement) {
+            newElements.push(addedNode);
           }
         }
+      }
+
+      // Sequence animations across block-level elements so paragraphs
+      // arriving in the same poll reveal one after another, not all at once.
+      let charOffset = 0;
+      for (const el of newElements) {
+        const skip = Number.parseInt(el.dataset.skip ?? '0', 10);
+        const totalChars = (el.textContent ?? '').length;
+        activeAnimations.push(animateElement(el, charOffset));
+        charOffset += Math.max(0, totalChars - skip);
       }
     });
 
@@ -90,6 +101,7 @@ const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
+const DUMMY_WRAPPER = document.createElement('span');
 
 function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
@@ -117,6 +129,9 @@ export const streamingAnimationStyles = css`
   ${ATTR_SEL}.visible {
     opacity: var(--go, 1);
   }
+  [data-streaming-hidden] {
+    opacity: 0;
+  }
   ${ATTR_SEL}::after {
     content: '1';
     animation: var(--da, ${DECODE_ANIMATIONS[0]?.name}) ${CYCLE_DURATION_MS}ms steps(1)
@@ -134,9 +149,11 @@ export const streamingAnimationStyles = css`
 interface TextRun {
   active: boolean[];
   collapseCursor: number;
+  decoratedAncestors: Element[];
   globalOffset: number;
   graphemes: string[];
   original: string;
+  revealed: boolean;
   spans: HTMLSpanElement[];
   wrapper: HTMLSpanElement;
 }
@@ -144,7 +161,8 @@ interface TextRun {
 function prepareTextNode(
   textNode: Text,
   globalOffset: number,
-  skipChars: number
+  skipChars: number,
+  root: Element
 ): TextRun | null {
   const original = textNode.nodeValue ?? '';
   if (!original.trim()) {
@@ -155,9 +173,29 @@ function prepareTextNode(
   if (!parent) {
     return null;
   }
-  const computedColor = getComputedStyle(parent as Element).color;
+  const decoratedAncestors: Element[] = [];
+  let ancestor = parent instanceof Element ? parent : null;
+  while (ancestor && ancestor !== root) {
+    decoratedAncestors.push(ancestor);
+    ancestor = ancestor.parentElement;
+  }
   const graphemes = Array.from(segmenter.segment(original), s => s.segment);
 
+  if (globalOffset + graphemes.length <= skipChars) {
+    return {
+      original,
+      wrapper: DUMMY_WRAPPER,
+      spans: [],
+      graphemes,
+      active: [],
+      globalOffset,
+      collapseCursor: 0,
+      decoratedAncestors,
+      revealed: true,
+    };
+  }
+
+  const computedColor = getComputedStyle(parent as Element).color;
   const wrapper = document.createElement('span');
   wrapper.style.setProperty('--glyph-color', computedColor);
   const spans: HTMLSpanElement[] = [];
@@ -194,7 +232,17 @@ function prepareTextNode(
 
   textNode.replaceWith(wrapper);
 
-  return {original, wrapper, spans, graphemes, active, globalOffset, collapseCursor: 0};
+  return {
+    original,
+    wrapper,
+    spans,
+    graphemes,
+    active,
+    globalOffset,
+    collapseCursor: 0,
+    decoratedAncestors,
+    revealed: !active.includes(true),
+  };
 }
 
 function collapseSettledPrefix(run: TextRun) {
@@ -264,10 +312,9 @@ interface Animation {
 
 const NOOP_ANIMATION: Animation = {settle() {}, destroy() {}};
 
-function animateElement(element: Element): Animation {
-  const htmlEl = element as HTMLElement;
-  const skipChars = Number.parseInt(htmlEl.dataset.skip ?? '0', 10);
-  delete htmlEl.dataset.skip;
+function animateElement(element: HTMLElement, charOffset = 0): Animation {
+  const skipChars = Number.parseInt(element.dataset.skip ?? '0', 10);
+  delete element.dataset.skip;
 
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
@@ -288,7 +335,7 @@ function animateElement(element: Element): Animation {
   let globalIndex = 0;
 
   for (const textNode of textNodes) {
-    const run = prepareTextNode(textNode, globalIndex, skipChars);
+    const run = prepareTextNode(textNode, globalIndex, skipChars, element);
     if (run) {
       runs.push(run);
       globalIndex += run.graphemes.length;
@@ -297,6 +344,26 @@ function animateElement(element: Element): Animation {
 
   if (runs.length === 0) {
     return NOOP_ANIMATION;
+  }
+
+  // Only hide ancestors exclusive to active runs — shared ancestors
+  // (e.g. a <p> containing both old and new text) must stay visible.
+  const sharedAncestors = new Set<Element>();
+  for (const run of runs) {
+    if (run.revealed) {
+      for (const el of run.decoratedAncestors) {
+        sharedAncestors.add(el);
+      }
+    }
+  }
+  for (const run of runs) {
+    if (!run.revealed) {
+      for (const el of run.decoratedAncestors) {
+        if (!sharedAncestors.has(el)) {
+          el.setAttribute('data-streaming-hidden', '');
+        }
+      }
+    }
   }
 
   let settled = false;
@@ -320,11 +387,20 @@ function animateElement(element: Element): Animation {
     });
   }
 
+  function revealAll() {
+    for (const run of runs) {
+      for (const el of run.decoratedAncestors) {
+        el.removeAttribute('data-streaming-hidden');
+      }
+    }
+  }
+
   function settle() {
     if (settled) {
       return;
     }
     settled = true;
+    revealAll();
     if (pendingIdle !== null) {
       cancelIdle(pendingIdle);
       pendingIdle = null;
@@ -347,6 +423,7 @@ function animateElement(element: Element): Animation {
       clearTimeout(fadeTimeout);
       fadeTimeout = null;
     }
+    revealAll();
     restoreRuns(runs);
   }
 
@@ -372,11 +449,17 @@ function animateElement(element: Element): Animation {
 
         const globalIdx = run.globalOffset + i;
         const animatedIdx = globalIdx - skipChars;
-        const settleAt = animatedIdx * STAGGER_MS;
+        const settleAt = (animatedIdx + charOffset) * STAGGER_MS;
         const fadeAt = Math.max(0, settleAt - FADE_LEAD_MS);
 
         if (elapsed >= fadeAt) {
           span.classList.add('visible');
+          if (!run.revealed) {
+            run.revealed = true;
+            for (const el of run.decoratedAncestors) {
+              el.removeAttribute('data-streaming-hidden');
+            }
+          }
         }
 
         if (elapsed >= settleAt) {
@@ -390,7 +473,7 @@ function animateElement(element: Element): Animation {
 
     scheduleCollapse();
 
-    if (allSettled || elapsed >= MAX_DURATION_MS) {
+    if (allSettled || elapsed >= MAX_DURATION_MS + charOffset * STAGGER_MS) {
       settle();
     } else {
       requestAnimationFrame(tick);

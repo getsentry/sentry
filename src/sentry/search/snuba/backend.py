@@ -275,20 +275,20 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
     """
     Filters issues by their position in the resolution lifecycle:
 
-      identified -> triaged -> diagnosed -> fix_proposed -> fix_applied
+      identified -> assigned -> diagnosed -> fix_proposed -> fix_applied
 
     "diagnosed" and above are determined by seer/resolution activity types (see
     ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression or manual unresolve resets an issue
     back, so only activities *after* the latest reset count.
 
-    "identified" and "triaged" are the two base states before any seer activity,
+    "identified" and "assigned" are the two base states before any seer activity,
     distinguished solely by whether the issue is currently assigned:
       - identified: not assigned AND no post-regression seer activity
-      - triaged:    assigned (via GroupAssignee) AND no post-regression seer activity
+      - assigned:   assigned (via GroupAssignee) AND no post-regression seer activity
 
     Assignment is checked via GroupAssignee rather than ASSIGNED activity so that it
     survives regressions — an issue that was assigned, progressed, then regressed
-    remains triaged as long as it's still assigned.
+    remains assigned as long as it's still assigned.
     """
     from sentry.issues.progress import ISSUE_PROGRESS_TO_ACTIVITY_TYPES, IssueProgressState
 
@@ -307,7 +307,7 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
         progress = IssueProgressState(value)
         if progress is IssueProgressState.IDENTIFIED:
             q |= ~assigned_q & ~has_progress_q
-        elif progress is IssueProgressState.TRIAGED:
+        elif progress is IssueProgressState.ASSIGNED:
             q |= assigned_q & ~has_progress_q
         else:
             activity_types = ISSUE_PROGRESS_TO_ACTIVITY_TYPES[progress]

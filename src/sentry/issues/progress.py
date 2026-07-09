@@ -1,22 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from enum import StrEnum
 
 from django.db.models import Max, Q
 
+from sentry.issues.progress_state import IssueProgressState
+
+__all__ = ["IssueProgressState"]
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.types.activity import ActivityType
-
-
-class IssueProgressState(StrEnum):
-    IDENTIFIED = "identified"
-    TRIAGED = "triaged"
-    DIAGNOSED = "diagnosed"
-    FIX_PROPOSED = "fix_proposed"
-    FIX_APPLIED = "fix_applied"
-
 
 ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[IssueProgressState, list[int]] = {
     IssueProgressState.DIAGNOSED: [ActivityType.SEER_RCA_COMPLETED.value],
@@ -34,7 +27,7 @@ ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[IssueProgressState, list[int]] = {
 }
 
 # Defines the order in which progress states are considered
-# Triaged and Identified are fallbacks (depending on assignment status) so are not listed here.
+# Assigned and Identified are fallbacks (depending on assignment status) so are not listed here.
 PROGRESS_STATES_DESCENDING = [
     IssueProgressState.FIX_APPLIED,
     IssueProgressState.FIX_PROPOSED,
@@ -117,16 +110,16 @@ def get_group_progress_states(
         # If the reset was most recent
         else:
             result[group_id] = (
-                IssueProgressState.TRIAGED
+                IssueProgressState.ASSIGNED
                 if group_id in assigned_group_ids
                 else IssueProgressState.IDENTIFIED
             ).value
 
-    # If the group does not have any matching activities, it is presumed to be identified or triaged.
+    # If the group does not have any matching activities, it is presumed to be identified or assigned.
     for group_id in group_ids:
         if group_id not in groups_with_activities:
             result[group_id] = (
-                IssueProgressState.TRIAGED
+                IssueProgressState.ASSIGNED
                 if group_id in assigned_group_ids
                 else IssueProgressState.IDENTIFIED
             ).value

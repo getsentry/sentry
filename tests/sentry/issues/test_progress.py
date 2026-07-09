@@ -21,7 +21,7 @@ class GetGroupProgressStatesTest(TestCase):
         group = self.create_group()
         GroupAssignee.objects.assign(group, self.user)
         result = get_group_progress_states([group.id])
-        assert result[group.id] == IssueProgressState.TRIAGED
+        assert result[group.id] == IssueProgressState.ASSIGNED
 
     def test_diagnosed_state(self) -> None:
         group = self.create_group()
@@ -93,7 +93,7 @@ class GetGroupProgressStatesTest(TestCase):
         result = get_group_progress_states([group.id])
         assert result[group.id] == IssueProgressState.IDENTIFIED
 
-    def test_regression_resets_to_triaged_when_assigned(self) -> None:
+    def test_regression_resets_to_assigned_when_assigned(self) -> None:
         group = self.create_group()
         GroupAssignee.objects.assign(group, self.user)
         now = timezone.now()
@@ -108,7 +108,7 @@ class GetGroupProgressStatesTest(TestCase):
             datetime=now - timedelta(hours=1),
         )
         result = get_group_progress_states([group.id])
-        assert result[group.id] == IssueProgressState.TRIAGED
+        assert result[group.id] == IssueProgressState.ASSIGNED
 
     def test_activity_after_regression_counts(self) -> None:
         group = self.create_group()
@@ -147,7 +147,7 @@ class GetGroupProgressStatesTest(TestCase):
         result = get_group_progress_states([group.id])
         assert result[group.id] == IssueProgressState.IDENTIFIED
 
-    def test_unresolve_resets_to_triaged_when_assigned(self) -> None:
+    def test_unresolve_resets_to_assigned_when_assigned(self) -> None:
         group = self.create_group()
         GroupAssignee.objects.assign(group, self.user)
         now = timezone.now()
@@ -162,7 +162,7 @@ class GetGroupProgressStatesTest(TestCase):
             datetime=now - timedelta(hours=1),
         )
         result = get_group_progress_states([group.id])
-        assert result[group.id] == IssueProgressState.TRIAGED
+        assert result[group.id] == IssueProgressState.ASSIGNED
 
     def test_activity_after_unresolve_counts(self) -> None:
         group = self.create_group()
@@ -197,4 +197,4 @@ class GetGroupProgressStatesTest(TestCase):
         result = get_group_progress_states([group1.id, group2.id, group3.id])
         assert result[group1.id] == IssueProgressState.DIAGNOSED
         assert result[group2.id] == IssueProgressState.FIX_APPLIED
-        assert result[group3.id] == IssueProgressState.TRIAGED
+        assert result[group3.id] == IssueProgressState.ASSIGNED

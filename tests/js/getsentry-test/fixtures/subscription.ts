@@ -11,7 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isTrialPlan} from 'getsentry/utils/billing';
+
+const TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t', 'am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
+
+// Derives whether a plan id is a trial plan, so the fixture can set the
+// trial-related fields the backend resolves from the subscription.
+const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -73,7 +78,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hasDismissedForcedTrialNotice: false,
     hasDismissedTrialEndingNotice: false,
     hasMigratedToBillingPlatform: false,
-    hasOverageNotificationsDisabled: false,
     hasRestrictedIntegration: false,
     hadCustomDynamicSampling: false,
     id: '',
@@ -94,6 +98,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     countryCode: null,
     cancelAtPeriodEnd: false,
     isTrial,
+    onTrialPlan: isTrial,
     paymentSource: {
       last4: '4242',
       countryCode: 'US',
@@ -108,7 +113,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     partner: null,
     planDetails,
     totalMembers: 1,
-    contractInterval: 'monthly',
     totalLicenses: 1,
     billingPeriodStart: '2018-09-25',
     suspensionReason: null,
@@ -126,19 +130,15 @@ export function SubscriptionFixture(props: Props): TSubscription {
     usedLicenses: 1,
     membersDeactivatedFromLimit: 0,
     type: BillingType.CREDIT_CARD,
-    hasSoftCap: false,
     isPastDue: false,
     onDemandDisabled: false,
     onDemandInvoiced: false,
-    contractPeriodStart: '2018-09-25',
     onDemandMaxSpend: 0,
     productTrials: [],
     isManaged: false,
-    contractPeriodEnd: '2018-10-24',
     canTrial: true,
     slug: organization.slug,
     pendingChanges: null,
-    usageExceeded: false,
     name: organization.name,
     billingInterval: planDetails.billingInterval || 'monthly',
     dateJoined: '2018-09-10T23:58:10.167Z',

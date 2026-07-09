@@ -75,6 +75,9 @@ export const SENTRY_SPAN_NUMBER_TAGS: string[] = [
   SpanFields.GEN_AI_COST_INPUT_TOKENS,
   SpanFields.GEN_AI_COST_OUTPUT_TOKENS,
   SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+  SpanFields.GEN_AI_USAGE_INPUT_TOKENS,
+  SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS,
+  SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
   'gen_ai.usage.total_cost',
 ];
 

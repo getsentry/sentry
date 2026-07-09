@@ -18,11 +18,11 @@ describe('useLogsQueryTruncate', () => {
   it('rounds the formula result up to the next power of two', () => {
     mockUseWindowSize.mockReturnValue({innerWidth: 6400, innerHeight: 1080});
     const {result} = renderHookWithProviders(() => useLogsQueryTruncate());
-    expect(result.current).toBe(512);
+    expect(result.current).toBe(1024);
   });
 
   it('returns the exact value when the formula result is already a power of two', () => {
-    mockUseWindowSize.mockReturnValue({innerWidth: 4096, innerHeight: 1080});
+    mockUseWindowSize.mockReturnValue({innerWidth: 3072, innerHeight: 1080});
     const {result} = renderHookWithProviders(() => useLogsQueryTruncate());
     expect(result.current).toBe(256);
   });
@@ -30,30 +30,30 @@ describe('useLogsQueryTruncate', () => {
   it('does not shrink the truncation length when the viewport shrinks', () => {
     mockUseWindowSize.mockReturnValue({innerWidth: 6400, innerHeight: 1080});
     const {result, rerender} = renderHookWithProviders(() => useLogsQueryTruncate());
-    expect(result.current).toBe(512);
+    expect(result.current).toBe(1024);
 
     mockUseWindowSize.mockReturnValue({innerWidth: 3200, innerHeight: 1080});
     rerender();
-    expect(result.current).toBe(512);
+    expect(result.current).toBe(1024);
   });
 
   it('does not recompute when the viewport grows within the same power of two', () => {
     mockUseWindowSize.mockReturnValue({innerWidth: 3200, innerHeight: 1080});
     const {result, rerender} = renderHookWithProviders(() => useLogsQueryTruncate());
-    expect(result.current).toBe(256);
+    expect(result.current).toBe(512);
 
-    mockUseWindowSize.mockReturnValue({innerWidth: 4096, innerHeight: 1080});
+    mockUseWindowSize.mockReturnValue({innerWidth: 6000, innerHeight: 1080});
     rerender();
-    expect(result.current).toBe(256);
+    expect(result.current).toBe(512);
   });
 
   it('grows the truncation length when the viewport grows past the next power of two', () => {
-    mockUseWindowSize.mockReturnValue({innerWidth: 4096, innerHeight: 1080});
+    mockUseWindowSize.mockReturnValue({innerWidth: 3200, innerHeight: 1080});
     const {result, rerender} = renderHookWithProviders(() => useLogsQueryTruncate());
-    expect(result.current).toBe(256);
+    expect(result.current).toBe(512);
 
     mockUseWindowSize.mockReturnValue({innerWidth: 8192, innerHeight: 1080});
     rerender();
-    expect(result.current).toBe(512);
+    expect(result.current).toBe(1024);
   });
 });

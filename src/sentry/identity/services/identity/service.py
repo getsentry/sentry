@@ -67,6 +67,19 @@ class IdentityService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_org_user_identities_by_provider_type(
+        self,
+        *,
+        organization_id: int,
+        user_id: int,
+        provider_type: str,
+    ) -> list[RpcIdentity]:
+        """
+        Returns identities linked to a specific org via OrganizationIdentity.
+        """
+
+    @rpc_method
+    @abstractmethod
     def delete_identities(self, user_id: int, organization_id: int) -> None:
         """
         Deletes the set of identities associated with a user and organization context.

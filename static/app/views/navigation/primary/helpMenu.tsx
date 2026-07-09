@@ -47,7 +47,7 @@ export function PrimaryNavigationHelpMenu() {
     {
       key: 'resources',
       label: t('Resources'),
-      isSubmenu: true,
+      submenu: true,
       leadingItems: (
         <MenuIcon>
           <IconQuestion />
@@ -110,7 +110,7 @@ export function PrimaryNavigationHelpMenu() {
     {
       key: 'community',
       label: t('Community'),
-      isSubmenu: true,
+      submenu: true,
       leadingItems: (
         <MenuIcon>
           <IconGroup />
@@ -142,7 +142,7 @@ export function PrimaryNavigationHelpMenu() {
     {
       key: 'legal',
       label: t('Legal'),
-      isSubmenu: true,
+      submenu: true,
       hidden: !privacyUrl && !termsUrl,
       leadingItems: (
         <MenuIcon>

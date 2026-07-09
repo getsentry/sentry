@@ -21,7 +21,8 @@ from sentry.types.cell import (
     Locality,
     RegionCategory,
     find_all_cell_names,
-    find_all_multitenant_cell_names,
+    find_all_multitenant_locality_names,
+    find_all_signup_locality_names,
     find_cells_for_sentry_app,
     find_cells_for_user,
     get_cell_by_name,
@@ -106,7 +107,7 @@ class CellDirectoryTest(TestCase):
             yield
 
     def test_cell_config_parsing_in_monolith(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
         assert directory.get_cell_by_name("nowhere") is None
@@ -120,14 +121,40 @@ class CellDirectoryTest(TestCase):
     def test_cell_config_parsing_in_control(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.CONTROL),
-            override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"),
+            override_settings(SENTRY_FALLBACK_CELL="us"),
         ):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
+    def test_cell_config_parsing_signup_visibility(self) -> None:
+        cells: list[CellConfig] = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "https://us.testserver",
+            },
+        ]
+        localities: list[LocalityConfig] = [
+            {
+                "name": "us",
+                "cells": ["us"],
+                "category": RegionCategory.MULTI_TENANT.name,
+                "new_org_cell": "us",
+                "visible": False,
+                "signup_visible": False,
+            },
+        ]
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
+            directory = load_from_config(cells, localities)
+
+            locality = directory.get_locality_by_name("us")
+            assert locality
+            assert locality.visible is False
+            assert locality.signup_visible is False
+
     @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             assert get_local_cell() == self._EXPECTED_OUTPUTS[0]
@@ -136,7 +163,6 @@ class CellDirectoryTest(TestCase):
         with (
             override_settings(
                 SILO_MODE=SiloMode.MONOLITH,
-                SENTRY_MONOLITH_REGION="defaultland",
                 SENTRY_FALLBACK_CELL="defaultland",
             ),
             self._in_global_state(load_from_config([], [])),
@@ -149,7 +175,7 @@ class CellDirectoryTest(TestCase):
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
     def test_get_cell_for_organization(self) -> None:
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             mapping.update(cell_name="az")
@@ -192,9 +218,7 @@ class CellDirectoryTest(TestCase):
 
     def test_invalid_historic_cell_setting(self) -> None:
         with pytest.raises(CellConfigurationError):
-            with override_settings(
-                SENTRY_MONOLITH_REGION="nonexistent", SENTRY_FALLBACK_CELL="nonexistent"
-            ):
+            with override_settings(SENTRY_FALLBACK_CELL="nonexistent"):
                 load_from_config(self._INPUTS, []).validate_all()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -221,7 +245,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_sentry_app(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             us_org_1 = self.create_organization(name="us test name 1", cell="us")
@@ -254,37 +278,11 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_cell_names(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             result = find_all_cell_names()
             assert set(result) == {"us", "eu", "acme"}
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_multitenant_cell_names(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
-            directory = load_from_config(self._INPUTS, self._LOCALITY_INPUTS)
-        with self._in_global_state(directory):
-            result = find_all_multitenant_cell_names()
-            assert set(result) == {"us", "eu"}
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_multitenant_cell_names_non_visible(self) -> None:
-        inputs: list[CellConfig] = [
-            *self._INPUTS,
-            {
-                "name": "ja",
-                "snowflake_id": 4,
-                "address": "https://ja.testserver",
-                "visible": False,
-            },
-        ]
-        locality_inputs: list[LocalityConfig] = self._LOCALITY_INPUTS
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
-            directory = load_from_config(inputs, locality_inputs)
-        with self._in_global_state(directory):
-            result = find_all_multitenant_cell_names()
-            assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_subdomain_is_locality(self) -> None:
@@ -304,7 +302,7 @@ class CellDirectoryTest(TestCase):
             },
         ]
         rf = RequestFactory()
-        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(cells, localities)
 
         with self._in_global_state(directory):
@@ -368,3 +366,57 @@ class CellDirectoryTest(TestCase):
 
             with pytest.raises(CellResolutionError):
                 get_new_org_cell_for_locality("derp")
+
+    def test_find_all_signup_locality_names(self) -> None:
+        cells = [
+            Cell(
+                name="us",
+                snowflake_id=1,
+                address="10.0.0.1",
+                visible=True,
+            ),
+            Cell(
+                name="de",
+                snowflake_id=3,
+                address="10.0.0.2",
+                visible=True,
+            ),
+            Cell(
+                name="ja",
+                snowflake_id=4,
+                address="10.0.0.3",
+                visible=False,
+            ),
+        ]
+        localities = [
+            Locality(
+                name="us",
+                cells=frozenset(["us"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="us",
+                visible=True,
+            ),
+            Locality(
+                name="de",
+                cells=frozenset(["de"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="de",
+                visible=True,
+                signup_visible=False,
+            ),
+            Locality(
+                name="ja",
+                cells=frozenset(["ja"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="de",
+                visible=False,
+                signup_visible=True,
+            ),
+        ]
+        with get_test_env_directory().swap_state(cells=cells, localities=localities):
+            all_localities = find_all_multitenant_locality_names()
+            assert set(all_localities) == {"us", "de"}
+
+            # Requires both visible + signup_visible
+            signup_localities = find_all_signup_locality_names()
+            assert signup_localities == ["us"]

@@ -21,8 +21,10 @@ export interface Conversation {
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
+  inputTokens: number;
   lastOutput: string | null;
   llmCalls: number;
+  outputTokens: number;
   startTimestamp: number;
   toolCalls: number;
   toolErrors: number;
@@ -50,7 +52,7 @@ export function useConversations() {
 
   const {
     data: response,
-    isLoading,
+    isFetching,
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
@@ -96,7 +98,7 @@ export function useConversations() {
 
   return {
     data,
-    isLoading,
+    isFetching,
     error,
     pageLinks,
     setCursor,

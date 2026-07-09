@@ -71,6 +71,12 @@ function InternalInput({item, state, token}: InternalInputProps) {
   const [inputValue, setInputValue] = useState(token.text);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
 
+  const [prevValue, setPrevValue] = useState(inputValue);
+  if (token.text !== prevValue) {
+    setPrevValue(token.text);
+    setInputValue(token.text);
+  }
+
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, [setSelectionIndex]);

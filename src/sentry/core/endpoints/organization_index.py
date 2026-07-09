@@ -110,7 +110,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             attrs["cell_name"] = resolve_provisioning_cell(locality_name)
         else:
             # TODO(cells) Remove this when cell silo compatibility is removed.
-            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION
+            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_FALLBACK_CELL
 
         return attrs
 

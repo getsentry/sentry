@@ -22,18 +22,18 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
-from sentry.rules.actions.services import PluginService, SentryAppService
+from sentry.rules.actions.services import SentryAppService
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.endpoints.serializers.action_handler_serializer import (
     ActionHandlerSerializer,
     ActionHandlerSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.validators.base.action import DEPRECATED_ACTION_TYPES
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
     get_integration_services,
-    get_notification_plugins_for_org,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
@@ -113,6 +113,10 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             if not can_create_tickets and handler.group == ActionHandler.Group.TICKET_CREATION:
                 continue
 
+            # skip deprecated action types
+            if action_type in DEPRECATED_ACTION_TYPES:
+                continue
+
             # add integration actions
             if hasattr(handler, "provider_slug"):
                 integrations = provider_integrations.get(handler.provider_slug, [])
@@ -142,14 +146,13 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                     )
 
             # add webhook action
-            # service options include plugins and sentry apps without components
+            # service options include sentry apps without components
             elif action_type == Action.Type.WEBHOOK:
-                plugins = get_notification_plugins_for_org(organization)
-                sentry_apps: list[PluginService] = [
+                sentry_apps: list[SentryAppService] = [
                     SentryAppService(context.installation.sentry_app)
                     for context in alertable_apps_without_components
                 ]
-                available_services: list[PluginService] = plugins + sentry_apps
+                available_services = sentry_apps
 
                 if available_services:
                     actions.append(
@@ -162,7 +165,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         )
                     )
 
-            # add all other action types (EMAIL, PLUGIN, etc.)
+            # add all other action types (EMAIL, etc.)
             else:
                 actions.append(
                     serialize(
@@ -173,11 +176,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions.sort(
             key=lambda x: (
                 x["handlerGroup"],
-                (
-                    0
-                    if x["type"] in [Action.Type.EMAIL, Action.Type.PLUGIN, Action.Type.WEBHOOK]
-                    else 1
-                ),
+                (0 if x["type"] in [Action.Type.EMAIL, Action.Type.WEBHOOK] else 1),
                 x["type"],
                 (x["sentryApp"].get("name", "") if x.get("sentryApp") else ""),
             )

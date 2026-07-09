@@ -99,7 +99,11 @@ def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
     )
 
 
-def pr_iteration_memory_block(referrer: str | None = None, iteration_index: int = 1) -> MemoryBlock:
+def pr_iteration_memory_block(
+    referrer: str | None = None,
+    iteration_index: int = 1,
+    commit_sha: str | None = None,
+) -> MemoryBlock:
     metadata: dict[str, str] = {
         "step": "pr_iteration",
         "iteration_index": str(iteration_index),
@@ -121,6 +125,7 @@ def pr_iteration_memory_block(referrer: str | None = None, iteration_index: int 
                 patch=FilePatch(path="test.py", type="M", added=2, removed=1),
             )
         ],
+        pr_commit_shas={"test-repo": commit_sha} if commit_sha is not None else None,
     )
 
 
@@ -302,6 +307,47 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             state=state,
         )
 
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_pr_iteration_does_not_consume_feedback_when_pushed(
+        self, mock_push_changes, mock_consume
+    ):
+        """When PR iteration pushes new changes, queued feedback is left for the next run."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_push_changes.assert_called_once()
+        mock_consume.assert_not_called()
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_pr_iteration_consumes_feedback_when_nothing_pushed(
+        self, mock_push_changes, mock_consume
+    ):
+        """When PR iteration has no new changes to push, queued feedback is consumed now."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="synced-sha")],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")
+        }
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_push_changes.assert_not_called()
+        mock_consume.assert_called_once_with(self.organization, 123, self.group)
+
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):
         """Does not re-push when every un-synced repo is already in pr_creation_status='error'."""
@@ -323,7 +369,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 pr_creation_error="No write access to repository test-repo",
             )
         }
-        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        pushed = AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        assert pushed is False
         mock_push_changes.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
@@ -362,7 +409,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 pr_creation_error="No write access to repository test-repo",
             )
         }
-        AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        pushed = AutofixOnCompletionHook._push_changes(self.group, 123, state)
+        assert pushed is True
         mock_push_changes.assert_called_once()
 
 
@@ -397,6 +445,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         """Tests webhook sending for all artifact-based step types."""
         state = MagicMock()
         run_id = 123
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=run_id)
 
         class TestCaseDict(TypedDict):
             block: MemoryBlock
@@ -427,6 +476,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 assert call_kwargs["resource_name"] == "seer"
                 assert call_kwargs["organization_id"] == self.organization.id
                 assert call_kwargs["payload"]["run_id"] == run_id
+                assert call_kwargs["payload"]["sentry_run_id"] == str(seer_run.uuid)
             assert call_kwargs["event_name"] == test_case["expected_event"].value
             assert (
                 call_kwargs["payload"][test_case["expected_payload_key"]]
@@ -465,7 +515,10 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 root_cause_memory_block(),
                 solution_memory_block(),
                 code_changes_memory_block(),
-                pr_iteration_memory_block(referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value),
+                pr_iteration_memory_block(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+                    commit_sha="synced-sha",
+                ),
             ]
         )
         state.repo_pr_states = {
@@ -475,6 +528,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 pr_number=7,
                 pr_url="https://example.com/pull/7",
                 pr_creation_status="completed",
+                commit_sha="synced-sha",
             )
         }
 
@@ -499,7 +553,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         state = run_state(
             blocks=[
                 code_changes_memory_block(),
-                pr_iteration_memory_block(),
+                pr_iteration_memory_block(commit_sha="synced-sha"),
             ]
         )
         state.repo_pr_states = {
@@ -509,6 +563,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 pr_number=7,
                 pr_url="https://example.com/pull/7",
                 pr_creation_status="completed",
+                commit_sha="synced-sha",
             )
         }
 
@@ -520,6 +575,35 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         )
         event_names = [call.args[0].type for call in mock_analytics.call_args_list]
         assert "ai.autofix.pr_created.completed" not in event_names
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration_skips_until_synced(self, mock_broadcast):
+        """Does not emit iteration_completed until the pushed PR is synced to the iteration."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+                pr_iteration_memory_block(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+                    commit_sha="iteration-sha",
+                ),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha="stale-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_no_artifacts_no_webhook(self, mock_broadcast):

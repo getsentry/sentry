@@ -297,12 +297,10 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                     sender=None,
                 )
             except (IntegrityError, MaxSnowflakeRetryError):
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
+                # A duplicate slug is a uniqueness collision; surface it as a
+                # spec-compliant SCIM error so IdPs can reconcile the existing team.
+                raise SCIMApiError(
+                    detail=CONFLICTING_SLUG_ERROR, status_code=409, scim_type="uniqueness"
                 )
 
             self.create_audit_entry(

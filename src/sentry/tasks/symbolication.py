@@ -3,7 +3,6 @@ from collections.abc import Callable, Mapping
 from time import time
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
 
 from sentry.killswitches import killswitch_matches_context
@@ -21,6 +20,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import symbolication_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
+from sentry.utils.tracing import set_span_data, start_span
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
@@ -79,7 +79,6 @@ def _do_symbolicate_event(
     start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
-    queue_switches: int = 0,
     has_attachments: bool = False,
     symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
 ) -> None:
@@ -151,7 +150,10 @@ def _do_symbolicate_event(
     project = Project.objects.get_from_cache(id=project_id)
     # needed for efficient featureflag checks in getsentry
     # NOTE: The `organization` is used for constructing the symbol sources.
-    with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+    with start_span(
+        op="lang.native.symbolicator.organization.get_from_cache",
+        name="lang.native.symbolicator.organization.get_from_cache",
+    ):
         project.set_cached_field_value(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
@@ -178,13 +180,14 @@ def _do_symbolicate_event(
             "tasks.store.symbolicate_event.symbolication",
             tags={"symbolication_function": symbolication_function_name},
         ),
-        sentry_sdk.start_span(
-            op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
+        start_span(
+            op=f"tasks.store.symbolicate_event.{symbolication_function_name}",
+            name=f"tasks.store.symbolicate_event.{symbolication_function_name}",
         ) as span,
     ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
-            span.set_data("symbolicated_data", bool(symbolicated_data))
+            set_span_data(span, "symbolicated_data", bool(symbolicated_data))
 
             if symbolicated_data:
                 data = symbolicated_data
@@ -239,7 +242,6 @@ def submit_symbolicate(
     cache_key: str,
     event_id: str | None,
     start_time: float | None,
-    queue_switches: int = 0,
     has_attachments: bool = False,
     symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
 ) -> None:
@@ -259,7 +261,6 @@ def submit_symbolicate(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
-        queue_switches=queue_switches,
         has_attachments=has_attachments,
         symbolicate_platforms=symbolicate_platform_names,
     )
@@ -287,7 +288,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         start_time: float | None = None,
         event_id: str | None = None,
         data: Event | None = None,
-        queue_switches: int = 0,
         has_attachments: bool = False,
         symbolicate_platforms: list[str] | None = None,
         **kwargs: Any,
@@ -312,7 +312,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             start_time=start_time,
             event_id=event_id,
             data=data,
-            queue_switches=queue_switches,
             has_attachments=has_attachments,
             symbolicate_platforms=symbolicate_platform_values,
         )

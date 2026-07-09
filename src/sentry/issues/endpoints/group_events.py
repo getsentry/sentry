@@ -67,7 +67,8 @@ class GroupEventsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
 
     @extend_schema(
-        operation_id="List an Issue's Events",
+        operation_id="listOrganizationIssueEvents",
+        summary="List an Issue's Events",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -93,7 +94,11 @@ class GroupEventsEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_EVENTS_SIMPLE,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-events"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-events",
+        url_names=["sentry-api-0-group-events"],
+    )
     def get(
         self, request: Request, group: Group
     ) -> Response[list[SimpleEventSerializerResponse]] | Response[DetailResponse]:

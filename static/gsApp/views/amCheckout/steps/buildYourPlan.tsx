@@ -13,7 +13,6 @@ import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
@@ -48,8 +47,8 @@ function PlanSubstep({
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
     const plans = billingConfig.planList.filter(
-      ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval &&
+      ({billingInterval, id}) =>
+        billingInterval === activePlan.billingInterval &&
         !id.includes(billingConfig.freePlan) // TODO(billing): If we ever surface Developer in checkout, we'll need to remove this filter
     );
 
@@ -59,14 +58,14 @@ function PlanSubstep({
 
     // sort by price ascending
     return plans.sort((a, b) => a.basePrice - b.basePrice);
-  }, [billingConfig, activePlan.contractInterval]);
+  }, [billingConfig, activePlan.billingInterval]);
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
       plan.id === subscription.plan ||
       // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
       // on the Developer plan
-      (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
+      (subscription.onTrialPlan && isDeveloperPlan(plan))
     ) {
       const copy = t('Current');
       return <Tag variant="muted">{copy}</Tag>;
@@ -92,7 +91,10 @@ function PlanSubstep({
 
   return (
     <Flex direction="column" gap="xl">
-      <Grid columns={{xs: '1fr', lg: `repeat(${planOptions.length}, 1fr)`}} gap="lg">
+      <Grid
+        columns={{'screen:xs': '1fr', 'screen:lg': `repeat(${planOptions.length}, 1fr)`}}
+        gap="lg"
+      >
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(

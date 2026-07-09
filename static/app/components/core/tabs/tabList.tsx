@@ -1,5 +1,13 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -62,10 +70,26 @@ const StyledTabListOverflowWrap = styled('div')`
 `;
 
 /**
- * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
- * containing of keys of overflowing tabs.
+ * Width (px) reserved on the right edge for the overflow menu trigger button.
+ * Kept slightly larger than the actual button so the trigger never overlaps
+ * the last visible tab.
+ */
+const RESERVED_OVERFLOW_TRIGGER_WIDTH = 48;
+
+/**
+ * Measures the tab list against the space available in its container and
+ * returns the keys of the tabs that don't fit, as a contiguous suffix. Those
+ * tabs are visually hidden (see `Tab`) and surfaced through an overflow menu.
+ *
+ * This uses direct measurement rather than an IntersectionObserver on purpose:
+ * the result is deterministic, so for a given container width the same set of
+ * tabs always overflows. That avoids the inconsistent states the observer-based
+ * approach could settle into while resizing — tabs from the middle of the list
+ * disappearing, the trigger overlapping a tab, or no overflow being detected at
+ * all when the list was momentarily allowed to grow to its content width.
  */
 function useOverflowTabs({
+  outerWrapRef,
   tabListRef,
   tabItemsRef,
   tabItems,
@@ -75,83 +99,132 @@ function useOverflowTabs({
    * Prevent tabs from being put in the overflow menu.
    */
   disabled: boolean | undefined;
+  /**
+   * The relatively-positioned wrapper around the list. Its width is the space
+   * available to the tabs and is unaffected by the list overflowing.
+   */
+  outerWrapRef: React.RefObject<HTMLDivElement | null>;
   tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
-  const theme = useTheme();
+  // Cached intrinsic widths per tab key. Overflowing tabs render with
+  // `display: none` and measure 0, so we remember their last measured width to
+  // know when they would fit again as space grows.
+  const tabWidthsRef = useRef(new Map<string | number, number>());
 
-  useEffect(() => {
+  // Measures the list against the available space and updates the overflow set.
+  const recompute = useEffectEvent(() => {
     if (disabled) {
-      return () => {};
+      setOverflowTabs(prev => (prev.length === 0 ? prev : []));
+      return;
     }
 
-    const options = {
-      root: tabListRef.current,
-      // Negative right margin to account for overflow menu's trigger button
-      rootMargin: `0px -42px 1px ${theme.space.md}`,
-      // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
-      // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
-      threshold: 0.95,
-    };
+    const outerWrap = outerWrapRef.current;
+    const tabList = tabListRef.current;
+    if (!outerWrap || !tabList) {
+      return;
+    }
 
-    const callback: IntersectionObserverCallback = entries => {
-      entries.forEach(entry => {
-        const {target} = entry;
-        const {key} = (target as HTMLElement).dataset;
-        if (!key) {
-          return;
-        }
+    const elements = tabItemsRef.current ?? {};
+    const gap = parseFloat(getComputedStyle(tabList).columnGap) || 0;
 
-        if (!entry.isIntersecting) {
-          setOverflowTabs(prev => prev.concat([key]));
-          return;
-        }
+    // Tabs that participate in the layout, in render (visual) order. Tabs with
+    // the `hidden` prop render with `display: none` and take up no space.
+    const keys = tabItems.filter(item => !item.hidden).map(item => item.key);
 
-        setOverflowTabs(prev => prev.filter(k => k !== key));
-      });
-    };
+    // Refresh the cached width of every measurable (currently visible) tab.
+    // Overflowing tabs measure 0; their last known width is kept.
+    for (const key of keys) {
+      const measured = elements[key]?.getBoundingClientRect().width ?? 0;
+      if (measured > 0) {
+        tabWidthsRef.current.set(key, measured);
+      }
+    }
 
-    const observer = new IntersectionObserver(callback, options);
-    Object.values(tabItemsRef.current ?? {}).forEach(
-      element => element && observer.observe(element)
+    const available = outerWrap.clientWidth;
+
+    // Width required to render every tab, without reserving the trigger.
+    const fullWidth = keys.reduce(
+      (sum: number, key, index) =>
+        sum + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap),
+      0
     );
 
-    // When tabs are hidden via `display: none`, IntersectionObserver can no
-    // longer detect them. If the container grows, those tabs would remain
-    // permanently hidden. Resetting overflow state when the container grows
-    // removes `display: none`, allowing the IO to re-evaluate all tabs.
-    let previousWidth = tabListRef.current?.getBoundingClientRect().width ?? 0;
-    const resizeObserver = new ResizeObserver(entries => {
-      const newWidth = entries[0]?.contentRect.width ?? 0;
-      if (newWidth > previousWidth) {
-        setOverflowTabs([]);
-      }
-      previousWidth = newWidth;
-    });
-    if (tabListRef.current) {
-      resizeObserver.observe(tabListRef.current);
+    let nextOverflow: Array<string | number>;
+    if (fullWidth <= available) {
+      nextOverflow = [];
+    } else {
+      // Overflow is needed, so leave room for the trigger button.
+      const budget = available - RESERVED_OVERFLOW_TRIGGER_WIDTH;
+      nextOverflow = [];
+      let used = 0;
+      let isOverflowing = false;
+      keys.forEach((key, index) => {
+        if (isOverflowing) {
+          nextOverflow.push(key);
+          return;
+        }
+        const nextUsed =
+          used + (tabWidthsRef.current.get(key) ?? 0) + (index === 0 ? 0 : gap);
+        // Always keep the first tab to avoid an empty tab bar.
+        if (index === 0 || nextUsed <= budget) {
+          used = nextUsed;
+        } else {
+          isOverflowing = true;
+          nextOverflow.push(key);
+        }
+      });
     }
 
-    return () => {
-      observer.disconnect();
-      resizeObserver.disconnect();
-      setOverflowTabs([]);
-    };
-  }, [tabListRef, tabItemsRef, disabled, theme]);
+    // Bail out when the result is unchanged to avoid re-render churn (and any
+    // observer feedback from hiding/showing tabs).
+    setOverflowTabs(prev =>
+      prev.length === nextOverflow.length &&
+      prev.every((key, index) => key === nextOverflow[index])
+        ? prev
+        : nextOverflow
+    );
+  });
 
-  const tabItemKeyToHiddenMap = tabItems.reduce<Record<string | number, boolean>>(
-    (acc, next) => ({
-      ...acc,
-      [next.key]: !!next.hidden,
-    }),
-    {}
-  );
+  // Recompute whenever an input that affects the overflow result changes: the
+  // disabled state, or the set/order/hidden-state of the tabs. Width changes are
+  // handled by the ResizeObserver below; a reorder can leave the total width
+  // unchanged, so the observer alone wouldn't catch it.
+  const recomputeSignature = [
+    disabled ? 'disabled' : 'enabled',
+    ...tabItems.map(item => `${item.key}:${item.hidden ? 1 : 0}`),
+  ].join('|');
 
-  // Tabs that are hidden will be rendered with display: none so won't intersect,
-  // but we don't want to show them in the overflow menu
-  return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
+  useLayoutEffect(() => {
+    recompute();
+  }, [recomputeSignature]);
+
+  // Recompute on container resize (available space changes) and on list resize
+  // (tabs added/removed/relabeled change its intrinsic width). Keyed only on the
+  useEffect(() => {
+    if (disabled) {
+      return;
+    }
+
+    const outerWrap = outerWrapRef.current;
+    const tabList = tabListRef.current;
+    if (!outerWrap || !tabList) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => recompute());
+    resizeObserver.observe(outerWrap);
+    resizeObserver.observe(tabList);
+
+    return () => resizeObserver.disconnect();
+  }, [disabled, outerWrapRef, tabListRef]);
+
+  // Tabs with the `hidden` prop render with display: none; never surface them
+  // in the overflow menu.
+  const hiddenKeys = new Set(tabItems.filter(item => item.hidden).map(item => item.key));
+  return overflowTabs.filter(key => !hiddenKeys.has(key));
 }
 
 interface OverflowMenuProps {
@@ -197,6 +270,7 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
 
 function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
   const navigate = useNavigate();
+  const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -241,16 +315,18 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
   const overflowTabs = useOverflowTabs({
+    outerWrapRef,
     tabListRef,
     tabItemsRef,
     tabItems: props.items,
-    disabled: disableOverflow,
+    // Overflow only applies to horizontal tab lists.
+    disabled: disableOverflow || orientation !== 'horizontal',
   });
 
   const overflowMenuItems = useMemo(() => {
     // Sort overflow items in the order that they appear in TabList
     const sortedKeys = [...state.collection].map(item => item.key);
-    const sortedOverflowTabs = overflowTabs.sort(
+    const sortedOverflowTabs = overflowTabs.toSorted(
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
@@ -275,7 +351,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <Container position="relative" style={outerWrapStyles}>
+    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
       <TabListWrap
         {...tabListProps}
         orientation={orientation}

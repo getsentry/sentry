@@ -1,14 +1,11 @@
 import type {ReactNode} from 'react';
 
-import {IconCircle} from 'sentry/icons/iconCircle';
-import {IconInProgress} from 'sentry/icons/iconInProgress';
-import {IconInReview} from 'sentry/icons/iconInReview';
-import {IconResolved} from 'sentry/icons/iconResolved';
+import {ProgressMarker, type ProgressMarkerStep} from 'sentry/components/progressMarker';
 import {t} from 'sentry/locale';
 
 export enum ProgressState {
   IDENTIFIED = 'identified',
-  TRIAGED = 'triaged',
+  ASSIGNED = 'assigned',
   DIAGNOSED = 'diagnosed',
   FIX_PROPOSED = 'fix_proposed',
   FIX_APPLIED = 'fix_applied',
@@ -16,7 +13,7 @@ export enum ProgressState {
 
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
-  [ProgressState.TRIAGED]: t('Triaged'),
+  [ProgressState.ASSIGNED]: t('Assigned'),
   [ProgressState.DIAGNOSED]: t('Diagnosed'),
   [ProgressState.FIX_PROPOSED]: t('Fix Proposed'),
   [ProgressState.FIX_APPLIED]: t('Fix Applied'),
@@ -29,17 +26,18 @@ export function formatProgressState(state: ProgressState | null): string {
   return PROGRESS_STATE_LABELS[state] ?? state;
 }
 
-const PROGRESS_STATE_ICONS: Record<ProgressState, ReactNode> = {
-  [ProgressState.IDENTIFIED]: <IconCircle size="md" variant="muted" />,
-  [ProgressState.TRIAGED]: <IconCircle size="md" variant="muted" />,
-  [ProgressState.DIAGNOSED]: <IconInProgress size="md" variant="warning" />,
-  [ProgressState.FIX_PROPOSED]: <IconInReview size="md" variant="success" />,
-  [ProgressState.FIX_APPLIED]: <IconResolved size="md" variant="success" />,
+const PROGRESS_STATE_STEPS: Record<ProgressState, ProgressMarkerStep> = {
+  [ProgressState.IDENTIFIED]: 'empty',
+  [ProgressState.ASSIGNED]: 'quarter',
+  [ProgressState.DIAGNOSED]: 'half',
+  [ProgressState.FIX_PROPOSED]: 'three-quarters',
+  [ProgressState.FIX_APPLIED]: 'complete',
 };
 
 export function getProgressIcon(state: ProgressState | null): ReactNode {
   if (!state) {
     return null;
   }
-  return PROGRESS_STATE_ICONS[state] ?? null;
+  const step = PROGRESS_STATE_STEPS[state];
+  return step ? <ProgressMarker step={step} /> : null;
 }

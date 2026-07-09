@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -104,3 +105,41 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         with freeze_time(now + timedelta(minutes=10)):
             result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
             assert result["clientSecret"] is None
+
+    def test_webhook_headers_masked_without_access(self) -> None:
+        sentry_app = self.create_sentry_app(
+            name="Tesla App",
+            organization=self.organization,
+            published=True,
+            scopes=("org:write",),
+            webhook_headers=["Authorization: Bearer secret"],
+        )
+
+        result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
+        assert result["webhookHeaders"] == [f"Authorization: {MASKED_VALUE}"]
+
+    def test_webhook_headers_masked_with_access(self) -> None:
+        sentry_app = self.create_sentry_app(
+            name="Tesla App",
+            organization=self.organization,
+            published=True,
+            scopes=("org:write",),
+            webhook_headers=["Authorization: Bearer secret"],
+        )
+
+        acc = access.from_user(self.user, self.organization)
+        result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
+        assert result["webhookHeaders"] == [f"Authorization: {MASKED_VALUE}"]
+
+    def test_webhook_headers_masked_for_internal_app_owner(self) -> None:
+        self.create_project(organization=self.organization)
+        sentry_app = self.create_internal_integration(
+            name="Internal App",
+            organization=self.organization,
+            scopes=("org:write",),
+            webhook_headers=["Authorization: Bearer secret"],
+        )
+
+        acc = access.from_user(self.user, self.organization)
+        result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
+        assert result["webhookHeaders"] == [f"Authorization: {MASKED_VALUE}"]

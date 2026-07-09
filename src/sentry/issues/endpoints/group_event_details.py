@@ -143,7 +143,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve an Issue Event",
+        operation_id="getOrganizationIssueEvent",
+        summary="Retrieve an Issue Event",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -162,7 +163,11 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_EVENT_DETAILS,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-event-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-event-details",
+        url_names=["sentry-api-0-group-event-details"],
+    )
     def get(
         self, request: Request, group: Group, event_id: str
     ) -> (

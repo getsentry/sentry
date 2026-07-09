@@ -49,7 +49,7 @@ from sentry.utils.sdk import bind_organization_context
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
@@ -60,7 +60,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Releases",
+        operation_id="listProjectReleases",
+        summary="List a Project's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -153,6 +154,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
+            scope.set_attribute("version", result["version"])
 
             new_status = result.get("status")
 
@@ -234,6 +236,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
             scope.set_tag("success_status", status)
+            scope.set_attribute("success_status", status)
 
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.

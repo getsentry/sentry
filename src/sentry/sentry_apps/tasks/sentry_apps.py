@@ -46,8 +46,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
@@ -66,10 +66,12 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import (
+    ActivityAlertActionType,
     IssueAlertActionType,
     MetricAlertActionType,
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
+    is_subscribed,
 )
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
@@ -86,6 +88,7 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
@@ -350,7 +353,7 @@ def _process_resource_change(
                 for installation in app_service.installations_for_organization(
                     organization_id=org.id
                 )
-                if event in installation.sentry_app.events
+                if is_subscribed(installation.sentry_app.events, event)
             ]
             data: dict[str, Any] = {}
             if isinstance(instance, (Event, GroupEvent)):
@@ -445,7 +448,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.CELL,
     silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@sentry_sdk.trace(name="process_resource_change_bound")
+@trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:
@@ -1046,6 +1049,62 @@ def send_metric_alert_webhook(
 
 
 @instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook",
+    namespace=sentryapp_tasks,
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
+)
+def send_activity_alert_webhook(
+    sentry_app_id: int,
+    organization_id: int,
+    payload_json: str,
+    **kwargs: Any,
+) -> None:
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=SentryAppEventType.ACTIVITY_ALERT_TRIGGERED,
+    ).capture() as lifecycle:
+        sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+        if sentry_app is None:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_SENTRY_APP)
+            return
+
+        if _is_sentry_app_disabled_for_webhooks(sentry_app):
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.APP_DISABLED)
+            return
+
+        installations = app_service.get_many(
+            filter=dict(
+                organization_id=organization_id,
+                app_ids=[sentry_app.id],
+                status=SentryAppInstallationStatus.INSTALLED,
+            )
+        )
+        if not installations:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            return
+
+        if len(installations) > 1:
+            lifecycle.record_failure(SentryAppWebhookFailureReason.MULTIPLE_INSTALLATIONS)
+            return
+
+        app_platform_event = AppPlatformEvent(
+            resource=SentryAppResourceType.ACTIVITY_ALERT,
+            action=ActivityAlertActionType.TRIGGERED,
+            install=installations[0],
+            data=json.loads(payload_json),
+        )
+
+    send_and_save_webhook_request(sentry_app, app_platform_event)
+
+
+@instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
@@ -1093,13 +1152,10 @@ def broadcast_webhooks_for_organization(
         # Get installations for this organization
         installations = app_service.installations_for_organization(organization_id=organization_id)
 
-        # Filter for installations that subscribe to the event category
-        from sentry.sentry_apps.logic import consolidate_events
-
         relevant_installations = [
             installation
             for installation in installations
-            if resource_name in consolidate_events(installation.sentry_app.events)
+            if is_subscribed(installation.sentry_app.events, event_type)
         ]
 
         if not relevant_installations:

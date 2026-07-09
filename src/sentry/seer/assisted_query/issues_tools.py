@@ -11,9 +11,12 @@ from sentry.models.release import Release
 from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.sentry_data_models import (
+    ExecuteIssuesQuerySuccessResponse,
+    ExecuteQueryErrorResponse,
     FilterKeyValuesResponse,
     IssueFilterBuiltInField,
     IssueFilterKeysResponse,
+    IssuesStatsResponse,
     TagFilterKeyValue,
 )
 from sentry.snuba.dataset import Dataset
@@ -672,7 +675,7 @@ def execute_issues_query(
     end: str | None = None,
     sort: str | None = None,
     limit: int = 25,
-) -> list[dict[str, Any]] | dict[str, Any] | None:
+) -> ExecuteIssuesQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute an issues query by calling the issues endpoint.
 
@@ -721,11 +724,13 @@ def execute_issues_query(
             path=f"/organizations/{organization.slug}/issues/",
             params=params,
         )
-        return resp.data
+        return ExecuteIssuesQuerySuccessResponse(__root__=resp.data)
     except ApiError as e:
         if e.status_code == 400:
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return ExecuteQueryErrorResponse(
+                error=str(error_detail) if error_detail is not None else str(e.body)
+            )
         raise
 
 
@@ -738,7 +743,7 @@ def get_issues_stats(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> list[dict[str, Any]] | None:
+) -> IssuesStatsResponse | None:
     """
     Get stats for specific issues by calling the issues-stats endpoint.
 
@@ -765,7 +770,7 @@ def get_issues_stats(
         return None
 
     if not issue_ids:
-        return []
+        return IssuesStatsResponse(__root__=[])
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -788,4 +793,4 @@ def get_issues_stats(
         params=params,
     )
 
-    return resp.data
+    return IssuesStatsResponse(__root__=resp.data)

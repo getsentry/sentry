@@ -1,5 +1,6 @@
 import {createRef, Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,6 +9,38 @@ import {
   type TextProps,
   type TextPropsWithRenderFunction,
 } from '@sentry/scraps/text';
+
+const theme = ThemeFixture();
+
+/**
+ * Emotion injects its styles through the CSSOM (`insertRule`), so they are not
+ * reflected in `getComputedStyle` under jsdom. Read the generated rules for an
+ * element directly off `document.styleSheets` instead.
+ */
+function getEmotionRules(element: HTMLElement): string[] {
+  const classes = element.className.split(' ').filter(c => c.startsWith('css-'));
+  const rules: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let sheetRules: CSSRuleList;
+    try {
+      sheetRules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const rule of Array.from(sheetRules)) {
+      if (classes.some(cls => rule.cssText.includes(cls))) {
+        rules.push(rule.cssText);
+      }
+    }
+  }
+  return rules;
+}
+
+/** The `display` value of the always-applied base declaration (no at-rule). */
+function getBaseDisplay(element: HTMLElement): string | undefined {
+  const base = getEmotionRules(element).find(rule => rule.trimStart().startsWith('.'));
+  return base?.match(/display:\s*([\w-]+)/)?.[1];
+}
 
 describe('Text', () => {
   it('Defaults to span', () => {
@@ -105,6 +138,116 @@ describe('Text', () => {
         {props => <Child {...props} />}
       </Text>
     );
+  });
+
+  describe('display', () => {
+    it('emits no display for a plain span', () => {
+      render(<Text>Hello World</Text>);
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBeUndefined();
+    });
+
+    it('defaults to block when as="div"', () => {
+      render(<Text as="div">Hello World</Text>);
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('block');
+    });
+
+    it('forces block for ellipsis', () => {
+      render(<Text ellipsis>Hello World</Text>);
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('block');
+    });
+
+    it('forces inline-block for an explicit span with ellipsis', () => {
+      render(
+        <Text as="span" ellipsis>
+          Hello World
+        </Text>
+      );
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('inline-block');
+    });
+
+    it('applies a scalar display prop', () => {
+      render(<Text display="none">Hello World</Text>);
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('none');
+    });
+
+    it('lets an explicit display prop override the as-derived default', () => {
+      render(
+        <Text as="div" display="inline">
+          Hello World
+        </Text>
+      );
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('inline');
+    });
+
+    it('seeds the base breakpoint with the derived default for a responsive prop', () => {
+      render(
+        <Text as="div" display={{md: 'none'}}>
+          Hello World
+        </Text>
+      );
+      const element = screen.getByText('Hello World');
+      // The default (block) fills the base so the div is not hidden below md...
+      expect(getBaseDisplay(element)).toBe('block');
+      // ...and the explicit value overrides it from md up.
+      expect(getEmotionRules(element)).toContainEqual(
+        expect.stringMatching(
+          new RegExp(`@container \\(min-width: ${theme.breakpoints.md}\\).*display: none`)
+        )
+      );
+    });
+
+    it('seeds the base with the native block display for a responsive prop', () => {
+      render(
+        <Text as="p" display={{md: 'none'}}>
+          Hello World
+        </Text>
+      );
+      const element = screen.getByText('Hello World');
+      // Without a derived default, the element's native display (block for <p>)
+      // seeds the base so the paragraph is not hidden below md...
+      expect(getBaseDisplay(element)).toBe('block');
+      // ...and the explicit value overrides it from md up.
+      expect(getEmotionRules(element)).toContainEqual(
+        expect.stringMatching(
+          new RegExp(`@container \\(min-width: ${theme.breakpoints.md}\\).*display: none`)
+        )
+      );
+    });
+
+    it('seeds the base with the native inline display for a responsive span', () => {
+      render(<Text display={{md: 'none'}}>Hello World</Text>);
+      // A span is inline by default, so it stays visible below md instead of
+      // inheriting the `none` from the smallest specified breakpoint.
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('inline');
+    });
+
+    it('does not seed when the base breakpoint is explicitly set', () => {
+      render(
+        <Text as="div" display={{'2xs': 'none', md: 'block'}}>
+          Hello World
+        </Text>
+      );
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('none');
+    });
+
+    it('preserves the align-required display below the smallest breakpoint', () => {
+      render(
+        <Text align="center" display={{md: 'inline'}}>
+          Hello World
+        </Text>
+      );
+      // align needs a block-level box; the derived block seeds the base.
+      expect(getBaseDisplay(screen.getByText('Hello World'))).toBe('block');
+    });
+
+    it('is mutually exclusive with ellipsis', () => {
+      render(
+        // @ts-expect-error: display cannot be combined with ellipsis
+        <Text ellipsis display="none">
+          Hello World
+        </Text>
+      );
+    });
   });
 
   describe('types', () => {
