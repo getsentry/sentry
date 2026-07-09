@@ -30,7 +30,6 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
   realtimeActive: boolean;
-  selectedProjectIds: number[];
   title: ReactNode;
   description?: ReactNode;
   headerActions?: ReactNode;

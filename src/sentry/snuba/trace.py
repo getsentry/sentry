@@ -45,7 +45,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba_rpc import table_rpc
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 # Mostly here for testing
 ERROR_LIMIT = 10_000
@@ -338,7 +338,7 @@ def _errors_query(
     )
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -469,7 +469,7 @@ def _perf_issues_query(
     return occurrence_query
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _run_perf_issues_query(
     occurrence_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -500,7 +500,7 @@ def _run_perf_issues_query(
     return result
 
 
-@sentry_sdk.tracing.trace
+@trace
 def get_issues_by_span_for_traces(
     snuba_params: SnubaParams,
     trace_ids: Sequence[str],
@@ -709,7 +709,7 @@ def _serialize_columnar_uptime_item(
     return uptime_check
 
 
-@sentry_sdk.tracing.trace
+@trace
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,

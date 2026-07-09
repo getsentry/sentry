@@ -212,6 +212,36 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
+    def test_recommended_sort_serves_v2_with_experimental_flag(self) -> None:
+        # group_1 has the newer event, so it wins the base recommended score (recency);
+        # group_2 is regressed, which only the v2 scorer boosts.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        group_2.update(substatus=GroupSubStatus.REGRESSED)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(sort="recommended", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
+        # The same sort key serves the v2 scorer when the flag is on.
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            response = self.get_success_response(sort="recommended", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+        # Explicit escape hatches force a scorer regardless of the flag.
+        response = self.get_success_response(sort="recommended_v2", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            response = self.get_success_response(sort="recommended_v1", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
     def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
             data={

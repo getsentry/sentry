@@ -27,7 +27,7 @@ from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
@@ -75,7 +75,7 @@ from sentry.pr_metrics.emit import (
     is_pr_tracked,
     select_verdict,
 )
-from sentry.pr_metrics.tasks import forward_pr_to_seer_task
+from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
@@ -300,6 +300,23 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
     metrics.incr("pr_metrics.judge.enqueued")
 
 
+def _claim_cooldown(pr: PullRequest) -> bool:
+    """Claim a terminal event's emission cooldown, guarding against redelivery.
+
+    Ensures the metrics row exists (``select_verdict`` runs later in the task and
+    tolerates a missing row, but the compare-and-set needs a row to update), then
+    atomically transitions ``verdict`` NULL -> ``WAITING_EVENT_COOLDOWN``. Only the
+    first close/merge delivery wins, so exactly one cooldown task is scheduled;
+    redeliveries — and a reopen-then-reclose while the window is still open — find
+    the row already claimed and no-op. Returns True if this call won the claim.
+    """
+    PullRequestMetrics.objects.get_or_create(pull_request=pr)
+    claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
+        verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+    )
+    return bool(claimed)
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -309,19 +326,19 @@ def handle_emission(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Emit a metrics row on a terminal (close/merge) PR webhook for a tracked PR.
+    """Schedule deferred emission on a terminal (close/merge) PR webhook.
 
-    GitHub's single ``closed`` action covers both merges and plain closes; emit
-    derives which from the stored row, so this handler only filters for ``closed``
-    and delegates. All non-terminal actions are ignored.
+    GitHub's single ``closed`` action covers both merges and plain closes. Rather
+    than emitting inline, this claims a cooldown on the metrics row and schedules
+    ``emit_pr_metrics_cooldown_task`` ``pr_metrics.emit_cooldown_seconds`` out, so
+    late attribution and activity can settle before the verdict is chosen and the
+    row emitted (see ``run_deferred_emission``). All non-terminal actions are
+    ignored.
 
-    Untracked PRs (no valid attribution) are dropped first, before any verdict is
+    Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
-    attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
-    then decides the outcome: a deterministic verdict is claimed (the redelivery
-    guard) and emitted; a PR that needs a judge is forwarded to Seer instead (gated
-    on ``pr-metrics-judge``, guarded by the same claim against redelivery), and Seer
-    calls back to settle and emit it.
+    attribution only later could never emit. The cooldown claim is the redelivery
+    guard — only the first delivery schedules a task; redeliveries no-op.
     """
     if event.get("action") != "closed":
         return
@@ -343,12 +360,78 @@ def handle_emission(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return
 
-    verdict = select_verdict(pr, organization)
-    if verdict is None:
-        _forward_to_judge(pr, organization)
+    if not _claim_cooldown(pr):
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "already_claimed"})
         return
 
-    if not _claim_terminal_event(pr, verdict):
+    log_extra = {
+        "organization_id": organization.id,
+        "repository_id": pr.repository_id,
+        "pull_request_id": pr.id,
+    }
+    try:
+        emit_pr_metrics_cooldown_task.apply_async(
+            kwargs={
+                "pull_request_id": pr.id,
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+            },
+            countdown=options.get("pr_metrics.emit_cooldown_seconds"),
+        )
+    except Exception:
+        # The claim committed but the enqueue didn't, so no task will settle this PR.
+        # Release the cooldown sentinel (only if it's still ours) so a redelivery can
+        # reschedule rather than the PR sticking in WAITING_EVENT_COOLDOWN.
+        PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+        ).update(verdict=None)
+        metrics.incr("pr_metrics.cooldown.enqueue_failed")
+        logger.exception("pr_metrics.cooldown.enqueue_failed", extra=log_extra)
+        return
+
+    metrics.incr("pr_metrics.cooldown.scheduled")
+
+
+def run_deferred_emission(pull_request: PullRequest, organization: Organization) -> None:
+    """Settle and emit a PR's terminal metrics row after the cooldown window.
+
+    Runs from ``emit_pr_metrics_cooldown_task`` ``pr_metrics.emit_cooldown_seconds``
+    after the close/merge webhook claimed ``WAITING_EVENT_COOLDOWN``. By now late
+    attribution and activity have settled, so verdict selection and emission read
+    final state.
+
+    Reopen handling: if the PR is no longer terminal (reopened during the window),
+    release the sentinel and stop — a later re-close reschedules. Otherwise release
+    the cooldown claim back to NULL and run the standard verdict -> emit/forward
+    path, whose own NULL-based guards settle the row exactly once (a late redelivery
+    that races the brief NULL window still emits once: whichever of the two claims
+    the verdict wins, the other no-ops).
+    """
+    log_extra = {
+        "organization_id": organization.id,
+        "repository_id": pull_request.repository_id,
+        "pull_request_id": pull_request.id,
+    }
+
+    # Release our cooldown claim so the deterministic/judge guards below — which
+    # compare-and-set against a NULL verdict — can settle the row.
+    PullRequestMetrics.objects.filter(
+        pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+    ).update(verdict=None)
+
+    if pull_request.closed_at is None or pull_request.head_commit_sha is None:
+        # Reopened (or no longer terminal) while waiting. Release the sentinel so a
+        # later re-close can re-claim and reschedule.
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"})
+        logger.info("pr_metrics.cooldown.reopened", extra=log_extra)
+        return
+
+    verdict = select_verdict(pull_request, organization)
+    if verdict is None:
+        _forward_to_judge(pull_request, organization)
+        return
+
+    if not _claim_terminal_event(pull_request, verdict):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
@@ -356,7 +439,8 @@ def handle_emission(
     # analytics.record is best-effort, async-batched telemetry; if it raises the
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
-    emit_pr_metrics_row(pull_request=pr)
+    emit_pr_metrics_row(pull_request=pull_request)
+    metrics.incr("pr_metrics.cooldown.emitted")
 
 
 def handle_metrics(

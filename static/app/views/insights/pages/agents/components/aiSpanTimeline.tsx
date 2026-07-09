@@ -254,7 +254,7 @@ const TimelineRow = memo(function TimelineRow({
                   </Tooltip>
                 )}
               </Flex>
-              <Flex flexShrink={0} width="100px" justify="end">
+              <Flex align="center" justify="end" flexShrink={0} gap="xs">
                 {metric ? (
                   <Text
                     size="sm"
@@ -282,8 +282,11 @@ const TimelineRow = memo(function TimelineRow({
                     </Text>
                   )
                 ) : null}
-              </Flex>
-              <Flex flexShrink={0} width="56px" justify="end">
+                {metric || isTool ? (
+                  <Text size="sm" variant={isSelected ? 'primary' : 'muted'}>
+                    •
+                  </Text>
+                ) : null}
                 <Text
                   size="sm"
                   variant={isSelected ? 'primary' : 'muted'}
