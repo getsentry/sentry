@@ -1,6 +1,9 @@
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {
+  normalizeUrl,
+  normalizeUrlWithCustomerDomain,
+} from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', () => {
   let configState: Config;
@@ -186,5 +189,53 @@ describe('normalizeUrl', () => {
       }
     );
     expect(result.pathname).toBe('/issues');
+  });
+});
+
+describe('normalizeUrlWithCustomerDomain', () => {
+  let configState: Config;
+  let result: any;
+
+  const customerDomain = {
+    subdomain: 'albertos-apples',
+    organizationUrl: 'https://albertos-apples.sentry.io',
+    sentryUrl: 'https://sentry.io',
+  };
+
+  beforeEach(() => {
+    // Set a customer domain in global config to prove the pure function does
+    // NOT read it — only the value passed in as an argument is used.
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({...configState, customerDomain});
+  });
+
+  afterEach(() => {
+    ConfigStore.loadInitialData(configState);
+  });
+
+  it('normalizes when a customer domain is provided', () => {
+    expect(normalizeUrlWithCustomerDomain('/settings/acme/', {customerDomain})).toBe(
+      '/settings/organization/'
+    );
+    result = normalizeUrlWithCustomerDomain(
+      {pathname: '/organizations/albertos-apples/issues'},
+      {customerDomain}
+    );
+    expect(result.pathname).toBe('/issues');
+  });
+
+  it('normalizes when forced, without a customer domain', () => {
+    expect(normalizeUrlWithCustomerDomain('/settings/acme/', {force: true})).toBe(
+      '/settings/organization/'
+    );
+  });
+
+  it('returns the path unchanged without a customer domain or force', () => {
+    expect(normalizeUrlWithCustomerDomain('/settings/acme/')).toBe('/settings/acme/');
+    expect(
+      normalizeUrlWithCustomerDomain('/settings/acme/', {customerDomain: null})
+    ).toBe('/settings/acme/');
+    result = normalizeUrlWithCustomerDomain({pathname: '/settings/acme/'});
+    expect(result.pathname).toBe('/settings/acme/');
   });
 });

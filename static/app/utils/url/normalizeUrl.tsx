@@ -1,6 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 
 // If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
@@ -25,27 +26,49 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/^\/?checkout\/[^/]+\/(.*)/, '/checkout/$1'],
 ];
 
+type NormalizeUrlWithCustomerDomainOptions = {
+  /**
+   * The active customer domain. When set (non-null) org/settings slugs are
+   * stripped from the path.
+   */
+  customerDomain?: Config['customerDomain'];
+  /**
+   * Normalize regardless of whether a customer domain is provided. Used where a
+   * slugless path is needed independent of the current domain (e.g. deriving
+   * redirect targets, normalizing telemetry span names).
+   */
+  force?: boolean;
+};
+
 type NormalizeUrlOptions = {
-  forceCustomerDomain: boolean;
+  /**
+   * Normalize regardless of whether a customer domain is active. See
+   * {@link NormalizeUrlWithCustomerDomainOptions.force}.
+   */
+  forceCustomerDomain?: boolean;
 };
 
 /**
- * Normalize a URL for customer domains based on the organization that was
- * present in the initial page load.
+ * Pure version of {@link normalizeUrl}: normalize a URL using an explicitly
+ * provided customer domain instead of reading it from global config. Prefer
+ * `normalizeUrl` unless you need to supply the customer domain yourself (e.g.
+ * in tests, or when normalizing for a domain other than the active one).
  */
-export function normalizeUrl(path: string, options?: NormalizeUrlOptions): string;
+export function normalizeUrlWithCustomerDomain(
+  path: string,
+  options?: NormalizeUrlWithCustomerDomainOptions
+): string;
 
-export function normalizeUrl(
+export function normalizeUrlWithCustomerDomain(
   path: LocationDescriptor,
-  options?: NormalizeUrlOptions
+  options?: NormalizeUrlWithCustomerDomainOptions
 ): LocationDescriptor;
 
-export function normalizeUrl(
+export function normalizeUrlWithCustomerDomain(
   path: LocationDescriptor,
-  options?: NormalizeUrlOptions
+  options?: NormalizeUrlWithCustomerDomainOptions
 ): LocationDescriptor {
-  const customerDomain = ConfigStore.get('customerDomain');
-  if (!options?.forceCustomerDomain && !customerDomain) {
+  if (!options?.force && !options?.customerDomain) {
     return path;
   }
 
@@ -74,4 +97,28 @@ export function normalizeUrl(
   }
 
   return resolved;
+}
+
+/**
+ * Normalize a URL for customer domains based on the organization that was
+ * present in the initial page load.
+ *
+ * Thin wrapper around {@link normalizeUrlWithCustomerDomain} that injects the
+ * active customer domain from `ConfigStore`.
+ */
+export function normalizeUrl(path: string, options?: NormalizeUrlOptions): string;
+
+export function normalizeUrl(
+  path: LocationDescriptor,
+  options?: NormalizeUrlOptions
+): LocationDescriptor;
+
+export function normalizeUrl(
+  path: LocationDescriptor,
+  options?: NormalizeUrlOptions
+): LocationDescriptor {
+  return normalizeUrlWithCustomerDomain(path, {
+    customerDomain: ConfigStore.get('customerDomain'),
+    force: options?.forceCustomerDomain,
+  });
 }
