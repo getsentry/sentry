@@ -77,6 +77,13 @@ def start_span(
     )
 
 
+def get_current_span() -> StreamedSpan | Span | None:
+    if has_span_streaming_enabled(sentry_sdk.get_client().options):
+        return sentry_sdk.traces.get_current_span()
+
+    return sentry_sdk.get_current_span()
+
+
 def set_span_tag(span: Span | StreamedSpan, key: str, value: Any) -> None:
     """
     Sets an attribute on a span if the streaming trace lifecycle is enabled. Otherwise, sets a tag on the span.

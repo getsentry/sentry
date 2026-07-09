@@ -20,6 +20,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.traces import StreamedSpan
 from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
@@ -31,7 +32,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -814,9 +815,12 @@ def bind_ambiguous_org_context(
 
 
 def get_trace_id():
-    span = sentry_sdk.get_current_span()
+    span = get_current_span()
+    if isinstance(span, StreamedSpan):
+        return span.trace_id
     if span is not None:
         return span.get_trace_context().get("trace_id")
+
     return None
 
 
