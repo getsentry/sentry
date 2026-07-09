@@ -1211,44 +1211,70 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 }
             ]
 
-    # commented out until https://github.com/getsentry/snuba/pull/4137 is merged.
-    # def test_archived_records_out_of_bounds(self) -> None:
-    #     replay1_id = uuid.uuid4().hex
-    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(days=10)
-    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(days=3)
+    def test_archived_records_out_of_bounds(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(days=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(days=3)
 
-    #     self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
-    #     self.store_replays(
-    #         mock_replay(
-    #             seq2_timestamp, self.project.id, replay1_id, is_archived=True, segment_id=None
-    #         )
-    #     )
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(
+            mock_replay(
+                seq2_timestamp, self.project.id, replay1_id, is_archived=True, segment_id=None
+            )
+        )
 
-    #     with self.feature(self.features):
-    #         response = self.client.get(self.url)
-    #         assert response.status_code == 200
-    #         assert response.json()["data"] == [
-    #             {
-    #                 "id": replay1_id,
-    #                 "project_id": str(self.project.id),
-    #                 "trace_ids": [],
-    #                 "error_ids": [],
-    #                 "environment": None,
-    #                 "tags": [],
-    #                 "user": {"id": "Archived Replay", "display_name": "Archived Replay"},
-    #                 "sdk": {"name": None, "version": None},
-    #                 "os": {"name": None, "version": None},
-    #                 "browser": {"name": None, "version": None},
-    #                 "device": {"name": None, "brand": None, "model": None, "family": None},
-    #                 "urls": None,
-    #                 "started_at": None,
-    #                 "count_errors": None,
-    #                 "activity": None,
-    #                 "finished_at": None,
-    #                 "duration": None,
-    #                 "is_archived": True,
-    #             }
-    #         ]
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.json()["data"] == [
+                {
+                    "id": replay1_id,
+                    "project_id": str(self.project.id),
+                    "trace_ids": [],
+                    "error_ids": [],
+                    "environment": None,
+                    "tags": [],
+                    "user": {
+                        "id": "Archived Replay",
+                        "display_name": "Archived Replay",
+                        "username": None,
+                        "email": None,
+                        "ip": None,
+                        "geo": {
+                            "city": None,
+                            "country_code": None,
+                            "region": None,
+                            "subdivision": None,
+                        },
+                    },
+                    "sdk": {"name": None, "version": None},
+                    "os": {"name": None, "version": None},
+                    "browser": {"name": None, "version": None},
+                    "device": {"name": None, "brand": None, "model": None, "family": None},
+                    "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
+                    "urls": None,
+                    "segment_names": None,
+                    "started_at": None,
+                    "count_errors": None,
+                    "count_dead_clicks": None,
+                    "count_rage_clicks": None,
+                    "activity": None,
+                    "finished_at": None,
+                    "duration": None,
+                    "is_archived": True,
+                    "releases": [],
+                    "platform": None,
+                    "dist": None,
+                    "count_segments": None,
+                    "count_urls": None,
+                    "clicks": [],
+                    "warning_ids": [],
+                    "info_ids": [],
+                    "count_warnings": None,
+                    "count_infos": None,
+                    "has_viewed": False,
+                }
+            ]
 
     def test_get_replays_filter_clicks(self) -> None:
         """Test replays conform to the interchange format."""
