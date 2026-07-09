@@ -74,6 +74,30 @@ SEAT_SEEN_KEY_PREFIX = "webhook:gitlab:seat_tracking:"
 SEAT_SEEN_TTL_SECONDS = 20
 
 
+def _actor_author_mismatch_extra(
+    *,
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration,
+    merge_request_iid: object,
+    merge_request_action: object,
+    author_id: object,
+    actor_id: object,
+    contributor_tracking_stage: str,
+) -> dict[str, object]:
+    return {
+        "seer.webhooks.organization_id": organization.id,
+        "seer.webhooks.provider_name": "gitlab",
+        "seer.webhooks.repository_id": repo.id,
+        "seer.webhooks.integration_id": integration.id,
+        "seer.webhooks.merge_request_iid": merge_request_iid,
+        "seer.webhooks.merge_request_action": merge_request_action,
+        "seer.webhooks.author_id": author_id,
+        "seer.webhooks.actor_id": actor_id,
+        "seer.webhooks.contributor_tracking_stage": contributor_tracking_stage,
+    }
+
+
 def _is_duplicate_delivery(seen_key: str) -> bool:
     """
     True if a delivery with this key was already processed within the TTL window.
@@ -148,7 +172,16 @@ def track_gitlab_contributor_seat_processor(
             logger,
             organization,
             "actor_author_mismatch",
-            {**base_extra, "event_actor_id": event_actor_id},
+            _actor_author_mismatch_extra(
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                merge_request_iid=iid,
+                merge_request_action=object_attributes.get("action"),
+                author_id=user_id,
+                actor_id=event_actor_id,
+                contributor_tracking_stage="seat",
+            ),
             level=logging.WARNING,
         )
         return
@@ -219,13 +252,16 @@ def track_gitlab_contributor_action_processor(
             logger,
             organization,
             "actor_author_mismatch",
-            {
-                "organization_id": organization.id,
-                "repo_id": repo.id,
-                "mr_iid": iid,
-                "author_id": user_id,
-                "event_actor_id": event_actor_id,
-            },
+            _actor_author_mismatch_extra(
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                merge_request_iid=iid,
+                merge_request_action=object_attributes.get("action"),
+                author_id=user_id,
+                actor_id=event_actor_id,
+                contributor_tracking_stage="action",
+            ),
             level=logging.WARNING,
         )
         return
