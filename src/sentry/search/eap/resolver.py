@@ -4,7 +4,6 @@ from datetime import datetime
 from re import Match
 from typing import Any, Literal, cast
 
-import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -67,7 +66,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
-from sentry.utils.tracing import set_span_tag, trace
+from sentry.utils.tracing import get_current_span, set_span_tag, trace
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -148,7 +147,7 @@ class SearchResolver:
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
-        span = sentry_sdk.get_current_span()
+        span = get_current_span()
         if span:
             set_span_tag(span, "SearchResolver.params", self.params)
 
@@ -188,7 +187,7 @@ class SearchResolver:
         also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         where, having, contexts = self.__resolve_query(querystring)
-        span = sentry_sdk.get_current_span()
+        span = get_current_span()
         if span:
             set_span_tag(span, "SearchResolver.query_string", querystring)
             set_span_tag(span, "SearchResolver.resolved_query", where)
@@ -993,7 +992,7 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
-        span = sentry_sdk.get_current_span()
+        span = get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
