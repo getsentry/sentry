@@ -111,27 +111,24 @@ def _build_activity_data(activity: Activity) -> ActivityData:
     if activity_alert_type is None:
         raise ValueError(f"Unrecognized activity type: {activity.type} for activity {activity.id}")
 
-    if activity_alert_type in STATUS_CHANGE_ACTIVITY_TYPES:
-        details: dict[str, Any] = {}
+    details: dict[str, Any] = {}
 
-        if activity.user_id:
-            if user := user_service.get_user(user_id=activity.user_id):
-                details["user"] = {
-                    "id": user.id,
-                    "name": user.display_name,
-                    "username": user.username,
-                    "email": user.email,
-                }
-
-        return ActivityData(type=activity_alert_type, details=details)
+    if activity.user_id:
+        if user := user_service.get_user(user_id=activity.user_id):
+            details["user"] = {
+                "id": user.id,
+                "name": user.get_display_name(),
+                "username": user.username,
+                "email": user.email,
+            }
 
     if not activity.data:
-        return ActivityData(type=activity_alert_type, details={})
+        return ActivityData(type=activity_alert_type, details=details)
 
     match activity_alert_type:
         case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
-            return ActivityData(type=activity_alert_type, details={"summary": summary})
+            details["summary"] = summary
         case ActivityAlertType.SEER_PR_CREATED:
             pull_requests_data = activity.data.get("pull_requests", [])
             pull_requests = [
@@ -141,9 +138,8 @@ def _build_activity_data(activity: Activity) -> ActivityData:
                 }
                 for pull_request in pull_requests_data
             ]
-            return ActivityData(type=activity_alert_type, details={"pull_requests": pull_requests})
+            details["pull_requests"] = pull_requests
         case ActivityAlertType.SEER_ITERATION_COMPLETED:
-            details: dict[str, Any] = {}
             pull_requests_data = activity.data.get("pull_requests", [])
             if pull_requests_data:
                 details["pull_requests"] = [
@@ -159,9 +155,9 @@ def _build_activity_data(activity: Activity) -> ActivityData:
             iteration_index = activity.data.get("iteration_index")
             if iteration_index is not None:
                 details["iteration_index"] = iteration_index
-            return ActivityData(type=activity_alert_type, details=details)
         case _:
-            return ActivityData(type=activity_alert_type, details={})
+            pass
+    return ActivityData(type=activity_alert_type, details=details)
 
 
 def _build_workflow_data(
