@@ -41,14 +41,8 @@ from sentry.utils import snuba_rpc
 
 AttributeType = Literal["string", "number", "boolean"]
 
-# Cap matches the trace item attribute validate endpoint.
-MAX_ATTRIBUTE_KEY_LENGTH = 300
 
-
-class OrganizationTraceItemAttributeContextPostSerializer(serializers.Serializer[Never]):
-    attributeKey = serializers.CharField(
-        source="attribute_key", max_length=MAX_ATTRIBUTE_KEY_LENGTH
-    )
+class OrganizationTraceItemAttributeContextPutSerializer(serializers.Serializer[Never]):
     dataset = serializers.ChoiceField(SUPPORTED_DATASETS)
     attributeType = serializers.ChoiceField(POSSIBLE_ATTRIBUTE_TYPES, source="attribute_type")
     brief = serializers.CharField(max_length=280)
@@ -88,11 +82,11 @@ def attribute_exists_in_storage(
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def put(self, request: Request, organization: Organization, key: str) -> Response:
         """Create or update the authored context for a custom trace item attribute."""
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -103,7 +97,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         ):
             return Response(status=404)
 
-        serializer = OrganizationTraceItemAttributeContextPostSerializer(data=request.data)
+        serializer = OrganizationTraceItemAttributeContextPutSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
@@ -147,7 +141,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         # Canonicalize the key to its internal name so every check and the upsert
         # share one identity and equivalent key forms collapse to a single row.
         try:
-            resolved_attribute, _ = resolver.resolve_attribute(data["attribute_key"])
+            resolved_attribute, _ = resolver.resolve_attribute(key)
         except InvalidSearchQuery as _e:
             return Response({"detail": "Invalid attribute query."}, status=400)
 

@@ -1740,7 +1740,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attributes-validate",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/context/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/context/$",
         OrganizationTraceItemAttributeContextEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attribute-context",
     ),

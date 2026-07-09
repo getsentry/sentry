@@ -35,32 +35,35 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             tags=tags,
         )
 
-    def do_request(self, data, query=None, features=None):
+    def do_request(self, key, data, query=None, features=None):
         if features is None:
             features = self.feature_flags
         if query is None:
             query = {"project": self.project.id, "statsPeriod": "7d"}
-        url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
+        url = reverse(
+            self.viewname,
+            kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+        )
         with self.feature(features):
-            return self.client.post(
+            return self.client.put(
                 url,
                 data,
                 format="json",
-                QUERY_STRING="&".join(f"{key}={value}" for key, value in query.items()),
+                QUERY_STRING="&".join(f"{name}={value}" for name, value in query.items()),
             )
 
     def test_creates_context(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "My custom attribute",
                 "additionalContext": "Longer notes about the attribute.",
                 "examples": ["value", "other"],
-            }
+            },
         )
 
         assert response.status_code == 201, response.data
@@ -89,25 +92,25 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         self.store_attribute(my_custom_attr="value")
 
         first = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "First",
                 "additionalContext": "Longer notes about the attribute.",
                 "examples": ["value", "other"],
-            }
+            },
         )
         assert first.status_code == 201, first.data
 
         # A brief-only follow-up must not clear the stored optional fields.
         second = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "Second",
-            }
+            },
         )
         assert second.status_code == 200, second.data
         assert second.data["id"] == first.data["id"]
@@ -127,23 +130,23 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         # Typed-tag syntax and the bare key canonicalize to the same stored row.
         typed = self.do_request(
+            "tags[my_custom_attr,string]",
             {
-                "attributeKey": "tags[my_custom_attr,string]",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "From typed syntax",
-            }
+            },
         )
         assert typed.status_code == 201, typed.data
         assert typed.data["attributeKey"] == "my_custom_attr"
 
         bare = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "From bare key",
-            }
+            },
         )
         assert bare.status_code == 200, bare.data
         assert bare.data["id"] == typed.data["id"]
@@ -160,11 +163,11 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
-            }
+            },
         )
 
         assert response.status_code == 400, response.data
@@ -174,8 +177,8 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "My custom attribute",
@@ -192,12 +195,12 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
+            "span.op",
             {
-                "attributeKey": "span.op",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "My custom attribute",
-            }
+            },
         )
 
         assert response.status_code == 400, response.data
@@ -209,12 +212,12 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         # The internal name must be rejected the same as the public alias.
         response = self.do_request(
+            "sentry.op",
             {
-                "attributeKey": "sentry.op",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "My custom attribute",
-            }
+            },
         )
 
         assert response.status_code == 400, response.data
@@ -225,12 +228,12 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         # `span.duration` is a Sentry-defined column absent from conventions, still reserved.
         response = self.do_request(
+            "span.duration",
             {
-                "attributeKey": "span.duration",
                 "dataset": "spans",
                 "attributeType": "number",
                 "brief": "My custom attribute",
-            }
+            },
         )
 
         assert response.status_code == 400, response.data
@@ -240,12 +243,12 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
+            "does.not.exist",
             {
-                "attributeKey": "does.not.exist",
                 "dataset": "spans",
                 "attributeType": "string",
                 "brief": "My custom attribute",
-            }
+            },
         )
 
         assert response.status_code == 400, response.data
@@ -255,10 +258,11 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
+            "my_custom_attr",
             {
-                "attributeKey": "my_custom_attr",
                 "dataset": "spans",
                 "attributeType": "string",
+                "brief": "My custom attribute",
             },
             features={"organizations:visibility-explore-view": True},
         )
@@ -266,12 +270,14 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert response.status_code == 404
 
     def test_invalid_payload(self) -> None:
+        # `dataset` is required in the body.
         response = self.do_request(
+            "my_custom_attr",
             {
-                "dataset": "spans",
                 "attributeType": "string",
-            }
+                "brief": "My custom attribute",
+            },
         )
 
         assert response.status_code == 400, response.data
-        assert "attributeKey" in response.data
+        assert "dataset" in response.data
