@@ -119,6 +119,7 @@ class SentryAppsTest(APITestCase):
             "clientId": sentry_app.application.client_id,
             "clientSecret": sentry_app.application.client_secret,
             "events": [],
+            "webhookEvents": [],
             "featureData": [],
             "isAlertable": sentry_app.is_alertable,
             "isDisabled": sentry_app.is_disabled,
