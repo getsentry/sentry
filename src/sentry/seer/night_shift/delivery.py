@@ -55,6 +55,8 @@ def deliver_night_shift_result(
         )
         return
     run = shard.run
+    # Guaranteed by the seer_run__uuid filter above: a null FK can't match a uuid.
+    assert shard.seer_run is not None
 
     # Per-delivery error_message lives on the shard so a sibling shard's success
     # can't clear it.
