@@ -17,13 +17,6 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.attachments.base import CachedAttachment
-from sentry.lang.java.processing import process_jvm_stacktraces
-from sentry.lang.javascript.processing import process_js_stacktraces
-from sentry.lang.native.processing import (
-    process_applecrashreport,
-    process_minidump,
-    process_native_stacktraces,
-)
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
     get_internal_source,
@@ -55,6 +48,14 @@ class SymbolicatorFunction(Enum):
     applecrashreport = "applecrashreport"
 
     def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
+        from sentry.lang.java.processing import process_jvm_stacktraces
+        from sentry.lang.javascript.processing import process_js_stacktraces
+        from sentry.lang.native.processing import (
+            process_applecrashreport,
+            process_minidump,
+            process_native_stacktraces,
+        )
+
         match self:
             case SymbolicatorFunction.native:
                 return process_native_stacktraces(symbolicator, data)
