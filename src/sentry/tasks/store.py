@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import orjson
-import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing2
@@ -39,7 +38,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -289,7 +288,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
-@sentry_sdk.tracing.trace
+@trace
 def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,

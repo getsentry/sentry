@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import signal
 import sys
+import threading
 import time
 from types import FrameType
 
@@ -34,6 +35,8 @@ def _on_sigterm(signum: int, frame: FrameType | None) -> None:
 
 
 def pytest_configure(config: Config) -> None:
+    if threading.current_thread() is not threading.main_thread():
+        return
     global _original_stdout_fd
     _original_stdout_fd = os.dup(sys.stdout.fileno())
     signal.signal(signal.SIGTERM, _on_sigterm)

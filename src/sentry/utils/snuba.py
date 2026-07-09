@@ -21,6 +21,8 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk.traces import StreamedSpan
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
@@ -1185,8 +1187,14 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.transaction:
-        parent_api = scope.transaction.name
+
+    if has_span_streaming_enabled(sentry_sdk.get_client().options):
+        span = scope.streamed_span
+        if type(span) is StreamedSpan:
+            parent_api = span._segment.name
+    else:
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
