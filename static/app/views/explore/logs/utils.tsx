@@ -21,6 +21,7 @@ import {
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   LOGS_AGGREGATE_FN_KEY,
@@ -151,14 +152,7 @@ export function severityLevelToText(level: SeverityLevel) {
 }
 
 export function getLogBodySearchTerms(search: MutableSearch): string[] {
-  const searchTerms: string[] = search.freeText.map(text => text.replaceAll('*', ''));
-  const bodyFilters = search.getFilterValues('log.body');
-  for (const filter of bodyFilters) {
-    if (!filter.startsWith('!') && !filter.startsWith('[')) {
-      searchTerms.push(filter);
-    }
-  }
-  return searchTerms;
+  return getBodySearchTerms(search, OurLogKnownFieldKey.MESSAGE);
 }
 
 export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {

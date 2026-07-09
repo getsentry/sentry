@@ -33,6 +33,7 @@ import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
 import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {getLogBodySearchTerms} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -139,6 +140,7 @@ function OurlogsSectionContent({
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
   const logsSearch = useQueryParamsSearch();
+  const highlightTerms = useMemo(() => getLogBodySearchTerms(logsSearch), [logsSearch]);
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -244,7 +246,7 @@ function OurlogsSectionContent({
               <LogRowContent
                 dataRow={row}
                 meta={tableData.meta}
-                highlightTerms={[]}
+                highlightTerms={highlightTerms}
                 embedded
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}
