@@ -330,7 +330,6 @@ class TestReconcileStatus:
         assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
-
 # ---------------------------------------------------------------------------
 # track_progress
 # ---------------------------------------------------------------------------
