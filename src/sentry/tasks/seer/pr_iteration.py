@@ -39,8 +39,6 @@ from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-_SEER_GITHUB_PROVIDER = "integrations:github"
-
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
     referrers = {item.referrer for item in items}
@@ -242,6 +240,12 @@ def trigger_pr_iteration_from_comment(
             extra={"organization_id": organization_id, "repo_id": repo_id},
         )
         return None
+    if repo.provider is None:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.no_provider",
+            extra={"organization_id": organization_id, "repo_id": repo.id},
+        )
+        return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -257,7 +261,7 @@ def trigger_pr_iteration_from_comment(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, _SEER_GITHUB_PROVIDER, pr_id)
+    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.comment_trigger.no_run")
         logger.info(
