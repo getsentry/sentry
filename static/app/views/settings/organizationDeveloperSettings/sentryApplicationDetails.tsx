@@ -750,9 +750,9 @@ function SentryApplicationForm({
         <form.AppField name="isAlertable">
           {field => (
             <field.Layout.Row
-              label={t('Alert Rule Action')}
+              label={t('Alert Action')}
               hintText={tct(
-                'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
+                'If enabled, this integration will be available as an action in alerts in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
                 {
                   learnMore: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
@@ -767,7 +767,7 @@ function SentryApplicationForm({
                     onChange={field.handleChange}
                     disabled={
                       webhookDisabled
-                        ? t('Cannot enable alert rule action without a webhook url')
+                        ? t('Cannot enable alert action without a webhook url')
                         : false
                     }
                   />

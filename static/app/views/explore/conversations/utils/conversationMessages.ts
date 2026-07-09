@@ -46,7 +46,11 @@ interface ConversationTurn {
   toolCalls: ToolCall[];
   userContent: string | null;
   userEmail: string | undefined;
+  // Input carries history (>1 message). Single-message inputs are never deduped.
+  hasInputHistory?: boolean;
   toolSpanNodes?: AITraceSpanNode[];
+  // User messages in the input history; a growing count marks a genuine repeat.
+  userMessageCount?: number;
 }
 
 /**
@@ -123,11 +127,14 @@ export function buildConversationTurns(
       .filter((tc): tc is ToolCall => tc !== null);
 
     const {content: assistantContent, reasoning} = parseAssistantContent(node);
+    const inputStats = getInputMessageStats(node);
     turns.push({
       generation: node,
       toolCalls,
       toolSpanNodes: toolCallSpans,
       userContent: parseUserContent(node),
+      hasInputHistory: inputStats.totalMessageCount > 1,
+      userMessageCount: inputStats.userMessageCount,
       assistantContent,
       reasoning,
       userEmail,
@@ -180,15 +187,24 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   const messages: ConversationMessage[] = [];
   const seenUserContent = new Set<string>();
   const seenAssistantContent = new Set<string>();
+  let maxUserMessageCount = 0;
 
   for (const turn of turns) {
     const startTs = getNodeStartTimestamp(turn.generation);
     const genEnd = getNodeEndTimestamp(turn.generation);
 
+    // Only cumulative inputs are deduped; single-message inputs are genuine turns.
+    const hasHistory = turn.hasInputHistory ?? true;
+    const userMessageCount = turn.userMessageCount ?? 0;
+    const userCountGrew = userMessageCount > maxUserMessageCount;
+    maxUserMessageCount = Math.max(maxUserMessageCount, userMessageCount);
+
     if (
       turn.userContent &&
       (turn.userContent === FILTERED ||
         turn.userContent === EMPTY_TEXT_CONTENT ||
+        !hasHistory ||
+        userCountGrew ||
         !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
@@ -287,6 +303,39 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     return null;
   }
   return userMessage.content;
+}
+
+export interface InputMessageStats {
+  totalMessageCount: number;
+  userMessageCount: number;
+}
+
+/**
+ * Counts messages in a generation's input to distinguish a genuine repeated
+ * user message from a carry-forward. Returns zeroes for missing or scrubbed
+ * input.
+ */
+export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
+  const raw =
+    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
+
+  if (!raw || raw === FILTERED) {
+    return {totalMessageCount: 0, userMessageCount: 0};
+  }
+
+  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
+  if (!messages) {
+    return {totalMessageCount: 0, userMessageCount: 0};
+  }
+  // System prompts are not conversation history; exclude them so a
+  // non-cumulative SDK that always prepends a system message is still
+  // recognised as single-message (non-cumulative) input.
+  const nonSystem = messages.filter(m => m.role !== 'system');
+  return {
+    totalMessageCount: nonSystem.length,
+    userMessageCount: nonSystem.filter(m => m.role === 'user').length,
+  };
 }
 
 /**

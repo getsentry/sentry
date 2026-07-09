@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -6,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
-  AI_MESSAGE_MAX_WIDTH,
   AssistantMessageBlock,
   MessageBlock,
   UserMessageBlock,
@@ -18,7 +18,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -36,6 +39,7 @@ interface MessagesPanelNewProps {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
+  isLoading?: boolean;
 }
 
 /**
@@ -48,7 +52,9 @@ export function MessagesPanelNew({
   selectedNodeId,
   onSelectNode,
   nodeTraceMap,
+  isLoading,
 }: MessagesPanelNewProps) {
+  const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
@@ -71,6 +77,18 @@ export function MessagesPanelNew({
     return map;
   }, [nodes]);
 
+  const handleMessageClick = (message: ConversationMessage) => {
+    trackAnalytics('conversations.message.click', {organization});
+    const node = nodeMap.get(message.nodeId);
+    if (node) {
+      onSelectNode(node);
+    }
+  };
+
+  if (isLoading) {
+    return <MessagesPanelSkeleton />;
+  }
+
   if (messages.length === 0) {
     return (
       <PanelContainer>
@@ -84,6 +102,7 @@ export function MessagesPanelNew({
       <Stack gap="0" width="100%">
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
+          const isSelected = message.nodeId === selectedNodeId;
 
           if (message.role === 'user') {
             return (
@@ -93,7 +112,6 @@ export function MessagesPanelNew({
                     text={message.content}
                     inline
                     autoCollapseLimit={10}
-                    collapsibleXmlTags
                   />
                 </MessageText>
               </UserMessageBlock>
@@ -105,10 +123,12 @@ export function MessagesPanelNew({
               key={message.id}
               message={message}
               hasXmlTags={hasXmlTags}
+              isSelected={message.role === 'assistant' && isSelected}
               selectedNodeId={selectedNodeId}
               nodeMap={nodeMap}
               nodeTraceMap={nodeTraceMap}
               onSelectNode={onSelectNode}
+              onClick={() => handleMessageClick(message)}
             />
           );
         })}
@@ -119,9 +139,11 @@ export function MessagesPanelNew({
 
 interface AssistantTurnProps {
   hasXmlTags: boolean;
+  isSelected: boolean;
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
   nodeTraceMap: Map<string, string>;
+  onClick: () => void;
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
 }
@@ -129,10 +151,12 @@ interface AssistantTurnProps {
 function AssistantTurn({
   message,
   hasXmlTags,
+  isSelected,
   selectedNodeId,
   nodeMap,
   nodeTraceMap,
   onSelectNode,
+  onClick,
 }: AssistantTurnProps) {
   const generationNode = nodeMap.get(message.nodeId);
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
@@ -160,26 +184,27 @@ function AssistantTurn({
       {message.reasoning && (
         <MessageBlock>
           <ReasoningSection reasoning={message.reasoning} />
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageBlock>
       )}
       {message.content === '' ? (
         // Tool/reasoning-only turn: still surface the turn's cost and duration.
         hasMeta && <MessageBlock justify="end">{meta}</MessageBlock>
       ) : message.content === EMPTY_TEXT_CONTENT ? (
-        <AssistantMessageBlock meta={meta}>
+        <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={onClick}>
           <MessageText align="left" variant="muted">
             {message.content}
           </MessageText>
         </AssistantMessageBlock>
       ) : (
-        <AssistantMessageBlock expand={hasXmlTags} meta={meta}>
+        <AssistantMessageBlock
+          expand={hasXmlTags}
+          meta={meta}
+          isSelected={isSelected}
+          onClick={onClick}
+        >
           <MessageText align="left">
-            <AIContentRenderer
-              text={message.content}
-              inline
-              autoCollapseLimit={10}
-              collapsibleXmlTags
-            />
+            <AIContentRenderer text={message.content} inline autoCollapseLimit={10} />
           </MessageText>
         </AssistantMessageBlock>
       )}
@@ -213,7 +238,6 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
 
   return (
     <CollapsibleContent
-      maxWidth={AI_MESSAGE_MAX_WIDTH}
       title={
         <Text size="sm" variant="muted" monospace>
           {t('Thinking...')}
@@ -233,12 +257,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
     >
       <Container padding="xs md">
         <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer
-            text={reasoning}
-            inline
-            autoCollapseLimit={10}
-            collapsibleXmlTags
-          />
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
       </Container>
     </CollapsibleContent>
@@ -251,6 +270,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * the skeleton reads as a conversation rather than a generic list.
  */
 export function MessagesPanelSkeleton() {
+  const theme = useTheme();
+  const invertedPlaceholderStyle = {
+    backgroundColor: theme.tokens.background.primary,
+  };
+
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">
@@ -258,19 +282,19 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="320px" />
-            <Placeholder height="12px" width="260px" />
-            <Placeholder height="12px" width="180px" />
+          <Flex direction="column" gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
           </Flex>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="280px" />
-            <Placeholder height="12px" width="200px" />
+          <Flex direction="column" gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
           </Flex>
         </AssistantMessageBlock>
       </Stack>

@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 
+import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 function disableMacros(value: string | null | boolean | number | undefined) {
@@ -36,5 +36,5 @@ export function downloadLogsAsCsv(
 
   const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
-  downloadFromHref(createLogDownloadFilename(filename, 'csv'), encodedDataUrl);
+  downloadFromHref(createExportFilename(filename, 'csv'), encodedDataUrl);
 }

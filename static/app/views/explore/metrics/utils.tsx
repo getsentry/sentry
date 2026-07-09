@@ -32,6 +32,7 @@ import {
 import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
+  isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
@@ -96,6 +97,43 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
         [`sentry._internal.cooccuring.type.${traceMetric.type}`]: ['true'],
       }).formatString()
     : undefined;
+}
+
+/**
+ * Splits a metrics query string into the structured metric identity and the
+ * remaining attribute predicate. The identity rides as metric.name/metric.type/
+ * metric.unit filter tokens (samples-mode form, e.g. what Ask Seer returns for a
+ * metrics query). Returns `metric: undefined` and the query untouched when the
+ * identity isn't present, so callers can ignore it.
+ */
+/**
+ * Removes any metric.name/metric.type/metric.unit identity tokens from a query,
+ * whether or not they form a complete metric. Use when the metric has been
+ * adopted onto the panel so no stale identity filters linger in the query.
+ */
+export function stripTraceMetricTokens(query: string): string {
+  const search = new MutableSearch(query);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
+  search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
+  return search.formatString();
+}
+
+export function parseTraceMetricFromQuery(query: string): {
+  metric: TraceMetric | undefined;
+  rest: string;
+} {
+  const search = new MutableSearch(query);
+  const name = search.getFilterValues(TraceMetricKnownFieldKey.METRIC_NAME)[0];
+  const type = search.getFilterValues(TraceMetricKnownFieldKey.METRIC_TYPE)[0];
+  const unit = search.getFilterValues(TraceMetricKnownFieldKey.METRIC_UNIT)[0];
+  if (!name || !type || !isTraceMetricTypeValue(type)) {
+    return {metric: undefined, rest: query};
+  }
+  return {
+    metric: {name, type, unit: unit ?? NONE_UNIT},
+    rest: stripTraceMetricTokens(query),
+  };
 }
 
 export function hasDisplayMetricUnit(

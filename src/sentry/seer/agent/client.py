@@ -618,7 +618,7 @@ class SeerAgentClient:
             self.organization,
             actor=self.user,
         ):
-            opts["embed_widgets"] = get_embed_widgets()
+            opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
             "organizations:seer-explorer-stream",
@@ -731,7 +731,7 @@ class SeerAgentClient:
             self.organization,
             actor=self.user,
         ):
-            agent_run_options["embed_widgets"] = get_embed_widgets()
+            agent_run_options["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
             "organizations:seer-explorer-stream",

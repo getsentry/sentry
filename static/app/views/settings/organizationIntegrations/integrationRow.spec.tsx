@@ -148,6 +148,27 @@ describe('IntegrationRow', () => {
       );
     });
 
+    it('auto-opens the permissions modal for an outdated GitHub integration', async () => {
+      render(
+        <IntegrationRow
+          organization={org}
+          type="firstParty"
+          slug="github"
+          displayName="GitHub"
+          status="Installed"
+          publishStatus="published"
+          configurations={2}
+          categories={[]}
+          outdatedConfigurations={1}
+        />
+      );
+      await userEvent.hover(screen.getByLabelText('Integration alert'));
+      expect(await screen.findByRole('link', {name: 'click here'})).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/github/?tab=configurations&referrer=directory_resolve_now&showPermsModal=1`
+      );
+    });
+
     it('sends users to the config page when multiple workspaces are outdated', async () => {
       render(
         <IntegrationRow
