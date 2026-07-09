@@ -12,8 +12,6 @@ from sentry.notifications.platform.types import (
 )
 from sentry.users.services.user.service import user_service
 
-EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/example/issues/1/"
-
 
 def get_resolution_subject(activity: Activity, group: Group) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = []
