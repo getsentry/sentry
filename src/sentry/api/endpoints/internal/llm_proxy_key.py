@@ -1,5 +1,6 @@
 import logging
 import time
+from enum import StrEnum
 
 import jwt as pyjwt
 from django.conf import settings
@@ -22,21 +23,35 @@ logger = logging.getLogger(__name__)
 
 LLM_PROXY_JWT_TTL = 3600
 
-# Per-feature flags checked *in addition to* the base gen-ai-features gate.
-# An empty list means only the base gate is required.
-FEATURE_FLAGS: dict[str, list[str]] = {
-    "anomaly_detection": [],
-    "assisted_query": [],
-    "autofix": [],
-    "code_review": ["organizations:code-review-beta"],
-    "explorer": ["organizations:seer-explorer"],
-    "grouping": [],
-    "issue_detection": ["organizations:ai-issue-detection"],
-    "malicious_issue_detection": [],
-    "pr_metrics": [],
-    "severity": [],
-    "summarization": [],
-    "workflows": [],
+
+class LlmProxyFeature(StrEnum):
+    ANOMALY_DETECTION = "anomaly_detection"
+    ASSISTED_QUERY = "assisted_query"
+    AUTOFIX = "autofix"
+    CODE_REVIEW = "code_review"
+    EXPLORER = "explorer"
+    GROUPING = "grouping"
+    ISSUE_DETECTION = "issue_detection"
+    MALICIOUS_ISSUE_DETECTION = "malicious_issue_detection"
+    PR_METRICS = "pr_metrics"
+    SEVERITY = "severity"
+    SUMMARIZATION = "summarization"
+    WORKFLOWS = "workflows"
+
+
+FEATURE_FLAGS: dict[LlmProxyFeature, list[str]] = {
+    LlmProxyFeature.ANOMALY_DETECTION: [],
+    LlmProxyFeature.ASSISTED_QUERY: [],
+    LlmProxyFeature.AUTOFIX: [],
+    LlmProxyFeature.CODE_REVIEW: ["organizations:code-review-beta"],
+    LlmProxyFeature.EXPLORER: ["organizations:seer-explorer"],
+    LlmProxyFeature.GROUPING: [],
+    LlmProxyFeature.ISSUE_DETECTION: ["organizations:ai-issue-detection"],
+    LlmProxyFeature.MALICIOUS_ISSUE_DETECTION: [],
+    LlmProxyFeature.PR_METRICS: [],
+    LlmProxyFeature.SEVERITY: [],
+    LlmProxyFeature.SUMMARIZATION: [],
+    LlmProxyFeature.WORKFLOWS: [],
 }
 
 
@@ -56,9 +71,12 @@ def make_llm_proxy_key(
     Signed with SEER_API_SHARED_SECRET. The proxy verifies locally
     using the same secret, so no per-request RPC callback is needed.
     """
-    extra_flags = FEATURE_FLAGS.get(feature)
-    if extra_flags is None:
+    try:
+        proxy_feature = LlmProxyFeature(feature)
+    except ValueError:
         return MakeLlmProxyKeyResponse(error="unknown_feature")
+
+    extra_flags = FEATURE_FLAGS[proxy_feature]
 
     secret = settings.SEER_API_SHARED_SECRET
     if not secret:
@@ -72,8 +90,13 @@ def make_llm_proxy_key(
     if not has_seer_access(organization):
         return MakeLlmProxyKeyResponse(error="feature_not_enabled")
 
-    for flag in extra_flags:
-        if not features.has(flag, organization):
+    if extra_flags:
+        batch_result = features.batch_has(extra_flags, organization=organization)
+        if batch_result:
+            org_results = batch_result.get(f"organization:{organization.id}", {})
+            if not all(org_results.get(flag) for flag in extra_flags):
+                return MakeLlmProxyKeyResponse(error="feature_not_enabled")
+        else:
             return MakeLlmProxyKeyResponse(error="feature_not_enabled")
 
     if project_id is not None:
@@ -82,7 +105,7 @@ def make_llm_proxy_key(
 
     now = time.time()
     payload = {
-        "org_id": org_id,
+        "organization_id": org_id,
         "feature": feature,
         "iat": now,
         "exp": now + LLM_PROXY_JWT_TTL,

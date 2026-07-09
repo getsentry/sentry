@@ -46,7 +46,7 @@ class InternalLlmProxyKeyTest(APITestCase):
         token = response.data["token"]
 
         claims = pyjwt.decode(token, "test-secret", algorithms=["HS256"])
-        assert claims["org_id"] == self.organization.id
+        assert claims["organization_id"] == self.organization.id
         assert claims["feature"] == "autofix"
         assert claims["iss"] == "sentry"
         assert "project_id" not in claims
