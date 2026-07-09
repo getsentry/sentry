@@ -240,7 +240,8 @@ describe('InstallDetailsContent', () => {
     );
 
     expect(await screen.findByText('Install Groups')).toBeInTheDocument();
-    expect(screen.getByText('qa, beta')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
   });
 
   it('does not render install groups section when none are provided', async () => {

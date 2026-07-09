@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -300,7 +301,13 @@ export function InstallDetailsContent({
                 radius="md"
                 width="100%"
               >
-                <Text>{installGroups.join(', ')}</Text>
+                <Flex gap="sm" wrap="wrap">
+                  {installGroups.map(group => (
+                    <Tag key={group} variant="muted">
+                      {group}
+                    </Tag>
+                  ))}
+                </Flex>
               </Container>
             </Flex>
           )}

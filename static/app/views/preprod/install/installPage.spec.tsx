@@ -110,7 +110,8 @@ describe('InstallPage', () => {
     renderInstallPage();
 
     expect(await screen.findByText('Install Groups')).toBeInTheDocument();
-    expect(screen.getByText('qa, beta')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
   });
 
   it('keeps the Releases breadcrumb clickable when build details fail to load', async () => {
