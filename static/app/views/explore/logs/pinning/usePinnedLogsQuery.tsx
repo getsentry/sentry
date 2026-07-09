@@ -3,7 +3,6 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {useQueries, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {batchedQueryOptions} from 'sentry/utils/api/batching/batchedQueryOptions';
@@ -34,9 +33,9 @@ const PINNED_LOG_ROW_QUERY_KEY = 'pinned-log-row';
 type BatchedQueryStatus = 'error' | 'pending' | 'success';
 
 /**
- * Practically-infinite period so the wide step finds any log still in retention,
- * regardless of the selected range. The backend clamps it to the org's retention.
- * Only used as a fallback when a pin's timestamp can't be derived from its id.
+ * Practically-infinite period so we find any pin still in retention, regardless of
+ * the selected range. The backend clamps it to the org's retention. Only used as a
+ * fallback when a pin's timestamp can't be derived from its id.
  */
 const WIDE_STATS_PERIOD = '9999d';
 
@@ -48,27 +47,27 @@ const WINDOW_BUFFER_MS = 5 * 60 * 1000;
 
 interface PinnedLogsQueryContext {
   baseQuery: Record<string, unknown>;
-  dateParams: Record<string, unknown>;
   organizationSlug: string;
 }
 
 const pinnedLogBatcher = createBatcher<OurLogsResponseItem, PinnedLogsQueryContext>(
-  async (client, {organizationSlug, baseQuery, dateParams}, ids: string[]) => {
+  async (client, {organizationSlug, baseQuery}, ids: string[]) => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organizationSlug},
     });
 
-    const fetchByIds = (idsForFetch: string[], dp: Record<string, unknown>) =>
-      apiFetch<EventsLogsResult>({
+    const rowsById = new Map<string, OurLogsResponseItem | Error>();
+    try {
+      const {json} = await apiFetch<EventsLogsResult>({
         client,
         queryKey: [
           url,
           {
             query: {
               ...baseQuery,
-              ...dp,
-              query: `id:[${idsForFetch.join(',')}]`,
-              per_page: idsForFetch.length,
+              ...dateParamsFromIds(ids),
+              query: `id:[${ids.join(',')}]`,
+              per_page: ids.length,
             },
           },
           {infinite: false},
@@ -76,37 +75,13 @@ const pinnedLogBatcher = createBatcher<OurLogsResponseItem, PinnedLogsQueryConte
         signal: new AbortController().signal,
         meta: undefined,
       });
-
-    const rowsById = new Map<string, OurLogsResponseItem | Error>();
-    const collect = (result: EventsLogsResult) => {
-      for (const row of result.data) {
+      for (const row of json.data) {
         rowsById.set(row[OurLogKnownFieldKey.ID], row);
       }
-    };
-
-    // Step 1: Search in the parent selected range for pins that are not loaded yet.
-    // Start with this smaller range so we don't have to scan the org's full retention period.
-    let foundInRange = new Set<string>();
-    try {
-      const inRange = (await fetchByIds(ids, dateParams)).json;
-      collect(inRange);
-      foundInRange = new Set(inRange.data.map(row => row[OurLogKnownFieldKey.ID]));
-    } catch {
-      // The selected range failed; let the wide window resolve everything instead.
-    }
-
-    // Step 2: Any IDs not found in the parent selected range escalate to a wider window.
-    // Anything still unfound stays pinned and surfaces as an unavailable row in the UI.
-    const stillMissing = ids.filter(id => !foundInRange.has(id));
-    if (stillMissing.length > 0) {
-      try {
-        const wide = await fetchByIds(stillMissing, wideDateParams(stillMissing));
-        collect(wide.json);
-      } catch (error) {
-        const failure = error instanceof Error ? error : new Error(String(error));
-        for (const id of stillMissing) {
-          rowsById.set(id, failure);
-        }
+    } catch (error) {
+      const failure = error instanceof Error ? error : new Error(String(error));
+      for (const id of ids) {
+        rowsById.set(id, failure);
       }
     }
 
@@ -140,15 +115,8 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
         sampling: SAMPLING_MODE.HIGH_ACCURACY,
         referrer: 'api.explore.logs-pinned',
       },
-      dateParams: normalizeDateTimeParams(selection.datetime),
     }),
-    [
-      fields,
-      organization.slug,
-      selection.datetime,
-      selection.environments,
-      selection.projects,
-    ]
+    [fields, organization.slug, selection.environments, selection.projects]
   );
 
   const enabled = pageFiltersReady && !!logsPinning;
@@ -206,12 +174,13 @@ function combinePinnedRows(
 }
 
 /**
- * Pin ids are UUIDv7, so we can derive a tight window from their timestamps and
- * avoid scanning the org's full retention (which gets downsampled to a partial
- * scan for high-volume orgs, missing the pinned log). Falls back to the wide
- * period if any id isn't a decodable timestamp.
+ * Pin ids are UUIDv7, so we derive a tight window from their timestamps to keep
+ * the scan small instead of covering the org's full retention. HIGHEST_ACCURACY
+ * already guarantees no rows are dropped regardless of window width, so this is
+ * purely to avoid a slow, timeout-prone wide scan. Fall back to the wide period
+ * if any id isn't a decodable timestamp.
  */
-function wideDateParams(ids: string[]): Record<string, unknown> {
+function dateParamsFromIds(ids: string[]): Record<string, unknown> {
   const timestamps = ids.map(logItemIdToTimestamp);
   if (timestamps.length === 0 || timestamps.includes(null)) {
     return {statsPeriod: WIDE_STATS_PERIOD};

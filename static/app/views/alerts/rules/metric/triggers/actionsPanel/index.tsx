@@ -42,7 +42,6 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   currentProject: string;
   disabled: boolean;
-  error: boolean;
   loading: boolean;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;

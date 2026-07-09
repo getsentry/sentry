@@ -9,7 +9,6 @@ from tempfile import TemporaryDirectory
 from typing import IO, ClassVar, Self
 from urllib.parse import urlunsplit
 
-import sentry_sdk
 from django.db import models, router
 from django.db.models.functions import Now
 from django.utils import timezone
@@ -30,6 +29,7 @@ from sentry.models.release import Release
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.tracing import trace
 from sentry.utils.urls import urlsplit_best_effort
 from sentry.utils.zip import safe_extract_zip
 
@@ -336,7 +336,7 @@ class _ArtifactIndexGuard:
         )
 
 
-@sentry_sdk.tracing.trace
+@trace
 def read_artifact_index(release: Release, dist: Distribution | None, **filter_args) -> dict | None:
     """Get index data"""
     guard = _ArtifactIndexGuard(release, dist, **filter_args)
@@ -348,7 +348,7 @@ def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
     return sha1(data).hexdigest()
 
 
-@sentry_sdk.tracing.trace
+@trace
 def update_artifact_index(
     release: Release,
     dist: Distribution | None,
@@ -393,7 +393,7 @@ def update_artifact_index(
     return releasefile
 
 
-@sentry_sdk.tracing.trace
+@trace
 def delete_from_artifact_index(release: Release, dist: Distribution | None, url: str) -> bool:
     """Delete the file with the given url from the manifest.
 

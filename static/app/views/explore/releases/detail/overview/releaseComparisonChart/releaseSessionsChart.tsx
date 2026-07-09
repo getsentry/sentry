@@ -15,7 +15,6 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/platform';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils/defined';
@@ -41,7 +40,6 @@ type Props = {
   diff: React.ReactNode;
   loading: boolean;
   location: Location;
-  platform: PlatformKey;
   project: ReleaseProject;
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;

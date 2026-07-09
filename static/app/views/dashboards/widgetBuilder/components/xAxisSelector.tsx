@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -7,8 +7,14 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
+import {
+  WIDGET_BUILDER_ATTRIBUTE_LOADING_MESSAGE,
+  WIDGET_BUILDER_ATTRIBUTE_SEARCH_DEBOUNCE_MS,
+  WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+} from 'sentry/views/dashboards/constants';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -22,6 +28,7 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function WidgetBuilderXAxisSelector() {
   const organization = useOrganization();
@@ -40,10 +47,32 @@ export function WidgetBuilderXAxisSelector() {
   }
 
   const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(
+    search,
+    WIDGET_BUILDER_ATTRIBUTE_SEARCH_DEBOUNCE_MS
+  );
+
+  const searchedTraceItemOptions = {
+    ...traceItemOptions,
+    search: debouncedSearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
   const {attributes: stringSpanTags, isLoading: isLoadingStringTags} =
-    useTraceItemDatasetAttributes(traceItemType, traceItemOptions, 'string', hiddenKeys);
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      searchedTraceItemOptions,
+      'string',
+      hiddenKeys
+    );
   const {attributes: numericSpanTags, isLoading: isLoadingNumericTags} =
-    useTraceItemDatasetAttributes(traceItemType, traceItemOptions, 'number', hiddenKeys);
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      searchedTraceItemOptions,
+      'number',
+      hiddenKeys
+    );
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
@@ -63,6 +92,7 @@ export function WidgetBuilderXAxisSelector() {
       return Object.values(allTags).map(tag => ({
         label: prettifyTagKey(tag.name),
         value: tag.key,
+        textValue: tag.key,
         trailingItems: () => <TypeBadge kind={tag.kind} />,
       }));
     }
@@ -101,6 +131,28 @@ export function WidgetBuilderXAxisSelector() {
     return fieldEntry?.field ?? '';
   }, [state.fields]);
 
+  // Keep the selected field present in the options even when it isn't in the
+  // current (possibly search-filtered) attribute response, so the dropdown
+  // reflects the saved state instead of showing nothing.
+  const fieldOptionsWithSelected = useMemo(() => {
+    if (
+      currentXAxisField &&
+      !fieldOptions.some(option => option.value === currentXAxisField)
+    ) {
+      return [
+        ...fieldOptions,
+        {
+          label: prettifyTagKey(currentXAxisField),
+          value: currentXAxisField,
+          // Match the search on the raw value, consistent with the fetched
+          // options, so the pinned selection isn't hidden by label prettifying.
+          textValue: currentXAxisField,
+        },
+      ];
+    }
+    return fieldOptions;
+  }, [currentXAxisField, fieldOptions]);
+
   const handleXAxisChange = (option: {value: string | number} | undefined) => {
     if (!option) {
       return;
@@ -129,10 +181,36 @@ export function WidgetBuilderXAxisSelector() {
         tooltipText={t('Select the field to use for X-axis categories.')}
       />
       <FullWidthCompactSelect
-        search
+        search={
+          isEAPDataset
+            ? {
+                onChange: setSearch,
+                highlight: true,
+                filter: (option, searchText) =>
+                  sortSearchedAttributes({
+                    fieldDefinitionType: traceItemType,
+                    option,
+                    searchText,
+                  }),
+              }
+            : true
+        }
+        // CompactSelect clears its own search input on close but doesn't notify
+        // us, so reset our search state too. Otherwise the stale term keeps the
+        // previously fetched attributes merged into the options on reopen.
+        onOpenChange={isOpen => {
+          if (!isOpen) {
+            setSearch('');
+          }
+        }}
         loading={isLoading}
+        emptyMessage={
+          isLoading
+            ? WIDGET_BUILDER_ATTRIBUTE_LOADING_MESSAGE
+            : t('No matching attributes')
+        }
         value={currentXAxisField}
-        options={fieldOptions}
+        options={fieldOptionsWithSelected}
         onChange={handleXAxisChange}
       />
     </Fragment>
