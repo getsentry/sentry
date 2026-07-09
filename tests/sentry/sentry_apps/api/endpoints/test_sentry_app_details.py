@@ -606,6 +606,19 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
+    @with_feature("organizations:sentry-apps-granular-events")
+    @override_options({"staff.ga-rollout": True})
+    def test_can_add_granular_events_with_flag(self) -> None:
+        app = self.create_sentry_app(name="SampleApp", organization=self.organization)
+        self.get_success_response(
+            app.slug,
+            events=["issue.resolved"],
+            scopes=("event:read",),
+            status_code=200,
+        )
+        # Stored verbatim, not expanded to the whole issue resource.
+        assert SentryApp.objects.get(id=app.id).events == ["issue.resolved"]
+
     @override_options({"staff.ga-rollout": True})
     def test_staff_can_mutate_scopes(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
