@@ -78,6 +78,7 @@
     }
     .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.issues {
       padding-right: 10px;
+      border: 1px solid #C4C4C4;
     }
     .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
       padding-left: 10px;
@@ -245,8 +246,7 @@
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #3A1873;">{{ trends.error_pct_change }}</span>
       {% endif %}
     </h1>
-    {% querystring dataset="errors" referrer="weekly_report" notification_uuid=notification_uuid as errors_query %}
-    <a href="{% org_url organization '/explore/discover/homepage/' query=errors_query %}"
+    <a href="{% org_url organization '/explore/discover/homepage/' query=errors_discover_query %}"
        style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
 
     <table class="graph">
