@@ -276,11 +276,20 @@ function formatToken(token: string): string {
   return token;
 }
 
+/**
+ * Splits a query on whitespace while keeping quoted phrases ("a b") and
+ * bracketed lists ([a, b]) intact, so `key:"a b"` and `key:[a, b]` each stay a
+ * single token even with internal spaces. Shared by the format/parse pair below.
+ */
+function tokenize(input: string): string[] {
+  return input.match(/(?:"[^"]*"|\[[^\]]*\]|[^\s"])+/g) ?? [];
+}
+
 export function formatQueryToNaturalLanguage(query: string): string {
   if (!query.trim()) {
     return '';
   }
-  const tokens = query.match(/(?:[^\s"]|"[^"]*")+/g) || [];
+  const tokens = tokenize(query);
   const formattedTokens = tokens.map(formatToken);
 
   const formattedQuery = formattedTokens.reduce((result, token, index) => {
@@ -312,6 +321,145 @@ export function formatQueryToNaturalLanguage(query: string): string {
 
   // add a space at the end of the query to give space for the cursor
   return `${formattedQuery} `;
+}
+
+/**
+ * Every operator phrase {@link formatQueryToNaturalLanguage} can emit (plus the
+ * bare symbolic comparators users type themselves), mapped back to the ESQ
+ * filter it represents. A humanized filter always reads
+ * `<key> <phrase> <value>`, so this table is the whole inverse grammar.
+ *
+ * Order only matters where one phrase is a prefix of another: the longer
+ * phrase must come first ("is not greater than" before "is not" before "is").
+ */
+const FILTER_PHRASES: ReadonlyArray<{
+  esq: (key: string, value: string) => string;
+  phrase: string;
+}> = [
+  // Prose comparators: "<key> is [not] greater than <value>"
+  {phrase: 'is not greater than or equal to', esq: (k, v) => `!${k}:>=${v}`},
+  {phrase: 'is not less than or equal to', esq: (k, v) => `!${k}:<=${v}`},
+  {phrase: 'is greater than or equal to', esq: (k, v) => `${k}:>=${v}`},
+  {phrase: 'is less than or equal to', esq: (k, v) => `${k}:<=${v}`},
+  {phrase: 'is not greater than', esq: (k, v) => `!${k}:>${v}`},
+  {phrase: 'is not less than', esq: (k, v) => `!${k}:<${v}`},
+  {phrase: 'is greater than', esq: (k, v) => `${k}:>${v}`},
+  {phrase: 'is less than', esq: (k, v) => `${k}:<${v}`},
+  // Wildcards, rendered as the human-typeable `*` glob
+  {phrase: 'does not contain', esq: (k, v) => `!${k}:*${v}*`},
+  {phrase: 'does not start with', esq: (k, v) => `!${k}:${v}*`},
+  {phrase: 'does not end with', esq: (k, v) => `!${k}:*${v}`},
+  {phrase: 'contains', esq: (k, v) => `${k}:*${v}*`},
+  {phrase: 'starts with', esq: (k, v) => `${k}:${v}*`},
+  {phrase: 'ends with', esq: (k, v) => `${k}:*${v}`},
+  // Plain equality: "<key> is [not] <value>"
+  {phrase: 'is not', esq: (k, v) => `!${k}:${v}`},
+  {phrase: 'is', esq: (k, v) => `${k}:${v}`},
+  // Symbolic comparators follow the key directly, with no "is":
+  // "span.duration > 100ms" -> span.duration:>100ms
+  {phrase: '>=', esq: (k, v) => `${k}:>=${v}`},
+  {phrase: '<=', esq: (k, v) => `${k}:<=${v}`},
+  {phrase: '>', esq: (k, v) => `${k}:>${v}`},
+  {phrase: '<', esq: (k, v) => `${k}:<${v}`},
+];
+
+function valueAt(words: string[], index: number): string | undefined {
+  const token = words[index];
+  if (token === undefined) {
+    return undefined;
+  }
+  return token.endsWith(',') ? token.slice(0, -1) : token;
+}
+
+/**
+ * Matches `<key> <phrase> <value>` at `keyIndex` against {@link FILTER_PHRASES}
+ * and returns the assembled ESQ filter plus the index right after the value.
+ */
+function matchFilter(
+  words: string[],
+  keyIndex: number
+): {esq: string; next: number} | null {
+  for (const {phrase, esq} of FILTER_PHRASES) {
+    const parts = phrase.split(' ');
+    if (!parts.every((part, k) => words[keyIndex + 1 + k]?.toLowerCase() === part)) {
+      continue;
+    }
+    const value = valueAt(words, keyIndex + 1 + parts.length);
+    // A phrase with nothing after it ("browser is") is not a filter yet. Don't
+    // retry shorter phrases: "count() is greater than" must not parse as
+    // count():greater.
+    if (value === undefined) {
+      return null;
+    }
+    return {esq: esq(words[keyIndex]!, value), next: keyIndex + parts.length + 2};
+  }
+  return null;
+}
+
+/**
+ * Inverse of {@link formatQueryToNaturalLanguage}: turns humanized natural
+ * language back into an ESQ query. Returns null when the input isn't cleanly
+ * invertible, so callers can fall back to handing the raw text to Seer.
+ */
+export function parseNaturalLanguageToQuery(
+  input: string,
+  isFilterKey: (key: string) => boolean
+): string | null {
+  const words = tokenize(input.trim());
+  const esq: string[] = [];
+
+  let hasFilter = false;
+  // `is` reads as the status key only at the start of a clause; trailing prose
+  // ("the build is broken") is the English copula, so leave it alone.
+  let atClauseStart = true;
+  let i = 0;
+
+  while (i < words.length) {
+    const word = words[i]!;
+    const lower = word.toLowerCase();
+
+    if (lower === 'and' || lower === 'or') {
+      esq.push(lower.toUpperCase());
+      atClauseStart = true;
+      i++;
+      continue;
+    }
+
+    // "is [not] <status>" -> [!]is:<status>
+    if (lower === 'is' && atClauseStart && isFilterKey('is')) {
+      const negated = words[i + 1]?.toLowerCase() === 'not';
+      const status = valueAt(words, negated ? i + 2 : i + 1);
+      if (status !== undefined) {
+        esq.push(`${negated ? '!' : ''}is:${status.toLowerCase()}`);
+        hasFilter = true;
+        i += negated ? 3 : 2;
+        continue;
+      }
+    }
+
+    // "<key> <operator phrase> <value>" -> ESQ filter (see FILTER_PHRASES)
+    const filter = isFilterKey(word) ? matchFilter(words, i) : null;
+    if (filter) {
+      esq.push(filter.esq);
+      hasFilter = true;
+      atClauseStart = true;
+      i = filter.next;
+      continue;
+    }
+
+    // Anything else is free text. ESQ can end with free text while user is typing.
+    if (esq.length === 0) {
+      return null; // leads with free text -> hand the raw input to Seer
+    }
+    if (lower !== 'is' && isFilterKey(word)) {
+      return null; // known key outside a filter shape -> not cleanly invertible
+    }
+    esq.push(word);
+    atClauseStart = false;
+    i++;
+  }
+
+  return hasFilter ? esq.join(' ') : null;
 }
 
 /**
