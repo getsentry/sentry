@@ -37,7 +37,7 @@ class TestConsumeQueuedAutofixFeedbackDedup(SentryTestCase):
         line: int | None = 42,
         start_line: int | None = None,
     ) -> QueuedAutofixFeedback:
-        source: dict = {
+        source: dict[str, object] = {
             "type": "github-pr-review-comment",
             "comment": {"id": comment_id},
             "file_path": file_path,
