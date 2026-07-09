@@ -106,6 +106,10 @@ export const Grid = styled('table')<{
           &:has(> thead + tbody) {
             grid-template-rows: auto 1fr;
           }
+
+          &:has(> thead + tbody + tbody) {
+            grid-template-rows: auto fit-content(100%) 1fr;
+          }
         `
       : ''}
 

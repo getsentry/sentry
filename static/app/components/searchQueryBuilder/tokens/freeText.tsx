@@ -516,7 +516,9 @@ function SearchQueryBuilderInputInternal({
             shouldCommitQuery: false,
           });
           resetInputValue();
-          const selectedKey = filterKeys[value];
+          const selectedKey = Object.hasOwn(filterKeys, value)
+            ? filterKeys[value]
+            : undefined;
           trackAnalytics('search.key_autocompleted', {
             organization,
             search_type: recentSearchTypeToLabel(recentSearches),
@@ -650,7 +652,9 @@ function SearchQueryBuilderInputInternal({
               getSuggestedFilterKey,
               loadedItems: sortedFilteredItems,
             });
-            const key = filterKeys[filterKey];
+            const key = Object.hasOwn(filterKeys, filterKey)
+              ? filterKeys[filterKey]
+              : undefined;
             dispatch({
               type: 'UPDATE_FREE_TEXT_ON_COLON',
               tokens: [token],

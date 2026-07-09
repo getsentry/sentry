@@ -24,7 +24,6 @@ type RouteParams = {
 type Props = {
   onChangeTitle: (data: string) => void;
   organization: Organization;
-  userTeamIds: string[];
 } & RouteComponentProps<RouteParams>;
 
 export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {

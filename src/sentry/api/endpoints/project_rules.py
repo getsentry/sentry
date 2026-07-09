@@ -786,7 +786,7 @@ def format_request_data(
 
     translated_actions: list[ActionInput] = []
     for action_data in translate_rule_data_actions_to_notification_actions(
-        data.get("actions", []), False
+        data.get("actions", []), False, project=project
     ):
         action: ActionInput = {
             "type": action_data["type"],

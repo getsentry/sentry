@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Final
 
@@ -119,6 +120,27 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
 VALID_EVENT_RESOURCES = EVENT_EXPANSION.keys()
+EVENT_TO_RESOURCE: Final[dict[str, SentryAppResourceType]] = {
+    event: resource for resource, events in EVENT_EXPANSION.items() for event in events
+}
+
+
+def resource_of(event: str) -> SentryAppResourceType | None:
+    """The resource a subscribable event belongs to ("issue.resolved" -> ISSUE), else None."""
+    return EVENT_TO_RESOURCE.get(event)
+
+
+def is_subscribed(stored_events: Collection[str], event: str) -> bool:
+    """
+    Whether a stored subscription covers a fired event.
+
+    Matched at the resource level: subscribing to any event of a resource
+    subscribes to all of that resource's events.
+    """
+    resource = resource_of(event)
+    if resource is None:
+        return False
+    return any(e in stored_events for e in EVENT_EXPANSION[resource])
 
 
 def find_alert_rule_action_ui_component(

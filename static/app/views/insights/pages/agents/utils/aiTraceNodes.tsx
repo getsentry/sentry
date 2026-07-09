@@ -146,13 +146,75 @@ export function getNumberAttr(node: AITraceSpanNode, field: string): number | un
   return undefined;
 }
 
-const MAX_TOOL_INPUT_PREVIEW_LENGTH = 80;
+const MAX_TOOL_INPUT_PREVIEW_LENGTH = 96;
+const MAX_TOOL_INPUT_VALUE_LENGTH = 48;
+const MAX_TOOL_INPUT_PREVIEW_KEYS = 4;
+
+function truncateText(value: string, maxLength: number): string {
+  return value.length > maxLength
+    ? `${value.slice(0, Math.max(0, maxLength - 3))}...`
+    : value;
+}
+
+function previewToolArgumentValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(truncateText(value, MAX_TOOL_INPUT_VALUE_LENGTH));
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return truncateText(
+    JSON.stringify(value).replace(/\s+/g, ' ').trim(),
+    MAX_TOOL_INPUT_VALUE_LENGTH
+  );
+}
+
+function formatToolInputPreview(input: unknown): string | undefined {
+  if (input === null || input === undefined || input === '') {
+    return undefined;
+  }
+
+  if (typeof input === 'string') {
+    const formatted = input.replace(/\s+/g, ' ').trim();
+    return formatted ? truncateText(formatted, MAX_TOOL_INPUT_PREVIEW_LENGTH) : undefined;
+  }
+
+  if (Array.isArray(input)) {
+    return truncateText(
+      JSON.stringify(input).replace(/\s+/g, ' ').trim(),
+      MAX_TOOL_INPUT_PREVIEW_LENGTH
+    );
+  }
+
+  if (typeof input === 'object') {
+    const entries = Object.entries(input as Record<string, unknown>).slice(
+      0,
+      MAX_TOOL_INPUT_PREVIEW_KEYS
+    );
+    if (entries.length === 0) {
+      return undefined;
+    }
+    return entries
+      .map(([key, value]) => `${key}: ${previewToolArgumentValue(value)}`)
+      .join(', ');
+  }
+
+  if (typeof input === 'number' || typeof input === 'boolean') {
+    return String(input);
+  }
+
+  return undefined;
+}
 
 /**
- * Parses tool input JSON and returns the value of the first key.
- * Used to show a preview of the tool input next to the tool name.
+ * Builds a compact preview of a tool call's input arguments to show next to the
+ * tool name. Objects are rendered as `key1: "value1", key2: "value2"` (up to
+ * four keys); strings, arrays, and primitives are stringified and truncated.
  */
-export function getFirstToolInputValue(node: AITraceSpanNode): string | undefined {
+export function getToolInputPreview(node: AITraceSpanNode): string | undefined {
   const toolInput =
     getStringAttr(node, 'gen_ai.tool.call.arguments') ||
     getStringAttr(node, 'gen_ai.tool.input');
@@ -160,24 +222,15 @@ export function getFirstToolInputValue(node: AITraceSpanNode): string | undefine
     return undefined;
   }
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(toolInput);
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      const firstKey = Object.keys(parsed)[0];
-      if (firstKey !== undefined) {
-        const value = parsed[firstKey];
-        const str = typeof value === 'string' ? value : JSON.stringify(value);
-        if (str.length > MAX_TOOL_INPUT_PREVIEW_LENGTH) {
-          return str.slice(0, MAX_TOOL_INPUT_PREVIEW_LENGTH) + '\u2026';
-        }
-        return str;
-      }
-    }
+    parsed = JSON.parse(toolInput);
   } catch {
-    // Invalid JSON, return undefined
+    // Not valid JSON; fall back to previewing the raw string.
+    parsed = toolInput;
   }
 
-  return undefined;
+  return formatToolInputPreview(parsed);
 }
 
 export function hasError(node: AITraceSpanNode): boolean {

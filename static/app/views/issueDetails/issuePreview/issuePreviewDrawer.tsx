@@ -19,7 +19,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
-import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
+import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   GroupDataContextProvider,
   useGroupData,
@@ -31,7 +32,9 @@ import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcr
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
 import {IssuePreviewDetails} from 'sentry/views/issueDetails/issuePreview/issuePreviewDetails';
+import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -84,6 +87,11 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
 function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
+  const {data: event} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'recommended',
+    options: {enabled: true},
+  });
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
@@ -162,13 +170,33 @@ function IssuePreviewContent() {
           </Container>
           <TabPanels>
             <TabPanels.Item key="activity">
-              <Container paddingTop="md">
-                <ActivitySection
-                  group={group}
-                  variant="standalone"
-                  size="md"
-                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
-                />
+              <Container paddingTop="md" paddingLeft="md" paddingRight="md">
+                <IssueDetailsContextProvider>
+                  {event && (
+                    <ErrorBoundary mini>
+                      <ExternalIssueSidebarList group={group} event={event} />
+                    </ErrorBoundary>
+                  )}
+                  <ErrorBoundary mini>
+                    <SidebarFoldSection
+                      title={
+                        <Heading as="h3" size="md">
+                          {t('Activity')}
+                        </Heading>
+                      }
+                      sectionKey={SectionKey.ACTIVITY}
+                    >
+                      <ActivitySection
+                        group={group}
+                        variant="standalone"
+                        size="md"
+                        placeholder={t(
+                          'Add a comment. Tag users with @, or teams with #'
+                        )}
+                      />
+                    </SidebarFoldSection>
+                  </ErrorBoundary>
+                </IssueDetailsContextProvider>
               </Container>
             </TabPanels.Item>
             {hasAutofix ? (

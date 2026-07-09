@@ -38,7 +38,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import start_span, trace
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -153,7 +153,7 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags={"platform": platform}, skip_internal=False)
 
 
-@sentry_sdk.trace
+@trace
 def should_issue_owners_ratelimit(
     project_id: int, group_id: int, organization_id: int | None
 ) -> bool:
@@ -185,7 +185,7 @@ def should_issue_owners_ratelimit(
 
 
 @metrics.wraps("post_process.handle_owner_assignment")
-@sentry_sdk.trace
+@trace
 def handle_owner_assignment(job: PostProcessJob) -> None:
     """
     The handle_owner_assignment task attempts to find issue owners for a group.
@@ -298,7 +298,7 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         handle_invalid_group_owners(group)
 
 
-@sentry_sdk.trace
+@trace
 def handle_invalid_group_owners(group: Group) -> None:
     from sentry.models.groupowner import GroupOwner, GroupOwnerType
 
@@ -314,7 +314,7 @@ def handle_invalid_group_owners(group: Group) -> None:
         )
 
 
-@sentry_sdk.trace
+@trace
 def handle_group_owners(
     project: Project,
     group: Group,

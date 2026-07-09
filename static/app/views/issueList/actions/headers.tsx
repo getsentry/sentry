@@ -15,7 +15,6 @@ type Props = {
   onSelectStatsPeriod: (statsPeriod: string) => void;
   selection: PageFilters;
   statsPeriod: string;
-  isSavedSearchesOpen?: boolean;
   withColumns?: GroupListColumn[];
 };
 

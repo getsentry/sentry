@@ -33,7 +33,6 @@ import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
   dataCategory: DataCategoryInfo;
-  dataCategoryName: string;
   dataDatetime: DateTimeObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
   handleChangeState: (
