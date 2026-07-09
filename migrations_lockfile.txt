@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0025_add_seerrun_referrer_index
 
-sentry: 1129_drop_saved_search
+sentry: 1130_pullrequest_metrics_human_involvement
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

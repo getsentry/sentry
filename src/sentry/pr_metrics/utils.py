@@ -33,9 +33,13 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
 
     When ``pr`` is supplied, two additional per-PR checks apply in order:
 
-    1. If the PR's ``state`` is already terminal (``CLOSED``, ``MERGED``, or
-       ``SUPERSEDED``), no further activity is needed — this short-circuits
-       without any extra DB queries.
+    1. If the PR's ``state`` is ``SUPERSEDED``, no further activity is needed —
+       this short-circuits without any extra DB queries. ``CLOSED``/``MERGED`` are
+       deliberately *not* short-circuited: the close/merge webhook stamps the
+       terminal state before tracking runs, so the row that records *who* closed
+       the PR must still be written. The trade-off is that a stray event on an
+       already-terminal PR may also be recorded until the verdict is claimed —
+       an accepted cost for capturing the closer.
 
     2. A verdict check runs next: if ``PullRequestMetrics`` exists with a
        non-null verdict (terminal emit or ``JUDGE_IN_PROGRESS`` claim), no
@@ -51,11 +55,7 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
         return False
 
     if pr is not None:
-        if pr.state in (
-            PullRequestLifecycleState.CLOSED,
-            PullRequestLifecycleState.MERGED,
-            PullRequestLifecycleState.SUPERSEDED,
-        ):
+        if pr.state == PullRequestLifecycleState.SUPERSEDED:
             return False
         verdict_claimed = PullRequestMetrics.objects.filter(
             pull_request=pr,

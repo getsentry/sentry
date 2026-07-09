@@ -49,11 +49,13 @@ from sentry.pr_metrics.activity_types import (
     AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
+    ClosedPayload,
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
     EnqueuedPayload,
     LabeledPayload,
+    MergedPayload,
     OpenedPayload,
     ReadyForReviewPayload,
     ReviewDismissedPayload,
@@ -96,6 +98,7 @@ logger = logging.getLogger("sentry.webhooks")
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
+        "closed",
         "synchronize",
         "labeled",
         "unlabeled",
@@ -113,7 +116,8 @@ _ACTIVITY_ACTIONS = frozenset(
 )
 
 # Maps webhook action strings to PullRequestActivityType values.
-# "closed" is absent because it forks on pull_request.merged — handled in _write_activity.
+# "closed" is absent because it forks on pull_request.merged (CLOSED vs MERGED) —
+# resolved in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
@@ -1254,10 +1258,19 @@ def _write_activity(
         # Without a delivery ID idempotency cannot be guaranteed — skip.
         return
 
-    mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
-    if mapped is None:
-        return
-    event_type = mapped
+    if action == "closed":
+        # GitHub's single "closed" action forks on whether the PR merged; both
+        # record the actor (the closer/merger) so emission can derive who closed.
+        event_type = (
+            PullRequestActivityType.MERGED
+            if pull_request.get("merged")
+            else PullRequestActivityType.CLOSED
+        )
+    else:
+        mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
+        if mapped is None:
+            return
+        event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
     _write_activity_row(pr, webhook_id, event_type, payload)
@@ -1298,6 +1311,10 @@ def _build_activity_payload(
                     after_sha=event.get("after"),
                 )
             )
+        case "closed":
+            if pull_request.get("merged"):
+                return asdict(MergedPayload(**sender_kw))
+            return asdict(ClosedPayload(**sender_kw))
         case "labeled":
             label = event.get("label") or {}
             return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
