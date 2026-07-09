@@ -124,22 +124,32 @@ class GCPIdentityProviderTest(TestCase):
     def test_build_identity_name_falls_back_to_email(self) -> None:
         id_token = _make_id_token({"sub": "google-user-123", "email": "user@example.com"})
         result = self.provider.build_identity(
-            {"data": {"id_token": id_token, "access_token": "token"}}
+            {"data": {"id_token": id_token, "access_token": "token", "refresh_token": "token"}}
         )
         assert result["name"] == "user@example.com"
 
+    def test_build_identity_missing_refresh_token(self) -> None:
+        with pytest.raises(IdentityNotValid, match="Missing refresh_token"):
+            self.provider.build_identity({"data": {"id_token": "token", "access_token": "token"}})
+
     def test_build_identity_missing_id_token(self) -> None:
         with pytest.raises(IdentityNotValid, match="Missing id_token"):
-            self.provider.build_identity({"data": {"access_token": "token"}})
+            self.provider.build_identity(
+                {"data": {"access_token": "token", "refresh_token": "token"}}
+            )
 
     def test_build_identity_missing_sub(self) -> None:
         id_token = _make_id_token({"email": "user@example.com"})
         with pytest.raises(IdentityNotValid, match="Missing sub claim"):
-            self.provider.build_identity({"data": {"id_token": id_token, "access_token": "token"}})
+            self.provider.build_identity(
+                {"data": {"id_token": id_token, "access_token": "token", "refresh_token": "token"}}
+            )
 
     def test_build_identity_malformed_jwt(self) -> None:
         with pytest.raises(IdentityNotValid, match="Unable to decode id_token"):
-            self.provider.build_identity({"data": {"id_token": "not-a-jwt"}})
+            self.provider.build_identity(
+                {"data": {"id_token": "not-a-jwt", "refresh_token": "token"}}
+            )
 
     def test_build_identity_invalid_json_payload(self) -> None:
         header = base64.urlsafe_b64encode(b"{}").rstrip(b"=").decode()
@@ -147,7 +157,9 @@ class GCPIdentityProviderTest(TestCase):
         bad_token = f"{header}.{payload}.sig"
 
         with pytest.raises(IdentityNotValid, match="Unable to decode id_token payload"):
-            self.provider.build_identity({"data": {"id_token": bad_token}})
+            self.provider.build_identity(
+                {"data": {"id_token": bad_token, "refresh_token": "token"}}
+            )
 
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL

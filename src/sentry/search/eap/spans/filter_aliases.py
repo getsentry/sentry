@@ -151,11 +151,11 @@ def semver_package_filter_converter(
     if organization_id is None:
         raise ValueError("organization is a required param")
 
-    if not isinstance(search_filter.value.raw_value, str):
+    if not isinstance(search_filter.value.raw_value, (str, list)):
         raise InvalidSearchQuery(
             f"{search_filter.key.name}: Invalid value: {search_filter.value.raw_value}. Expected a semver package."
         )
-    package: str = search_filter.value.raw_value
+    package: str | list[str] = search_filter.value.raw_value
 
     versions = list(
         Release.objects.filter_by_semver(

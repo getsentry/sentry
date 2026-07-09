@@ -10,6 +10,7 @@ import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectMo
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReauthMonitoringProviderData} from 'sentry/views/seerExplorer/types';
@@ -23,11 +24,14 @@ const PROVIDER_LABELS: Record<string, string> = {
 interface ReauthMonitoringProviderBlockProps {
   data: ReauthMonitoringProviderData;
   onComplete: () => void;
+  /** Where to send the user back after the OAuth round-trip. */
+  returnUrl?: string;
 }
 
 export function ReauthMonitoringProviderBlock({
   data,
   onComplete,
+  returnUrl,
 }: ReauthMonitoringProviderBlockProps) {
   const organization = useOrganization();
   const isPat = data.auth_method === 'pat';
@@ -46,6 +50,9 @@ export function ReauthMonitoringProviderBlock({
             },
           }
         ),
+        data: {
+          return_url: returnUrl ?? monitoringProvidersSettingsPath(organization),
+        },
       }),
     onSuccess: responseData => {
       testableWindowLocation.assign(responseData.redirectUrl);
@@ -91,15 +98,6 @@ export function ReauthMonitoringProviderBlock({
             >
               {t('Reconnect')}
             </Button>
-            {/*
-              TODO(CW-1557): land the user back in the Explorer after OAuth so the
-              run can resume without manual navigation.
-            */}
-            {!isPat && (
-              <Button size="sm" onClick={onComplete}>
-                {t('Resume')}
-              </Button>
-            )}
           </Flex>
         </Flex>
       </Container>

@@ -94,13 +94,13 @@ export function SeerExplorerHeader({
       return [];
     }
     return (
-      data?.data.map(session => ({
-        value: session.sentry_run_id ?? session.run_id,
-        label: session.title,
+      data?.map(session => ({
+        value: session.id,
+        label: session.title ?? t('Untitled chat'),
         details: (
           <TimeSince
             tooltipPrefix="Last updated"
-            date={moment.utc(session.last_triggered_at).toDate()}
+            date={moment.utc(session.lastTriggeredAt).toDate()}
             suffix="ago"
           />
         ),

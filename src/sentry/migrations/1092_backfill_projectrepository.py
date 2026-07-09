@@ -111,7 +111,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1091_delete_triggered_incidents_alertruletrigger"),
-        ("seer", "0011_add_project_repository_fk_to_seer"),
+        # ("seer", "0011_add_project_repository_fk_to_seer"),
     ]
 
     operations = [

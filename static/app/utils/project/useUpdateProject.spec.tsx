@@ -115,4 +115,99 @@ describe('useUpdateProject', () => {
       })
     );
   });
+
+  it('optimistically updates the cache when the slug is unchanged', async () => {
+    const queryClient = makeTestQueryClient();
+    const project = DetailedProjectFixture({
+      id: '2',
+      slug: 'project-slug',
+      name: 'Original Project',
+    });
+    const queryKey = makeDetailedProjectQueryKey({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
+    queryClient.setQueryData(queryKey, {headers: {}, json: project});
+
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      method: 'PUT',
+      body: {...project, name: 'Updated Project'},
+      // Delay so we can observe the optimistic state while the request is in flight
+      asyncDelay: 100,
+    });
+
+    const {result} = renderHookWithProviders(() => useUpdateProject(project), {
+      organization,
+      additionalWrapper: ({children}: {children?: ReactNode}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+
+    let promise: Promise<unknown>;
+    act(() => {
+      promise = result.current.mutateAsync({name: 'Updated Project'});
+    });
+
+    // onMutate ran synchronously: the cache reflects the new name before the
+    // request resolves.
+    expect(queryClient.getQueryData(queryKey)?.json.name).toBe('Updated Project');
+
+    await act(async () => {
+      await promise;
+    });
+  });
+
+  it('does not optimistically update when the slug changes', async () => {
+    const queryClient = makeTestQueryClient();
+    const project = DetailedProjectFixture({id: '2', slug: 'project-slug'});
+    ProjectsStore.loadInitialData([project]);
+    const queryKey = makeDetailedProjectQueryKey({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
+    queryClient.setQueryData(queryKey, {headers: {}, json: project});
+
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      method: 'PUT',
+      body: {...project, slug: 'new-slug'},
+      asyncDelay: 100,
+    });
+    // Invalidation after settle refetches the (old) key
+    MockApiClient.addMockResponse({
+      url: projectEndpoint,
+      method: 'GET',
+      body: {...project, slug: 'new-slug'},
+    });
+
+    const {result} = renderHookWithProviders(() => useUpdateProject(project), {
+      organization,
+      additionalWrapper: ({children}: {children?: ReactNode}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+
+    let promise: Promise<unknown>;
+    act(() => {
+      promise = result.current.mutateAsync({slug: 'new-slug'});
+    });
+
+    // No optimistic write while the request is in flight: the cache and store
+    // still hold the original slug, so the URL-canonicalization redirect is not
+    // triggered and backend errors are not masked.
+    expect(queryClient.getQueryData(queryKey)?.json.slug).toBe('project-slug');
+    expect(ProjectsStore.getById('2')?.slug).toBe('project-slug');
+
+    await act(async () => {
+      await promise;
+    });
+
+    // The confirmed server response is still applied on success.
+    await waitFor(() =>
+      expect(queryClient.getQueryData(queryKey)?.json.slug).toBe('new-slug')
+    );
+  });
 });

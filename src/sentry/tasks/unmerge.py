@@ -11,7 +11,7 @@ from django.db import router, transaction
 from django.db.models.base import Model
 
 from sentry import similarity, tsdb
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
+from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
@@ -88,6 +88,11 @@ def merge_mappings(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _initial_level(event: GroupEvent, group: Group) -> int:
+    level = parse_log_level(event.get_tag("level"))
+    return logging.ERROR if level is None else level
+
+
 initial_fields = {
     "culprit": lambda event, group: generate_culprit(event.data),
     "data": lambda event, group: {
@@ -96,7 +101,7 @@ initial_fields = {
         "metadata": event.data["metadata"],
     },
     "last_seen": lambda event, group: event.datetime,
-    "level": lambda event, group: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
+    "level": _initial_level,
     "message": lambda event, group: event.search_message,
     "times_seen": lambda event, group: 0,
     "status": lambda event, group: group.status,

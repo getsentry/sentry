@@ -11,7 +11,6 @@ from sentry.issue_detection.detectors.utils import total_span_time
 from sentry.issue_detection.performance_detection import (
     PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
     SETTINGS_PROJECT_OPTION_KEY,
-    EventPerformanceProblem,
     SettingsMode,
     _detect_performance_problems,
     detect_performance_problems,
@@ -29,7 +28,6 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     registry,
 )
-from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.issue_detection.event_generators import get_event
@@ -476,107 +474,6 @@ class PerformanceDetectionTest(TestCase):
         # Ensure all other detections are set to false in tags
         pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
-
-
-class EventPerformanceProblemTest(TestCase):
-    def test_save_and_fetch(self) -> None:
-        event = Event(self.project.id, "something")
-        problem = PerformanceProblem(
-            "test",
-            "db",
-            "something bad happened",
-            PerformanceNPlusOneGroupType,
-            ["1"],
-            ["2", "3", "4"],
-            ["4", "5", "6"],
-            {},
-            [],
-        )
-
-        EventPerformanceProblem(event, problem).save()
-        found = EventPerformanceProblem.fetch(event, problem.fingerprint)
-        assert found is not None
-        assert found.problem == problem
-
-    def test_fetch_multi(self) -> None:
-        event_1 = Event(self.project.id, "something")
-        event_1_problems = [
-            PerformanceProblem(
-                "test",
-                "db",
-                "something bad happened",
-                PerformanceNPlusOneGroupType,
-                ["1"],
-                ["2", "3", "4"],
-                ["4", "5", "6"],
-                {},
-                [],
-            ),
-            PerformanceProblem(
-                "test_2",
-                "db",
-                "something horrible happened",
-                PerformanceSlowDBQueryGroupType,
-                ["234"],
-                ["67", "87686", "786"],
-                ["4", "5", "6"],
-                {},
-                [],
-            ),
-        ]
-        event_2 = Event(self.project.id, "something else")
-        event_2_problems = [
-            PerformanceProblem(
-                "event_2_test",
-                "db",
-                "something happened",
-                PerformanceNPlusOneGroupType,
-                ["1"],
-                ["a", "b", "c"],
-                ["d", "e", "f"],
-                {},
-                [],
-            ),
-            PerformanceProblem(
-                "event_2_test_2",
-                "db",
-                "hello",
-                PerformanceSlowDBQueryGroupType,
-                ["234"],
-                ["fdgh", "gdhgf", "gdgh"],
-                ["gdf", "yu", "kjl"],
-                {},
-                [],
-            ),
-        ]
-        all_event_problems = [
-            (event, problem)
-            for event, problems in ((event_1, event_1_problems), (event_2, event_2_problems))
-            for problem in problems
-        ]
-        for event, problem in all_event_problems:
-            EventPerformanceProblem(event, problem).save()
-
-        unsaved_problem = PerformanceProblem(
-            "fake_fingerprint",
-            "db",
-            "hello",
-            PerformanceSlowDBQueryGroupType,
-            ["234"],
-            ["fdgh", "gdhgf", "gdgh"],
-            ["gdf", "yu", "kjl"],
-            {},
-            [],
-        )
-        result = EventPerformanceProblem.fetch_multi(
-            [
-                (event, problem.fingerprint)
-                for event, problem in all_event_problems + [(event, unsaved_problem)]
-            ]
-        )
-        assert [r.problem if r else None for r in result] == [
-            problem for _, problem in all_event_problems
-        ] + [None]
 
 
 @pytest.mark.parametrize(

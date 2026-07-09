@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -14,6 +14,11 @@ const LEFT_PANEL_MIN = 400;
 const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
+
+const CONTENT_MIN_WIDTH = 400;
+const DETAIL_MIN_WIDTH = 400;
+const CONTENT_WIDTH_RATIO = 0.6;
+const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
  * Resizable two-column layout for conversation views.
@@ -77,9 +82,145 @@ function MeasuredSplitPanel({
 
 export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   return (
-    <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+    <Flex direction="column" flex={1} minWidth="0" minHeight="0" overflow="hidden">
       {children}
     </Flex>
+  );
+}
+
+export function SpanDetailCard({
+  children,
+  embedded,
+  ref,
+}: {
+  children: React.ReactNode;
+  embedded?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <Stack
+      ref={ref}
+      background="primary"
+      border={embedded ? undefined : 'primary'}
+      radius={embedded ? undefined : 'md'}
+      padding="xl"
+      gap="lg"
+      flex="1"
+      minWidth="0"
+      minHeight="0"
+      height="100%"
+      overflowY="auto"
+      overflowX="hidden"
+    >
+      {children}
+    </Stack>
+  );
+}
+
+export function ConversationContentLayout({
+  left,
+  right,
+  leftPadding = 'md',
+}: {
+  left: React.ReactNode;
+  leftPadding?: React.ComponentProps<typeof Container>['padding'];
+  right?: React.ReactNode;
+}) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: measureRef});
+
+  return (
+    <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
+      <ConversationLeftPanel>
+        <Container
+          containerType="inline-size"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          background="secondary"
+        >
+          <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
+            {width > 0 ? (
+              <MeasuredContentSplit
+                width={width}
+                detail={right}
+                content={
+                  <Container
+                    flex="1"
+                    minWidth="0"
+                    minHeight="0"
+                    padding={leftPadding}
+                    background="primary"
+                    border="primary"
+                    radius="md"
+                    overflowX="hidden"
+                    overflowY="auto"
+                  >
+                    {left}
+                  </Container>
+                }
+              />
+            ) : null}
+          </Flex>
+        </Container>
+      </ConversationLeftPanel>
+    </Flex>
+  );
+}
+
+function MeasuredContentSplit({
+  content,
+  detail,
+  width,
+}: {
+  content: React.ReactNode;
+  width: number;
+  detail?: React.ReactNode;
+}) {
+  const defaultContent = Math.max(
+    CONTENT_MIN_WIDTH,
+    Math.round((width - DIVIDER_WIDTH) * CONTENT_WIDTH_RATIO)
+  );
+  const [storedSize, setStoredSize] = useLocalStorageState(
+    SPLIT_LAYOUT_STORAGE_KEY,
+    defaultContent
+  );
+
+  return (
+    <SplitPanel
+      orientation={{xs: 'vertical', md: 'horizontal'}}
+      defaultSize={defaultContent}
+      initialSize={storedSize}
+      minSize={CONTENT_MIN_WIDTH}
+      fillMinSize={DETAIL_MIN_WIDTH}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
+      sized={
+        <Flex
+          direction="column"
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          paddingRight={{xs: '0', md: 'md'}}
+          paddingBottom={{xs: 'md', md: '0'}}
+        >
+          {content}
+        </Flex>
+      }
+      fill={
+        detail ? (
+          <Flex
+            direction="column"
+            flex="1"
+            minWidth="0"
+            minHeight="0"
+            paddingLeft={{xs: '0', md: 'md'}}
+            paddingTop={{xs: 'md', md: '0'}}
+          >
+            {detail}
+          </Flex>
+        ) : undefined
+      }
+    />
   );
 }
 

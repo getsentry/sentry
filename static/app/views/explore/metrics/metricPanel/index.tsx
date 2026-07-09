@@ -128,7 +128,10 @@ export function MetricPanel({
 
   const [title, setTitle] = useState<string | undefined>(() => {
     if (isVisualizeEquation(visualize)) {
-      return unresolveExpression(visualize.expression.text, referenceMap);
+      return (
+        visualize.internalExpression ??
+        unresolveExpression(visualize.expression.text, referenceMap)
+      );
     }
     return;
   });
@@ -256,7 +259,11 @@ export function MetricPanel({
         )}
         value={visualize.chartType}
         menuTitle="Type"
-        options={getMetricsChartTypeOptions(organization, isVisualizeEquation(visualize))}
+        options={getMetricsChartTypeOptions(
+          organization,
+          isVisualizeEquation(visualize),
+          traceMetric
+        )}
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
@@ -320,6 +327,7 @@ export function MetricPanel({
                           heatmapResult={heatmapResult}
                           actions={actions}
                           title={title}
+                          queryLabel={queryLabel}
                         />
                       ) : (
                         <MetricsGraph

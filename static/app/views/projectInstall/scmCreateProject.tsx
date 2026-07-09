@@ -73,12 +73,16 @@ function getSubmitTooltipText({
   platform,
   projectName,
   team,
+  notificationChannel,
 }: {
+  notificationChannel: boolean;
   platform: boolean;
   projectName: boolean;
   team: boolean;
 }): string | undefined {
-  const missingCount = [platform, projectName, team].filter(Boolean).length;
+  const missingCount = [platform, projectName, team, notificationChannel].filter(
+    Boolean
+  ).length;
   if (missingCount > 1) {
     return t('Please fill out all the required fields');
   }
@@ -90,6 +94,9 @@ function getSubmitTooltipText({
   }
   if (team) {
     return t('Please select a team');
+  }
+  if (notificationChannel) {
+    return t('Please provide an integration channel for alert notifications');
   }
   return undefined;
 }
@@ -368,6 +375,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
+                  notificationProps={form.notificationProps}
                   onAlertChange={form.onAlertChange}
                 />
               </motion.div>

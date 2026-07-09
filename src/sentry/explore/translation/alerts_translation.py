@@ -77,7 +77,10 @@ def _verify_event_types(snuba_query: SnubaQuery):
     ):
         return True
     if snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value:
-        return SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in snuba_query.event_types
+        event_type_values = SnubaQueryEventType.objects.filter(
+            snuba_query_id=snuba_query.id
+        ).values_list("type", flat=True)
+        return SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value in event_type_values
     return False
 
 
@@ -206,12 +209,12 @@ def translate_detector_and_update_subscription_in_snuba(
         )
     ):
         snuba_query.save()
-        SnubaQueryEventType.objects.filter(snuba_query=snuba_query).delete()
+        SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id).delete()
         SnubaQueryEventType.objects.create(
-            snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
+            snuba_query_id=snuba_query.id, type=SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.value
         )
 
-        query_subscriptions = list(snuba_query.subscriptions.all())
+        query_subscriptions = list(QuerySubscription.objects.filter(snuba_query_id=snuba_query.id))
         try:
             bulk_update_snuba_subscriptions(
                 query_subscriptions, old_query_type, old_dataset, old_aggregate, old_query
@@ -304,19 +307,18 @@ def rollback_detector_query_and_update_subscription_in_snuba(
             router.db_for_read(DataCondition),
         )
     ):
-        snuba_query.update(
-            type=snapshot["type"],
-            dataset=snapshot["dataset"],
-            query=snapshot["query"],
-            aggregate=snapshot["aggregate"],
-            time_window=snapshot["time_window"],
-        )
-        SnubaQueryEventType.objects.filter(snuba_query=snuba_query).delete()
+        snuba_query.type = snapshot["type"]
+        snuba_query.dataset = snapshot["dataset"]
+        snuba_query.query = snapshot["query"]
+        snuba_query.aggregate = snapshot["aggregate"]
+        snuba_query.time_window = snapshot["time_window"]
+        snuba_query.save()
+        SnubaQueryEventType.objects.filter(snuba_query_id=snuba_query.id).delete()
         SnubaQueryEventType.objects.create(
-            snuba_query=snuba_query, type=SnubaQueryEventType.EventType.TRANSACTION.value
+            snuba_query_id=snuba_query.id, type=SnubaQueryEventType.EventType.TRANSACTION.value
         )
 
-        query_subscriptions = list(snuba_query.subscriptions.all())
+        query_subscriptions = list(QuerySubscription.objects.filter(snuba_query_id=snuba_query.id))
         try:
             bulk_update_snuba_subscriptions(
                 query_subscriptions, old_query_type, old_dataset, old_aggregate, old_query

@@ -18,6 +18,11 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
+  type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+  useCreateNotificationAction,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
   type AlertRuleOptions,
@@ -99,7 +104,14 @@ interface ScmProjectDetailsForm {
   /** Whether the team selector should be hidden (no-access member). */
   isOrgMemberWithNoAccess: boolean;
   /** Required fields still missing, for disabled-submit messaging. */
-  missingFields: {platform: boolean; projectName: boolean; team: boolean};
+  missingFields: {
+    notificationChannel: boolean;
+    platform: boolean;
+    projectName: boolean;
+    team: boolean;
+  };
+  /** Messaging-integration notification picker props for the alert section. */
+  notificationProps: IssueAlertNotificationProps;
   onAlertChange: <K extends keyof AlertRuleOptions>(
     key: K,
     value: AlertRuleOptions[K]
@@ -138,6 +150,10 @@ export function useScmProjectDetails({
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
+  // Provides the messaging-integration notification picker (notificationProps,
+  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
+  // chosen notification rule at project creation.
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -213,7 +229,17 @@ export function useScmProjectDetails({
     ]
   );
 
+  // When notifying via a messaging integration, a channel must be picked before
+  // the project can be created. Mirrors the classic flow's active gate (its
+  // useValidateChannel is wired with enabled:false, so live validation is off
+  // there too; this is the real check). Irrelevant when alerts are turned off.
+  const isMissingNotificationChannel =
+    alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER &&
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) &&
+    !notificationProps.channel;
+
   const missingFields = {
+    notificationChannel: isMissingNotificationChannel,
     platform: !selectedPlatform,
     projectName: projectNameResolved.length === 0,
     // While teams load, teamSlugResolved is empty only because firstAdminTeam
@@ -239,6 +265,7 @@ export function useScmProjectDetails({
     !missingFields.projectName &&
     !missingFields.team &&
     !missingFields.platform &&
+    !missingFields.notificationChannel &&
     !isCompleting &&
     !isLoadingTeams &&
     projectsLoaded;
@@ -261,7 +288,13 @@ export function useScmProjectDetails({
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
     alertRuleConfig.interval === savedAlert?.interval &&
     alertRuleConfig.metric === savedAlert?.metric &&
-    alertRuleConfig.threshold === savedAlert?.threshold;
+    alertRuleConfig.threshold === savedAlert?.threshold &&
+    // A configured messaging-integration notification would create a rule the
+    // reused project lacks: the selection isn't persisted across nav, so the
+    // baseline is always "no integration". Treat it as a change so the reuse
+    // shortcut can't silently drop the notification rule. Persisting the
+    // selection (and comparing it precisely) is tracked as follow-up work.
+    !notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
 
   const submit = useCallback(async () => {
     if (!selectedPlatform || !canSubmit || isCompletingRef.current) {
@@ -296,7 +329,7 @@ export function useScmProjectDetails({
         platform: selectedPlatform,
         team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction: () => {},
+        createNotificationAction,
       });
 
       if (selectedRepository?.id) {
@@ -329,6 +362,7 @@ export function useScmProjectDetails({
     analyticsFlow,
     alertRuleConfig,
     canSubmit,
+    createNotificationAction,
     createProjectAndRules,
     existingProject,
     isOrgMemberWithNoAccess,
@@ -349,6 +383,7 @@ export function useScmProjectDetails({
     onTeamChange,
     alertRuleConfig,
     onAlertChange,
+    notificationProps,
     isOrgMemberWithNoAccess,
     missingFields,
     canSubmit,

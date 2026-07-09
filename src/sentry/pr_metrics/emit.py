@@ -222,11 +222,111 @@ def build_pr_metrics_row(
         comments_count=metrics.comments_count,
         review_comments_count=metrics.review_comments_count,
         is_assigned=metrics.is_assigned,
+        participants_count=metrics.participants_count,
+        reviews_count=metrics.reviews_count,
+        reviews_bot_count=metrics.reviews_bot_count,
+        reviews_human_count=metrics.reviews_human_count,
+        pushes_bot_count=metrics.pushes_bot_count,
+        pushes_human_count=metrics.pushes_human_count,
+        opened_by_bot=metrics.opened_by_bot,
+        closed_by_bot=metrics.closed_by_bot,
+        opened_and_closed_by_same_actor=metrics.opened_and_closed_by_same_actor,
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
         **_conversation_analysis_fields(conversation_analysis),
     )
+
+
+def _is_bot(sender_type: str | None) -> bool:
+    """Whether an activity sender is a bot. ``sender_type == "Bot"`` is the only
+    signal GitHub gives us; anything else (a human, an empty/absent type) is human.
+    """
+    return sender_type == "Bot"
+
+
+def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
+    """Metrics derived from the PR's stored activity log at its terminal event.
+
+    Computed at emit — not on the Seer callback — so both the no-judge and judge
+    paths populate them from data Sentry already holds, independent of whether the
+    PR is judged. Read before ``cleanup_pr_activity_task`` sweeps the activity
+    rows; the results are persisted onto ``PullRequestMetrics`` so a later
+    re-derivation (recovery) reads them off the row, not the deleted activity.
+
+    - ``reviews_count``: total ``REVIEW_SUBMITTED`` rows — every GitHub review
+      submission (a reviewer who submits twice counts twice), not distinct
+      reviewers. ``reviews_bot_count``/``reviews_human_count`` split that total by
+      the reviewer's account class and sum back to it.
+    - ``participants_count``: distinct non-empty ``sender_login`` across the PR's
+      activity, excluding bots so CI apps and automation don't inflate human
+      participation.
+    - ``pushes_bot_count``/``pushes_human_count``: ``OPENED`` + ``SYNCHRONIZED``
+      rows split by the pusher's account class. A push, not a commit — GitHub's
+      synchronize payload carries no commit count — so a bot app that pushes a
+      batch of commits counts as one bot push.
+    - ``opened_by_bot``/``closed_by_bot``: the account class of the opener/closer,
+      or ``None`` when that terminal row was never recorded. The opener is the
+      earliest ``OPENED`` row and the closer is the *latest* ``CLOSED``/``MERGED``
+      row — a PR can carry more than one terminal row (closed unmerged, reopened,
+      then merged), and the latest matches the PR's final state, so the rows are
+      read in ``date_added`` order rather than relying on the DB's default order.
+    - ``opened_and_closed_by_same_actor``: whether the opener and closer logins
+      match, or ``None`` when either is unknown.
+
+    All are only meaningful under ``pr-metrics-activity`` (no activity rows → the
+    counts are 0 and the bool signals ``None``).
+    """
+    rows = list(
+        PullRequestActivity.objects.filter(pull_request=pull_request)
+        .order_by("date_added", "id")
+        .values_list("event_type", "payload__sender_login", "payload__sender_type")
+    )
+
+    participant_logins = {
+        login for _event_type, login, sender_type in rows if login and not _is_bot(sender_type)
+    }
+
+    review_sender_types = [
+        sender_type
+        for event_type, _login, sender_type in rows
+        if event_type == PullRequestActivityType.REVIEW_SUBMITTED
+    ]
+    reviews_bot_count = sum(1 for sender_type in review_sender_types if _is_bot(sender_type))
+
+    push_sender_types = [
+        sender_type
+        for event_type, _login, sender_type in rows
+        if event_type in (PullRequestActivityType.OPENED, PullRequestActivityType.SYNCHRONIZED)
+    ]
+    pushes_bot_count = sum(1 for sender_type in push_sender_types if _is_bot(sender_type))
+
+    # Earliest opener, latest closer — rows are ordered oldest-first above.
+    opened = next(
+        (
+            (login, sender_type)
+            for event_type, login, sender_type in rows
+            if event_type == PullRequestActivityType.OPENED
+        ),
+        None,
+    )
+    closed = None
+    for event_type, login, sender_type in rows:
+        if event_type in (PullRequestActivityType.CLOSED, PullRequestActivityType.MERGED):
+            closed = (login, sender_type)
+    same_actor = (opened[0] == closed[0]) if opened and closed and opened[0] and closed[0] else None
+
+    return {
+        "participants_count": len(participant_logins),
+        "reviews_count": len(review_sender_types),
+        "reviews_bot_count": reviews_bot_count,
+        "reviews_human_count": len(review_sender_types) - reviews_bot_count,
+        "pushes_bot_count": pushes_bot_count,
+        "pushes_human_count": len(push_sender_types) - pushes_bot_count,
+        "opened_by_bot": _is_bot(opened[1]) if opened else None,
+        "closed_by_bot": _is_bot(closed[1]) if closed else None,
+        "opened_and_closed_by_same_actor": same_actor,
+    }
 
 
 def emit_pr_metrics_row(
@@ -252,6 +352,14 @@ def emit_pr_metrics_row(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 
+    # Derive the activity-sourced counters at the terminal event — before the
+    # activity rows are swept post-emit — and persist them onto the metrics row so
+    # build_pr_metrics_row (and any later re-derivation for recovery) reads the
+    # same final counts. A no-op when Sentry never wrote a metrics row.
+    PullRequestMetrics.objects.filter(pull_request=pull_request).update(
+        **_activity_derived_metrics(pull_request)
+    )
+
     close_action: CloseAction = (
         CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
     )
@@ -274,4 +382,8 @@ def emit_pr_metrics_row(
             "close_action": close_action,
         },
     )
+    # Imported here to avoid a circular import: tasks → judge → emit.
+    from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+    cleanup_pr_activity_task.delay(pull_request_id=pull_request.id)
     return True

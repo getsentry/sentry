@@ -5,13 +5,13 @@ import responses
 from requests import HTTPError
 
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.external_requests.issue_link_requester import (
     FAILURE_REASON_BASE,
     IssueLinkRequester,
     IssueRequestActionType,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
 )
@@ -299,6 +299,32 @@ class TestIssueLinkRequester(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_rejects_uri_with_userinfo_injection(self, mock_record: MagicMock) -> None:
+        with pytest.raises(SentryAppIntegratorError) as exc_info:
+            IssueLinkRequester(
+                install=self.install,
+                group=self.group,
+                uri="@attacker.example/path",
+                fields={},
+                user=self.rpc_user,
+                action=IssueRequestActionType("create"),
+            ).run()
+        assert exc_info.value.message == "URI must not alter the webhook host"
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_rejects_uri_with_protocol_relative(self, mock_record: MagicMock) -> None:
+        with pytest.raises(SentryAppIntegratorError) as exc_info:
+            IssueLinkRequester(
+                install=self.install,
+                group=self.group,
+                uri="//attacker.example/path",
+                fields={},
+                user=self.rpc_user,
+                action=IssueRequestActionType("create"),
+            ).run()
+        assert exc_info.value.message == "URI must not alter the webhook host"
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

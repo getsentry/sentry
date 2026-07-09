@@ -28,6 +28,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.client import GitHubApiClient, GitHubBaseClient
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -189,6 +190,7 @@ def _track_contributor_action_processor(
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
         provider="github",
+        logs_extra={"github_event_action": event.get("action")},
         tags={"is_private": is_private},
     )
 
@@ -465,6 +467,10 @@ class InstallationEventWebhook(GitHubWebhook):
             data = GitHubIntegrationProvider().build_integration(state)
             ensure_integration(IntegrationProviderSlug.GITHUB.value, data)
 
+        if event["action"] == "new_permissions_accepted":
+            self._handle_new_permissions_accepted(event, **kwargs)
+            return
+
         if event["action"] == "deleted":
             external_id = event["installation"]["id"]
             if host := kwargs.get("host"):
@@ -493,6 +499,66 @@ class InstallationEventWebhook(GitHubWebhook):
                         "external_id": str(external_id),
                     },
                 )
+
+    def _handle_new_permissions_accepted(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        external_id = event["installation"]["id"]
+        if host := kwargs.get("host"):
+            external_id = "{}:{}".format(host, event["installation"]["id"])
+
+        result = integration_service.organization_contexts(
+            provider=self.provider,
+            external_id=external_id,
+        )
+        integration = result.integration
+        if integration is None:
+            logger.warning(
+                "github.new-permissions-missing-integration",
+                extra={
+                    "action": event["action"],
+                    "installation_name": event["installation"]["account"]["login"],
+                    "external_id": str(external_id),
+                },
+            )
+            return
+
+        # Expire the stored access token so the refresh below persists the
+        # permissions GitHub returns with the newly scoped token.
+        metadata = {
+            **integration.metadata,
+            "access_token": None,
+            "expires_at": None,
+        }
+        updated = integration_service.update_integration(
+            integration_id=integration.id, metadata=metadata
+        )
+        if updated is None:
+            logger.warning(
+                "github.new-permissions-integration-update-failed",
+                extra={"integration_id": integration.id, "external_id": str(external_id)},
+            )
+            return
+
+        logger.info(
+            "InstallationEventWebhook._handle_new_permissions_accepted",
+            extra={
+                "external_id": str(external_id),
+                "integration_id": integration.id,
+            },
+        )
+
+        # Eagerly refresh the token so it's valid immediately and the stored
+        # permissions are confirmed against GitHub. Non-fatal: the token also
+        # refreshes lazily on the next request if this fails.
+        try:
+            self._get_token_refresh_client(updated).get_access_token()
+        except Exception:
+            logger.exception(
+                "github.new-permissions-token-refresh-failed",
+                extra={"integration_id": integration.id, "external_id": str(external_id)},
+            )
+
+    def _get_token_refresh_client(self, integration: RpcIntegration) -> GitHubBaseClient:
+        return GitHubApiClient(integration=integration)
 
     def _handle_organization_deletion(
         self,
@@ -1023,8 +1089,11 @@ class PullRequestEventWebhook(GitHubWebhook):
         pr_metrics_handle_attribution,
         # Persist counters before emission reads them off the PullRequestMetrics row.
         pr_metrics_handle_metrics,
-        pr_metrics_handle_emission,
+        # Activity must be written before emission so the verdict check in
+        # handle_activity sees no verdict yet on the open/sync events, and so the
+        # SYNCHRONIZED rows are present when select_verdict runs on the close event.
         pr_metrics_handle_activity,
+        pr_metrics_handle_emission,
     )
 
     def _handle(
@@ -1158,6 +1227,10 @@ class PullRequestEventWebhook(GitHubWebhook):
                     user_id=user["id"],
                     user_username=user["login"],
                     provider="github",
+                    logs_extra={
+                        "pr_number": str(number),
+                        "github_event_action": event.get("action"),
+                    },
                 )
 
         except IntegrityError:

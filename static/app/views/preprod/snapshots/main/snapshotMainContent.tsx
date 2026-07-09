@@ -22,7 +22,7 @@ import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {CardHeader, DarkAware, ErroredBanner} from './snapshotCards';
+import {CardHeader, DarkAware, ErroredBanner, useCanvasTheme} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
@@ -63,9 +63,11 @@ interface SnapshotMainContentProps {
   onDiffModeChange: (mode: DiffMode) => void;
   onNavigateSingleView: (direction: 'prev' | 'next') => void;
   onOverlayColorChange: (color: string) => void;
+  onOverlayOpacityChange: (opacity: number) => void;
   onToggleSoloView: () => void;
   onViewModeChange: (mode: ViewMode) => void;
   overlayColor: string;
+  overlayOpacity: number;
   selectedItem: SidebarItem | null;
   variantIndex: number;
   viewMode: ViewMode;
@@ -85,6 +87,8 @@ export function SnapshotMainContent({
   diffImageBaseUrl,
   overlayColor,
   onOverlayColorChange,
+  overlayOpacity,
+  onOverlayOpacityChange,
   diffMode,
   onDiffModeChange,
   viewMode,
@@ -108,8 +112,18 @@ export function SnapshotMainContent({
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
-  const [isDark, setIsDark] = useState(false);
-  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const selectedImage = useMemo(() => {
+    if (!selectedItem) {
+      return null;
+    }
+    return isPairSidebarItem(selectedItem)
+      ? selectedItem.pairs[variantIndex]?.head_image
+      : selectedItem.images[variantIndex];
+  }, [selectedItem, variantIndex]);
+  const {isDark, toggleIsDark} = useCanvasTheme(
+    selectedImage?.canvas_theme,
+    selectedImage?.key // reused across images: resync the canvas on navigation
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
@@ -198,7 +212,12 @@ export function SnapshotMainContent({
   const diffControls = hasChangedInList ? (
     <Fragment>
       {diffMode === 'split' && (
-        <ColorPickerButton color={overlayColor} onChange={onOverlayColorChange} />
+        <ColorPickerButton
+          color={overlayColor}
+          onChange={onOverlayColorChange}
+          opacity={overlayOpacity}
+          onOpacityChange={onOverlayOpacityChange}
+        />
       )}
       <DiffModeToggle
         diffMode={diffMode}
@@ -239,6 +258,7 @@ export function SnapshotMainContent({
           onScrollProgress={handleListScrollProgress}
           diffMode={diffMode}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
         />
@@ -274,7 +294,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -312,6 +332,7 @@ export function SnapshotMainContent({
             imageBaseUrl={imageBaseUrl}
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
+            overlayOpacity={overlayOpacity}
             diffMode={isChanged ? diffMode : 'split'}
             headLabel={headBranch ?? t('Head')}
           />
@@ -330,7 +351,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -391,7 +412,7 @@ export function SnapshotMainContent({
   return (
     <SingleViewLayout
       isDark={isDark}
-      onToggleDark={toggleDark}
+      onToggleDark={toggleIsDark}
       groupName={groupName}
       toggle={toggle}
       soloDiffToggle={soloDiffToggle}
@@ -605,7 +626,7 @@ const SingleViewScroll = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
 `;

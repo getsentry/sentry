@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
@@ -52,21 +53,42 @@ export enum TraceDrawerActionKind {
   LESS_THAN = 'less_than',
 }
 
+// TODO(constantinius): Hoist literal-value handling into MutableSearch so UI-added
+// filter values cannot be interpreted as search syntax by default.
+function escapeSearchQuotedValue(value: string) {
+  return value.replace(/"/g, '\\"');
+}
+
+function formatSearchFilterValue(value: string | null) {
+  if (value === null) {
+    return '';
+  }
+
+  if (
+    (value.startsWith('[') && value.endsWith(']')) ||
+    (value.startsWith('"') && value.endsWith('"'))
+  ) {
+    return `"${escapeSearchQuotedValue(value)}"`;
+  }
+  return value;
+}
+
 export function getSearchInExploreTarget(
   organization: Organization,
   location: Location,
   projectIds: string | string[] | undefined,
   key: string,
-  value: string,
+  value: string | null,
   kind: TraceDrawerActionKind
 ) {
   const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
   const search = new MutableSearch('');
+  const filterValue = formatSearchFilterValue(value);
 
   if (kind === TraceDrawerActionKind.INCLUDE) {
-    search.setFilterValues(key, [value]);
+    search.setFilterValues(key, [filterValue]);
   } else if (kind === TraceDrawerActionKind.EXCLUDE) {
-    search.setFilterValues(`!${key}`, [value]);
+    search.setFilterValues(`!${key}`, [filterValue]);
   } else if (kind === TraceDrawerActionKind.GREATER_THAN) {
     search.setFilterValues(key, [`>${value}`]);
   } else {
@@ -112,6 +134,15 @@ export function sortAttributes(attributes: TraceItemResponseAttribute[]) {
   });
 }
 
+export function getAttributeFilterSearch(rowKey: string, rowValue: string | number) {
+  const search = new MutableSearch('');
+  search.addFilterValue(
+    rowKey,
+    typeof rowValue === 'number' ? rowValue.toString() : formatSearchFilterValue(rowValue)
+  );
+  return search.formatString();
+}
+
 export type KeyValueActionParams = {
   location: Location;
   organization: Organization;
@@ -126,12 +157,27 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
   if (
-    !hasExploreEnabled ||
     !defined(rowValue) ||
     !defined(rowKey) ||
-    !['string', 'number'].includes(typeof rowValue)
+    (typeof rowValue !== 'string' && typeof rowValue !== 'number')
   ) {
     return [];
+  }
+
+  const copyAttributeFilterAction: MenuItemProps | null =
+    kind === TraceDrawerActionValueKind.ATTRIBUTE
+      ? {
+          key: 'copy-attribute-filter',
+          label: t('Copy attribute for filter'),
+          onAction: () =>
+            copyToClipboard(getAttributeFilterSearch(rowKey, rowValue), {
+              successMessage: t('Attribute filter copied to clipboard'),
+            }),
+        }
+      : null;
+
+  if (!hasExploreEnabled) {
+    return copyAttributeFilterAction ? [copyAttributeFilterAction] : [];
   }
 
   // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
@@ -155,7 +201,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
         location,
         projectIds,
         rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toString(),
         TraceDrawerActionKind.INCLUDE
       ),
@@ -168,7 +213,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
         location,
         projectIds,
         rowKey,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         rowValue.toLocaleString(),
         TraceDrawerActionKind.EXCLUDE
       ),
@@ -199,7 +243,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
           location,
           projectIds,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.GREATER_THAN
         ),
@@ -212,7 +255,6 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
           location,
           projectIds,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           rowValue.toString(),
           TraceDrawerActionKind.LESS_THAN
         ),
@@ -220,7 +262,9 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
     );
   }
 
-  return dropdownOptions;
+  return copyAttributeFilterAction
+    ? [...dropdownOptions, copyAttributeFilterAction]
+    : dropdownOptions;
 }
 
 export function getTraceAttributesTreeActions(
@@ -229,13 +273,13 @@ export function getTraceAttributesTreeActions(
   return (content: AttributesTreeContent) => {
     const rowKey = content.originalAttribute?.original_attribute_key;
     const rowValue = content.value;
-    if (!rowKey || !rowValue) {
+    if (!rowKey || !defined(rowValue)) {
       return [];
     }
 
     return getTraceKeyValueActions({
       rowKey,
-      rowValue: content.value,
+      rowValue,
       kind: TraceDrawerActionValueKind.ATTRIBUTE,
       projectIds: params.projectIds,
       location: params.location,
