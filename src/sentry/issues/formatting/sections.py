@@ -1,16 +1,16 @@
-"""Section functions: each reads the flat model and emits a block via the formatter.
-
-A section is ``(model, formatter, limits) -> str`` and returns "" to render nothing. Caps
-(frame count, per-section chars) are applied here, so the model can carry full data and the
-profile's limits decide what actually gets rendered. Content mirrors Seer's per-section output.
+"""Section functions (each renders one block), the default section order (``EVENT_SECTIONS``),
+and the public ``format_issue`` entry point. Sections apply the size caps as they render;
+content mirrors Seer's per-section output.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal
 
-from sentry.issues.formatting.formatter import Formatter
-from sentry.issues.formatting.limits import Limits
+from sentry.issues.formatting.adapter import event_response_to_model
+from sentry.issues.formatting.formatter import Formatter, MarkdownFormatter, SectionFn, XmlFormatter
+from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject, Frame, Stacktrace
 
 
@@ -21,7 +21,7 @@ def _truncate(text: str, max_chars: int | None) -> str:
 
 
 def _contains_filtered(value: Any) -> bool:
-    return "[Filtered]" in value if isinstance(value, str) else "[Filtered]" in str(value)
+    return "[Filtered]" in str(value)
 
 
 def _render_frame(frame: Frame) -> str:
@@ -148,20 +148,21 @@ def user_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 
 
 def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    # only threads that carry a stacktrace are worth rendering (matches Seer)
-    threads = [t for t in model.threads if t.stacktrace and t.stacktrace.frames]
-    if not threads:
-        return ""
-
     blocks: list[str] = []
-    for thread in threads:
+    for thread in model.threads:
+        # only threads that carry a stacktrace are worth rendering (matches Seer)
+        st = thread.stacktrace
+        if not (st and st.frames):
+            continue
         label = thread.name or (str(thread.id) if thread.id is not None else "Thread")
         parts = [label]
         if thread.crashed:
             parts.append(fmt.field("Crashed", "Yes"))
-        assert thread.stacktrace is not None  # filtered above
-        parts.append(fmt.code_block(_render_stacktrace(thread.stacktrace, limits)))
+        parts.append(fmt.code_block(_render_stacktrace(st, limits)))
         blocks.append("\n".join(parts))
+
+    if not blocks:
+        return ""
     return fmt.block("Threads", "\n\n".join(blocks))
 
 
@@ -174,3 +175,41 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
         timing = f" ({span.exclusive_time_ms}ms)" if span.exclusive_time_ms is not None else ""
         lines.append(f"{label}{timing}".strip())
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
+
+
+Format = Literal["markdown", "xml"]
+
+_FORMATTERS: dict[Format, type[Formatter]] = {
+    "markdown": MarkdownFormatter,
+    "xml": XmlFormatter,
+}
+
+# base event sections in render order
+EVENT_SECTIONS: list[SectionFn] = [
+    title_section,
+    message_section,
+    exceptions_section,
+    threads_section,
+    spans_section,
+    breadcrumbs_section,
+    request_section,
+    tags_section,
+    user_section,
+]
+
+
+def format_issue(
+    data: Mapping[str, Any],
+    *,
+    format: Format = "markdown",
+    sections: Sequence[SectionFn] = EVENT_SECTIONS,
+    limits: Limits = LIMITS_DEFAULT,
+) -> str:
+    """Render a serialized event into text. The single path used by every consumer."""
+    try:
+        formatter_cls = _FORMATTERS[format]
+    except KeyError:
+        raise ValueError(f"unsupported format: {format!r}") from None
+
+    model = event_response_to_model(data)
+    return formatter_cls().render(model, sections, limits)

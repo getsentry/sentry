@@ -1,5 +1,7 @@
 import dataclasses
 
+import pytest
+
 from sentry.issues.formatting.formatter import MarkdownFormatter, XmlFormatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT
 from sentry.issues.formatting.models import (
@@ -14,8 +16,10 @@ from sentry.issues.formatting.models import (
     UserDetails,
 )
 from sentry.issues.formatting.sections import (
+    EVENT_SECTIONS,
     breadcrumbs_section,
     exceptions_section,
+    format_issue,
     message_section,
     request_section,
     spans_section,
@@ -178,3 +182,56 @@ def test_spans_section() -> None:
     )
     out = spans_section(event, MD, LIMITS_DEFAULT)
     assert "db: SELECT 1 (12.5ms)" in out
+
+
+def _serialized_event() -> dict:
+    return {
+        "eventID": "abc123",
+        "title": "ValueError: boom",
+        "entries": [
+            {
+                "type": "exception",
+                "data": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "boom",
+                            "mechanism": {"handled": False},
+                            "stacktrace": {
+                                "frames": [{"function": "f", "filename": "a.py", "lineNo": 1}]
+                            },
+                        }
+                    ]
+                },
+            },
+            {"type": "breadcrumbs", "data": {"values": [{"message": "started"}]}},
+        ],
+    }
+
+
+def test_format_issue_markdown_end_to_end() -> None:
+    out = format_issue(_serialized_event(), format="markdown")
+    assert "## Title\nValueError: boom" in out
+    assert "## Exception" in out
+    assert "**Handled:** No" in out
+    assert "## Breadcrumbs" in out
+    assert "started" in out
+
+
+def test_format_issue_xml() -> None:
+    out = format_issue(_serialized_event(), format="xml")
+    assert "<title>" in out
+    assert "<exception>" in out
+    assert "<breadcrumbs>" in out
+
+
+def test_invalid_format_raises() -> None:
+    with pytest.raises(ValueError):
+        format_issue(_serialized_event(), format="banana")  # type: ignore[arg-type]
+
+
+def test_event_sections_order() -> None:
+    names = [s.__name__ for s in EVENT_SECTIONS]
+    assert names[0] == "title_section"
+    assert names[-1] == "user_section"
+    assert "exceptions_section" in names
