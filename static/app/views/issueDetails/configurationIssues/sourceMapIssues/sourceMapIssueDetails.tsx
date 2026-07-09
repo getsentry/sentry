@@ -4,7 +4,6 @@ import {
   projectPlatformToDocsMap,
 } from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
@@ -15,7 +14,6 @@ import {TroubleshootingSection} from './troubleshootingSection';
 
 interface SourceMapIssueDetailsProps {
   event: Event;
-  group: Group;
   project: Project;
 }
 

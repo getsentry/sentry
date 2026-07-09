@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import type {
@@ -287,6 +288,105 @@ export function getSeerProjectReposInfiniteQueryOptions({
       staleTime: 60_000, // 1 minute
     }
   );
+}
+
+// `fetchInfiniteQuery`/`prefetchInfiniteQuery` only paginate when the query
+// actually fetches; a large `pages` cap then drains every page because
+// `getNextPageParam` returns null once the `Link` header has no `next` cursor,
+// stopping the fetch well before this bound.
+const DRAIN_ALL_PAGES = Number.MAX_SAFE_INTEGER;
+
+type SeerProjectReposInfiniteData = InfiniteData<
+  ApiResponse<SeerProjectReposResponse[]>,
+  ParsedHeader | undefined
+>;
+
+/**
+ * Whether the cached infinite data still has an un-fetched next page, i.e. the
+ * last page's `Link` header advertises a `next` cursor.
+ */
+function reposCacheHasMorePages(
+  options: ReturnType<typeof getSeerProjectReposInfiniteQueryOptions>,
+  data: SeerProjectReposInfiniteData
+): boolean {
+  const lastIndex = data.pages.length - 1;
+  if (lastIndex < 0) {
+    return false;
+  }
+  // A next-page param is a `ParsedHeader` object (truthy) when there are more
+  // pages, and null/undefined when the last page has no `next` cursor.
+  return Boolean(
+    options.getNextPageParam(
+      data.pages[lastIndex]!,
+      data.pages,
+      data.pageParams[lastIndex],
+      data.pageParams
+    )
+  );
+}
+
+/**
+ * Prefetch every page of a project's Seer repos to warm the cache.
+ *
+ * Pairs with {@link fetchProjectHasNonGithubRepo}: warming all pages up front
+ * lets the later gating check resolve from cache instead of re-fetching.
+ */
+export function prefetchAllSeerProjectRepos({
+  organization,
+  project,
+  queryClient,
+}: {
+  organization: Organization;
+  project: AvatarProject;
+  queryClient: QueryClient;
+}) {
+  return queryClient.prefetchInfiniteQuery({
+    ...getSeerProjectReposInfiniteQueryOptions({organization, project}),
+    pages: DRAIN_ALL_PAGES,
+  });
+}
+
+/**
+ * Fetch every page of a project's Seer repos and report whether any of them is
+ * not a GitHub repo.
+ *
+ * Coding-agent handoff only works for GitHub, so callers use this to gate
+ * non-Seer agent selection. This is the imperative counterpart to the
+ * `useFetchAllPages` + `isGitHubProvider` pattern in the Seer drawer's
+ * `useCodingAgents` hook — a non-GitHub repo on a later page must still be
+ * caught, so we drain all pages rather than inspecting only the first.
+ *
+ * `fetchInfiniteQuery` returns a fresh cache as-is without paginating, so a
+ * partial (e.g. page-1-only) entry left by another consumer — or a fetch
+ * deduped against another consumer's in-flight single-page load — would
+ * short-circuit the drain and hide non-GitHub repos on later pages. Guard
+ * against that by re-fetching with `staleTime: 0` whenever the result still has
+ * an un-fetched next page: on an empty/stale query this drains every page. The
+ * re-fetch is single-shot, so in the rare case where it dedupes onto another
+ * consumer's still-in-flight incremental drain it may resolve before every page
+ * lands; the next selection re-runs the check against a by-then-complete cache.
+ */
+export async function fetchProjectHasNonGithubRepo({
+  organization,
+  project,
+  queryClient,
+}: {
+  organization: Organization;
+  project: AvatarProject;
+  queryClient: QueryClient;
+}): Promise<boolean> {
+  const options = getSeerProjectReposInfiniteQueryOptions({organization, project});
+  let data = await queryClient.fetchInfiniteQuery({...options, pages: DRAIN_ALL_PAGES});
+  if (reposCacheHasMorePages(options, data)) {
+    data = await queryClient.fetchInfiniteQuery({
+      ...options,
+      pages: DRAIN_ALL_PAGES,
+      staleTime: 0,
+    });
+  }
+  return data.pages
+    .flatMap(page => page.json)
+    .some(repo => !isGitHubProvider(repo.provider));
 }
 
 export function getMutateSeerProjectReposOptionsAddRepo({

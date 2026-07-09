@@ -127,6 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
     autoSubmitSeer,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     enableAISearch,
   } = useSearchQueryBuilderAI();
@@ -253,6 +254,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             visualizations={item?.visualizations}
             expandedProjectIds={item?.expandedProjectIds}
             interval={item?.interval}
+            crossEvents={item?.crossEvents}
           />
         </Item>
       );
@@ -385,20 +387,30 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   }, [state]);
 
   useLayoutEffect(() => {
-    if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('ai_query.submitted', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery.trim(),
-      });
-      submitQuery(searchQuery.trim());
-      setAutoSubmitSeer(false);
+    if (!autoSubmitSeer) {
+      return;
     }
+
+    if (!searchQuery.trim()) {
+      setAutoSubmitFromCurrentQuery(false);
+      setAutoSubmitSeer(false);
+      return;
+    }
+
+    trackAnalytics('ai_query.submitted', {
+      organization,
+      area: analyticsArea,
+      natural_language_query: searchQuery.trim(),
+    });
+    submitQuery(searchQuery.trim());
+    setAutoSubmitFromCurrentQuery(false);
+    setAutoSubmitSeer(false);
   }, [
     analyticsArea,
     autoSubmitSeer,
     organization,
     searchQuery,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     submitQuery,
   ]);

@@ -101,7 +101,6 @@ describe('MetricRulesEdit', () => {
           projectId: project.slug,
           ruleId: rule.id,
         }}
-        userTeamIds={[]}
         organization={organization}
         onChangeTitle={onChangeTitleMock}
         project={project}
@@ -196,7 +195,6 @@ describe('MetricRulesEdit', () => {
           projectId: project.slug,
           ruleId: rule.id,
         }}
-        userTeamIds={[]}
         organization={organization}
         onChangeTitle={() => {}}
         project={project}
@@ -251,7 +249,6 @@ describe('MetricRulesEdit', () => {
     render(
       <MetricRulesEdit
         {...RouteComponentPropsFixture()}
-        userTeamIds={[]}
         onChangeTitle={() => {}}
         params={{
           projectId: project.slug,
@@ -302,7 +299,6 @@ describe('MetricRulesEdit', () => {
           projectId: project.slug,
           ruleId: ruleWithExtrapolation.id,
         }}
-        userTeamIds={[]}
         organization={organization}
         onChangeTitle={() => {}}
         project={project}
@@ -377,7 +373,6 @@ describe('MetricRulesEdit', () => {
           projectId: project.slug,
           ruleId: ruleWithNoExtrapolation.id,
         }}
-        userTeamIds={[]}
         organization={organization}
         onChangeTitle={() => {}}
         project={project}

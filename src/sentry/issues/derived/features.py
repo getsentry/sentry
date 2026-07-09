@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sentry.issues.derived.framework import EnumCodec, Feature, OptionalCodec
+from sentry.issues.derived.framework import DateTimeCodec, EnumCodec, Feature, OptionalCodec
 from sentry.issues.progress_state import IssueProgressState
 
 
@@ -24,4 +24,6 @@ PROGRESS = Feature[IssueProgressState | None](
 )
 
 # The last time the progress was advanced.
-LAST_PROGRESSED_AT = Feature[datetime | None]("last_progressed_at", default=None)
+LAST_PROGRESSED_AT = Feature[datetime | None](
+    "last_progressed_at", default=None, codec=OptionalCodec(DateTimeCodec())
+)

@@ -11,7 +11,6 @@ import {t, tct} from 'sentry/locale';
 interface AutofixGithubAppPermissionsModalProps extends ModalRenderProps {
   description?: React.ReactNode;
   installationUrl?: string;
-  onUpdatePermissionsClick?: () => void;
 }
 
 const DEFAULT_INSTALLATIONS_URL = 'https://github.com/settings/installations/';
@@ -23,7 +22,6 @@ export function AutofixGithubAppPermissionsModal({
   closeModal,
   installationUrl,
   description,
-  onUpdatePermissionsClick,
 }: AutofixGithubAppPermissionsModalProps) {
   const settingsUrl = installationUrl ?? DEFAULT_INSTALLATIONS_URL;
 
@@ -51,7 +49,6 @@ export function AutofixGithubAppPermissionsModal({
             external
             variant="primary"
             onClick={() => {
-              onUpdatePermissionsClick?.();
               closeModal();
             }}
           >

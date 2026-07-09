@@ -47,6 +47,7 @@ export function ActivityLine({
         title={compactItem.title}
         details={compactItem.details}
         timestamp={timestamp}
+        variant={inputVariant}
       />
       <ActivityLineBody subtext={compactItem.subtext} />
     </ActivityLineRow>

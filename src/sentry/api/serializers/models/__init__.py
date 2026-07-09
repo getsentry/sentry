@@ -48,7 +48,6 @@ from .release_threshold import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403
-from .savedsearch import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403

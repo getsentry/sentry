@@ -451,23 +451,8 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              tsgo: true,
               configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              configOverwrite: {
-                compilerOptions: {
-                  allowJs: false,
-                  checkJs: false,
-                },
-                exclude: [
-                  'node_modules/**/*',
-                  'tests/**/*',
-                  '**/*.spec.*',
-                  '**/*.snapshots.*',
-                  'static/eslint/**/*',
-                  'static/app/serviceWorker/worker/**/*',
-                  'scripts/**/*',
-                ],
-              },
+              typescriptPath: require.resolve('typescript-7/package.json'),
             },
             devServer: false,
           }),
@@ -606,7 +591,40 @@ const workerConfig: Configuration = {
   context: staticPrefix,
   experiments: appConfig.experiments,
   lazyCompilation: appConfig.lazyCompilation,
-  module: appConfig.module,
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        // core-js: Avoids recompiling core-js based on usage imports
+        // compiled via swc.
+        exclude: /node_modules[\\/](core-js)/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            mode: 'usage',
+            // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+            coreJs: '3.45.0',
+            targets: packageJson.browserslist.production,
+            shippedProposals: true,
+          },
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+                development: DEV_MODE,
+                refresh: false,
+              },
+            },
+          },
+          isModule: 'unknown',
+        },
+      },
+    ],
+  },
   plugins: [
     /**
      * Without this, webpack will chunk the locales but attempt to load them all
@@ -626,7 +644,7 @@ const workerConfig: Configuration = {
   resolve: appConfig.resolve,
   // Don't clean: app's compiler owns cleaning `dist` (see its `clean.keep`).
   output: {...appConfig.output, clean: false},
-  optimization: appConfig.optimization,
+  optimization: {...appConfig.optimization, runtimeChunk: false},
   devtool: appConfig.devtool,
 };
 

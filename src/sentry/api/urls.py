@@ -41,6 +41,9 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_trace_item_attribute_context import (
+    OrganizationTraceItemAttributeContextEndpoint,
+)
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
     OrganizationTraceItemAttributeValidateEndpoint,
@@ -311,7 +314,6 @@ from sentry.issues.endpoints import (
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
-    OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
     ProjectEventsEndpoint,
     ProjectGroupIndexEndpoint,
@@ -769,7 +771,6 @@ from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
-from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunkAttachmentsEndpoint,
@@ -788,7 +789,6 @@ from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
     OrganizationSdkUpdatesEndpoint,
 )
-from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
@@ -1740,6 +1740,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attributes-validate",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/context/$",
+        OrganizationTraceItemAttributeContextEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attribute-context",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",
         OrganizationTraceItemAttributeValuesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attribute-values",
@@ -2125,24 +2130,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     # Pinned and saved search
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pinned-searches/$",
-        OrganizationPinnedSearchEndpoint.as_view(),
-        name="sentry-api-0-organization-pinned-searches",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/recent-searches/$",
         OrganizationRecentSearchesEndpoint.as_view(),
         name="sentry-api-0-organization-recent-searches",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/searches/(?P<search_id>[^/]+)/$",
-        OrganizationSearchDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-search-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/searches/$",
-        OrganizationSearchesEndpoint.as_view(),
-        name="sentry-api-0-organization-searches",
     ),
     # DSN Lookup
     re_path(

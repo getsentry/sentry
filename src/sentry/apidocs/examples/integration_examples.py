@@ -35,14 +35,7 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["alert-rule", "chat-unfurl"],
-                        "aspects": {
-                            "alerts": [
-                                {
-                                    "type": "info",
-                                    "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                                }
-                            ]
-                        },
+                        "aspects": {},
                     },
                     "configOrganization": [],
                     "configData": {"installationType": "born_as_bot"},
@@ -89,14 +82,7 @@ class IntegrationExamples:
                     "canAdd": True,
                     "canDisable": False,
                     "features": ["alert-rule", "chat-unfurl"],
-                    "aspects": {
-                        "alerts": [
-                            {
-                                "type": "info",
-                                "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                            }
-                        ]
-                    },
+                    "aspects": {},
                 },
                 "configOrganization": [],
                 "configData": {"installationType": "born_as_bot"},
@@ -552,14 +538,7 @@ class IntegrationExamples:
                             "noun": "Installation",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=PagerDuty%20Integration%20Problem",
                             "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/pagerduty",
-                            "aspects": {
-                                "alerts": [
-                                    {
-                                        "type": "info",
-                                        "text": "The PagerDuty integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to PagerDuty you must create a rule using the PagerDuty action in your project settings.",
-                                    }
-                                ]
-                            },
+                            "aspects": {},
                         },
                         "canAdd": True,
                         "canDisable": False,
@@ -585,14 +564,7 @@ class IntegrationExamples:
                             "noun": "Workspace",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
                             "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-                            "aspects": {
-                                "alerts": [
-                                    {
-                                        "type": "info",
-                                        "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                                    }
-                                ]
-                            },
+                            "aspects": {},
                         },
                         "canAdd": True,
                         "canDisable": False,

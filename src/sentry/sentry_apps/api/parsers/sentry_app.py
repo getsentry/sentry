@@ -329,7 +329,7 @@ class SentryAppParser(Serializer):
                 # also check that we don't have the alert rule enabled
                 if get_current_value("isAlertable"):
                     raise ValidationError(
-                        {"webhookUrl": "webhookUrl required if alert rule action is enabled"}
+                        {"webhookUrl": "webhookUrl required if alert action is enabled"}
                     )
             else:
                 raise ValidationError({"webhookUrl": "webhookUrl required for public integrations"})

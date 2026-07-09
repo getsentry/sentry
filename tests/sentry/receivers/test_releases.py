@@ -425,9 +425,8 @@ class PullRequestClosedSignalTest(TestCase):
         self.pull_request.state = state
         self.pull_request.save()
 
-    def test_closed_emits_activity_when_flag_enabled(self) -> None:
-        with self.feature("organizations:pr-group-activity"):
-            self._save_with_state(PullRequestLifecycleState.CLOSED)
+    def test_closed_emits_activity(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
 
         activity = Activity.objects.get(
             group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
@@ -436,25 +435,17 @@ class PullRequestClosedSignalTest(TestCase):
         assert activity.data == {"pull_request": self.pull_request.id}
 
     def test_merged_does_not_emit_activity(self) -> None:
-        with self.feature("organizations:pr-group-activity"):
-            self._save_with_state(PullRequestLifecycleState.MERGED)
+        self._save_with_state(PullRequestLifecycleState.MERGED)
 
         assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
 
     def test_open_does_not_emit_activity(self) -> None:
-        with self.feature("organizations:pr-group-activity"):
-            self._save_with_state(PullRequestLifecycleState.OPEN)
-
-        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
-
-    def test_closed_skips_activity_when_flag_disabled(self) -> None:
-        self._save_with_state(PullRequestLifecycleState.CLOSED)
+        self._save_with_state(PullRequestLifecycleState.OPEN)
 
         assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
 
     def test_resaving_closed_pr_does_not_duplicate(self) -> None:
-        with self.feature("organizations:pr-group-activity"):
-            self._save_with_state(PullRequestLifecycleState.CLOSED)
-            self._save_with_state(PullRequestLifecycleState.CLOSED)
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
 
         assert Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).count() == 1
