@@ -957,6 +957,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.backfill_group_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
