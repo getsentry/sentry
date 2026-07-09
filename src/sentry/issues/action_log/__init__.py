@@ -8,6 +8,7 @@ from sentry.issues.action_log.publish import (
     get_action_context,
     publish_action,
     publish_action_from_context,
+    publish_actions_from_context_bulk,
 )
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -24,6 +25,7 @@ __all__ = [
     "get_action_context",
     "publish_action",
     "publish_action_from_context",
+    "publish_actions_from_context_bulk",
     "resolve_action_actor",
     "resolve_action_source",
 ]
