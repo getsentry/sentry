@@ -4056,6 +4056,31 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('keeps the trailing partial adjacent when a middle-chip paste repeats a value', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('c');
+        });
+
+        // "p" repeated in the paste collapses to one chip; "q" must still land
+        // right after it rather than at the end of the row
+        await userEvent.clear(input);
+        await userEvent.paste('p,p,q');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,p,q,3]'})
+        ).toBeInTheDocument();
+      });
+
       it('keeps a typed chip edit in its original position', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />

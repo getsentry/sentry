@@ -1117,7 +1117,19 @@ export function SearchQueryBuilderValueCombobox({
       return;
     }
     const partial = segments.pop() ?? '';
-    const completed = segments.filter(segment => segment.trim());
+    // Drop empty segments and values repeated within the paste (which collapse to
+    // a single chip on save) so the tracked insertion index matches the chips
+    // actually added and the trailing partial stays adjacent rather than jumping
+    // to the end of the row.
+    const seen = new Set<string>();
+    const completed = segments.filter(segment => {
+      const trimmed = segment.trim();
+      if (!trimmed || seen.has(trimmed)) {
+        return false;
+      }
+      seen.add(trimmed);
+      return true;
+    });
     const editIndex = editingChip?.index;
     if (completed.length) {
       addTypedValue(completed.join(','));
