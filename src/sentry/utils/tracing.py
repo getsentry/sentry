@@ -1,6 +1,6 @@
 import functools
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, ParamSpec, TypeVar
 
 import sentry_sdk
 from sentry_sdk.scope import Scope
@@ -12,7 +12,13 @@ if TYPE_CHECKING:
     from sentry_sdk.tracing import TransactionKwargs
 
 
-def trace(func=None, *, op=None, name=None):
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def trace(
+    func: Callable[P, R] | None = None, *, op: str | None = None, name: str | None = None
+) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     def decorator(f):
         streaming_wrapped = sentry_sdk.traces.trace(
             name=name,
