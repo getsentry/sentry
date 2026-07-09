@@ -746,6 +746,7 @@ interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBas
   data: {
     // Set for semver releases
     current_release_version: string;
+    commit?: Commit | null;
     inNextRelease?: boolean;
     integration_id?: number;
     provider?: string;
@@ -756,6 +757,7 @@ interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBas
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
+    commit?: Commit | null;
     inNextRelease?: boolean;
     integration_id?: number;
     provider?: string;

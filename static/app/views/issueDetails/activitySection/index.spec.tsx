@@ -868,6 +868,144 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
   });
 
+  it('links a resolved release activity to its pull request', async () => {
+    const repository = RepositoryFixture({
+      name: 'example/repository',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/example/repository',
+    });
+    const pullRequest = PullRequestFixture({
+      id: '1234',
+      externalUrl: 'https://github.com/example/repository/pull/1234',
+      repository,
+      title: 'Fix the issue',
+    });
+    const resolvedGroup = GroupFixture({
+      id: 'resolved-release-with-pr',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          id: 'resolved-release-with-pr-activity',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            version: 'frontend@1.0.0',
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+              pullRequest,
+              repository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
+        <ActivitySection group={resolvedGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('Resolved')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: /example\/repository #1234: Fix the issue/})
+    ).toHaveAttribute('href', pullRequest.externalUrl);
+    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+  });
+
+  it('prefers the pull request for resolved release activity line items', async () => {
+    const repository = RepositoryFixture({
+      name: 'example/repository',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/example/repository',
+    });
+    const pullRequest = PullRequestFixture({
+      id: '1234',
+      externalUrl: 'https://github.com/example/repository/pull/1234',
+      repository,
+    });
+    const resolvedGroup = GroupFixture({
+      id: 'resolved-release-line-item-with-pr',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          id: 'resolved-release-line-item-with-pr-activity',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            version: 'frontend@1.0.0',
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+              pullRequest,
+              repository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
+        <ActivitySection group={resolvedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Issue resolved')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '#1234'})).toHaveAttribute(
+      'href',
+      pullRequest.externalUrl
+    );
+    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the commit for resolved release activity line items', async () => {
+    const repository = RepositoryFixture({
+      name: 'example/repository',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/example/repository',
+    });
+    const resolvedGroup = GroupFixture({
+      id: 'resolved-release-line-item-with-commit',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          id: 'resolved-release-line-item-with-commit-activity',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            version: 'frontend@1.0.0',
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+              pullRequest: null,
+              repository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
+        <ActivitySection group={resolvedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Issue resolved')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'f7f395d'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/repository/commit/f7f395d14b2fe29a4e253bf1d3094d61e6ad4434'
+    );
+  });
+
   it('renders referenced in commit activity', async () => {
     const referencedGroup = GroupFixture({
       id: '1341',

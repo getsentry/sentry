@@ -252,6 +252,17 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
       const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const resolvedBy = activity.data.commit?.pullRequest
+        ? tct(' via [pullRequest]', {
+            pullRequest: (
+              <PullRequestChip pullRequest={activity.data.commit.pullRequest} />
+            ),
+          })
+        : activity.data.commit
+          ? tct(' via commit [commit]', {
+              commit: <CommitChip commit={activity.data.commit} />,
+            })
+          : null;
       const integrationDetails = integrationLink
         ? tct(' via [integration]', {integration: integrationLink})
         : null;
@@ -274,6 +285,7 @@ export function getCompactGroupActivityItem({
                   ? t('(semver)')
                   : t('(non-semver)'),
               })}
+              {resolvedBy}
               {integrationDetails}
             </Fragment>
           ),
@@ -297,6 +309,7 @@ export function getCompactGroupActivityItem({
                   ? t('(semver)')
                   : t('(non-semver)'),
               })}
+              {resolvedBy}
               {integrationDetails}
             </Fragment>
           ),
@@ -308,6 +321,7 @@ export function getCompactGroupActivityItem({
         details: (
           <Fragment>
             {t('in the upcoming release')}
+            {resolvedBy}
             {integrationDetails}
           </Fragment>
         ),
