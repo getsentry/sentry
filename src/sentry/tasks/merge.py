@@ -7,6 +7,7 @@ from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.functions import Coalesce
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import eventstream, features, similarity, tsdb
 from sentry.db.models.base import Model
@@ -18,10 +19,15 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
+
+# Identifies this task in the self-chain idempotency guard.
+_TASK_KEY = "merge_groups"
 
 
 @instrumented_task(
@@ -56,6 +62,19 @@ def merge_groups(
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
         return False
+
+    # Self-chain idempotency guard. If this activation already produced its continuation in a
+    # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
+    # skip the redundant re-processing). Only effective inside a worker (current_task() set).
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_TASK_KEY, activation_id):
+        logger.info(
+            "merge.duplicate_redelivery.skipped",
+            extra={"transaction_id": transaction_id, "activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
+        return True
 
     # Operate on one "from" group per task iteration. The task is recursed
     # until each group has been merged.
@@ -223,6 +242,10 @@ def merge_groups(
             recursed=True,
             eventstream_state=eventstream_state,
         )
+        # Record that this activation has spawned its continuation. A subsequent re-pend of this
+        # same activation will short-circuit at the guard above instead of spawning again.
+        if activation_id:
+            mark_spawned(_TASK_KEY, activation_id)
     else:
         if features.has(
             "organizations:hard-delete-derived-data-invalidation",

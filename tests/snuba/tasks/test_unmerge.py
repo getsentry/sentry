@@ -6,6 +6,7 @@ import itertools
 import logging
 import uuid
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest import mock
 from unittest.mock import patch
 
@@ -31,6 +32,7 @@ from sentry.tasks.unmerge import (
     repair_denormalizations,
     unmerge,
 )
+from sentry.taskworker.selfchain_idempotency import mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -43,6 +45,18 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
+    @patch("sentry.tasks.unmerge.Group")
+    @patch("sentry.tasks.unmerge.current_task")
+    def test_selfchain_skips_when_already_spawned(self, mock_current_task, mock_group) -> None:
+        # A prior delivery of this activation already spawned its continuation; a broker re-pend
+        # must short-circuit before touching the DB (proving no re-processing / no fork).
+        mock_current_task.return_value = SimpleNamespace(id="unmerge-act-skip")
+        mark_spawned("unmerge", "unmerge-act-skip")
+
+        unmerge(self.project.id, 123, 456, ["abcabc"], None, batch_size=5)
+
+        assert mock_group.objects.get.call_count == 0
+
     def test_get_fingerprint(self) -> None:
         assert (
             get_fingerprint(
