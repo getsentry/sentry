@@ -1,3 +1,4 @@
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.platform.types import (
     LinkTextBlock,
@@ -7,6 +8,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
+from sentry.utils.http import absolute_uri
 
 ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SEER_RCA_STARTED.value: NotificationSource.ACTIVITY_SEER_RCA_STARTED,
@@ -25,6 +27,7 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value: NotificationSource.ACTIVITY_SET_RESOLVED_IN_PULL_REQUEST,
 }
 
+EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/example/issues/1/"
 EXAMPLE_ALERT_URL = "https://sentry.io/organizations/example/monitors/alerts/1/"
 
 
@@ -52,3 +55,12 @@ def build_example_alert_footer() -> list[NotificationTextBlock]:
         PlainTextBlock(text="This notification was sent as part of"),
         LinkTextBlock(text="an alert", url=EXAMPLE_ALERT_URL),
     ]
+
+
+def build_issue_link(group: Group) -> NotificationTextBlock:
+    group_label = group.qualified_short_id or "This issue"
+    return LinkTextBlock(text=group_label, url=absolute_uri(group.get_absolute_url()))
+
+
+def build_example_issue_link() -> NotificationTextBlock:
+    return LinkTextBlock(text="EXAMPLE-1", url=EXAMPLE_ISSUE_URL)

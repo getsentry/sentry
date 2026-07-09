@@ -3,10 +3,10 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
     build_alert_footer,
+    build_example_issue_link,
+    build_issue_link,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
-    get_example_resolution_issue_label,
-    get_resolution_issue_label,
     get_resolution_subject,
     render_resolution_example,
 )
@@ -42,7 +42,7 @@ class SetResolvedInCommitActivityTemplate(NotificationTemplate[WorkflowEngineAct
             body=[
                 ParagraphSection(
                     blocks=[
-                        get_example_resolution_issue_label(),
+                        build_example_issue_link(),
                         PlainTextBlock(text="was resolved in commit"),
                         CodeTextBlock(text="abc1234"),
                     ]
@@ -81,7 +81,7 @@ class SetResolvedInCommitActivityTemplate(NotificationTemplate[WorkflowEngineAct
             subject=get_resolution_subject(activity, group),
             body=[
                 ParagraphSection(
-                    blocks=[get_resolution_issue_label(group), *resolution_blocks],
+                    blocks=[build_issue_link(group), *resolution_blocks],
                 ),
                 *extra_body_sections,
             ],

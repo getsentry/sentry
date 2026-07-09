@@ -5,6 +5,7 @@ from sentry.notifications.platform.templates.workflow_engine.activity import (
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     build_alert_footer,
+    build_issue_link,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     get_issue_description,
@@ -12,7 +13,6 @@ from sentry.notifications.platform.templates.workflow_engine.activity.seer.base 
     get_view_autofix_button,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
-    get_resolution_issue_label,
     get_resolution_subject,
 )
 from sentry.notifications.platform.types import (
@@ -58,6 +58,13 @@ class AlertActivityBaseTest(TestCase):
         assert footer[1].type == NotificationTextBlockType.LINK
         assert "42" in footer[1].url
         assert self.organization.slug in footer[1].url
+
+    def test_build_issue_link(self) -> None:
+        group = self.create_group()
+        assert group.qualified_short_id is not None
+        label = build_issue_link(group)
+        assert label.type == NotificationTextBlockType.LINK
+        assert label.text == group.qualified_short_id
 
 
 class SeerAlertActivityBaseTest(TestCase):
@@ -138,10 +145,3 @@ class SetResolvedAlertActivityBaseTest(TestCase):
         assert any(
             "by" in b.text for b in subject if b.type == NotificationTextBlockType.PLAIN_TEXT
         )
-
-    def test_get_resolution_issue_label(self) -> None:
-        group = self.create_group()
-        assert group.qualified_short_id is not None
-        label = get_resolution_issue_label(group)
-        assert label.type == NotificationTextBlockType.LINK
-        assert label.text == group.qualified_short_id

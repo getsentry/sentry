@@ -2,10 +2,10 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
     build_alert_footer,
+    build_example_issue_link,
+    build_issue_link,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
-    get_example_resolution_issue_label,
-    get_resolution_issue_label,
     get_resolution_subject,
     render_resolution_example,
 )
@@ -38,7 +38,7 @@ class SetResolvedByAgeActivityTemplate(NotificationTemplate[WorkflowEngineActivi
             body=[
                 ParagraphSection(
                     blocks=[
-                        get_example_resolution_issue_label(),
+                        build_example_issue_link(),
                         PlainTextBlock(
                             text="was resolved automatically after 7 days of inactivity."
                         ),
@@ -64,10 +64,7 @@ class SetResolvedByAgeActivityTemplate(NotificationTemplate[WorkflowEngineActivi
             subject=get_resolution_subject(activity, group),
             body=[
                 ParagraphSection(
-                    blocks=[
-                        get_resolution_issue_label(group),
-                        PlainTextBlock(text=resolution_text),
-                    ]
+                    blocks=[build_issue_link(group), PlainTextBlock(text=resolution_text)]
                 )
             ],
             footer=build_alert_footer(organization=organization, workflow_id=data.workflow_id),

@@ -2,10 +2,10 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     WorkflowEngineActivityAction,
     build_alert_footer,
+    build_example_issue_link,
+    build_issue_link,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
-    get_example_resolution_issue_label,
-    get_resolution_issue_label,
     get_resolution_subject,
     render_resolution_example,
 )
@@ -37,7 +37,7 @@ class SetResolvedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAct
             body=[
                 ParagraphSection(
                     blocks=[
-                        get_example_resolution_issue_label(),
+                        build_example_issue_link(),
                         PlainTextBlock(text="had its status changed to resolved."),
                     ]
                 ),
@@ -57,7 +57,7 @@ class SetResolvedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAct
             body=[
                 ParagraphSection(
                     blocks=[
-                        get_resolution_issue_label(group),
+                        build_issue_link(group),
                         PlainTextBlock(text="had its status changed to resolved."),
                     ]
                 )

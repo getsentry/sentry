@@ -5,14 +5,12 @@ from sentry.notifications.platform.templates.workflow_engine.activity.base impor
 )
 from sentry.notifications.platform.types import (
     CodeTextBlock,
-    LinkTextBlock,
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationTextBlock,
     PlainTextBlock,
 )
 from sentry.users.services.user.service import user_service
-from sentry.utils.http import absolute_uri
 
 EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/example/issues/1/"
 
@@ -36,15 +34,6 @@ def get_resolution_subject(activity: Activity, group: Group) -> list[Notificatio
 
 def get_example_resolution_subject() -> list[NotificationTextBlock]:
     return [CodeTextBlock(text="EXAMPLE-1"), PlainTextBlock(text="was resolved by Jane Doe")]
-
-
-def get_resolution_issue_label(group: Group) -> NotificationTextBlock:
-    group_label = group.qualified_short_id or "This issue"
-    return LinkTextBlock(text=group_label, url=absolute_uri(group.get_absolute_url()))
-
-
-def get_example_resolution_issue_label() -> NotificationTextBlock:
-    return LinkTextBlock(text="EXAMPLE-1", url=EXAMPLE_ISSUE_URL)
 
 
 def render_resolution_example(body: list[NotificationSection]) -> NotificationRenderedTemplate:
