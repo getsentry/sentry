@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
-import * as qs from 'query-string';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
@@ -14,6 +13,7 @@ import type {
   EChartFinishedHandler,
 } from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -222,13 +222,7 @@ export function useChartZoom({
           statsPeriod: formattedPeriod.period ?? undefined,
         };
 
-        // Only push new location if query params has changed because this will cause a heavy re-render
-        if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
-          navigate({
-            pathname: location.pathname,
-            query: newQuery,
-          });
-        }
+        navigateIfQueryChanged(navigate, location, {query: newQuery});
       } else {
         updateDateTime(formattedPeriod, location, navigate, {save: saveOnZoom});
       }
