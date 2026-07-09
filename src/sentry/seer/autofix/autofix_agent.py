@@ -89,26 +89,33 @@ GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-com
 
 
 class _GithubPrCommentFeedbackSourceBase(TypedDict):
-    type: GithubPrCommentFeedbackType
     comment: Mapping[str, Any]
 
 
-class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase, total=False):
-    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``).
+class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
+    """Feedback submitted as a top-level GitHub PR comment (``@sentry <feedback>``)."""
 
-    ``file_path``/``line`` (the inline review-comment anchor) are optional via
-    ``total=False``: feedback enqueued under the pre-anchor schema omits them,
-    and ``NotRequired`` is not an option here because ``from __future__ import
-    annotations`` stringizes the annotations, hiding it from pydantic v1.
+    type: Literal["github-pr-comment"]
+
+
+class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
+    """Feedback submitted as an inline GitHub PR review comment (``@sentry <feedback>``).
+
+    Carries the review-comment anchor so the UI can link the feedback back to the
+    diff location it was left on.
     """
 
+    type: Literal["github-pr-review-comment"]
     file_path: str | None
     line: int | None
+    start_line: int | None
 
 
 # Discriminated on ``type``. Add new TypedDict variants to this union as more
 # feedback sources are introduced.
-FeedbackSource = UserUIFeedbackSource | GithubPrCommentFeedbackSource
+FeedbackSource = (
+    UserUIFeedbackSource | GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
+)
 
 
 class Feedback(BaseModel):

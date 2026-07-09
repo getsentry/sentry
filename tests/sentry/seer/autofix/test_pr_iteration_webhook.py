@@ -406,7 +406,12 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_state.return_value = self._agent_state()
 
         self._call(
-            comment={**self.comment, "path": "src/sentry/foo.py", "line": 42},
+            comment={
+                **self.comment,
+                "path": "src/sentry/foo.py",
+                "line": 42,
+                "start_line": 40,
+            },
             source_type="github-pr-review-comment",
         )
 
@@ -414,13 +419,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert source["type"] == "github-pr-review-comment"
         assert source["file_path"] == "src/sentry/foo.py"
         assert source["line"] == 42
+        assert source["start_line"] == 40
 
     @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
     @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_issue_comment_has_null_file_and_line(
+    def test_issue_comment_omits_file_and_line(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
@@ -431,10 +437,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state()
 
-        # A top-level issue_comment is not line-anchored.
+        # A top-level issue_comment is not line-anchored, so it carries no anchor.
         self._call()
 
         source = mock_enqueue.call_args.kwargs["feedback"].source
         assert source["type"] == "github-pr-comment"
-        assert source["file_path"] is None
-        assert source["line"] is None
+        assert "file_path" not in source
+        assert "line" not in source
+        assert "start_line" not in source

@@ -30,6 +30,7 @@ from sentry.seer.autofix.autofix_agent import (
     Feedback,
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
+    GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
@@ -322,12 +323,20 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    source: GithubPrCommentFeedbackSource = {
-        "type": source_type,
-        "comment": comment,
-        "file_path": comment.get("path"),
-        "line": comment.get("line"),
-    }
+    source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
+    if source_type == "github-pr-review-comment":
+        source = {
+            "type": source_type,
+            "comment": comment,
+            "file_path": comment.get("path"),
+            "line": comment.get("line"),
+            "start_line": comment.get("start_line"),
+        }
+    else:
+        source = {
+            "type": source_type,
+            "comment": comment,
+        }
     feedback_obj = Feedback(text=feedback, source=source)
 
     enqueue_autofix_feedback(

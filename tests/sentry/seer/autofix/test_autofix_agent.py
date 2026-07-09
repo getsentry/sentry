@@ -1487,8 +1487,9 @@ class TestGithubPrCommentFeedbackSource(TestCase):
     def test_deserializes_review_comment_source_with_anchor_fields(self) -> None:
         feedback = Feedback.parse_raw(
             '{"text": "fix it", "source": {"type": "github-pr-review-comment", '
-            '"comment": {"id": 1}, "file_path": "src/foo.py", "line": 42}}'
+            '"comment": {"id": 1}, "file_path": "src/foo.py", "line": 42, "start_line": 40}}'
         )
         assert feedback.source["type"] == "github-pr-review-comment"
         assert feedback.source["file_path"] == "src/foo.py"
         assert feedback.source["line"] == 42
+        assert feedback.source["start_line"] == 40
