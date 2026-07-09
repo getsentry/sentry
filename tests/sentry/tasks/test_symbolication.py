@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import symbolicate_event
 from sentry.testutils.helpers.task_runner import TaskRunner
@@ -30,10 +30,11 @@ def mock_symbolicate_event():
         yield m
 
 
-# @pytest.fixture
-# mdef mock_get_symbolication_function_for_platform():
-#     with mock.patch("sentry.tasks.symbolication.get_symbolication_function_for_platform") as m:
-#         yield
+@pytest.fixture
+def mock_symbolication_function():
+    """Mocks the symbolication function invoked via `SymbolicatorFunction.__call__`."""
+    with mock.patch.object(SymbolicatorFunction, "__call__") as m:
+        yield m
 
 
 @pytest.fixture
@@ -65,6 +66,7 @@ def test_symbolicate_event_doesnt_call_process_inline(
     mock_event_processing_store,
     mock_process_event,
     mock_save_event,
+    mock_symbolication_function,
 ):
     data = {
         "platform": "native",
@@ -75,6 +77,7 @@ def test_symbolicate_event_doesnt_call_process_inline(
     mock_event_processing_store.store.return_value = "e:1"
 
     symbolicated_data = {"type": "error"}
+    mock_symbolication_function.return_value = symbolicated_data
 
     with mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event:
         symbolicate_event(cache_key="e:1", start_time=1)
