@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, useContainerBreakpoint} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -16,8 +16,10 @@ const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
+const CONTENT_MIN_HEIGHT = 180;
 const CONTENT_MAX_WIDTH = 900;
 const DETAIL_MIN_WIDTH = 400;
+const DETAIL_MIN_HEIGHT = 200;
 const CONTENT_WIDTH_RATIO = 0.6;
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
@@ -128,7 +130,7 @@ export function ConversationContentLayout({
   right?: React.ReactNode;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions({elementRef: measureRef});
+  const {width, height} = useDimensions({elementRef: measureRef});
 
   return (
     <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
@@ -141,9 +143,10 @@ export function ConversationContentLayout({
           background="secondary"
         >
           <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
-            {width > 0 ? (
+            {width > 0 && height > 0 ? (
               <MeasuredContentSplit
                 width={width}
+                height={height}
                 detail={right}
                 content={
                   <Container
@@ -173,14 +176,22 @@ function MeasuredContentSplit({
   content,
   detail,
   width,
+  height,
 }: {
   content: React.ReactNode;
+  height: number;
   width: number;
   detail?: React.ReactNode;
 }) {
+  // Side by side above md, stacked below. The panes are sized by width in a row
+  // and by height in a column, so the min/default track the active axis —
+  // otherwise the width-based 400px min becomes a min-height that can't fit on
+  // short screens and the divider locks up.
+  const isRow = !['2xs', 'xs', 'sm'].includes(useContainerBreakpoint());
+  const available = isRow ? width : height;
   const defaultContent = Math.max(
-    CONTENT_MIN_WIDTH,
-    Math.round((width - DIVIDER_WIDTH) * CONTENT_WIDTH_RATIO)
+    isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT,
+    Math.round((available - DIVIDER_WIDTH) * CONTENT_WIDTH_RATIO)
   );
   const [storedSize, setStoredSize] = useLocalStorageState(
     SPLIT_LAYOUT_STORAGE_KEY,
@@ -189,12 +200,12 @@ function MeasuredContentSplit({
 
   return (
     <SplitPanel
-      orientation={{xs: 'vertical', md: 'horizontal'}}
+      orientation={isRow ? 'horizontal' : 'vertical'}
       defaultSize={defaultContent}
       initialSize={storedSize}
-      minSize={CONTENT_MIN_WIDTH}
-      maxSize={CONTENT_MAX_WIDTH}
-      fillMinSize={DETAIL_MIN_WIDTH}
+      minSize={isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT}
+      maxSize={isRow ? CONTENT_MAX_WIDTH : undefined}
+      fillMinSize={isRow ? DETAIL_MIN_WIDTH : DETAIL_MIN_HEIGHT}
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
       sized={
         <Flex
