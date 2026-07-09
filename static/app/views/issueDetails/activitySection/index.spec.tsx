@@ -1034,6 +1034,99 @@ describe('ActivitySection', () => {
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
   });
 
+  it('links a referenced commit activity to its pull request', async () => {
+    const repository = RepositoryFixture({
+      name: 'example/repository',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/example/repository',
+    });
+    const pullRequest = PullRequestFixture({
+      id: '1234',
+      externalUrl: 'https://github.com/example/repository/pull/1234',
+      repository,
+      title: 'Fix the issue',
+    });
+    const referencedGroup = GroupFixture({
+      id: 'referenced-commit-with-pr',
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-commit-with-pr-activity',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+              pullRequest,
+              repository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={referencedGroup} project={referencedGroup.project}>
+        <ActivitySection group={referencedGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /f7f395d/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: /example\/repository #1234: Fix the issue/})
+    ).toHaveAttribute('href', pullRequest.externalUrl);
+  });
+
+  it('links a referenced commit activity line item to its pull request', async () => {
+    const repository = RepositoryFixture({
+      name: 'example/repository',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+      url: 'https://github.com/example/repository',
+    });
+    const pullRequest = PullRequestFixture({
+      id: '1234',
+      externalUrl: 'https://github.com/example/repository/pull/1234',
+      repository,
+    });
+    const referencedGroup = GroupFixture({
+      id: 'referenced-commit-line-item-with-pr',
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-commit-line-item-with-pr-activity',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+              pullRequest,
+              repository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={referencedGroup} project={referencedGroup.project}>
+        <ActivitySection group={referencedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('Referenced in commit')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'f7f395d'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '#1234'})).toHaveAttribute(
+      'href',
+      pullRequest.externalUrl
+    );
+  });
+
   it('prefers commit repository details for resolved commit activity line items', async () => {
     const commitRepository = RepositoryFixture({
       name: 'getsentry/sentry',

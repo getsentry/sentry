@@ -490,24 +490,38 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.REFERENCED_IN_COMMIT: {
-        if (activity.data.commit) {
+        const commit = activity.data.commit;
+        if (!commit) {
           return {
             title: t('Referenced in Commit'),
-            message: tct('by [author] in [commit]', {
-              author,
-              commit: (
-                <CommitLink
-                  inline
-                  commitId={activity.data.commit.id}
-                  repository={activity.data.commit.repository}
-                />
-              ),
-            }),
+            message: tct('by [author] in a commit', {author}),
           };
         }
+
+        const commitDetails = tct('by [author] in [commit]', {
+          author,
+          commit: (
+            <CommitLink inline commitId={commit.id} repository={commit.repository} />
+          ),
+        });
+
         return {
           title: t('Referenced in Commit'),
-          message: tct('by [author] in a commit', {author}),
+          message: commit.pullRequest ? (
+            <Fragment>
+              {commitDetails}
+              {tct(' via [pullRequest]', {
+                pullRequest: (
+                  <PullRequestLink
+                    pullRequest={commit.pullRequest}
+                    repository={commit.pullRequest.repository}
+                  />
+                ),
+              })}
+            </Fragment>
+          ) : (
+            commitDetails
+          ),
         };
       }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {

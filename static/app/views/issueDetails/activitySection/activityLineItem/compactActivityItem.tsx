@@ -332,19 +332,33 @@ export function getCompactGroupActivityItem({
         title: t('Issue resolved'),
         details: getResolvedInCommitDetails(activity, organization, project),
       };
-    case GroupActivityType.REFERENCED_IN_COMMIT:
+    case GroupActivityType.REFERENCED_IN_COMMIT: {
+      const commit = activity.data.commit;
+      if (!commit) {
+        return {title: t('Referenced in commit')};
+      }
+
+      const commitDetails = tct('on [provider] [commit]', {
+        commit: <CommitChip commit={commit} />,
+        provider: getProviderName(
+          commit.repository?.provider?.name ?? commit.repository?.provider?.id
+        ),
+      });
+
       return {
         title: t('Referenced in commit'),
-        details: activity.data.commit
-          ? tct('on [provider] [commit]', {
-              commit: <CommitChip commit={activity.data.commit} />,
-              provider: getProviderName(
-                activity.data.commit.repository?.provider?.name ??
-                  activity.data.commit.repository?.provider?.id
-              ),
-            })
-          : undefined,
+        details: commit.pullRequest ? (
+          <Fragment>
+            {commitDetails}
+            {tct(' via [pullRequest]', {
+              pullRequest: <PullRequestChip pullRequest={commit.pullRequest} />,
+            })}
+          </Fragment>
+        ) : (
+          commitDetails
+        ),
       };
+    }
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
       return {
