@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
-import type {Location} from 'history';
 
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
@@ -11,13 +11,6 @@ import {
   getTargetWithReadableQueryParams,
   isDefaultFields,
 } from 'sentry/views/explore/spans/spansQueryParams';
-
-function isSameLocation(a: Location, b: Location): boolean {
-  if (a.pathname !== b.pathname) {
-    return false;
-  }
-  return JSON.stringify(a.query) === JSON.stringify(b.query);
-}
 
 interface SpansQueryParamsProviderProps {
   children: ReactNode;
@@ -45,11 +38,7 @@ export function SpansQueryParamsProvider({children}: SpansQueryParamsProviderPro
         writableQueryParams
       );
 
-      // Only navigate if the target URL is different from current location
-      // This prevents duplicate history entries which can cause browser back button issues
-      if (!isSameLocation(locationRef.current, target)) {
-        navigate(target);
-      }
+      navigateIfQueryChanged(navigate, locationRef.current, target);
     },
     [navigate]
   );

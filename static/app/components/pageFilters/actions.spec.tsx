@@ -648,7 +648,7 @@ describe('PageFilters ActionCreators', () => {
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {project: ['1']}},
-        {replace: false}
+        {replace: undefined}
       );
     });
     it('does not update history when queries are the same', () => {
@@ -721,7 +721,7 @@ describe('PageFilters ActionCreators', () => {
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {environment: ['new-env']}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
@@ -734,7 +734,7 @@ describe('PageFilters ActionCreators', () => {
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {environment: ['new-env', 'another-env']}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
@@ -744,7 +744,10 @@ describe('PageFilters ActionCreators', () => {
         location: {pathname: '/test/', query: {environment: 'test'}},
       }).location;
       updateEnvironments(null, location, nav);
-      expect(nav).toHaveBeenCalledWith({pathname: '/test/', query: {}}, {replace: false});
+      expect(nav).toHaveBeenCalledWith(
+        {pathname: '/test/', query: {}},
+        {replace: undefined}
+      );
     });
 
     it('does not override an absolute date selection', () => {
@@ -785,7 +788,7 @@ describe('PageFilters ActionCreators', () => {
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {statsPeriod: '24h'}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
@@ -798,7 +801,7 @@ describe('PageFilters ActionCreators', () => {
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {statsPeriod: '24h'}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
@@ -818,7 +821,7 @@ describe('PageFilters ActionCreators', () => {
           pathname: '/test/',
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
         },
-        {replace: false}
+        {replace: undefined}
       );
     });
   });

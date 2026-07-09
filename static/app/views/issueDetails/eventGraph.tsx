@@ -231,6 +231,7 @@ export function EventGraph({
   }, [groupStats]);
 
   const chartZoomProps = useChartZoom({
+    disabled: disableZoomNavigation,
     saveOnZoom: true,
   });
 
@@ -566,12 +567,7 @@ export function EventGraph({
             },
             ...releaseBubbleXAxis,
           }}
-          {...(disableZoomNavigation
-            ? {
-                isGroupedByDate: true,
-                dataZoom: chartZoomProps.dataZoom,
-              }
-            : chartZoomProps)}
+          {...chartZoomProps}
         />
       </ChartContainer>
     </Grid>
