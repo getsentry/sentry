@@ -76,11 +76,14 @@ class SentryRouter(LibraryRouter):
             except Exception as err:
                 capture_exception(err)
         self._route_map = routes
-        self._default_topic = (
-            Topic.TASKWORKER_CONTROL
-            if SiloMode.get_current_mode() == SiloMode.CONTROL
-            else Topic.TASKWORKER
-        )
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            # Control silos always use the control topic; the region default
+            # topic override never applies to them.
+            self._default_topic = Topic.TASKWORKER_CONTROL
+        elif settings.TASKWORKER_DEFAULT_TOPIC:
+            self._default_topic = Topic(settings.TASKWORKER_DEFAULT_TOPIC)
+        else:
+            self._default_topic = Topic.TASKWORKER
 
     def route_namespace(self, name: str) -> str:
         # Check local overrides

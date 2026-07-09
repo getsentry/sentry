@@ -57,19 +57,7 @@
       "getsentry/*": ["./static/gsApp/*"],
       "getsentry-images/*": ["./static/images/*"],
       "admin/*": ["./static/gsAdmin/*"]
-    },
-
-    "plugins": [
-      // The styled plugin provides language server autocompletion for styled
-      // component template strings
-      {
-        "name": "@styled/typescript-styled-plugin",
-        "lint": {
-          "validProperties": ["container-type"],
-          "unknownAtRules": "ignore"
-        }
-      }
-    ]
+    }
   },
   "include": [
     "*.config.*s",

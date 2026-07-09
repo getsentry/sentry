@@ -1,4 +1,3 @@
-import sentry_sdk
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
     DownsampledStorageConfig,
     DownsampledStorageMeta,
@@ -8,7 +7,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta
-from sentry.utils.tracing import set_span_data
+from sentry.utils.tracing import get_current_span, set_span_data
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
@@ -30,7 +29,7 @@ def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
         sum(info.stats.progress_bytes for info in meta.query_info) if meta.query_info else None
     )
 
-    span = sentry_sdk.get_current_span()
+    span = get_current_span()
     if span:
         set_span_data(span, "data_scanned", "full" if full_scan else "partial")
         set_span_data(span, "bytes_scanned", bytes_scanned)

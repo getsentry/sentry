@@ -8,6 +8,7 @@ import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sent
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -172,14 +173,17 @@ export function WidgetBuilderTypeSelector({
       >
         <CompactSelect
           value={state.displayType}
-          options={displayTypeOrder.map(({type, label, details}) => ({
-            leadingItems: DISPLAY_TYPE_ICONS[type],
-            label,
-            value: type,
-            details,
-            disabled:
-              type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type),
-          }))}
+          options={displayTypeOrder.map(({type, label, details}) => {
+            const disabledReason = getVisualizationTypeDisabledReason(type, config);
+            return {
+              leadingItems: DISPLAY_TYPE_ICONS[type],
+              label,
+              value: type,
+              details,
+              disabled: defined(disabledReason),
+              tooltip: disabledReason,
+            };
+          })}
           menuWidth={300}
           onChange={selection => {
             const newValue = selection.value;
@@ -223,6 +227,18 @@ export function WidgetBuilderTypeSelector({
       </StyledFieldGroup>
     </Fragment>
   );
+}
+
+// Returns why a display type is unavailable, or undefined when it's usable — so
+// the dropdown can both disable and explain the option from a single source.
+function getVisualizationTypeDisabledReason(
+  type: DisplayType,
+  config: ReturnType<typeof getDatasetConfig>
+): string | undefined {
+  if (type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type)) {
+    return t('This visualization is not supported for the selected dataset.');
+  }
+  return undefined;
 }
 
 const StyledFieldGroup = styled(FieldGroup)`
