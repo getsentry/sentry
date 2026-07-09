@@ -175,8 +175,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         uptime_status_changed_map: dict[int, datetime | None] = {}
         if uptime_items:
             detector_state_by_id = {
-                ds.detector_id: ds
-                for ds in DetectorState.objects.filter(detector__in=uptime_items)
+                ds.detector_id: ds for ds in DetectorState.objects.filter(detector__in=uptime_items)
             }
             for item in uptime_items:
                 detector_state = detector_state_by_id.get(item.id)
