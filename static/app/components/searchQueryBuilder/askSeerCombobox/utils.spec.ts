@@ -109,11 +109,13 @@ describe('resolveSeerProjectSelection', () => {
     });
   });
 
-  it('lifts a top-level project filter when an OR does not scope it', () => {
-    // The OR only scopes the span.op group; project:seer is still a top-level AND.
-    expect(
-      resolveSeerProjectSelection('project:seer AND (span.op:a OR span.op:b)', projects)
-    ).toEqual({projectIds: [11], query: '( span.op:a OR span.op:b )'});
+  it('does not lift when the query contains an OR anywhere', () => {
+    // Conservative: any OR skips the lift, even when it doesn't scope the project.
+    const query = 'project:seer AND (span.op:a OR span.op:b)';
+    expect(resolveSeerProjectSelection(query, projects)).toEqual({
+      projectIds: undefined,
+      query,
+    });
   });
 
   it('falls back to expandedProjectIds when the query has no project filter', () => {
