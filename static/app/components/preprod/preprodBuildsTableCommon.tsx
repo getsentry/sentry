@@ -15,7 +15,10 @@ import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getBuildNumber,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export function PreprodBuildsHeaderCells({
   showProjectColumn,
@@ -50,7 +53,7 @@ export function PreprodBuildsRowCells({
   showProjectColumn,
   showInstallabilityIndicator = false,
 }: PreprodBuildsRowCellsProps) {
-  const buildNumber = build.app_info?.build_number_raw ?? build.app_info?.build_number;
+  const buildNumber = getBuildNumber(build.app_info);
 
   return (
     <Fragment>
