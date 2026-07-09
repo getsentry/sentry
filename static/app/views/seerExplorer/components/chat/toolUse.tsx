@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +26,6 @@ import type {ToolUseBlockProps} from './shared';
 import {
   type BlockStatus,
   MessagePlaceholder,
-  SeerMarkdown,
   Spinner,
   getBlockStatus,
   hasValidContent,
@@ -117,7 +117,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const isLoading = blockStatus === 'loading' || blockStatus === 'pending';
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -168,7 +167,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
-            isLoading={isLoading}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
@@ -190,7 +188,6 @@ function ToolCallRow({
 }: {
   blockStatus: BlockStatus | undefined;
   failureTooltip: string | null;
-  isLoading: boolean;
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;

@@ -206,6 +206,8 @@ SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 SENTRY_SCM_REDIS_CLUSTER = "default"
+# Ephemeral dedup markers for self-chaining tasks (merge_groups / unmerge).
+SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -860,6 +862,12 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# The topic a namespace produces to when it is not explicitly routed via
+# TASKWORKER_ROUTES. When unset, region silos fall back to the `taskworker`
+# topic (control silos always use `taskworker-control`). Set per-region to make
+# a different pool the catch-all, e.g. `taskworker-push` in s4s2.
+TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -938,23 +946,25 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
-    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
+    "sentry.spans.consumers.process_segments.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.backfill_group_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.seer.autofix",
+    "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
     "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",
@@ -1145,7 +1155,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
-        "schedule": crontab("*", "*", "*", "*", "*"),
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -2179,10 +2189,6 @@ SENTRY_WATCHERS = (
 SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
-# Controls whether we'll run the snuba subscription processor. If enabled, we'll run
-# it as a worker, and devservices will run Kafka.
-SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
-
 SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
 
 # The chunk size for attachments in blob store. Should be a power of two.
@@ -2782,6 +2788,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-launchpad-push": "default",
     "taskworker-long": "default",
     "taskworker-long-dlq": "default",
+    "taskworker-process-segments": "default",
     "taskworker-products": "default",
     "taskworker-products-dlq": "default",
     "taskworker-sentryapp": "default",

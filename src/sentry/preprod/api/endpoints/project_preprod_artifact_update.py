@@ -24,6 +24,7 @@ from sentry.preprod.authentication import (
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactMobileAppInfo,
+    PreprodArtifactMobileAppInfoExtras,
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
@@ -49,6 +50,7 @@ def validate_preprod_artifact_update_schema(
             "artifact_type": {"type": "integer", "minimum": 0, "maximum": 2},
             "build_version": {"type": "string", "maxLength": 255},
             "build_number": {"type": "integer"},
+            "build_number_raw": {"type": "string", "maxLength": 255},
             "error_code": {"type": "integer", "minimum": 0, "maximum": 3},
             "error_message": {"type": "string"},
             "app_id": {"type": "string", "maxLength": 255},
@@ -91,6 +93,7 @@ def validate_preprod_artifact_update_schema(
         "error_message": "The error_message field must be a string.",
         "build_version": "The build_version field must be a string with a maximum length of 255 characters.",
         "build_number": "The build_number field must be an integer.",
+        "build_number_raw": "The build_number_raw field must be a string with a maximum length of 255 characters.",
         "app_id": "The app_id field must be a string with a maximum length of 255 characters.",
         "app_name": "The app_name field must be a string with a maximum length of 255 characters.",
         "apple_app_info": "The apple_app_info field must be an object.",
@@ -288,6 +291,17 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             mobile_app_info_updates["app_icon_id"] = data["app_icon_id"]
         if "app_name" in data:
             mobile_app_info_updates["app_name"] = data["app_name"]
+
+        if "build_number_raw" in data:
+            existing_extras = (
+                PreprodArtifactMobileAppInfo.objects.filter(preprod_artifact=head_artifact)
+                .values_list("extras", flat=True)
+                .first()
+            ) or {}
+            extras_update: PreprodArtifactMobileAppInfoExtras = {
+                "build_number_raw": data["build_number_raw"]
+            }
+            mobile_app_info_updates["extras"] = {**existing_extras, **extras_update}
 
         if mobile_app_info_updates:
             PreprodArtifactMobileAppInfo.objects.update_or_create(

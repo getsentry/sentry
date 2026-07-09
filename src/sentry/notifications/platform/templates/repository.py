@@ -6,7 +6,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -31,7 +31,7 @@ class UnableToDeleteRepositoryTemplate(NotificationTemplate[UnableToDeleteReposi
         return NotificationRenderedTemplate(
             subject="Unable to Delete Repository Webhooks",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"We were unable to delete webhooks in {data.provider_name} for your repository "
@@ -40,8 +40,8 @@ class UnableToDeleteRepositoryTemplate(NotificationTemplate[UnableToDeleteReposi
                         PlainTextBlock(text=" due to the following error:"),
                     ]
                 ),
-                ParagraphBlock(blocks=[CodeTextBlock(text=data.error_message)]),
-                ParagraphBlock(
+                ParagraphSection(blocks=[CodeTextBlock(text=data.error_message)]),
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"You will need to remove these webhooks manually in {data.provider_name} in order to stop sending commit data to Sentry."

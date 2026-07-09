@@ -167,6 +167,9 @@ export type SeerAnalyticsEventsParameters = {
   'seer.explorer.timed_out': {
     run_id: SeerExplorerRunId | null;
   };
+  'seer.explorer.update_slack_clicked': {
+    num_configurations: number;
+  };
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -202,4 +205,5 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
+  'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
 };

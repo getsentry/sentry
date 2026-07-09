@@ -327,7 +327,7 @@ export class Flamegraph {
     }
 
     for (const item of this.frames) {
-      for (let j = fields.length; j--; ) {
+      for (let j = fields.length; j--;) {
         if (item.frame[fields[j]!] === query) {
           matches.push(item);
         }
