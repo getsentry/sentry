@@ -1,7 +1,7 @@
 from django.conf import settings
 
 from sentry.models.group import Group
-from sentry.notifications.platform.templates.alerts.activity.base import (
+from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     ActivityAlertAction,
     build_alert_footer,
     build_example_alert_footer,

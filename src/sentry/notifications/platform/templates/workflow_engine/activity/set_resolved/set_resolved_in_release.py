@@ -4,13 +4,13 @@ import orjson
 from sentry_relay.processing import parse_release
 
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.alerts.activity.base import (
+from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     ActivityAlertAction,
     build_alert_footer,
     build_example_issue_link,
     build_issue_link,
 )
-from sentry.notifications.platform.templates.alerts.activity.set_resolved.base import (
+from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
     get_resolution_subject,
     render_resolution_example,
 )
