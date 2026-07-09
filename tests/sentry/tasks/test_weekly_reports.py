@@ -38,7 +38,6 @@ from sentry.tasks.summaries.utils import (
     _project_key_performance_issues_snuba,
     fetch_past_resolved_issue_links,
     org_key_errors,
-    organization_project_issue_substatus_summaries,
     organization_project_issue_summaries,
     project_key_errors,
     project_past_resolved_issues,
@@ -333,15 +332,19 @@ class WeeklyReportsTest(
         )
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
-        organization_project_issue_substatus_summaries(ctx)
+        results = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
 
-        project_ctx = ctx.projects_context_map[self.project.id]
+        substatus_totals: dict[int | None, int] = {}
+        for row in results:
+            substatus_totals[row["substatus"]] = (
+                substatus_totals.get(row["substatus"], 0) + row["total"]
+            )
 
-        assert project_ctx.new_substatus_count == 1
-        assert project_ctx.escalating_substatus_count == 0
-        assert project_ctx.ongoing_substatus_count == 1
-        assert project_ctx.regression_substatus_count == 0
-        assert project_ctx.total_substatus_count == 2
+        assert substatus_totals.get(GroupSubStatus.NEW, 0) == 1
+        assert substatus_totals.get(GroupSubStatus.ESCALATING, 0) == 0
+        assert substatus_totals.get(GroupSubStatus.ONGOING, 0) == 1
+        assert substatus_totals.get(GroupSubStatus.REGRESSED, 0) == 0
+        assert sum(substatus_totals.values()) == 2
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_status(self) -> None:
@@ -1067,7 +1070,6 @@ class WeeklyReportsTest(
             "issue_count": 0,
         }
 
-    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_in_trends(self, message_builder: mock.MagicMock) -> None:
         """Verify non-zero issue data flows through trends when unresolved groups exist."""
@@ -1227,7 +1229,6 @@ class WeeklyReportsTest(
         total = sum(row["total"] for row in results)
         assert total == 3
 
-    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
@@ -1281,7 +1282,6 @@ class WeeklyReportsTest(
             context = call_args.kwargs["context"]
             assert context["trends"]["issue_pct_change"] == "▲ 100%"
 
-    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_pct_change_partial_cache_falls_back_per_key(
@@ -1352,7 +1352,6 @@ class WeeklyReportsTest(
             # i comes from ORM fallback: current 1 vs prev 2
             assert context["trends"]["issue_pct_change"] == "▼ 50%"
 
-    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_multi_project(self, message_builder: mock.MagicMock) -> None:
         """Verify issue data aggregates correctly across multiple projects."""
@@ -1430,7 +1429,6 @@ class WeeklyReportsTest(
             )
             assert legend_substatus_total == 3
 
-    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_cache_round_trip(self, message_builder: mock.MagicMock) -> None:

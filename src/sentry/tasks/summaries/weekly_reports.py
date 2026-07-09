@@ -244,20 +244,17 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if not dry_run:
+        if not dry_run and features.has(
+            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        ):
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
-                    entry: dict[str, int] = {
+                    project_metrics[project_id] = {
                         "e": project_ctx.accepted_error_count,
                         "t": project_ctx.accepted_transaction_count,
+                        "i": project_ctx.total_substatus_count,
                     }
-                    if features.has(
-                        "organizations:weekly-report-issue-counts-by-day",
-                        ctx.organization,
-                    ):
-                        entry["i"] = project_ctx.total_substatus_count
-                    project_metrics[project_id] = entry
                 if project_metrics:
                     cache_project_metrics(organization_id, project_metrics)
             except Exception:

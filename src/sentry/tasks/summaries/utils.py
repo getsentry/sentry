@@ -34,7 +34,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
@@ -654,31 +653,6 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     )
     data = raw_snql_query(request, referrer=referrer)["data"]
     return data
-
-
-def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext) -> None:
-    substatus_counts = (
-        Group.objects.filter(
-            project__organization_id=ctx.organization.id,
-            last_seen__gte=ctx.start,
-            last_seen__lt=ctx.end,
-            status=GroupStatus.UNRESOLVED,
-        )
-        .select_related("project")
-        .values("project_id", "substatus")
-        .annotate(total=Count("id"))
-    )
-    for item in substatus_counts:
-        project_ctx = ctx.projects_context_map[item["project_id"]]
-        if item["substatus"] == GroupSubStatus.NEW:
-            project_ctx.new_substatus_count = item["total"]
-        if item["substatus"] == GroupSubStatus.ESCALATING:
-            project_ctx.escalating_substatus_count = item["total"]
-        if item["substatus"] == GroupSubStatus.ONGOING:
-            project_ctx.ongoing_substatus_count = item["total"]
-        if item["substatus"] == GroupSubStatus.REGRESSED:
-            project_ctx.regression_substatus_count = item["total"]
-        project_ctx.total_substatus_count += item["total"]
 
 
 def organization_project_issue_summaries(

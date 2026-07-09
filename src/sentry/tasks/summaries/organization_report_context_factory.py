@@ -13,7 +13,6 @@ from sentry.tasks.summaries.utils import (
     fetch_key_performance_issue_groups,
     fetch_past_resolved_issue_links,
     org_key_errors,
-    organization_project_issue_substatus_summaries,
     organization_project_issue_summaries,
     project_event_counts_for_organization,
     project_key_errors,
@@ -113,19 +112,15 @@ class OrganizationReportContextFactory:
                     project_ctx.prev_week_accepted_transaction_count = values["t"]
                 else:
                     transaction_missed_project_ids.add(project_id)
-                if features.has(
-                    "organizations:weekly-report-issue-counts-by-day", ctx.organization
-                ):
-                    if "i" in values:
-                        project_ctx.prev_week_total_substatus_count = values["i"]
-                    else:
-                        issue_missed_project_ids.add(project_id)
+                if "i" in values:
+                    project_ctx.prev_week_total_substatus_count = values["i"]
+                else:
+                    issue_missed_project_ids.add(project_id)
 
             no_cache_project_ids = set(project_ids) - set(cached.keys())
             error_missed_project_ids |= no_cache_project_ids
             transaction_missed_project_ids |= no_cache_project_ids
-            if features.has("organizations:weekly-report-issue-counts-by-day", ctx.organization):
-                issue_missed_project_ids |= no_cache_project_ids
+            issue_missed_project_ids |= no_cache_project_ids
 
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
@@ -165,16 +160,6 @@ class OrganizationReportContextFactory:
                         ctx.projects_context_map[
                             project_id
                         ].prev_week_total_substatus_count += item["total"]
-
-    @metrics.wraps("weekly_report.create_context.issue_substatus_summaries")
-    def _append_organization_project_issue_substatus_summaries(
-        self, ctx: OrganizationReportContext
-    ) -> None:
-        with start_span(
-            op="weekly_reports.organization_project_issue_substatus_summaries",
-            name="weekly_reports.organization_project_issue_substatus_summaries",
-        ):
-            organization_project_issue_substatus_summaries(ctx)
 
     @metrics.wraps("weekly_report.create_context.issue_summaries")
     def _append_organization_project_issue_summaries(self, ctx: OrganizationReportContext) -> None:
@@ -305,12 +290,9 @@ class OrganizationReportContextFactory:
         with metrics.timer("weekly_report.create_context.duration"):
             self._append_user_project_ownership(ctx)
             self._append_project_event_counts(ctx)
+            self._append_organization_project_issue_summaries(ctx)
             if features.has("organizations:weekly-report-week-over-week-metric", self.organization):
                 self._append_previous_week_counts(ctx)
-            if features.has("organizations:weekly-report-issue-counts-by-day", self.organization):
-                self._append_organization_project_issue_summaries(ctx)
-            else:
-                self._append_organization_project_issue_substatus_summaries(ctx)
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
             if not self.organization.flags.enhanced_privacy:
