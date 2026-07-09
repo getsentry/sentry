@@ -13,7 +13,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from '@sentry/scraps/button';
 import {IconAdd, IconSearch} from 'sentry/icons';
-import bugIllo from 'sentry-images/spot/sentry-launch.svg';
+import bugIllo from 'sentry-images/spot/seer-config-bug-1.svg';
+import brokenCodeIllo from 'sentry-images/spot/broken-code-light.svg';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/emptyState');
@@ -92,7 +93,7 @@ Set `orientation="horizontal"` for a side-by-side layout with the illustration o
 <Storybook.Demo>
   <EmptyState
     orientation="horizontal"
-    illustration={<img src={bugIllo} height={130} />}
+    illustration={<img src={brokenCodeIllo} height={130} />}
     title="Connect a repository."
     description="Autofix requires you to have GitHub or GitLab repositories connected in order to run."
     action={
@@ -105,7 +106,7 @@ Set `orientation="horizontal"` for a side-by-side layout with the illustration o
 ```jsx
 <EmptyState
   orientation="horizontal"
-  illustration={<img src={bugIllo} height={130} />}
+  illustration={<img src={brokenCodeIllo} height={130} />}
   title="Connect a repository."
   description="Autofix requires you to have GitHub or GitLab repositories connected."
   action={
