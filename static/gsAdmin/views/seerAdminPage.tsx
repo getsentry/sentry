@@ -95,7 +95,7 @@ export function SeerAdminPage() {
           }}
         />
 
-        <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="xl">
+        <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="xl">
           <form onSubmit={handleNightShiftSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Flex direction="column" gap="md" align="start">

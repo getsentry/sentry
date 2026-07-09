@@ -212,7 +212,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             metaResults={meta}
             organization={organization}
             traceSlug={traceSlug}
-            traceEventView={traceEventView}
             logs={logsData}
             metrics={traceMetricsData}
           />
@@ -278,7 +277,10 @@ function TraceInnerLayout(props: FlexProps) {
       background="primary"
       direction="column"
       gap="md"
-      padding="xl"
+      paddingLeft="xl"
+      paddingRight="xl"
+      paddingTop="lg"
+      paddingBottom="lg"
       flex="1"
       overflowY="auto"
     />

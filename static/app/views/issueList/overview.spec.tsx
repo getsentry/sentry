@@ -366,17 +366,30 @@ describe('IssueList', () => {
       expect(getStoredIssueSort(organization.slug)).toBeNull();
     });
 
-    it('persists sort to localStorage with the recommended-sort feature', async () => {
+    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
       const featureOrg = OrganizationFixture({
         ...organization,
-        features: ['issue-stream-recommended-sort'],
+        features: ['issue-stream-recommended-sort-default'],
       });
       render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Recommended'}));
+      await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
       await userEvent.click(screen.getByRole('option', {name: 'Events'}));
 
       expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+    });
+
+    it('shows the new-feature badge next to the sort dropdown with the recommended-sort-default feature', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('new')).toBeInTheDocument();
     });
   });
 

@@ -12,6 +12,8 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
@@ -52,15 +54,38 @@ import {WidgetWrapper} from './styles';
 
 export function getMetricsChartTypeOptions(
   organization: Organization,
-  isEquation: boolean
+  isEquation: boolean,
+  metric?: TraceMetric
 ) {
   if (canUseMetricsHeatMap(organization)) {
+    const disabledReason = getVisualizationTypeDisabledReason(isEquation, metric);
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
-      {value: ChartType.HEATMAP, label: t('Heat Map'), disabled: isEquation},
+      {
+        value: ChartType.HEATMAP,
+        label: t('Heat Map'),
+        disabled: defined(disabledReason),
+        tooltip: disabledReason,
+      },
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;
+}
+
+function getVisualizationTypeDisabledReason(
+  isEquation: boolean,
+  metric?: TraceMetric
+): string | undefined {
+  if (isEquation) {
+    return t('Heat maps are not available for equations.');
+  }
+  if (!metric) {
+    return t('Select a metric to visualize it as a heat map.');
+  }
+  if (!doesMetricSupportHeatMapVisualization(metric)) {
+    return t('Heat maps can only visualize distribution metrics.');
+  }
+  return undefined;
 }
 
 interface MetricsGraphProps {

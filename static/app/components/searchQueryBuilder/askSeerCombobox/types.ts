@@ -1,3 +1,4 @@
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface SeerRawResponseItem {
@@ -8,6 +9,10 @@ export interface SeerRawResponseItem {
   sort: string;
   start: string | null;
   stats_period: string;
+  // Cross-event queries; null if absent. Only applicable for explore/traces
+  log_query?: string | null;
+  metric_query?: string | null;
+  span_query?: string | null;
   visualization?: Array<{
     chart_type?: number;
     interval?: string | null;
@@ -35,6 +40,12 @@ interface AskSeerSearchItem<S extends string> {
 export type AskSeerSearchItems<T> = (AskSeerSearchItem<string> & T) | NoneOfTheseItem;
 
 export interface QueryTokensProps {
+  /**
+   * Cross-event (same-trace) sibling filters the agent attached to the query.
+   * Drives the "Cross-event" chip and the `crossEvents` URL param applied when
+   * the suggestion is chosen. Traces tab only.
+   */
+  crossEvents?: CrossEvent[];
   end?: string | null;
   /**
    * Projects the agent broadened the query to, when it expanded scope beyond

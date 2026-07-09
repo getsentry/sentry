@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+import uuid
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, overload
@@ -106,9 +107,7 @@ def _trigger_explorer_indexes_if_needed(
 def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
-    return features.has(
-        "organizations:seat-based-seer-enabled", organization, actor=user
-    ) or features.has("organizations:seer-added", organization, actor=user)
+    return True
 
 
 def get_monitoring_provider_connections(
@@ -147,21 +146,23 @@ def get_monitoring_provider_connections(
             access_token = identity.data.get("access_token")
             if not access_token:
                 continue
-            url = provider.build_mcp_url(identity.data)
-            if not url:
+            urls = provider.build_mcp_urls(identity.data)
+            if not urls:
                 continue
             encrypted_access_token = encrypt_access_token_for_seer(access_token)
             if not encrypted_access_token:
                 continue
-            connections.append(
-                {
-                    "provider_key": provider_type,
-                    "url": url,
-                    "encrypted_access_token": encrypted_access_token,
-                    "identity_id": identity.id,
-                    "auth_method": "oauth" if is_oauth_provider else "pat",
-                }
-            )
+            auth_method = "oauth" if is_oauth_provider else "pat"
+            for url in urls:
+                connections.append(
+                    {
+                        "provider_key": provider_type,
+                        "url": url,
+                        "encrypted_access_token": encrypted_access_token,
+                        "identity_id": identity.id,
+                        "auth_method": auth_method,
+                    }
+                )
 
     return connections
 
@@ -514,6 +515,7 @@ class SeerAgentClient:
             on_run_created=_create_agent_run,
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=metadata.get("referrer") if metadata else None,
             flush=True,
         )
 
@@ -521,12 +523,16 @@ class SeerAgentClient:
         self,
         feature_id: str,
         payload: dict[str, Any],
+        title: str,
         flush: bool = True,
+        extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
         `payload`; the result is pushed back via deliver_feature_result.
+        Also creates a SeerAgentRun mirror (source=feature_id, title=title)
+        so the run shows up in the Explorer session-history listing.
 
         on_run_created(run), if given, runs in the same transaction as the
         SeerRun + outbox — use it to link associated rows atomically (e.g. a
@@ -543,10 +549,23 @@ class SeerAgentClient:
             if self.user and hasattr(self.user, "id") and self.user.id is not None
             else None
         )
+
+        def _create_agent_run(run: SeerRun) -> None:
+            SeerAgentRun.objects.create(
+                run=run,
+                title=title[:255] + "…" if len(title) > 256 else title,
+                source=feature_id,
+                project=self.project,
+                group=self.group,
+                extras=extras or {},
+            )
+            if on_run_created is not None:
+                on_run_created(run)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
-            on_run_created=on_run_created,
+            on_run_created=_create_agent_run,
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
@@ -554,6 +573,7 @@ class SeerAgentClient:
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
+            referrer=feature_id,
             flush=flush,
         )
 
@@ -598,7 +618,7 @@ class SeerAgentClient:
             self.organization,
             actor=self.user,
         ):
-            opts["embed_widgets"] = get_embed_widgets()
+            opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
             "organizations:seer-explorer-stream",
@@ -711,7 +731,7 @@ class SeerAgentClient:
             self.organization,
             actor=self.user,
         ):
-            agent_run_options["embed_widgets"] = get_embed_widgets()
+            agent_run_options["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
             "organizations:seer-explorer-stream",
@@ -911,7 +931,14 @@ class SeerAgentClient:
             raise SeerPermissionError("Code generation is disabled for this organization")
 
         # Trigger PR creation
-        payload: dict[str, Any] = {"type": "create_pr", "ready_for_review": ready_for_review}
+        payload: dict[str, Any] = {
+            "type": "create_pr",
+            "ready_for_review": ready_for_review,
+            # Include an idempotency key in the request so that if
+            # the request is retried by anything, it will not create duplicate PRs
+            # This is regenerated per attempt to permit retries.
+            "idempotency_key": uuid.uuid4().hex,
+        }
         if repo_name:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
@@ -960,6 +987,7 @@ class SeerAgentClient:
         provider: str | None = None,
         user_id: int | None = None,
         issue_short_id: str | None = None,
+        issue_url: str | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an agent run.
@@ -977,6 +1005,7 @@ class SeerAgentClient:
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
             user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
             issue_short_id: Optional Sentry issue short ID for coding agent session naming
+            issue_url: Optional full URL to the Sentry issue for linking in PRs
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -992,4 +1021,5 @@ class SeerAgentClient:
             provider=provider,
             user_id=user_id,
             issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )

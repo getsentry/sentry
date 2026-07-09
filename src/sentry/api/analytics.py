@@ -1,20 +1,6 @@
 from sentry import analytics
 
 
-@analytics.eventclass("organization_saved_search.created")
-class OrganizationSavedSearchCreatedEvent(analytics.Event):
-    org_id: int
-    search_type: str
-    query: str
-
-
-@analytics.eventclass("organization_saved_search.deleted")
-class OrganizationSavedSearchDeletedEvent(analytics.Event):
-    org_id: int
-    search_type: str
-    query: str
-
-
 @analytics.eventclass("group_similar_issues_embeddings.count")
 class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     organization_id: int
@@ -40,7 +26,5 @@ class DevToolbarApiRequestEvent(analytics.Event):
     user_id: int | None = None
 
 
-analytics.register(OrganizationSavedSearchCreatedEvent)
-analytics.register(OrganizationSavedSearchDeletedEvent)
 analytics.register(GroupSimilarIssuesEmbeddingsCountEvent)
 analytics.register(DevToolbarApiRequestEvent)

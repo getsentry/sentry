@@ -8,10 +8,10 @@ const productionEntryPoints = [
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
   'static/app/serviceWorker/worker/worker.ts',
+  // exports used by scripts
+  'static/app/components/seer/markdown/embeds/schemas.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
-  // this is imported with require.context
-  'static/app/data/forms/*.tsx',
   // frontend experiemnt framework may be unused when we have no experiemnets
   'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---

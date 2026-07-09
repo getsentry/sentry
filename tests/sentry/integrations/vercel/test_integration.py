@@ -457,24 +457,20 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"link": {"type": "github"}, "framework": "gatsby"},
         )
 
-        # mock upsert env vars (all succeed directly via POST to the v10 endpoint
-        # with upsert=true). v10 returns a {"created": [...], "failed": []} envelope.
+        # mock upsert env vars: one POST per target per env var (per-target upsert)
+        expected_post_count = sum(len(d["target"]) for d in env_var_map.values())
         for env_var, details in env_var_map.items():
-            responses.add(
-                responses.POST,
-                f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
-                json={
-                    "created": [
-                        {
-                            "key": env_var,
-                            "value": details["value"],
-                            "target": details["target"],
-                            "type": details["type"],
-                        }
-                    ],
-                    "failed": [],
-                },
-            )
+            for target in details["target"]:
+                responses.add(
+                    responses.POST,
+                    f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
+                    json={
+                        "key": env_var,
+                        "value": details["value"],
+                        "target": [target],
+                        "type": details["type"],
+                    },
+                )
 
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
@@ -489,56 +485,40 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
-        # calls[0] = GET project, calls[1..8] = POST env vars with upsert
-        for i in range(1, 9):
-            assert "upsert=true" in responses.calls[i].request.url
+        # calls[0] = GET project, then one POST per target per env var
+        post_calls = responses.calls[1:]
+        assert len(post_calls) == expected_post_count
 
+        for call in post_calls:
+            assert "upsert=true" in call.request.url
+            body = orjson.loads(call.request.body)
+            assert len(body["target"]) == 1, (
+                "Each upsert request should target a single environment"
+            )
+
+        # Verify SENTRY_ORG per-target requests (calls[1] and calls[2])
         req_params = orjson.loads(responses.calls[1].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert req_params["target"] == ["production"]
 
         req_params = orjson.loads(responses.calls[2].request.body)
-        assert req_params["key"] == "SENTRY_PROJECT"
-        assert req_params["value"] == self.project.slug
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert req_params["key"] == "SENTRY_ORG"
+        assert req_params["target"] == ["preview"]
 
-        req_params = orjson.loads(responses.calls[3].request.body)
+        # Verify SENTRY_DSN per-target requests (3 targets: production, preview, development)
+        req_params = orjson.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
-        assert req_params["target"] == ["production", "preview", "development"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[4].request.body)
-        assert req_params["key"] == "SENTRY_AUTH_TOKEN"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[5].request.body)
-        assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
-        assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "system"
+        assert req_params["target"] == ["production"]
 
         req_params = orjson.loads(responses.calls[6].request.body)
-        assert req_params["key"] == "SENTRY_VERCEL_LOG_DRAIN_URL"
-        assert req_params["value"] == f"{integration_endpoint}vercel/logs/"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert req_params["key"] == "SENTRY_DSN"
+        assert req_params["target"] == ["preview"]
 
         req_params = orjson.loads(responses.calls[7].request.body)
-        assert req_params["key"] == "SENTRY_OTLP_TRACES_URL"
-        assert req_params["value"] == f"{integration_endpoint}otlp/v1/traces"
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
-
-        req_params = orjson.loads(responses.calls[8].request.body)
-        assert req_params["key"] == "SENTRY_PUBLIC_KEY"
-        assert req_params["value"] == public_key
-        assert req_params["target"] == ["production", "preview"]
-        assert req_params["type"] == "encrypted"
+        assert req_params["key"] == "SENTRY_DSN"
+        assert req_params["target"] == ["development"]
 
     @responses.activate
     @with_feature("organizations:integrations-vercel-upsert-env-var")

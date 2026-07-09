@@ -1,8 +1,29 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from arroyo.backends.kafka import KafkaProducer
 
 from sentry.utils.arroyo_producer import SingletonProducer
+
+
+def test_registers_shutdown_at_construction() -> None:
+    # The shutdown must be registered eagerly (not on first produce) so atexit's
+    # LIFO ordering runs it after anything that flushes into the producer at exit.
+    def dummy_producer() -> KafkaProducer:
+        raise AssertionError("no producer")
+
+    with patch("sentry.utils.arroyo_producer.atexit.register") as register:
+        producer = SingletonProducer(dummy_producer)
+
+    register.assert_called_once_with(producer._shutdown)
+
+
+def test_shutdown_is_noop_without_producer() -> None:
+    # A producer that is never used must shut down cleanly.
+    def dummy_producer() -> KafkaProducer:
+        raise AssertionError("no producer")
+
+    producer = SingletonProducer(dummy_producer)
+    producer._shutdown()
 
 
 def test_track_futures() -> None:

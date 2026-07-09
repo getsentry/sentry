@@ -13,6 +13,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     get_slow_conditions_for_groups,
     process_data_condition_group,
 )
+from sentry.workflow_engine.processors.evaluations.condition import DataConditionEvaluation
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 
 
@@ -348,11 +349,28 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__error_with_no_pass__tainted_true(self) -> None:
         error = ConditionError(msg="test error")
         with (
-            mock.patch.object(self.data_condition, "evaluate_value", return_value=None),
-            mock.patch.object(self.data_condition_two, "evaluate_value", return_value=error),
+            mock.patch.object(
+                self.data_condition,
+                "evaluate_value",
+                return_value=DataConditionEvaluation(
+                    result=None,
+                    condition_met=False,
+                    value="error",
+                ),
+            ),
+            mock.patch.object(
+                self.data_condition_two,
+                "evaluate_value",
+                return_value=DataConditionEvaluation(
+                    result=error,
+                    condition_met=False,
+                    value="error",
+                ),
+            ),
         ):
             result = evaluate_data_conditions(
-                self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
+                self.get_conditions_to_evaluate(10),
+                self.data_condition_group.logic_type,
             )
 
         assert result.logic_result.triggered is True

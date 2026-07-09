@@ -67,7 +67,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         isAutofixEnabled: true,
         isCodeReviewEnabled: true,
         isSeerConfigured: true,
-        needsConfigReminder: false,
       },
     });
 

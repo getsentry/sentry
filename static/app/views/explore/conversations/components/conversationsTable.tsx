@@ -25,6 +25,7 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
+import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
@@ -45,7 +47,8 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
-  projects: number[]
+  projects: number[],
+  referrer = 'conversations-table'
 ): string {
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
@@ -61,6 +64,7 @@ export function getConversationDetailUrl(
   for (const project of projects) {
     params.append('project', String(project));
   }
+  params.set('referrer', referrer);
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
@@ -95,10 +99,10 @@ function ConversationsTableInner() {
     columns: defaultColumnOrder,
   });
 
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor} = useConversations();
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -148,7 +152,7 @@ function ConversationsTableInner() {
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={columnOrder}
@@ -166,8 +170,20 @@ function ConversationsTableInner() {
   );
 }
 
+export function normalizeUserField(value: string | null | undefined): string | null {
+  if (!value || value.toLowerCase() === 'none') {
+    return null;
+  }
+  return value;
+}
+
 export function getUserDisplayName(user: ConversationUser): string | null {
-  return user.email || user.username || user.ip_address || null;
+  return (
+    normalizeUserField(user.email) ||
+    normalizeUserField(user.username) ||
+    normalizeUserField(user.ip_address) ||
+    null
+  );
 }
 
 const TOOLTIP_MAX_CHARS = 2048;
@@ -175,7 +191,7 @@ const CELL_MAX_CHARS = 256;
 
 function TooltipContent({text}: {text: string}) {
   return (
-    <TooltipTextContainer>
+    <TooltipTextContainer onClick={e => e.stopPropagation()}>
       <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
     </TooltipTextContainer>
   );
@@ -193,11 +209,14 @@ type CellContentProps = ComponentPropsWithRef<'div'> & {
   text: string;
 };
 
-function CellContent({text, ref, ...props}: CellContentProps) {
+export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
-      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+      {/* inline: no block <p>/<pre> children, so white-space:nowrap clamps to
+          one line without relying on `* {display:inline}` (Safari drops it on
+          MarkedText's async innerHTML swap, growing rows on back-nav). */}
+      <MarkedText inline text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
 }
@@ -242,6 +261,7 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const {selection} = usePageFilters();
 
   const detailUrl = getConversationDetailUrl(
@@ -249,24 +269,16 @@ const BodyCell = memo(function BodyCell({
     dataRow,
     selection.projects
   );
+  const listLocationState = getConversationsListLocationState(location.query);
 
-  const navigateToDetail = (source: 'table_input' | 'table_output') => {
-    trackAnalytics('conversations.table.open', {organization, source});
-    navigate(detailUrl);
+  const navigateToDetail = () => {
+    navigate(detailUrl, {state: listLocationState});
   };
 
   switch (column.key) {
     case 'conversationId':
       return (
-        <ConversationIdLink
-          to={detailUrl}
-          onClick={() =>
-            trackAnalytics('conversations.table.open', {
-              organization,
-              source: 'table_conversation_id',
-            })
-          }
-        >
+        <ConversationIdLink to={detailUrl} state={listLocationState}>
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (
@@ -297,7 +309,7 @@ const BodyCell = memo(function BodyCell({
     case 'inputOutput': {
       return (
         <Stack width="100%">
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_input')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.firstInput ? (
@@ -307,7 +319,7 @@ const BodyCell = memo(function BodyCell({
               )}
             </Flex>
           </InputOutputRow>
-          <InputOutputRow type="button" onClick={() => navigateToDetail('table_output')}>
+          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
               {dataRow.lastOutput ? (
