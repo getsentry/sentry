@@ -89,7 +89,6 @@ class NotificationSource(StrEnum):
     ACTIVITY_SET_RESOLVED_IN_RELEASE = "activity-set-resolved-in-release"
     ACTIVITY_SET_RESOLVED_BY_AGE = "activity-set-resolved-by-age"
     ACTIVITY_SET_RESOLVED_IN_COMMIT = "activity-set-resolved-in-commit"
-    ACTIVITY_SET_RESOLVED_IN_PULL_REQUEST = "activity-set-resolved-in-pull-request"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -142,7 +141,6 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
         NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
-        NotificationSource.ACTIVITY_SET_RESOLVED_IN_PULL_REQUEST,
     ],
 }
 
