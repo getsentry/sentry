@@ -1065,6 +1065,7 @@ function locationToUrl(location: LocationDescriptor): string | null {
 }
 
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RESUME_RUN_QUERY_PARAM = 'explorerRunResume';
 
 export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   if (/^\d+$/.test(value)) {
@@ -1101,10 +1102,40 @@ export function useSeerExplorerDeepLink({
       return;
     }
 
-    const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
     navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
   }, [location, navigate, callback, enabled]);
+}
+
+/**
+ * Consumes the resume query param in the current location after an out-of-band round-trip (e.g.
+ * an OAuth reauth redirect). Once `ready` is true, it runs `onResume` and strips the marker.
+ */
+export function useSeerExplorerResumeDeepLink({
+  onResume,
+  ready,
+}: {
+  onResume: () => void;
+  ready: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasResumedRef = useRef(false);
+
+  useEffect(() => {
+    if (location.query?.[RESUME_RUN_QUERY_PARAM] !== '1') {
+      hasResumedRef.current = false;
+      return;
+    }
+    if (!ready || hasResumedRef.current) {
+      return;
+    }
+    hasResumedRef.current = true;
+    onResume();
+    const {[RESUME_RUN_QUERY_PARAM]: _resume, ...restQuery} = location.query ?? {};
+    navigate({...location, query: restQuery}, {replace: true});
+  }, [location, navigate, ready, onResume]);
 }
 
 /**
@@ -1114,6 +1145,23 @@ export function getExplorerUrl(runId: number | string): string {
   const url = new URL(window.location.href);
   url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
   return url.toString();
+}
+
+/**
+ * Returns the relative URL of the current window with the run ID query param set.
+ * Pass `resume` to also mark the URL so the explorer continues the run once the
+ * user returns from an out-of-band round-trip (e.g. OAuth reauth).
+ */
+export function getRelativeExplorerUrl(
+  runId: number | string,
+  {resume = false}: {resume?: boolean} = {}
+): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  if (resume) {
+    url.searchParams.set(RESUME_RUN_QUERY_PARAM, '1');
+  }
+  return url.pathname + url.search;
 }
 
 export function getLangfuseUrl(runId: number | string): string {

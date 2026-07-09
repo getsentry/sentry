@@ -8,13 +8,11 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
+import {Placeholder} from 'sentry/components/placeholder';
+import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   calculateRelativeTiming,
   getCompressedTimeBounds,
@@ -23,20 +21,21 @@ import {
 } from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
-  getFirstToolInputValue,
+  type ColorByOpType,
+  getToolInputPreview,
   getGenAiOpType,
+  getGenAiOpTypeIcon,
   getIsAiAgentNode,
   getNumberAttr,
+  getSpanColor,
   getStringAttr,
-  getTraceNodeAttribute,
+  getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-type ColorByOpType = Record<GenAiOperationType | 'default' | 'error', string>;
 
 interface SpanPresentation {
   color: string;
@@ -52,11 +51,13 @@ export function AiSpanTimeline({
   onSelectNode,
   nodeTraceMap,
   compressGaps = false,
+  isLoading = false,
 }: {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
   compressGaps?: boolean;
+  isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
 }) {
   const compressedBounds = useMemo(
@@ -82,6 +83,10 @@ export function AiSpanTimeline({
     return parents;
   }, [nodes]);
 
+  if (isLoading) {
+    return <TimelineSkeleton />;
+  }
+
   return (
     <Stack gap="xs">
       {nodes.map(node => {
@@ -100,6 +105,51 @@ export function AiSpanTimeline({
           />
         );
       })}
+    </Stack>
+  );
+}
+
+const TIMELINE_SKELETON_ROWS: Array<{
+  title: string;
+  indent?: boolean;
+  secondary?: string;
+}> = [
+  {title: '28%', secondary: '13%'},
+  {title: '26%', secondary: '12%', indent: true},
+  {title: '32%', indent: true},
+  {title: '24%', secondary: '20%', indent: true},
+  {title: '30%', secondary: '11%', indent: true},
+  {title: '33%', indent: true},
+  {title: '31%', secondary: '14%'},
+  {title: '28%', secondary: '15%', indent: true},
+];
+
+function TimelineSkeleton() {
+  return (
+    <Stack gap="xs">
+      {TIMELINE_SKELETON_ROWS.map((row, index) => (
+        <Container
+          key={`${row.title}-${index}`}
+          padding="xs"
+          paddingLeft={row.indent ? 'xl' : 'xs'}
+        >
+          <Stack gap="xs">
+            <Flex align="center" gap="md">
+              <Placeholder height="16px" width="16px" />
+              <Placeholder height="14px" width={row.title} />
+              {row.secondary ? <Placeholder height="14px" width={row.secondary} /> : null}
+              <Flex flex="1" minWidth="0" />
+              <Flex flexShrink={0} width="64px" justify="end">
+                <Placeholder height="14px" width="44px" />
+              </Flex>
+              <Flex flexShrink={0} width="44px" justify="end">
+                <Placeholder height="14px" width="36px" />
+              </Flex>
+            </Flex>
+            <Placeholder height="4px" width="100%" />
+          </Stack>
+        </Container>
+      ))}
     </Stack>
   );
 }
@@ -123,16 +173,7 @@ const TimelineRow = memo(function TimelineRow({
 }) {
   const theme = useTheme();
   const hasErrors = hasError(node);
-  const colorByOpType = useMemo<ColorByOpType>(() => {
-    return {
-      [GenAiOperationType.AGENT]: theme.tokens.content.promotion,
-      [GenAiOperationType.AI_CLIENT]: theme.tokens.content.success,
-      [GenAiOperationType.HANDOFF]: theme.tokens.content.warning,
-      [GenAiOperationType.TOOL]: theme.tokens.content.accent,
-      default: theme.tokens.content.secondary,
-      error: theme.tokens.content.danger,
-    };
-  }, [theme]);
+  const colorByOpType = useMemo(() => getTimelineColorByOpType(theme), [theme]);
 
   const {icon, title, secondary, isTool, color} = getSpanPresentation(
     node,
@@ -152,7 +193,7 @@ const TimelineRow = memo(function TimelineRow({
         <RowContainer
           type="button"
           className={className}
-          isSelected={isSelected}
+          data-selected={isSelected}
           indent={indent}
           onClick={() => onSelectNode(node)}
         >
@@ -213,7 +254,7 @@ const TimelineRow = memo(function TimelineRow({
                   </Tooltip>
                 )}
               </Flex>
-              <Flex flexShrink={0} width="100px" justify="end">
+              <Flex align="center" justify="end" flexShrink={0} gap="xs">
                 {metric ? (
                   <Text
                     size="sm"
@@ -223,15 +264,29 @@ const TimelineRow = memo(function TimelineRow({
                   >
                     {metric}
                   </Text>
-                ) : isTool && traceId ? (
-                  <ToolOutputSizeMetric
-                    node={node}
-                    traceId={traceId}
-                    isSelected={isSelected}
-                  />
+                ) : isTool ? (
+                  traceId ? (
+                    <ToolOutputSizeMetric
+                      node={node}
+                      traceId={traceId}
+                      isSelected={isSelected}
+                    />
+                  ) : (
+                    <Text
+                      size="sm"
+                      variant={isSelected ? 'primary' : 'muted'}
+                      align="right"
+                      tabular
+                    >
+                      {formatBytesBase10(0)}
+                    </Text>
+                  )
                 ) : null}
-              </Flex>
-              <Flex flexShrink={0} width="56px" justify="end">
+                {metric || isTool ? (
+                  <Text size="sm" variant={isSelected ? 'primary' : 'muted'}>
+                    •
+                  </Text>
+                ) : null}
                 <Text
                   size="sm"
                   variant={isSelected ? 'primary' : 'muted'}
@@ -275,12 +330,8 @@ function getMetric(node: AITraceSpanNode): React.ReactNode {
 }
 
 /**
- * Tool-call spans don't report token usage, so we approximate their output
- * size (e.g. `4.1 KB`) from the tool result. The result lives on the full span
- * attributes (`gen_ai.tool.call.result` / `gen_ai.tool.output`), which the
- * conversation list endpoint doesn't return, so it is fetched per tool span.
- * This component is only rendered for tool spans, so the fetch is scoped to
- * those rows.
+ * Tool-call spans don't report token usage, so we show their output size
+ * (e.g. `4.1 KB`) instead, fetched per tool span via `useToolOutputBytes`.
  */
 function ToolOutputSizeMetric({
   node,
@@ -291,45 +342,13 @@ function ToolOutputSizeMetric({
   node: AITraceSpanNode;
   traceId: string;
 }) {
-  const eapValue = isEAPSpanNode(node) ? node.value : null;
-  const {data} = useTraceItemDetails({
-    traceItemId: eapValue?.event_id ?? '',
-    projectId: eapValue ? eapValue.project_id.toString() : '',
-    traceId,
-    traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
-    timestamp: eapValue?.start_timestamp,
-    enabled: Boolean(eapValue),
-  });
-
-  const bytes = useMemo(() => {
-    const output =
-      getTraceNodeAttribute(
-        'gen_ai.tool.call.result',
-        node,
-        undefined,
-        data?.attributes
-      ) ?? getTraceNodeAttribute('gen_ai.tool.output', node, undefined, data?.attributes);
-    return typeof output === 'string' ? new TextEncoder().encode(output).length : 0;
-  }, [node, data]);
-
-  if (!bytes) {
-    return null;
-  }
+  const bytes = useToolOutputBytes(node, traceId);
 
   return (
     <Text size="sm" variant={isSelected ? 'primary' : 'muted'} align="right" tabular>
       {formatBytesBase10(bytes)}
     </Text>
   );
-}
-
-function getColor(node: AITraceSpanNode, colorByOpType: ColorByOpType): string {
-  if (hasError(node)) {
-    return colorByOpType.error;
-  }
-  const opType = getGenAiOpType(node);
-  return colorByOpType[opType as GenAiOperationType] ?? colorByOpType.default;
 }
 
 function getSpanPresentation(
@@ -344,7 +363,7 @@ function getSpanPresentation(
     node.description || (node.value && 'name' in node.value ? node.value.name : '');
   const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
 
-  const color = getColor(node, colorByOpType);
+  const color = getSpanColor(node, colorByOpType);
 
   switch (genAiOpType) {
     case GenAiOperationType.AGENT: {
@@ -357,7 +376,7 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
       return {
-        icon: <IconBot size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: name || op,
@@ -368,7 +387,7 @@ function getSpanPresentation(
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
       return {
-        icon: <IconChat size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title,
@@ -377,18 +396,18 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
-        icon: <IconFix size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: true,
         title: toolName || op,
-        secondary: firstInputValue || '',
+        secondary: inputPreview || '',
       };
     }
     case GenAiOperationType.HANDOFF:
       return {
-        icon: <IconChevron size="md" isDouble direction="right" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -396,7 +415,7 @@ function getSpanPresentation(
       };
     default:
       return {
-        icon: <IconCode size="md" />,
+        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -417,7 +436,6 @@ const EllipsisTag = styled(Tag)`
 
 const RowContainer = styled('button')<{
   indent: number;
-  isSelected: boolean;
 }>`
   width: 100%;
   border: none;
@@ -426,21 +444,27 @@ const RowContainer = styled('button')<{
   text-align: left;
   padding: ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
-  border-radius: ${p => (p.isSelected ? p.theme.radius.xs : 0)};
+  border-radius: 0;
   cursor: pointer;
-  background-color: ${p =>
-    p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+  background-color: transparent;
 
-  &:hover {
+  /* Hover/active feedback only applies while the row is not selected, so the
+   * selected background is never masked. */
+  &:not([data-selected='true']):hover {
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &:active {
+  &:not([data-selected='true']):active {
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+
+  &[data-selected='true'] {
+    border-radius: ${p => p.theme.radius.xs};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 `;
 

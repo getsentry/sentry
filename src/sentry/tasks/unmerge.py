@@ -12,7 +12,7 @@ from django.db.models.base import Model
 from taskbroker_client.state import current_task
 
 from sentry import similarity, tsdb
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
+from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
@@ -30,7 +30,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -94,6 +94,11 @@ def merge_mappings(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _initial_level(event: GroupEvent, group: Group) -> int:
+    level = parse_log_level(event.get_tag("level"))
+    return logging.ERROR if level is None else level
+
+
 initial_fields = {
     "culprit": lambda event, group: generate_culprit(event.data),
     "data": lambda event, group: {
@@ -102,7 +107,7 @@ initial_fields = {
         "metadata": event.data["metadata"],
     },
     "last_seen": lambda event, group: event.datetime,
-    "level": lambda event, group: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
+    "level": _initial_level,
     "message": lambda event, group: event.search_message,
     "times_seen": lambda event, group: 0,
     "status": lambda event, group: group.status,
@@ -499,7 +504,8 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 
 @instrumented_task(
     name="sentry.tasks.unmerge",
-    namespace=issues_tasks,
+    namespace=issues_merge_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )

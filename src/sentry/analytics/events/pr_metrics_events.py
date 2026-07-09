@@ -47,12 +47,40 @@ class PrCloseMetricsEvent(analytics.Event):
     comments_count: int = 0
     review_comments_count: int = 0
     is_assigned: bool = False
+    # Derived from the stored activity log at the terminal event (not the webhook
+    # payload above): ``reviews_count`` = total review submissions;
+    # ``participants_count`` = distinct non-bot senders across the PR's activity.
+    # Only meaningful under ``pr-metrics-activity``; 0 when activity isn't tracked.
+    participants_count: int = 0
+    reviews_count: int = 0
+    # Human-involvement splits, also activity-derived — the "self-healing loop"
+    # signals: which parts of the PR a human vs a bot drove. All default to their
+    # unset value (0 / None) when activity isn't tracked.
+    #
+    # Reviews split by the reviewer's account class; the two sum to reviews_count.
+    reviews_bot_count: int = 0
+    reviews_human_count: int = 0
+    # Pushes (opened + synchronize events) split by the pusher's account class. A
+    # push, not a commit: GitHub's synchronize payload carries no commit count, so
+    # this counts push events, with a bot-app push attributed to the bot.
+    pushes_bot_count: int = 0
+    pushes_human_count: int = 0
+    # Who opened / closed the PR: True = Bot, False = human, null = the event was
+    # never recorded (activity not tracked, or a missed webhook).
+    opened_by_bot: bool | None = None
+    closed_by_bot: bool | None = None
+    # Whether the same actor opened and closed the PR (login comparison). Null when
+    # either the opener or the closer is unknown.
+    opened_and_closed_by_same_actor: bool | None = None
     # The point-in-time attribution snapshot at emit time: a JSON-encoded list of
     # the active (is_valid=True) attributions, each {signal_type, source,
     # signal_details}, ordered by attribution priority (highest-confidence first).
     attributions: str = "[]"
-    # The Seer judge verdict (one of ``PullRequestVerdict``). Null on the no-judge
-    # path and until the judge callback lands a result for a forwarded PR.
+    # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
+    # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
+    # the Seer judge's verdict on the judge path. Claimed before emit on both paths
+    # (the claim gates emission), so every emitted row carries a verdict — the
+    # ``| None`` is only the column's unset default, not an expected emitted value.
     verdict: str | None = None
     # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
     # "why", a vocabulary shared across judges, not specific to any one. Repeated

@@ -714,7 +714,7 @@ const ScrollContainer = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
   background: ${p => p.theme.tokens.background.secondary};

@@ -7,9 +7,18 @@ from sentry.api.serializers import Serializer, register
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 
 
+# Within a run, outputs are ordered to match the questions that produced them
+# (built-in set first, then user questions in request order), so callers
+# correlate answers positionally; ``key`` and ``hash`` are just metadata.
 class RunQuestionOutput(TypedDict):
+    # Stable key for built-in questions; a synthetic ``user_<n>`` for user ones.
     key: str
+    # Short digest of the question text, always present.
+    hash: str
+    # The one-shot's markdown answer.
     answer: str
+    # The question text, echoed back only for user-supplied questions.
+    question: NotRequired[str]
 
 
 class SeerRunResponse(TypedDict):
@@ -24,7 +33,8 @@ class SeerRunResponse(TypedDict):
     projectId: str | None
     groupId: str | None
     # One-shot outputs (question answers), injected by the endpoint when
-    # ?outputs is passed; the serializer itself never populates them.
+    # ?expand=questions and/or ?question= is passed; the serializer itself never
+    # populates them.
     outputs: NotRequired[list[RunQuestionOutput]]
 
 

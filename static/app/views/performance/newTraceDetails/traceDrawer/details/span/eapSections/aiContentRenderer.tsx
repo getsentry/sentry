@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {
@@ -16,12 +17,47 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 interface AIContentRendererProps {
   text: string;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own. Only applies to non-inline content. When unset, text
+   * defaults to clipped and JSON defaults to flowing (matching prior behavior).
+   */
+  clip?: boolean;
+  collapsibleXmlTags?: boolean;
   inline?: boolean;
   maxJsonDepth?: number;
 }
 
-function XmlTagBlock({tagName, content}: {content: string; tagName: string}) {
+function XmlTagBlock({
+  tagName,
+  content,
+  collapsible,
+}: {
+  content: string;
+  tagName: string;
+  collapsible?: boolean;
+}) {
   const theme = useTheme();
+  const label = (
+    <Text size={collapsible ? 'md' : 'xs'} variant="muted">
+      {tagName}
+    </Text>
+  );
+  const body = (
+    <MarkdownWithXmlRenderer text={content} collapsibleXmlTags={collapsible} />
+  );
+
+  if (collapsible) {
+    return (
+      <Container margin="sm 0">
+        <CollapsibleContent title={label}>
+          <Container paddingTop="md" paddingLeft="md">
+            {body}
+          </Container>
+        </CollapsibleContent>
+      </Container>
+    );
+  }
 
   return (
     <Flex
@@ -30,17 +66,19 @@ function XmlTagBlock({tagName, content}: {content: string; tagName: string}) {
       margin="sm 0"
       style={{borderLeft: `2px solid ${theme.tokens.border.primary}`}}
     >
-      <Container margin="0 0 xs 0">
-        <Text size="xs" variant="muted">
-          {tagName}
-        </Text>
-      </Container>
-      <MarkdownWithXmlRenderer text={content} />
+      <Container margin="0 0 xs 0">{label}</Container>
+      {body}
     </Flex>
   );
 }
 
-function MarkdownWithXmlRenderer({text}: {text: string}) {
+function MarkdownWithXmlRenderer({
+  text,
+  collapsibleXmlTags,
+}: {
+  text: string;
+  collapsibleXmlTags?: boolean;
+}) {
   const segments = useMemo(
     () => parseXmlTagSegments(preprocessInlineXmlTags(text)),
     [text]
@@ -50,7 +88,12 @@ function MarkdownWithXmlRenderer({text}: {text: string}) {
     <Fragment>
       {segments.map((segment, i) =>
         segment.type === 'xml-tag' ? (
-          <XmlTagBlock key={i} tagName={segment.tagName} content={segment.content} />
+          <XmlTagBlock
+            key={i}
+            tagName={segment.tagName}
+            content={segment.content}
+            collapsible={collapsibleXmlTags}
+          />
         ) : (
           <MarkedText
             key={i}
@@ -69,8 +112,15 @@ export function AIContentRenderer({
   inline = false,
   maxJsonDepth = 2,
   autoCollapseLimit,
+  collapsibleXmlTags = true,
+  clip,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
+
+  // Preserve each branch's historical default when the caller doesn't specify:
+  // text was clipped, JSON flowed. Explicit `clip` always wins.
+  const clipText = clip ?? true;
+  const clipJson = clip ?? false;
 
   switch (detection.type) {
     case 'json':
@@ -80,6 +130,7 @@ export function AIContentRenderer({
           value={detection.parsedData}
           maxDefaultDepth={maxJsonDepth}
           autoCollapseLimit={autoCollapseLimit}
+          clip={clipJson}
         />
       );
 
@@ -90,6 +141,7 @@ export function AIContentRenderer({
             value={detection.parsedData}
             maxDefaultDepth={maxJsonDepth}
             autoCollapseLimit={autoCollapseLimit}
+            clip={clipJson}
           />
           <Text size="xs" variant="muted">
             {t('Truncated')}
@@ -99,11 +151,19 @@ export function AIContentRenderer({
 
     case 'markdown-with-xml':
       if (inline) {
-        return <MarkdownWithXmlRenderer text={text} />;
+        return (
+          <MarkdownWithXmlRenderer text={text} collapsibleXmlTags={collapsibleXmlTags} />
+        );
       }
       return (
         <TraceDrawerComponents.MultilineText
-          renderFormatted={rawText => <MarkdownWithXmlRenderer text={rawText} />}
+          clip={clipText}
+          renderFormatted={rawText => (
+            <MarkdownWithXmlRenderer
+              text={rawText}
+              collapsibleXmlTags={collapsibleXmlTags}
+            />
+          )}
         >
           {text}
         </TraceDrawerComponents.MultilineText>
@@ -114,7 +174,9 @@ export function AIContentRenderer({
         return <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={text} />;
       }
       return (
-        <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText clip={clipText}>
+          {text}
+        </TraceDrawerComponents.MultilineText>
       );
 
     case 'plain-text':
@@ -123,7 +185,9 @@ export function AIContentRenderer({
         return <Fragment>{text}</Fragment>;
       }
       return (
-        <TraceDrawerComponents.MultilineText>{text}</TraceDrawerComponents.MultilineText>
+        <TraceDrawerComponents.MultilineText clip={clipText}>
+          {text}
+        </TraceDrawerComponents.MultilineText>
       );
   }
 }

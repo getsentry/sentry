@@ -1,6 +1,5 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_span
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -10,6 +9,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.constants import METRIC_FUNCTION_LIST_BY_TYPE
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.datasource import get_custom_measurements
+from sentry.utils.tracing import start_span
 
 
 @cell_silo_endpoint

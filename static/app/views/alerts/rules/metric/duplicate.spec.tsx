@@ -97,7 +97,7 @@ describe('MetricRuleDuplicate', () => {
     render(
       <Fragment>
         <GlobalModal />
-        <MetricRuleDuplicate project={project} userTeamIds={[]} {...routerProps} />
+        <MetricRuleDuplicate project={project} {...routerProps} />
       </Fragment>
     );
 
@@ -149,7 +149,7 @@ describe('MetricRuleDuplicate', () => {
       body: rule,
     });
 
-    render(<MetricRuleDuplicate project={project} userTeamIds={[]} {...routerProps} />);
+    render(<MetricRuleDuplicate project={project} {...routerProps} />);
 
     // Still has a selected slack action
     expect(await screen.findByText('Slack')).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe('MetricRuleDuplicate', () => {
     render(
       <Fragment>
         <GlobalModal />
-        <MetricRuleDuplicate project={project} userTeamIds={[]} {...routerProps} />
+        <MetricRuleDuplicate project={project} {...routerProps} />
       </Fragment>
     );
 

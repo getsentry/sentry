@@ -19,7 +19,6 @@ import {
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -35,11 +34,12 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 import {
-  isTraceMetricTypeValue,
-  TraceMetricKnownFieldKey,
-} from 'sentry/views/explore/metrics/types';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+  makeMetricsAggregate,
+  parseTraceMetricFromQuery,
+  stripTraceMetricTokens,
+} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -109,13 +109,11 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
-      // Keep the panel's TraceMetric in sync with what Seer queried. We parse
-      // the metric name/type/unit out of the visualize aggregate (e.g.
-      // p75(value, metric.name, distribution, millisecond)); if it's not there
-      // we read metric.name/type/unit filters from the query (typically only
-      // present in samples mode).
-      const search = new MutableSearch(seerQuery.query);
-
+      // Keep the panel's TraceMetric in sync with what Seer queried. We prefer
+      // the metric parsed out of the visualize aggregate (e.g.
+      // p75(value, metric.name, distribution, millisecond)); otherwise we fall
+      // back to the metric.name/type/unit filters in the query (samples mode),
+      // which parseTraceMetricFromQuery also strips back out for us.
       const visualizationTraceMetric = (result.visualizations ?? [])
         .flatMap(viz => viz.yAxes)
         .map(yAxis => parseMetricAggregate(yAxis).traceMetric)
@@ -123,54 +121,25 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           metric => metric.name && metric.type && isTraceMetricTypeValue(metric.type)
         );
 
-      const queryMetricName = search.getFilterValues(
-        TraceMetricKnownFieldKey.METRIC_NAME
-      )[0];
-      const queryMetricType = search.getFilterValues(
-        TraceMetricKnownFieldKey.METRIC_TYPE
-      )[0];
-      const queryMetricUnit = search.getFilterValues(
-        TraceMetricKnownFieldKey.METRIC_UNIT
-      )[0];
+      const {metric: queryTraceMetric} = parseTraceMetricFromQuery(seerQuery.query);
 
-      // The metric Seer actually specified, if any. We require a valid metric
-      // type and prefer the visualization metric, falling back to the query
-      // filters. Left undefined when neither source yields a valid metric — in
-      // that case we keep the panel's existing metric untouched rather than
-      // guessing a default aggregate.
-      let resolvedMetric: TraceMetric | undefined;
-      if (visualizationTraceMetric) {
-        // parseMetricAggregate leaves unit undefined when the aggregate omits
-        // the unit arg; normalize to NONE_UNIT so downstream sample queries keep
-        // the same unit scoping as the query-filter path below.
-        resolvedMetric = {
-          ...visualizationTraceMetric,
-          unit: visualizationTraceMetric.unit ?? NONE_UNIT,
-        };
-      } else if (
-        queryMetricName &&
-        queryMetricType &&
-        isTraceMetricTypeValue(queryMetricType)
-      ) {
-        resolvedMetric = {
-          name: queryMetricName,
-          type: queryMetricType,
-          unit: queryMetricUnit ?? NONE_UNIT,
-        };
-      }
+      // Prefer the visualization metric (normalizing its unit to NONE_UNIT, since
+      // parseMetricAggregate omits the unit arg), falling back to the query-filter
+      // metric. Left undefined when neither yields a valid metric — we then keep
+      // the panel's existing metric and the query untouched.
+      const resolvedMetric = visualizationTraceMetric
+        ? {...visualizationTraceMetric, unit: visualizationTraceMetric.unit ?? NONE_UNIT}
+        : queryTraceMetric;
+
       const nextMetric = resolvedMetric ?? traceMetric;
 
-      // Only strip the metric filters from the query when we actually adopted a
-      // metric (it's then tracked on the panel, not the query). If we couldn't
-      // resolve one, leave the query untouched so it stays consistent with the
-      // unchanged panel metric.
-      let cleanedQuery = seerQuery.query;
-      if (resolvedMetric) {
-        search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
-        search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
-        search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
-        cleanedQuery = search.formatString();
-      }
+      // Strip the metric identity tokens whenever we adopt a metric (it's tracked
+      // on the panel, not the query). Done unconditionally so stale/incomplete
+      // metric.* tokens don't linger when the metric came from the visualization
+      // aggregate rather than the query.
+      const cleanedQuery = resolvedMetric
+        ? stripTraceMetricTokens(seerQuery.query)
+        : seerQuery.query;
 
       const aggregateFields: AggregateField[] = [];
 

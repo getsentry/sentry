@@ -30,15 +30,15 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.types import (
-    NotificationBodyFormattingBlock,
-    NotificationBodyFormattingBlockType,
-    NotificationBodyTextBlock,
-    NotificationBodyTextBlockType,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSection,
+    NotificationSectionType,
     NotificationTarget,
     NotificationTargetResourceType,
+    NotificationTextBlock,
+    NotificationTextBlockType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 
@@ -53,31 +53,37 @@ class MyDefaultRenderer(NotificationRenderer[MyRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> MyRenderable:
-        # Convert rendered_template blocks into provider-specific format
-        body = cls.render_body_blocks(rendered_template.body)
-        # Build and return provider-specific renderable
-        return {"subject": rendered_template.subject, "body": body}
+        body = cls.render_sections(rendered_template.body)
+        subject = rendered_template.subject_text
+        footer = rendered_template.footer_text
+        return {"subject": subject, "body": body, "footer": footer}
 
     @classmethod
-    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> str:
+    def render_sections(cls, sections: list[NotificationSection]) -> str:
         parts = []
-        for block in body:
-            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
-                parts.append(cls.render_text_blocks(block.blocks))
-            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
-                parts.append(f"```{cls.render_text_blocks(block.blocks)}```")
+        for section in sections:
+            if section.type == NotificationSectionType.PARAGRAPH:
+                parts.append(cls.render_text_blocks(section.blocks))
+            elif section.type == NotificationSectionType.CODE_BLOCK:
+                parts.append(f"```{cls.render_text_blocks(section.blocks)}```")
+            elif section.type == NotificationSectionType.BLOCK_QUOTE:
+                parts.append(f"> {cls.render_text_blocks(section.blocks)}")
         return "\n".join(parts)
 
     @classmethod
-    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+    def render_text_blocks(cls, blocks: list[NotificationTextBlock]) -> str:
         texts = []
         for block in blocks:
-            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+            if block.type == NotificationTextBlockType.PLAIN_TEXT:
                 texts.append(block.text)
-            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+            elif block.type == NotificationTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
-            elif block.type == NotificationBodyTextBlockType.CODE:
+            elif block.type == NotificationTextBlockType.ITALIC_TEXT:
+                texts.append(f"_{block.text}_")
+            elif block.type == NotificationTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
+            elif block.type == NotificationTextBlockType.LINK:
+                texts.append(f"[{block.text}]({block.url})")
         return " ".join(texts)
 
 
