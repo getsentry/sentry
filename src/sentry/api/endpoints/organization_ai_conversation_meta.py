@@ -98,7 +98,7 @@ class OrganizationAIConversationMetaEndpoint(OrganizationEventsEndpointBase):
                     offset=0,
                     limit=50,
                     referrer=Referrer.API_AI_CONVERSATION_META.value,
-                    sampling_mode="NORMAL",
+                    sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
                 ),
             ]
