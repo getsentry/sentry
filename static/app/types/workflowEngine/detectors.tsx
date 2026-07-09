@@ -14,6 +14,7 @@ import type {
 import type {
   UptimeAssertion,
   UptimeMonitorMode,
+  UptimeMonitorStatus,
 } from 'sentry/views/alerts/rules/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 import type {
@@ -155,6 +156,7 @@ export interface UptimeDetector extends BaseDetector {
   readonly config: UptimeDetectorConfig;
   readonly dataSources: [UptimeSubscriptionDataSource];
   readonly type: 'uptime_domain_failure';
+  readonly uptimeStatus: UptimeMonitorStatus;
 }
 
 export interface CronDetector extends BaseDetector {

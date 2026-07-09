@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
@@ -13,6 +14,8 @@ import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
+import {UptimeStatusCell} from 'sentry/views/detectors/components/uptimeStatusCell';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
 import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
@@ -79,6 +82,29 @@ export default function UptimeDetectorsList() {
 
   const contextValue = useMemo<MonitorViewContextValue>(
     () => ({
+      additionalColumns: [
+        {
+          id: 'uptime-status',
+          renderHeaderCell: () => (
+            <HeaderCell data-column-name="uptime-status">{t('Status')}</HeaderCell>
+          ),
+          renderCell: detector => {
+            if (detector.type !== 'uptime_domain_failure') {
+              return null;
+            }
+            return (
+              <SimpleTable.RowCell data-column-name="uptime-status">
+                <UptimeStatusCell detector={detector} />
+              </SimpleTable.RowCell>
+            );
+          },
+          renderPendingCell: () => (
+            <SimpleTable.RowCell data-column-name="uptime-status">
+              <Placeholder height="20px" width="60px" />
+            </SimpleTable.RowCell>
+          ),
+        },
+      ],
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
