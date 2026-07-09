@@ -220,7 +220,7 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
                 DataConditionEvaluation(
                     condition=self.data_condition,
                     result=DetectorPriorityLevel.HIGH,
-                    input_value=input_value,
+                    value=input_value,
                 )
             ],
         )
