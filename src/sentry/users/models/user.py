@@ -34,7 +34,6 @@ from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import unique_db_instance
-from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
@@ -428,8 +427,10 @@ class User(Model, AbstractBaseUser):
             )
 
             # Update all organization control models that don't use user_id
-            txn = transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
-            with enforce_constraints(txn), outbox_context(txn, flush=False):
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
+            ):
                 # Update records individually as OrgAuthToken has outboxes
                 for token in OrgAuthToken.objects.filter(
                     organization_id=organization_id, created_by_id=from_user_id
