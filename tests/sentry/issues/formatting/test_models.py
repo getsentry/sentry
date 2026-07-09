@@ -30,7 +30,7 @@ def test_minimal_event_only_requires_title() -> None:
 
 def test_title_is_required() -> None:
     with pytest.raises(ValidationError):
-        EventObject()
+        EventObject()  # type: ignore[call-arg]  # missing required `title` is the point
 
 
 def test_full_event_nests_submodels() -> None:
@@ -64,11 +64,15 @@ def test_full_event_nests_submodels() -> None:
         short_id="PROJ-1",
     )
 
-    assert event.exceptions[0].stacktrace.frames[0].line_no == 42
+    stacktrace = event.exceptions[0].stacktrace
+    assert stacktrace is not None
+    assert stacktrace.frames[0].line_no == 42
     assert event.exceptions[0].is_handled is False
     assert event.threads[0].crashed is True
+    assert event.request is not None
     assert event.request.method == "GET"
     assert event.tags[0] == ("environment", "prod")
+    assert event.user is not None
     assert event.user.email == "user@example.com"
     assert event.spans[0].exclusive_time_ms == 12.5
     assert event.short_id == "PROJ-1"

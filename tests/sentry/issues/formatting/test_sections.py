@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Any
 
 import pytest
 
@@ -32,7 +33,7 @@ from sentry.issues.formatting.sections import (
 MD = MarkdownFormatter()
 
 
-def _event_with_exception(**exc_kwargs) -> EventObject:
+def _event_with_exception(**exc_kwargs: Any) -> EventObject:
     return EventObject(title="t", exceptions=[ExceptionDetails(**exc_kwargs)])
 
 
@@ -184,7 +185,7 @@ def test_spans_section() -> None:
     assert "db: SELECT 1 (12.5ms)" in out
 
 
-def _serialized_event() -> dict:
+def _serialized_event() -> dict[str, Any]:
     return {
         "eventID": "abc123",
         "title": "ValueError: boom",
