@@ -150,6 +150,7 @@ export function ConversationContentLayout({
                     flex="1"
                     minWidth="0"
                     minHeight="0"
+                    maxWidth={`${CONTENT_MAX_WIDTH}px`}
                     padding={leftPadding}
                     background="primary"
                     border="primary"
