@@ -242,7 +242,6 @@
     "@sentry-internal/rrweb-types": "2.43.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "10.63.0",
-    "@styled/typescript-styled-plugin": "^1.0.1",
     "@swc-contrib/mut-cjs-exports": "14.9.0",
     "@swc/core": "1.15.33",
     "@swc/jest": "0.2.39",
