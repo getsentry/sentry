@@ -1,8 +1,7 @@
 import logging
 
 from sentry import options
-from sentry.issues.action_log.base import ActionSource
-from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
