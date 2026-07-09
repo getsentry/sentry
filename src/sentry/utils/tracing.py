@@ -23,15 +23,11 @@ def trace(func=None, *, op=None, name=None):
             name=name,
         )(f)
 
-        def use_streaming():
-            client = sentry_sdk.get_client()
-            return has_span_streaming_enabled(client.options)
-
         if inspect.iscoroutinefunction(f):
 
             @functools.wraps(f)
             async def async_wrapper(*args, **kwargs):
-                if use_streaming():
+                if has_span_streaming_enabled(sentry_sdk.get_client().options):
                     return await streaming_wrapped(*args, **kwargs)
                 return await non_streaming_wrapped(*args, **kwargs)
 
@@ -39,7 +35,7 @@ def trace(func=None, *, op=None, name=None):
 
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            if use_streaming():
+            if has_span_streaming_enabled(sentry_sdk.get_client().options):
                 return streaming_wrapped(*args, **kwargs)
             return non_streaming_wrapped(*args, **kwargs)
 
