@@ -3414,6 +3414,40 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      it('re-anchors a chip edit when an earlier value is toggled off', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome,safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the last chip, then clear it
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: safari'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+
+        // Toggle an earlier value off from the dropdown — this shifts the token
+        // indices without going through the chip's remove button
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle firefox'})
+        );
+
+        // The replacement must update the edited chip's (shifted) slot rather than
+        // append after a now-stale index
+        await userEvent.type(input, 'edge');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[chrome,edge]'})
+        ).toBeInTheDocument();
+      });
+
       it('preserves duplicate values when editing one of them', async () => {
         render(
           <SearchQueryBuilder

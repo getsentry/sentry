@@ -726,7 +726,6 @@ export function SearchQueryBuilderValueCombobox({
     index: number;
     value: string | null;
   } | null>(null);
-  const editingValue = editingChip?.value ?? null;
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
     if (isDateToken(token)) {
@@ -747,7 +746,7 @@ export function SearchQueryBuilderValueCombobox({
 
   // A chip being edited is lifted into the input but left in the token until the
   // edit is committed, so it is hidden from the rendered chips and excluded when
-  // rebuilding the value. Canceling simply drops `editingValue` and it reappears.
+  // rebuilding the value. Canceling simply clears the edit and it reappears.
   // Excluding by index (not value) keeps duplicate values distinct.
   const committedValues = useMemo(
     () =>
@@ -762,14 +761,31 @@ export function SearchQueryBuilderValueCombobox({
     [selectedValues, editingChip]
   );
 
-  // If the value being edited leaves the token (e.g. unchecked from the dropdown),
-  // cancel the edit so a stale input doesn't re-add it on blur.
+  // Keep a lifted chip edit anchored to its value as the token changes underneath
+  // it (dropdown checkbox toggles, undo, etc. shift indices without going through
+  // removeValue). Re-point the index when the value moved so a commit updates the
+  // right chip; cancel the edit if the value is gone so stale input isn't re-added
+  // on blur.
   useEffect(() => {
-    if (editingValue !== null && !selectedValues.some(v => v.value === editingValue)) {
+    // Only lifted chip edits (value is a string) track a token position.
+    if (editingChip === null) {
+      return;
+    }
+    const liftedValue = editingChip.value;
+    if (liftedValue === null) {
+      return;
+    }
+    if (selectedValues[editingChip.index]?.value === liftedValue) {
+      return;
+    }
+    const newIndex = selectedValues.findIndex(v => v.value === liftedValue);
+    if (newIndex === -1) {
       setEditingChip(null);
       setInputValue('');
+    } else {
+      setEditingChip(prev => (prev ? {...prev, index: newIndex} : prev));
     }
-  }, [editingValue, selectedValues]);
+  }, [editingChip, selectedValues]);
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
