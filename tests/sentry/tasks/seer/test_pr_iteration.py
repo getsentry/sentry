@@ -1,3 +1,4 @@
+from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -188,7 +189,13 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def _state(self, *, status="completed", metadata=None, blocks=None) -> SeerRunState:
+    def _state(
+        self,
+        *,
+        status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
+        metadata: dict[str, Any] | None = None,
+        blocks: list[MemoryBlock] | None = None,
+    ) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
             blocks=blocks or [],
@@ -208,9 +215,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def _review_feedback(self, comment_id: int) -> Feedback:
         return Feedback(
             source=GithubPrReviewCommentFeedbackSource(
-                comment={"id": comment_id, "body": "@sentry fix it"},
-                file_path="src/sentry/foo.py",
-                line=42,
+                comment={
+                    "id": comment_id,
+                    "body": "@sentry fix it",
+                    "path": "src/sentry/foo.py",
+                    "line": 42,
+                },
             )
         )
 

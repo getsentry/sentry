@@ -208,13 +208,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
         source_type: GithubPrCommentFeedbackType = "github-pr-comment",
     ) -> None:
         comment = self.comment if comment is None else comment
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
         if source_type == "github-pr-review-comment":
-            source = GithubPrReviewCommentFeedbackSource(
-                comment=comment,
-                file_path=comment.get("path"),
-                line=comment.get("line"),
-                start_line=comment.get("start_line"),
-            )
+            source = GithubPrReviewCommentFeedbackSource(comment=comment)
         else:
             source = GithubPrCommentFeedbackSource(comment=comment)
         trigger_pr_iteration_from_comment(

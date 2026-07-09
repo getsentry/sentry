@@ -70,13 +70,9 @@ def _dispatch_autofix_iteration_from_comment(
     source_type: GithubPrCommentFeedbackType,
 ) -> None:
     try:
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
         if source_type == "github-pr-review-comment":
-            source = GithubPrReviewCommentFeedbackSource(
-                comment=comment,
-                file_path=comment.get("path"),
-                line=comment.get("line"),
-                start_line=comment.get("start_line"),
-            )
+            source = GithubPrReviewCommentFeedbackSource(comment=comment)
         else:
             source = GithubPrCommentFeedbackSource(comment=comment)
         feedback = Feedback(source=source)

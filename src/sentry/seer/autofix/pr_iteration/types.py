@@ -122,6 +122,14 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     line: int | None = None
     start_line: int | None = None
 
+    @root_validator
+    def _populate_location(cls, values: dict[str, Any]) -> dict[str, Any]:
+        comment = values.get("comment") or {}
+        values["file_path"] = comment.get("path")
+        values["line"] = comment.get("line")
+        values["start_line"] = comment.get("start_line")
+        return values
+
 
 FeedbackSource = Annotated[
     UserUIFeedbackSource | GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
