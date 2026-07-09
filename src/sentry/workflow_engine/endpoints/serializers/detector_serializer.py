@@ -14,12 +14,16 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
+from sentry.uptime.endpoints.serializers import DETECTOR_PRIORITY_TO_UPTIME_STATUS
+from sentry.uptime.models import UptimeStatus
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataConditionGroup,
     DataSourceDetector,
     Detector,
     DetectorGroup,
+    DetectorState,
     DetectorWorkflow,
 )
 
@@ -31,6 +35,8 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     ruleId: int | None
     latestGroup: dict[str, Any] | None
     description: str | None
+    # Current up/down status for uptime detectors. Absent for other detector types.
+    uptimeStatus: int
 
 
 @extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
@@ -157,6 +163,28 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         )
         owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
 
+        # Current up/down status for uptime detectors, derived from their DetectorState
+        # priority level. Only queried when uptime detectors are present in the list.
+        uptime_items = [
+            item for item in item_list if item.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+        ]
+        uptime_status_map: dict[int, int] = {}
+        if uptime_items:
+            detector_state_by_id = {
+                ds.detector_id: ds
+                for ds in DetectorState.objects.filter(detector__in=uptime_items)
+            }
+            for item in uptime_items:
+                detector_state = detector_state_by_id.get(item.id)
+                if (
+                    detector_state is not None
+                    and detector_state.priority_level in DETECTOR_PRIORITY_TO_UPTIME_STATUS
+                ):
+                    status = DETECTOR_PRIORITY_TO_UPTIME_STATUS[detector_state.priority_level]
+                else:
+                    status = UptimeStatus.OK
+                uptime_status_map[item.id] = int(status)
+
         for item in item_list:
             attrs[item]["data_sources"] = ds_map.get(item.id)
             attrs[item]["condition_group"] = condition_group_map.get(
@@ -176,6 +204,8 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             else:
                 attrs[item]["config"] = item.config
             attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
+            if item.id in uptime_status_map:
+                attrs[item]["uptime_status"] = uptime_status_map[item.id]
 
         return attrs
 
@@ -193,7 +223,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
-        return {
+        data: DetectorSerializerResponse = {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
             "name": obj.name,
@@ -214,3 +244,6 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "ruleId": alert_rule_mapping.get("rule_id"),
             "latestGroup": attrs.get("latest_group"),
         }
+        if "uptime_status" in attrs:
+            data["uptimeStatus"] = attrs["uptime_status"]
+        return data
