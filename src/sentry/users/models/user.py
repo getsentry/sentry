@@ -605,12 +605,14 @@ class User(Model, AbstractBaseUser):
             lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
             with TimedRetryPolicy(10)(lock.acquire):
                 base = self.username[: MAX_USERNAME_LENGTH - 13]
-                while not User.is_username_available(self.username):
+                for _ in range(3):
                     suffix = get_random_string(
                         12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789"
                     )
                     self.username = f"{base}-{suffix}"
-                return do_write()
+                    if User.is_username_available(self.username):
+                        return do_write()
+                raise RuntimeError("Could not generate a unique username during relocation import")
 
         return do_write()
 
