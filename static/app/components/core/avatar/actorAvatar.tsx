@@ -15,13 +15,13 @@ interface SimpleActor extends Omit<Actor, 'name'> {
 }
 
 export interface ActorAvatarProps extends Omit<AvatarProps, 'round'> {
-  actor: SimpleActor;
+  actor: SimpleActor | string;
 }
 
 export function ActorAvatar({
   size = 24,
   hasTooltip = true,
-  actor,
+  actor: actorProp,
   ...props
 }: ActorAvatarProps) {
   const otherProps = {
@@ -29,6 +29,21 @@ export function ActorAvatar({
     hasTooltip,
     ...props,
   };
+
+  let actor: SimpleActor;
+  if (typeof actorProp === 'string') {
+    const [type, id] = actorProp.split(':');
+    if (!id || (type !== 'user' && type !== 'team')) {
+      Sentry.withScope(scope => {
+        scope.setExtra('actor', actorProp);
+        Sentry.captureException(new Error('Unknown avatar type'));
+      });
+      return null;
+    }
+    actor = {type, id};
+  } else {
+    actor = actorProp;
+  }
 
   if (actor.type === 'user') {
     return <AsyncMemberAvatar actor={actor} {...otherProps} />;
