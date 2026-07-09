@@ -39,7 +39,9 @@ export function getDateFromMoment(
 
   // For sub-daily intervals, use hourly format
   const parsedInterval = parseStatsPeriod(interval);
-  const datetime = useUtc ? moment(m).utc() : moment(m).tz(getUserTimezone() ?? moment.tz.guess());
+  const datetime = useUtc
+    ? moment(m).utc()
+    : moment(m).tz(getUserTimezone() ?? moment.tz.guess());
 
   const intervalFormat = use24Hours ? FORMAT_DATETIME_HOURLY_24H : FORMAT_DATETIME_HOURLY;
 
