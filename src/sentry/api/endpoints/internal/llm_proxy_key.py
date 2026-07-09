@@ -1,10 +1,13 @@
 import logging
 import time
 from enum import StrEnum
+from typing import TypedDict
 
 import jwt as pyjwt
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, inline_serializer
 from pydantic import BaseModel
+from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,9 +58,17 @@ FEATURE_FLAGS: dict[LlmProxyFeature, list[str]] = {
 }
 
 
+class LlmProxyKeyError(StrEnum):
+    UNKNOWN_FEATURE = "unknown_feature"
+    SIGNING_SECRET_NOT_CONFIGURED = "signing_secret_not_configured"
+    ORGANIZATION_NOT_FOUND = "organization_not_found"
+    FEATURE_NOT_ENABLED = "feature_not_enabled"
+    PROJECT_NOT_FOUND = "project_not_found"
+
+
 class MakeLlmProxyKeyResponse(BaseModel):
     token: str | None = None
-    error: str | None = None
+    error: LlmProxyKeyError | None = None
 
 
 def make_llm_proxy_key(
@@ -74,34 +85,34 @@ def make_llm_proxy_key(
     try:
         proxy_feature = LlmProxyFeature(feature)
     except ValueError:
-        return MakeLlmProxyKeyResponse(error="unknown_feature")
+        return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.UNKNOWN_FEATURE)
 
     extra_flags = FEATURE_FLAGS[proxy_feature]
 
     secret = settings.SEER_API_SHARED_SECRET
     if not secret:
-        return MakeLlmProxyKeyResponse(error="signing_secret_not_configured")
+        return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.SIGNING_SECRET_NOT_CONFIGURED)
 
     try:
         organization = Organization.objects.get(id=org_id, status=OrganizationStatus.ACTIVE)
     except Organization.DoesNotExist:
-        return MakeLlmProxyKeyResponse(error="organization_not_found")
+        return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.ORGANIZATION_NOT_FOUND)
 
     if not has_seer_access(organization):
-        return MakeLlmProxyKeyResponse(error="feature_not_enabled")
+        return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.FEATURE_NOT_ENABLED)
 
     if extra_flags:
         batch_result = features.batch_has(extra_flags, organization=organization)
         if batch_result:
             org_results = batch_result.get(f"organization:{organization.id}", {})
             if not all(org_results.get(flag) for flag in extra_flags):
-                return MakeLlmProxyKeyResponse(error="feature_not_enabled")
+                return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.FEATURE_NOT_ENABLED)
         else:
-            return MakeLlmProxyKeyResponse(error="feature_not_enabled")
+            return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.FEATURE_NOT_ENABLED)
 
     if project_id is not None:
         if not Project.objects.filter(id=project_id, organization=organization).exists():
-            return MakeLlmProxyKeyResponse(error="project_not_found")
+            return MakeLlmProxyKeyResponse(error=LlmProxyKeyError.PROJECT_NOT_FOUND)
 
     now = time.time()
     payload = {
@@ -118,7 +129,15 @@ def make_llm_proxy_key(
     return MakeLlmProxyKeyResponse(token=token)
 
 
-_SERVER_ERRORS = frozenset({"signing_secret_not_configured"})
+_SERVER_ERRORS = frozenset({LlmProxyKeyError.SIGNING_SECRET_NOT_CONFIGURED})
+
+
+class LlmProxyKeyTokenResponse(TypedDict):
+    token: str
+
+
+class LlmProxyKeyErrorResponse(TypedDict):
+    detail: str
 
 
 @internal_cell_silo_endpoint
@@ -131,6 +150,25 @@ class InternalLlmProxyKeyEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
+    @extend_schema(
+        operation_id="mintLlmProxyKey",
+        request=inline_serializer(
+            "LlmProxyKeyRequest",
+            fields={
+                "org_id": serializers.IntegerField(help_text="Organization ID"),
+                "project_id": serializers.IntegerField(
+                    required=False, help_text="Project ID (optional)"
+                ),
+                "feature": serializers.CharField(help_text="Seer feature name"),
+            },
+        ),
+        responses={
+            200: LlmProxyKeyTokenResponse,
+            400: LlmProxyKeyErrorResponse,
+            403: None,
+            500: LlmProxyKeyErrorResponse,
+        },
+    )
     def post(self, request: Request) -> Response:
         if not request.auth or not isinstance(
             request.successful_authenticator, SeerRpcViewerContextAuthentication

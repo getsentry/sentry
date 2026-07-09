@@ -4,6 +4,7 @@ import jwt as pyjwt
 from django.test import override_settings
 from rest_framework.response import Response
 
+from sentry.api.endpoints.internal.llm_proxy_key import LlmProxyKeyError
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
@@ -76,14 +77,14 @@ class InternalLlmProxyKeyTest(APITestCase):
             response = self._post({"org_id": self.organization.id, "feature": "autofix"})
 
         assert response.status_code == 400
-        assert response.data["detail"] == "organization_not_found"
+        assert response.data["detail"] == LlmProxyKeyError.ORGANIZATION_NOT_FOUND
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_rejects_missing_base_feature(self) -> None:
         response = self._post({"org_id": self.organization.id, "feature": "autofix"})
 
         assert response.status_code == 400
-        assert response.data["detail"] == "feature_not_enabled"
+        assert response.data["detail"] == LlmProxyKeyError.FEATURE_NOT_ENABLED
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_rejects_missing_extra_feature_flag(self) -> None:
@@ -91,7 +92,7 @@ class InternalLlmProxyKeyTest(APITestCase):
             response = self._post({"org_id": self.organization.id, "feature": "code_review"})
 
         assert response.status_code == 400
-        assert response.data["detail"] == "feature_not_enabled"
+        assert response.data["detail"] == LlmProxyKeyError.FEATURE_NOT_ENABLED
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_rejects_unknown_feature(self) -> None:
@@ -99,7 +100,7 @@ class InternalLlmProxyKeyTest(APITestCase):
             response = self._post({"org_id": self.organization.id, "feature": "nonexistent"})
 
         assert response.status_code == 400
-        assert response.data["detail"] == "unknown_feature"
+        assert response.data["detail"] == LlmProxyKeyError.UNKNOWN_FEATURE
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_rejects_missing_fields(self) -> None:
@@ -177,4 +178,4 @@ class InternalLlmProxyKeyTest(APITestCase):
             )
 
         assert response.status_code == 400
-        assert response.data["detail"] == "project_not_found"
+        assert response.data["detail"] == LlmProxyKeyError.PROJECT_NOT_FOUND
