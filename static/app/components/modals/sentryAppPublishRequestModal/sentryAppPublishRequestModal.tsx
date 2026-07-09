@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -141,7 +142,7 @@ export function SentryAppPublishRequestModal(props: Props) {
           )}
         </Explanation>
 
-        <Fields>
+        <Flex direction="column" gap="xl">
           <form.AppField name="question0">
             {field => (
               <field.Layout.Stack
@@ -246,26 +247,26 @@ export function SentryAppPublishRequestModal(props: Props) {
               </field.Layout.Stack>
             )}
           </form.AppField>
-        </Fields>
+        </Flex>
 
-        <ModalFooter>
-          <FooterParagraph>
+        <Flex direction="column" gap="md" paddingTop="xl">
+          <Text as="p">
             {t(
               'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
             )}
-          </FooterParagraph>
-          <FooterParagraph>
+          </Text>
+          <Text as="p">
             {t(
               'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
             )}
-          </FooterParagraph>
-          <FooterParagraph>
+          </Text>
+          <Text as="p">
             {t(
               'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
             )}
-          </FooterParagraph>
-          <p>{t('Thank you for contributing to the Sentry community!')}</p>
-        </ModalFooter>
+          </Text>
+          <Text as="p">{t('Thank you for contributing to the Sentry community!')}</Text>
+        </Flex>
 
         <Flex gap="md" justify="end">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
@@ -285,19 +286,4 @@ export function SentryAppPublishRequestModal(props: Props) {
 const Explanation = styled('div')`
   margin: ${p => p.theme.space.lg} 0px;
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const Fields = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const ModalFooter = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  margin-top: ${p => p.theme.space.xl};
-`;
-
-const FooterParagraph = styled('p')`
-  margin-bottom: ${p => p.theme.space.md};
 `;
