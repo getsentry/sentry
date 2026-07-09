@@ -91,6 +91,7 @@ class BuildsEndpointTest(APITestCase):
                     "download_count": 0,
                     "is_installable": False,
                     "release_notes": None,
+                    "install_groups": None,
                     "error_code": None,
                     "error_message": None,
                 },

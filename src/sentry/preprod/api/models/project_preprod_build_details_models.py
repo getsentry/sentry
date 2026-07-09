@@ -70,6 +70,7 @@ class DistributionInfo(BaseModel):
     is_installable: bool
     download_count: int
     release_notes: str | None = None
+    install_groups: list[str] | None = None
     error_code: str | None = None
     error_message: str | None = None
 
@@ -405,6 +406,7 @@ def transform_preprod_artifact_to_build_details(
         is_installable=is_installable,
         download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+        install_groups=(artifact.extras.get("install_groups") if artifact.extras else None),
         error_code=error_code_str,
         error_message=artifact.installable_app_error_message,
     )

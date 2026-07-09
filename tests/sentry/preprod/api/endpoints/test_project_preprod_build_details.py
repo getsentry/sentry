@@ -86,7 +86,10 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["app_info"]["build_number_raw"] == "1.2.3"
 
     def test_get_build_details_distribution_info(self) -> None:
-        self.preprod_artifact.extras = {"release_notes": "Build notes"}
+        self.preprod_artifact.extras = {
+            "release_notes": "Build notes",
+            "install_groups": ["qa", "beta"],
+        }
         self.preprod_artifact.save()
         self.create_installable_preprod_artifact(
             preprod_artifact=self.preprod_artifact, download_count=2
@@ -106,6 +109,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert distribution_info["is_installable"] is True
         assert distribution_info["download_count"] == 5
         assert distribution_info["release_notes"] == "Build notes"
+        assert distribution_info["install_groups"] == ["qa", "beta"]
 
     def test_get_build_details_distribution_error_fields(self) -> None:
         self.preprod_artifact.installable_app_error_code = (
