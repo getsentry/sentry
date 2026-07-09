@@ -50,11 +50,10 @@ interface AndroidAppInfo {
   has_proguard_mapping?: boolean;
 }
 
-// Prefer the raw build number for display; `||` (not `??`) since the backend
-// allows build_number_raw to be an empty string.
 export function getBuildNumber(
   appInfo: BuildDetailsAppInfo | null | undefined
 ): string | null | undefined {
+  // || not ?? since build_number_raw can be an empty string
   return appInfo?.build_number_raw || appInfo?.build_number;
 }
 
