@@ -7,13 +7,12 @@ from sentry.workflow_engine.models.data_condition import Condition, DataConditio
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataCondition,
     ProcessedDataConditionGroup,
-    TriggerResult,
     evaluate_data_conditions,
     get_data_conditions_for_group,
     get_slow_conditions_for_groups,
     process_data_condition_group,
 )
-from sentry.workflow_engine.processors.evaluations.condition import DataConditionEvaluation
+from sentry.workflow_engine.processors.evaluations import DataConditionEvaluation, TriggerResult
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 
 
@@ -353,8 +352,9 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
                 self.data_condition,
                 "evaluate_value",
                 return_value=DataConditionEvaluation(
+                    condition=self.data_condition,
                     result=None,
-                    condition_met=False,
+                    error=None,
                     value="error",
                 ),
             ),
@@ -362,8 +362,9 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
                 self.data_condition_two,
                 "evaluate_value",
                 return_value=DataConditionEvaluation(
-                    result=error,
-                    condition_met=False,
+                    condition=self.data_condition_two,
+                    result=None,
+                    error=error,
                     value="error",
                 ),
             ),

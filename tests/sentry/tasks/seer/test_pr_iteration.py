@@ -9,6 +9,7 @@ from sentry.seer.autofix.pr_iteration.feedback_queue import QueuedAutofixFeedbac
 from sentry.seer.autofix.pr_iteration.types import (
     Feedback,
     GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
     UserUIFeedbackSource,
     serialize_feedback,
 )
@@ -204,6 +205,15 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
+    def _review_feedback(self, comment_id: int) -> Feedback:
+        return Feedback(
+            source=GithubPrReviewCommentFeedbackSource(
+                comment={"id": comment_id, "body": "@sentry fix it"},
+                file_path="src/sentry/foo.py",
+                line=42,
+            )
+        )
+
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
 
@@ -323,6 +333,73 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_skips_review_comment_already_processed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        feedback = self._review_feedback(555)
+        block = MemoryBlock(
+            id="b1",
+            message=Message(role="assistant", metadata={"feedback": serialize_feedback([feedback])}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        mock_fetch.return_value = self._state(blocks=[block])
+        mock_pop.return_value = [self._queued(feedback)]
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_collapses_duplicate_review_comment_ids_in_batch(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(self._review_feedback(666)),
+            self._queued(self._review_feedback(666)),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_issue_and_review_comment_with_same_id_not_collapsed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        issue_feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(
+                comment={"id": 777, "body": "@sentry fix it"}
+            )
+        )
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(issue_feedback),
+            self._queued(self._review_feedback(777)),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

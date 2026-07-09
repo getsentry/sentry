@@ -206,6 +206,8 @@ SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 SENTRY_SCM_REDIS_CLUSTER = "default"
+# Ephemeral dedup markers for self-chaining tasks (merge_groups / unmerge).
+SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -957,6 +959,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.backfill_group_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",

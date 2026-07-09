@@ -244,16 +244,20 @@ class DataCondition(DefaultFieldsModel):
 
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
+        error: ConditionError | None = None
+
         if isinstance(result, bool):
-            is_condition_met = result
             result = self.get_condition_result() if result else None
-        else:
-            is_condition_met = False if isinstance(result, ConditionError) else bool(result)
+
+        if isinstance(result, ConditionError):
+            error = result
+            result = None
 
         return DataConditionEvaluation(
-            value=value,
-            condition_met=is_condition_met,
+            condition=self,
+            error=error,
             result=result,
+            value=value,
         )
 
 

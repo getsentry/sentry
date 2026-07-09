@@ -340,6 +340,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
+register(
+    "taskworker.selfchain_idempotency.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.selfchain_idempotency.ttl",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -3756,7 +3771,55 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out the new FutureTrackingProducer to processing_errors tasks
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
+register(
+    "tasks.producer.snapshots.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to profiling tasks
+register(
+    "tasks.producer.profiles.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to replays tasks
+register(
+    "tasks.producer.replays.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to preprod tasks
+register(
+    "tasks.producer.preprod.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to uptime tasks
+register(
+    "tasks.producer.uptime.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to processing_errors tasks
 register(
     "tasks.producer.processing-errors.rollout",
     type=Float,

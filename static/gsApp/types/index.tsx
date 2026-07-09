@@ -789,12 +789,10 @@ export type BillingHistory = {
 
 export type PreviewData = {
   atPeriodEnd: boolean;
-  balanceChange: number;
   billedAmount: number;
   creditApplied: number;
   effectiveAt: string;
   invoiceItems: PreviewInvoiceItem[];
-  newBalance: number;
   previewToken: string;
   proratedAmount: number;
   /** Only set by the next-bill preview: the plan/period the bill covers is annual. */
