@@ -54,7 +54,7 @@ from sentry.seer.models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
