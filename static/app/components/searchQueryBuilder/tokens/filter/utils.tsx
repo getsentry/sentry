@@ -201,6 +201,9 @@ export function formatFilterValue({
   token: TokenResult<Token.FILTER>['value'];
   valueType?: FieldValueType;
 }): string {
+  if (!token) {
+    return '';
+  }
   switch (token.type) {
     case Token.VALUE_TEXT: {
       const content = token.value ? token.value : token.text;
