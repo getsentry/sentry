@@ -33,6 +33,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
+  getBuildNumber,
   isSizeInfoCompleted,
   isSizeInfoRetryable,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -105,7 +106,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   ];
 
   const version = buildDetailsData.app_info?.version;
-  const buildNumber = buildDetailsData.app_info?.build_number;
+  const buildNumber = getBuildNumber(buildDetailsData.app_info);
 
   if (version) {
     breadcrumbs.push({

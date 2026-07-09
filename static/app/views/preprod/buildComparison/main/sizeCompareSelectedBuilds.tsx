@@ -12,7 +12,10 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getBuildNumber,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface BuildButtonProps {
@@ -29,7 +32,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
   const version = buildDetails.app_info?.version;
-  const buildNumber = buildDetails.app_info?.build_number;
+  const buildNumber = getBuildNumber(buildDetails.app_info);
   const dateBuilt = buildDetails.app_info?.date_built;
   const dateAdded = buildDetails.app_info?.date_added;
 
