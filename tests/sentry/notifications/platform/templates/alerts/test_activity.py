@@ -16,6 +16,7 @@ from sentry.notifications.platform.templates.alerts.activity.set_resolved.base i
     get_resolution_subject,
 )
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationRenderedAction,
     NotificationTextBlockType,
 )
@@ -54,7 +55,7 @@ class ActivityAlertBaseTest(TestCase):
         assert len(footer) == 2
         assert footer[0].type == NotificationTextBlockType.PLAIN_TEXT
         assert "sent as part of" in footer[0].text
-        assert footer[1].type == NotificationTextBlockType.LINK
+        assert isinstance(footer[1], LinkTextBlock)
         assert "42" in footer[1].url
         assert self.organization.slug in footer[1].url
 

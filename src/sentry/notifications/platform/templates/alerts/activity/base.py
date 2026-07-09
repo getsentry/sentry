@@ -56,10 +56,10 @@ def build_example_alert_footer() -> list[NotificationTextBlock]:
     ]
 
 
-def build_issue_link(group: Group) -> NotificationTextBlock:
+def build_issue_link(group: Group) -> LinkTextBlock:
     group_label = group.qualified_short_id or "This issue"
     return LinkTextBlock(text=group_label, url=absolute_uri(group.get_absolute_url()))
 
 
-def build_example_issue_link() -> NotificationTextBlock:
+def build_example_issue_link() -> LinkTextBlock:
     return LinkTextBlock(text="EXAMPLE-1", url=EXAMPLE_ISSUE_URL)
