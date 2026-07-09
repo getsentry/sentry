@@ -20,6 +20,8 @@ from sentry.types.group import PriorityLevel
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
+# Scales the per-project fetch limit instead of using the flat limit above.
+NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER = 3
 FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
 
 
@@ -36,6 +38,31 @@ def fixability_score_strategy(
     projects: Sequence[Project],
     max_candidates: int,
 ) -> list[ScoredCandidate]:
+    """Scores candidates across all projects combined — a busy project can eat
+    the whole max_candidates budget. See fixability_score_strategy_per_project."""
+    return _fetch_and_score(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+
+
+def fixability_score_strategy_per_project(
+    projects: Sequence[Project],
+    max_candidates: int,
+) -> list[ScoredCandidate]:
+    """Like fixability_score_strategy, but scores each project independently so
+    no project can crowd out the others' share of max_candidates."""
+    fetch_limit = min(
+        NIGHT_SHIFT_ISSUE_FETCH_LIMIT, max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
+    )
+    selected: list[ScoredCandidate] = []
+    for project in projects:
+        selected.extend(_fetch_and_score([project], max_candidates, fetch_limit))
+    return selected
+
+
+def _fetch_and_score(
+    projects: Sequence[Project],
+    max_candidates: int,
+    fetch_limit: int,
+) -> list[ScoredCandidate]:
     """
     Fetch top recommended unresolved issues that haven't been triaged by Seer yet.
     Issues with a fixability score above the threshold are taken first (sorted by
@@ -45,7 +72,7 @@ def fixability_score_strategy(
     result = search.backend.query(
         projects=projects,
         sort_by="recommended",
-        limit=NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
+        limit=fetch_limit,
         search_filters=[
             SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
             SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
