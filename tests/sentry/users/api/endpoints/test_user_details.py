@@ -174,9 +174,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
             assert user
 
     def test_change_username_with_different_email(self) -> None:
-        # if email != username, the username is an independent identifier: it can
-        # be changed to any unique value without an accompanying verified email,
-        # and the email is left untouched.
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
@@ -188,8 +185,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.username == "john"
 
     def test_change_username_with_same_email(self) -> None:
-        # Changing username when email == username is blocked by frontend rendering logic,
-        # but even when email == username, changing the username must never change the email.
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
@@ -201,7 +196,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.username == "new@example.com"
 
     def test_cannot_edit_email_through_this_endpoint(self) -> None:
-        # `email` is not a writable field here: primary email changes go through UserEmailsEndpoint
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user)
         self.create_useremail(user, "new@example.com", is_verified=True)
