@@ -633,11 +633,12 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     platform = profile["platform"]
     version = profile.get("version")
 
-    if platform not in {"cocoa", "android"}:
-        return
-
-    # sample v2 profiles don't carry device classification
-    if version == "2" and not is_android_trace_format(profile):
+    # Skip unsupported platforms and sample v2 profiles, which don't carry device
+    # classification. The version can't be trusted on android though, so only skip
+    # genuine sample v2 profiles there and not the (faulty-version) legacy format.
+    if platform not in {"cocoa", "android"} or (
+        version == "2" and not is_android_trace_format(profile)
+    ):
         return
 
     classification = profile.get("transaction_tags", {}).get("device.class", None)
