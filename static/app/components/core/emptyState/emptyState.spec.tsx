@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EmptyState} from '@sentry/scraps/empty';
+import {EmptyState} from '@sentry/scraps/emptyState';
 
 describe('EmptyState', () => {
   it('renders title and description', () => {
