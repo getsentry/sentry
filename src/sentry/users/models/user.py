@@ -539,18 +539,24 @@ class User(Model, AbstractBaseUser):
     def is_username_available(cls, username: str, *, exclude_user_id: int = 0) -> bool:
         """
         A username is available only if it is not already in use as another account's
-        username OR primary email. Login resolves a username before falling back to
-        email (see find_users in sentry/utils/auth.py), so a username equal to another
-        user's email would shadow that account's login.
+        username, primary email, or verified email. Login resolves a username before
+        falling back to email (see find_users in sentry/utils/auth.py), so a username
+        equal to an email another account owns would collide with its login identity.
 
         `exclude_user_id` is the user being updated (excluded from the check); leave it
         as the default when checking a not-yet-saved user (e.g. a relocation import).
         """
-        return not (
+        username_or_primary_taken = (
             cls.objects.exclude(id=exclude_user_id)
             .filter(Q(username__iexact=username) | Q(email__iexact=username))
             .exists()
         )
+        verified_email_taken = (
+            UserEmail.objects.filter(email__iexact=username, is_verified=True)
+            .exclude(user_id=exclude_user_id)
+            .exists()
+        )
+        return not (username_or_primary_taken or verified_email_taken)
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags

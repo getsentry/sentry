@@ -218,6 +218,29 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user_b = User.objects.get(id=user_b.id)
         assert user_b.username == "user_b@example.com"
 
+    def test_change_username_to_own_secondary_email(self) -> None:
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.create_useremail(user, "secondary@example.com", is_verified=True)
+        self.login_as(user=user)
+
+        self.get_success_response("me", username="secondary@example.com")
+
+        user = User.objects.get(id=user.id)
+        assert user.username == "secondary@example.com"
+        assert user.email == "c@example.com"
+
+    def test_cannot_take_another_users_verified_secondary_email_as_username(self) -> None:
+        other = self.create_user(email="other@example.com", username="other@example.com")
+        self.create_useremail(other, "shared@example.com", is_verified=True)
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        resp = self.get_error_response("me", username="shared@example.com", status_code=400)
+        assert resp.data["username"] == ["That username is already in use."]
+
+        user = User.objects.get(id=user.id)
+        assert user.username == "c@example.com"
+
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     def test_user_cannot_elevate_when_superuser_org_not_configured(self) -> None:
         """Verify users cannot elevate when SUPERUSER_ORG_ID is None (not configured)"""
