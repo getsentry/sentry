@@ -96,10 +96,11 @@ class FeedbackBackwardsCompatTest(TestCase):
         assert parsed[0].text == "please fix"
         assert parsed[0].ui_text == "please fix"
 
-    def test_parses_old_github_pr_comment_format_falling_back_to_stored_text(self) -> None:
+    def test_parses_old_github_pr_comment_format_without_comment_feedback(self) -> None:
         raw = (
             '{"text": "please look at this PR", "source": '
-            '{"type": "github-pr-comment", "comment": {"id": 42, "body": "not a sentry command"}}}'
+            '{"type": "github-pr-comment", "comment": '
+            '{"id": 42, "body": "please look at this PR\\n\\n@sentry"}}}'
         )
 
         parsed = parse_feedback(raw)
@@ -115,7 +116,8 @@ class FeedbackBackwardsCompatTest(TestCase):
             '{"text": "old ui feedback", "source": '
             '{"type": "user-ui", "user_id": 1, "user": null}},'
             '{"text": "old comment feedback", "source": '
-            '{"type": "github-pr-comment", "comment": {"id": 7}}}'
+            '{"type": "github-pr-comment", "comment": '
+            '{"id": 7, "body": "old comment feedback\\n\\n@sentry"}}}'
             "]"
         )
 

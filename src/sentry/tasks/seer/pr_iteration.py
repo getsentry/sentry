@@ -82,7 +82,14 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int) -> None:
     )
 
     with lock.acquire():
-        organization = Organization.objects.get_from_cache(id=organization_id)
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            logger.warning(
+                "autofix.pr_iteration.consume_feedback.organization_not_found",
+                extra={"run_id": run_id, "organization_id": organization_id},
+            )
+            return
 
         try:
             state = fetch_run_status(run_id, organization)
@@ -94,7 +101,11 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int) -> None:
             return
 
         group_id = state.metadata.get("group_id") if state.metadata else None
-        group = Group.objects.filter(id=group_id).first() if group_id else None
+        group = (
+            Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+            if group_id
+            else None
+        )
         if group is None:
             logger.warning(
                 "autofix.pr_iteration.consume_feedback.group_not_found",
