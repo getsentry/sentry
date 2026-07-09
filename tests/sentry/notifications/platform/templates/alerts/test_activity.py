@@ -1,5 +1,8 @@
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.notifications.platform.templates.alerts.activity import (
+    ACTIVITY_TYPE_TO_SOURCE,
+)
 from sentry.notifications.platform.templates.alerts.activity.base import (
     build_alert_footer,
     build_issue_link,
@@ -11,9 +14,6 @@ from sentry.notifications.platform.templates.alerts.activity.seer.base import (
 )
 from sentry.notifications.platform.templates.alerts.activity.set_resolved.base import (
     get_resolution_subject,
-)
-from sentry.notifications.platform.templates.workflow_engine.activity import (
-    ACTIVITY_TYPE_TO_SOURCE,
 )
 from sentry.notifications.platform.types import (
     NotificationRenderedAction,
@@ -45,7 +45,6 @@ class ActivityAlertBaseTest(TestCase):
             ActivityType.SET_RESOLVED_IN_RELEASE,
             ActivityType.SET_RESOLVED_BY_AGE,
             ActivityType.SET_RESOLVED_IN_COMMIT,
-            ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
         ]
         for activity_type in resolved_types:
             assert activity_type.value in ACTIVITY_TYPE_TO_SOURCE

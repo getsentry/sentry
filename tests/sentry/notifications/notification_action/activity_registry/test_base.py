@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sentry.notifications.notification_action.activity_registry.base import (
+    NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
     build_activity_data,
     send_activity_notification,
 )
@@ -13,7 +14,9 @@ from sentry.notifications.notification_action.activity_registry.msteams import (
 )
 from sentry.notifications.notification_action.activity_registry.slack import SlackActivityHandler
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.templates.workflow_engine import ActivityAlertAction
+from sentry.notifications.platform.templates.alerts import (
+    ActivityAlertAction,
+)
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationSource,
@@ -25,24 +28,13 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 class TestCompatibleActivityTypes:
     def test_all_handlers_share_compatible_activity_types(self) -> None:
-        expected_activity_types = [
-            ActivityType.SEER_RCA_STARTED,
-            ActivityType.SEER_RCA_COMPLETED,
-            ActivityType.SEER_SOLUTION_STARTED,
-            ActivityType.SEER_SOLUTION_COMPLETED,
-            ActivityType.SEER_CODING_STARTED,
-            ActivityType.SEER_CODING_COMPLETED,
-            ActivityType.SEER_PR_CREATED,
-            ActivityType.SEER_ITERATION_STARTED,
-            ActivityType.SEER_ITERATION_COMPLETED,
-        ]
         for handler in [
             SlackActivityHandler,
             DiscordActivityHandler,
             MSTeamsActivityHandler,
             EmailActivityHandler,
         ]:
-            for activity_type in expected_activity_types:
+            for activity_type in NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES:
                 assert activity_type in handler.compatible_activity_types
 
 
