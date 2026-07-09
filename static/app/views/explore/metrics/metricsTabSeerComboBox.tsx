@@ -18,6 +18,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,6 +26,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
@@ -56,6 +58,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
   const analyticsArea = useAnalyticsArea();
@@ -109,6 +112,15 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
+      // Move any `project:` filter Seer put in the query onto the page-level
+      // project selector so it isn't duplicated in the search bar. Metric-filter
+      // cleanup below runs on the project-stripped query.
+      const {query: projectCleanedQuery, projectIds} = resolveSeerProjectSelection(
+        seerQuery.query,
+        projects,
+        result.expandedProjectIds
+      );
+
       // Keep the panel's TraceMetric in sync with what Seer queried. We prefer
       // the metric parsed out of the visualize aggregate (e.g.
       // p75(value, metric.name, distribution, millisecond)); otherwise we fall
@@ -121,7 +133,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           metric => metric.name && metric.type && isTraceMetricTypeValue(metric.type)
         );
 
-      const {metric: queryTraceMetric} = parseTraceMetricFromQuery(seerQuery.query);
+      const {metric: queryTraceMetric} = parseTraceMetricFromQuery(projectCleanedQuery);
 
       // Prefer the visualization metric (normalizing its unit to NONE_UNIT, since
       // parseMetricAggregate omits the unit arg), falling back to the query-filter
@@ -136,10 +148,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // Strip the metric identity tokens whenever we adopt a metric (it's tracked
       // on the panel, not the query). Done unconditionally so stale/incomplete
       // metric.* tokens don't linger when the metric came from the visualization
-      // aggregate rather than the query.
+      // aggregate rather than the query. Runs on the project-stripped query.
       const cleanedQuery = resolvedMetric
-        ? stripTraceMetricTokens(seerQuery.query)
-        : seerQuery.query;
+        ? stripTraceMetricTokens(projectCleanedQuery)
+        : projectCleanedQuery;
 
       const aggregateFields: AggregateField[] = [];
 
@@ -263,9 +275,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...location,
           query: {
             ...location.query,
-            ...(result.expandedProjectIds?.length
-              ? {project: result.expandedProjectIds.map(String)}
-              : {}),
+            ...(projectIds?.length ? {project: projectIds.map(String)} : {}),
             metric: newEncodedMetrics,
             start: seerQuery.datetime.start,
             end: seerQuery.datetime.end,
@@ -287,6 +297,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       navigate,
       organization,
       pageFilters.selection,
+      projects,
       queryParams,
       setRunId,
       traceMetric,

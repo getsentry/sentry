@@ -7,11 +7,16 @@ import type {
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
+  BooleanOperator,
+  parseSearch,
   TermOperator,
+  Token,
   type WildcardOperator,
   wildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
+import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
@@ -95,6 +100,100 @@ export function getExpandedProjectIds(
   const selectedSet = new Set(selectedProjectIds);
   const hasExtraProjects = returnedProjectIds.some(id => !selectedSet.has(id));
   return hasExtraProjects ? returnedProjectIds : undefined;
+}
+
+/**
+ * Whether the query contains any `OR` boolean operator (including ones nested
+ * inside parenthesized groups). When it does, we skip moving `project:` to the
+ * page-level selector, since a project term could be scoped to one branch of the
+ * disjunction (e.g. `(project:a x) OR (project:b y)`) and lifting it would change
+ * the query's meaning. `flattenParenGroups` surfaces `OR`s nested in groups.
+ */
+function queryHasOr(query: string): boolean {
+  const parsed = parseSearch(query, {flattenParenGroups: true});
+  if (!parsed) {
+    return false;
+  }
+  return parsed.some(
+    token => token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR
+  );
+}
+
+export interface SeerProjectSelection {
+  /**
+   * Project IDs to apply to the page-level project selector, or `undefined` to
+   * leave the current selection untouched.
+   */
+  projectIds: number[] | undefined;
+  /** The query with any resolved `project`/`project.id` filter removed. */
+  query: string;
+}
+
+/**
+ * Seer scopes a query to specific projects by putting a `project:`/`project.id:`
+ * filter in the returned query string. Project is a page-level filter owned by
+ * the project selector, so pull those tokens out and resolve them to project IDs
+ * to apply to the selector instead of leaving them duplicated in the search bar.
+ *
+ * `project:` values are resolved by slug (falling back to a numeric id);
+ * `project.id:` values are taken as ids directly. This is all-or-nothing: if any
+ * project value can't be resolved to a known project, or the query contains an
+ * `OR` (where a project term could be scoped to one branch rather than a
+ * top-level AND), the whole filter is left in the query untouched and the
+ * selection is unchanged, rather than changing the query's meaning. Falls back to
+ * `expandedProjectIds` (the scope Seer broadened to) only when the query has no
+ * project filter at all. Returns `projectIds: undefined` when neither is present.
+ */
+export function resolveSeerProjectSelection(
+  query: string,
+  projects: Project[],
+  expandedProjectIds?: number[]
+): SeerProjectSelection {
+  const search = new MutableSearch(query);
+  const slugToId = new Map(projects.map(project => [project.slug, project.id]));
+
+  const projectValues = search.getFilterValues('project');
+  const projectIdValues = search.getFilterValues('project.id');
+
+  const resolvedIds: number[] = [];
+  let allResolved = true;
+  for (const value of projectValues) {
+    const id = slugToId.get(value) ?? (/^\d+$/.test(value) ? value : undefined);
+    if (id === undefined) {
+      allResolved = false;
+    } else {
+      resolvedIds.push(Number(id));
+    }
+  }
+  for (const value of projectIdValues) {
+    if (/^\d+$/.test(value)) {
+      resolvedIds.push(Number(value));
+    } else {
+      allResolved = false;
+    }
+  }
+
+  if (projectValues.length > 0 || projectIdValues.length > 0) {
+    // Only move the filter to the selector when every project value resolves and
+    // the query has no OR. Otherwise leave the whole filter in the query untouched:
+    // removeFilter drops every value for the key, so lifting would silently drop an
+    // unresolvable value or change the meaning of an OR branch
+    // (e.g. `(project:a x) OR (project:b y)`).
+    if (allResolved && !queryHasOr(query)) {
+      search.removeFilter('project');
+      search.removeFilter('project.id');
+      return {
+        projectIds: Array.from(new Set(resolvedIds)),
+        query: search.formatString(),
+      };
+    }
+    return {projectIds: undefined, query};
+  }
+
+  return {
+    projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined,
+    query,
+  };
 }
 
 const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {
@@ -246,11 +345,23 @@ export function formatDateRange(start: string, end: string, separator = ' to '):
   return `${startFormatted}${separator}${endFormatted}`;
 }
 
-export function generateQueryTokensString(args: QueryTokensProps): string {
+export function generateQueryTokensString(
+  args: QueryTokensProps,
+  projects: Project[] = []
+): string {
   const parts = [];
 
-  if (args?.query) {
-    const formattedFilter = formatQueryToNaturalLanguage(args.query.trim());
+  // Mirror the visual QueryTokens: pull the project out of the filter text and
+  // announce it as a separate projects clause so screen readers don't read a
+  // `project:` filter that isn't shown in the Filter chips.
+  const {query: displayQuery, projectIds} = resolveSeerProjectSelection(
+    args?.query ?? '',
+    projects,
+    args?.expandedProjectIds
+  );
+
+  if (displayQuery) {
+    const formattedFilter = formatQueryToNaturalLanguage(displayQuery.trim());
     parts.push(`Filter is '${formattedFilter}'`);
   }
 
@@ -287,9 +398,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     parts.push(`sort is '${sortText}'`);
   }
 
-  if (args?.expandedProjectIds && args.expandedProjectIds.length > 0) {
-    const count = args.expandedProjectIds.length;
-    parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);
+  if (projectIds && projectIds.length > 0) {
+    const idToSlug = new Map(projects.map(project => [project.id, project.slug]));
+    const slugs = projectIds.map(id => idToSlug.get(String(id)) ?? String(id));
+    parts.push(`projects are '${slugs.join(', ')}'`);
   }
 
   if (args?.crossEvents && args.crossEvents.length > 0) {
