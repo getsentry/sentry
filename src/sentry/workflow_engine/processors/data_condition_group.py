@@ -3,9 +3,8 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import ClassVar, NoReturn, TypeVar
 
-import sentry_sdk
-
 from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.tracing import trace
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
@@ -219,7 +218,7 @@ def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[Da
     return get_data_conditions_for_group(data_condition_group_id)
 
 
-@sentry_sdk.trace
+@trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:
@@ -294,15 +293,19 @@ def evaluate_data_conditions(
         return ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[])
 
     for condition, value in conditions_to_evaluate:
-        evaluation_result = condition.evaluate_value(value)
+        condition_evaluation = condition.evaluate_value(value)
         cleaned_result: DataConditionResult
-        if isinstance(evaluation_result, ConditionError):
+
+        if isinstance(condition_evaluation.result, ConditionError):
             cleaned_result = None
         else:
-            cleaned_result = evaluation_result
+            cleaned_result = condition_evaluation.result
+
         trigger_result = TriggerResult(
             triggered=cleaned_result is not None,
-            error=evaluation_result if isinstance(evaluation_result, ConditionError) else None,
+            error=condition_evaluation.result
+            if isinstance(condition_evaluation.result, ConditionError)
+            else None,
         )
 
         if trigger_result.triggered:

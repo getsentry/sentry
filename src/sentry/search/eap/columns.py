@@ -213,6 +213,8 @@ class VirtualColumnDefinition:
     # When set, sorting uses this column (with original values) rather than the
     # transformed virtual column values, which may not sort in the desired order.
     sort_column: str | None = None
+    # User-facing context (brief/examples) surfaced by the /attributes endpoint.
+    context: AttributeContext | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

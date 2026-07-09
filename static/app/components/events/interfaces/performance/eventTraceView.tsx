@@ -5,6 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {
+  eventHasSyntheticTrace,
   isWebVitalsEvent,
   TRACE_WATERFALL_PREFERENCES_KEY,
 } from 'sentry/components/events/interfaces/performance/utils';
@@ -163,7 +164,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   );
 
   // Performance issues have a Span Evidence section that contains the trace view
-  if (!traceId || issueTypeConfig.spanEvidence.enabled) {
+  if (!traceId || eventHasSyntheticTrace(event) || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
 

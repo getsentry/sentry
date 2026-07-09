@@ -20,6 +20,7 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.traces import StreamedSpan
 from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
@@ -31,7 +32,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -83,7 +84,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
     "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
-    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket": 1.0,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
@@ -197,6 +197,31 @@ def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
+
+    if "taskworker" in sampling_context:
+        task_name = sampling_context["taskworker"].get("task")
+
+        if task_name in SAMPLED_TASKS:
+            return SAMPLED_TASKS[task_name]
+
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+
+
+def span_streaming_traces_sampler(sampling_context):
+    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+        return SAMPLED_ROUTES[wsgi_path]
+
+    # Apply sample_rate from custom_sampling_context
+    custom_sample_rate = sampling_context.get("sample_rate")
+    if custom_sample_rate is not None:
+        return float(custom_sample_rate)
+
+    # If there's already a sampling decision, just use that
+    parent_sampled = sampling_context["span_context"]["parent_sampled"]
+    if parent_sampled is not None:
+        return parent_sampled
 
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
@@ -560,6 +585,8 @@ def configure_sdk():
             trace_lifecycle="stream",
         )
 
+        sdk_options["traces_sampler"] = span_streaming_traces_sampler
+
         sentry_sdk.init(
             dsn=dsns.sentry_mirror,
             integrations=integrations,
@@ -788,9 +815,12 @@ def bind_ambiguous_org_context(
 
 
 def get_trace_id():
-    span = sentry_sdk.get_current_span()
+    span = get_current_span()
+    if isinstance(span, StreamedSpan):
+        return span.trace_id
     if span is not None:
         return span.get_trace_context().get("trace_id")
+
     return None
 
 

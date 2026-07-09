@@ -6,22 +6,17 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.per_org.scheduler import (
-    BUCKET_COUNT,
-    BUCKET_CURSOR_KEY,
-    _next_bucket_index,
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
 
 def _assert_called_once_with_config(
@@ -39,101 +34,39 @@ def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> Projec
     return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
 
 
-def _drain_dispatched_org_ids(burst) -> list[int]:
-    ids = [args[0] for _task, args, _kwargs in burst.queue]
-    burst.queue.clear()
-    return ids
-
-
 class SchedulePerOrgCalculationsTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.redis = get_redis_client_for_ds()
-        self.redis.delete(BUCKET_CURSOR_KEY)
-        self.addCleanup(self.redis.delete, BUCKET_CURSOR_KEY)
-
-    def create_orgs_across_buckets(self, per_bucket: int = 2) -> dict[int, list[int]]:
-        by_bucket: dict[int, list[int]] = {bucket: [] for bucket in range(BUCKET_COUNT)}
-        for _ in range(BUCKET_COUNT * per_bucket * 20):
-            if all(len(ids) >= per_bucket for ids in by_bucket.values()):
-                break
-            org = self.create_organization()
-            by_bucket[org.id % BUCKET_COUNT].append(org.id)
-        assert all(len(ids) >= per_bucket for ids in by_bucket.values())
-        return by_bucket
-
-    @override_options(
-        {
-            "dynamic-sampling.per_org.killswitch": True,
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-        }
-    )
-    def test_is_noop_when_killswitch_engaged(self) -> None:
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        assert dispatched == []
-        assert self.redis.get(BUCKET_CURSOR_KEY) is None
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
-    def test_does_not_scan_when_rollout_zero(self) -> None:
-        self.create_organization()
-
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        assert dispatched == []
-        assert self.redis.get(BUCKET_CURSOR_KEY) is None
+    """Tests for the scheduling wrapper: rollout gating and active-org filtering."""
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_advances_bucket_cursor(self) -> None:
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-
-        assert burst.queue == []
-        cursor = self.redis.get(BUCKET_CURSOR_KEY)
-        assert cursor is not None
-        assert int(cursor) == 1
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_dispatches_only_orgs_in_target_bucket(self) -> None:
-        by_bucket = self.create_orgs_across_buckets(per_bucket=2)
-        target = 3
-        self.redis.set(BUCKET_CURSOR_KEY, target)
-
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        for org_id in dispatched:
-            assert org_id % BUCKET_COUNT == target
-        for org_id in by_bucket[target]:
-            assert org_id in dispatched
-        for bucket, org_ids in by_bucket.items():
-            if bucket == target:
-                continue
-            for org_id in org_ids:
-                assert org_id not in dispatched
-        assert len(dispatched) >= len(by_bucket[target])
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_bucket_skips_inactive_orgs(self) -> None:
+    def test_dispatches_only_active_orgs(self) -> None:
         active = self.create_organization()
         pending_deletion = self.create_organization()
-        pending_deletion.status = OrganizationStatus.PENDING_DELETION
+        pending_deletion.status = 1  # PENDING_DELETION
         pending_deletion.save()
 
-        with BurstTaskRunner() as burst:
-            for bucket in range(BUCKET_COUNT):
-                self.redis.set(BUCKET_CURSOR_KEY, bucket)
-                schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
+        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+            mock_instance = MockScheduler.return_value
+            mock_instance.tick.return_value = False
+            schedule_per_org_calculations()
 
-        assert active.id in dispatched
-        assert pending_deletion.id not in dispatched
+            queryset = MockScheduler.call_args.kwargs["queryset"]
+            org_ids = set(queryset.values_list("id", flat=True))
 
+        assert active.id in org_ids
+        assert pending_deletion.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_org_in_rollout_is_dispatched(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is True
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
+    def test_org_not_in_rollout_is_skipped(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is False
+
+
+class RunCalculationsPerOrgTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
         org = self.create_organization()
@@ -355,8 +288,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert result is None
         get_blended_sample_rate.assert_not_called()
         _assert_called_once_with_config(get_volume, org.id)
-        # Project volumes are fetched even in project mode (transaction balancing
-        # needs full per-project totals) but project balancing itself is skipped.
         _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_not_called()
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
@@ -582,22 +513,3 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         get_volume.assert_not_called()
-
-
-class NextBucketIndexTest(TestCase):
-    def test_uses_redis_cursor(self) -> None:
-        redis = get_redis_client_for_ds()
-        redis.delete(BUCKET_CURSOR_KEY)
-        self.addCleanup(redis.delete, BUCKET_CURSOR_KEY)
-
-        first_cycle = [_next_bucket_index() for _ in range(BUCKET_COUNT)]
-        cursor_after_cycle = redis.get(BUCKET_CURSOR_KEY)
-        next_cycle = [_next_bucket_index() for _ in range(2)]
-        cursor_after_next_cycle = redis.get(BUCKET_CURSOR_KEY)
-
-        assert first_cycle == list(range(BUCKET_COUNT))
-        assert cursor_after_cycle is not None
-        assert int(cursor_after_cycle) == BUCKET_COUNT
-        assert next_cycle == [0, 1]
-        assert cursor_after_next_cycle is not None
-        assert int(cursor_after_next_cycle) == BUCKET_COUNT + 2

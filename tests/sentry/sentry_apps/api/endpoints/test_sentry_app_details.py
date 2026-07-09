@@ -723,9 +723,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.get_error_response(
             self.internal_integration.slug, isAlertable=True, status_code=400
         )
-        assert response.data == {
-            "webhookUrl": ["webhookUrl required if alert rule action is enabled"]
-        }
+        assert response.data == {"webhookUrl": ["webhookUrl required if alert action is enabled"]}
 
     @override_options({"staff.ga-rollout": True})
     def test_set_allowed_origins(self) -> None:

@@ -301,6 +301,26 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.request.reasoning_effort",
+            internal_name="gen_ai.request.reasoning_effort",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.query.bindings",
+            internal_name="cloudflare.durable_object.query.bindings",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.response.rows_read",
+            internal_name="cloudflare.durable_object.response.rows_read",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="cloudflare.durable_object.response.rows_written",
+            internal_name="cloudflare.durable_object.response.rows_written",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="http.decoded_response_content_length",
             internal_name="http.decoded_response_content_length",
             search_type="byte",

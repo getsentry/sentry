@@ -59,7 +59,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
   },
   [IssueTaxonomy.SENTRY_CONFIGURATION]: {
     categories: [IssueCategory.CONFIGURATION],
-    label: t('Sentry Configuration'),
+    label: t('Configuration'),
     key: 'sentry-configuration',
     badge: 'beta',
     description: t(

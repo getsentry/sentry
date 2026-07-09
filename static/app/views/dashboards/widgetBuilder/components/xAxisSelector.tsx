@@ -63,7 +63,7 @@ export function WidgetBuilderXAxisSelector() {
       return Object.values(allTags).map(tag => ({
         label: prettifyTagKey(tag.name),
         value: tag.key,
-        trailingItems: () => <TypeBadge valueKind={FieldValueKind.TAG} />,
+        trailingItems: () => <TypeBadge kind={tag.kind} />,
       }));
     }
 

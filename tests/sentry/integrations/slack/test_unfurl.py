@@ -14,7 +14,7 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_params
-from sentry.integrations.slack.unfurl.explore import _build_heatmap_query
+from sentry.integrations.slack.unfurl.explore import _build_heatmap_query, _heatmap_y_buckets
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
@@ -1225,7 +1225,8 @@ class UnfurlTest(TestCase):
             " metric.unit:millisecond )"
         )
         assert api_params["interval"] == "21600s"
-        assert api_params["yBuckets"] == "50"
+        # 30d / 21600s = 120 columns; round(400 / (1200 / 120)) = 40 -> square cells.
+        assert api_params["yBuckets"] == "40"
 
         chart_data = mock_generate_chart.call_args[0][1]
         y_axis_meta = chart_data["heatmap"]["meta"]["yAxis"]
@@ -1273,17 +1274,33 @@ class UnfurlTest(TestCase):
 
     def test_build_heatmap_query_interval_and_buckets(self) -> None:
         base = "yAxis=sum(value,my.metric,counter,none)"
+        # yBuckets = round(400 / (1200 / columns)), i.e. round(columns / 3), to
+        # keep cells square on the 1200x400 Chartcuterie canvas.
         cases = [
-            ("1h", "30s"),  # 120 columns (15s -> 240 would exceed 150)
-            ("24h", "600s"),  # 144 columns (300s -> 288 would exceed 150)
-            ("7d", "7200s"),  # 84 columns (3600s -> 168 would exceed 150)
-            ("30d", "21600s"),  # 120 columns (14400s -> 180 would exceed 150)
+            ("1h", "30s", "40"),  # 120 columns (15s -> 240 would exceed 150)
+            ("24h", "600s", "48"),  # 144 columns (300s -> 288 would exceed 150)
+            ("7d", "7200s", "28"),  # 84 columns (3600s -> 168 would exceed 150)
+            ("30d", "21600s", "40"),  # 120 columns (14400s -> 180 would exceed 150)
         ]
-        for stats_period, expected_interval in cases:
+        for stats_period, expected_interval, expected_y_buckets in cases:
             out = _build_heatmap_query(QueryDict(f"{base}&statsPeriod={stats_period}&interval=1m"))
-            assert (out["interval"], out["yBuckets"]) == (expected_interval, "50"), (
-                f"statsPeriod={stats_period}"
-            )
+            assert (out["interval"], out["yBuckets"]) == (
+                expected_interval,
+                expected_y_buckets,
+            ), f"statsPeriod={stats_period}"
+
+    def test_heatmap_y_buckets_degenerate_ranges(self) -> None:
+        # Zero/negative ranges (or intervals) have no defined geometry -> None,
+        # so the caller falls back to a default bucket count.
+        assert _heatmap_y_buckets(timedelta(0), "60s") is None
+        assert _heatmap_y_buckets(timedelta(seconds=-1), "60s") is None
+        assert _heatmap_y_buckets(timedelta(hours=1), "0s") is None
+
+    def test_heatmap_y_buckets_clamped_for_long_ranges(self) -> None:
+        # A multi-year range at the coarsest interval would want ~1/3 of the
+        # column count in rows (well over the events-heatmap cap); clamp to one
+        # row per vertical pixel of the canvas.
+        assert _heatmap_y_buckets(timedelta(days=4000), "86400s") == 400
 
     @patch(
         "sentry.integrations.slack.unfurl.explore.client.get",

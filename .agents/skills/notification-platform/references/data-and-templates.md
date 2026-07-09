@@ -18,7 +18,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -46,7 +46,7 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
         return NotificationRenderedTemplate(
             subject="Your data is ready.",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text="See, that wasn't so bad. We're all done assembling your download."
@@ -59,7 +59,7 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
         )
 ```
 
-## Complete Example: DataExportFailure (with CodeBlock)
+## Complete Example: DataExportFailure (with CodeSection)
 
 ```python
 @dataclass(frozen=True)
@@ -83,20 +83,20 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
         return NotificationRenderedTemplate(
             subject="We couldn't export your data.",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"The data export you created at {format_date(data.creation_date)} didn't work."
                         )
                     ]
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text="It looks like there was an error: "),
                         CodeTextBlock(text=data.error_message),
                     ]
                 ),
-                CodeBlock(blocks=[PlainTextBlock(text=orjson.dumps(data.error_payload).decode())]),
+                CodeSection(blocks=[PlainTextBlock(text=orjson.dumps(data.error_payload).decode())]),
             ],
             actions=[
                 NotificationRenderedAction(label="Documentation", link="https://docs.sentry.io/"),
@@ -110,15 +110,15 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
 
 ## NotificationRenderedTemplate Field Reference
 
-| Field             | Type                                    | Required | Description                                                                                                     |
-| ----------------- | --------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `subject`         | `str`                                   | Yes      | Title/subject line. No formatting — displayed as-is.                                                            |
-| `body`            | `list[NotificationBodyFormattingBlock]` | Yes      | Main content using block types below.                                                                           |
-| `actions`         | `list[NotificationRenderedAction]`      | No       | Buttons/links. Each has `label` (str) and `link` (str).                                                         |
-| `chart`           | `NotificationRenderedImage`             | No       | Image with `url` and `alt_text` fields.                                                                         |
-| `footer`          | `str`                                   | No       | Extra text after actions. No formatting.                                                                        |
-| `email_html_path` | `str`                                   | No       | Custom Django HTML template path. Data class passed as context. Default: `sentry/emails/platform/default.html`. |
-| `email_text_path` | `str`                                   | No       | Custom Django text template path. Data class passed as context.                                                 |
+| Field             | Type                                 | Required | Description                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subject`         | `str \| list[NotificationTextBlock]` | Yes      | Title/subject line. Can be plain text or a list of text blocks for rich formatting.                                                                                                                              |
+| `body`            | `list[NotificationSection]`          | Yes      | Main content. A list of sections (`ParagraphSection`, `CodeSection`, `BlockQuoteSection`), each containing text blocks (`PlainTextBlock`, `BoldTextBlock`, `ItalicTextBlock`, `CodeTextBlock`, `LinkTextBlock`). |
+| `actions`         | `list[NotificationRenderedAction]`   | No       | Buttons/links. Each has `label` (str) and `link` (str).                                                                                                                                                          |
+| `chart`           | `NotificationRenderedImage`          | No       | Image with `url` and `alt_text` fields.                                                                                                                                                                          |
+| `footer`          | `str \| list[NotificationTextBlock]` | No       | Extra text after actions. Can be plain text or a list of text blocks.                                                                                                                                            |
+| `email_html_path` | `str`                                | No       | Custom Django HTML template path. Data class passed as context. Default: `sentry/emails/platform/default.html`.                                                                                                  |
+| `email_text_path` | `str`                                | No       | Custom Django text template path. Data class passed as context.                                                                                                                                                  |
 
 ## Notes on Special Template Fields
 
