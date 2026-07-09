@@ -1,6 +1,6 @@
 import functools
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ParamSpec, TypeVar, overload
 
 import sentry_sdk
 from sentry_sdk.scope import Scope
@@ -16,9 +16,27 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+@overload
 def trace(
-    func: Callable[P, R] | None = None, *, op: str | None = None, name: str | None = None
-) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
+    func: Callable[P, R],
+    *,
+    op: str | None = None,
+    name: str | None = None,
+) -> Callable[P, R]: ...
+
+
+@overload
+def trace(
+    func: None = None,
+    *,
+    op: str | None = None,
+    name: str | None = None,
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+def trace(
+    func: Callable[..., Any] | None = None, *, op: str | None = None, name: str | None = None
+) -> Any:
     def decorator(f):
         streaming_wrapped = sentry_sdk.traces.trace(
             name=name,
