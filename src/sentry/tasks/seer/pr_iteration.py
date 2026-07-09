@@ -96,7 +96,9 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
             return
 
         feedback_items = []
-        seen_comment_ids: set[int] = set()
+        # Keyed by (source class, comment id): issue-comment and review-comment
+        # ids come from separate GitHub namespaces, so dedupe within each type.
+        seen_comment_keys: set[tuple[type, int]] = set()
         for item in queued_items:
             if not item.feedback.is_valid_for_run_state(state):
                 logger.info(
@@ -111,12 +113,15 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
                 continue
 
             source = item.feedback.source
-            if isinstance(source, GithubPrCommentFeedbackSource):
+            if isinstance(
+                source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
+            ):
                 comment_id = source.comment.get("id")
                 if comment_id is not None:
-                    if comment_id in seen_comment_ids:
+                    key = (type(source), comment_id)
+                    if key in seen_comment_keys:
                         continue
-                    seen_comment_ids.add(comment_id)
+                    seen_comment_keys.add(key)
 
             feedback_items.append(item.feedback)
 
