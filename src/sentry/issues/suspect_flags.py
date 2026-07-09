@@ -2,7 +2,6 @@ from collections import defaultdict
 from datetime import datetime
 from typing import TypedDict
 
-import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry.models.environment import Environment
@@ -14,6 +13,7 @@ from sentry.seer.workflows.compare import KeyedValueCount, keyed_rrf_score_with_
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
+from sentry.utils.tracing import trace
 
 
 class Distribution(TypedDict):
@@ -29,7 +29,7 @@ class Score(TypedDict):
     is_filtered: bool
 
 
-@sentry_sdk.trace
+@trace
 def get_suspect_flag_scores(
     org_id: int,
     project_id: int,
@@ -81,7 +81,7 @@ def get_suspect_flag_scores(
     ]
 
 
-@sentry_sdk.trace
+@trace
 def query_baseline_set(
     organization_id: int,
     project_id: int,
@@ -167,7 +167,7 @@ def query_baseline_set(
     ]
 
 
-@sentry_sdk.trace
+@trace
 def query_selection_set(
     organization_id: int,
     project_id: int,
@@ -321,7 +321,7 @@ def _query_error_counts_eap(
     )
 
 
-@sentry_sdk.trace
+@trace
 def query_error_counts(
     organization_id: int,
     project_id: int,

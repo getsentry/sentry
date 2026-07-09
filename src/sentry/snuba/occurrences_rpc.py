@@ -3,7 +3,6 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any
 
-import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
@@ -33,6 +32,7 @@ from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import process_value
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     DEFINITIONS = OCCURRENCE_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_table_query(
         cls,
         *,
@@ -99,7 +99,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_table_query_with_tags(
         cls,
         tag_names: set[str],
@@ -161,7 +161,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_grouped_timeseries_query(
         cls,
         *,
@@ -269,7 +269,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_stats_query(
         cls,
         *,

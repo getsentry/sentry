@@ -53,7 +53,7 @@ from urllib3.response import BaseHTTPResponse
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import SnubaError, _snuba_pool
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
@@ -126,7 +126,7 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
     return response
 
 
-@sentry_sdk.trace
+@trace
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
@@ -356,7 +356,7 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
     return response
 
 
-@sentry_sdk.trace
+@trace
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,

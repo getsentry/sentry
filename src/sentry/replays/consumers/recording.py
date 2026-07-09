@@ -29,7 +29,7 @@ from sentry.replays.usecases.ingest.cache import make_has_sent_replays_cache, ma
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import start_span, trace
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -107,7 +107,7 @@ def process_and_commit_message(message: Message[KafkaPayload], context: Processo
 # Processing Task
 
 
-@sentry_sdk.trace
+@trace
 def process_message(message: bytes) -> ProcessedEvent | None:
     try:
         recording_event = parse_recording_event(message)
@@ -124,7 +124,7 @@ def process_message(message: bytes) -> ProcessedEvent | None:
         return None
 
 
-@sentry_sdk.trace
+@trace
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
     segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
@@ -172,7 +172,7 @@ def parse_recording_event(message: bytes) -> Event:
     }
 
 
-@sentry_sdk.trace
+@trace
 def parse_request_message(message: bytes) -> ReplayRecording:
     try:
         return RECORDINGS_CODEC.decode(message)
@@ -181,7 +181,7 @@ def parse_request_message(message: bytes) -> ReplayRecording:
         raise DropSilently()
 
 
-@sentry_sdk.trace
+@trace
 def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
     try:
         return (segment, zlib.decompress(segment))
@@ -193,7 +193,7 @@ def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
             raise DropSilently()
 
 
-@sentry_sdk.trace
+@trace
 def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
     try:
         recording_headers_json, recording_segment = recording.split(b"\n", 1)
@@ -206,7 +206,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-@sentry_sdk.trace
+@trace
 def commit_message(message: ProcessedEvent, context: ProcessorContext) -> None:
     try:
         commit_recording_message(message, context)
