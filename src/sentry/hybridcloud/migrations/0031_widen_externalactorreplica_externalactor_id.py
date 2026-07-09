@@ -30,16 +30,14 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        # `externalactor_id` is a simulated foreign key onto the (bigint) primary key of
-        # `sentry.ExternalActor`, but the replica column was created as int4 from the Django
+        # externalactor_id is a simulated foreign key onto the (bigint) primary key of
+        # ExternalActor, but the replica column was created as int4 from the Django
         # model definition. Widen it to int8 so it can hold the full range of source IDs.
         #
-        # This is an `ALTER COLUMN ... TYPE` and therefore rewrites the table under an ACCESS
+        # This is an ALTER COLUMN ... TYPE and therefore rewrites the table under an ACCESS
         # EXCLUSIVE lock, which the zero-downtime safety framework blocks on the standard
-        # `AlterField` path. We split the state change (`AlterField`) from the DB change
-        # (`SafeRunSQL`): the column is not part of any index, unique constraint, or primary
-        # key, and the table is small on every silo it exists in (control ~230k rows, US2 tiny),
-        # so eating the brief rewrite lock is acceptable.
+        # AlterField path. We split the state change from the DB change:
+        # the column is not part of any index, unique constraint, or primary key, and the table is small.
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
