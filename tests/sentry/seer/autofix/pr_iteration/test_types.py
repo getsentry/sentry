@@ -145,6 +145,7 @@ class FeedbackBackwardsCompatTest(TestCase):
 
         parsed = parse_feedback(serialize_feedback([item]))
 
+        assert isinstance(parsed[0].source, UserUIFeedbackSource)
         assert parsed[0].source.user_feedback == "new format"
         assert parsed[0].text == "new format"
         assert parsed[0].ui_text == "new format"

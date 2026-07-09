@@ -248,9 +248,7 @@ def trigger_pr_iteration_from_comment(
     """
     feedback_obj = Feedback.parse_raw(feedback)
     source = feedback_obj.source
-    if not isinstance(
-        source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
-    ):
+    if not isinstance(source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)):
         logger.error(
             "autofix.pr_iteration.comment_trigger.unexpected_source",
             extra={"organization_id": organization_id, "source_type": source.type},

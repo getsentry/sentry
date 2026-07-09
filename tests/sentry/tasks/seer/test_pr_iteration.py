@@ -356,7 +356,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         feedback = self._review_feedback(555)
         block = MemoryBlock(
             id="b1",
-            message=Message(role="assistant", metadata={"feedback": serialize_feedback([feedback])}),
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([feedback])}
+            ),
             timestamp="2024-01-01T00:00:00Z",
         )
         mock_fetch.return_value = self._state(blocks=[block])
@@ -396,9 +398,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger: MagicMock,
     ) -> None:
         issue_feedback = Feedback(
-            source=GithubPrCommentFeedbackSource(
-                comment={"id": 777, "body": "@sentry fix it"}
-            )
+            source=GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry fix it"})
         )
         mock_fetch.return_value = self._state()
         mock_pop.return_value = [
