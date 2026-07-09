@@ -150,7 +150,6 @@ export function ConversationContentLayout({
                     flex="1"
                     minWidth="0"
                     minHeight="0"
-                    maxWidth={`${CONTENT_MAX_WIDTH}px`}
                     padding={leftPadding}
                     background="primary"
                     border="primary"
@@ -203,8 +202,9 @@ function MeasuredContentSplit({
           flex="1"
           minWidth="0"
           minHeight="0"
-          paddingRight={detail ? {xs: '0', md: 'md'} : undefined}
-          paddingBottom={detail ? {xs: 'md', md: '0'} : undefined}
+          maxWidth={`${CONTENT_MAX_WIDTH}px`}
+          paddingRight={{xs: '0', md: 'md'}}
+          paddingBottom={{xs: 'md', md: '0'}}
         >
           {content}
         </Flex>
