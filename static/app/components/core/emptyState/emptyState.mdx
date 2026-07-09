@@ -8,7 +8,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/emptyState/emptyState.tsx
 ---
 
-import {EmptyState} from '@sentry/scraps/empty';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,7 +16,7 @@ import {IconAdd, IconSearch} from 'sentry/icons';
 import bugIllo from 'sentry-images/spot/sentry-launch.svg';
 import * as Storybook from 'sentry/stories';
 
-export const documentation = import('!!type-loader!@sentry/scraps/empty');
+export const documentation = import('!!type-loader!@sentry/scraps/emptyState');
 
 `EmptyState` is a composable layout for "nothing to show" states. It supports an optional illustration, description, and action slot, in both vertical and horizontal orientations.
 
