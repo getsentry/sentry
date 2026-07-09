@@ -600,8 +600,10 @@ def start_group_reprocessing(
             raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
 
         # TODO: Replace this with a special group.status rather than using data.
-        # Check the marker to avoid reprocessing B if there is a reprocessing A -> B going on at the moment
-        if "_reprocessing_old_group_id" in (group.data or {}):
+        # Check the marker to avoid reprocessing B if there is a reprocessing A -> B going on at the moment.
+        # Since the marker can be stale check if the reprocessing is actually still active.
+        old_group_id = (group.data or {}).get("_reprocessing_old_group_id")
+        if old_group_id is not None and is_reprocessing_active(old_group_id):
             raise RuntimeError("Cannot reprocess group that is being reprocessed to")
 
         original_short_id = group.short_id
@@ -730,19 +732,37 @@ def get_progress(group_id: int, project_id: int | None = None) -> tuple[int, Any
         logger.error("reprocessing2.missing_info")
         return 0, None
 
-    # We expect reprocessing to make progress every now and then, by bumping the
-    # TTL of the "counter" key. If that TTL wasn't bumped in a while, we just
-    # assume that reprocessing is stuck, and will just call finish on it.
-    if project_id is not None and ttl is not None and ttl > 0:
-        default_ttl = settings.SENTRY_REPROCESSING_SYNC_TTL
-        age = default_ttl - ttl
-        if age > REPROCESSING_TIMEOUT:
-            from sentry.tasks.reprocessing2 import finish_reprocessing
+    if (
+        project_id is not None
+        and ttl is not None
+        and ttl > 0
+        and not _reprocessing_recently_active(ttl)
+    ):
+        # Reprocessing is likely stuck, so call finish on it.
+        from sentry.tasks.reprocessing2 import finish_reprocessing
 
-            finish_reprocessing.delay(project_id=project_id, group_id=group_id)
+        finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 
     # Our internal sync counters are counting over *all* events, but the
     # progressbar in the frontend goes until max_events. Advance progressbar
     # proportionally.
     _pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount") or 1))
     return _pending, info
+
+
+def _reprocessing_recently_active(ttl: int | None) -> bool:
+    """
+    We expect reprocessing to make progress every now and then, by bumping the
+    TTL of the "counter" key. If that TTL wasn't bumped in a while, we just
+    assume that reprocessing is stuck.
+    """
+    if ttl is None or ttl <= 0:
+        return False
+    default_ttl = settings.SENTRY_REPROCESSING_SYNC_TTL
+    age = default_ttl - ttl
+    return age <= REPROCESSING_TIMEOUT
+
+
+def is_reprocessing_active(group_id: int) -> bool:
+    pending, ttl = reprocessing_store.get_pending(group_id)
+    return pending is not None and _reprocessing_recently_active(ttl)

@@ -197,7 +197,7 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{xs: 'none', sm: 'block'}}>
+                <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
                   <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
                 </Container>
               </Flex>
@@ -241,7 +241,7 @@ function getConversationIdStep(integration: string, isPython: boolean): Onboardi
       ? {
           type: 'code' as const,
           language: 'python',
-          code: `import sentry_sdk
+          code: `import sentry_sdk.ai
 
 # Call this at the start of each conversation
 sentry_sdk.ai.set_conversation_id("my-conversation-123")`,

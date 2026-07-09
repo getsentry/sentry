@@ -5,12 +5,10 @@ from collections.abc import Callable, Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
-import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.models.options.project_option import ProjectOption
-from sentry.replays.lib.eap.write import write_trace_items
-from sentry.replays.lib.kafka import publish_replay_event
+from sentry.replays.lib.kafka import publish_replay_event, write_trace_items
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta, TapEvent
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
@@ -18,7 +16,7 @@ from sentry.replays.usecases.ingest.issue_creation import (
 )
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.utils import json, metrics
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger()
 
@@ -76,7 +74,7 @@ class ReplayActionsEvent(TypedDict):
     type: Literal["replay_event"]
 
 
-@sentry_sdk.trace
+@trace
 def emit_tap_events(
     tap_events: list[TapEvent],
     project_id: int,
@@ -120,7 +118,7 @@ def emit_tap_events(
     publish_replay_event(json.dumps(action))
 
 
-@sentry_sdk.trace
+@trace
 def emit_click_events(
     click_events: list[ClickEvent],
     project_id: int,
@@ -174,7 +172,7 @@ def emit_click_events(
     publish_replay_event(json.dumps(action))
 
 
-@sentry_sdk.trace
+@trace
 def emit_request_response_metrics(event_meta: ParsedEventMeta) -> None:
     for sizes in event_meta.request_response_sizes:
         req_size, res_size = sizes
@@ -188,7 +186,7 @@ def emit_request_response_metrics(event_meta: ParsedEventMeta) -> None:
             )
 
 
-@sentry_sdk.trace
+@trace
 def log_canvas_size(
     event_meta: ParsedEventMeta, org_id: int, project_id: int, replay_id: str
 ) -> None:
@@ -205,7 +203,7 @@ def log_canvas_size(
         )
 
 
-@sentry_sdk.trace
+@trace
 def log_mutation_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     # TODO: sampled differently from the rest (0 <= i <= 99)
     # probably fine to ignore.
@@ -216,7 +214,7 @@ def log_mutation_events(event_meta: ParsedEventMeta, project_id: int, replay_id:
         logger.info("Large DOM Mutations List:", extra=log)
 
 
-@sentry_sdk.trace
+@trace
 def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     for option in event_meta.options_events:
         log = option["data"].get("payload", {}).copy()
@@ -225,7 +223,7 @@ def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: s
         logger.info("sentry.replays.slow_click", extra=log)
 
 
-@sentry_sdk.trace
+@trace
 def log_multiclick_events(
     event_meta: ParsedEventMeta,
     project_id: int,
@@ -260,7 +258,7 @@ def log_multiclick_events(
         logger.info("sentry.replays.slow_click", extra=log)
 
 
-@sentry_sdk.trace
+@trace
 def log_rage_click_events(
     event_meta: ParsedEventMeta,
     project_id: int,
@@ -294,7 +292,7 @@ def log_rage_click_events(
             logger.info("sentry.replays.slow_click", extra=log)
 
 
-@sentry_sdk.trace
+@trace
 def report_hydration_error(
     event_meta: ParsedEventMeta,
     project_id: int,
@@ -369,7 +367,7 @@ def gen_rage_clicks(
         }
 
 
-@sentry_sdk.trace
+@trace
 def report_rage_click(
     event_meta: ParsedEventMeta,
     project_id: int,
@@ -411,7 +409,7 @@ def _attr_stats(ti: TraceItem) -> tuple[int, int]:
     return (count, total_size)
 
 
-@sentry_sdk.trace
+@trace
 def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
     # Get largest attribute across trace items
     largest_attribute = max(
@@ -440,7 +438,7 @@ def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
         write_trace_items(trace_items)
 
 
-@sentry_sdk.trace
+@trace
 def _should_report_hydration_error_issue(project_id: int, context: ProcessorContext) -> bool:
     """
     Checks the project option, controlled by a project owner.
@@ -455,7 +453,7 @@ def _should_report_hydration_error_issue(project_id: int, context: ProcessorCont
         )
 
 
-@sentry_sdk.trace
+@trace
 def _should_report_rage_click_issue(project_id: int, context: ProcessorContext) -> bool:
     """
     Checks the project option, controlled by a project owner.

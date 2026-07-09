@@ -1,9 +1,14 @@
+from datetime import datetime, timezone
+
 import pytest
 from django.db import router, transaction
 
-from sentry.issues.action_log.base import ActionSource, publish_action
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
+    ActionSource,
     GroupAction,
     GroupActionActor,
     GroupActionType,
@@ -24,8 +29,13 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DateTimeCodec,
+    EnumCodec,
     Feature,
+    OptionalCodec,
     Pipeline,
+    State,
+    StateUpdate,
     StateView,
     aggregator,
 )
@@ -41,19 +51,21 @@ from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.utils import json
 
 SOURCE = ActionSource.API
 
 
 def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    """Helper to call publish_action() with common defaults."""
-    publish_action(
-        action,
-        source=SOURCE,
-        group_id=group.id,
-        project=group.project,
-        actor=actor,
-    )
+    with outbox_runner():
+        publish_action(
+            action,
+            source=SOURCE,
+            group_id=group.id,
+            project=group.project,
+            actor=actor,
+        )
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -162,7 +174,8 @@ class ProcessGroupLogTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "open"
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[STATUS] == IssueStatus.OPEN
 
     def test_resolve_closes(self) -> None:
         group = self.create_group()
@@ -196,7 +209,8 @@ class ProcessGroupLogTest(TestCase):
 
         _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id))
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "open"
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[STATUS] == IssueStatus.OPEN
 
     def test_status_toggle(self) -> None:
         group = self.create_group()
@@ -286,6 +300,37 @@ def test_mutation_checking_catches_in_place_mutation() -> None:
         p.step(state, FakeEntry())
 
 
+def test_state_updated_tracks_merged_features() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+    state = State({A: 0, B: 0})
+
+    assert state.updated == frozenset()
+
+    state.merge(StateUpdate({A: 1}))
+    assert state.updated == frozenset({A})
+    assert state[A] == 1
+    assert state[B] == 0
+
+
+def test_build_update_json_blob_includes_all_json_features() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A, B))
+    def compute(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    pipeline = Pipeline([compute], version=1)
+    state = pipeline.initial_state()
+
+    # Update only A — blob should still contain both A and B
+    state.merge(StateUpdate({A: 1}))
+    update = GroupDerivedDataStore.build_update(pipeline, state)
+
+    assert update["data"] == {"a": 1, "b": 0}
+
+
 def test_store_apply_to_instance() -> None:
     derived = GroupDerivedData()
     derived.data = {}
@@ -293,6 +338,98 @@ def test_store_apply_to_instance() -> None:
     GroupDerivedDataStore.apply_to_instance(derived, update)
     assert derived.data == {"status": "closed"}
     assert derived.view_count == 5
+
+
+def test_all_feature_defaults_round_trip_through_json() -> None:
+    state = PIPELINE.initial_state()
+    blob = {f.name: f.to_json(state[f]) for f in PIPELINE.features}
+    serialized = json.loads(json.dumps(blob))
+    for f in PIPELINE.features:
+        assert f.from_json(serialized[f.name]) == state[f], f"round-trip failed for {f.name}"
+
+
+# --- Codec tests ---
+
+
+class TestDateTimeCodec:
+    def test_json_round_trip(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+    def test_to_json_produces_iso_string(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        dumped = codec.to_json(dt)
+        assert isinstance(dumped, str)
+        assert dumped == dt.isoformat()
+
+    def test_column_round_trip_is_identity(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_column(codec.to_column(dt)) == dt
+        assert codec.to_column(dt) is dt
+
+    def test_optional_none(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        assert codec.to_json(None) is None
+        assert codec.from_json(None) is None
+
+    def test_optional_json_round_trip(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+
+class TestEnumCodecCoverage:
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_column_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueStatus)
+        assert codec.to_column(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_column_produces_enum(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueProgressState)
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_json_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_column_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_column(raw)
+        if raw is not None:
+            assert isinstance(loaded, IssueProgressState)
+        assert codec.to_column(loaded) == raw
 
 
 # --- Store tests (need DB) ---
@@ -325,6 +462,7 @@ class GroupDerivedDataStoreTest(TestCase):
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[VIEW_COUNT] == 3
         assert state[PROGRESS] == IssueProgressState.DIAGNOSED
+        assert isinstance(state[PROGRESS], IssueProgressState)
         assert state[STATUS] == IssueStatus.CLOSED
 
     def test_load_null_progress(self) -> None:
@@ -343,15 +481,50 @@ class GroupDerivedDataStoreTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
+        first = process_group_log(group.id)
 
-        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        first_data = first.data.copy()
+        first_view_count = first.view_count
+        first_progress = first.progress
+        first_last_progressed_at = first.last_progressed_at
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+
+        assert second.data == first_data
+        assert second.view_count == first_view_count
+        assert second.progress == first_progress
+        assert second.last_progressed_at == first_last_progressed_at
+
+    def test_build_update_only_includes_updated_features(self) -> None:
+        state = PIPELINE.initial_state()
+
+        # Update only STATUS (lives in JSON) — column features stay clean
+        state.merge(StateUpdate({STATUS: IssueStatus.CLOSED}))
+
         update = GroupDerivedDataStore.build_update(PIPELINE, state)
 
-        assert update["data"] == derived.data
-        assert update["view_count"] == derived.view_count
-        assert update["progress"] == derived.progress
-        assert update["last_progressed_at"] == derived.last_progressed_at
+        assert "view_count" not in update
+        assert "progress" not in update
+        assert "last_progressed_at" not in update
+        assert "data" in update
+        assert update["data"]["status"] == "closed"
+
+        # Update a column-mapped feature — it should appear in the update
+        state.merge(StateUpdate({VIEW_COUNT: 5}))
+        update = GroupDerivedDataStore.build_update(PIPELINE, state)
+        assert update["view_count"] == 5
+
+    def test_build_update_excludes_json_blob_when_no_json_features_updated(self) -> None:
+        state = PIPELINE.initial_state()
+
+        # Update only a column-mapped feature — JSON blob should be excluded
+        state.merge(StateUpdate({VIEW_COUNT: 3}))
+
+        update = GroupDerivedDataStore.build_update(PIPELINE, state)
+
+        assert update["view_count"] == 3
+        assert "data" not in update
 
     def test_progress_round_trip(self) -> None:
         group = self.create_group()
@@ -392,14 +565,24 @@ class DerivedDataTransactionTest(TestCase):
         group = self.create_group()
 
         try:
-            with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
-                _publish(
-                    group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+            with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                publish_action(
+                    ViewAction(),
+                    source=SOURCE,
+                    group_id=group.id,
+                    project=group.project,
+                    actor=GroupActionActor.user(self.user.id),
                 )
+                assert CellOutbox.objects.filter(
+                    category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                ).exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 

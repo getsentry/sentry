@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {Confidence} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
@@ -42,7 +41,6 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 interface BaseExploreTablesProps {
-  confidences: Confidence[];
   setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;
   tab: Mode | Tab;
 }

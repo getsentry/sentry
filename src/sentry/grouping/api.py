@@ -5,8 +5,6 @@ from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 
-import sentry_sdk
-
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.context import GroupingContext
@@ -39,6 +37,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.safe import get_path
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -148,7 +147,7 @@ class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
     cache_prefix = "secondary-grouping-enhancements:"
 
 
-@sentry_sdk.tracing.trace
+@trace
 def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on

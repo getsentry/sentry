@@ -81,6 +81,7 @@ class TestCategorizeComparisonImagesAllStatuses:
                     height=22,
                     description="desc-rm",
                     tags={"k": "1"},
+                    canvas_theme="dark",
                     region="eu",
                 ),
                 "old_name.png": ImageMetadata(content_hash="base_old", width=13, height=23),
@@ -192,6 +193,7 @@ class TestCategorizeComparisonImagesAllStatuses:
         assert len(result.removed) == 1
         assert result.removed[0].key == "base_rm"
         assert result.removed[0].width == 12
+        assert result.removed[0].canvas_theme == "dark"
         assert result.removed[0].dict()["region"] == "eu"
 
     def test_renamed_resolves_base_via_previous_name(self) -> None:

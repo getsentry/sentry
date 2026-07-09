@@ -322,6 +322,7 @@ function ColumnEditorRow({
         onChange={handleColumnChange}
         disabled={required}
         search={{
+          highlight: true,
           onChange: setSearch,
           filter: (option, searchText) => {
             return sortSearchedAttributes({

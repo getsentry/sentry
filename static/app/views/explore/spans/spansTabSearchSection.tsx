@@ -168,8 +168,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 <Grid
                   gap="md"
                   columns={{
-                    sm: '1fr',
-                    md: 'minmax(300px, auto) 1fr min-content',
+                    'screen:sm': '1fr',
+                    'screen:md': 'minmax(300px, auto) 1fr min-content',
                   }}
                 >
                   <StyledPageFilterBar condensed>

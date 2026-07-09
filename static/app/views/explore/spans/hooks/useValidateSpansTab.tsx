@@ -29,7 +29,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
 
-  const {data, isFetching, isLoading} = useQuery({
+  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -62,6 +62,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   return {
     data,
     isFetching,
+    isPlaceholderData,
     isLoading,
   };
 }

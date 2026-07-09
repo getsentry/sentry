@@ -37,10 +37,12 @@ from sentry.seer.agent.tools import (
     get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
+    get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
+    get_team_members,
     get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
@@ -77,6 +79,7 @@ from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
+from sentry.utils.tracing import trace
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
@@ -141,6 +144,8 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
+    "get_issue_ownership": seer_rpc(get_issue_ownership),
+    "get_team_members": seer_rpc(get_team_members),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "get_replay_metadata": seer_rpc(get_replay_metadata),
@@ -196,6 +201,7 @@ public_project_seer_method_registry: dict[str, SeerRpcMethod] = {
 _issue_scoped_org_methods: frozenset[str] = frozenset(
     {
         "get_issue_committers",
+        "get_issue_ownership",
         "get_issue_details",
         "get_event_details",
         "get_issue_and_event_details_v2",
@@ -287,7 +293,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         return result
 
-    @sentry_sdk.trace
+    @trace
     def _dispatch_to_local_method(
         self,
         request: Request,
@@ -325,7 +331,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         raise RpcResolutionException(f"Unknown method {method_name}")
 
-    @sentry_sdk.trace
+    @trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)

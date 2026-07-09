@@ -17,7 +17,11 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-activities"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-activities",
+        url_names=["sentry-api-0-group-activities"],
+    )
     def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve all the Activities for a Group

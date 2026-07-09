@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
-    CodeBlock,
+    CodeSection,
     CodeTextBlock,
     NotificationCategory,
     NotificationData,
@@ -14,7 +14,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -41,7 +41,7 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
         return NotificationRenderedTemplate(
             subject="Your data is ready.",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text="See, that wasn't so bad. We're all done assembling your download. Now have at it."
@@ -78,27 +78,29 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
         return NotificationRenderedTemplate(
             subject="We couldn't export your data.",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"Well, this is a little awkward. The data export you created at {format_date(data.creation_date)} didn't work. Sorry about that."
                         )
                     ]
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text="It looks like there was an error: "),
                         CodeTextBlock(text=data.error_message),
                     ]
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text="This is what you sent us. Maybe it'll help you sort this out: "
                         )
                     ]
                 ),
-                CodeBlock(blocks=[PlainTextBlock(text=orjson.dumps(data.error_payload).decode())]),
+                CodeSection(
+                    blocks=[PlainTextBlock(text=orjson.dumps(data.error_payload).decode())]
+                ),
             ],
             actions=[
                 NotificationRenderedAction(label="Documentation", link="https://docs.sentry.io/"),

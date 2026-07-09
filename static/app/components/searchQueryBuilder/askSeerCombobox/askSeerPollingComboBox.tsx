@@ -287,6 +287,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             visualizations={item?.visualizations}
             expandedProjectIds={item?.expandedProjectIds}
             interval={item?.interval}
+            crossEvents={item?.crossEvents}
           />
         </Item>
       );

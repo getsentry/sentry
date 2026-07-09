@@ -224,6 +224,7 @@ function InformationCard({
   author,
   permissions = null,
   alerts = [],
+  upgradeAlert,
   resourceLinks = [],
 }: {
   description: string;
@@ -233,6 +234,7 @@ function InformationCard({
   author?: string;
   permissions?: React.ReactNode;
   resourceLinks?: Array<{title: string; url: string}>;
+  upgradeAlert?: React.ReactNode;
 }) {
   const organization = useOrganization();
   const features = useIntegrationFeatures({featureData});
@@ -243,6 +245,7 @@ function InformationCard({
     <Fragment>
       <Flex align="center">
         <IntegrationDescription>
+          {upgradeAlert}
           <Description text={description} />
           <FeatureList
             features={features}

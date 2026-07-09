@@ -89,6 +89,16 @@ describe('Heading', () => {
     );
   });
 
+  it('does not accept a display prop', () => {
+    render(
+      // @ts-expect-error: Heading does not support the display prop
+      <Heading as="h1" display="none">
+        Title
+      </Heading>
+    );
+    expect(screen.getByText('Title').tagName).toBe('H1');
+  });
+
   describe('types', () => {
     it('default signature requires as and limits children to React.ReactNode', () => {
       const props: HeadingProps = {as: 'h1', children: 'Title'};

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
     OAuth2ApiStep,
     OAuth2CallbackView,
@@ -18,6 +20,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.signing import urlsafe_b64decode
+
+logger = logging.getLogger(__name__)
 
 
 class GCPOAuth2LoginView(OAuth2LoginView):
@@ -32,7 +36,14 @@ class GCPOAuth2LoginView(OAuth2LoginView):
         return params
 
 
-class GCPIdentityProvider(OAuth2Provider):
+GCP_MCP_URLS: tuple[str, ...] = (
+    "https://logging.googleapis.com/mcp",
+    "https://monitoring.googleapis.com/mcp",
+    "https://cloudtrace.googleapis.com/mcp",
+)
+
+
+class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.GCP
     name = "Google Cloud Platform"
     create_organization_identity = True
@@ -82,6 +93,9 @@ class GCPIdentityProvider(OAuth2Provider):
         except KeyError:
             raise IdentityNotValid("Missing id_token in OAuth response")
 
+        if "refresh_token" not in data:
+            raise IdentityNotValid("Missing refresh_token in OAuth response")
+
         try:
             _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
@@ -105,15 +119,29 @@ class GCPIdentityProvider(OAuth2Provider):
             "data": self.get_oauth_data(data),
         }
 
+    def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
+        return list(GCP_MCP_URLS)
+
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
 
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
+        client_id = self.get_oauth_client_id()
+        client_secret = self.get_oauth_client_secret()
+        if not client_id or not client_secret:
+            logger.error(
+                "gcp.refresh.missing_client_credentials",
+                extra={
+                    "has_client_id": bool(client_id),
+                    "has_client_secret": bool(client_secret),
+                    "identity_id": identity.id,
+                },
+            )
         return {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
-            "client_id": self.get_oauth_client_id(),
-            "client_secret": self.get_oauth_client_secret(),
+            "client_id": client_id,
+            "client_secret": client_secret,
         }
