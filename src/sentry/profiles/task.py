@@ -291,8 +291,11 @@ def process_profile_task(
     version = profile.get("version")
 
     if is_android_trace_format(profile):
-        sentry_sdk.set_tag("format", "android_chunk")
-        sentry_sdk.set_attribute("format", "android_chunk")
+        # Android trace format is sent both as legacy transaction profiles and as
+        # continuous-profiling chunks, the latter identified by a profiler_id.
+        fmt = "android_chunk" if "profiler_id" in profile else "legacy"
+        sentry_sdk.set_tag("format", fmt)
+        sentry_sdk.set_attribute("format", fmt)
     elif version is not None:
         sentry_sdk.set_tag("format", f"sample_v{version}")
         sentry_sdk.set_attribute("format", f"sample_v{version}")
