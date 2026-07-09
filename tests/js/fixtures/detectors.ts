@@ -156,6 +156,7 @@ export function UptimeDetectorFixture(
     },
     dataSources: [UptimeSubscriptionDataSourceFixture()],
     uptimeStatus: UptimeMonitorStatus.OK,
+    uptimeStatusLastChanged: null,
     ...params,
   };
 }

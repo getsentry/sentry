@@ -157,6 +157,7 @@ export interface UptimeDetector extends BaseDetector {
   readonly dataSources: [UptimeSubscriptionDataSource];
   readonly type: 'uptime_domain_failure';
   readonly uptimeStatus: UptimeMonitorStatus;
+  readonly uptimeStatusLastChanged: string | null;
 }
 
 export interface CronDetector extends BaseDetector {

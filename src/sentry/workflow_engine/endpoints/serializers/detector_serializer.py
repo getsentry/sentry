@@ -37,6 +37,8 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     description: str | None
     # Current up/down status for uptime detectors. Absent for other detector types.
     uptimeStatus: int
+    # When the uptime status last changed (ISO 8601). Absent for other detector types.
+    uptimeStatusLastChanged: datetime | None
 
 
 @extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
@@ -169,6 +171,8 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             item for item in item_list if item.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
         ]
         uptime_status_map: dict[int, int] = {}
+        # When the detector last changed state, used to show "failing for X" in the UI.
+        uptime_status_changed_map: dict[int, datetime | None] = {}
         if uptime_items:
             detector_state_by_id = {
                 ds.detector_id: ds
@@ -184,6 +188,9 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
                 else:
                     status = UptimeStatus.OK
                 uptime_status_map[item.id] = int(status)
+                uptime_status_changed_map[item.id] = (
+                    detector_state.date_updated if detector_state is not None else None
+                )
 
         for item in item_list:
             attrs[item]["data_sources"] = ds_map.get(item.id)
@@ -206,6 +213,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
             if item.id in uptime_status_map:
                 attrs[item]["uptime_status"] = uptime_status_map[item.id]
+                attrs[item]["uptime_status_last_changed"] = uptime_status_changed_map.get(item.id)
 
         return attrs
 
@@ -246,4 +254,5 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         }
         if "uptime_status" in attrs:
             data["uptimeStatus"] = attrs["uptime_status"]
+            data["uptimeStatusLastChanged"] = attrs.get("uptime_status_last_changed")
         return data
