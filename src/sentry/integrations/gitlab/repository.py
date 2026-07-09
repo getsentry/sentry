@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +14,8 @@ from sentry.shared_integrations.exceptions import ApiError
 
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
+
+logger = logging.getLogger("sentry.integrations.gitlab")
 
 
 class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"]):
@@ -58,16 +61,66 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         }
 
     def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
-        if repo.config.get("webhook_id"):
-            return
+        # Emitted on every invocation so we can gauge how often this path runs
+        # (and therefore how many webhook create calls we make to GitLab).
+        existing_webhook_id = repo.config.get("webhook_id")
+        log_extra = {
+            "organization_id": repo.organization_id,
+            "integration_id": repo.integration_id,
+            "repository_id": repo.id,
+            "project_id": repo.config.get("project_id"),
+        }
+        logger.info(
+            "gitlab.repository.on_create_repository",
+            extra={**log_extra, "has_existing_webhook": bool(existing_webhook_id)},
+        )
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        project_id = repo.config["project_id"]
+
+        # A stored webhook_id can survive an uninstall/reinstall of the integration
+        # (disassociate_organization_integration clears integration_id but leaves the
+        # config intact and never deletes the GitLab hook). Rather than blindly trust
+        # it, verify the hook still exists on the GitLab project so we can heal:
+        #   - hook present  -> refresh its token + events (heals a rotated webhook
+        #                       secret from reinstalling with a new OAuth app)
+        #   - hook missing  -> fall through and create a fresh one
+        if existing_webhook_id:
+            try:
+                # NOTE: get_project_webhooks returns the first page of hooks only. In
+                # practice a Sentry-managed hook is created per project and lives on the
+                # first page, so matching against that is sufficient; if it isn't found
+                # we recreate rather than paginate further.
+                hooks = client.get_project_webhooks(project_id)
+            except Exception as e:
+                raise installation.raise_error(e)
+
+            if any(hook["id"] == existing_webhook_id for hook in hooks):
+                try:
+                    client.update_project_webhook(project_id, existing_webhook_id)
+                except Exception as e:
+                    raise installation.raise_error(e)
+                logger.info(
+                    "gitlab.repository.webhook_refreshed",
+                    extra={**log_extra, "webhook_id": existing_webhook_id},
+                )
+                return
+
+            logger.info(
+                "gitlab.repository.webhook_stale_recreated",
+                extra={**log_extra, "webhook_id": existing_webhook_id},
+            )
+
         try:
-            hook_id = client.create_project_webhook(repo.config["project_id"])
+            hook_id = client.create_project_webhook(project_id)
         except Exception as e:
             raise installation.raise_error(e)
         repo.config["webhook_id"] = hook_id
         repository_service.update_repository(organization_id=organization.id, update=repo)
+        logger.info(
+            "gitlab.repository.webhook_created",
+            extra={**log_extra, "webhook_id": hook_id},
+        )
 
     def on_delete_repository(self, repo):
         """Clean up the attached webhook"""

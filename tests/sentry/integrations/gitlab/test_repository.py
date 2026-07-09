@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import call, patch
 
 import orjson
 import pytest
@@ -6,6 +7,7 @@ import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
+from sentry.integrations.services.repository.service import repository_service
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -102,6 +104,162 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
+
+    @responses.activate
+    def test_on_create_repository_refreshes_existing_webhook(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+
+        repo = repository_service.get_repository(
+            organization_id=self.organization.id, id=response.data["id"]
+        )
+        assert repo is not None
+        webhook_id = repo.config["webhook_id"]
+
+        # The stored hook still exists on the GitLab project, so it should be
+        # refreshed (token + events updated) rather than recreated.
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            json=[{"id": webhook_id, "url": "https://example.com/hook"}],
+        )
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks/%s" % (self.gitlab_id, webhook_id),
+            json={"id": webhook_id},
+        )
+
+        with patch("sentry.integrations.gitlab.repository.logger.info") as mock_logger_info:
+            self.provider.on_create_repository(repo, self.organization)
+
+        assert [c.request.method for c in responses.calls] == ["GET", "PUT"]
+        # webhook_id is left untouched when we refresh an existing hook.
+        refreshed = self.get_repository(pk=response.data["id"])
+        assert refreshed.config["webhook_id"] == webhook_id
+        mock_logger_info.assert_has_calls(
+            [
+                call(
+                    "gitlab.repository.on_create_repository",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "has_existing_webhook": True,
+                    },
+                ),
+                call(
+                    "gitlab.repository.webhook_refreshed",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "webhook_id": webhook_id,
+                    },
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_on_create_repository_recreates_stale_webhook(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+
+        repo = repository_service.get_repository(
+            organization_id=self.organization.id, id=response.data["id"]
+        )
+        assert repo is not None
+        stale_webhook_id = repo.config["webhook_id"]
+
+        # The stored hook no longer exists on the GitLab project (e.g. it was
+        # deleted), so a new hook should be created and its id stored.
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            json=[],
+        )
+        responses.add(
+            responses.POST,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            json={"id": 200},
+        )
+
+        with patch("sentry.integrations.gitlab.repository.logger.info") as mock_logger_info:
+            self.provider.on_create_repository(repo, self.organization)
+
+        assert [c.request.method for c in responses.calls] == ["GET", "POST"]
+        recreated = self.get_repository(pk=response.data["id"])
+        assert recreated.config["webhook_id"] == 200
+        mock_logger_info.assert_has_calls(
+            [
+                call(
+                    "gitlab.repository.on_create_repository",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "has_existing_webhook": True,
+                    },
+                ),
+                call(
+                    "gitlab.repository.webhook_stale_recreated",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "webhook_id": stale_webhook_id,
+                    },
+                ),
+                call(
+                    "gitlab.repository.webhook_created",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "webhook_id": 200,
+                    },
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_on_create_repository_logs_webhook_creation(self) -> None:
+        self.add_create_repository_responses(self.default_repository_config)
+
+        with patch("sentry.integrations.gitlab.repository.logger.info") as mock_logger_info:
+            response = self.create_repository(self.default_repository_config, self.integration.id)
+
+        assert response.status_code == 201
+        repo = self.get_repository(pk=response.data["id"])
+
+        mock_logger_info.assert_has_calls(
+            [
+                call(
+                    "gitlab.repository.on_create_repository",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "has_existing_webhook": False,
+                    },
+                ),
+                call(
+                    "gitlab.repository.webhook_created",
+                    extra={
+                        "organization_id": self.organization.id,
+                        "integration_id": self.integration.id,
+                        "repository_id": repo.id,
+                        "project_id": repo.config["project_id"],
+                        "webhook_id": repo.config["webhook_id"],
+                    },
+                ),
+            ]
+        )
 
     @responses.activate
     def test_create_repository_verify_payload(self) -> None:
