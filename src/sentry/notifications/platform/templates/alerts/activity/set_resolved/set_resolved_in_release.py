@@ -67,7 +67,8 @@ class SetResolvedInReleaseActivityTemplate(NotificationTemplate[ActivityAlertAct
         resolution_blocks: list[NotificationTextBlock] = [
             PlainTextBlock(text="was resolved in an upcoming release.")
         ]
-        if activity.data and "version" in activity.data:
+        # If version is missing, None or "" -> it was resolved in an upcoming release
+        if activity.data and activity.data.get("version"):
             raw_version = activity.data["version"]
             readable_version = parse_release(raw_version, json_loads=orjson.loads)["description"]
             resolution_blocks = [
