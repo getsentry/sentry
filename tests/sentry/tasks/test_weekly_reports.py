@@ -38,8 +38,8 @@ from sentry.tasks.summaries.utils import (
     _project_key_performance_issues_snuba,
     fetch_past_resolved_issue_links,
     org_key_errors,
-    organization_project_issue_counts_by_day,
     organization_project_issue_substatus_summaries,
+    organization_project_issue_summaries,
     project_key_errors,
     project_past_resolved_issues,
     user_project_ownership,
@@ -1067,6 +1067,7 @@ class WeeklyReportsTest(
             "issue_count": 0,
         }
 
+    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_in_trends(self, message_builder: mock.MagicMock) -> None:
         """Verify non-zero issue data flows through trends when unresolved groups exist."""
@@ -1156,8 +1157,8 @@ class WeeklyReportsTest(
             )
             assert has_nonzero_issue_day
 
-    def test_organization_project_issue_counts_by_day_query(self) -> None:
-        """Verify organization_project_issue_counts_by_day returns non-zero daily counts."""
+    def test_organization_project_issue_summaries_query(self) -> None:
+        """Verify organization_project_issue_summaries returns per-day, per-substatus counts."""
         three_days_ago = self.three_days_ago.isoformat()
         two_days_ago = self.two_days_ago.isoformat()
 
@@ -1216,17 +1217,17 @@ class WeeklyReportsTest(
         event4.group.save()
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
-        results = organization_project_issue_counts_by_day(start=ctx.start, end=ctx.end, ctx=ctx)
+        results = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
 
-        by_day = {}
         for row in results:
             assert row["project_id"] == self.project.id
-            by_day[row["day"]] = row["total"]
+            assert "substatus" in row
+            assert "day" in row
 
-        assert len(by_day) == 2
-        total = sum(by_day.values())
+        total = sum(row["total"] for row in results)
         assert total == 3
 
+    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
@@ -1280,6 +1281,7 @@ class WeeklyReportsTest(
             context = call_args.kwargs["context"]
             assert context["trends"]["issue_pct_change"] == "▲ 100%"
 
+    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_pct_change_partial_cache_falls_back_per_key(
@@ -1350,6 +1352,7 @@ class WeeklyReportsTest(
             # i comes from ORM fallback: current 1 vs prev 2
             assert context["trends"]["issue_pct_change"] == "▼ 50%"
 
+    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_multi_project(self, message_builder: mock.MagicMock) -> None:
         """Verify issue data aggregates correctly across multiple projects."""
@@ -1427,6 +1430,7 @@ class WeeklyReportsTest(
             )
             assert legend_substatus_total == 3
 
+    @with_feature("organizations:weekly-report-issue-counts-by-day")
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_cache_round_trip(self, message_builder: mock.MagicMock) -> None:

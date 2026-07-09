@@ -13,14 +13,15 @@ from sentry.tasks.summaries.utils import (
     fetch_key_performance_issue_groups,
     fetch_past_resolved_issue_links,
     org_key_errors,
-    organization_project_issue_counts_by_day,
     organization_project_issue_substatus_summaries,
+    organization_project_issue_summaries,
     project_event_counts_for_organization,
     project_key_errors,
     project_key_performance_issues,
     project_past_resolved_issues,
 )
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
@@ -98,9 +99,6 @@ class OrganizationReportContextFactory:
             project_ids = list(ctx.projects_context_map.keys())
             cached = read_project_metrics(ctx.organization.id, project_ids)
 
-            # Track per-key cache misses: a cache entry may exist but lack
-            # keys added in newer versions (e.g. "i" was added after "e"/"t").
-            # Each fallback only runs for projects actually missing that key.
             error_missed_project_ids: set[int] = set()
             transaction_missed_project_ids: set[int] = set()
             issue_missed_project_ids: set[int] = set()
@@ -115,22 +113,25 @@ class OrganizationReportContextFactory:
                     project_ctx.prev_week_accepted_transaction_count = values["t"]
                 else:
                     transaction_missed_project_ids.add(project_id)
-                if "i" in values:
-                    project_ctx.prev_week_total_substatus_count = values["i"]
-                else:
-                    issue_missed_project_ids.add(project_id)
+                if features.has(
+                    "organizations:weekly-report-issue-counts-by-day", ctx.organization
+                ):
+                    if "i" in values:
+                        project_ctx.prev_week_total_substatus_count = values["i"]
+                    else:
+                        issue_missed_project_ids.add(project_id)
 
             no_cache_project_ids = set(project_ids) - set(cached.keys())
             error_missed_project_ids |= no_cache_project_ids
             transaction_missed_project_ids |= no_cache_project_ids
-            issue_missed_project_ids |= no_cache_project_ids
+            if features.has("organizations:weekly-report-issue-counts-by-day", ctx.organization):
+                issue_missed_project_ids |= no_cache_project_ids
 
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
 
             snuba_project_ids = error_missed_project_ids | transaction_missed_project_ids
             if snuba_project_ids:
-                # Snuba fallback for cache misses (e.g. new projects, first report run)
                 event_counts = project_event_counts_for_organization(
                     start=prev_start,
                     end=prev_end,
@@ -153,8 +154,7 @@ class OrganizationReportContextFactory:
                             project_ctx.prev_week_accepted_error_count += total
 
             if issue_missed_project_ids:
-                # Django ORM fallback for previous-week issue counts
-                issue_data = organization_project_issue_counts_by_day(
+                issue_data = organization_project_issue_summaries(
                     start=prev_start, end=prev_end, ctx=ctx
                 )
                 for item in issue_data:
@@ -176,24 +176,35 @@ class OrganizationReportContextFactory:
         ):
             organization_project_issue_substatus_summaries(ctx)
 
-    @metrics.wraps("weekly_report.create_context.issue_counts_by_day")
-    def _append_organization_project_issue_counts_by_day(
-        self, ctx: OrganizationReportContext
-    ) -> None:
+    @metrics.wraps("weekly_report.create_context.issue_summaries")
+    def _append_organization_project_issue_summaries(self, ctx: OrganizationReportContext) -> None:
         with start_span(
-            op="weekly_reports.organization_project_issue_counts_by_day",
-            name="weekly_reports.organization_project_issue_counts_by_day",
+            op="weekly_reports.organization_project_issue_summaries",
+            name="weekly_reports.organization_project_issue_summaries",
         ):
-            data = organization_project_issue_counts_by_day(start=ctx.start, end=ctx.end, ctx=ctx)
+            data = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
             for item in data:
                 project_id = item["project_id"]
                 if project_id not in ctx.projects_context_map:
                     continue
                 project_ctx = ctx.projects_context_map[project_id]
-                # TruncDay with USE_TZ=True / TIME_ZONE="UTC" produces UTC-midnight
-                # timestamps, matching Snuba's Granularity(ONE_DAY) used for error_count_by_day.
+
+                substatus = item["substatus"]
+                total = item["total"]
+                if substatus == GroupSubStatus.NEW:
+                    project_ctx.new_substatus_count += total
+                elif substatus == GroupSubStatus.ESCALATING:
+                    project_ctx.escalating_substatus_count += total
+                elif substatus == GroupSubStatus.ONGOING:
+                    project_ctx.ongoing_substatus_count += total
+                elif substatus == GroupSubStatus.REGRESSED:
+                    project_ctx.regression_substatus_count += total
+                project_ctx.total_substatus_count += total
+
                 timestamp = int(item["day"].timestamp())
-                project_ctx.issue_count_by_day[timestamp] = item["total"]
+                project_ctx.issue_count_by_day[timestamp] = (
+                    project_ctx.issue_count_by_day.get(timestamp, 0) + total
+                )
 
     @metrics.wraps("weekly_report.create_context.project_key_errors")
     def _append_project_key_errors(self, ctx: OrganizationReportContext) -> None:
@@ -296,8 +307,10 @@ class OrganizationReportContextFactory:
             self._append_project_event_counts(ctx)
             if features.has("organizations:weekly-report-week-over-week-metric", self.organization):
                 self._append_previous_week_counts(ctx)
-            self._append_organization_project_issue_substatus_summaries(ctx)
-            self._append_organization_project_issue_counts_by_day(ctx)
+            if features.has("organizations:weekly-report-issue-counts-by-day", self.organization):
+                self._append_organization_project_issue_summaries(ctx)
+            else:
+                self._append_organization_project_issue_substatus_summaries(ctx)
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
             if not self.organization.flags.enhanced_privacy:

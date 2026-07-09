@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.db.models import Count
@@ -681,9 +681,14 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         project_ctx.total_substatus_count += item["total"]
 
 
-def organization_project_issue_counts_by_day(start, end, ctx) -> list[dict[str, Any]]:
-    """Count unique unresolved issues per project per day, bucketed by last_seen date."""
-    daily_counts = (
+def organization_project_issue_summaries(
+    start: datetime, end: datetime, ctx: OrganizationReportContext
+) -> list[dict[str, Any]]:
+    """Query unresolved issues grouped by (project, substatus, day).
+
+    Returns raw rows; callers roll up by substatus or by day as needed.
+    """
+    return list(
         Group.objects.filter(
             project__organization_id=ctx.organization.id,
             last_seen__gte=start,
@@ -691,10 +696,9 @@ def organization_project_issue_counts_by_day(start, end, ctx) -> list[dict[str, 
             status=GroupStatus.UNRESOLVED,
         )
         .annotate(day=TruncDay("last_seen"))
-        .values("project_id", "day")
+        .values("project_id", "substatus", "day")
         .annotate(total=Count("id"))
     )
-    return list(daily_counts)
 
 
 PAST_ISSUES_CANDIDATE_LIMIT = 50
