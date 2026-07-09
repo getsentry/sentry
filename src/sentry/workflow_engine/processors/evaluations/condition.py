@@ -37,10 +37,13 @@ class DataConditionEvaluation(BaseWorkflowEngineEvaluation[DataConditionResult, 
     @cached_property
     def outcome(self) -> TriggerResult:
         """
-        #TODO: @saponifi3d - The TriggerResult and the BaseWorkflowEngineEvaluation
+        TODO - @saponifi3d - The TriggerResult and the BaseWorkflowEngineEvaluation
         can likely serve the same purpose, looking at the result / errors and providing
         helpful interactions.
 
-        For now, using the `TriggerResult` to move more quickly through the refactoring
+        For now, using the `TriggerResult` to move a little faster through the refactoring.
         """
-        return TriggerResult(triggered=self.result is not None, error=self.error)
+        return TriggerResult(
+            triggered=(self.result is not None),
+            error=self.error,
+        )

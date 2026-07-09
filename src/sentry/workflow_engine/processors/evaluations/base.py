@@ -7,5 +7,5 @@ class BaseWorkflowEngineEvaluation[R, E]:
     This is a shared base class for all Evaluation classes.
     """
 
-    result: R | None
-    error: E | None
+    result: R | None = None
+    error: E | None = None

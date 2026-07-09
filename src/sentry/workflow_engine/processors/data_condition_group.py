@@ -7,8 +7,8 @@ from sentry.utils.tracing import trace
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
-from sentry.workflow_engine.processors.evaluations import TriggerResult
-from sentry.workflow_engine.types import ConditionError, DataConditionResult
+from sentry.workflow_engine.processors.evaluations import DataConditionEvaluation, TriggerResult
+from sentry.workflow_engine.types import ConditionError
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -17,16 +17,9 @@ T = TypeVar("T")
 
 
 @dataclasses.dataclass()
-class ProcessedDataCondition:
-    logic_result: TriggerResult
-    condition: DataCondition
-    result: DataConditionResult
-
-
-@dataclasses.dataclass()
 class ProcessedDataConditionGroup:
     logic_result: TriggerResult
-    condition_results: list[ProcessedDataCondition]
+    condition_results: list[DataConditionEvaluation]
 
 
 DataConditionGroupResult = tuple[ProcessedDataConditionGroup, list[DataCondition]]
@@ -73,40 +66,40 @@ def get_slow_conditions_for_groups(
 
 
 def evaluate_condition_group_results(
-    condition_results: list[ProcessedDataCondition],
+    condition_results: list[DataConditionEvaluation],
     logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionGroup:
     logic_result = TriggerResult.FALSE
-    group_condition_results: list[ProcessedDataCondition] = []
+    group_condition_results: list[DataConditionEvaluation] = []
 
     if logic_type == DataConditionGroup.Type.NONE:
         # if we get to this point, no conditions were met
         # because we would have short-circuited
         logic_result = TriggerResult.none(
-            condition_result.logic_result for condition_result in condition_results
+            condition_result.outcome for condition_result in condition_results
         )
 
     elif logic_type == DataConditionGroup.Type.ANY:
         logic_result = TriggerResult.any(
-            condition_result.logic_result for condition_result in condition_results
+            condition_result.outcome for condition_result in condition_results
         )
 
         if logic_result.triggered:
             group_condition_results = [
                 condition_result
                 for condition_result in condition_results
-                if condition_result.logic_result.triggered
+                if condition_result.outcome.triggered
             ]
 
     elif logic_type == DataConditionGroup.Type.ALL:
-        conditions_met = [condition_result.logic_result for condition_result in condition_results]
+        conditions_met = [condition_result.outcome for condition_result in condition_results]
         logic_result = TriggerResult.all(conditions_met)
 
         if logic_result.triggered:
             group_condition_results = [
                 condition_result
                 for condition_result in condition_results
-                if condition_result.logic_result.triggered
+                if condition_result.outcome.triggered
             ]
 
     return ProcessedDataConditionGroup(
@@ -124,7 +117,7 @@ def evaluate_data_conditions(
     Evaluate a list of conditions. Each condition is a tuple with the value to evaluate the condition against.
     Next we apply the logic_type to get the results of the list of conditions.
     """
-    condition_results: list[ProcessedDataCondition] = []
+    condition_results: list[DataConditionEvaluation] = []
 
     if len(conditions_to_evaluate) == 0:
         # if we don't have any conditions, always return True
@@ -132,18 +125,13 @@ def evaluate_data_conditions(
 
     for condition, value in conditions_to_evaluate:
         condition_evaluation = condition.evaluate_value(value)
-        result = ProcessedDataCondition(
-            logic_result=condition_evaluation.outcome,
-            condition=condition,
-            result=condition_evaluation.result,
-        )
 
         # Check for short-circuiting evaluations
         if condition_evaluation.outcome.triggered:
             if logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
                 return ProcessedDataConditionGroup(
                     logic_result=condition_evaluation.outcome,
-                    condition_results=[result],
+                    condition_results=[condition_evaluation],
                 )
 
             if logic_type == DataConditionGroup.Type.NONE:
@@ -155,7 +143,7 @@ def evaluate_data_conditions(
                     condition_results=[],
                 )
 
-        condition_results.append(result)
+        condition_results.append(condition_evaluation)
 
     # Apply the grouping logic to the condition evaluation results.
     return evaluate_condition_group_results(condition_results, logic_type)
@@ -167,7 +155,7 @@ def process_data_condition_group(
     value: T,
     data_conditions_for_group: list[DataCondition] | None = None,
 ) -> DataConditionGroupResult:
-    condition_results: list[ProcessedDataCondition] = []
+    condition_results: list[DataConditionEvaluation] = []
 
     try:
         logic_type = DataConditionGroup.Type(group.logic_type)
