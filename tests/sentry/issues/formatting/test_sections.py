@@ -177,6 +177,20 @@ def test_threads_only_with_stacktrace() -> None:
     assert "worker" not in out
 
 
+def test_threads_capped_by_max_threads() -> None:
+    # more threads than max_threads -> section output is bounded by the count cap
+    frame = Frame(function="f", line_no=1)
+    threads = [
+        ThreadDetails(name=f"t{i}", stacktrace=Stacktrace(frames=[frame])) for i in range(20)
+    ]
+    event = EventObject(title="t", threads=threads)
+    tight = dataclasses.replace(LIMITS_DEFAULT, max_threads=3)
+    out = threads_section(event, MD, tight)
+    assert out.count("```") == 3 * 2  # one fenced stacktrace per rendered thread, capped at 3
+    assert "t0" in out and "t2" in out
+    assert "t3" not in out
+
+
 def test_spans_section() -> None:
     event = EventObject(
         title="t", spans=[EvidenceSpan(op="db", description="SELECT 1", exclusive_time_ms=12.5)]

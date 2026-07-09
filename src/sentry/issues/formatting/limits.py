@@ -1,6 +1,6 @@
 """Per-section size limits, mirroring Seer's ``EventFormatLimits``. Sections apply these caps
 as they render, so output stays bounded. ``None`` means no cap; ``max_frames``/
-``max_breadcrumbs`` are count caps.
+``max_breadcrumbs``/``max_threads`` are count caps.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ class Limits:
     max_spans_chars: int | None = None
     max_frames: int = 16
     max_breadcrumbs: int = 10
+    max_threads: int = 8
 
 
 LIMITS_DEFAULT = Limits(
