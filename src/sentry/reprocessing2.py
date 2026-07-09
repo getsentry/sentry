@@ -197,7 +197,7 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     if data is None:
         raise CannotReprocess("unprocessed_event.not_found")
 
-    required_attachment_types = get_required_attachment_types(data)
+    required_attachment_types = set(get_required_attachment_types(data))
     attachments = list(
         EventAttachment.objects.filter(
             project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
