@@ -465,10 +465,10 @@ export function UsageStatsOrganization({
     const xAxisEnd = moment(endTime);
     const displayStart = useUtc
       ? moment(startTime).utc()
-      : moment(startTime).tz(getUserTimezone());
+      : moment(startTime).tz(getUserTimezone() ?? moment.tz.guess());
     const displayEnd = useUtc
       ? moment(endTime).utc()
-      : moment(endTime).tz(getUserTimezone());
+      : moment(endTime).tz(getUserTimezone() ?? moment.tz.guess());
 
     if (intervalHours < 24) {
       displayEnd.add(intervalHours, 'h');
