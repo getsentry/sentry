@@ -59,8 +59,8 @@ def reset_and_backfill_group_action_log(
     group_id: int,
     **kwargs: object,
 ) -> None:
-    from sentry.issues.derived.processing import invalidate_group_derived_data
     from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
 
     try:
         group = Group.objects.get(id=group_id)
@@ -71,7 +71,7 @@ def reset_and_backfill_group_action_log(
         )
         return
 
-    invalidate_group_derived_data(group_id)
+    GroupDerivedData.objects.filter(group_id=group_id).delete()
 
     deleted_count, _ = GroupActionLogEntry.objects.filter(
         group_id=group_id,
