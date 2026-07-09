@@ -16,6 +16,7 @@ const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
+const CONTENT_MAX_WIDTH = 900;
 const DETAIL_MIN_WIDTH = 400;
 const CONTENT_WIDTH_RATIO = 0.6;
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
@@ -192,6 +193,7 @@ function MeasuredContentSplit({
       defaultSize={defaultContent}
       initialSize={storedSize}
       minSize={CONTENT_MIN_WIDTH}
+      maxSize={CONTENT_MAX_WIDTH}
       fillMinSize={DETAIL_MIN_WIDTH}
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
       sized={
