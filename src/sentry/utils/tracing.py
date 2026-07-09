@@ -37,10 +37,10 @@ def trace(
 def trace(
     func: Callable[..., Any] | None = None, *, op: str | None = None, name: str | None = None
 ) -> Any:
-    def decorator(f):
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         streaming_wrapped = sentry_sdk.traces.trace(
             name=name,
-            attributes={} if op is None else {"sentry.op": op},
+            attributes=None if op is None else {"sentry.op": op},
         )(f)
         non_streaming_wrapped = sentry_sdk.trace(
             op=op,
@@ -50,7 +50,7 @@ def trace(
         if inspect.iscoroutinefunction(f):
 
             @functools.wraps(f)
-            async def async_wrapper(*args, **kwargs):
+            async def async_wrapper(*args: Any, **kwargs: Any):
                 if has_span_streaming_enabled(sentry_sdk.get_client().options):
                     return await streaming_wrapped(*args, **kwargs)
                 return await non_streaming_wrapped(*args, **kwargs)
@@ -58,7 +58,7 @@ def trace(
             return async_wrapper
 
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any):
             if has_span_streaming_enabled(sentry_sdk.get_client().options):
                 return streaming_wrapped(*args, **kwargs)
             return non_streaming_wrapped(*args, **kwargs)
