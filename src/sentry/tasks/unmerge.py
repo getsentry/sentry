@@ -29,7 +29,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
@@ -498,7 +498,8 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 
 @instrumented_task(
     name="sentry.tasks.unmerge",
-    namespace=issues_tasks,
+    namespace=issues_merge_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
