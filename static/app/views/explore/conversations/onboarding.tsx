@@ -241,7 +241,7 @@ function getConversationIdStep(integration: string, isPython: boolean): Onboardi
       ? {
           type: 'code' as const,
           language: 'python',
-          code: `import sentry_sdk
+          code: `import sentry_sdk.ai
 
 # Call this at the start of each conversation
 sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
