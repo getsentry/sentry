@@ -17,6 +17,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {classifyTagKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -43,6 +44,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   isDocsButtonHidden?: boolean;
   requiredTags?: string[];
   traceItemType?: TraceItemDataset;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }
 
 export function ColumnEditorModal({
@@ -60,6 +62,7 @@ export function ColumnEditorModal({
   isDocsButtonHidden = false,
   handleReset,
   traceItemType = TraceItemDataset.SPANS,
+  validatedFieldTypes,
 }: ColumnEditorModalProps) {
   const tags = useMemo(
     () =>
@@ -70,8 +73,17 @@ export function ColumnEditorModal({
         booleanTags,
         hiddenKeys,
         traceItemType,
+        validatedFieldTypes,
       }),
-    [booleanTags, columns, hiddenKeys, numberTags, stringTags, traceItemType]
+    [
+      booleanTags,
+      columns,
+      hiddenKeys,
+      numberTags,
+      stringTags,
+      traceItemType,
+      validatedFieldTypes,
+    ]
   );
 
   // We keep a temporary state for the columns so that we can apply the changes
@@ -353,6 +365,7 @@ interface BuildColumnOptionsParams {
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
   hiddenKeys?: string[];
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }
 
 function buildColumnOptions({
@@ -362,6 +375,7 @@ function buildColumnOptions({
   booleanTags,
   hiddenKeys,
   traceItemType,
+  validatedFieldTypes,
 }: BuildColumnOptionsParams) {
   return buildAttributeOptions({
     numberTags,
@@ -369,6 +383,8 @@ function buildColumnOptions({
     booleanTags,
     traceItemType,
     extraColumns: columns,
+    extraColumnKind: column =>
+      fieldKindFromFieldType(validatedFieldTypes?.[column]) ?? classifyTagKey(column),
   })
     .filter(option => {
       const hidden = hiddenKeys ?? [];
@@ -381,6 +397,19 @@ function buildColumnOptions({
       return true;
     })
     .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
+}
+
+function fieldKindFromFieldType(fieldType?: FieldValueType) {
+  if (fieldType === FieldValueType.NUMBER) {
+    return FieldKind.MEASUREMENT;
+  }
+  if (fieldType === FieldValueType.BOOLEAN) {
+    return FieldKind.BOOLEAN;
+  }
+  if (fieldType === FieldValueType.STRING) {
+    return FieldKind.TAG;
+  }
+  return null;
 }
 
 const RowContainer = styled('div')`

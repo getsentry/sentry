@@ -1,50 +1,150 @@
-"""
-Trigger an Autofix PR iteration from a GitHub PR comment mention.
-
-When a user comments ``@sentry iterate <feedback>`` on a pull request that
-Autofix created, we kick off a ``PR_ITERATION`` run that revises the existing
-PR using the comment as feedback. The commenter must have write access to the
-repository so that random GitHub users can't drive Autofix runs (which cost
-quota and rewrite the PR).
-"""
-
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, NamedTuple
+from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
 from scm.types import GetRepositoryUserPermissionProtocol
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.integrations.github.client import GitHubReaction
-from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.models.organization import Organization
+from sentry.integrations.services.integration import integration_service
+from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    PrIterationNoPullRequestException,
+    PrIterationNotEnabledException,
+    get_autofix_run_state,
+    trigger_autofix_agent,
+)
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.feedback_queue import (
+    QueuedAutofixFeedback,
+    enqueue_autofix_feedback,
+    pop_queued_autofix_feedback,
+)
+from sentry.seer.autofix.pr_iteration.types import (
     Feedback,
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
 )
-from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feedback_queue import enqueue_autofix_feedback
-from sentry.seer.webhooks import SentryIterateCommand, sentry_command
+from sentry.seer.models import SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-ITERATE_COMMAND = "@sentry"
 _SEER_GITHUB_PROVIDER = "integrations:github"
+
+
+def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
+    referrers = {item.referrer for item in items}
+    if len(referrers) == 1:
+        return referrers.pop()
+    return AutofixReferrer.UNKNOWN
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.consume_queued_feedback",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+)
+def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id: int) -> None:
+    lock = locks.get(
+        f"autofix:feedback:lock:{run_id}",
+        duration=60,
+        name="autofix_feedback",
+    )
+
+    with lock.acquire():
+        group = Group.objects.filter(
+            id=group_id,
+            project__organization_id=organization_id,
+        ).first()
+        if group is None:
+            logger.warning(
+                "autofix.pr_iteration.consume_feedback.group_not_found",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        try:
+            state = get_autofix_run_state(group, run_id)
+        except SeerPermissionError:
+            logger.warning(
+                "autofix.pr_iteration.consume_feedback.run_state_not_found",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        if state.status == "processing":
+            return
+
+        queued_items = pop_queued_autofix_feedback(run_id)
+        if not queued_items:
+            return
+
+        feedback_items = []
+        seen_comment_ids: set[int] = set()
+        for item in queued_items:
+            if not item.feedback.is_valid_for_run_state(state):
+                logger.info(
+                    "autofix.pr_iteration.consume_feedback.stale_feedback",
+                    extra={
+                        "organization_id": organization_id,
+                        "group_id": group_id,
+                        "run_id": run_id,
+                    },
+                )
+
+                continue
+
+            source = item.feedback.source
+            if isinstance(source, GithubPrCommentFeedbackSource):
+                comment_id = source.comment.get("id")
+                if comment_id is not None:
+                    if comment_id in seen_comment_ids:
+                        continue
+                    seen_comment_ids.add(comment_id)
+
+            feedback_items.append(item.feedback)
+
+        if not feedback_items:
+            logger.info(
+                "autofix.pr_iteration.consume_feedback.no_consumable_feedback",
+                extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        try:
+            trigger_autofix_agent(
+                group=group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=_get_feedback_referrer(queued_items),
+                run_id=run_id,
+                user_context="\n\n".join(item.text for item in feedback_items),
+                feedback=feedback_items,
+            )
+        except (
+            PrIterationNoPullRequestException,
+            PrIterationNotEnabledException,
+            SeerPermissionError,
+        ) as error:
+            logger.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
+            )
 
 
 def _github_commenter_has_repo_write_access(
@@ -87,148 +187,6 @@ def _github_commenter_has_repo_write_access(
     return result["data"]["perms"] in ("write", "admin")
 
 
-class CreatedCommentContext(NamedTuple):
-    comment: Mapping[str, Any]
-    log_extra: dict[str, Any]
-
-
-def _created_comment_context(
-    *,
-    event: Mapping[str, Any],
-    organization: Organization,
-) -> CreatedCommentContext | None:
-    """
-    Shared head for the comment processors: pull the comment off the event and
-    build ``log_extra``, then filter to ``action == "created"``.
-    """
-    comment = event.get("comment", {})
-    log_extra = {"organization_id": organization.id, "comment_id": comment.get("id")}
-
-    action = event.get("action")
-    if action != "created":
-        logger.debug(
-            "autofix.pr_iteration.comment_trigger.skipped_action",
-            extra={**log_extra, "action": action},
-        )
-        return None
-
-    return CreatedCommentContext(comment=comment, log_extra=log_extra)
-
-
-def _dispatch_autofix_iteration_from_comment(
-    *,
-    comment: Mapping[str, Any],
-    pr_number: int | None,
-    organization: Organization,
-    repo: Repository,
-    integration: RpcIntegration | None,
-    log_extra: Mapping[str, Any],
-    source_type: GithubPrCommentFeedbackType,
-) -> None:
-    command = sentry_command(comment.get("body"))
-    if not isinstance(command, SentryIterateCommand):
-        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
-        return None
-
-    log_extra = {**log_extra, "pr_number": pr_number}
-
-    # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
-    # log at info to make any silent drop debuggable.
-    logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
-
-    if not features.has("organizations:autofix-pr-iteration", organization):
-        logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
-        return None
-
-    if integration is None:
-        logger.info("autofix.pr_iteration.comment_trigger.no_integration", extra=log_extra)
-        return None
-
-    if pr_number is None:
-        logger.info("autofix.pr_iteration.comment_trigger.no_pr_number", extra=log_extra)
-        return None
-
-    if not comment.get("html_url"):
-        raise ValueError("GitHub PR comment is missing html_url")
-
-    logger.info("autofix.pr_iteration.comment_trigger.scheduled", extra=log_extra)
-    trigger_pr_iteration_from_comment.delay(
-        organization_id=organization.id,
-        repo_id=repo.id,
-        integration_id=integration.id,
-        pr_number=pr_number,
-        feedback=command.feedback,
-        comment=comment,
-        source_type=source_type,
-    )
-    return None
-
-
-def handle_pull_request_review_comment_for_autofix_iteration(
-    *,
-    event: Mapping[str, Any],
-    organization: Organization,
-    repo: Repository,
-    integration: RpcIntegration | None = None,
-    **kwargs: Any,
-) -> None:
-    """
-    Webhook processor for ``pull_request_review_comment`` events that triggers
-    an Autofix PR iteration when a user leaves an inline ``@sentry`` comment.
-    """
-    context = _created_comment_context(event=event, organization=organization)
-    # No need to check whether this is a pr vs. issue as this webhook only fires in a pr
-    if context is None:
-        return None
-
-    pull_request = event.get("pull_request", {})
-    _dispatch_autofix_iteration_from_comment(
-        comment=context.comment,
-        pr_number=pull_request.get("number"),
-        organization=organization,
-        repo=repo,
-        integration=integration,
-        log_extra=context.log_extra,
-        source_type="github-pr-review-comment",
-    )
-    return None
-
-
-def handle_issue_comment_for_autofix_iteration(
-    *,
-    event: Mapping[str, Any],
-    organization: Organization,
-    repo: Repository,
-    integration: RpcIntegration | None = None,
-    **kwargs: Any,
-) -> None:
-    """
-    Webhook processor for ``issue_comment`` events that triggers an Autofix PR
-    iteration when a user comments ``@sentry``.
-    """
-    context = _created_comment_context(event=event, organization=organization)
-    if context is None:
-        return None
-
-    # issue_comment fires on every issue too, so guard that this is a PR. Logs at
-    # debug (like the action filter) to avoid spamming prod on non-PR comments.
-    issue = event.get("issue", {})
-    if not issue.get("pull_request"):
-        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_pr", extra=context.log_extra)
-        return None
-
-    _dispatch_autofix_iteration_from_comment(
-        comment=context.comment,
-        pr_number=issue.get("number"),
-        organization=organization,
-        repo=repo,
-        integration=integration,
-        log_extra=context.log_extra,
-        source_type="github-pr-comment",
-    )
-    return None
-
-
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
@@ -261,11 +219,9 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    # The task runs async, so the repo can be deleted between webhook receipt
-    # and execution; guard the lookup instead of crashing.
     repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
     if repo is None:
-        logger.warning(
+        logger.info(
             "autofix.pr_iteration.comment_trigger.missing_repo",
             extra={"organization_id": organization_id, "repo_id": repo_id},
         )
@@ -325,18 +281,14 @@ def trigger_pr_iteration_from_comment(
 
     source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
     if source_type == "github-pr-review-comment":
-        source = {
-            "type": source_type,
-            "comment": comment,
-            "file_path": comment.get("path"),
-            "line": comment.get("line"),
-            "start_line": comment.get("start_line"),
-        }
+        source = GithubPrReviewCommentFeedbackSource(
+            comment=comment,
+            file_path=comment.get("path"),
+            line=comment.get("line"),
+            start_line=comment.get("start_line"),
+        )
     else:
-        source = {
-            "type": source_type,
-            "comment": comment,
-        }
+        source = GithubPrCommentFeedbackSource(comment=comment)
     feedback_obj = Feedback(text=feedback, source=source)
 
     enqueue_autofix_feedback(
@@ -370,4 +322,13 @@ def trigger_pr_iteration_from_comment(
         client.create_comment_reaction(repo.name, str(comment_id), GitHubReaction.EYES)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+    logger.info(
+        "autofix.pr_iteration.comment_trigger.success",
+        extra={
+            "organization_id": organization_id,
+            "repo_id": repo_id,
+        },
+    )
+
     return None

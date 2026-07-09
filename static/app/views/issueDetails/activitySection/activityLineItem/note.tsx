@@ -59,6 +59,7 @@ export function ActivityLineNote({
       <ActivityLineHeadline
         title={getNoteAuthorName(activity)}
         timestamp={timestamp}
+        variant={inputVariant}
         actions={
           !editing && (
             <CommentActionsDropdown

@@ -44,6 +44,7 @@ export function ConfigureReplayCard({
 function getPath(sdkName: string | null | undefined) {
   switch (sdkName) {
     case 'sentry.cocoa':
+    case 'sentry.cocoa.unreal': // Session Replay on iOS builds of Unreal Engine games via the embedded Cocoa SDK
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
     case 'sentry.java.android':
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/

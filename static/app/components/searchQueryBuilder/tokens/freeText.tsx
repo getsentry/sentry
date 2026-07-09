@@ -6,6 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderInteraction,
   useSearchQueryBuilderLayout,
@@ -276,6 +277,12 @@ function SearchQueryBuilderInputInternal({
     recentSearches,
   } = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {
+    defaultToAskSeerOnFreeTextSearch,
+    setAutoSubmitFromCurrentQuery,
+    setAutoSubmitSeer,
+    setDisplayAskSeer,
+  } = useSearchQueryBuilderAI();
   const {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear} =
     useSearchQueryBuilderInteraction();
 
@@ -298,6 +305,10 @@ function SearchQueryBuilderInputInternal({
   const items = customMenu ? sectionItems : sortedFilteredItems;
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
+  const hasFilter = [...state.collection].some(collectionItem => {
+    const collectionValue = collectionItem.value;
+    return collectionValue?.type === Token.FILTER;
+  });
 
   useEffect(() => {
     if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
@@ -516,7 +527,9 @@ function SearchQueryBuilderInputInternal({
             shouldCommitQuery: false,
           });
           resetInputValue();
-          const selectedKey = filterKeys[value];
+          const selectedKey = Object.hasOwn(filterKeys, value)
+            ? filterKeys[value]
+            : undefined;
           trackAnalytics('search.key_autocompleted', {
             organization,
             search_type: recentSearchTypeToLabel(recentSearches),
@@ -543,6 +556,13 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
+          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
+            setAutoSubmitFromCurrentQuery(true);
+            setAutoSubmitSeer(true);
+            setDisplayAskSeer(true);
+            return;
+          }
+
           // if we haven't changed anything, just search
           if (value.trim() === trimmedTokenValue) {
             handleSearch(query);
@@ -650,7 +670,9 @@ function SearchQueryBuilderInputInternal({
               getSuggestedFilterKey,
               loadedItems: sortedFilteredItems,
             });
-            const key = filterKeys[filterKey];
+            const key = Object.hasOwn(filterKeys, filterKey)
+              ? filterKeys[filterKey]
+              : undefined;
             dispatch({
               type: 'UPDATE_FREE_TEXT_ON_COLON',
               tokens: [token],

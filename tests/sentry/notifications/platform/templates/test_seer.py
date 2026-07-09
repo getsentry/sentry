@@ -10,7 +10,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
     _get_next_stopping_point,
 )
-from sentry.notifications.platform.types import ParagraphBlock
+from sentry.notifications.platform.types import ParagraphSection
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 
@@ -116,7 +116,7 @@ class SeerAgentErrorTemplateTest(TestCase):
 
         assert rendered.subject == "Seer had some trouble..."
         assert len(rendered.body) == 1
-        assert isinstance(rendered.body[0], ParagraphBlock)
+        assert isinstance(rendered.body[0], ParagraphSection)
         assert rendered.body[0].blocks[0].text == "Seer could not explore your organization."
 
     def test_render_custom_title(self) -> None:

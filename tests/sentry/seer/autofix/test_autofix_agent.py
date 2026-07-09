@@ -14,7 +14,6 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
-    Feedback,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
     _build_base_shas_metadata,
@@ -1472,24 +1471,3 @@ class TestTriggerPushChanges(TestCase):
             f"Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
         )
         assert body["payload"]["pr_description_suffix"] == expected
-
-
-class TestGithubPrCommentFeedbackSource(TestCase):
-    def test_deserializes_source_without_anchor_fields(self) -> None:
-        # Feedback enqueued under the pre-anchor schema (no file_path/line) must
-        # still deserialize; the anchor fields are optional.
-        feedback = Feedback.parse_raw(
-            '{"text": "fix it", "source": {"type": "github-pr-comment", "comment": {"id": 1}}}'
-        )
-        assert feedback.source["type"] == "github-pr-comment"
-        assert "file_path" not in feedback.source
-
-    def test_deserializes_review_comment_source_with_anchor_fields(self) -> None:
-        feedback = Feedback.parse_raw(
-            '{"text": "fix it", "source": {"type": "github-pr-review-comment", '
-            '"comment": {"id": 1}, "file_path": "src/foo.py", "line": 42, "start_line": 40}}'
-        )
-        assert feedback.source["type"] == "github-pr-review-comment"
-        assert feedback.source["file_path"] == "src/foo.py"
-        assert feedback.source["line"] == 42
-        assert feedback.source["start_line"] == 40

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
-from django.utils import timezone
-from pydantic import BaseModel, Field, ValidationError, parse_raw_as
+from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
@@ -36,6 +34,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.types import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
@@ -66,77 +65,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
-
-
-class UserUIFeedbackSource(TypedDict):
-    """Feedback submitted by a user through the Sentry UI."""
-
-    type: Literal["user-ui"]
-    # Identify the user by id rather than username: usernames are mutable, so we
-    # use the same stable key (`user_id`) that `GroupSeen` uses to track which
-    # users have viewed an issue.
-    user_id: int
-    # The publicly serialized user, resolved at write time so the read path
-    # doesn't have to hydrate it. ``None`` if the user could not be serialized.
-    # This is serialized as an anonymous viewer (never as the requester) so the
-    # payload never includes the user's full email list, options, or flags: it
-    # is embedded in Seer prompt metadata and round-tripped back to any org
-    # member with group-read access.
-    user: NotRequired[Any]
-
-
-GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-comment"]
-
-
-class _GithubPrCommentFeedbackSourceBase(TypedDict):
-    comment: Mapping[str, Any]
-
-
-class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
-    """Feedback submitted as a top-level GitHub PR comment (``@sentry <feedback>``)."""
-
-    type: Literal["github-pr-comment"]
-
-
-class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
-    """Feedback submitted as an inline GitHub PR review comment (``@sentry <feedback>``).
-
-    Carries the review-comment anchor so the UI can link the feedback back to the
-    diff location it was left on.
-    """
-
-    type: Literal["github-pr-review-comment"]
-    file_path: str | None
-    line: int | None
-    start_line: int | None
-
-
-# Discriminated on ``type``. Add new TypedDict variants to this union as more
-# feedback sources are introduced.
-FeedbackSource = (
-    UserUIFeedbackSource | GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
-)
-
-
-class Feedback(BaseModel):
-    text: str
-    source: FeedbackSource
-    timestamp: datetime = Field(default_factory=timezone.now)
-
-
-def parse_feedback(raw: str) -> list[Feedback]:
-    try:
-        return parse_raw_as(list[Feedback], raw)
-    except (ValidationError, ValueError):
-        pass
-    try:
-        return [parse_raw_as(Feedback, raw)]
-    except (ValidationError, ValueError):
-        return []
-
-
-def serialize_feedback(items: Sequence[Feedback]) -> str:
-    return json.dumps([item.dict() for item in items])
 
 
 class NoSeerQuotaException(Exception):

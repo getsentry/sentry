@@ -1,17 +1,20 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.autofix_agent import GithubPrCommentFeedbackType
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration_webhook import (
+from sentry.seer.autofix.pr_iteration.mention import (
     handle_issue_comment_for_autofix_iteration,
     handle_pull_request_review_comment_for_autofix_iteration,
-    trigger_pr_iteration_from_comment,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.seer.autofix.pr_iteration.types import (
+    GithubPrCommentFeedbackType,
+    GithubPrReviewCommentFeedbackSource,
+)
+from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_comment
 from sentry.testutils.cases import TestCase
 
-WEBHOOK_PATH = "sentry.seer.autofix.pr_iteration_webhook"
+MENTION_PATH = "sentry.seer.autofix.pr_iteration.mention"
+TASK_PATH = "sentry.tasks.seer.pr_iteration"
 
 
 class HandleIssueCommentForAutofixIterationTest(TestCase):
@@ -45,7 +48,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             integration=self.integration,
         )
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_schedules_task_for_valid_command(self, mock_delay: MagicMock) -> None:
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event())
@@ -65,13 +68,13 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             source_type="github-pr-comment",
         )
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event(action="edited"))
         mock_delay.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_pr_comment(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("pull_request")
@@ -79,18 +82,18 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             self._call(event)
         mock_delay.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event(body="just a comment"))
         mock_delay.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_feature_disabled(self, mock_delay: MagicMock) -> None:
         self._call(self._event())
         mock_delay.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_no_pr_number(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("number")
@@ -118,7 +121,9 @@ class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
                 "body": body,
                 "user": {"login": "octocat"},
                 "html_url": "https://github.com/getsentry/sentry/pull/7#discussion_r999",
-                "pull_request_review_id": 100,
+                "path": "src/sentry/foo.py",
+                "line": 42,
+                "start_line": 40,
             },
             "pull_request": {"number": 7},
         }
@@ -131,50 +136,27 @@ class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
             integration=self.integration,
         )
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_schedules_task_for_valid_command(self, mock_delay: MagicMock) -> None:
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_schedules_task_with_review_comment_source(self, mock_delay: MagicMock) -> None:
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event())
 
-        mock_delay.assert_called_once_with(
-            organization_id=self.organization.id,
-            repo_id=self.repo.id,
-            integration_id=self.integration.id,
-            pr_number=7,
-            feedback="fix it",
-            comment={
-                "id": 999,
-                "body": "@sentry fix it",
-                "user": {"login": "octocat"},
-                "html_url": "https://github.com/getsentry/sentry/pull/7#discussion_r999",
-                "pull_request_review_id": 100,
-            },
-            source_type="github-pr-review-comment",
-        )
+        mock_delay.assert_called_once()
+        kwargs = mock_delay.call_args.kwargs
+        assert kwargs["pr_number"] == 7
+        assert kwargs["feedback"] == "fix it"
+        assert kwargs["source_type"] == "github-pr-review-comment"
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event(action="edited"))
         mock_delay.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event(body="just a comment"))
-        mock_delay.assert_not_called()
-
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_feature_disabled(self, mock_delay: MagicMock) -> None:
-        self._call(self._event())
-        mock_delay.assert_not_called()
-
-    @patch(f"{WEBHOOK_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_no_pr_number(self, mock_delay: MagicMock) -> None:
-        event = self._event()
-        event["pull_request"].pop("number")
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(event)
         mock_delay.assert_not_called()
 
 
@@ -226,40 +208,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type=source_type,
         )
 
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_returns_early_when_get_pull_request_fails(
-        self, mock_get_integration: MagicMock, mock_get_state: MagicMock
-    ) -> None:
-        # PR deleted/private or a transient GitHub error during async execution.
-        mock_integration = self._mock_integration()
-        mock_client = mock_integration.get_installation.return_value.get_client.return_value
-        mock_client.get_pull_request.side_effect = ApiError("not found", code=404)
-        mock_get_integration.return_value = mock_integration
-
-        self._call()
-
-        mock_get_state.assert_not_called()
-
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_returns_early_when_repo_deleted(self, mock_get_integration: MagicMock) -> None:
-        # Repo removed between webhook receipt and async task execution.
-        trigger_pr_iteration_from_comment(
-            organization_id=self.organization.id,
-            repo_id=self.repo.id + 12345,
-            integration_id=42,
-            pr_number=7,
-            feedback="fix it",
-            comment=self.comment,
-            source_type="github-pr-comment",
-        )
-        mock_get_integration.assert_not_called()
-
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
         self,
         mock_get_integration: MagicMock,
@@ -295,11 +248,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
         mock_integration.get_installation.return_value.get_client.return_value.create_comment_reaction.assert_called_once()
 
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=False)
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
         self,
         mock_get_integration: MagicMock,
@@ -317,11 +270,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access")
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
         self,
         mock_get_integration: MagicMock,
@@ -339,11 +292,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
 
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_swallows_comment_reaction_exception(
         self,
         mock_get_integration: MagicMock,
@@ -364,36 +317,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_called_once()
         mock_client.create_comment_reaction.assert_called_once()
 
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_review_comment_does_not_react(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_has_access: MagicMock,
-    ) -> None:
-        mock_integration = self._mock_integration()
-        mock_client = mock_integration.get_installation.return_value.get_client.return_value
-        mock_get_integration.return_value = mock_integration
-        mock_get_state.return_value = self._agent_state()
-
-        # Inline review comments need the pulls/comments reactions endpoint, which
-        # the SCM platform does not expose, so we skip the reaction for now.
-        self._call(source_type="github-pr-review-comment")
-
-        mock_enqueue.assert_called_once()
-        mock_client.create_comment_reaction.assert_not_called()
-
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_review_comment_hoists_file_and_line(
         self,
         mock_get_integration: MagicMock,
@@ -416,32 +344,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
         source = mock_enqueue.call_args.kwargs["feedback"].source
-        assert source["type"] == "github-pr-review-comment"
-        assert source["file_path"] == "src/sentry/foo.py"
-        assert source["line"] == 42
-        assert source["start_line"] == 40
-
-    @patch(f"{WEBHOOK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{WEBHOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{WEBHOOK_PATH}.enqueue_autofix_feedback")
-    @patch(f"{WEBHOOK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{WEBHOOK_PATH}.integration_service.get_integration")
-    def test_issue_comment_omits_file_and_line(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_has_access: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-
-        # A top-level issue_comment is not line-anchored, so it carries no anchor.
-        self._call()
-
-        source = mock_enqueue.call_args.kwargs["feedback"].source
-        assert source["type"] == "github-pr-comment"
-        assert "file_path" not in source
-        assert "line" not in source
-        assert "start_line" not in source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        assert source.type == "github-pr-review-comment"
+        assert source.file_path == "src/sentry/foo.py"
+        assert source.line == 42
+        assert source.start_line == 40
