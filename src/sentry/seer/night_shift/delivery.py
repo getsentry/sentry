@@ -131,10 +131,14 @@ def _process_verdicts(
 
     # Groups this run already has a result row for (e.g. Seer redelivered a
     # shard result): don't re-trigger autofix or write duplicate rows for them.
+    # Matched on group_id, not idempotency_key, so rows written before
+    # idempotency_key existed (and are still null) are recognized too.
     recorded_group_ids = set(
-        SeerNightShiftRunResult.objects.filter(run=run, group_id__in=group_ids).values_list(
-            "group_id", flat=True
-        )
+        SeerNightShiftRunResult.objects.filter(
+            run=run,
+            kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            group_id__in=group_ids,
+        ).values_list("group_id", flat=True)
     )
 
     # SKIP and ROOT_CAUSE_ONLY are both suppressed from future runs via the skip
@@ -228,6 +232,7 @@ def _process_verdicts(
                 run=run,
                 kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 group=groups_by_id[v.group_id],
+                idempotency_key=str(v.group_id),
                 seer_run_id=seer_run_id,
                 result_seer_run=result_seer_run,
                 extras=extras,
