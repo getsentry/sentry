@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -177,7 +178,7 @@ export function SentryAppPublishRequestModal(props: Props) {
               >
                 <field.TextArea
                   autosize
-                  rows={1}
+                  rows={3}
                   value={field.state.value}
                   onChange={field.handleChange}
                 />
@@ -249,35 +250,35 @@ export function SentryAppPublishRequestModal(props: Props) {
           </form.AppField>
         </Flex>
 
-        <Flex direction="column" gap="lg" paddingTop="xl">
-          <Text as="p">
-            {t(
-              'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
-            )}
-          </Text>
-          <Text as="p">
-            {t(
-              'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
-            )}
-          </Text>
-          <Text as="p">
-            {t(
-              'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
-            )}
-          </Text>
-          <Text as="p">{t('Thank you for contributing to the Sentry community!')}</Text>
-        </Flex>
+        <Container paddingTop="xl">
+          <Alert variant="info">
+            <Flex direction="column" gap="lg">
+              <Text as="p">
+                {t(
+                  'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
+                )}
+              </Text>
+              <Text as="p">
+                {t(
+                  'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
+                )}
+              </Text>
+              <Text as="p">
+                {t(
+                  'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
+                )}
+              </Text>
+              <Text as="p">
+                {t('Thank you for contributing to the Sentry community!')}
+              </Text>
+            </Flex>
+          </Alert>
+        </Container>
       </Body>
       <Footer>
         <Flex gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <form.Subscribe selector={state => state.canSubmit}>
-            {canSubmit => (
-              <form.SubmitButton disabled={!canSubmit}>
-                {t('Request Publication')}
-              </form.SubmitButton>
-            )}
-          </form.Subscribe>
+          <form.SubmitButton>{t('Request Publication')}</form.SubmitButton>
         </Flex>
       </Footer>
     </form.AppForm>
