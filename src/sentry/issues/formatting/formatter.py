@@ -1,12 +1,6 @@
-"""The formatter: renders a flat event model into text (markdown or xml).
-
-Subclasses supply the per-format syntax primitives (``block``/``field``/``code_block``);
-the section list decides *what* is rendered and in what order. This mirrors Seer's
-per-section approach, made format-polymorphic so one section list drives every format.
-
-A "section" is a plain function ``(model, formatter, limits) -> str`` that reads the model
-and emits text via the formatter's primitives, returning "" to render nothing. Sections
-themselves live in their own module.
+"""Renders the event model into text. Subclasses supply the per-format syntax primitives
+(``block``/``field``/``code_block``); the section list decides what is rendered, so one
+section list drives every format. Sections live in ``sections.py``.
 """
 
 from __future__ import annotations

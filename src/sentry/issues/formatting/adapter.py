@@ -1,13 +1,5 @@
-"""Adapter: serialized event dict -> flat ``EventObject``.
-
-The serialized event (Sentry's ``EventSerializer`` output) is camelCase and nested: data
-lives under ``entries[]`` keyed by ``type``, frames use ``lineNo``/``inApp``/``absPath``,
-and the handled flag is ``mechanism.handled``. This module does the explicit structural
-mapping into our snake_case models.
-
-It is a pure structural mapping: no truncation or filtering (last-N breadcrumbs, max frames,
-skip ``[Filtered]``) happens here. Those are limit concerns handled by the sections + limits
-layer, so the model carries the full data and rendering decides what to cap.
+"""Maps a serialized event (camelCase, nested under ``entries[]``) into the snake_case
+``EventObject``. Pure structural mapping; truncation and filtering are left to the sections.
 """
 
 from __future__ import annotations
@@ -123,6 +115,13 @@ def _user(d: Any) -> UserDetails | None:
     )
 
 
+def _values(entry_data: Any) -> list[Mapping[str, Any]]:
+    """The ``values`` list from an entry's data, keeping only well-formed mappings."""
+    if not isinstance(entry_data, Mapping):
+        return []
+    return [v for v in entry_data.get("values") or [] if isinstance(v, Mapping)]
+
+
 def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | None]:
     tags: list[tuple[str, str | None]] = []
     transaction_name: str | None = None
@@ -141,38 +140,19 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     """Map a serialized event response into an ``EventObject``."""
     entries = _entries_by_type(data)
-
-    exceptions = [
-        _exception(v)
-        for v in (entries.get("exception") or {}).get("values", []) or []
-        if isinstance(v, Mapping)
-    ]
-    threads = [
-        _thread(v)
-        for v in (entries.get("threads") or {}).get("values", []) or []
-        if isinstance(v, Mapping)
-    ]
-    breadcrumbs = [
-        _breadcrumb(v)
-        for v in (entries.get("breadcrumbs") or {}).get("values", []) or []
-        if isinstance(v, Mapping)
-    ]
-
-    message_entry = entries.get("message") or {}
-    message = message_entry.get("formatted") if isinstance(message_entry, Mapping) else None
-
+    message = entries.get("message")
     tags, transaction_name = _tags(data)
 
     return EventObject(
         event_id=data.get("eventID") or data.get("id"),
         title=data.get("title") or "",
-        message=message,
+        message=message.get("formatted") if isinstance(message, Mapping) else None,
         platform=data.get("platform"),
         transaction_name=transaction_name,
         timestamp=data.get("dateCreated") or data.get("dateReceived"),
-        exceptions=exceptions,
-        threads=threads,
-        breadcrumbs=breadcrumbs,
+        exceptions=[_exception(v) for v in _values(entries.get("exception"))],
+        threads=[_thread(v) for v in _values(entries.get("threads"))],
+        breadcrumbs=[_breadcrumb(v) for v in _values(entries.get("breadcrumbs"))],
         request=_request(entries.get("request")),
         tags=tags,
         contexts=data.get("contexts") or {},

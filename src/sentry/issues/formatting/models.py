@@ -1,12 +1,6 @@
-"""Formatter model: a flat, event-rooted representation the formatter renders from.
-
-Adapted from Seer's ``EventDetails`` and friends, but defined here in Sentry (Seer is a
-separate service). The model is deliberately flat: issue-level fields live directly on
-``EventObject`` rather than in a wrapping object, so a single section list renders any
-issue type. An adapter populates these models from a serialized event/issue; the models
-themselves are plain snake_case (no camelCase aliasing).
-
-Trace models are intentionally omitted here; trace formatting is a later milestone.
+"""The flat model the formatter renders from: ``EventObject`` plus its nested pieces. Adapted
+from Seer's ``EventDetails`` but defined here in Sentry, and kept flat (issue-level fields live
+on ``EventObject``) so one section list renders any issue type. Trace models omitted for now.
 """
 
 from __future__ import annotations
