@@ -9,6 +9,7 @@ import {
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils/defined';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -69,7 +70,7 @@ export function MultiMetricsQueryParamsProvider({
     (nextQueries: BaseMetricQuery[]) => {
       const target = {...location, query: {...location.query}};
       target.query.metric = encodeMetricQueries(nextQueries);
-      navigate(target);
+      navigateIfQueryChanged(navigate, location, target);
     },
     [location, navigate]
   );
