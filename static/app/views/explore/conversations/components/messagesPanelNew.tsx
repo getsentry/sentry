@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -18,7 +19,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -36,6 +40,7 @@ interface MessagesPanelNewProps {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
+  isLoading?: boolean;
 }
 
 /**
@@ -48,6 +53,7 @@ export function MessagesPanelNew({
   selectedNodeId,
   onSelectNode,
   nodeTraceMap,
+  isLoading,
 }: MessagesPanelNewProps) {
   const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
@@ -80,6 +86,10 @@ export function MessagesPanelNew({
     }
   };
 
+  if (isLoading) {
+    return <MessagesPanelSkeleton />;
+  }
+
   if (messages.length === 0) {
     return (
       <PanelContainer>
@@ -103,7 +113,6 @@ export function MessagesPanelNew({
                     text={message.content}
                     inline
                     autoCollapseLimit={10}
-                    collapsibleXmlTags
                   />
                 </MessageText>
               </UserMessageBlock>
@@ -176,6 +185,7 @@ function AssistantTurn({
       {message.reasoning && (
         <MessageBlock>
           <ReasoningSection reasoning={message.reasoning} />
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageBlock>
       )}
       {message.content === '' ? (
@@ -195,12 +205,7 @@ function AssistantTurn({
           onClick={onClick}
         >
           <MessageText align="left">
-            <AIContentRenderer
-              text={message.content}
-              inline
-              autoCollapseLimit={10}
-              collapsibleXmlTags
-            />
+            <AIContentRenderer text={message.content} inline autoCollapseLimit={10} />
           </MessageText>
         </AssistantMessageBlock>
       )}
@@ -254,12 +259,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
     >
       <Container padding="xs md">
         <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer
-            text={reasoning}
-            inline
-            autoCollapseLimit={10}
-            collapsibleXmlTags
-          />
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
       </Container>
     </CollapsibleContent>
@@ -272,6 +272,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * the skeleton reads as a conversation rather than a generic list.
  */
 export function MessagesPanelSkeleton() {
+  const theme = useTheme();
+  const invertedPlaceholderStyle = {
+    backgroundColor: theme.tokens.background.primary,
+  };
+
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">
@@ -279,19 +284,19 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="320px" />
-            <Placeholder height="12px" width="260px" />
-            <Placeholder height="12px" width="180px" />
+          <Flex direction="column" gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
           </Flex>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="280px" />
-            <Placeholder height="12px" width="200px" />
+          <Flex direction="column" gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
           </Flex>
         </AssistantMessageBlock>
       </Stack>

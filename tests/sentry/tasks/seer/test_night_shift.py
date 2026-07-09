@@ -615,7 +615,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.feature("organizations:gen-ai-features"),
-            patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_autofix,
+            patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_autofix,
         ):
             run_night_shift_for_org(org.id)
 
@@ -863,6 +863,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],
+            "num_eligible_projects": 0,
         }
 
     def test_extras_contain_triggering_user_id_when_provided(self) -> None:
