@@ -127,6 +127,11 @@ export function useChartBoxZoom({
         return;
       }
 
+      // Clear any drag that didn't tear down cleanly (e.g. a `mouseup` missed
+      // because the button was released outside the window) so we never stack a
+      // second overlay or duplicate listeners.
+      teardown();
+
       const domRect = dom.getBoundingClientRect();
       const chartOrigin = {x: domRect.left, y: domRect.top};
       const currentBounds = getChartPlotBounds(chartInstance, chartOrigin);
@@ -174,6 +179,15 @@ export function useChartBoxZoom({
 
     function onMouseMove(evt: MouseEvent) {
       if (!$overlay || !bounds) {
+        return;
+      }
+
+      // The primary button is no longer held — the `mouseup` was missed (e.g.
+      // released outside the window). End the drag instead of tracking a phantom
+      // one; don't apply a zoom since we never saw a real release.
+      if ((evt.buttons & 1) === 0) {
+        teardown();
+        scheduleTooltipRestore();
         return;
       }
 
@@ -294,7 +308,8 @@ function getChartPlotBounds(
  * on the given axes. Offsets the corners into chart-local space by the chart's
  * viewport origin, then projects them with `convertFromPixel`. Returns `null` if
  * a corner falls outside a resolvable coordinate system (a non-finite
- * conversion).
+ * conversion), or if either axis collapses to zero width — a zoom to bounds that
+ * match no data.
  */
 function pixelBoxToDataRange(
   chart: ECharts,
@@ -313,7 +328,9 @@ function pixelBoxToDataRange(
   const y0 = chart.convertFromPixel({yAxisIndex}, Math.min(ay, by));
   const y1 = chart.convertFromPixel({yAxisIndex}, Math.max(ay, by));
 
-  if (![x0, x1, y0, y1].every(Number.isFinite)) {
+  // Reject non-finite conversions and selections that collapse on either axis:
+  // a zero-width range resolves to bounds that match no data.
+  if (![x0, x1, y0, y1].every(Number.isFinite) || x0 === x1 || y0 === y1) {
     return null;
   }
 
