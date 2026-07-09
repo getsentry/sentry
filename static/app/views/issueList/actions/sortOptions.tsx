@@ -74,13 +74,13 @@ export function IssueListSortOptions({
     organization.features.includes('issue-stream-recommended-sort-default') ||
     sortKey === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
