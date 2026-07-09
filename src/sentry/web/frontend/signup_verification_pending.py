@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
@@ -13,6 +15,8 @@ from sentry.web.frontend.signup_email_verification import (
     _get_signup_url,
 )
 
+logger = logging.getLogger("getsentry.signup")
+
 
 @control_silo_view
 class SignupVerificationPendingView(BaseView):
@@ -22,6 +26,7 @@ class SignupVerificationPendingView(BaseView):
     def handle(self, request: HttpRequest) -> HttpResponseBase:
         email = request.session.get(PENDING_VERIFICATION_SESSION_KEY)
         if not email:
+            logger.warning("signup_verification.email_missing_from_session")
             return self.redirect(_get_signup_url())
 
         context = {
