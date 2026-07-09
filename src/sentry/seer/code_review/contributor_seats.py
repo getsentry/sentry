@@ -11,7 +11,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import features, quotas
@@ -100,24 +100,34 @@ def _get_or_create_contributor(
     TODO(CW-1539): Replace with get_or_create after the contributor deduplication
     migration has completed.
     """
-    contributor = (
-        OrganizationContributors.objects.filter(
-            organization_id=organization.id,
-            provider=provider,
-            external_identifier=external_identifier,
+
+    def _get_canonical_contributor() -> OrganizationContributors | None:
+        return (
+            OrganizationContributors.objects.filter(
+                organization_id=organization.id,
+                provider=provider,
+                external_identifier=external_identifier,
+            )
+            .order_by("id")
+            .first()
         )
-        .order_by("id")
-        .first()
-    )
-    if contributor is None:
-        contributor = OrganizationContributors.objects.create(
+
+    if contributor := _get_canonical_contributor():
+        return contributor
+
+    try:
+        return OrganizationContributors.objects.create(
             organization_id=organization.id,
             integration_id=integration_id,
             external_identifier=external_identifier,
             provider=provider,
             alias=alias,
         )
-    return contributor
+    except IntegrityError:
+        contributor = _get_canonical_contributor()
+        if not contributor:
+            raise
+        return contributor
 
 
 def track_contributor_seat(

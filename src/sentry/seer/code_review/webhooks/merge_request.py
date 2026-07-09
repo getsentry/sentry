@@ -8,7 +8,7 @@ Known limitations
 GitLab contributor seeding must run before this handler. ``handle_merge_request_event``
 runs ``CodeReviewPreflightService``, whose ``_check_billing`` looks up
 ``OrganizationContributors`` by
-``(organization_id, integration_id, external_identifier=str(author_id))`` and
+``(organization_id, provider, external_identifier=str(author_id))`` and
 returns ``ORG_CONTRIBUTOR_NOT_FOUND`` when the row is missing. GitLab seeds that row
 through ``track_gitlab_contributor_action_processor``, which
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers before this handler. If
