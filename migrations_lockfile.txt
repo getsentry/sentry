@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0026_add_night_shift_result_idempotency_key
 
-sentry: 1130_pullrequest_metrics_human_involvement
+sentry: 1131_add_organizationcontributors_provider
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
