@@ -24,6 +24,7 @@ from taskbroker_client.types import AtMostOnceStore
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.viewer_context import (
@@ -75,7 +76,11 @@ class SentryRouter(LibraryRouter):
             except Exception as err:
                 capture_exception(err)
         self._route_map: dict[str, str] = routes
-        self._default_topic: str = Topic.TASKWORKER.value
+        self._default_topic = (
+            Topic.TASKWORKER_CONTROL.value
+            if SiloMode.get_current_mode() == SiloMode.CONTROL
+            else Topic.TASKWORKER.value
+        )
 
     def route_namespace(self, name: str) -> str:
         # Check local overrides

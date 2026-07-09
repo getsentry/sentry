@@ -59,7 +59,7 @@ def test_default_router_topic_control_silo() -> None:
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         router = SentryRouter()
         topic = router.route_namespace("test.tasks.test_router.control")
-        assert topic == "taskworker"
+        assert topic == Topic.TASKWORKER_CONTROL.value
 
 
 class TestViewerContextHook:
