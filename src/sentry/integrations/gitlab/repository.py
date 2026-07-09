@@ -61,6 +61,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         }
 
     def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        existing_webhook_id = repo.config.get("webhook_id")
         # Namespaced under "gitlab.repository." so these attributes group together in the
         # Sentry Logs UI.
         log_extra = {
@@ -75,25 +76,53 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             "gitlab.repository.on_create_repository",
             extra={
                 **log_extra,
-                "gitlab.repository.has_existing_webhook": bool(repo.config.get("webhook_id")),
+                "gitlab.repository.has_existing_webhook": bool(existing_webhook_id),
             },
         )
-        if repo.config.get("webhook_id"):
-            logger.info(
-                "gitlab.repository.webhook_creation_skipped",
-                extra={**log_extra, "gitlab.repository.webhook_id": repo.config.get("webhook_id")},
-            )
-            return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        project_id = repo.config["project_id"]
+
+        # A stored webhook_id can survive an uninstall/reinstall of the integration
+        # (disassociate_organization_integration clears integration_id but leaves the
+        # config intact and never deletes the GitLab hook). We only ever persist a
+        # webhook_id for a hook we created, and GitLab never reuses hook ids, so the
+        # stored id resolves to exactly one of two states — let GitLab be the source
+        # of truth by addressing the hook directly:
+        #   - hook still exists  -> update it in place, refreshing its token + events
+        #                           (heals a rotated secret from reinstalling with a
+        #                           new OAuth app)
+        #   - hook is gone (404) -> fall through and create a fresh one
+        if existing_webhook_id:
+            try:
+                client.update_project_webhook(project_id, existing_webhook_id)
+            except ApiError as e:
+                if e.code != 404:
+                    raise installation.raise_error(e)
+                # The stored hook no longer exists on GitLab; recreate it below.
+            except Exception as e:
+                raise installation.raise_error(e)
+            else:
+                logger.info(
+                    "gitlab.repository.webhook_refreshed",
+                    extra={**log_extra, "gitlab.repository.webhook_id": existing_webhook_id},
+                )
+                return
+
         try:
-            hook_id = client.create_project_webhook(repo.config["project_id"])
+            hook_id = client.create_project_webhook(project_id)
         except Exception as e:
             raise installation.raise_error(e)
         repo.config["webhook_id"] = hook_id
         repository_service.update_repository(organization_id=organization.id, update=repo)
         logger.info(
-            "gitlab.repository.webhook_created",
+            # A prior webhook_id that 404'd means we replaced a stale hook rather than
+            # creating one for the first time; distinguish the two for telemetry.
+            (
+                "gitlab.repository.webhook_stale_recreated"
+                if existing_webhook_id
+                else "gitlab.repository.webhook_created"
+            ),
             extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
         )
 
