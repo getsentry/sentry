@@ -198,27 +198,26 @@ def get_available_monitoring_providers(
         if activity.data.get("dismissed_ts")
     }
 
-    available: list[dict[str, Any]] = []
+    available_providers: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
         if provider_type in dismissed_providers:
             continue
 
         provider = identity_manager.get(provider_type)
-        provider_name = provider.name
         is_oauth_provider = isinstance(provider, OAuth2Provider)
         if not isinstance(provider, McpIdentityProvider):
             continue
 
-        available.append(
+        available_providers.append(
             {
                 "provider_key": provider_type,
-                "name": provider_name,
+                "name": provider.name,
                 "connected": provider_type in connected_provider_types,
                 "auth_method": "oauth" if is_oauth_provider else "pat",
             }
         )
 
-    return available
+    return available_providers
 
 
 class SeerAgentClient:
