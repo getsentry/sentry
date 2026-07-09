@@ -6119,6 +6119,39 @@ describe('SearchQueryBuilder', () => {
         unsupported_reason: string | null;
       };
 
+      function makeMockAskSeer() {
+        return jest.fn((_query: string) =>
+          Promise.resolve<AskSeerTestResponse>({
+            queries: [],
+            status: 'ok',
+            unsupported_reason: null,
+          })
+        );
+      }
+
+      function AskSeerAutoSubmitTestComponent({
+        children,
+        mockAskSeer,
+      }: {
+        children: React.ReactNode;
+        mockAskSeer: ReturnType<typeof makeMockAskSeer>;
+      }) {
+        const {displayAskSeer} = useSearchQueryBuilderAI();
+        const initialSeerQuery = useInitialSeerQuery();
+
+        return displayAskSeer ? (
+          <AskSeerComboBox
+            initialQuery={initialSeerQuery}
+            applySeerSearchQuery={() => {}}
+            askSeerMutationOptions={mutationOptions({
+              mutationFn: mockAskSeer,
+            })}
+          />
+        ) : (
+          children
+        );
+      }
+
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
         render(
@@ -6139,39 +6172,16 @@ describe('SearchQueryBuilder', () => {
       });
 
       it('submits typed free text when opening ask seer from the dropdown', async () => {
-        const mockAskSeer = jest.fn((_query: string) =>
-          Promise.resolve<AskSeerTestResponse>({
-            queries: [],
-            status: 'ok',
-            unsupported_reason: null,
-          })
-        );
+        const mockAskSeer = makeMockAskSeer();
         const props = {
           ...defaultProps,
           enableAISearch: true,
           initialQuery: 'browser.name:firefox',
         };
 
-        function AskSeerAutoSubmitTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer} = useSearchQueryBuilderAI();
-          const initialSeerQuery = useInitialSeerQuery();
-
-          return displayAskSeer ? (
-            <AskSeerComboBox
-              initialQuery={initialSeerQuery}
-              applySeerSearchQuery={() => {}}
-              askSeerMutationOptions={mutationOptions({
-                mutationFn: mockAskSeer,
-              })}
-            />
-          ) : (
-            children
-          );
-        }
-
         render(
           <SearchQueryBuilderProvider {...props}>
-            <AskSeerAutoSubmitTestComponent>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
@@ -6205,13 +6215,7 @@ describe('SearchQueryBuilder', () => {
 
       it('submits free text with the existing query to ask seer when defaulting to ask seer is enabled', async () => {
         const mockOnSearch = jest.fn();
-        const mockAskSeer = jest.fn((_query: string) =>
-          Promise.resolve<AskSeerTestResponse>({
-            queries: [],
-            status: 'ok',
-            unsupported_reason: null,
-          })
-        );
+        const mockAskSeer = makeMockAskSeer();
         const props = {
           ...defaultProps,
           defaultToAskSeerOnFreeTextSearch: true,
@@ -6220,26 +6224,9 @@ describe('SearchQueryBuilder', () => {
           onSearch: mockOnSearch,
         };
 
-        function AskSeerAutoSubmitTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer} = useSearchQueryBuilderAI();
-          const initialSeerQuery = useInitialSeerQuery();
-
-          return displayAskSeer ? (
-            <AskSeerComboBox
-              initialQuery={initialSeerQuery}
-              applySeerSearchQuery={() => {}}
-              askSeerMutationOptions={mutationOptions({
-                mutationFn: mockAskSeer,
-              })}
-            />
-          ) : (
-            children
-          );
-        }
-
         render(
           <SearchQueryBuilderProvider {...props}>
-            <AskSeerAutoSubmitTestComponent>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
@@ -6269,39 +6256,16 @@ describe('SearchQueryBuilder', () => {
 
       it('does not submit free text to ask seer when defaulting to ask seer is disabled', async () => {
         const mockOnSearch = jest.fn();
-        const mockAskSeer = jest.fn((_query: string) =>
-          Promise.resolve<AskSeerTestResponse>({
-            queries: [],
-            status: 'ok',
-            unsupported_reason: null,
-          })
-        );
+        const mockAskSeer = makeMockAskSeer();
         const props = {
           ...defaultProps,
           enableAISearch: true,
           onSearch: mockOnSearch,
         };
 
-        function AskSeerAutoSubmitTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer} = useSearchQueryBuilderAI();
-          const initialSeerQuery = useInitialSeerQuery();
-
-          return displayAskSeer ? (
-            <AskSeerComboBox
-              initialQuery={initialSeerQuery}
-              applySeerSearchQuery={() => {}}
-              askSeerMutationOptions={mutationOptions({
-                mutationFn: mockAskSeer,
-              })}
-            />
-          ) : (
-            children
-          );
-        }
-
         render(
           <SearchQueryBuilderProvider {...props}>
-            <AskSeerAutoSubmitTestComponent>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
@@ -6323,13 +6287,7 @@ describe('SearchQueryBuilder', () => {
 
       it('does not submit free text to ask seer without the defaulting feature flag', async () => {
         const mockOnSearch = jest.fn();
-        const mockAskSeer = jest.fn((_query: string) =>
-          Promise.resolve<AskSeerTestResponse>({
-            queries: [],
-            status: 'ok',
-            unsupported_reason: null,
-          })
-        );
+        const mockAskSeer = makeMockAskSeer();
         const props = {
           ...defaultProps,
           defaultToAskSeerOnFreeTextSearch: true,
@@ -6337,26 +6295,9 @@ describe('SearchQueryBuilder', () => {
           onSearch: mockOnSearch,
         };
 
-        function AskSeerAutoSubmitTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer} = useSearchQueryBuilderAI();
-          const initialSeerQuery = useInitialSeerQuery();
-
-          return displayAskSeer ? (
-            <AskSeerComboBox
-              initialQuery={initialSeerQuery}
-              applySeerSearchQuery={() => {}}
-              askSeerMutationOptions={mutationOptions({
-                mutationFn: mockAskSeer,
-              })}
-            />
-          ) : (
-            children
-          );
-        }
-
         render(
           <SearchQueryBuilderProvider {...props}>
-            <AskSeerAutoSubmitTestComponent>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
           </SearchQueryBuilderProvider>,
