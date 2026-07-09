@@ -33,6 +33,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -185,7 +186,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     @metrics.wraps("projectownership.get_issue_owners")
-    @sentry_sdk.trace
+    @trace
     def get_issue_owners(
         cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:

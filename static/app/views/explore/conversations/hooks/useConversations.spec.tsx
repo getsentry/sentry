@@ -38,7 +38,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBe('hello');
   });
@@ -60,7 +60,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBe('hello from array');
   });
@@ -79,7 +79,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBeNull();
   });
@@ -92,7 +92,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.lastOutput).toBe('world');
   });
@@ -114,7 +114,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     // This was the bug: lastOutput was passed through as an array, causing
     // `.replace is not a function` when rendering the table cell
@@ -135,7 +135,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.lastOutput).toBeNull();
   });
@@ -148,7 +148,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBeNull();
     expect(result.current.data[0]?.lastOutput).toBeNull();
@@ -165,7 +165,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.conversationId).toBe('newer');
     expect(result.current.data[1]?.conversationId).toBe('older');

@@ -39,6 +39,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
     fixability_score_strategy,
+    fixability_score_strategy_per_project,
     priority_label,
 )
 from sentry.tasks.seer.night_shift.tweaks import (
@@ -516,6 +517,15 @@ def _get_eligible_projects(
     return pr_producing
 
 
+def _should_use_per_project_quotas(source: NightShiftRunSource, organization_id: int) -> bool:
+    """When allowed_project_slugs (org_tweaks) is set, give each project its
+    own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
+    if source != "cron":
+        return False
+    org_tweaks = get_night_shift_org_tweaks(organization_id)
+    return org_tweaks is not None and org_tweaks.allowed_project_slugs is not None
+
+
 def _build_triage_payload(
     candidates: Sequence[ScoredCandidate],
     resolved_options: SeerNightShiftRunOptions,
@@ -557,7 +567,11 @@ def _dispatch_to_seer_feature(
     deliver_feature_result."""
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
-    scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
+    per_project_quotas = _should_use_per_project_quotas(resolved_options["source"], organization.id)
+    score_strategy = (
+        fixability_score_strategy_per_project if per_project_quotas else fixability_score_strategy
+    )
+    scored = score_strategy(eligible_projects, resolved_options["max_candidates"])
     run.update(extras={**(run.extras or {}), "num_candidates": len(scored)})
     if not scored:
         logger.info("night_shift.no_candidates", extra=log_extra)

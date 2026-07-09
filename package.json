@@ -9,7 +9,7 @@
   },
   "type": "module",
   "scripts": {
-    "typecheck": "tsgo -p tsconfig.json && tsgo -p static/app/serviceWorker/worker/tsconfig.json",
+    "typecheck": "tsc --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",
@@ -223,7 +223,7 @@
     "sprintf-js": "1.0.3",
     "style-loader": "4.0.0",
     "swc-plugin-component-annotate": "1.14.0",
-    "ts-checker-rspack-plugin": "1.4.0",
+    "ts-checker-rspack-plugin": "1.5.1",
     "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
     "yaml": "2.8.3",
@@ -242,7 +242,6 @@
     "@sentry-internal/rrweb-types": "2.43.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "10.63.0",
-    "@styled/typescript-styled-plugin": "^1.0.1",
     "@swc-contrib/mut-cjs-exports": "14.9.0",
     "@swc/core": "1.15.33",
     "@swc/jest": "0.2.39",
@@ -257,7 +256,6 @@
     "@types/node": "24.13.2",
     "@typescript-eslint/rule-tester": "8.58.0",
     "@typescript-eslint/utils": "8.58.0",
-    "@typescript/native-preview": "7.0.0-dev.20260609.1",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -292,7 +290,8 @@
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.46.2",
     "tinyglobby": "0.2.16",
-    "typescript": "6.0.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@^7.0.2",
     "typescript-eslint": "8.58.0"
   },
   "optionalDependencies": {
