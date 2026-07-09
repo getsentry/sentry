@@ -48,7 +48,7 @@ class SymbolicatorFunction(Enum):
     applecrashreport = "applecrashreport"
 
     def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
-        self.function()(symbolicator, data)
+        return self.function()(symbolicator, data)
 
     def function(self) -> Callable[[Symbolicator, Any], Any]:
         from sentry.lang.java.processing import process_jvm_stacktraces
