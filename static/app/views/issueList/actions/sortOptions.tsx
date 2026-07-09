@@ -96,7 +96,7 @@ export function IssueListSortOptions({
         value: key,
         label: getSortLabel(key),
         details: getSortTooltip(key),
-        ...(key === IssueSortOptions.RECOMMENDED && hasRecommendedSortDefault
+        ...(key === IssueSortOptions.RECOMMENDED
           ? {trailingItems: <FeatureBadge type="new" />}
           : {}),
       }))}
