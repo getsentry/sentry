@@ -100,8 +100,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         )
         assert first.status_code == 201, first.data
 
-        # A follow-up POST that only changes `brief` must not clear the
-        # previously stored optional fields.
+        # A brief-only follow-up must not clear the stored optional fields.
         second = self.do_request(
             {
                 "attributeKey": "my_custom_attr",
@@ -126,8 +125,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
     def test_canonicalizes_typed_tag_syntax(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
-        # Typed-tag syntax resolves to the same canonical internal name as the
-        # bare key, so both forms address a single stored row.
+        # Typed-tag syntax and the bare key canonicalize to the same stored row.
         typed = self.do_request(
             {
                 "attributeKey": "tags[my_custom_attr,string]",
@@ -209,8 +207,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
     def test_rejects_sentry_convention_internal_name(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
-        # Passing the internal name directly must be rejected the same as the
-        # public alias.
+        # The internal name must be rejected the same as the public alias.
         response = self.do_request(
             {
                 "attributeKey": "sentry.op",
@@ -226,8 +223,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
     def test_rejects_sentry_defined_column_without_convention(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
-        # `span.duration` is a Sentry-defined EAP column that is not in the
-        # conventions library, but is still reserved.
+        # `span.duration` is a Sentry-defined column absent from conventions, still reserved.
         response = self.do_request(
             {
                 "attributeKey": "span.duration",

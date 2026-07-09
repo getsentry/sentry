@@ -18,8 +18,8 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     SUPPORTED_DATASETS,
     OrganizationTraceItemAttributesEndpointBase,
     adjust_start_end_window,
-    build_sentry_convention_context,
     get_column_definitions,
+    is_known_attribute,
     resolve_attribute_referrer,
 )
 from sentry.api.serializers import serialize
@@ -35,7 +35,6 @@ from sentry.explore.models import (
 )
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.utils import snuba_rpc
@@ -59,51 +58,13 @@ class OrganizationTraceItemAttributeContextPostSerializer(serializers.Serializer
     examples = serializers.ListField(child=serializers.CharField(), required=False)
 
 
-def is_sentry_defined_attribute(
-    definitions: ColumnDefinitions,
-    resolved_attribute: ResolvedAttribute,
-    raw_attribute_key: str,
-) -> bool:
-    """
-    Whether the attribute is defined/owned by Sentry, in which case custom
-    context can't be authored for it (Sentry-owned attributes already carry
-    context from their definitions / conventions metadata). An attribute is
-    sentry-defined if it is:
-
-    - a known EAP column public alias or secondary alias — ``definitions.columns``
-      is keyed by public alias, and secondary aliases are stored there too;
-    - a virtual context (e.g. ``project``, ``device.class``);
-    - resolvable to a known column's internal name (the caller passed the
-      internal name, e.g. ``sentry.op``, directly); or
-    - present in the sentry conventions library, which is keyed by convention
-      name and includes each convention's aliases as keys of their own (so
-      passing an alias resolves to a hit here too).
-    """
-    if raw_attribute_key in definitions.columns or raw_attribute_key in definitions.contexts:
-        return True
-
-    known_internal_names = {column.internal_name for column in definitions.columns.values()}
-    if resolved_attribute.internal_name in known_internal_names:
-        return True
-
-    return (
-        build_sentry_convention_context(
-            resolved_attribute.public_alias, resolved_attribute.internal_name
-        )
-        is not None
-    )
-
-
 def attribute_exists_in_storage(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
     internal_name: str,
     attr_type: AttributeKey.Type.ValueType,
 ) -> bool:
-    """
-    Whether an attribute with the given internal name exists in storage for the
-    resolver's snuba params (org/projects/time window) and attribute type.
-    """
+    """Whether the internal name exists in storage for the resolver's params and type."""
     meta = resolver.resolve_meta(referrer=resolve_attribute_referrer(item_type.value).value)
     meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
@@ -113,9 +74,7 @@ def attribute_exists_in_storage(
         meta=meta,
         limit=10000,
         type=attr_type,
-        # An exact-name existence filter avoids the false negatives a substring +
-        # single-page scan produces when many stored names share a prefix: the
-        # target name appears in the response iff it exists in storage.
+        # Exact-name filter, so a shared prefix can't cause a false negative.
         intersecting_attributes_filter=TraceItemFilter(
             exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=internal_name))
         ),
@@ -134,15 +93,11 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
     owner = ApiOwner.DATA_BROWSING
 
     def post(self, request: Request, organization: Organization) -> Response:
-        """
-        Create or update the human/agent authored context (brief, examples, notes)
-        for a custom trace item attribute.
-        """
+        """Create or update the authored context for a custom trace item attribute."""
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        # Custom attribute context is gated by the data-browsing-attribute-context
-        # feature (sentry conventions context is served separately and ungated).
+        # Custom context is gated; sentry conventions context is served separately.
         if not features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         ):
@@ -162,8 +117,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         except NoProjects:
             return Response({"detail": "No projects available."}, status=400)
 
-        # The context is scoped to a single project, or org-wide when `project=-1`
-        # is passed. The model can't represent a subset of projects.
+        # Scope to a single project, or org-wide for `project=-1`; no subset in between.
         if "-1" in request.GET.getlist("project"):
             scope_project = None
         elif len(snuba_params.projects) == 1:
@@ -190,11 +144,8 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             definitions=column_definitions,
         )
 
-        # Resolve the raw key — a public alias, internal name, or the
-        # `tags[foo,number]` tag syntax — to its canonical internal name. This is
-        # what the storage layer keys on, so existence/reserved checks and the
-        # upsert all operate on the same identity; equivalent forms of the same
-        # attribute collapse to a single stored row.
+        # Canonicalize the key to its internal name so every check and the upsert
+        # share one identity and equivalent key forms collapse to a single row.
         try:
             resolved_attribute, _ = resolver.resolve_attribute(data["attribute_key"])
         except InvalidSearchQuery as _e:
@@ -203,19 +154,17 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         internal_name = resolved_attribute.internal_name
         public_alias = resolved_attribute.public_alias
 
-        # Sentry-defined attributes (known columns, contexts, or conventions)
-        # already carry their own context, so authoring custom context for them
-        # isn't allowed — only user-defined attributes are eligible.
-        if is_sentry_defined_attribute(
-            column_definitions, resolved_attribute, data["attribute_key"]
+        # Only user-defined attributes are eligible; Sentry-owned ones are reserved.
+        # Check both resolved forms, since conventions may key on either.
+        if is_known_attribute(public_alias, column_definitions) or is_known_attribute(
+            internal_name, column_definitions
         ):
             return Response(
                 {"detail": f"`{public_alias}` is a reserved sentry attribute."},
                 status=400,
             )
 
-        # Anything past the reserved check is a user attribute; confirm it has
-        # actually been seen in storage before authoring context for it.
+        # Confirm the user attribute has actually been seen in storage.
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
         )
@@ -225,8 +174,8 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
                 status=400,
             )
 
-        # `brief` is required; only persist the optional fields that were actually
-        # provided so a partial update doesn't clear previously stored context.
+        # Only persist optional fields that were provided, so a partial update
+        # doesn't clear previously stored context.
         optional_fields = {
             field: data[field] for field in ("additional_context", "examples") if field in data
         }
@@ -235,10 +184,8 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
             "updated_by_id": request.user.id,
             **optional_fields,
         }
-        # A concurrent POST for the same attribute is race-safe: the lookup kwargs
-        # match the model's unique constraints, so update_or_create (via
-        # get_or_create) catches the losing INSERT's IntegrityError and re-fetches
-        # the winning row rather than surfacing a 500.
+        # Race-safe: the lookup kwargs match the unique constraints, so a losing
+        # concurrent INSERT is caught by update_or_create rather than 500ing.
         context, created = TraceItemAttributeContext.objects.update_or_create(
             organization=organization,
             project=scope_project,
