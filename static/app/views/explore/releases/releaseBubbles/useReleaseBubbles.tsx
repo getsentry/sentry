@@ -513,6 +513,10 @@ export function useReleaseBubbles({
           return;
         }
 
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
+
         const data = params.data as unknown as Bucket;
 
         // Match behavior of ReleaseBubblSeries
@@ -540,7 +544,12 @@ export function useReleaseBubbles({
             ],
           },
         };
-        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
+        try {
+          echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
+        } catch {
+          // Ignore errors that can occur when the chart is in an intermediate
+          // state during re-initialization (e.g. after saving a widget)
+        }
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
@@ -548,15 +557,24 @@ export function useReleaseBubbles({
           return;
         }
 
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
+
         // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption(
-          {
-            series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
-          },
-          {
-            lazyUpdate: true,
-          }
-        );
+        try {
+          echartsInstance.setOption(
+            {
+              series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
+            },
+            {
+              lazyUpdate: true,
+            }
+          );
+        } catch {
+          // Ignore errors that can occur when the chart is in an intermediate
+          // state during re-initialization (e.g. after saving a widget)
+        }
       };
 
       // This fixes a bug where if you hover over a bubble and mouseout via xaxis
