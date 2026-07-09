@@ -52,7 +52,7 @@ export function useConversations() {
 
   const {
     data: response,
-    isLoading,
+    isFetching,
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
@@ -98,7 +98,7 @@ export function useConversations() {
 
   return {
     data,
-    isLoading,
+    isFetching,
     error,
     pageLinks,
     setCursor,

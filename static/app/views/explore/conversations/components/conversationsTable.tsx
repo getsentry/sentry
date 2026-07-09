@@ -99,10 +99,10 @@ function ConversationsTableInner() {
     columns: defaultColumnOrder,
   });
 
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor} = useConversations();
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -152,7 +152,7 @@ function ConversationsTableInner() {
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={columnOrder}
