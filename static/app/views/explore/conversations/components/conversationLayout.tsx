@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useRef} from 'react';
 
-import {Container, Flex, Stack, useContainerBreakpoint} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -17,10 +17,11 @@ const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
 const CONTENT_MIN_HEIGHT = 180;
-const CONTENT_MAX_WIDTH = 900;
 const DETAIL_MIN_WIDTH = 400;
 const DETAIL_MIN_HEIGHT = 200;
-const CONTENT_WIDTH_RATIO = 0.6;
+// The content pane defaults to 60% of the active axis (width in a row, height
+// when stacked); SplitPanel resolves the percentage off its own measurement.
+const CONTENT_DEFAULT_SIZE = '60%';
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
@@ -129,8 +130,13 @@ export function ConversationContentLayout({
   leftPadding?: React.ComponentProps<typeof Container>['padding'];
   right?: React.ReactNode;
 }) {
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: measureRef});
+  // Side by side above md, stacked below. SplitPanel resolves the orientation
+  // container-aware and, in step with it, picks the axis-appropriate min sizes
+  // and the percentage default — so no measurement dance is needed here.
+  const [storedSize, setStoredSize] = useLocalStorageState<number | null>(
+    SPLIT_LAYOUT_STORAGE_KEY,
+    null
+  );
 
   return (
     <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
@@ -142,13 +148,23 @@ export function ConversationContentLayout({
           width="100%"
           background="secondary"
         >
-          <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
-            {width > 0 && height > 0 ? (
-              <MeasuredContentSplit
-                width={width}
-                height={height}
-                detail={right}
-                content={
+          <Flex height="100%" width="100%" minHeight="0" minWidth="0">
+            <SplitPanel
+              orientation={{xs: 'vertical', md: 'horizontal'}}
+              defaultSize={CONTENT_DEFAULT_SIZE}
+              initialSize={storedSize ?? undefined}
+              minSize={{xs: CONTENT_MIN_HEIGHT, md: CONTENT_MIN_WIDTH}}
+              fillMinSize={{xs: DETAIL_MIN_HEIGHT, md: DETAIL_MIN_WIDTH}}
+              onResizeEnd={({endSize}) => setStoredSize(endSize)}
+              sized={
+                <Flex
+                  direction="column"
+                  flex="1"
+                  minWidth="0"
+                  minHeight="0"
+                  paddingRight={{xs: '0', md: 'md'}}
+                  paddingBottom={{xs: 'md', md: '0'}}
+                >
                   <Container
                     flex="1"
                     minWidth="0"
@@ -162,79 +178,27 @@ export function ConversationContentLayout({
                   >
                     {left}
                   </Container>
-                }
-              />
-            ) : null}
+                </Flex>
+              }
+              fill={
+                right ? (
+                  <Flex
+                    direction="column"
+                    flex="1"
+                    minWidth="0"
+                    minHeight="0"
+                    paddingLeft={{xs: '0', md: 'md'}}
+                    paddingTop={{xs: 'md', md: '0'}}
+                  >
+                    {right}
+                  </Flex>
+                ) : undefined
+              }
+            />
           </Flex>
         </Container>
       </ConversationLeftPanel>
     </Flex>
-  );
-}
-
-function MeasuredContentSplit({
-  content,
-  detail,
-  width,
-  height,
-}: {
-  content: React.ReactNode;
-  height: number;
-  width: number;
-  detail?: React.ReactNode;
-}) {
-  // Side by side above md, stacked below. The panes are sized by width in a row
-  // and by height in a column, so the min/default track the active axis —
-  // otherwise the width-based 400px min becomes a min-height that can't fit on
-  // short screens and the divider locks up.
-  const isRow = !['2xs', 'xs', 'sm'].includes(useContainerBreakpoint());
-  const available = isRow ? width : height;
-  const defaultContent = Math.max(
-    isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT,
-    Math.round((available - DIVIDER_WIDTH) * CONTENT_WIDTH_RATIO)
-  );
-  const [storedSize, setStoredSize] = useLocalStorageState(
-    SPLIT_LAYOUT_STORAGE_KEY,
-    defaultContent
-  );
-
-  return (
-    <SplitPanel
-      orientation={isRow ? 'horizontal' : 'vertical'}
-      defaultSize={defaultContent}
-      initialSize={storedSize}
-      minSize={isRow ? CONTENT_MIN_WIDTH : CONTENT_MIN_HEIGHT}
-      maxSize={isRow ? CONTENT_MAX_WIDTH : undefined}
-      fillMinSize={isRow ? DETAIL_MIN_WIDTH : DETAIL_MIN_HEIGHT}
-      onResizeEnd={({endSize}) => setStoredSize(endSize)}
-      sized={
-        <Flex
-          direction="column"
-          flex="1"
-          minWidth="0"
-          minHeight="0"
-          maxWidth={`${CONTENT_MAX_WIDTH}px`}
-          paddingRight={{xs: '0', md: 'md'}}
-          paddingBottom={{xs: 'md', md: '0'}}
-        >
-          {content}
-        </Flex>
-      }
-      fill={
-        detail ? (
-          <Flex
-            direction="column"
-            flex="1"
-            minWidth="0"
-            minHeight="0"
-            paddingLeft={{xs: '0', md: 'md'}}
-            paddingTop={{xs: 'md', md: '0'}}
-          >
-            {detail}
-          </Flex>
-        ) : undefined
-      }
-    />
   );
 }
 

@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle, useRef} from 'react';
+import {useCallback, useImperativeHandle, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
@@ -9,8 +9,33 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 type Orientation = 'horizontal' | 'vertical';
 
+/**
+ * A pane size expressed as either pixels (a bare number, the component's
+ * long-standing convention) or a percentage string (`"60%"`). Percentages
+ * resolve against the measured extent of the active axis — width in a row,
+ * height in a column — so a single value stays correct across orientations.
+ */
+type SplitSize = number | `${number}%`;
+
 // The divider renders as a 1px border; account for it when deriving the max.
 const DIVIDER_SIZE = 1;
+
+// Resolve a SplitSize to pixels against the measured axis. Percentages need a
+// measurement, so they collapse to 0 until `available > 0` (the panel stays
+// hidden until then). Returns undefined only for an undefined input.
+function resolveSplitSize(
+  value: SplitSize | undefined,
+  available: number
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  const percent = parseFloat(value);
+  return Number.isFinite(percent) ? Math.round((percent / 100) * available) : undefined;
+}
 
 export interface SplitPanelHandle {
   /**
@@ -22,18 +47,26 @@ export interface SplitPanelHandle {
 }
 
 interface SplitPanelProps {
-  /** Initial size of the `sized` pane in pixels; restored on double-click. */
-  defaultSize: number;
+  /**
+   * Size of the `sized` pane when unset/reset (double-click). Pixels or a
+   * percentage of the active axis (`"60%"`). Accepts a responsive value.
+   */
+  defaultSize: Responsive<SplitSize>;
   /** The pane with a draggable size. */
   sized: React.ReactNode;
   /** The pane that fills the remaining space. Omit to render a single pane. */
   fill?: React.ReactNode;
-  /** Minimum size of the `fill` pane in pixels. */
-  fillMinSize?: number;
-  /** Starting size, e.g. restored from persistence. Defaults to `defaultSize`. */
+  /** Minimum size of the `fill` pane. Pixels or a percentage; responsive. */
+  fillMinSize?: Responsive<SplitSize>;
+  /**
+   * Starting size in pixels, e.g. restored from persistence. Falls back to
+   * `defaultSize` when omitted. Pixels only — it's a measured/persisted value.
+   */
   initialSize?: number;
-  maxSize?: number;
-  minSize?: number;
+  /** Maximum size of the `sized` pane. Pixels or a percentage; responsive. */
+  maxSize?: Responsive<SplitSize>;
+  /** Minimum size of the `sized` pane. Pixels or a percentage; responsive. */
+  minSize?: Responsive<SplitSize>;
   /** Fires during drag with the new size. */
   onResize?: (newSize: number) => void;
   /** Fires once when a drag ends. */
@@ -152,8 +185,8 @@ export function SplitPanel({
   ref,
   orientation: orientationProp = 'horizontal',
   placement = 'start',
-  defaultSize,
-  initialSize = defaultSize,
+  defaultSize: defaultSizeProp,
+  initialSize,
   minSize = 0,
   maxSize,
   fillMinSize = 0,
@@ -170,13 +203,27 @@ export function SplitPanel({
   const dims = useDimensions({elementRef: containerRef});
   const availableSize = orientation === 'horizontal' ? dims.width : dims.height;
 
-  const min = minSize;
-  const explicitMax = maxSize ?? Number.POSITIVE_INFINITY;
+  // Resolve the responsive layer first (breakpoint → single value, container-
+  // aware, in step with `orientation`), then percentages → px off the measured
+  // axis. Order matters: `{xs: '50%', md: 400}` must pick the breakpoint before
+  // it can know whether the winner is a percentage.
+  // The hook's return type keeps the responsive shape; narrow to the scalar it
+  // actually resolves to (as `orientation` above does via a value comparison).
+  const defaultSizeValue = useResponsivePropValue(defaultSizeProp) as SplitSize;
+  const minSizeValue = useResponsivePropValue(minSize) as SplitSize;
+  const maxSizeValue = useResponsivePropValue(maxSize) as SplitSize | undefined;
+  const fillMinSizeValue = useResponsivePropValue(fillMinSize) as SplitSize;
+
+  const resolvedDefault = resolveSplitSize(defaultSizeValue, availableSize) ?? 0;
+  const min = resolveSplitSize(minSizeValue, availableSize) ?? 0;
+  const fillMin = resolveSplitSize(fillMinSizeValue, availableSize) ?? 0;
+  const explicitMax =
+    resolveSplitSize(maxSizeValue, availableSize) ?? Number.POSITIVE_INFINITY;
   // Cap so the sized pane can't overflow or push the fill pane below its min.
   // Floored at min; falls back to the explicit max until we've measured.
   const max =
     availableSize > 0
-      ? Math.max(min, Math.min(explicitMax, availableSize - fillMinSize - DIVIDER_SIZE))
+      ? Math.max(min, Math.min(explicitMax, availableSize - fillMin - DIVIDER_SIZE))
       : explicitMax;
 
   const handleResizeEnd = useCallback(
@@ -208,7 +255,9 @@ export function SplitPanel({
         : isSizedFirst
           ? 'down'
           : 'up',
-    initialSize,
+    // Percentages can't resolve until measured, so an unset % default seeds as
+    // 0 here and is corrected by the effect below once `availableSize` is known.
+    initialSize: initialSize ?? resolvedDefault,
     min,
     max,
     onResize: newSize => onResize?.(newSize),
@@ -216,6 +265,26 @@ export function SplitPanel({
   });
 
   useImperativeHandle(ref, () => ({setSize}), [setSize]);
+
+  // A percentage default has no correct value before measurement, so seed it
+  // once `availableSize` lands. Skipped when the consumer passed an explicit
+  // (persisted) `initialSize`, or when the default is px (already seeded right).
+  const defaultIsPercent = typeof defaultSizeValue === 'string';
+  const seededRef = useRef(initialSize !== undefined);
+  useLayoutEffect(() => {
+    if (seededRef.current) {
+      return;
+    }
+    if (!defaultIsPercent) {
+      seededRef.current = true;
+      return;
+    }
+    if (availableSize <= 0) {
+      return;
+    }
+    seededRef.current = true;
+    setSize(Math.max(min, Math.min(resolvedDefault, max)));
+  }, [defaultIsPercent, availableSize, resolvedDefault, min, max, setSize]);
 
   // Clamped to [min, max] so the pane basis and divider aria-valuenow stay in
   // step — and never go negative when a seeded/persisted size is below min
@@ -225,10 +294,10 @@ export function SplitPanel({
   const visibleSize = Math.max(min, Math.min(containerSize, max));
 
   const handleDoubleClick = useCallback(() => {
-    const target = Math.max(min, Math.min(defaultSize, max));
+    const target = Math.max(min, Math.min(resolvedDefault, max));
     setSize(target, true);
     handleResizeEnd(visibleSize, target);
-  }, [visibleSize, max, min, defaultSize, setSize, handleResizeEnd]);
+  }, [visibleSize, max, min, resolvedDefault, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
