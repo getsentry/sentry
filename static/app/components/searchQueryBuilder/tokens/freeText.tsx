@@ -305,9 +305,9 @@ function SearchQueryBuilderInputInternal({
   const items = customMenu ? sectionItems : sortedFilteredItems;
   const shouldReopenDropdownOnFocus =
     reopenDropdownOnQueryClear && query === '' && trimmedTokenValue === '';
-  const hasValidFilter = [...state.collection].some(collectionItem => {
+  const hasFilter = [...state.collection].some(collectionItem => {
     const collectionValue = collectionItem.value;
-    return collectionValue?.type === Token.FILTER && collectionValue.invalid === null;
+    return collectionValue?.type === Token.FILTER;
   });
 
   useEffect(() => {
@@ -556,7 +556,7 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasValidFilter) {
+          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);
