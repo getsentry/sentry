@@ -195,7 +195,9 @@ export function useChartBoxZoom({
     }
 
     function onMouseUp(evt: MouseEvent) {
-      if (!bounds) {
+      // Only the primary button ends the drag; releasing a secondary/middle
+      // button mid-drag (primary still held) must not tear down or zoom.
+      if (!bounds || evt.button !== 0) {
         return;
       }
 
