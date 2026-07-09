@@ -96,7 +96,6 @@ import {
 } from './types';
 
 type Props = {
-  aggregate: string;
   alertType: AlertType;
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -104,7 +103,6 @@ type Props = {
   disabled: boolean;
   eventTypes: EventTypes[];
   isEditing: boolean;
-  onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid: any) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
@@ -116,7 +114,6 @@ type Props = {
   timeWindow: number;
   // optional props
   allowChangeEventTypes?: boolean;
-  comparisonDelta?: number;
   disableProjectSelector?: boolean;
   extrapolationMode?: ExtrapolationMode;
   isErrorMigration?: boolean;

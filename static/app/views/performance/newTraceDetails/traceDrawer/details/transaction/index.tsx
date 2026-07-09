@@ -82,7 +82,6 @@ function TransactionNodeDetailHeader({
           threadId={event?.contexts?.trace?.data?.['thread.id']}
           organization={organization}
           onTabScrollToNode={onTabScrollToNode}
-          eventSize={event?.size}
           showJSONLink
         />
       )}
@@ -243,14 +242,7 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
 
   return (
     <Fragment>
-      <GeneralInfo
-        node={node}
-        onParentClick={onParentClick}
-        organization={organization}
-        event={event}
-        location={location}
-        cacheMetrics={cacheMetrics}
-      />
+      <GeneralInfo node={node} onParentClick={onParentClick} />
       <FoldSection
         sectionKey="transaction_specifc"
         title={t('Transaction Specific')}

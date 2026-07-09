@@ -79,6 +79,7 @@ from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
+from sentry.utils.tracing import trace
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
@@ -292,7 +293,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         return result
 
-    @sentry_sdk.trace
+    @trace
     def _dispatch_to_local_method(
         self,
         request: Request,
@@ -330,7 +331,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         raise RpcResolutionException(f"Unknown method {method_name}")
 
-    @sentry_sdk.trace
+    @trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)

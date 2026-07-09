@@ -860,6 +860,12 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# The topic a namespace produces to when it is not explicitly routed via
+# TASKWORKER_ROUTES. When unset, region silos fall back to the `taskworker`
+# topic (control silos always use `taskworker-control`). Set per-region to make
+# a different pool the catch-all, e.g. `taskworker-push` in s4s2.
+TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
