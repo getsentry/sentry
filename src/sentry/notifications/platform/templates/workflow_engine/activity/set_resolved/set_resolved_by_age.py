@@ -57,7 +57,9 @@ class SetResolvedByAgeActivityTemplate(NotificationTemplate[ActivityAlertAction]
         )
         resolution_text = "was resolved automatically due to inactivity."
         if activity.data and "age" in activity.data:
-            duration = format_duration(int(activity.data["age"]) * 60, floor_to_largest_unit=False)
+            hours = int(activity.data["age"])
+            # Matches how it's displayed in the UI, if <= 30 hours, display 'hours', otherwise 'days'.
+            duration = format_duration(hours * 60, floor_to_largest_unit=hours <= 30)
             resolution_text = f"was resolved automatically after {duration} of inactivity."
 
         return NotificationRenderedTemplate(
