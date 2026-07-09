@@ -24,7 +24,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feedback_queue import (
+from sentry.seer.autofix.pr_iteration.feedback_queue import (
     QueuedAutofixFeedback,
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,

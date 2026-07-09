@@ -56,12 +56,12 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feedback_queue import (
-    enqueue_autofix_feedback,
-    peek_queued_autofix_feedback,
-)
 from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
+)
+from sentry.seer.autofix.pr_iteration.feedback_queue import (
+    enqueue_autofix_feedback,
+    peek_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.types import Feedback
 from sentry.seer.autofix.types import (

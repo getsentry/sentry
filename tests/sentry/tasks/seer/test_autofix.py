@@ -6,7 +6,7 @@ import pytest
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.autofix_agent import Feedback
 from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
-from sentry.seer.autofix.feedback_queue import QueuedAutofixFeedback
+from sentry.seer.autofix.pr_iteration.feedback_queue import QueuedAutofixFeedback
 from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
 from sentry.seer.models import (
     SummarizeIssueResponse,
