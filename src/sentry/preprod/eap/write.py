@@ -2,24 +2,21 @@ from __future__ import annotations
 
 import logging
 import uuid
-from functools import partial
 from typing import Any
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from django.db.models import Sum
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
-from taskbroker_client.state import current_task
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
-from sentry.options.rollout import in_random_rollout
 from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -27,8 +24,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.search.eap.rpc_utils import anyvalue
-from sentry.taskworker.producer import get_task_producer
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -142,10 +138,7 @@ def produce_preprod_size_metric_to_eap(
 
     topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
     payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-    if current_task() is not None and in_random_rollout("tasks.producer.preprod.rollout"):
-        _eap_task_producer.produce(ArroyoTopic(topic), payload)
-    else:
-        _eap_producer.produce(ArroyoTopic(topic), payload)
+    _eap_producer.produce(ArroyoTopic(topic), payload)
 
 
 def produce_preprod_build_distribution_to_eap(
@@ -260,25 +253,21 @@ def produce_preprod_build_distribution_to_eap(
 
     topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
     payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-    if current_task() is not None and in_random_rollout("tasks.producer.preprod.rollout"):
-        _eap_task_producer.produce(ArroyoTopic(topic), payload)
-    else:
-        _eap_producer.produce(ArroyoTopic(topic), payload)
+    _eap_producer.produce(ArroyoTopic(topic), payload)
 
 
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 
-def _get_eap_items_producer(name: str = "sentry.preprod.lib.kafka.eap_items") -> KafkaProducer:
+def _get_eap_items_producer() -> KafkaProducer:
     """Get a Kafka producer for EAP TraceItems."""
     return get_arroyo_producer(
-        name=name,
+        name="sentry.preprod.lib.kafka.eap_items",
         topic=Topic.SNUBA_ITEMS,
     )
 
 
-_eap_producer = SingletonProducer(_get_eap_items_producer)
-_eap_tp_name = "sentry.preprod.lib.kafka.eap_items.taskproducer"
-_eap_task_producer = get_task_producer(
-    producer_name=_eap_tp_name, producer_factory=partial(_get_eap_items_producer, name=_eap_tp_name)
+_eap_producer = FutureTrackingProducer(
+    name="sentry.preprod.lib.kafka.eap_items",
+    producer_factory=_get_eap_items_producer,
 )
