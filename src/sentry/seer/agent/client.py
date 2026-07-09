@@ -59,6 +59,10 @@ from sentry.tasks.seer.context_engine_index import build_service_map, index_org_
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.prompts import (
+    get_prompt_activities_for_user,
+    seer_monitoring_provider_dont_ask_feature,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +169,56 @@ def get_monitoring_provider_connections(
                 )
 
     return connections
+
+
+def get_available_monitoring_providers(
+    organization: Organization,
+    user_id: int,
+    connected_provider_types: set[str],
+) -> list[dict[str, Any]]:
+    """Catalog of monitoring providers the agent may propose connecting mid-run.
+
+    Includes connected providers (with `connected=True`) so the agent has a
+    coherent picture, and omits any provider the user has permanently dismissed
+    ("don't ask again"). This is a separate list from the token-bearing
+    connections payload built by `get_monitoring_provider_connections`.
+    """
+    if not features.has("organizations:seer-infra-telemetry", organization):
+        return []
+
+    feature_to_provider_map = {
+        seer_monitoring_provider_dont_ask_feature(provider_type): provider_type
+        for provider_type in MONITORING_PROVIDERS
+    }
+    dismissed_providers = {
+        feature_to_provider_map[activity.feature]
+        for activity in get_prompt_activities_for_user(
+            [organization.id], user_id, list(feature_to_provider_map)
+        )
+        if activity.data.get("dismissed_ts")
+    }
+
+    available: list[dict[str, Any]] = []
+    for provider_type in MONITORING_PROVIDERS:
+        if provider_type in dismissed_providers:
+            continue
+
+        provider = identity_manager.get(provider_type)
+        provider_name = provider.name
+        is_oauth_provider = isinstance(provider, OAuth2Provider)
+        if not isinstance(provider, McpIdentityProvider):
+            continue
+
+        available.append(
+            {
+                "provider_key": provider_type,
+                "name": provider_name,
+                "connected": provider_type in connected_provider_types,
+                "auth_method": "oauth" if is_oauth_provider else "pat",
+            }
+        )
+
+    return available
 
 
 class SeerAgentClient:
@@ -693,12 +747,21 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
+        # Add connected and available monitoring providers for runs with user context.
         if self.user and not isinstance(self.user, AnonymousUser):
             monitoring_provider_connections = get_monitoring_provider_connections(
                 self.organization, self.user.id
             )
             if monitoring_provider_connections:
                 chat_body["monitoring_providers"] = monitoring_provider_connections
+
+            available_monitoring_providers = get_available_monitoring_providers(
+                self.organization,
+                self.user.id,
+                {c["provider_key"] for c in monitoring_provider_connections},
+            )
+            if available_monitoring_providers:
+                chat_body["available_monitoring_providers"] = available_monitoring_providers
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
