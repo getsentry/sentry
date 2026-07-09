@@ -123,15 +123,7 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    # try:
-    #     stacktraces = find_stacktraces_in_data(data)
-    #     symbolication_function = get_symbolication_function_for_platform(
-    #         task_kind.platform, data, stacktraces
-    #     )
-    # except AssertionError:
-    #     symbolication_function = None
-
-    symbolication_function_name = getattr(task_kind.function, "__name__", "none")
+    symbolication_function_name = getattr(task_kind.function.function(), "__name__", "none")
 
     if task_kind.function is None or killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",

@@ -48,6 +48,9 @@ class SymbolicatorFunction(Enum):
     applecrashreport = "applecrashreport"
 
     def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
+        self.function()(symbolicator, data)
+
+    def function(self) -> Callable[[Symbolicator, Any], Any]:
         from sentry.lang.java.processing import process_jvm_stacktraces
         from sentry.lang.javascript.processing import process_js_stacktraces
         from sentry.lang.native.processing import (
@@ -58,15 +61,15 @@ class SymbolicatorFunction(Enum):
 
         match self:
             case SymbolicatorFunction.native:
-                return process_native_stacktraces(symbolicator, data)
+                return process_native_stacktraces
             case SymbolicatorFunction.js:
-                return process_js_stacktraces(symbolicator, data)
+                return process_js_stacktraces
             case SymbolicatorFunction.jvm:
-                return process_jvm_stacktraces(symbolicator, data)
+                return process_jvm_stacktraces
             case SymbolicatorFunction.minidump:
-                return process_minidump(symbolicator, data)
+                return process_minidump
             case SymbolicatorFunction.applecrashreport:
-                return process_applecrashreport(symbolicator, data)
+                return process_applecrashreport
 
 
 class FrameOrder(Enum):
