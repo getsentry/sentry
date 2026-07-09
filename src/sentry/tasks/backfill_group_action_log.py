@@ -48,3 +48,43 @@ def backfill_group_action_log_for_group(
             "total_created": total,
         },
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.backfill_group_action_log.reset_and_backfill_group_action_log",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def reset_and_backfill_group_action_log(
+    group_id: int,
+    **kwargs: object,
+) -> None:
+    from sentry.issues.derived.processing import invalidate_group_derived_data
+    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        logger.warning(
+            "backfill_group_action_log.group_not_found",
+            extra={"group_id": group_id},
+        )
+        return
+
+    deleted_count, _ = GroupActionLogEntry.objects.filter(
+        group_id=group_id,
+        source="backfill:activity",
+    ).delete()
+
+    invalidate_group_derived_data(group_id)
+
+    logger.info(
+        "backfill_group_action_log.reset_completed",
+        extra={
+            "group_id": group_id,
+            "project_id": group.project_id,
+            "deleted_count": deleted_count,
+        },
+    )
+
+    backfill_group_action_log_for_group.delay(group_id=group_id)
