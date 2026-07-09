@@ -148,7 +148,10 @@ def evaluate_data_conditions(
 
             if logic_type == DataConditionGroup.Type.NONE:
                 return ProcessedDataConditionGroup(
-                    logic_result=TriggerResult(triggered=False, error=condition_evaluation.error),
+                    logic_result=TriggerResult(
+                        triggered=False,
+                        error=condition_evaluation.error,
+                    ),
                     condition_results=[],
                 )
 

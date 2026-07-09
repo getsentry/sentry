@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from sentry.workflow_engine.types import ConditionError, DataConditionResult
@@ -25,23 +26,21 @@ class DataConditionEvaluation(BaseWorkflowEngineEvaluation[DataConditionResult, 
 
     Attributes
     - value: Any - this is the value that was evaluated against.
-    - evaluation: bool - this tracks the logical evaluation of the condition
-    - result: DataConditionResult - this is the value that is expected to be the result of the evaluation, in general this is the `DataCondition.condition_result`
+    - condition: DataCondition - This is the condition that was evaluated.
+
+    Inherits `result`, `error`, and `outcome`.
     """
 
     value: Any
     condition: DataCondition
 
-    @property
+    @cached_property
     def outcome(self) -> TriggerResult:
         """
-        TODO - @saponifi3d - The TriggerResult and the BaseWorkflowEngineEvaluation
+        #TODO: @saponifi3d - The TriggerResult and the BaseWorkflowEngineEvaluation
         can likely serve the same purpose, looking at the result / errors and providing
         helpful interactions.
 
-        For now, using the `TriggerResult` to move a little faster through the refactoring.
+        For now, using the `TriggerResult` to move more quickly through the refactoring
         """
-        return TriggerResult(
-            triggered=(self.result is not None),
-            error=self.error,
-        )
+        return TriggerResult(triggered=self.result is not None, error=self.error)
