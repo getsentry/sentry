@@ -56,6 +56,9 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
+  );
   const hasProgressSort =
     organization.features.includes('issue-stream-progress-sort') ||
     sort === IssueSortOptions.PROGRESS;
@@ -93,6 +96,9 @@ export function IssueListSortOptions({
         value: key,
         label: getSortLabel(key),
         details: getSortTooltip(key),
+        ...(key === IssueSortOptions.RECOMMENDED
+          ? {trailingItems: <FeatureBadge type="new" />}
+          : {}),
       }))}
       menuWidth={240}
       value={sortKey}
@@ -102,8 +108,7 @@ export function IssueListSortOptions({
           size={triggerSize}
           icon={showIcon && <IconSort />}
         >
-          {organization.features.includes('issue-stream-recommended-sort-default') &&
-          sortKey === IssueSortOptions.RECOMMENDED ? (
+          {hasRecommendedSortDefault && sortKey === IssueSortOptions.RECOMMENDED ? (
             <Flex as="span" gap="sm" align="center">
               {triggerProps.children}
               <FeatureBadge
