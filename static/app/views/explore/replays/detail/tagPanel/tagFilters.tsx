@@ -5,7 +5,7 @@ import type {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/u
 
 type Props = {
   tags: undefined | Record<string, string[]>;
-} & ReturnType<typeof useTagFilters>;
+} & Omit<ReturnType<typeof useTagFilters>, 'items'>;
 
 export function TagFilters({tags, searchTerm, setSearchTerm}: Props) {
   return (

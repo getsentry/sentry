@@ -146,7 +146,6 @@ function LatestGroupWithOpenPeriods({
   groupId,
   intervalSeconds,
 }: {
-  detector: Detector;
   groupId: string;
   intervalSeconds?: number;
 }) {
@@ -285,7 +284,6 @@ export function DetectorDetailsOpenPeriodIssues({
       <ErrorBoundary mini>
         {latestGroupId ? (
           <LatestGroupWithOpenPeriods
-            detector={detector}
             groupId={latestGroupId}
             intervalSeconds={intervalSeconds}
           />
