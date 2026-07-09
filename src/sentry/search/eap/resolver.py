@@ -67,7 +67,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
-from sentry.utils.tracing import set_span_tag
+from sentry.utils.tracing import set_span_tag, trace
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -139,7 +139,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
-    @sentry_sdk.trace
+    @trace
     def resolve_meta(
         self,
         referrer: str,
@@ -174,7 +174,7 @@ class SearchResolver:
             downsampled_storage_config=validate_sampling(sampling_mode),
         )
 
-    @sentry_sdk.trace
+    @trace
     def resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -203,7 +203,7 @@ class SearchResolver:
 
         return where, having, contexts
 
-    @sentry_sdk.trace
+    @trace
     def resolve_query_with_columns(
         self,
         querystring: str | None,
@@ -982,7 +982,7 @@ class SearchResolver:
                 final_contexts.append(context)
         return final_contexts
 
-    @sentry_sdk.trace
+    @trace
     def resolve_columns(
         self, selected_columns: list[str], has_aggregates: bool = False
     ) -> tuple[
@@ -1057,7 +1057,7 @@ class SearchResolver:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
-    @sentry_sdk.trace
+    @trace
     def resolve_attributes(
         self, columns: list[str]
     ) -> tuple[list[ResolvedAttribute], list[VirtualColumnDefinition | None]]:
@@ -1195,7 +1195,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
-    @sentry_sdk.trace
+    @trace
     def resolve_functions(
         self, columns: list[str]
     ) -> tuple[

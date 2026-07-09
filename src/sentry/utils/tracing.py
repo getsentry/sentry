@@ -10,6 +10,23 @@ if TYPE_CHECKING:
     from sentry_sdk.tracing import TransactionKwargs
 
 
+def trace(func=None, *, op=None, name=None):
+    client = sentry_sdk.get_client()
+    if has_span_streaming_enabled(client.options):
+        decorator = sentry_sdk.traces.trace(
+            name=name,
+            attributes={} if op is None else {"sentry.op": op},
+        )
+    else:
+        decorator = sentry_sdk.trace(
+            op=op,
+            name=name,
+        )
+    if func is not None:
+        return decorator(func)
+    return decorator
+
+
 def start_span(
     *,
     name: str,
