@@ -631,7 +631,7 @@ def get_native_symbolication_functions(
         yield SymbolicatorFunction.minidump
     if is_applecrashreport_event(data):
         yield SymbolicatorFunction.applecrashreport
-    elif is_native_event(data, stacktraces):
+    if is_native_event(data, stacktraces):
         yield SymbolicatorFunction.native
 
 

@@ -176,7 +176,7 @@ def _do_preprocess_event(
     should_symbolicate = len(symbolicate_functions) > 0
     if should_symbolicate:
         symbolication_function = symbolicate_functions.pop(0)
-        symbolication_function_name = getattr(symbolication_function, "__name__", "none")
+        symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
 
         if not killswitch_matches_context(
             "store.load-shed-symbolicate-event-projects",

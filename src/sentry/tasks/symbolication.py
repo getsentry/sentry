@@ -25,28 +25,6 @@ error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
 
 
-# def get_symbolication_function_for_platform(
-#     platform: SymbolicatorPlatform,
-#     data: Mapping[str, Any],
-#     stacktraces: list[StacktraceInfo],
-# ) -> Callable[[Symbolicator, Any], Any]:
-#     """Returns the symbolication function for the given platform
-#     and event data."""
-
-#     from sentry.lang.java.processing import process_jvm_stacktraces
-
-#     if platform == SymbolicatorPlatform.js:
-#         return process_js_stacktraces
-#     elif platform == SymbolicatorPlatform.jvm:
-#         return process_jvm_stacktraces
-#     else:
-#         symbolication_function = get_native_symbolication_function(data, stacktraces)
-#         # get_native_symbolication_function already returned something in
-#         # get_symbolication_platforms
-#         assert symbolication_function is not None
-#         return symbolication_function
-
-
 def get_symbolication_functions(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
 ) -> list[SymbolicatorFunction]:
