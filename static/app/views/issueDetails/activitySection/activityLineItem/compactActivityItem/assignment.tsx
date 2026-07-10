@@ -78,22 +78,6 @@ function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
   return t('an unknown user');
 }
 
-function RuleText({children}: {children: React.ReactNode}) {
-  return (
-    <Text
-      as="span"
-      variant="muted"
-      size="sm"
-      monospace
-      bold={false}
-      density="comfortable"
-      wordBreak="break-all"
-    >
-      {children}
-    </Text>
-  );
-}
-
 function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) {
   const {teams} = useTeamsById();
   const {data} = activity;
@@ -126,7 +110,17 @@ export function getAssignedActivityItem({
     details: <AssignedActivityDetails activity={activity} />,
     subtext:
       integrationName && activity.data.rule ? (
-        <RuleText>{activity.data.rule}</RuleText>
+        <Text
+          as="span"
+          variant="muted"
+          size="sm"
+          monospace
+          bold={false}
+          density="comfortable"
+          wordBreak="break-all"
+        >
+          {activity.data.rule}
+        </Text>
       ) : null,
   };
 }
