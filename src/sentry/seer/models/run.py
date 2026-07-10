@@ -151,12 +151,6 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
         default=SeerRunCodingAgentHandoffStatus.PENDING,
         db_default=SeerRunCodingAgentHandoffStatus.PENDING,
     )
-    pull_request = FlexibleForeignKey(
-        "sentry.PullRequest",
-        on_delete=models.CASCADE,
-        null=True,
-        related_name="seer_coding_agent_handoffs",
-    )
 
     class Meta:
         app_label = "seer"
