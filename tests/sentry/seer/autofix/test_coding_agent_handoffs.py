@@ -153,7 +153,7 @@ class SyncCodingAgentStatusTest(TestCase):
 
         self.handoff.refresh_from_db()
         assert self.handoff.status == "pending"
-        mock_logger.warning.assert_called_once_with(
-            "seer.coding_agent_handoff.org_mismatch",
+        mock_logger.info.assert_called_once_with(
+            "seer.coding_agent_handoff.not_found",
             extra={"agent_id": "agent-1", "organization_id": other_org.id},
         )
