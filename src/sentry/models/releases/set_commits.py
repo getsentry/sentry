@@ -277,6 +277,45 @@ def update_group_resolutions(release, commit_author_by_commit):
         )
     )
 
+    # When a commit lands in a release that belongs to a different project than the
+    # resolved group, we prefer a project-scoped release for GroupResolution so the
+    # UI can resolve the hover-card fetch against the group's own project.  We
+    # collect the (project_id, commit_id) pairs that need a substitute release in
+    # one bulk query and fall back to the triggering release when no project-scoped
+    # candidate exists.
+    release_project_ids = set(release.projects.values_list("id", flat=True))
+    requested_pairs: set[tuple[int, int]] = {
+        (group_project_lookup[gid], commit_id_by_group[gid])
+        for gid in group_project_lookup
+        if group_project_lookup.get(gid) not in release_project_ids
+        and gid in commit_id_by_group
+    }
+    # Maps (project_id, commit_id) -> (release_id, release_version) for the
+    # earliest project-scoped release containing each cross-project commit.
+    project_commit_to_release: dict[tuple[int, int], tuple[int, str]] = {}
+    if requested_pairs:
+        project_ids = {pid for pid, _ in requested_pairs}
+        commit_ids = {cid for _, cid in requested_pairs}
+        for row in (
+            ReleaseCommit.objects.filter(
+                organization_id=release.organization_id,
+                commit_id__in=commit_ids,
+                release__projects__id__in=project_ids,
+            )
+            .values_list(
+                "release__projects__id",
+                "commit_id",
+                "release_id",
+                "release__version",
+                "release__date_added",
+            )
+            .order_by("release__date_added", "release_id")
+        ):
+            proj_id, commit_id, rel_id, rel_version, _ = row
+            key = (proj_id, commit_id)
+            if key in requested_pairs:
+                project_commit_to_release.setdefault(key, (rel_id, rel_version))
+
     for group_id, author in commits_and_prs:
         if author is not None and author not in user_by_author:
             try:
@@ -284,6 +323,18 @@ def update_group_resolutions(release, commit_author_by_commit):
             except IndexError:
                 user_by_author[author] = None
         actor = user_by_author[author]
+
+        # Prefer a release from the group's own project so that project-scoped
+        # release API calls in the UI resolve correctly.  Fall back to the
+        # triggering release when no matching project-scoped release is found.
+        project_id = group_project_lookup[group_id]
+        commit_id = commit_id_by_group.get(group_id)
+        effective_release_id = release.id
+        effective_version = release.version
+        if project_id not in release_project_ids and commit_id is not None:
+            candidate = project_commit_to_release.get((project_id, commit_id))
+            if candidate is not None:
+                effective_release_id, effective_version = candidate
 
         with atomic_transaction(
             using=(
@@ -297,7 +348,7 @@ def update_group_resolutions(release, commit_author_by_commit):
             resolution, _ = GroupResolution.objects.update_or_create(
                 group_id=group_id,
                 defaults={
-                    "release": release,
+                    "release_id": effective_release_id,
                     "type": GroupResolution.Type.in_release,
                     "status": GroupResolution.Status.resolved,
                     "actor_id": actor.id if actor is not None else None,
@@ -314,7 +365,7 @@ def update_group_resolutions(release, commit_author_by_commit):
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     user_id=actor.id if actor is not None else None,
                     ident=resolution.id,
-                    data={"version": release.version},
+                    data={"version": effective_version},
                 )
             record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 

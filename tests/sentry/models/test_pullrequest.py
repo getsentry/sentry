@@ -109,6 +109,118 @@ class FindReferencedGroupsTest(TestCase):
         assert activity.data == {"version": release.version}
         assert activity.ident == str(resolution.id)
 
+    def test_cross_project_resolution_prefers_group_project_release(self) -> None:
+        """
+        When a commit lands in a release that belongs to a *different* project than
+        the resolved group, update_group_resolutions() should use the earliest
+        project-scoped release (one associated with the group's own project) if
+        such a release exists.  This ensures the UI hover card can resolve the
+        release version against the correct project endpoint.
+        """
+        # Two projects in the same org: frontend (group lives here) and backend.
+        js_project = self.project  # default test project
+        backend_project = self.create_project(organization=js_project.organization)
+
+        group = self.create_group(project=js_project)
+        repo = Repository.objects.create(name="example", organization_id=js_project.organization_id)
+
+        # Commit that references the group.  We use a neutral message so that
+        # find_referenced_groups() does not create the GroupLink automatically;
+        # we want full control over when the link is established.
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=js_project.organization_id,
+            message="chore: neutral message without issue reference",
+        )
+
+        # A frontend release for js_project containing the commit.  The GroupLink
+        # does not exist yet, so set_commits() here finds no groups to resolve and
+        # the group stays unresolved.
+        frontend_release = self.create_release(project=js_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # Now wire the GroupLink.  From this point on, update_group_resolutions()
+        # will see this group as a candidate for any release that includes the commit.
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=js_project.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        # A backend release for backend_project that contains the same commit.
+        # set_commits() on this release triggers update_group_resolutions(), which
+        # finds our GroupLink.  Because the group's project (js_project) is not in
+        # backend_release.projects, the fix should select frontend_release instead.
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == frontend_release, (
+            "GroupResolution should point to the group-project release, not the cross-project one"
+        )
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        )
+        assert activity.data == {"version": frontend_release.version}, (
+            "Activity version should match the group-project release, not the cross-project one"
+        )
+
+    def test_cross_project_resolution_falls_back_when_no_project_release(self) -> None:
+        """
+        When no project-scoped release contains the resolving commit, the
+        cross-project release is used as a fallback so the group is still resolved.
+        """
+        js_project = self.project
+        backend_project = self.create_project(organization=js_project.organization)
+
+        group = self.create_group(project=js_project)
+        repo = Repository.objects.create(
+            name="example-fallback", organization_id=js_project.organization_id
+        )
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=js_project.organization_id,
+            message="chore: neutral message",
+        )
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=js_project.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        # Only a backend release — no frontend (js_project) release exists.
+        backend_release = self.create_release(project=backend_project, version="backend@2.0.0")
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        # No project-scoped candidate → falls back to the triggering release.
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == backend_release
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        )
+        assert activity.data == {"version": backend_release.version}
+
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
         repo = Repository.objects.create(name="example", organization_id=group.organization.id)
