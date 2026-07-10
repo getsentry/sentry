@@ -26,7 +26,7 @@ export function CopyToClipboardButton({
     <Button
       {...props}
       onClick={e => {
-        copy(text).then(onCopy).catch(onError);
+        copy(text).then(onCopy).catch(err => onError?.(err instanceof Error ? err : new Error(String(err))));
         onClick?.(e);
       }}
       icon={<IconCopy variant="muted" />}
