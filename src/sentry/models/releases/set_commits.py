@@ -327,11 +327,11 @@ def update_group_resolutions(release, commit_author_by_commit):
         # release API calls in the UI resolve correctly.  Fall back to the
         # triggering release when no matching project-scoped release is found.
         project_id = group_project_lookup[group_id]
-        commit_id = commit_id_by_group.get(group_id)
+        group_commit_id: int | None = commit_id_by_group.get(group_id)
         effective_release_id = release.id
         effective_version = release.version
-        if project_id not in release_project_ids and commit_id is not None:
-            candidate = project_commit_to_release.get((project_id, commit_id))
+        if project_id not in release_project_ids and group_commit_id is not None:
+            candidate = project_commit_to_release.get((project_id, group_commit_id))
             if candidate is not None:
                 effective_release_id, effective_version = candidate
 
