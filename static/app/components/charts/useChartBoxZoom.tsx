@@ -119,6 +119,20 @@ export function useChartBoxZoom({
       bounds = null;
     }
 
+    function endDrag() {
+      teardown();
+      scheduleTooltipRestore();
+    }
+
+    // If the chart moves under the fixed-position overlay mid-drag (page scroll,
+    // resize, `autoHeightResize`), the selection no longer lines up with the
+    // plot — cancel it rather than apply a mismatched zoom.
+    function cancelDragOnChartMove() {
+      if (bounds) {
+        endDrag();
+      }
+    }
+
     function onMouseDown(evt: MouseEvent) {
       if (!onZoomRef.current || evt.button !== 0) {
         return;
@@ -163,8 +177,18 @@ export function useChartBoxZoom({
 
     dom.addEventListener('mousedown', onMouseDown, true);
 
+    // Cancel an active drag if the chart moves. `scroll` is capture-phase since
+    // it doesn't bubble (the chart may sit in any scroll container); the
+    // observer catches resizes. Both no-op unless a drag is in progress, so the
+    // observer's initial callback (fired with no drag active) is ignored.
+    document.addEventListener('scroll', cancelDragOnChartMove, true);
+    const resizeObserver = new ResizeObserver(cancelDragOnChartMove);
+    resizeObserver.observe(dom);
+
     cleanupRef.current = () => {
       dom.removeEventListener('mousedown', onMouseDown, true);
+      document.removeEventListener('scroll', cancelDragOnChartMove, true);
+      resizeObserver.disconnect();
       teardown();
       if (restoreTooltipTimer !== null) {
         clearTimeout(restoreTooltipTimer);
@@ -180,8 +204,7 @@ export function useChartBoxZoom({
       // released outside the window). End the drag instead of tracking a phantom
       // one; don't apply a zoom since we never saw a real release.
       if ((evt.buttons & 1) === 0) {
-        teardown();
-        scheduleTooltipRestore();
+        endDrag();
         return;
       }
 
@@ -197,8 +220,7 @@ export function useChartBoxZoom({
 
       const end = clampPointToBounds(mouseEventToPoint(evt), bounds);
 
-      teardown();
-      scheduleTooltipRestore();
+      endDrag();
 
       if (!isDragAboveThreshold(start, end)) {
         return;
@@ -224,8 +246,7 @@ export function useChartBoxZoom({
     function onKeyDown(evt: KeyboardEvent) {
       if (evt.key === 'Escape') {
         evt.stopPropagation();
-        teardown();
-        scheduleTooltipRestore();
+        endDrag();
       }
     }
   }, []);
