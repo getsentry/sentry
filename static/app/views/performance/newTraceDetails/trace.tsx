@@ -126,6 +126,16 @@ function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNod
   return nodes.slice();
 }
 
+function collectTraceSpanIds(root: BaseNode, _version: number): string[] {
+  const spanIds: string[] = [];
+  root.forEachChild(node => {
+    if (isEAPSpan(node.value)) {
+      spanIds.push(node.value.event_id);
+    }
+  });
+  return spanIds;
+}
+
 interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
@@ -205,11 +215,8 @@ export function Trace({
     [trace.list, forceRerender]
   );
   const pinnedAttributeSpanIds = useMemo(
-    () =>
-      visibleTraceItems.flatMap(node =>
-        isEAPSpan(node.value) ? [node.value.event_id] : []
-      ),
-    [visibleTraceItems]
+    () => (pinnedAttribute ? collectTraceSpanIds(trace.root, forceRerender) : []),
+    [trace.root, forceRerender, pinnedAttribute]
   );
   const pinnedAttributeData = useTracePinnedAttributeData({
     pinnedAttribute,

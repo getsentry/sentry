@@ -186,6 +186,50 @@ describe('useTracePinnedAttributeData', () => {
     );
   });
 
+  it('only requests new spans when the loaded tree changes', async () => {
+    const firstSpanId = '000000000000000a';
+    const insertedSpanId = '000000000000000b';
+    const lastSpanId = '000000000000000c';
+    const initialRequest = mockPinnedAttributeBatch({
+      spanIds: [firstSpanId, lastSpanId],
+      data: [
+        {span_id: firstSpanId, 'custom.attribute': 'first'},
+        {span_id: lastSpanId, 'custom.attribute': 'last'},
+      ],
+    });
+    const insertedSpanRequest = mockPinnedAttributeBatch({
+      spanIds: [insertedSpanId],
+      data: [{span_id: insertedSpanId, 'custom.attribute': 'inserted'}],
+    });
+
+    const {result, rerender} = renderHookWithProviders(
+      ({spanIds}: {spanIds: string[]}) =>
+        useTracePinnedAttributeData({
+          pinnedAttribute: 'custom.attribute',
+          spanIds,
+          traceSlug: 'trace-id',
+        }),
+      {
+        initialProps: {spanIds: [firstSpanId, lastSpanId]},
+        organization: OrganizationFixture(),
+      }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    rerender({spanIds: [firstSpanId, insertedSpanId, lastSpanId]});
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(initialRequest).toHaveBeenCalledTimes(1);
+    expect(insertedSpanRequest).toHaveBeenCalledTimes(1);
+    expect(result.current.valuesBySpanId).toEqual(
+      new Map([
+        [firstSpanId, 'first'],
+        [lastSpanId, 'last'],
+        [insertedSpanId, 'inserted'],
+      ])
+    );
+  });
+
   it('preserves loaded values when a later batch fails', async () => {
     const spanIds = Array.from({length: 101}, (_, index) =>
       index.toString(16).padStart(16, '0')

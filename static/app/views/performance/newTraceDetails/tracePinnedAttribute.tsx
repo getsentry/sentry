@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
-import chunk from 'lodash/chunk';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -41,6 +40,7 @@ export const PINNED_COLUMN_WIDTH = 160;
 const EMPTY_VALUE = '—';
 const LOADING_VALUE = '…';
 const EVENTS_PAGE_SIZE = 100;
+const PINNED_ATTRIBUTE_GC_TIME = 5 * 60 * 1000;
 
 type PinnedAttributeValue = boolean | number | string | null | undefined;
 
@@ -81,10 +81,6 @@ export function useTracePinnedAttributeData({
   );
   const eventView = useTraceEventView(traceSlug ?? '', queryParams, eventViewOverrides);
   const orderedSpanIds = useMemo(() => Array.from(new Set(spanIds)), [spanIds]);
-  const spanIdBatches = useMemo(
-    () => chunk(orderedSpanIds, EVENTS_PAGE_SIZE),
-    [orderedSpanIds]
-  );
   const eventsUrl = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
     path: {organizationIdOrSlug: organization.slug},
   });
@@ -97,17 +93,15 @@ export function useTracePinnedAttributeData({
   };
   const queryKey = [
     eventsUrl,
-    {query: {...eventsQuery, ordered_span_ids: orderedSpanIds}},
+    {query: eventsQuery},
     {infinite: true},
   ] as const satisfies InfiniteApiQueryKey;
 
   const result = useInfiniteQuery({
     queryKey,
     queryFn: context => {
-      const querySpanIds = context.queryKey[1].query.ordered_span_ids;
-      const spanIdBatch = chunk(querySpanIds, EVENTS_PAGE_SIZE)[context.pageParam] ?? [];
       const search = new MutableSearch(String(eventsQuery.query ?? ''));
-      search.addFilterValue('span_id', `[${spanIdBatch.join(',')}]`);
+      search.addFilterValue('span_id', `[${context.pageParam.join(',')}]`);
       const batchQueryKey: CanonicalApiQueryKey = [
         eventsUrl,
         {query: {...eventsQuery, query: search.formatString()}},
@@ -119,14 +113,17 @@ export function useTracePinnedAttributeData({
         queryKey: batchQueryKey,
       });
     },
-    initialPageParam: 0,
-    getNextPageParam: (_lastPage, _allPages, lastPageParam) => {
-      const nextPageParam = lastPageParam + 1;
-      return nextPageParam < spanIdBatches.length ? nextPageParam : undefined;
+    initialPageParam: orderedSpanIds.slice(0, EVENTS_PAGE_SIZE),
+    getNextPageParam: (_lastPage, _allPages, _lastPageParam, allPageParams) => {
+      const requestedSpanIds = new Set(allPageParams.flat());
+      const nextBatch = orderedSpanIds
+        .filter(spanId => !requestedSpanIds.has(spanId))
+        .slice(0, EVENTS_PAGE_SIZE);
+      return nextBatch.length ? nextBatch : undefined;
     },
-    enabled: Boolean(pinnedAttribute && traceSlug && spanIdBatches.length),
+    enabled: Boolean(pinnedAttribute && traceSlug && orderedSpanIds.length),
     staleTime: Infinity,
-    gcTime: Infinity,
+    gcTime: PINNED_ATTRIBUTE_GC_TIME,
   });
 
   const {resolvedSpanIds, valuesBySpanId} = useMemo(() => {
