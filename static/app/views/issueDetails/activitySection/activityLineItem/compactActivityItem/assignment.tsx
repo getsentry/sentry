@@ -50,7 +50,16 @@ function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
   const {data} = activity;
 
   if (data.assigneeType === 'team') {
-    return teams.find(({id}) => id === data.assignee) ?? '<unknown-team>';
+    const team = teams.find(({id}) => id === data.assignee);
+    if (team) {
+      return team;
+    }
+
+    if (data.assigneeName) {
+      return t('#%s (deleted)', data.assigneeName);
+    }
+
+    return t('Deleted team');
   }
 
   if (data.assignee === activity.user?.id) {

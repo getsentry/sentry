@@ -453,6 +453,39 @@ describe('ActivitySection', () => {
     expect(timeline).not.toHaveTextContent('themselves');
   });
 
+  it('renders the stored name for a deleted team assignment', async () => {
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'deleted-team-assignment',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: '123',
+            assigneeName: 'frontend',
+            assigneeType: 'team',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Issue assigned');
+    expect(timeline).toHaveTextContent('#frontend (deleted)');
+  });
+
   it('renders auto-resolved activity age as an inactivity duration', async () => {
     const autoResolvedGroup = GroupFixture({
       id: '1347',
