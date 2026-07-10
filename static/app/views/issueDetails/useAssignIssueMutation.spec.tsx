@@ -16,6 +16,34 @@ describe('useAssignIssueMutation', () => {
     GroupStore.reset();
   });
 
+  it('assigns an issue', async () => {
+    const group = GroupFixture({id: '1'});
+    const assignee = ActorFixture({id: '2', type: 'user'});
+    const assignRequest = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {...group, assignedTo: assignee},
+    });
+    const {result} = renderHookWithProviders(useAssignIssueMutation, {organization});
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        actor: assignee,
+        assignedBy: 'assignee_selector',
+        groupId: group.id,
+        orgSlug: organization.slug,
+      });
+    });
+
+    expect(assignRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/${group.id}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {assignedTo: `user:${assignee.id}`, assignedBy: 'assignee_selector'},
+      })
+    );
+  });
+
   it.each([
     {
       name: 'assignment',
