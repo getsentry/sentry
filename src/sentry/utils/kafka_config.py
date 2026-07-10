@@ -113,19 +113,19 @@ def get_topic_definition(topic: Topic | str, kafka_slice_id: int | None = None) 
     topic_name = topic if private else topic.value
 
     if kafka_slice_id is not None:
-        if private:
-            raise ValueError("Sliced Kafka topics must use a public Topic")
-
         sliced_topics = settings.SLICED_KAFKA_TOPICS
         key = (topic_name, kafka_slice_id)
+
         if key not in sliced_topics:
             raise KeyError(
                 f"No configuration found for topic '{topic_name}' with slice ID {kafka_slice_id}"
             )
-        defn = sliced_topics[key]
+
+        definition = sliced_topics[key]
+
         return {
-            "cluster": defn["cluster"],
-            "real_topic_name": defn["topic"],
+            "cluster": definition["cluster"],
+            "real_topic_name": definition["topic"],
         }
 
     real_topic_name = settings.KAFKA_TOPIC_OVERRIDES.get(topic_name, topic_name)
