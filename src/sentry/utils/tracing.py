@@ -52,6 +52,8 @@ def trace(
             @functools.wraps(f)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 if has_span_streaming_enabled(sentry_sdk.get_client().options):
+                    if sentry_sdk.traces.get_current_span() is None:
+                        sentry_sdk.traces.new_trace()
                     return await streaming_wrapped(*args, **kwargs)
                 return await non_streaming_wrapped(*args, **kwargs)
 
@@ -60,6 +62,8 @@ def trace(
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             if has_span_streaming_enabled(sentry_sdk.get_client().options):
+                if sentry_sdk.traces.get_current_span() is None:
+                    sentry_sdk.traces.new_trace()
                 return streaming_wrapped(*args, **kwargs)
             return non_streaming_wrapped(*args, **kwargs)
 
