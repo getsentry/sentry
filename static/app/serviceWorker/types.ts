@@ -16,7 +16,7 @@ export type EventMessage =
  * Chrome additionally supports `image` (a large hero image) and `renotify`, so
  * we widen the type to allow configuring them from the notification tester.
  */
-export type TestNotificationOptions = NotificationOptions & {
+export type AllNotificationOptions = NotificationOptions & {
   actions?: Array<{
     action: string;
     title: string;
@@ -27,7 +27,7 @@ export type TestNotificationOptions = NotificationOptions & {
 
 export type RequestMessage = {
   data: {
-    options: TestNotificationOptions;
+    options: AllNotificationOptions;
     title: string;
   };
   name: 'trigger.test-notification';

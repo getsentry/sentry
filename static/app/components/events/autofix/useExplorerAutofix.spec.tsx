@@ -1,3 +1,4 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -698,8 +699,10 @@ describe('isLastStepPrIteration', () => {
   });
 });
 
+const GROUP_ID = '123';
+const MOCK_GROUP = GroupFixture({id: GROUP_ID});
+
 describe('useExplorerAutofix - createPR', () => {
-  const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
 
   beforeEach(() => {
@@ -718,7 +721,7 @@ describe('useExplorerAutofix - createPR', () => {
       body: {},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.createPR(42));
 
@@ -739,7 +742,7 @@ describe('useExplorerAutofix - createPR', () => {
       body: {},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.createPR(42, 'org/repo'));
 
@@ -761,7 +764,7 @@ describe('useExplorerAutofix - createPR', () => {
       body: {detail: 'Server error'},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await expect(act(() => result.current.createPR(42))).rejects.toThrow();
 
@@ -772,7 +775,6 @@ describe('useExplorerAutofix - createPR', () => {
 });
 
 describe('useExplorerAutofix - startStep pr_iteration', () => {
-  const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
   const baseState = {
     run_id: 42,
@@ -797,7 +799,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
       body: {run_id: 42},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() =>
       result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
@@ -825,7 +827,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
       body: {run_id: 42},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
     expect(result.current.runState?.queued_feedback).toBeUndefined();
@@ -850,7 +852,6 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
 });
 
 describe('useExplorerAutofix - codingAgentErrors', () => {
-  const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
   const integration = {id: '42', name: 'Claude Agent', provider: 'claude_code' as const};
 
@@ -873,7 +874,7 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {
@@ -914,7 +915,7 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
       body: {detail: 'boom'},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await expect(
       act(() => result.current.triggerCodingAgentHandoff(1, integration))
@@ -939,7 +940,7 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {

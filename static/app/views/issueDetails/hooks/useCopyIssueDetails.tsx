@@ -340,7 +340,7 @@ export const issueAndEventToMarkdown = ({
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
+  const {runState: autofixData} = useExplorerAutofix(group, {enabled: false});
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {

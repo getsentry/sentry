@@ -1,9 +1,9 @@
-import type {TestNotificationOptions} from 'sentry/serviceWorker/types';
+import type {AllNotificationOptions} from 'sentry/serviceWorker/types';
 
 export async function showNotification(
   sw: ServiceWorkerGlobalScope,
   data: {
-    options: TestNotificationOptions;
+    options: AllNotificationOptions;
     title: string;
   }
 ): Promise<unknown> {

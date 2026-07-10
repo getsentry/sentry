@@ -17,6 +17,7 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
@@ -503,9 +504,10 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  groupId: string,
+  group: Group,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const groupId = group.id;
   const {openModal} = useModal();
 
   const {enabled = true, pollPR = false} = options;
@@ -568,28 +570,6 @@ export function useExplorerAutofix(
         userContext?: string;
       }
     ) => {
-      if (
-        organization.features.includes('autofix-browser-notifications') ||
-        serviceWorker.isServiceWorkerSupported
-      ) {
-        serviceWorker.controller
-          .postMessage({
-            type: 'event',
-            name: 'autofix.startStep',
-            data: {
-              issueId: groupId,
-              notification: {
-                navigateTo: normalizeUrl(`/${orgSlug}/issues/${groupId}`),
-              },
-              organizationIdOrSlug: orgSlug,
-              step,
-              stepOptions: startStepOptions ?? {},
-            },
-          })
-          .catch(error => {
-            addErrorMessage(error instanceof Error ? error.message : String(error));
-          });
-      }
       setWaitingForResponse(true);
 
       try {
@@ -627,6 +607,44 @@ export function useExplorerAutofix(
           await invalidation;
         }
 
+        if (
+          organization.features.includes('autofix-browser-notifications') ||
+          serviceWorker.isServiceWorkerSupported
+        ) {
+          serviceWorker.controller
+            .postMessage({
+              type: 'event',
+              name: 'autofix.startStep',
+              data: {
+                issueId: groupId,
+                notification: {
+                  navigateTo: {
+                    pathname: normalizeUrl(
+                      `/organizations/${orgSlug}/issues/${groupId}/`
+                    ),
+                    query: {
+                      seerDrawer: 'true',
+                    },
+                  },
+                  project: {
+                    avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
+                  },
+                  title: `${group.shortId} - ${step.replace('_', ' ')} completed`,
+                  body: {
+                    success: `Click to see the ${step.replace('_', ' ')} results.`,
+                    error: 'The autofix run ended with an error.',
+                  },
+                },
+                organizationIdOrSlug: orgSlug,
+                step,
+                stepOptions: startStepOptions ?? {},
+              },
+            })
+            .catch(error => {
+              addErrorMessage(error instanceof Error ? error.message : String(error));
+            });
+        }
+
         return response.run_id as number;
       } catch (e: any) {
         setWaitingForResponse(false);
@@ -642,7 +660,15 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient, serviceWorker, organization.features]
+    [
+      api,
+      group.shortId,
+      groupId,
+      orgSlug,
+      organization.features,
+      queryClient,
+      serviceWorker,
+    ]
   );
 
   /**

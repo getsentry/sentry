@@ -28,7 +28,7 @@ interface IssuePreviewAutofixProps {
 
 export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) {
   const aiConfig = useAiConfig(group, project);
-  const autofix = useExplorerAutofix(group.id);
+  const autofix = useExplorerAutofix(group);
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
   const handleRestart = useHandleRestart({aiAutofix: autofix});

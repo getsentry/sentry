@@ -1,11 +1,23 @@
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {workerFetch} from 'sentry/serviceWorker/worker/fetch';
 import {showNotification} from 'sentry/serviceWorker/worker/showNotification';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export interface AutofixStartStepData {
   issueId: string;
   notification: {
-    navigateTo: string;
+    body: {
+      error: string;
+      success: string;
+    };
+    navigateTo: {
+      pathname: string;
+      query?: Record<string, string>;
+    };
+    project: {
+      avatar: string;
+    };
+    title: string;
   };
   organizationIdOrSlug: string;
   step: AutofixExplorerStep;
@@ -64,7 +76,7 @@ function delay(ms: number): Promise<void> {
  */
 export async function handleAutofixStartStep(
   sw: ServiceWorkerGlobalScope,
-  {organizationIdOrSlug, issueId, step, notification}: AutofixStartStepData
+  {organizationIdOrSlug, issueId, notification}: AutofixStartStepData
 ): Promise<void> {
   // Claim the newest generation for this issue. Any older loop still running
   // will see its generation is stale and stop.
@@ -75,69 +87,43 @@ export async function handleAutofixStartStep(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {path: {organizationIdOrSlug, issueId}}
   );
-  const url = `/api/0${path}?mode=explorer`;
 
   const deadline = Date.now() + MAX_POLL_DURATION_MS;
 
-  // TODO: temporary logging to observe the polling loop in the console.
-  /* eslint-disable no-console */
-  console.log('[autofix-poll] start', {url, deadline, step, generation});
-
   try {
-    let attempt = 0;
     while (Date.now() < deadline) {
       // A newer step started for this issue (a newer loop now owns polling), so
       // stop here without notifying to avoid a duplicate notification.
       if (latestPollGeneration.get(issueId) !== generation) {
-        console.log('[autofix-poll] superseded by a newer step, stopping', {
-          attempt,
-          step,
-          generation,
-        });
         return;
       }
 
-      attempt += 1;
-      const response = await fetch(url, {
-        credentials: 'include',
-        headers: {'Content-Type': 'application/json'},
-      });
+      const response = await workerFetch(path, {mode: 'explorer'});
 
       if (!response.ok) {
-        console.log('[autofix-poll] request failed', {
-          attempt,
-          status: response.status,
-        });
         throw new Error(`Autofix poll failed with status ${response.status}`);
       }
 
       const body: AutofixPollResponse = await response.json();
       const status = body.autofix?.status;
 
-      console.log('[autofix-poll] tick', {attempt, step, status});
-
       if (status && status !== 'processing') {
         const updatedAt = body.autofix?.updated_at;
         const resultAgeMs = updatedAt ? Date.now() - new Date(updatedAt).getTime() : 0;
 
         if (resultAgeMs > STALE_RESULT_MS) {
-          console.log('[autofix-poll] result is stale, skipping notification', {
-            attempt,
-            status,
-            resultAgeMs,
-          });
           return;
         }
 
-        console.log('[autofix-poll] done, showing notification', {attempt, step, status});
         await showNotification(sw, {
-          title: 'Autofix finished',
+          title: notification.title,
           options: {
-            body:
-              status === 'error'
-                ? 'The autofix run ended with an error.'
-                : 'Your autofix run is ready to review.',
+            body: notification.body[status === 'error' ? 'error' : 'success'],
+            icon: notification.project.avatar,
+            badge: notification.project.avatar,
+            image: notification.project.avatar,
             tag: `autofix-${issueId}`,
+            renotify: true,
             data: {
               organizationIdOrSlug,
               issueId,
@@ -151,8 +137,6 @@ export async function handleAutofixStartStep(
 
       await delay(POLL_INTERVAL_MS);
     }
-
-    console.log('[autofix-poll] deadline reached, giving up', {attempt});
   } finally {
     // Release ownership only if we still hold it; if we were superseded the
     // newer loop owns this entry and must keep it.
@@ -160,5 +144,4 @@ export async function handleAutofixStartStep(
       latestPollGeneration.delete(issueId);
     }
   }
-  /* eslint-enable no-console */
 }
