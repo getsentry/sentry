@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.coding_agent_handoffs import (
     create_seer_run_coding_agent_handoff,
-    mark_seer_run_coding_agent_handoffs_failed,
     sync_coding_agent_status,
 )
 from sentry.seer.autofix.utils import (
@@ -71,39 +70,6 @@ class CreateSeerRunCodingAgentHandoffTest(TestCase):
             "seer.coding_agent_handoff.run_not_found",
             extra={"organization_id": self.organization.id, "run_id": 999},
         )
-
-
-class MarkSeerRunCodingAgentHandoffsFailedTest(TestCase):
-    def setUp(self) -> None:
-        self.seer_run = self.create_seer_run(
-            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=RUN_STATE_ID
-        )
-
-    def test_marks_matching_handoffs_failed(self) -> None:
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-1"))
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-2"))
-
-        mark_seer_run_coding_agent_handoffs_failed(agent_ids=["agent-1", "agent-2"])
-
-        handoffs = SeerRunCodingAgentHandoff.objects.filter(seer_run=self.seer_run)
-        assert all(h.status == "failed" for h in handoffs)
-
-    def test_noop_when_agent_ids_empty(self) -> None:
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-1"))
-
-        mark_seer_run_coding_agent_handoffs_failed(agent_ids=[])
-
-        handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-1")
-        assert handoff.status == "running"
-
-    def test_does_not_touch_unrelated_agents(self) -> None:
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-1"))
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-2"))
-
-        mark_seer_run_coding_agent_handoffs_failed(agent_ids=["agent-1"])
-
-        assert SeerRunCodingAgentHandoff.objects.get(agent_id="agent-1").status == "failed"
-        assert SeerRunCodingAgentHandoff.objects.get(agent_id="agent-2").status == "running"
 
 
 class SyncCodingAgentStatusTest(TestCase):
