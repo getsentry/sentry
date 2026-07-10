@@ -43,11 +43,6 @@ export type TraceItemSearchQueryBuilderProps = {
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
-  /**
-   * Optional filter applied to the recent-searches GET request.
-   * See SearchQueryBuilderProps.recentSearchesQuery.
-   */
-  recentSearchesQuery?: string;
   replaceRawSearchKeys?: string[];
 } & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -116,7 +111,6 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
-  recentSearchesQuery,
   disabled,
   attributeQuery,
   hiddenAttributeKeys,
@@ -217,7 +211,6 @@ export function useTraceItemSearchQueryBuilderProps({
       recentSearches: disableRecentSearches
         ? undefined
         : itemTypeToRecentSearches(itemType),
-      recentSearchesQuery,
       namespace,
       showUnsubmittedIndicator: true,
       portalTarget,
@@ -241,7 +234,6 @@ export function useTraceItemSearchQueryBuilderProps({
       disabled,
       disallowFreeText,
       disallowLogicalOperators,
-      recentSearchesQuery,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -296,7 +288,6 @@ export function TraceItemSearchQueryBuilder({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
-  recentSearchesQuery,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
@@ -330,7 +321,6 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
-    recentSearchesQuery,
     disabled,
     attributeQuery,
     hiddenAttributeKeys,

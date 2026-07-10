@@ -194,20 +194,6 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.recentSearches).toBeDefined();
   });
 
-  it('passes recent search query through to search query builder provider props', () => {
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        recentSearchesQuery: 'trace:[1234567890abcdef1234567890abcdef]',
-      },
-      organization,
-    });
-
-    expect(result.current.recentSearchesQuery).toBe(
-      'trace:[1234567890abcdef1234567890abcdef]'
-    );
-  });
-
   it('passes disabled through to search query builder provider props', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {

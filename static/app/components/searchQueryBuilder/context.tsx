@@ -69,7 +69,6 @@ interface SearchQueryBuilderConfigContextData {
   onCaseInsensitiveClick: ((value: CaseInsensitive) => void) | undefined;
   placeholder: string | undefined;
   recentSearches: SavedSearchType | undefined;
-  recentSearchesQuery: string | undefined;
   replaceRawSearchKeys: string[] | undefined;
   searchSource: string;
 }
@@ -179,7 +178,6 @@ export function SearchQueryBuilderProvider({
   onSearch,
   placeholder,
   recentSearches,
-  recentSearchesQuery,
   namespace,
   searchSource,
   getFilterTokenWarning,
@@ -401,7 +399,6 @@ export function SearchQueryBuilderProvider({
       onCaseInsensitiveClick,
       placeholder,
       recentSearches,
-      recentSearchesQuery,
       replaceRawSearchKeys,
       searchSource,
     };
@@ -423,7 +420,6 @@ export function SearchQueryBuilderProvider({
     onCaseInsensitiveClick,
     placeholder,
     recentSearches,
-    recentSearchesQuery,
     replaceRawSearchKeys,
     searchSource,
     mergedFilterKeys,

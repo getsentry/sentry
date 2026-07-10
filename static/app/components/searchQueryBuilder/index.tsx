@@ -209,11 +209,6 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
-   * Optional filter applied to the recent-searches GET request (`query__icontains`).
-   * Combined with `namespace` when both are set. Does not affect what is saved on search.
-   */
-  recentSearchesQuery?: string;
-  /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input
    * as value.
