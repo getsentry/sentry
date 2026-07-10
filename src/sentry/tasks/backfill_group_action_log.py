@@ -5,7 +5,6 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActi
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -59,14 +58,13 @@ def backfill_group_action_log_for_group(
 
 
 @instrumented_task(
-    name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_org",
+    name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_project",
     namespace=issues_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
-def backfill_group_action_log_for_org(
-    organization_id: int,
-    last_project_id: int = 0,
+def backfill_group_action_log_for_project(
+    project_id: int,
     last_activity_id: int = 0,
     **kwargs: object,
 ) -> None:
@@ -75,27 +73,25 @@ def backfill_group_action_log_for_org(
         return
 
     try:
-        Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return
 
     try:
-        _backfill_org(organization_id, last_project_id, last_activity_id)
+        _backfill_project(project, last_activity_id)
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
             extra={
-                "organization_id": organization_id,
-                "last_project_id": last_project_id,
+                "project_id": project_id,
                 "last_activity_id": last_activity_id,
             },
         )
         raise
 
 
-def _backfill_org(
-    organization_id: int,
-    last_project_id: int,
+def _backfill_project(
+    project: Project,
     last_activity_id: int,
 ) -> None:
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
@@ -104,28 +100,9 @@ def _backfill_org(
     if batch_size <= 0:
         logger.error(
             "backfill_group_action_log.invalid_batch_size",
-            extra={"organization_id": organization_id, "batch_size": batch_size},
+            extra={"project_id": project.id, "batch_size": batch_size},
         )
         return
-
-    project = (
-        Project.objects.filter(
-            organization_id=organization_id,
-            id__gte=last_project_id or 0,
-        )
-        .order_by("id")
-        .first()
-    )
-
-    if not project:
-        logger.info(
-            "backfill_group_action_log.org_completed",
-            extra={"organization_id": organization_id},
-        )
-        return
-
-    if project.id != last_project_id:
-        last_activity_id = 0
 
     activities = list(
         Activity.objects.filter(
@@ -136,21 +113,15 @@ def _backfill_org(
     )
 
     if not activities:
-        backfill_group_action_log_for_org.apply_async(
-            kwargs={
-                "organization_id": organization_id,
-                "last_project_id": project.id + 1,
-                "last_activity_id": 0,
-            },
-            countdown=inter_batch_delay_s,
-            headers={"sentry-propagate-traces": False},
+        logger.info(
+            "backfill_group_action_log.project_completed",
+            extra={"project_id": project.id},
         )
         return
 
     logger.info(
         "backfill_group_action_log.batch_starting",
         extra={
-            "organization_id": organization_id,
             "project_id": project.id,
             "last_activity_id": last_activity_id,
             "batch_size": len(activities),
@@ -215,7 +186,6 @@ def _backfill_org(
     logger.info(
         "backfill_group_action_log.batch_complete",
         extra={
-            "organization_id": organization_id,
             "project_id": project.id,
             "converted_count": converted_count,
             "skipped_count": skipped_count,
@@ -224,18 +194,11 @@ def _backfill_org(
     )
 
     if len(activities) == batch_size:
-        next_project_id = project.id
-        next_activity_id = activities[-1].id
-    else:
-        next_project_id = project.id + 1
-        next_activity_id = 0
-
-    backfill_group_action_log_for_org.apply_async(
-        kwargs={
-            "organization_id": organization_id,
-            "last_project_id": next_project_id,
-            "last_activity_id": next_activity_id,
-        },
-        countdown=inter_batch_delay_s,
-        headers={"sentry-propagate-traces": False},
-    )
+        backfill_group_action_log_for_project.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "last_activity_id": activities[-1].id,
+            },
+            countdown=inter_batch_delay_s,
+            headers={"sentry-propagate-traces": False},
+        )
