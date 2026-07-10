@@ -500,6 +500,9 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
             ({"yMin": 120}, "yMin and yMax must be provided together"),
             ({"yMin": "abc", "yMax": 720}, "yMin and yMax must be numbers"),
             ({"yMin": 720, "yMax": 120}, "yMax must be greater than or equal to yMin"),
+            # nan/inf pass float() but would break the bucket math and JSON serialization.
+            ({"yMin": "nan", "yMax": "nan"}, "yMin and yMax must be finite numbers"),
+            ({"yMin": 0, "yMax": "inf"}, "yMin and yMax must be finite numbers"),
         ]
         for params, detail in cases:
             response = self._do_request(data={**base_data, **params})

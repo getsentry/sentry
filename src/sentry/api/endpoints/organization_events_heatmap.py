@@ -297,6 +297,10 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         except ValueError:
             raise ParseError("yMin and yMax must be numbers")
 
+        # float() accepts nan/inf, which would poison the bucket math and break JSON serialization.
+        if not math.isfinite(min_bound) or not math.isfinite(max_bound):
+            raise ParseError("yMin and yMax must be finite numbers")
+
         if max_bound < min_bound:
             raise ParseError("yMax must be greater than or equal to yMin")
 
