@@ -265,8 +265,8 @@ describe('FilterSelector', () => {
     });
   });
 
-  it('collapses "contains" to "is" when only "(no value)" is selected', async () => {
-    render(
+  it('collapses "contains" to "is" when only "(no value)" is persisted', async () => {
+    const {rerender} = render(
       <FilterSelector
         globalFilter={mockGlobalFilter}
         searchBarData={mockSearchBarData}
@@ -288,8 +288,18 @@ describe('FilterSelector', () => {
       value: '!has:browser',
     });
 
+    // Simulate the parent persisting the emitted value back into the filter.
+    rerender(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: '!has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
     const trigger = screen.getByRole('button', {name: /browser/});
-    expect(trigger).not.toHaveTextContent('contains');
+    await waitFor(() => expect(trigger).not.toHaveTextContent('contains'));
     expect(trigger).toHaveTextContent('(no value)');
   });
 

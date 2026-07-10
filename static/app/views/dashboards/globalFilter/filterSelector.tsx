@@ -45,7 +45,6 @@ import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
-  canonicalNoValueOperator,
   deriveFilterState,
   getFilterToken,
   NO_VALUE_SENTINEL,
@@ -153,6 +152,16 @@ export function FilterSelector({
     setActiveFilterValues(initialValues);
     setStagedFilterValues([]);
   }, [initialValues]);
+
+  /**
+   * Resync stagedOperator to the derived operator whenever the persisted
+   * filter changes, because a stored has:/!has: clause only reconstructs
+   * as is/is not — so the trigger must drop any stale contains/does not
+   * contain it can't actually persist.
+   */
+  useEffect(() => {
+    setStagedOperator(initialOperator);
+  }, [initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values
   const datasetFilterKeys = searchBarData.getFilterKeys();
@@ -360,11 +369,6 @@ export function FilterSelector({
     const includeNoValue = opts.includes(NO_VALUE_SENTINEL);
     const valueOpts = opts.filter(opt => opt !== NO_VALUE_SENTINEL);
 
-    const isNoValueOnly = includeNoValue && valueOpts.length === 0;
-    const effectiveOperator = isNoValueOnly
-      ? canonicalNoValueOperator(stagedOperator)
-      : stagedOperator;
-
     let valueQuery = '';
     if (valueOpts.length > 0) {
       const cleanedValue = prepareInputValueForSaving(
@@ -382,17 +386,13 @@ export function FilterSelector({
         valueToRewrite.text,
         valueToRewrite,
         cleanedValue,
-        effectiveOperator
+        stagedOperator
       );
     }
 
     const newValue = includeNoValue
-      ? buildNoValueFilterQuery(globalFilter.tag.key, effectiveOperator, valueQuery)
+      ? buildNoValueFilterQuery(globalFilter.tag.key, stagedOperator, valueQuery)
       : valueQuery;
-
-    if (effectiveOperator !== stagedOperator) {
-      setStagedOperator(effectiveOperator);
-    }
 
     onUpdateFilter({
       ...globalFilter,
