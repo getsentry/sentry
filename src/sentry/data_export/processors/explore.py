@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportError
@@ -215,7 +216,7 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             ),
         )
 
-    def _create_trace_item_filter(self):
+    def _create_trace_item_filter(self) -> TraceItemFilter | None:
         where, _, _ = self.search_resolver.resolve_query_with_columns(
             querystring=self.explore_query.get("query", ""),
             selected_columns=None,
