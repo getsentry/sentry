@@ -7,6 +7,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {
   TraceViewMetricsProviderWrapper,
@@ -121,6 +122,9 @@ describe('TraceViewMetricsSection', () => {
   });
 
   it('scopes attribute and value autocomplete requests to the trace', async () => {
+    setWindowLocation(
+      'http://localhost/organizations/org-slug/performance/trace/trace-id/?timestamp=1700000000'
+    );
     const attributesRequest = mockTraceMetricAttributes();
     const valuesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/metric.name/values/`,
@@ -151,6 +155,8 @@ describe('TraceViewMetricsSection', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             query: `trace:[${traceId}]`,
+            start: '2023-11-14T19:13:20.000',
+            end: '2023-11-15T01:13:20.000',
           }),
         })
       );
@@ -159,6 +165,8 @@ describe('TraceViewMetricsSection', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             query: `trace:[${traceId}]`,
+            start: '2023-11-14T19:13:20.000',
+            end: '2023-11-15T01:13:20.000',
           }),
         })
       );

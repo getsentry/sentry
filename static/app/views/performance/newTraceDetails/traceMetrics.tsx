@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
@@ -15,6 +16,7 @@ import {HiddenTraceMetricTraceViewSearchFields} from 'sentry/views/explore/metri
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {
   useMetricsFrozenSearch,
+  useMetricsFrozenTracePeriod,
   type TracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -111,9 +113,23 @@ function MetricsSectionContent() {
   const setMetricsQuery = useSetQueryParamsQuery();
   const metricsSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
+  const {selection} = usePageFilters();
   const initialQuery = metricsSearch.formatString();
   const placeholder = t('Search application metrics for this trace');
   const attributeQuery = frozenSearch?.formatString();
+  const datetime = useMemo(
+    () =>
+      frozenTracePeriod
+        ? {
+            start: frozenTracePeriod.start ?? null,
+            end: frozenTracePeriod.end ?? null,
+            period: frozenTracePeriod.period ?? null,
+            utc: selection.datetime.utc,
+          }
+        : undefined,
+    [frozenTracePeriod, selection.datetime.utc]
+  );
 
   const traceMetricsSearchQueryBuilderProps = useMemo(() => {
     const numberAttributes: TagCollection = {};
@@ -155,8 +171,9 @@ function MetricsSectionContent() {
       hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
       attributeQuery,
       recentSearchesQuery: attributeQuery,
+      datetime,
     };
-  }, [attributeQuery, initialQuery, placeholder, setMetricsQuery]);
+  }, [attributeQuery, datetime, initialQuery, placeholder, setMetricsQuery]);
 
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     traceMetricsSearchQueryBuilderProps
