@@ -14,10 +14,10 @@ import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {PriorityLevel, type Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 type GroupDetailsPriorityProps = {
   group: Group;
@@ -65,14 +65,10 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
       {
         success: () => {
           queryClient.invalidateQueries({
-            queryKey: [
-              getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  issueId: group.id,
-                },
-              }),
-            ],
+            queryKey: groupQueryKey({
+              organizationSlug: organization.slug,
+              groupId: group.id,
+            }),
           });
           clearIndicators();
           addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));

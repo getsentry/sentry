@@ -19,13 +19,13 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -114,11 +114,10 @@ export function ShareIssueModal({
       {
         success: () => {
           queryClient.invalidateQueries({
-            queryKey: [
-              getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-                path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-              }),
-            ],
+            queryKey: groupQueryKey({
+              organizationSlug: organization.slug,
+              groupId,
+            }),
           });
         },
         error: () => {

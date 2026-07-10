@@ -16,6 +16,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
@@ -91,14 +92,10 @@ export function useAssignIssueMutation(
       return {changeId};
     },
     onSuccess: (response, variables, onMutateResult, context) => {
-      const queryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-          path: {
-            organizationIdOrSlug: variables.orgSlug,
-            issueId: variables.groupId,
-          },
-        }),
-      ];
+      const queryKey = groupQueryKey({
+        organizationSlug: variables.orgSlug,
+        groupId: variables.groupId,
+      });
 
       // Update react query cache so that useGroup() reflects the new assignee.
       queryClient.setQueriesData<ApiResponse<Group>>({queryKey}, prev =>
