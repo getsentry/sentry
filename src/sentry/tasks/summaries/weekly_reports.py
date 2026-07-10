@@ -479,7 +479,7 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
+project_breakdown_colors = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
@@ -526,7 +526,9 @@ def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     pct = round(change * 100)
     if pct == 0:
         return None
-    return {"direction": "up" if change > 0 else "down", "pct": f"{abs(pct)}%"}
+    if change > 0:
+        return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
+    return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
