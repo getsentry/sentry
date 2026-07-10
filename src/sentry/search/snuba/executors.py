@@ -24,6 +24,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress import IssueProgressState, get_group_progress_states
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
@@ -1067,12 +1068,34 @@ PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
 LAST_SEEN_TIEBREAK_DIVISOR = 10**13
 
 
+def _get_group_progress_states_from_db(group_ids: list[int]) -> dict[int, str]:
+    """Read progress from the materialized GroupDerivedData.progress column. The column
+    stores the IssueProgressState value verbatim. Groups without a derived row (or a null
+    progress) fall back to identified so every group still gets a rank."""
+    stored = dict(
+        GroupDerivedData.objects.filter(group_id__in=group_ids).values_list("group_id", "progress")
+    )
+    return {
+        group_id: stored.get(group_id) or IssueProgressState.IDENTIFIED.value
+        for group_id in group_ids
+    }
+
+
 def resolve_progress_signal(
     actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, int]:
-    """Progress-cycle rank per group (identified=1 .. fix_applied=5), derived from the same
-    Activity records as the ``issue.progress`` filter. Every group gets a rank."""
-    states = get_group_progress_states(group_ids)
+    """Progress-cycle rank per group (identified=1 .. fix_applied=5). When every project in
+    scope has the ``projects:issue-action-log-write-to-db`` flag enabled, progress is read
+    from the materialized GroupDerivedData.progress column; otherwise it's derived from the
+    same Activity records as the ``issue.progress`` filter. Every group gets a rank."""
+    project_ids = set(Group.objects.filter(id__in=group_ids).values_list("project_id", flat=True))
+    projects = list(Project.objects.filter(id__in=project_ids))
+    if projects and all(
+        features.has("projects:issue-action-log-write-to-db", project) for project in projects
+    ):
+        states = _get_group_progress_states_from_db(group_ids)
+    else:
+        states = get_group_progress_states(group_ids)
     return {
         group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
         for group_id, state in states.items()
