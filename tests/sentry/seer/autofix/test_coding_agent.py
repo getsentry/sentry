@@ -108,11 +108,14 @@ class TestPollGithubCopilotAgents(TestCase):
         )
 
     def test_poll_skips_when_no_coding_agents(self) -> None:
+        """Test that polling does nothing when there are no coding agents"""
         autofix_state = self._create_autofix_state_with_agents({})
 
+        # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
     def test_poll_skips_non_github_copilot_agents(self) -> None:
+        """Test that polling skips agents that are not GitHub Copilot agents"""
         agents = {
             "cursor-agent-123": CodingAgentState(
                 id="cursor-agent-123",
@@ -124,9 +127,11 @@ class TestPollGithubCopilotAgents(TestCase):
         }
         autofix_state = self._create_autofix_state_with_agents(agents)
 
+        # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
     def test_poll_skips_completed_agents(self) -> None:
+        """Test that polling skips agents that are already completed"""
         agents = {
             "getsentry:sentry:task-123": CodingAgentState(
                 id="getsentry:sentry:task-123",
@@ -138,10 +143,12 @@ class TestPollGithubCopilotAgents(TestCase):
         }
         autofix_state = self._create_autofix_state_with_agents(agents)
 
+        # Should not raise and should not call any external services
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_returns_early_when_no_user_token(self, mock_identity_service):
+        """Test that polling returns early when user has no access token"""
         mock_identity_service.get_access_token_for_user.return_value = None
 
         agents = {
@@ -164,6 +171,7 @@ class TestPollGithubCopilotAgents(TestCase):
     @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_updates_state_when_pr_created(self, mock_identity_service, mock_sync_status):
+        """Test that polling updates agent state when a PR is found"""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -216,6 +224,7 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_falls_back_to_branch_when_global_id_empty(
         self, mock_identity_service, mock_sync_status
     ):
+        """When the Copilot API returns an empty global_id, resolve the PR via the head branch."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -254,6 +263,7 @@ class TestPollGithubCopilotAgents(TestCase):
         with _patch_github_copilot_client(fake_client):
             poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
+        # Empty global_id -> GraphQL path skipped, branch fallback used.
         assert fake_client.get_pr_from_graphql_calls == []
         assert fake_client.get_pr_from_branch_calls == [("getsentry", "sentry", "copilot/fix-bug")]
 
@@ -268,6 +278,7 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_marks_completed_without_pr_when_unresolved(
         self, mock_identity_service, mock_sync_status
     ):
+        """A completed task flips to COMPLETED even when no PR can be resolved."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -310,6 +321,8 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_attributes_pr_when_task_complete(
         self, mock_identity_service, mock_sync_status, mock_attribute
     ):
+        """A completed Copilot task with a PR is attributed to the Copilot agent, and both
+        Seer's state and the Sentry-side SeerRunCodingAgentHandoff row are synced in one call."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -371,6 +384,7 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_does_not_attribute_when_task_not_done(
         self, mock_identity_service, mock_sync_status, mock_attribute
     ):
+        """A PR seen while the task is still running is not attributed yet."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -413,6 +427,7 @@ class TestPollGithubCopilotAgents(TestCase):
     @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_marks_agent_failed_on_error_status(self, mock_identity_service, mock_sync_status):
+        """Test that polling marks agent as failed when task status is error"""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -445,6 +460,7 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_marks_completed_when_pr_resolution_errors(
         self, mock_identity_service, mock_sync_status
     ):
+        """A GitHub API error during PR resolution must not block the terminal status update."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -487,6 +503,7 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_marks_failed_even_when_branch_has_pr(
         self, mock_identity_service, mock_sync_status
     ):
+        """A failed/timed_out task is marked FAILED even if a PR exists on the head branch."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -501,6 +518,7 @@ class TestPollGithubCopilotAgents(TestCase):
                     ),
                 ],
             ),
+            # A draft PR may already exist on the head branch even though the task failed.
             pr_from_branch=GithubPullRequest(
                 number=46, title="WIP", url="https://github.com/getsentry/sentry/pull/46"
             ),
@@ -529,6 +547,7 @@ class TestPollGithubCopilotAgents(TestCase):
     def test_poll_keeps_running_status_when_task_not_done(
         self, mock_identity_service, mock_sync_status
     ):
+        """Test that polling keeps RUNNING status when task is still in progress"""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(
@@ -571,6 +590,7 @@ class TestPollGithubCopilotAgents(TestCase):
     @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_handles_api_exception(self, mock_identity_service, mock_sync_status):
+        """Test that polling handles exceptions gracefully"""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         fake_client = FakeGithubCopilotAgentClient(task_status_error=Exception("API Error"))
@@ -587,11 +607,14 @@ class TestPollGithubCopilotAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
 
         with _patch_github_copilot_client(fake_client):
+            # Should not raise - exception should be caught and logged
             poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
+        # State should not be updated when there's an error
         mock_sync_status.assert_not_called()
 
     def test_poll_skips_invalid_agent_id(self) -> None:
+        """Test that polling skips agents with invalid IDs"""
         agents = {
             "invalid-agent-id": CodingAgentState(
                 id="invalid-agent-id",
@@ -603,6 +626,7 @@ class TestPollGithubCopilotAgents(TestCase):
         }
         autofix_state = self._create_autofix_state_with_agents(agents)
 
+        # Should not raise - invalid agent ID should be skipped
         poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
 
@@ -864,6 +888,8 @@ class TestPollClaudeCodeAgents(TestCase):
     def test_attributes_pr_on_completion(
         self, mock_integration_service, mock_import_string, mock_sync_status, mock_attribute
     ):
+        """A completed Claude session with a PR is attributed to the Claude agent, and both
+        Seer's state and the Sentry-side SeerRunCodingAgentHandoff row are synced in one call."""
         self._mock_integration(mock_integration_service)
         fake_client = FakeClaudeCodeClient(
             events=[
@@ -914,6 +940,7 @@ class TestPollClaudeCodeAgents(TestCase):
     def test_does_not_attribute_when_no_pr_url(
         self, mock_integration_service, mock_import_string, mock_sync_status, mock_attribute
     ):
+        """A completed session without a PR is not attributed."""
         self._mock_integration(mock_integration_service)
         fake_client = FakeClaudeCodeClient(
             events=[
@@ -965,6 +992,7 @@ class TestPollClaudeCodeAgents(TestCase):
         self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
+        # Last event is session.status_running — agent is already RUNNING, no update needed
         fake_client = FakeClaudeCodeClient(events=[{"type": ClaudeSessionEventStatus.RUNNING}])
         mock_import_string.return_value = lambda **kwargs: fake_client
 
@@ -1004,6 +1032,7 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
+        # A single call keeps Seer's state and the Sentry-side handoff row in lockstep.
         mock_sync_status.assert_called_once_with(
             agent_id="claude-session-123",
             organization_id=self.organization.id,
@@ -1032,6 +1061,8 @@ class TestPollClaudeCodeAgents(TestCase):
     def test_updates_running_to_pending_on_rescheduling_event(
         self, mock_integration_service, mock_import_string, mock_sync_status
     ):
+        """A RESCHEDULING event on a RUNNING session must sync both Seer's state and the
+        Sentry-side handoff row back to pending, in one call."""
         self._mock_integration(mock_integration_service)
         fake_client = FakeClaudeCodeClient(events=[{"type": ClaudeSessionEventStatus.RESCHEDULING}])
         mock_import_string.return_value = lambda **kwargs: fake_client
