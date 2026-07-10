@@ -52,15 +52,16 @@ import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckIn
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
 function VisualizationCell({detector}: {detector: CronDetector}) {
-  const cronId = detector.dataSources[0].queryObj.id;
-  const cronEnvironments = detector.dataSources[0].queryObj.environments;
+  const queryObj = detector.dataSources[0].queryObj;
+  const cronId = queryObj?.id;
+  const cronEnvironments = queryObj?.environments;
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({
-    monitors: [detector.dataSources[0].queryObj.id],
+    monitors: cronId ? [cronId] : [],
     timeWindowConfig,
   });
 
@@ -72,7 +73,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
       height="100%"
     >
       <Stack gap="sm" width="100%" ref={elementRef}>
-        {cronEnvironments.map(environment => {
+        {cronEnvironments?.map(environment => {
           if (isPending) {
             return <CheckInPlaceholder key={environment.name} />;
           }
@@ -84,7 +85,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
                 statusPrecedent={checkInStatusPrecedent}
                 timeWindowConfig={timeWindowConfig}
                 bucketedData={selectCheckInData(
-                  monitorStats?.[cronId] ?? [],
+                  monitorStats?.[cronId!] ?? [],
                   environment.name
                 )}
               />
@@ -108,7 +109,7 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
       return (
         <SimpleTable.RowCell data-column-name="environment-label" alignSelf="start">
           <Stack gap="sm" width="100%">
-            {detector.dataSources[0].queryObj.environments.map(environment => {
+            {detector.dataSources[0].queryObj?.environments?.map(environment => {
               return (
                 <Text density="compressed" key={environment.name}>
                   <MonitorEnvironmentLabel
