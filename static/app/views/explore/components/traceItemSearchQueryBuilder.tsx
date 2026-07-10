@@ -123,6 +123,7 @@ export function useTraceItemSearchQueryBuilderProps({
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
+  const effectiveDatetime = datetime ?? selection.datetime;
 
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -154,6 +155,7 @@ export function useTraceItemSearchQueryBuilderProps({
     extraTags: functionTags,
     query: attributeQuery,
     hiddenKeys: hiddenAttributeKeys,
+    datetime,
   });
   // When an allowlist is in effect, the static filterKeys are already curated to
   // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
@@ -165,7 +167,7 @@ export function useTraceItemSearchQueryBuilderProps({
       itemType,
       effectiveProjects,
       selection.environments,
-      selection.datetime,
+      effectiveDatetime,
       attributeQuery,
       hiddenAttributeKeys,
       allowedAttributeKeys,
@@ -173,10 +175,10 @@ export function useTraceItemSearchQueryBuilderProps({
     [
       allowedAttributeKeys,
       attributeQuery,
+      effectiveDatetime,
       effectiveProjects,
       hiddenAttributeKeys,
       itemType,
-      selection.datetime,
       selection.environments,
     ]
   );
@@ -306,6 +308,7 @@ export function TraceItemSearchQueryBuilder({
     numberSecondaryAliases,
     stringSecondaryAliases,
     initialQuery,
+    placeholder,
     searchSource,
     getFilterTokenWarning,
     onBlur,
@@ -328,7 +331,6 @@ export function TraceItemSearchQueryBuilder({
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
-    placeholder,
     datetime,
     invalidFilterKeys,
   });

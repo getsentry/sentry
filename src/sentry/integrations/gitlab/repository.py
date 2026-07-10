@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +14,8 @@ from sentry.shared_integrations.exceptions import ApiError
 
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
+
+logger = logging.getLogger("sentry.integrations.gitlab")
 
 
 class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"]):
@@ -58,7 +61,28 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         }
 
     def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        # Namespaced under "gitlab.repository." so these attributes group together in the
+        # Sentry Logs UI.
+        log_extra = {
+            "gitlab.repository.organization_id": repo.organization_id,
+            "gitlab.repository.integration_id": repo.integration_id,
+            "gitlab.repository.repository_id": repo.id,
+            "gitlab.repository.project_id": repo.config.get("project_id"),
+        }
+        # Emitted on every invocation so we can gauge how often this path runs
+        # (and therefore how many webhook create calls we make to GitLab).
+        logger.info(
+            "gitlab.repository.on_create_repository",
+            extra={
+                **log_extra,
+                "gitlab.repository.has_existing_webhook": bool(repo.config.get("webhook_id")),
+            },
+        )
         if repo.config.get("webhook_id"):
+            logger.info(
+                "gitlab.repository.webhook_creation_skipped",
+                extra={**log_extra, "gitlab.repository.webhook_id": repo.config.get("webhook_id")},
+            )
             return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
@@ -68,6 +92,10 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             raise installation.raise_error(e)
         repo.config["webhook_id"] = hook_id
         repository_service.update_repository(organization_id=organization.id, update=repo)
+        logger.info(
+            "gitlab.repository.webhook_created",
+            extra={**log_extra, "gitlab.repository.webhook_id": hook_id},
+        )
 
     def on_delete_repository(self, repo):
         """Clean up the attached webhook"""
