@@ -309,8 +309,9 @@ def update_group_resolutions(release, commit_author_by_commit):
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
             if should_create_resolution_activity:
                 activity_data: dict[str, Any] = {"version": release.version}
-                if commit_id := commit_id_by_group.get(group_id):
-                    activity_data["commit"] = commit_id
+                resolution_commit_id = commit_id_by_group.get(group_id)
+                if resolution_commit_id is not None:
+                    activity_data["commit"] = resolution_commit_id
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
