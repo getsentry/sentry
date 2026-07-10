@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -26,13 +27,21 @@ import {getExpandedProjectIds} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {autoSubmitFromCurrentQuery, autoSubmitSeer, displayAskSeer} =
+    useSearchQueryBuilderAI();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const isAutoSubmittingCurrentQuery =
+    autoSubmitFromCurrentQuery && autoSubmitSeer && displayAskSeer;
 
   const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    let queryToUse = query;
+    if (!isAutoSubmittingCurrentQuery && committedQuery.length > 0) {
+      queryToUse = committedQuery;
+    }
+
     const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query, parseQuery]);
+  }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
   const inputValue = currentInputValueRef.current.trim();
 
@@ -40,7 +49,11 @@ export function useInitialSeerQuery(): string {
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
       token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+        !(
+          token.type === Token.FREE_TEXT &&
+          inputValue &&
+          (isAutoSubmittingCurrentQuery || token.text.includes(inputValue))
+        )
     )
     ?.map(token => stringifyToken(token))
     ?.join(' ')
