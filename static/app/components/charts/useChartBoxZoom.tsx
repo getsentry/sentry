@@ -98,6 +98,7 @@ export function useChartBoxZoom({
     let start: Point = {x: 0, y: 0};
     let bounds: RectangularBounds | null = null;
     let $overlay: HTMLDivElement | null = null;
+    let pointerId: number | null = null;
 
     let restoreTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -111,9 +112,14 @@ export function useChartBoxZoom({
     }
 
     function teardown() {
-      document.removeEventListener('mousemove', onMouseMove, true);
-      document.removeEventListener('mouseup', onMouseUp, true);
+      dom.removeEventListener('pointermove', onPointerMove);
+      dom.removeEventListener('pointerup', onPointerUp);
+      dom.removeEventListener('lostpointercapture', onLostPointerCapture);
       document.removeEventListener('keydown', onKeyDown, true);
+      if (pointerId !== null && dom.hasPointerCapture(pointerId)) {
+        dom.releasePointerCapture(pointerId);
+      }
+      pointerId = null;
       $overlay?.remove();
       $overlay = null;
       bounds = null;
@@ -133,15 +139,10 @@ export function useChartBoxZoom({
       }
     }
 
-    function onMouseDown(evt: MouseEvent) {
+    function onPointerDown(evt: PointerEvent) {
       if (!onZoomRef.current || evt.button !== 0) {
         return;
       }
-
-      // Clear any drag that didn't tear down cleanly (e.g. a `mouseup` missed
-      // because the button was released outside the window) so we never stack a
-      // second overlay or duplicate listeners.
-      teardown();
 
       const currentBounds = getChartPlotBounds(chartInstance, getChartOrigin(dom));
       const point = mouseEventToPoint(evt);
@@ -154,6 +155,11 @@ export function useChartBoxZoom({
 
       bounds = currentBounds;
       start = point;
+      pointerId = evt.pointerId;
+      // Route every subsequent event for this pointer to the chart element —
+      // even outside the window — so we always get the terminating `pointerup`
+      // and never leave a drag half-open.
+      dom.setPointerCapture(pointerId);
 
       if (restoreTooltipTimer !== null) {
         clearTimeout(restoreTooltipTimer);
@@ -161,7 +167,7 @@ export function useChartBoxZoom({
       }
 
       // Hide the tooltip for the drag so it doesn't render over the selection.
-      // `lazyUpdate` defers the re-render off the mousedown so the press is
+      // `lazyUpdate` defers the re-render off the pointerdown so the press is
       // snappy and we don't lose an active reference to the rectangle which
       // sometimes happens on chart re-render
       chartInstance.setOption({tooltip: {show: false}}, {silent: true, lazyUpdate: true});
@@ -170,12 +176,13 @@ export function useChartBoxZoom({
       document.body.appendChild($overlay);
       updateOverlay($overlay, start, start);
 
-      document.addEventListener('mousemove', onMouseMove, true);
-      document.addEventListener('mouseup', onMouseUp, true);
+      dom.addEventListener('pointermove', onPointerMove);
+      dom.addEventListener('pointerup', onPointerUp);
+      dom.addEventListener('lostpointercapture', onLostPointerCapture);
       document.addEventListener('keydown', onKeyDown, true);
     }
 
-    dom.addEventListener('mousedown', onMouseDown, true);
+    dom.addEventListener('pointerdown', onPointerDown, true);
 
     // Cancel an active drag if the chart moves. `scroll` is capture-phase since
     // it doesn't bubble (the chart may sit in any scroll container); the
@@ -186,7 +193,7 @@ export function useChartBoxZoom({
     resizeObserver.observe(dom);
 
     cleanupRef.current = () => {
-      dom.removeEventListener('mousedown', onMouseDown, true);
+      dom.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('scroll', cancelDragOnChartMove, true);
       resizeObserver.disconnect();
       teardown();
@@ -195,24 +202,16 @@ export function useChartBoxZoom({
       }
     };
 
-    function onMouseMove(evt: MouseEvent) {
+    function onPointerMove(evt: PointerEvent) {
       if (!$overlay || !bounds) {
-        return;
-      }
-
-      // The primary button is no longer held — the `mouseup` was missed (e.g.
-      // released outside the window). End the drag instead of tracking a phantom
-      // one; don't apply a zoom since we never saw a real release.
-      if ((evt.buttons & 1) === 0) {
-        endDrag();
         return;
       }
 
       updateOverlay($overlay, start, clampPointToBounds(mouseEventToPoint(evt), bounds));
     }
 
-    function onMouseUp(evt: MouseEvent) {
-      // Only the primary button ends the drag; releasing a secondary/middle
+    function onPointerUp(evt: PointerEvent) {
+      // Only the primary button completes the drag; releasing a secondary/middle
       // button mid-drag (primary still held) must not tear down or zoom.
       if (!bounds || evt.button !== 0) {
         return;
@@ -226,7 +225,7 @@ export function useChartBoxZoom({
         return;
       }
 
-      // Read the chart origin fresh at release rather than reusing the mousedown
+      // Read the chart origin fresh at release rather than reusing the pointerdown
       // one: if the chart moved during the drag (page scroll, resize), the fixed
       // overlay covers whatever cells sit under it *now*, so converting against
       // the current origin keeps the applied range matching what's on screen.
@@ -240,6 +239,15 @@ export function useChartBoxZoom({
 
       if (range) {
         onZoomRef.current?.(range);
+      }
+    }
+
+    // Capture can be lost without a `pointerup` (browser cancels the gesture,
+    // the element is removed, etc.). It also fires *after* a normal `pointerup`,
+    // but `endDrag` has already cleared `bounds` by then, so this no-ops.
+    function onLostPointerCapture() {
+      if (bounds) {
+        endDrag();
       }
     }
 
