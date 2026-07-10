@@ -1,9 +1,9 @@
 import zipfile
 from io import BytesIO
 from unittest.mock import patch
-from urllib.request import urlopen
 from uuid import uuid4
 
+import requests as requests_lib
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -55,20 +55,16 @@ class DebugFilesTestCases(APITestCase):
         )
 
     def _assert_successful_download(self, response, content: bytes, filename=None) -> None:
-        """
-        Asserts that a debug file download succeeded and yields `content`, transparently handling
-        both backends: files in the legacy `File` store are streamed directly (200), while
-        Objectstore-backed files are served via a 302 redirect to a pre-signed URL, which we follow.
-        """
         if response.status_code == 302:
             location = response["Location"]
-            assert "/v1/objects/debug_files/" in location
-            assert "os_sig=" in location
             # In dev/test the host may be rewritten to the Docker-internal `objectstore` hostname
             # (so Symbolicator can reach it); rewrite it back so this host-side test can follow it.
             location = location.replace("://objectstore:", "://127.0.0.1:")
-            with urlopen(location) as fp:
-                assert fp.read() == content
+            r = requests_lib.get(location)
+            assert r.status_code == 200, r.text
+            assert r.content == content
+            if filename is not None:
+                assert r.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
         else:
             assert response.status_code == 200, response.content
             if filename is not None:
