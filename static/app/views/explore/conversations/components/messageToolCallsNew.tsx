@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -101,13 +100,7 @@ export function MessageToolCallsNew({
           >
             <Flex align="center" justify="between" gap="md" width="100%">
               <Flex align="center" gap="sm" minWidth={0}>
-                {toolNode ? (
-                  <AiSpanStatusIcon node={toolNode} size="sm" />
-                ) : (
-                  <Flex align="center" flexShrink={0}>
-                    <IconFix size="sm" variant="accent" />
-                  </Flex>
-                )}
+                {toolNode && <AiSpanStatusIcon node={toolNode} size="sm" />}
                 <ToolTag name={tool.name} hasError={tool.hasError} />
                 {toolNode && <ToolInputPreview node={toolNode} />}
               </Flex>

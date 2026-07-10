@@ -3,35 +3,57 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFire} from 'sentry/icons';
+import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
+import type {IconSize} from 'sentry/utils/theme';
 import {
   getGenAiOpType,
-  getGenAiOpTypeIcon,
   getSpanColor,
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-type IconSize = 'xs' | 'sm' | 'md' | 'lg';
-
 // Corner offset for the error badge, tuned per icon size so the fire sits just
-// outside the bottom-right of the op-type icon.
-const BADGE_OFFSET: Record<IconSize, number> = {xs: -4, sm: -5, md: -6, lg: -7};
+// outside the bottom-right of the operation-type icon.
+const BADGE_OFFSET: Record<IconSize, number> = {
+  xs: -4,
+  sm: -5,
+  md: -6,
+  lg: -8,
+  xl: -10,
+  '2xl': -20,
+};
+
+function operationTypeIcon(opType: string | undefined, size: IconSize) {
+  switch (opType) {
+    case GenAiOperationType.AGENT:
+      return <IconBot size={size} />;
+    case GenAiOperationType.AI_CLIENT:
+      return <IconChat size={size} />;
+    case GenAiOperationType.TOOL:
+      return <IconFix size={size} />;
+    case GenAiOperationType.HANDOFF:
+      return <IconChevron size={size} isDouble direction="right" />;
+    default:
+      return <IconCode size={size} />;
+  }
+}
 
 interface AiSpanStatusIconProps {
   node: AITraceSpanNode;
   /**
-   * Overrides the icon color. Defaults to the op-type/error palette color so
-   * errored spans tint red.
+   * Overrides the icon color. Defaults to the operation-type/error palette
+   * color so errored spans tint red.
    */
   color?: string;
   size?: IconSize;
 }
 
 /**
- * Op-type icon for an AI span with a shared errored treatment: a small
+ * Operation-type icon for an AI span with a shared errored treatment: a small
  * `IconFire` badge overlapping the bottom-right corner when the span errored.
  * Used across the timeline, transcript, and span detail so the errored icon
  * looks the same everywhere.
@@ -40,11 +62,12 @@ export function AiSpanStatusIcon({node, size = 'md', color}: AiSpanStatusIconPro
   const theme = useTheme();
   const hasErrors = hasError(node);
   const iconColor = color ?? getSpanColor(node, getTimelineColorByOpType(theme));
+  // Same value on both axes nudges the badge diagonally to the corner.
   const offset = BADGE_OFFSET[size];
 
   return (
     <Flex align="center" position="relative" style={{color: iconColor}} flexShrink={0}>
-      {getGenAiOpTypeIcon(getGenAiOpType(node), size)}
+      {operationTypeIcon(getGenAiOpType(node), size)}
       {hasErrors && (
         <Tooltip title={t('This span encountered an error')} skipWrapper>
           <Container
