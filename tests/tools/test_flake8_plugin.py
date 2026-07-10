@@ -393,3 +393,23 @@ def test_S015_current_or_future_year() -> None:
         )
         == []
     )
+
+
+def test_S019() -> None:
+    src = """\
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info("m", extra={"name": 1})
+logger.warning("m", extra={"message": "x"})
+logger.info("m", extra={"ok_key": 1})
+logger.info("m", extra=other)
+"""
+    expected = [
+        "t.py:5:24: S019 'name' is a reserved LogRecord attribute; using it as a key in "
+        "logging extra= raises KeyError at runtime",
+        "t.py:6:27: S019 'message' is a reserved LogRecord attribute; using it as a key in "
+        "logging extra= raises KeyError at runtime",
+    ]
+    assert _run(src) == expected

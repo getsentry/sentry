@@ -14,7 +14,7 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -24,7 +24,11 @@ import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
+import {
+  DEFAULT_QUERY,
+  getStoredIssueSort,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -357,6 +361,50 @@ describe('IssueList', () => {
     });
   });
 
+  describe('sort persistence', () => {
+    it('does not persist sort to localStorage without the recommended-sort feature', async () => {
+      render(<IssueListOverview />, {organization, initialRouterConfig});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
+
+      // Writing while the feature is off would leave a stale value that overrides
+      // the Recommended default once the flag is enabled.
+      expect(getStoredIssueSort(organization.slug)).toBeNull();
+    });
+
+    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
+
+      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+    });
+
+    it('shows the new-feature badge next to the sort dropdown with the recommended-sort-default feature', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('new')).toBeInTheDocument();
+
+      // The Recommended option inside the dropdown carries the badge too
+      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
+      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
+      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
+    });
+  });
+
   describe('transitionTo', () => {
     it('pushes to history when query is updated', async () => {
       MockApiClient.addMockResponse({
@@ -670,7 +718,9 @@ describe('IssueList', () => {
         initialRouterConfig,
       });
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async () => {

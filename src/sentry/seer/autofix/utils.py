@@ -147,6 +147,7 @@ class CodingAgentResult(BaseModel):
     repo_provider: str
     repo_full_name: str
     pr_url: str | None = None
+    branch_name: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
@@ -223,7 +224,32 @@ def make_update_coding_agent_state_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/update",
+        "/v1/automation/coding-agent/state/update",
+        body=orjson.dumps(body.dict(exclude_none=True)),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+class MatchDelegatedAgentPrRequest(BaseModel):
+    organization_id: int
+    pull_request_id: int
+    pr_url: str
+    repo: SeerRepoDefinition
+    head_branch: str
+    provider: str
+    group_ids: list[int]
+
+
+def make_match_coding_agent_pr_request(
+    body: MatchDelegatedAgentPrRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or autofix_connection_pool,
+        "/v1/pr-metrics/delegated-agent-match",
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -238,7 +264,7 @@ def make_store_coding_agent_states_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/set",
+        "/v1/automation/coding-agent/state/set",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -497,6 +523,32 @@ def clear_preference_automation_handoff(project: Project) -> None:
     ).delete()
 
 
+def get_repo_url_path(repo: Repository) -> str:
+    """Return the URL-safe owner/name path for a repository.
+
+    For GitLab, ``repo.name`` is ``name_with_namespace`` (the human-readable
+    display name, e.g. ``"My Group / My Project"`` — with spaces).  The
+    URL-safe equivalent is stored in ``repo.config["path"]``
+    (``path_with_namespace``, e.g. ``"my-group/my-project"``).
+
+    For GitHub and all other providers, ``repo.name`` is already the
+    URL-safe ``owner/repo`` string, so we return it unchanged.
+
+    Raises ``ValueError`` for a GitLab repo missing ``config["path"]``. This
+    should never happen in practice (every GitLab repo we store has the path
+    populated), so we fail loudly rather than silently falling back to the
+    space-containing display name, which would produce broken URLs / 404s.
+    """
+    if repo.provider == "integrations:gitlab":
+        path = repo.config.get("path")
+        if not path:
+            raise ValueError(
+                f"GitLab repository {repo.id} is missing config['path'] (path_with_namespace)"
+            )
+        return path
+    return repo.name
+
+
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
 ) -> SeerRepoDefinition | None:
@@ -504,7 +556,7 @@ def build_repo_definition_from_project_repo(
 
     Returns None if Repository name is invalid."""
     repo = seer_project_repo.project_repository.repository
-    repo_name_sections = repo.name.split("/")
+    repo_name_sections = get_repo_url_path(repo).split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
         return None
@@ -732,48 +784,73 @@ class ProjectRepoCreateData(TypedDict):
     branch_overrides: NotRequired[list[BranchOverrideData]]
 
 
-def replace_all_branch_overrides(
-    seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
-) -> None:
-    """Replace all branch overrides for the given Seer project repo."""
-    SeerProjectRepositoryBranchOverride.objects.filter(
-        seer_project_repository=seer_project_repo
-    ).delete()
-    if branch_overrides:
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(
-            [
-                SeerProjectRepositoryBranchOverride(
-                    seer_project_repository=seer_project_repo,
-                    tag_name=override["tag_name"],
-                    tag_value=override["tag_value"],
-                    branch_name=override["branch_name"],
-                )
-                for override in branch_overrides
-            ]
-        )
-
-
 def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
     """Upsert Seer project repos."""
-    result_ids = []
+    if not repos_data:
+        return []
+
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        seer_project_repos_to_add: list[SeerProjectRepository] = []
+        branch_overrides_by_key: dict[tuple[int, int], list[BranchOverrideData]] = {}
+
+        # Collect SeerProjectRepository objects to upsert, linking each to its ProjectRepository.
         for data in repos_data:
             project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                 project_id=project.id,
                 repository_id=data["repository_id"],
                 source=ProjectRepositorySource.SEER_PREFERENCE,
             )
-            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
-                project_repository=project_repo,
-                defaults={
-                    "branch_name": data.get("branch_name"),
-                    "instructions": data.get("instructions"),
-                },
+            seer_project_repos_to_add.append(
+                SeerProjectRepository(
+                    project_repository=project_repo,
+                    branch_name=data.get("branch_name"),
+                    instructions=data.get("instructions"),
+                )
             )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
-            result_ids.append(seer_project_repo.id)
 
-    return result_ids
+            # Key branch overrides by project id and repo id so we can link them to
+            # the right SeerProjectRepository later.
+            if data.get("branch_overrides"):
+                branch_overrides_by_key[(project.id, data["repository_id"])] = data[
+                    "branch_overrides"
+                ]
+
+        seer_project_repos = SeerProjectRepository.objects.bulk_create(
+            seer_project_repos_to_add,
+            update_conflicts=True,
+            update_fields=["branch_name", "instructions", "date_updated"],
+            unique_fields=["project_repository"],
+        )
+
+        # Upsert branch overrides using the upserted SeerProjectRepository rows.
+        branch_overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+        for seer_project_repo in seer_project_repos:
+            project_repo = seer_project_repo.project_repository
+            for override in branch_overrides_by_key.get(
+                (project_repo.project_id, project_repo.repository_id), []
+            ):
+                branch_overrides_to_create.append(
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override["tag_name"],
+                        tag_value=override["tag_value"],
+                        branch_name=override["branch_name"],
+                    )
+                )
+
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository__in=seer_project_repos
+        ).delete()
+
+        if branch_overrides_to_create:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                branch_overrides_to_create,
+                update_conflicts=True,
+                update_fields=["branch_name", "date_updated"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
+
+    return [sr.id for sr in seer_project_repos]
 
 
 def replace_all_seer_project_repos(
@@ -786,20 +863,7 @@ def replace_all_seer_project_repos(
             project_repository__repository__status=ObjectStatus.ACTIVE,
         ).delete()
 
-        for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
-                project_id=project.id,
-                repository_id=data["repository_id"],
-                source=ProjectRepositorySource.SEER_PREFERENCE,
-            )
-            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
-                project_repository=project_repo,
-                defaults={
-                    "branch_name": data.get("branch_name"),
-                    "instructions": data.get("instructions"),
-                },
-            )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+        add_seer_project_repos(project, repos_data)
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
@@ -826,7 +890,7 @@ def get_autofix_repos_from_project_code_mappings(
     repos: dict[tuple, dict] = {}
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.project_repository.repository
-        repo_name_sections = repo.name.split("/")
+        repo_name_sections = get_repo_url_path(repo).split("/")
 
         if (
             # We expect a repository name to be in the format of "owner/name" for now.
@@ -931,6 +995,7 @@ def is_issue_category_eligible(group: Group) -> bool:
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
+        GroupCategory.CONFIGURATION,
     }
 
 

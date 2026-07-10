@@ -5,15 +5,15 @@ from collections.abc import Iterable
 from datetime import timedelta
 
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
 
-# Padded past 3 days so nightly-run jitter can't expire a key right at the
-# 3-day boundary; guarantees the next 3 nightly runs suppress the issue.
-SKIP_TTL_SECONDS = int(timedelta(days=3, hours=12).total_seconds())
+# Padded past 7 days so nightly-run jitter can't expire a key right at the
+# 7-day boundary; guarantees the next 7 nightly runs suppress the issue.
+SKIP_TTL_SECONDS = int(timedelta(days=7, hours=12).total_seconds())
 KEY_PREFIX = "seer:night-shift:skip:"
 
 

@@ -10,6 +10,7 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +97,10 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             extras["contract_id"] = contract_id
 
         try:
-            logger.info(
-                "billing.service.method.start",
-                extra=extras,
-            )
-
-            result = func(self, request)
+            with start_span(op="function", name=f"{service_name}.{method_name}") as cur_span:
+                for k, v in extras.items():
+                    set_span_data(cur_span, k, v)
+                result = func(self, request)
 
             # Validate output is a protobuf message
             if not isinstance(result, Message):

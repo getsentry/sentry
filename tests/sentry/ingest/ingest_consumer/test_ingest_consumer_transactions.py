@@ -101,7 +101,6 @@ def test_ingest_consumer_reads_from_topic_and_saves_event(
         "ingest-transactions",
         consumer_args=consumer_args,
         topic=None,
-        cluster=None,
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,

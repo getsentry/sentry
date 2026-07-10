@@ -87,8 +87,7 @@ export function getLocalityUrlOptions(
     .filter(locality => {
       if (
         excludedRegionNames.includes(locality.name) ||
-        (only.length > 0 && !only.includes(locality.name)) ||
-        CUSTOMER_HIDDEN_REGIONS.has(locality.name)
+        (only.length > 0 && !only.includes(locality.name))
       ) {
         return false;
       }
@@ -98,26 +97,32 @@ export function getLocalityUrlOptions(
       const {url} = locality;
       return {
         value: url,
-        label: `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`,
+        label:
+          `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
       };
     });
 }
 
-// TODO(cells) Rework/remove this once Region -> Locality config changes are completed.
-const CUSTOMER_HIDDEN_REGIONS = new Set(['us2']);
+interface LocalitySelectValue extends SelectValue<string> {
+  url: string;
+}
 
 /**
- * Create a list of option objects with {label: displayName, value: name}
+ * Get a list of option objects with {label: displayName: value: locality.name}
+ * for all the localities that are available for signups.
  */
-export function getLocalityNameOptions(): Array<SelectValue<string>> {
+export function getSignupLocalities(): LocalitySelectValue[] {
+  const signupLocalities = ConfigStore.get('signupLocalities');
   const localities = getLocalities();
 
   return localities
-    .filter(locality => !CUSTOMER_HIDDEN_REGIONS.has(locality.name))
+    .filter(locality => signupLocalities.includes(locality.name))
     .map(locality => {
       return {
         value: locality.name,
-        label: `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`,
+        url: locality.url,
+        label:
+          `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
       };
     });
 }

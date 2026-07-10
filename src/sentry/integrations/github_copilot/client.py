@@ -8,7 +8,7 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.models import (
     GithubCopilotTask,
     GithubCopilotTaskRequest,
-    GithubPRFromGraphQL,
+    GithubPullRequest,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 
@@ -138,7 +138,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
 
         return GithubCopilotTask.validate(api_response.json)
 
-    def get_pr_from_graphql(self, global_id: str) -> GithubPRFromGraphQL | None:
+    def get_pr_from_graphql(self, global_id: str) -> GithubPullRequest | None:
         query = """
             query($id: ID!) {
                 node(id: $id) {
@@ -174,8 +174,47 @@ class GithubCopilotAgentClient(CodingAgentClient):
         if not node or "number" not in node:
             return None
 
-        return GithubPRFromGraphQL(
+        return GithubPullRequest(
             number=node["number"],
             title=node["title"],
             url=node["url"],
+        )
+
+    def get_pr_from_branch(self, owner: str, repo: str, head_ref: str) -> GithubPullRequest | None:
+        """Resolve a PR from its head branch via the GitHub REST API.
+
+        Fallback for when the Copilot task artifact's ``global_id`` is empty
+        (which the Copilot API returns intermittently even for completed tasks).
+        Relies only on the reliably-populated branch artifact and public PR
+        fields, so it sidesteps ``global_id`` entirely.
+        """
+        api_response = self.get(
+            f"https://api.github.com/repos/{owner}/{repo}/pulls",
+            headers=self._get_auth_headers(),
+            params={"head": f"{owner}:{head_ref}", "state": "all"},
+            timeout=30,
+        )
+
+        prs = api_response.json or []
+
+        logger.info(
+            "coding_agent.github_copilot.get_pr_from_branch",
+            extra={
+                "owner": owner,
+                "repo": repo,
+                "head_ref": head_ref,
+                "status_code": api_response.status_code,
+                "pr_count": len(prs),
+            },
+        )
+
+        if not prs:
+            return None
+
+        # The head filter is unique per branch; take the most recent if several.
+        pr = prs[0]
+        return GithubPullRequest(
+            number=pr["number"],
+            title=pr["title"],
+            url=pr["html_url"],
         )

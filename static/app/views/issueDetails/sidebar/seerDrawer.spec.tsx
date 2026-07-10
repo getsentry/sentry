@@ -73,7 +73,6 @@ describe('SeerDrawer', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
       }),
     });
     MockApiClient.addMockResponse({
@@ -114,6 +113,10 @@ describe('SeerDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/repos/`,
       body: [],
     });
   });
@@ -316,5 +319,62 @@ describe('SeerDrawer', () => {
     expect(
       await screen.findByText('A null pointer dereference in the auth module')
     ).toBeInTheDocument();
+  });
+
+  describe('PR polling', () => {
+    const autofixUrl = `/organizations/${DetailedProjectFixture().organization.slug}/issues/${GroupFixture().id}/autofix/`;
+
+    function mockAutofixWithPr() {
+      return MockApiClient.addMockResponse({
+        url: autofixUrl,
+        body: {
+          autofix: {
+            ...makeExplorerAutofixData({status: 'completed'}),
+            repo_pr_states: {
+              'org/repo': {pr_creation_status: 'completed'},
+            },
+          },
+        },
+      });
+    }
+
+    it('does not poll the autofix endpoint when autofix-pr-iteration is disabled', async () => {
+      const getMock = mockAutofixWithPr();
+
+      render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
+
+      await waitForElementToBeRemoved(() =>
+        screen.queryByTestId('ai-setup-loading-indicator')
+      );
+
+      const callsAfterLoad = getMock.mock.calls.length;
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
+    });
+
+    it('polls the autofix endpoint when autofix-pr-iteration is enabled and a PR exists', async () => {
+      const getMock = mockAutofixWithPr();
+
+      render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+        organization: OrganizationFixture({
+          hideAiFeatures: false,
+          features: ['gen-ai-features', 'autofix-pr-iteration'],
+        }),
+      });
+
+      await waitForElementToBeRemoved(() =>
+        screen.queryByTestId('ai-setup-loading-indicator')
+      );
+
+      const callsAfterLoad = getMock.mock.calls.length;
+
+      await waitFor(
+        () => {
+          expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
+        },
+        {timeout: 5000}
+      );
+    });
   });
 });

@@ -8,23 +8,20 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {DataUnit} from 'sentry/utils/discover/fields';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
+import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -55,10 +52,7 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {
-  mapMetricUnitToFieldType,
-  updateVisualizeYAxis,
-} from 'sentry/views/explore/metrics/utils';
+import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
@@ -125,17 +119,19 @@ export function MetricPanel({
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
   const setAggregateFields = useSetMetricAggregateFields();
-  // use the biggest interval for the heat map as this produces better patterns
+
+  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+
   const [interval, setInterval, intervalOptions] = useChartInterval({
-    unspecifiedStrategy:
-      visualize.chartType === ChartType.HEATMAP
-        ? ChartIntervalUnspecifiedStrategy.USE_BIGGEST
-        : ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
   const [title, setTitle] = useState<string | undefined>(() => {
     if (isVisualizeEquation(visualize)) {
-      return unresolveExpression(visualize.expression.text, referenceMap);
+      return (
+        visualize.internalExpression ??
+        unresolveExpression(visualize.expression.text, referenceMap)
+      );
     }
     return;
   });
@@ -162,30 +158,39 @@ export function MetricPanel({
     staleTime: Infinity,
   });
 
-  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
-  const hasHeatMap = canUseMetricsHeatMap(organization);
+  const areHeatMapsEnabled = canUseMetricsHeatMap(organization);
 
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled:
-      !(hasHeatMap && isHeatmap) &&
+      !(areHeatMapsEnabled && isHeatmap) &&
       (!isMetricOptionsEmpty ||
         (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
   });
 
+  const contentHeightRef = useRef<number | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const yBuckets = getHeatmapYBuckets(selection, interval, chartContainerWidth);
+
+  const heatMapBucketDimensions = calculateHeatMapBucketDimensions(
+    selection,
+    {
+      width: chartContainerWidth,
+      height: STACKED_GRAPH_HEIGHT,
+    },
+    intervalOptions.map(intervalOption => intervalOption.value)
+  );
 
   const heatmapApiOptions = metricHeatmapApiOptions({
-    traceMetric,
-    enabled: hasHeatMap && isHeatmap && !isMetricOptionsEmpty && yBuckets > 0,
     organization,
     selection,
+    traceMetric,
     query: userQuery,
-    interval,
-    yBuckets,
+    interval: heatMapBucketDimensions?.interval,
+    yBuckets: heatMapBucketDimensions?.yBuckets,
+    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
   });
+
   const heatmapResult = useQuery({
     ...heatmapApiOptions,
     select: data => {
@@ -242,6 +247,7 @@ export function MetricPanel({
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
+            data-test-id="metric-panel-chart-type-select"
             tooltipProps={{
               title: t('Type of chart displayed in this visualization (ex. line)'),
             }}
@@ -253,11 +259,16 @@ export function MetricPanel({
         )}
         value={visualize.chartType}
         menuTitle="Type"
-        options={getMetricsChartTypeOptions(organization)}
+        options={getMetricsChartTypeOptions(
+          organization,
+          isVisualizeEquation(visualize),
+          traceMetric
+        )}
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={interval}
+        value={isHeatmap ? (heatMapBucketDimensions?.interval ?? interval) : interval}
+        disabled={isHeatmap}
         onChange={({value}) => setInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -276,8 +287,6 @@ export function MetricPanel({
       />
     </Fragment>
   );
-
-  const contentHeightRef = useRef<number | null>(null);
 
   return (
     <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
@@ -311,13 +320,14 @@ export function MetricPanel({
                     }
                   }}
                 >
-                  <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="sm">
+                  <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="sm">
                     <Container minWidth="0" ref={chartContainerRef}>
-                      {hasHeatMap && isHeatmap ? (
+                      {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
                           heatmapResult={heatmapResult}
                           actions={actions}
                           title={title}
+                          queryLabel={queryLabel}
                         />
                       ) : (
                         <MetricsGraph
@@ -378,57 +388,4 @@ function DnDPlaceholder({
       </Grid>
     </Container>
   );
-}
-
-/**
- * Computes the number of Y-axis buckets for the heatmap API so that cells
- * are roughly square. The X-axis bucket count comes from the time range
- * divided by the selected interval. We derive Y buckets by scaling
- * xBuckets by the container's height/width aspect ratio.
- */
-function getHeatmapYBuckets(
-  selection: PageFilters,
-  interval: string,
-  chartContainerWidth: number
-): number {
-  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
-  const intervalInMs = intervalToMilliseconds(interval);
-  if (intervalInMs <= 0 || chartContainerWidth <= 0) {
-    return 0;
-  }
-
-  const xBuckets = Math.round(timeRangeInMs / intervalInMs);
-  if (xBuckets <= 0) {
-    return 0;
-  }
-
-  return Math.max(1, Math.round(xBuckets * (STACKED_GRAPH_HEIGHT / chartContainerWidth)));
-}
-
-/**
- * The heatmap API response doesn't include the metric unit because the
- * query uses the generic `value` field. This function patches the Y-axis
- * meta with the known unit from the selected trace metric so the
- * visualization can format axis labels correctly (e.g. "1.5 KB" instead
- * of "1500").
- */
-function mergeMetricUnit(
-  series: HeatMapSeries,
-  metricUnit: string | undefined
-): HeatMapSeries {
-  const {fieldType, unit} = mapMetricUnitToFieldType(metricUnit);
-  if (!unit) {
-    return series;
-  }
-  return {
-    ...series,
-    meta: {
-      ...series.meta,
-      yAxis: {
-        ...series.meta.yAxis,
-        valueType: fieldType,
-        valueUnit: unit as DataUnit,
-      },
-    },
-  };
 }

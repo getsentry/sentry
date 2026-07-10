@@ -27,13 +27,6 @@ RESPONSE_HEADERS_FILTERED = {
     "x-sentry-subnet-signature",
     "x-sentry-subnet-path",
 }
-TIMEOUT_OVERRIDES = [
-    (["/chunk-upload/"], 90.0),
-    (["/releases/", "/files/"], 90.0),
-    (["/files/dsyms/"], 90.0),
-    (["/installablepreprodartifact/"], 90.0),
-    (["/objectstore/"], 90.0),
-]
 
 
 class RequestyBodyHttpxGlue(httpx._types.AsyncByteStream):
@@ -105,6 +98,23 @@ class ProxyLatencyPipe(Pipe):
         metric_latency.labels(target=target).observe((time.perf_counter_ns() - ts) / 1_000_000)
 
 
+class ProxyTimeoutPipe(Pipe):
+    __slots__ = ["timeout"]
+
+    def __init__(self, timeout: float):
+        self.timeout = timeout
+
+    def pipe(self, next_pipe: Any, **kwargs: Any) -> Any:
+        return next_pipe(timeout=self.timeout, **kwargs)
+
+
+def build_proxied_url(target: str, path: str) -> str:
+    url = urljoin(target, path)
+    if httpx.URL(target)._uri_reference.netloc != httpx.URL(url)._uri_reference.netloc:
+        abort_with_json(400, {"error": "apigateway", "detail": "Bad request"})
+    return url
+
+
 def build_proxied_headers(
     request: Any, target: str, pass_host: bool = False
 ) -> list[tuple[str, str]]:
@@ -163,13 +173,6 @@ def get_cell_address(cell: Cell) -> str:
     return cell.address
 
 
-def get_timeout(path: str) -> float | None:
-    for segments, timeout in TIMEOUT_OVERRIDES:
-        if all(segment in path for segment in segments):
-            return timeout
-    return app.config.proxy.timeout
-
-
 def adapt_response(presp: httpx.Response) -> Any:
     response.status = presp.status_code
     headers: dict[str, list[str]] = defaultdict(list)
@@ -189,10 +192,10 @@ def adapt_response(presp: httpx.Response) -> Any:
     return response.stream(presp.aiter_raw(CHUNK_SIZE))
 
 
-async def proxy_cell_request(cell: Cell, request: Any) -> Any:
-    target_url = urljoin(get_cell_address(cell), request.path)
+async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = None) -> Any:
+    target_url = build_proxied_url(get_cell_address(cell), request.path)
     headers = build_proxied_cell_headers(request, cell.address)
-    timeout = get_timeout(request.path)
+    timeout = timeout or app.config.proxy.timeout
 
     try:
         async with circuitbreakers.get(cell.name) as circuitbreaker:
@@ -214,7 +217,7 @@ async def proxy_cell_request(cell: Cell, request: Any) -> Any:
             except asyncio.CancelledError:
                 metric_abort.labels(route=request.name, target=cell.name).inc()
                 raise
-            except httpx.ConnectError:
+            except httpx.NetworkError:
                 metric_failed.labels(route=request.name, target=cell.name).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(
@@ -238,7 +241,7 @@ async def proxy_cell_request(cell: Cell, request: Any) -> Any:
 
 
 async def proxy_control_request(request: Any) -> Any:
-    target_url = urljoin(app.config.endpoints.control, request.path)
+    target_url = build_proxied_url(app.config.endpoints.control, request.path)
     headers = build_proxied_headers(request, app.config.endpoints.control, pass_host=True)
 
     try:
@@ -257,7 +260,7 @@ async def proxy_control_request(request: Any) -> Any:
     except asyncio.CancelledError:
         metric_abort.labels(route=request.name, target="control").inc()
         raise
-    except httpx.ConnectError:
+    except httpx.NetworkError:
         metric_failed.labels(route=request.name, target="control").inc()
         abort_with_json(503, {"error": "apigateway", "detail": "Downstream service unavailable"})
     except httpx.TimeoutException:

@@ -10,6 +10,7 @@ from sentry.runner.initializer import (
     apply_legacy_settings,
     bind_cache_to_option_store,
     bootstrap_options,
+    validate_options,
 )
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -23,6 +24,7 @@ def settings():
         SENTRY_OPTIONS={},
         SENTRY_DEFAULT_OPTIONS={},
         SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
+        SENTRY_SELF_HOSTED=False,
     )
 
 
@@ -273,6 +275,45 @@ def test_bind_cache_to_option_store_with_options_cache() -> None:
 
         # Should use 'options' cache, not 'default'
         assert default_store.cache == caches["options"]
+
+
+def test_self_hosted_filestore_config_yml_promoted(settings, config_yml) -> None:
+    """config.yml filestore keys are promoted to Django settings on self-hosted."""
+    settings.SENTRY_SELF_HOSTED = True
+    settings.SENTRY_FILE_STORAGE_BACKEND = "filesystem"
+    settings.SENTRY_FILE_STORAGE_CONFIG = {}
+
+    config_yml.write("filestore.backend: gcs\nfilestore.options:\n  bucket_name: my-bucket\n")
+    bootstrap_options(settings, str(config_yml))
+
+    assert settings.SENTRY_FILE_STORAGE_BACKEND == "gcs"
+    assert settings.SENTRY_FILE_STORAGE_CONFIG == {"bucket_name": "my-bucket"}
+
+
+def test_non_self_hosted_filestore_config_yml_not_promoted(settings, config_yml) -> None:
+    """config.yml filestore keys are not promoted to Django settings on SaaS."""
+    settings.SENTRY_SELF_HOSTED = False
+    settings.SENTRY_FILE_STORAGE_BACKEND = "filesystem"
+    settings.SENTRY_FILE_STORAGE_CONFIG = {}
+
+    config_yml.write("filestore.backend: gcs\nfilestore.options:\n  bucket_name: my-bucket\n")
+    bootstrap_options(settings, str(config_yml))
+
+    assert settings.SENTRY_FILE_STORAGE_BACKEND == "filesystem"
+    assert settings.SENTRY_FILE_STORAGE_CONFIG == {}
+
+
+def test_self_hosted_validate_options_skips_migrated_keys(settings) -> None:
+    """validate_options does not warn about migrated option keys on self-hosted."""
+    settings.SENTRY_SELF_HOSTED = True
+    settings.SENTRY_OPTIONS = {"filestore.backend": "gcs", "mail.list-namespace": "example.com"}
+
+    # Should not raise UnknownOption or emit warnings for the migrated keys.
+    import warnings as _warnings
+
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("error")
+        validate_options(settings)
 
 
 def test_bind_cache_to_option_store_without_options_cache() -> None:

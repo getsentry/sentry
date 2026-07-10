@@ -33,9 +33,11 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
+import {useProjects} from 'sentry/utils/useProjects';
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -112,6 +114,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -124,6 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
     autoSubmitSeer,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     enableAISearch,
   } = useSearchQueryBuilderAI();
@@ -139,11 +143,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     ...props.askSeerMutationOptions,
     onError: (error, variables, onMutateResult, context) => {
       props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
-      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+      addErrorMessage(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
         natural_language_query: searchQuery,
+        status_code: error instanceof RequestError ? error.status : undefined,
       });
     },
   });
@@ -231,7 +236,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         );
       }
 
-      const readableQuery = generateQueryTokensString(item);
+      const readableQuery = generateQueryTokensString(item, projects);
 
       return (
         <Item
@@ -249,6 +254,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             visualizations={item?.visualizations}
             expandedProjectIds={item?.expandedProjectIds}
             interval={item?.interval}
+            crossEvents={item?.crossEvents}
           />
         </Item>
       );
@@ -381,20 +387,30 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   }, [state]);
 
   useLayoutEffect(() => {
-    if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('ai_query.submitted', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery.trim(),
-      });
-      submitQuery(searchQuery.trim());
-      setAutoSubmitSeer(false);
+    if (!autoSubmitSeer) {
+      return;
     }
+
+    if (!searchQuery.trim()) {
+      setAutoSubmitFromCurrentQuery(false);
+      setAutoSubmitSeer(false);
+      return;
+    }
+
+    trackAnalytics('ai_query.submitted', {
+      organization,
+      area: analyticsArea,
+      natural_language_query: searchQuery.trim(),
+    });
+    submitQuery(searchQuery.trim());
+    setAutoSubmitFromCurrentQuery(false);
+    setAutoSubmitSeer(false);
   }, [
     analyticsArea,
     autoSubmitSeer,
     organization,
     searchQuery,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     submitQuery,
   ]);

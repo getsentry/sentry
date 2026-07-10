@@ -4,12 +4,11 @@ import logging
 from typing import cast
 
 import orjson
-from django.conf import settings
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -23,8 +22,10 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotImageEvent
 from sentry.preprod.api.models.public.snapshots import SnapshotImageDetailResponseDict
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotImageDetailImageInfo,
@@ -76,7 +77,7 @@ def _build_image_info(
         metadata, exclude=frozenset(SnapshotImageDetailImageInfo.__fields__)
     )
     return SnapshotImageDetailImageInfo(
-        content_hash=metadata.content_hash,
+        key=metadata.content_hash,
         display_name=metadata.display_name,
         group=metadata.group,
         image_file_name=image_file_name,
@@ -87,6 +88,7 @@ def _build_image_info(
         else global_diff_threshold,
         description=metadata.description,
         tags=metadata.tags,
+        canvas_theme=metadata.canvas_theme,
         image_url=f"/api/0/projects/{org_slug}/{project_slug}/files/images/{metadata.content_hash}/",
         **extra_fields,
     )
@@ -132,7 +134,8 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve Snapshot image detail",
+        operation_id="getOrganizationPreprodArtifactSnapshotImage",
+        summary="Retrieve Snapshot image detail",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -180,11 +183,6 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -194,6 +192,19 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         if not is_active_staff(request) and not request.access.has_project_access(artifact.project):
             return Response({"detail": "Snapshot not found"}, status=404)
+
+        analytics.record(
+            PreprodArtifactApiGetSnapshotImageEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+                image_identifier=image_identifier,
+                client=resolve_action_source(request),
+            )
+        )
 
         try:
             snapshot_metrics = artifact.preprodsnapshotmetrics

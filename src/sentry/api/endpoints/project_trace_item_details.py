@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -360,9 +360,9 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 example_timestamp = parse_datetime_string(request.GET["timestamp"])
             except InvalidQuery:
                 return Response("timestamp parameter invalid", status=400)
-            time_buffer = 1.5
-            example_start = example_timestamp - timedelta(days=time_buffer)
-            example_end = example_timestamp + timedelta(days=time_buffer)
+            time_buffer = options.get("performance.traces.trace-item-details-timebuffer-minutes")
+            example_start = example_timestamp - timedelta(minutes=time_buffer)
+            example_end = example_timestamp + timedelta(minutes=time_buffer)
             if start is not None:
                 start = max(start, example_start)
             else:
@@ -377,6 +377,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         trace_id = serialized.get("trace_id")
         item_type = serialized.get("item_type")
         sentry_sdk.set_tag("trace_item_details.item_type", item_type)
+        sentry_sdk.set_attribute("trace_item_details.item_type", item_type)
         referrer = serialized.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
 
         trace_item_type = None

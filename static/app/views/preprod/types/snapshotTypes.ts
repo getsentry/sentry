@@ -13,6 +13,7 @@ export interface SnapshotImage {
   key: string;
   tags: Record<string, string> | null;
   width: number;
+  canvas_theme?: 'light' | 'dark' | null;
 }
 
 export interface SnapshotDiffPair {
@@ -36,7 +37,7 @@ export interface SnapshotDetailsApiResponse {
   comparison_type: 'solo' | 'diff' | 'waiting_for_base';
   head_artifact_id: string;
   image_count: number;
-  images: SnapshotImage[];
+  images?: SnapshotImage[];
   project_id: string;
   state: string;
   vcs_info: BuildDetailsVcsInfo;
@@ -62,6 +63,8 @@ export interface SnapshotDetailsApiResponse {
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
+  errored?: SnapshotDiffPair[];
+  errored_count?: number;
   skipped?: SnapshotImage[];
   skipped_count?: number;
 }
@@ -72,6 +75,7 @@ export enum DiffStatus {
   REMOVED = 'removed',
   RENAMED = 'renamed',
   UNCHANGED = 'unchanged',
+  ERRORED = 'errored',
   SKIPPED = 'skipped',
 }
 
@@ -95,7 +99,14 @@ export type SidebarItem =
   | (SidebarItemBase & {type: 'solo'; images: SnapshotImage[]})
   | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
+  | (SidebarItemBase & {type: 'errored'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
       type: 'added' | 'removed' | 'unchanged' | 'skipped';
       images: SnapshotImage[];
     });
+
+type SidebarPairItem = Extract<SidebarItem, {pairs: SnapshotDiffPair[]}>;
+
+export function isPairSidebarItem(item: SidebarItem): item is SidebarPairItem {
+  return item.type === 'changed' || item.type === 'renamed' || item.type === 'errored';
+}

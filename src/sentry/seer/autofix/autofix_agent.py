@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
+from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
 from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
     AiAutofixCodeChangesStartedEvent,
+    AiAutofixIterationCompletedEvent,
+    AiAutofixIterationStartedEvent,
     AiAutofixPhaseEvent,
     AiAutofixPrCreatedStartedEvent,
     AiAutofixRootCauseCompletedEvent,
@@ -30,8 +34,11 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.types import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
+    PromptBuilder,
     code_changes_prompt,
+    pr_iteration_prompt,
     root_cause_prompt,
     solution_prompt,
 )
@@ -42,24 +49,33 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import SeerPermissionError
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.seer.agent.client_models import MemoryBlock
 
 logger = logging.getLogger(__name__)
 
-_UNSET: Any = object()
 UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
 class NoSeerQuotaException(Exception):
+    pass
+
+
+class PrIterationNoPullRequestException(Exception):
+    pass
+
+
+class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -69,6 +85,7 @@ class AutofixStep(StrEnum):
     ROOT_CAUSE = "root_cause"
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
+    PR_ITERATION = "pr_iteration"
 
     @staticmethod
     def from_autofix_stopping_point(
@@ -96,7 +113,7 @@ class StepConfig:
     def __init__(
         self,
         artifact_schema: type[BaseModel] | None,
-        prompt_fn: Callable[..., str],
+        prompt_fn: PromptBuilder,
         enable_coding: bool = False,
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         started_event: type[AiAutofixPhaseEvent] | None = None,
@@ -132,16 +149,29 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         started_event=AiAutofixCodeChangesStartedEvent,
         completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
+    AutofixStep.PR_ITERATION: StepConfig(
+        artifact_schema=None,  # Iteration changes read from file_patches
+        prompt_fn=pr_iteration_prompt,
+        enable_coding=True,
+        started_event=AiAutofixIterationStartedEvent,
+        completed_event=AiAutofixIterationCompletedEvent,
+    ),
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
+def build_step_prompt(
+    step: AutofixStep,
+    group: Group,
+    user_context: str | None = None,
+    run_state: SeerRunState | None = None,
+) -> str:
     """
     Build the prompt for a step using issue details.
 
     Args:
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
+        run_state: The current run state, used to surface PR links for iteration
 
     Returns:
         Formatted prompt string
@@ -152,6 +182,7 @@ def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None 
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
+        run_state=run_state,
     )
 
     parts = [prompt]
@@ -180,8 +211,53 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
             False: SeerActionType.CODING_STARTED,
             True: SeerActionType.CODING_COMPLETED,
         },
+        AutofixStep.PR_ITERATION: {
+            False: SeerActionType.ITERATION_STARTED,
+            True: SeerActionType.ITERATION_COMPLETED,
+        },
     }
     return step_to_action_type[step][is_completed]
+
+
+@dataclass(frozen=True)
+class Iteration:
+    index: int
+    start_index: int
+    blocks: list[MemoryBlock]
+
+
+def get_iterations(state: SeerRunState) -> list[Iteration]:
+    """PR iterations in order, each holding its own blocks. A PR_ITERATION block
+    opens an iteration; every following block belongs to it until the next
+    PR_ITERATION block."""
+    iterations: list[Iteration] = []
+    for i, block in enumerate(state.blocks):
+        metadata = block.message.metadata or {}
+
+        if metadata.get("step") == AutofixStep.PR_ITERATION.value:
+            iter_idx = metadata.get("iteration_index")
+            assert iter_idx is not None, "PR_ITERATION block missing iteration_index"
+
+            iterations.append(Iteration(index=int(iter_idx), start_index=i, blocks=[block]))
+        elif iterations:
+            iterations[-1].blocks.append(block)
+
+    return iterations
+
+
+def get_latest_iteration_index(state: SeerRunState) -> int:
+    try:
+        iterations = get_iterations(state)
+    except Exception:
+        logger.exception("autofix.get_latest_iteration_index.failed")
+        return 0
+    return iterations[-1].index if iterations else 0
+
+
+def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
+    block = state.blocks[insert_index]
+    metadata = block.message.metadata or {}
+    return int(metadata["iteration_index"])
 
 
 def get_autofix_agent_client(
@@ -190,6 +266,7 @@ def get_autofix_agent_client(
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
     code_review_enabled: bool = False,
+    enable_pr_context_tools: bool = False,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -207,7 +284,13 @@ def get_autofix_agent_client(
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
+        enable_pr_context_tools=enable_pr_context_tools,
     )
+
+
+def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
+    client = get_autofix_agent_client(group)
+    return _get_group_run_state(client, group, run_id)
 
 
 def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
@@ -226,25 +309,45 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
     return state
 
 
-def _default_intelligence_level(organization: Organization) -> Literal["low", "medium", "high"]:
-    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
-        return "high"
-    return "medium"
+def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
+    preference = read_preference_from_sentry_db(group.project)
+    # Imported lazily to avoid a circular import: sentry.scm pulls in the
+    # github/slack integrations, which import notifications templates that
+    # import back into sentry.seer.autofix.
+    from sentry.scm import factory as scm_factory
 
+    base_shas: dict[str, dict[str, str]] = {}
+    for repo in preference.repositories:
+        if repo.repository_id is None:
+            continue
 
-def _default_reasoning_effort(
-    organization: Organization,
-    step_default: Literal["low", "medium", "high"] | None,
-) -> Literal["low", "medium", "high"] | None:
-    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
-        return "high"
-    return step_default
+        full_name = f"{repo.owner}/{repo.name}"
+        try:
+            scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
+            if repo.branch_name:
+                base_branch: str | None = repo.branch_name
+            elif isinstance(scm, GetRepositoryProtocol):
+                base_branch = scm.get_repository()["data"]["default_branch"]
+            else:
+                continue
+            if not base_branch:
+                continue
+            if not isinstance(scm, GetBranchProtocol):
+                continue
+            base_sha = scm.get_branch(base_branch)["data"]["sha"]
+        except Exception:
+            logger.exception(
+                "autofix.base_shas.resolve_failed",
+                extra={"repo": full_name, "group_id": group.id},
+            )
+            continue
 
+        if base_sha:
+            base_shas[full_name] = {"base_sha": base_sha, "base_branch": base_branch}
 
-def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
-    # The review_code_changes tool only operates on accumulated patches, so it is
-    # only useful on coding-enabled steps.
-    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
+    if not base_shas:
+        return None
+    return json.dumps(base_shas)
 
 
 def trigger_autofix_agent(
@@ -253,10 +356,9 @@ def trigger_autofix_agent(
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = _UNSET,
-    reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
+    feedback: Sequence[Feedback] | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -281,58 +383,70 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    resolved_intelligence_level = (
-        _default_intelligence_level(group.organization)
-        if intelligence_level is _UNSET
-        else intelligence_level
-    )
-    resolved_reasoning_effort = (
-        _default_reasoning_effort(group.organization, config.reasoning_effort)
-        if reasoning_effort is _UNSET
-        else reasoning_effort
-    )
+    pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+    is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
         group,
-        intelligence_level=resolved_intelligence_level,
-        reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
-        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
+        enable_pr_context_tools=is_iteration_step,
     )
+
+    run_state: SeerRunState | None = None
     if run_id is not None:
-        _get_group_run_state(client, group, run_id)
+        run_state = _get_group_run_state(client, group, run_id)
 
-    if config.started_event is not None:
-        analytics.record(
-            config.started_event(
-                organization_id=group.organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                referrer=referrer.value,
-            )
-        )
+    iteration_index: int | None = None
+    if is_iteration_step:
+        if not pr_iteration_enabled:
+            raise PrIterationNotEnabledException()
 
-    prompt = build_step_prompt(step, group, user_context)
+        if run_state is None or not run_state.repo_pr_states:
+            raise PrIterationNoPullRequestException()
+
+        if insert_index is not None:
+            iteration_index = get_iteration_for_insert_index(run_state, insert_index)
+        else:
+            iteration_index = get_latest_iteration_index(run_state) + 1
+
+    prompt = build_step_prompt(step, group, user_context, run_state=run_state)
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
+    feedback_items = list(feedback or [])
+    if step == AutofixStep.PR_ITERATION and feedback_items:
+        prompt_metadata["feedback"] = serialize_feedback(feedback_items)
+
+    if iteration_index is not None:
+        prompt_metadata["iteration_index"] = str(iteration_index)
+
+    if step == AutofixStep.ROOT_CAUSE:
+        base_shas = _build_base_shas_metadata(group, referrer)
+        if base_shas:
+            prompt_metadata["base_shas"] = base_shas
+
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
+    run: SeerRun | None = None
     if run_id is None:
-        metadata = {"referrer": referrer.value}
+        metadata: dict[str, Any] = {
+            "group_id": group.id,
+            "referrer": referrer.value,
+        }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
-        run_id = client.start_run(
+        run = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        ).seer_run_state_id
+        )
+        run_id = run.seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
@@ -348,10 +462,33 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
-    payload = {
+    if run is None:
+        run = SeerRun.objects.filter(
+            organization_id=group.organization.id,
+            seer_run_state_id=run_id,
+        ).first()
+
+    # Emit the started event after run_id is resolved so it can be joined to
+    # downstream completed/PR events.
+    if config.started_event is not None:
+        analytics.record(
+            config.started_event(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                referrer=referrer.value,
+                run_id=run_id,
+                iteration_index=iteration_index,
+            )
+        )
+
+    payload: dict[str, Any] = {
         "run_id": run_id,
+        "sentry_run_id": str(run.uuid) if run is not None else None,
         "group_id": group.id,
     }
+    if iteration_index is not None:
+        payload["iteration_index"] = iteration_index
 
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
     event_name = webhook_action_type.value
@@ -390,10 +527,18 @@ def trigger_autofix_agent(
                 "step": step.value,
                 "run_id": run_id,
                 "group_id": group.id,
+                "iteration_index": iteration_index,
             },
         )
 
-    metrics.incr("autofix.explorer.trigger", tags={"step": step.value, "referrer": referrer.value})
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={
+            "step": step.value,
+            "referrer": referrer.value,
+            "iteration_index": iteration_index,
+        },
+    )
 
     return run_id
 
@@ -428,6 +573,7 @@ def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
     short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -438,7 +584,12 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+        if issue_url:
+            parts.append(
+                f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description."
+            )
+        else:
+            parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -579,8 +730,9 @@ def trigger_coding_agent_handoff(
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
     short_id = group.qualified_short_id
+    issue_url = group.get_absolute_url() if short_id else None
 
-    prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
+    prompt = generate_autofix_handoff_prompt(state, short_id=short_id, issue_url=issue_url)
 
     coding_agents = client.launch_coding_agents(
         run_id=run_id,
@@ -592,6 +744,7 @@ def trigger_coding_agent_handoff(
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
+        issue_url=issue_url,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
@@ -602,6 +755,7 @@ def trigger_coding_agent_handoff(
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            run_id=run_id,
             coding_agent=coding_agent_name,
         )
     )
@@ -647,6 +801,7 @@ def trigger_push_changes(
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            run_id=run_id,
         )
     )
 
@@ -668,7 +823,8 @@ def build_pr_description_suffix(group: Group) -> str | None:
     lines = []
 
     if group.qualified_short_id:
-        lines.append(f"Fixes {group.qualified_short_id}")
+        issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
+        lines.append(f"Fixes [{group.qualified_short_id}]({issue_url})")
 
     for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
         if external_issue.service_type == "linear":
@@ -685,6 +841,11 @@ def build_pr_description_suffix(group: Group) -> str | None:
                 continue
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    if features.has("organizations:autofix-pr-iteration", group.organization):
+        lines.append(
+            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+        )
 
     if lines:
         return "\n".join(lines)

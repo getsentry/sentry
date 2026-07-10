@@ -12,27 +12,12 @@ set -euo pipefail
 #   jest-test-files.json          - JSON array of test file paths (written to cwd)
 #   jest_test_matrix (via output) - JSON matrix for GitHub Actions strategy
 
-if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-  MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
-  if [ -n "$MERGE_BASE" ]; then
-    CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2)
-    if echo "$CHANGED" | grep -qvE '^static/'; then
-      echo "Non-frontend file changed — running full Jest suite"
-      STRATEGY="full"
-    else
-      echo "Merge base: $MERGE_BASE (using --findRelatedTests)"
-      STRATEGY="changedSince"
-    fi
-  else
-    echo "Could not compute merge base — running full Jest suite"
-    STRATEGY="full"
-  fi
-else
-  echo "Push event — running full Jest suite"
-  STRATEGY="full"
-fi
+# Resolve the merge base and decide whether we can scope to the PR's changed files
+# (scope=scoped) or must run everything (scope=full). We only need the scope here;
+# --findRelatedTests reads the changed files from FRONTEND_ALL_FILES.
+eval "$(./.github/workflows/scripts/frontend-changed-scope.sh)"
 
-if [ "$STRATEGY" == "changedSince" ]; then
+if [ "$scope" == "scoped" ]; then
   # shellcheck disable=SC2086
   JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
 

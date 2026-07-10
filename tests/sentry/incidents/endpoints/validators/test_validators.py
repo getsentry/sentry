@@ -1132,6 +1132,92 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
     @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_anomaly_detection_from_static_with_warning_and_critical(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that a static detector with both a warning (MEDIUM) and a critical (HIGH)
+        trigger can be converted to a dynamic detector. The detector's persisted
+        conditions still describe the static config at the point we send data to Seer,
+        so the anomaly comparison must come from the incoming payload rather than from a
+        lookup of a single existing HIGH/MEDIUM condition (which would match two rows).
+        """
+        static_data_with_warning = {
+            **self.valid_data,
+            "conditionGroup": {
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 50,
+                        "conditionResult": DetectorPriorityLevel.MEDIUM,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 50,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                    },
+                ],
+            },
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+            },
+        }
+        validator = MetricIssueDetectorValidator(
+            data=static_data_with_warning, context=self.context
+        )
+        assert validator.is_valid(), validator.errors
+        with self.tasks():
+            static_detector = validator.save()
+
+        # Confirm the static detector has both a HIGH and a MEDIUM condition.
+        static_conditions = list(
+            DataCondition.objects.filter(
+                condition_group=static_detector.workflow_condition_group,
+                condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
+            )
+        )
+        assert len(static_conditions) == 2
+
+        mock_audit.reset_mock()
+
+        # Change to become a dynamic detector
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=static_detector,
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+            partial=True,
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        dynamic_detector = update_validator.save()
+
+        assert mock_seer_request.call_count == 1
+
+        # Verify conditions in DB now describe a single anomaly detection condition
+        conditions = list(
+            DataCondition.objects.filter(
+                condition_group=dynamic_detector.workflow_condition_group_id
+            )
+        )
+        assert len(conditions) == 1
+        assert conditions[0].type == Condition.ANOMALY_DETECTION
+        assert conditions[0].comparison == {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+
+    @mock.patch("sentry.seer.anomaly_detection.store_data_workflow_engine.make_store_data_request")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_update_anomaly_detection_snuba_query_query(
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
     ) -> None:

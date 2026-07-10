@@ -55,7 +55,6 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
-from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -189,6 +188,59 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
+
+    def test_sort_by_progress_requires_feature_flag(self) -> None:
+        # group_1 has the newer event (wins last_seen / default sort); group_2 is older but
+        # diagnosed, so it wins the progress sort once the flag is on.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        self.create_group_activity(group=group_2, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.login_as(user=self.user)
+
+        # Without the flag, the sort falls back to the default (date) order.
+        response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
+        # With the flag, the diagnosed group is promoted above the more recently seen one.
+        with self.feature("organizations:issue-stream-progress-sort"):
+            response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+    def test_recommended_sort_serves_v2_with_experimental_flag(self) -> None:
+        # group_1 has the newer event, so it wins the base recommended score (recency);
+        # group_2 is regressed, which only the v2 scorer boosts.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        group_2.update(substatus=GroupSubStatus.REGRESSED)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(sort="recommended", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
+        # The same sort key serves the v2 scorer when the flag is on.
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            response = self.get_success_response(sort="recommended", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+        # Explicit escape hatches force a scorer regardless of the flag.
+        response = self.get_success_response(sort="recommended_v2", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            response = self.get_success_response(sort="recommended_v1", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
     def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
@@ -758,6 +810,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
         assert response["X-Sentry-Direct-Hit"] == "1"
+
+    def test_lookup_by_multiple_short_ids(self) -> None:
+        group = self.group
+        group2 = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            query=f"{group.qualified_short_id} {group2.qualified_short_id}", shortIdLookup=1
+        )
+        assert {r["id"] for r in response.data} == {str(group.id), str(group2.id)}
+        assert response.get("X-Sentry-Direct-Hit") != "1"
 
     def test_lookup_by_group_id(self) -> None:
         self.login_as(user=self.user)
@@ -1930,30 +1993,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
 
-    def test_expand_plugin_actions_and_issues(self) -> None:
-        event = self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        query = "status:unresolved"
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query=query, expand=["pluginActions", "pluginIssues"]
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert response.data[0]["pluginActions"] is not None
-        assert response.data[0]["pluginIssues"] is not None
-
-        # Test with no expand
-        response = self.get_response(sort_by="date", limit=10, query=query)
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert "pluginActions" not in response.data[0]
-        assert "pluginIssues" not in response.data[0]
-
     def test_expand_integration_issues(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -2327,118 +2366,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
         assert "isUnhandled" not in response.data[0]
-
-    def test_selected_saved_search(self) -> None:
-        saved_search = SavedSearch.objects.create(
-            name="Saved Search",
-            query="ZeroDivisionError",
-            organization=self.organization,
-            owner_id=self.user.id,
-        )
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-2"],
-                "message": "TypeError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            savedSearch=0,
-            searchId=saved_search.id,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-    def test_pinned_saved_search(self) -> None:
-        SavedSearch.objects.create(
-            name="Saved Search",
-            query="ZeroDivisionError",
-            organization=self.organization,
-            owner_id=self.user.id,
-            visibility=Visibility.OWNER_PINNED,
-        )
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-2"],
-                "message": "TypeError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            savedSearch=0,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-    def test_pinned_saved_search_with_query(self) -> None:
-        SavedSearch.objects.create(
-            name="Saved Search",
-            query="TypeError",
-            organization=self.organization,
-            owner_id=self.user.id,
-            visibility=Visibility.OWNER_PINNED,
-        )
-        event = self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "timestamp": before_now(seconds=500).isoformat(),
-                "fingerprint": ["group-2"],
-                "message": "TypeError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            query="ZeroDivisionError",
-            savedSearch=0,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
 
     def test_query_status_and_substatus_overlapping(self) -> None:
         event = self.store_event(

@@ -180,10 +180,27 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 409, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "scimType": "uniqueness",
+            "status": "409",
             "detail": "User already exists in the database.",
         }
         assert not member.flags["idp:provisioned"]
         assert not member.flags["idp:role-restricted"]
+
+    def test_scim_error_includes_status_without_scim_type(self) -> None:
+        # Non-uniqueness SCIM errors must still carry a string `status` per
+        # RFC 7644 §3.12, but must not claim a `scimType` they don't have.
+        data = post_data()
+        data["sentryOrgRole"] = "nonexistant"
+        response = self.get_error_response(
+            self.organization.slug, method="post", status_code=400, **data
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
+            "detail": "Invalid organization role.",
+        }
+        assert "scimType" not in response.data
 
     def test_post_users_with_role_valid(self) -> None:
         data = post_data()
@@ -268,6 +285,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         )
         assert resp.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid organization role.",
         }
 
@@ -278,6 +296,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         )
         assert resp.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "status": "400",
             "detail": "Invalid organization role.",
         }
 

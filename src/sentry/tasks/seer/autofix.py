@@ -55,6 +55,7 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
+    sentry_sdk.set_attribute("trigger_path", trigger_path)
 
     group = _get_group_or_log(group_id, "generate_summary_and_run_automation")
     if group is None:
@@ -196,7 +197,9 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     organization = Organization.objects.get(id=organization_id)
 
     sentry_sdk.set_tag("organization_id", organization.id)
+    sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
+    sentry_sdk.set_attribute("organization_slug", organization.slug)
 
     # Set org-level options
     organization.update_option(

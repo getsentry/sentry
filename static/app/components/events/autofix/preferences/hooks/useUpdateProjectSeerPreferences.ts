@@ -6,8 +6,6 @@ import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {bulkAutofixAutomationSettingsInfiniteOptions} from './useBulkAutofixAutomationSettings';
-
 export function useUpdateProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -48,14 +46,6 @@ export function useUpdateProjectSeerPreferences(project: Project) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey});
-
-      const bulkAutofixAutomationSettingsQueryOptions =
-        bulkAutofixAutomationSettingsInfiniteOptions({
-          organization,
-        });
-      queryClient.invalidateQueries({
-        queryKey: bulkAutofixAutomationSettingsQueryOptions.queryKey,
-      });
     },
   });
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.urls import re_path
 
 from sentry.preprod.api.endpoints.builds import BuildsEndpoint
+from sentry.preprod.api.endpoints.builds_export import BuildsExportEndpoint
 from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
     ProjectPreprodArtifactImageEndpoint,
 )
@@ -11,6 +12,9 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_co
 )
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
     ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
+)
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_comparisons import (
+    ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint,
 )
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
@@ -149,6 +153,11 @@ preprod_organization_urlpatterns = [
         name="sentry-api-0-organization-preprod-artifact-build-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/comparisons/$",
+        ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-comparisons",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/private-install-details/$",
         ProjectPreprodInstallDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-private-install-details",
@@ -182,6 +191,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
         BuildsEndpoint.as_view(),
         name="sentry-api-0-organization-builds",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/builds-export/$",
+        BuildsExportEndpoint.as_view(),
+        name="sentry-api-0-organization-builds-export",
     ),
     # Public API endpoints
     re_path(

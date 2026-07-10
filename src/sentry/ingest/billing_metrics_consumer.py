@@ -15,6 +15,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, SPAN_METRICS_NAMES
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     span_metric_id = SPAN_METRICS_NAMES["c:spans/usage@none"]
     span_is_segment_tag = str(SHARED_TAG_STRINGS["is_segment"])
+    billing_outcome_accepted_tag = str(SHARED_TAG_STRINGS["billing_outcome_emitted"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -79,6 +81,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         if generic_metric["metric_id"] != self.span_metric_id:
             return {}
 
+        # If relay already produced an outcome for this item, ignore it.
+        if generic_metric["tags"].get(self.billing_outcome_accepted_tag) == "true":
+            return {}
+
         value = generic_metric["value"]
         try:
             quantity = max(int(value), 0)  # type: ignore[arg-type]
@@ -106,6 +112,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     ) -> None:
         if quantity < 1:
             return
+
+        # This metric is here to verify that this consumer is no longer producing outcomes,
+        # as this work has now migrated to relay.
+        metrics.incr("relay.billing_metrics_consumer.accepted_outcome")
 
         # track_outcome does not guarantee to deliver the outcome, making this
         # an at-most-once delivery.

@@ -8,13 +8,8 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconCheckmark,
-  IconClose,
-  IconLink,
-  IconLinkBroken,
-  IconWarning,
-} from 'sentry/icons';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -31,7 +26,6 @@ import type {ToolUseBlockProps} from './shared';
 import {
   type BlockStatus,
   MessagePlaceholder,
-  SeerMarkdown,
   Spinner,
   getBlockStatus,
   hasValidContent,
@@ -123,7 +117,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const isLoading = blockStatus === 'loading' || blockStatus === 'pending';
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -174,7 +167,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
-            isLoading={isLoading}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
@@ -189,7 +181,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 function ToolCallRow({
   toolString,
   blockStatus,
-  isLoading,
   toolUrl,
   failureTooltip,
   onLinkClick,
@@ -197,7 +188,6 @@ function ToolCallRow({
 }: {
   blockStatus: BlockStatus | undefined;
   failureTooltip: string | null;
-  isLoading: boolean;
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
@@ -235,12 +225,7 @@ function ToolCallRow({
             </ToolCallLinkIconWrapper>
           </ToolCallLink>
         ) : (
-          <ToolCallPlainRow>
-            {toolCallText}
-            <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
-              <ToolCallBrokenLinkIcon size="xs" />
-            </ToolCallBrokenLinkIconWrapper>
-          </ToolCallPlainRow>
+          <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
       {todos && <TodoList todos={todos} />}
@@ -360,20 +345,4 @@ const ToolCallPlainRow = styled('span')`
   align-items: center;
   gap: ${p => p.theme.space.md};
   max-width: 100%;
-`;
-
-const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
-  color: ${p => p.theme.tokens.content.secondary};
-  flex-shrink: 0;
-  transform: translateY(2px);
-`;
-
-const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
-  display: inline-flex;
-  flex-shrink: 0;
-  visibility: hidden;
-
-  ${ToolCallPlainRow}:hover & {
-    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
-  }
 `;

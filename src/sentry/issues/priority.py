@@ -83,8 +83,7 @@ def update_priority(
     publish_action_from_context(
         SetPriorityAction(priority=priority.to_str()),
         group_id=group.id,
-        organization_id=group.project.organization_id,
-        project_id=group.project_id,
+        project=group.project,
     )
 
     # TODO (aci cleanup): if the group corresponds to a metric issue, then update its incident activity

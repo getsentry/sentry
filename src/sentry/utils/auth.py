@@ -224,7 +224,7 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
         return False
     parsed_url = urlparse(url)
     url_host = parsed_url.netloc
-    base_hostname = options.get("system.base-hostname")
+    base_hostname = settings.SENTRY_BASE_HOSTNAME
     if url_host.endswith(f".{base_hostname}"):
         if allowed_hosts is None:
             allowed_hosts = {url_host}
@@ -232,6 +232,14 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
             allowed_hosts = set(allowed_hosts)
             allowed_hosts.add(url_host)
     return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
+
+
+def is_valid_relative_redirect(url: object) -> bool:
+    return (
+        isinstance(url, str)
+        and url.startswith("/")
+        and url_has_allowed_host_and_scheme(url, allowed_hosts=set())
+    )
 
 
 def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
@@ -405,7 +413,7 @@ def log_auth_failure(request: HttpRequest, username: str | None = None) -> None:
 
 
 def has_user_registration() -> bool:
-    from sentry import features, options
+    from sentry import features
 
     return features.has("auth:register") and options.get("auth.allow-registration")
 

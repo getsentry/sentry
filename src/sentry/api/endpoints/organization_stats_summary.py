@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from io import StringIO
 from typing import Any, TypedDict
 
-import sentry_sdk
 from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -21,7 +20,6 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -34,6 +32,7 @@ from sentry.snuba.outcomes import (
 )
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.outcomes import Outcome
+from sentry.utils.tracing import start_span
 
 
 class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
@@ -130,7 +129,8 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Events Count by Project",
+        operation_id="getOrganizationStatsSummary",
+        summary="Retrieve an Organization's Events Count by Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={
@@ -150,14 +150,14 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
+            with start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="run_outcomes_query"):
+            with start_span(op="outcomes.endpoint", name="run_outcomes_query"):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
+            with start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
                 projects, result = massage_sessions_result_summary(
                     query, result_totals, request.GET.getlist("outcome")
                 )
@@ -188,18 +188,13 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         return QueryDefinition.from_query_dict(query_dict, params)
 
     def _get_projects_for_orgstats_query(self, request: Request, organization):
-        req_proj_ids = self.get_requested_project_ids_unchecked(request)
-
         # the projects table always filters by project
         # the projects in the table should be those the user has access to
 
-        projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+        projects = self.get_projects(request, organization)
         if not projects:
             raise NoProjects("No projects available")
         return [p.id for p in projects]
-
-    def _is_org_total_query(self, project_ids):
-        return all([not project_ids or project_ids == ALL_ACCESS_PROJECTS])
 
     def _generate_csv(self, projects):
         if not len(projects):

@@ -16,7 +16,7 @@ def test_redis_cache_compat() -> None:
         CommonRedisCache(client=redis, raw_client=redis, version=version, prefix=prefix)
     )
     redis_backend = KVStorageCodecWrapper(
-        CacheKeyWrapper(RedisKVStorage(redis), version=version, prefix=prefix),
+        CacheKeyWrapper(RedisKVStorage[bytes](redis), version=version, prefix=prefix),
         JSONCodec() | BytesCodec(),
     )
 

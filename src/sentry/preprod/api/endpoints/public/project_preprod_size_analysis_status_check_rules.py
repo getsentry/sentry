@@ -38,7 +38,8 @@ class ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve Size Analysis status check rules for a project",
+        operation_id="getProjectPreprodSizeAnalysisStatusCheckRules",
+        summary="Retrieve Size Analysis status check rules for a project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

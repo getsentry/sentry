@@ -26,6 +26,7 @@ from sentry.sentry_apps.api.serializers.sentry_app import (
 )
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.webhooks import has_granular_events
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -91,6 +92,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "schema": request.data.get("schema", {}),
             "overview": request.data.get("overview"),
             "allowedOrigins": request.data.get("allowedOrigins", []),
+            "webhookHeaders": request.data.get("webhookHeaders", []),
             "popularity": (
                 request.data.get("popularity") if is_active_superuser(request) else None
             ),
@@ -108,9 +110,23 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
+        if has_granular_events(request.data.get("events")) and not features.has(
+            "organizations:sentry-apps-granular-events", organization, actor=request.user
+        ):
+            return Response(
+                {
+                    "non_field_errors": [
+                        "Your organization does not have access to per-event webhook subscriptions."
+                    ]
+                },
+                status=403,
+            )
+
         serializer = SentryAppParser(data=data, access=request.access, context={"request": request})
 
         if serializer.is_valid():
+            validated_data = serializer.validated_data
+
             if data.get("isInternal"):
                 data["verifyInstall"] = False
                 data["author"] = data["author"] or organization.name
@@ -133,6 +149,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     schema=data["schema"],
                     overview=data["overview"],
                     allowed_origins=data["allowedOrigins"],
+                    webhook_headers=validated_data.get("webhookHeaders", []),
                     popularity=data["popularity"],
                 ).run(user=request.user, request=request, skip_default_auth_token=True)
                 # We want to stop creating the default auth token for new apps and installations through the API

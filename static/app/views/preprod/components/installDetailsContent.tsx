@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -45,6 +46,7 @@ interface InstallDetailsContentProps {
   projectSlug: string;
   distributionErrorCode?: string | null;
   distributionErrorMessage?: string | null;
+  installGroups?: string[] | null;
   size?: 'sm' | 'lg';
 }
 
@@ -54,6 +56,7 @@ export function InstallDetailsContent({
   size = 'sm',
   distributionErrorCode,
   distributionErrorMessage,
+  installGroups,
 }: InstallDetailsContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -188,7 +191,7 @@ export function InstallDetailsContent({
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <Container display={{xs: 'none', sm: 'block'}}>
+            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
                 value={
@@ -200,7 +203,7 @@ export function InstallDetailsContent({
               />
             </Container>
             {details}
-            <Container display={{xs: 'none', sm: 'block'}}>
+            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
               <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
                 <Text align="center" size="lg">
                   {t(
@@ -210,7 +213,7 @@ export function InstallDetailsContent({
               </Flex>
             </Container>
           </Stack>
-          <Container display={{xs: 'none', sm: 'block'}} width="100%">
+          <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}} width="100%">
             <Flex align="center" gap="md" width="100%">
               <Separator
                 orientation="horizontal"
@@ -231,11 +234,11 @@ export function InstallDetailsContent({
             <Flex
               gap="md"
               width="100%"
-              direction={{xs: 'column', sm: 'row'}}
+              direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
               justify="center"
-              align={{xs: 'stretch', sm: 'center'}}
+              align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
             >
-              <Flex width={{xs: '100%', sm: 'auto'}}>
+              <Flex width={{'screen:xs': '100%', 'screen:sm': 'auto'}}>
                 <Button
                   onClick={() => window.open(installDetails.install_url, '_blank')}
                   variant="primary"
@@ -247,10 +250,13 @@ export function InstallDetailsContent({
               </Flex>
               {installDetails.install_url && (
                 <Flex
-                  alignSelf={{xs: 'stretch', sm: 'center'}}
-                  width={{xs: '100%', sm: 'auto'}}
+                  alignSelf={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
+                  width={{'screen:xs': '100%', 'screen:sm': 'auto'}}
                 >
-                  <Container display={{xs: 'block', sm: 'none'}} width="100%">
+                  <Container
+                    display={{'screen:xs': 'block', 'screen:sm': 'none'}}
+                    width="100%"
+                  >
                     <Button
                       onClick={() =>
                         copy(installDetails.install_url!, {
@@ -264,7 +270,7 @@ export function InstallDetailsContent({
                       {t('Copy Download Link')}
                     </Button>
                   </Container>
-                  <Container display={{xs: 'none', sm: 'block'}}>
+                  <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
                     <Tooltip title={t('Copy Download Link')}>
                       <Button
                         aria-label={t('Copy Download Link')}
@@ -285,6 +291,26 @@ export function InstallDetailsContent({
               {t('The install link will expire in 12 hours')}
             </Text>
           </Stack>
+          {installGroups && installGroups.length > 0 && (
+            <Flex direction="column" gap="md" width="100%">
+              <Heading as="h3">{t('Install Groups')}</Heading>
+              <Container
+                padding="xl"
+                background="secondary"
+                border="primary"
+                radius="md"
+                width="100%"
+              >
+                <Flex gap="sm" wrap="wrap">
+                  {installGroups.map(group => (
+                    <Tag key={group} variant="muted">
+                      {group}
+                    </Tag>
+                  ))}
+                </Flex>
+              </Container>
+            </Flex>
+          )}
           {installDetails.release_notes && (
             <Flex direction="column" gap="md" width="100%">
               <Heading as="h3">{t('Release Notes')}</Heading>

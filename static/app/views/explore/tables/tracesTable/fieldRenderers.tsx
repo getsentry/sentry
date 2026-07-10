@@ -236,7 +236,10 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
       )
     );
   `}
-  transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    filter,
+    opacity,
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({
@@ -622,6 +625,7 @@ const STATUS_TO_TAG_TYPE: Record<SpanStatus, TagProps['variant']> = {
   out_of_range: 'warning',
   unimplemented: 'danger',
   internal_error: 'danger',
+  error: 'danger',
   unavailable: 'danger',
   data_loss: 'danger',
   unauthenticated: 'warning',

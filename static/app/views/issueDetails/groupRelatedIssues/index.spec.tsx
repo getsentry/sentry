@@ -53,7 +53,7 @@ describe('Related Issues View', () => {
     // GroupList calls this but we don't need it for this test
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/users/`,
-      body: {},
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,

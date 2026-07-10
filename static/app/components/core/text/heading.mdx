@@ -73,7 +73,7 @@ Heading supports up to `4xl` as opposed to [Text](/stories/core/text/) which onl
     <Heading as="h3" size="3xl">
       H3 with 3xl size
     </Heading>
-    <Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
+    <Heading as="h6" size={{'screen:md': 'xs', 'screen:lg': 'xl'}}>
       H6 with responsive size
     </Heading>
   </Storybook.SideBySide>
@@ -91,7 +91,7 @@ Heading supports up to `4xl` as opposed to [Text](/stories/core/text/) which onl
 <Heading as="h3" size="3xl">
   H3 with 3xl size
 </Heading>
-<Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
+<Heading as="h6" size={{'screen:md': 'xs', 'screen:lg': 'xl'}}>
   H6 with responsive size
 </Heading>
 ```
@@ -263,8 +263,20 @@ Headings support responsive sizes using breakpoint objects. Breakpoints are: `xs
   <Container width="400px" border="primary">
     <Heading
       as="h4"
-      size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
-      align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+      size={{
+        'screen:xs': 'xs',
+        'screen:sm': 'sm',
+        'screen:md': 'md',
+        'screen:lg': 'lg',
+        'screen:xl': 'xl',
+      }}
+      align={{
+        'screen:xs': 'left',
+        'screen:sm': 'center',
+        'screen:md': 'right',
+        'screen:lg': 'justify',
+        'screen:xl': 'left',
+      }}
     >
       Responsive heading
     </Heading>
@@ -273,8 +285,20 @@ Headings support responsive sizes using breakpoint objects. Breakpoints are: `xs
 ```jsx
 <Heading
   as="h4"
-  size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
-  align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+  size={{
+    'screen:xs': 'xs',
+    'screen:sm': 'sm',
+    'screen:md': 'md',
+    'screen:lg': 'lg',
+    'screen:xl': 'xl',
+  }}
+  align={{
+    'screen:xs': 'left',
+    'screen:sm': 'center',
+    'screen:md': 'right',
+    'screen:lg': 'justify',
+    'screen:xl': 'left',
+  }}
 >
   Responsive heading
 </Heading>

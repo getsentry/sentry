@@ -1,4 +1,7 @@
-import type {NotificationBodyFormattingBlock} from 'sentry/debug/notifications/components/notificationBodyRenderer';
+import type {
+  NotificationBodyFormattingBlock,
+  NotificationBodyTextBlock,
+} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 
 export enum NotificationProviderKey {
   EMAIL = 'email',
@@ -12,9 +15,9 @@ export interface NotificationTemplateRegistration {
   example: {
     actions: Array<{label: string; link: string}>;
     body: NotificationBodyFormattingBlock[];
-    subject: string;
+    subject: NotificationBodyTextBlock[];
     chart?: {alt_text: string; url: string};
-    footer?: string;
+    footer?: NotificationBodyTextBlock[];
   };
   previews: {
     [NotificationProviderKey.EMAIL]: {
