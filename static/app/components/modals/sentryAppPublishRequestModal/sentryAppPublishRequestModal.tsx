@@ -1,12 +1,10 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -72,7 +70,10 @@ const QUESTIONS: ReadonlyArray<{name: keyof FormValues; question: string}> = [
   },
 ];
 
-const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({value, label}));
+const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({
+  value,
+  label,
+}));
 
 type Props = ModalRenderProps & {
   app: SentryApp;
@@ -80,9 +81,14 @@ type Props = ModalRenderProps & {
   organization: Organization;
 };
 
-export function SentryAppPublishRequestModal(props: Props) {
-  const {app, closeModal, Header, Body, Footer, onPublishSubmission} = props;
-
+export function SentryAppPublishRequestModal({
+  app,
+  closeModal,
+  Header,
+  Body,
+  Footer,
+  onPublishSubmission,
+}: Props) {
   const {mutateAsync: submitPublishRequest} = useMutation({
     mutationFn: (data: {questionnaire: Array<{answer: string; question: string}>}) =>
       fetchMutation({
@@ -136,123 +142,123 @@ export function SentryAppPublishRequestModal(props: Props) {
         <h1>{t('Publish Request Questionnaire')}</h1>
       </Header>
       <Body>
-        <Explanation>
-          {t(
-            `Please fill out this questionnaire in order to get your integration evaluated for publication.
+        <Stack gap="xl">
+          <Text as="p">
+            {t(
+              `Please fill out this questionnaire in order to get your integration evaluated for publication.
               Once your integration has been approved, users outside of your organization will be able to install it.`
-          )}
-        </Explanation>
-
-        <Flex direction="column" gap="xl">
-          <form.AppField name="question0">
-            {field => (
-              <field.Layout.Stack
-                label="Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration."
-                required
-              >
-                <field.TextArea
-                  autosize
-                  rows={3}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Stack>
             )}
-          </form.AppField>
+          </Text>
 
-          <form.AppField name="question1">
-            {field => (
-              <field.Layout.Stack
-                label={
-                  <Fragment>
-                    {t(
-                      'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on '
-                    )}
-                    <ExternalLink href="https://sentry.io/integrations/">
-                      {t('Sentry Integrations')}
-                    </ExternalLink>
-                    .
-                  </Fragment>
-                }
-                required
-              >
-                <field.TextArea
-                  autosize
-                  rows={3}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
+          <Stack gap="xl">
+            <form.AppField name="question0">
+              {field => (
+                <field.Layout.Stack
+                  label={t(
+                    'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.'
+                  )}
+                  required
+                >
+                  <field.TextArea
+                    autosize
+                    rows={3}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-          <form.AppField name="question2">
-            {field => (
-              <field.Layout.Stack
-                label={
-                  <Fragment>
-                    {t('Select what category best describes your integration. ')}
-                    <ExternalLink href="https://docs.sentry.io/organization/integrations/">
-                      {t('Documentation for reference.')}
-                    </ExternalLink>
-                  </Fragment>
-                }
-                required
-              >
-                <field.Select
-                  options={CATEGORY_OPTIONS}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
+            <form.AppField name="question1">
+              {field => (
+                <field.Layout.Stack
+                  label={tct(
+                    'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on [link:Sentry Integrations].',
+                    {
+                      link: <ExternalLink href="https://sentry.io/integrations/" />,
+                    }
+                  )}
+                  required
+                >
+                  <field.TextArea
+                    autosize
+                    rows={3}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-          <form.AppField name="question3">
-            {field => (
-              <field.Layout.Stack label={t('Link to your documentation page.')} required>
-                <field.Input
-                  type="url"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
+            <form.AppField name="question2">
+              {field => (
+                <field.Layout.Stack
+                  label={tct(
+                    'Select what category best describes your integration. [link:Documentation for reference.]',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/organization/integrations/" />
+                      ),
+                    }
+                  )}
+                  required
+                >
+                  <field.Select
+                    options={CATEGORY_OPTIONS}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-          <form.AppField name="supportEmail">
-            {field => (
-              <field.Layout.Stack label={t('Email address for user support.')} required>
-                <field.Input
-                  type="email"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
+            <form.AppField name="question3">
+              {field => (
+                <field.Layout.Stack
+                  label={t('Link to your documentation page.')}
+                  required
+                >
+                  <field.Input
+                    type="url"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-          <form.AppField name="question4">
-            {field => (
-              <field.Layout.Stack
-                label={t(
-                  'Link to a video showing installation, setup and user flow for your submission.'
-                )}
-                required
-              >
-                <field.Input
-                  type="url"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        </Flex>
+            <form.AppField name="supportEmail">
+              {field => (
+                <field.Layout.Stack label={t('Email address for user support.')} required>
+                  <field.Input
+                    type="email"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-        <Container paddingTop="xl">
+            <form.AppField name="question4">
+              {field => (
+                <field.Layout.Stack
+                  label={t(
+                    'Link to a video showing installation, setup and user flow for your submission.'
+                  )}
+                  required
+                >
+                  <field.Input
+                    type="url"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </Stack>
+
           <Alert variant="info">
-            <Flex direction="column" gap="lg">
+            <Stack gap="lg">
               <Text as="p">
                 {t(
                   'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
@@ -271,9 +277,9 @@ export function SentryAppPublishRequestModal(props: Props) {
               <Text as="p">
                 {t('Thank you for contributing to the Sentry community!')}
               </Text>
-            </Flex>
+            </Stack>
           </Alert>
-        </Container>
+        </Stack>
       </Body>
       <Footer>
         <Flex gap="md">
@@ -284,8 +290,3 @@ export function SentryAppPublishRequestModal(props: Props) {
     </form.AppForm>
   );
 }
-
-const Explanation = styled('div')`
-  margin: ${p => p.theme.space.lg} 0px;
-  font-size: ${p => p.theme.font.size.md};
-`;
