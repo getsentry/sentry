@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import posixpath
 from collections.abc import Mapping
-from typing import Any, Generator
+from typing import Any
 
 import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
@@ -15,6 +15,7 @@ from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, Symbolicat
 from sentry.lang.native.utils import (
     get_event_attachment,
     get_os_from_event,
+    has_native_stacktraces,
     image_name,
     is_applecrashreport_event,
     is_minidump_event,
@@ -622,21 +623,27 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
 
 def get_native_symbolication_functions(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> Generator[SymbolicatorFunction]:
+) -> list[SymbolicatorFunction]:
     """
-    Returns the appropriate symbolication function (or `None`) that will process
-    the event, based on the Event `data`, and the supplied `stacktraces`.
+    Yields the symbolication functions that will process the event,
+    based on the Event `data` and the supplied `stacktraces`.
     """
     if is_minidump_event(data):
         yield SymbolicatorFunction.minidump
-    if is_applecrashreport_event(data):
+    elif is_applecrashreport_event(data):
         yield SymbolicatorFunction.applecrashreport
-    if is_native_event(data, stacktraces):
+    elif is_native_event(data, stacktraces):
+        yield SymbolicatorFunction.native
+        return  # once is enough
+
+    if has_native_stacktraces(stacktraces):
         yield SymbolicatorFunction.native
 
 
-def get_required_attachment_types(data) -> Generator[str]:
+def get_required_attachment_types(data) -> set[str]:
     if is_minidump_event(data):
-        yield MINIDUMP_ATTACHMENT_TYPE
+        return {MINIDUMP_ATTACHMENT_TYPE}
     if is_applecrashreport_event(data):
-        yield APPLECRASHREPORT_ATTACHMENT_TYPE
+        return {APPLECRASHREPORT_ATTACHMENT_TYPE}
+    else:
+        return set()

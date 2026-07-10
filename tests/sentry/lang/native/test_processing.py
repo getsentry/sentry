@@ -67,8 +67,8 @@ NATIVE_EXCEPTION = {
         ),
         pytest.param(
             [APPLECRASHREPORT_PLACEHOLDER, NATIVE_EXCEPTION],
-            [SymbolicatorFunction.applecrashreport],
-            id="simple_applecrashreport",
+            [SymbolicatorFunction.applecrashreport, SymbolicatorFunction.native],
+            id="applecrashreport_with_native",
         ),
         pytest.param(
             [NATIVE_EXCEPTION],
