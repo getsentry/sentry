@@ -6,12 +6,14 @@ import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
+from urllib.parse import urlsplit
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.urls import reverse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from objectstore_client import RequestError
 from rest_framework import status
@@ -35,11 +37,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.debug_file import DebugFileSerializerResponse
-from sentry.api.utils import to_valid_int_id
+from sentry.api.utils import generate_locality_url, to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.dsym_examples import DebugFileExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth import system
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -60,6 +63,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
+from sentry.objectstore import maybe_rewrite_url_for_symbolicator
 from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -275,6 +279,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
+        if debug_file.storage_path is not None:
+            return self._redirect_to_objectstore(self.request, debug_file, project)
+
         try:
             fp = debug_file.get_file()
 
@@ -294,6 +301,35 @@ class DebugFilesEndpoint(ProjectEndpoint):
             return response
         except (OSError, RequestError, Project.DoesNotExist, HTTPError):
             raise Http404
+
+    def _redirect_to_objectstore(
+        self, request: Request, debug_file: ProjectDebugFile, project: Project
+    ) -> HttpResponseRedirect:
+        try:
+            presigned_url = debug_file.get_presigned_download_url()
+        except (RequestError, Project.DoesNotExist, HTTPError):
+            raise Http404
+
+        if system.is_internal_ip(request):
+            # Redirect to a URL pointing to the internal Objectstore ip/hostname.
+            # In dev/test, we potentially need to rewrite this URL to point to the hostname in the docker network
+            # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
+            # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
+            # which is currently the case in practice, but in theory it could be any other service.
+            url = maybe_rewrite_url_for_symbolicator(presigned_url)
+        else:
+            parts = urlsplit(presigned_url)
+            proxy_path = reverse(
+                "sentry-api-0-organization-objectstore",
+                kwargs={
+                    "organization_id_or_slug": project.organization_id,
+                    "path": parts.path.lstrip("/"),
+                },
+            )
+            base = generate_locality_url().rstrip("/")
+            url = f"{base}{proxy_path}?{parts.query}"
+
+        return HttpResponseRedirect(url)
 
     @extend_schema(
         operation_id="listProjectDebugFiles",
