@@ -12,12 +12,12 @@ __all__ = [
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
-import sentry_sdk
 from django.conf import settings
 
 from sentry.objectstore import get_attachments_session
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
+from sentry.utils.tracing import trace
 
 from .base import BaseAttachmentCache, CachedAttachment, MissingAttachmentChunks
 
@@ -29,7 +29,7 @@ attachment_cache: BaseAttachmentCache = import_string(settings.SENTRY_ATTACHMENT
 )
 
 
-@sentry_sdk.trace
+@trace
 def store_attachments_for_event(
     project: Project, event: Any, attachments: list[CachedAttachment], timeout=None
 ):
@@ -61,7 +61,7 @@ def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
     )
 
 
-@sentry_sdk.trace
+@trace
 def delete_cached_and_ratelimited_attachments(
     project: Project, attachments: list[CachedAttachment]
 ):

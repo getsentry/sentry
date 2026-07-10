@@ -759,7 +759,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_code_changes_includes_base_shas_when_pr_iteration_enabled(
+    def test_root_cause_includes_base_shas(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run, mock_scm_new
     ):
         mock_client = MagicMock()
@@ -776,7 +776,7 @@ class TestTriggerAutofixAgent(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
                 group=self.group,
-                step=AutofixStep.CODE_CHANGES,
+                step=AutofixStep.ROOT_CAUSE,
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
             )
@@ -815,7 +815,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_non_code_changes_step_omits_base_shas(
+    def test_non_root_cause_step_omits_base_shas(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run, mock_scm_new
     ):
         mock_client = MagicMock()
@@ -826,7 +826,7 @@ class TestTriggerAutofixAgent(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
                 group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
+                step=AutofixStep.SOLUTION,
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
             )

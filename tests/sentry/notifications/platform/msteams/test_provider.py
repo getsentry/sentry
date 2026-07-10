@@ -52,7 +52,7 @@ class MSTeamsRendererTest(TestCase):
         assert title_block["size"] == TextSize.LARGE
         assert title_block["weight"] == TextWeight.BOLDER
 
-        # Verify body block 1 (ParagraphBlock)
+        # Verify body section 1 (ParagraphSection)
         body_block_1 = body_blocks[1]
         assert body_block_1["type"] == "TextBlock"
         assert (
@@ -60,12 +60,12 @@ class MSTeamsRendererTest(TestCase):
             == "test **important** _urgent_ [View Issue](https://sentry.io/issue/1)"
         )
 
-        # Verify body block 2 (CodeBlock)
+        # Verify body section 2 (CodeSection)
         body_block_2 = body_blocks[2]
         assert body_block_2["type"] == "CodeBlock"
         assert body_block_2["codeSnippet"] == "raise Exception('test')"
 
-        # Verify body block 3 (BlockQuoteSection)
+        # Verify body section 3 (BlockQuoteSection)
         body_block_3 = body_blocks[3]
         assert body_block_3["type"] == "TextBlock"
         assert "This is a quoted message" in body_block_3["text"]

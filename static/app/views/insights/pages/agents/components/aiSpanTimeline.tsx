@@ -8,8 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {IconFire} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {Placeholder} from 'sentry/components/placeholder';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
@@ -18,12 +17,12 @@ import {
   getNodeTimeBounds,
   type TraceBounds,
 } from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   type ColorByOpType,
   getToolInputPreview,
   getGenAiOpType,
-  getGenAiOpTypeIcon,
   getIsAiAgentNode,
   getNumberAttr,
   getSpanColor,
@@ -38,7 +37,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 interface SpanPresentation {
   color: string;
-  icon: React.ReactNode;
   isTool: boolean;
   secondary: string;
   title: string;
@@ -50,11 +48,13 @@ export function AiSpanTimeline({
   onSelectNode,
   nodeTraceMap,
   compressGaps = false,
+  isLoading = false,
 }: {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeKey: string | null;
   compressGaps?: boolean;
+  isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
 }) {
   const compressedBounds = useMemo(
@@ -80,6 +80,10 @@ export function AiSpanTimeline({
     return parents;
   }, [nodes]);
 
+  if (isLoading) {
+    return <TimelineSkeleton />;
+  }
+
   return (
     <Stack gap="xs">
       {nodes.map(node => {
@@ -98,6 +102,51 @@ export function AiSpanTimeline({
           />
         );
       })}
+    </Stack>
+  );
+}
+
+const TIMELINE_SKELETON_ROWS: Array<{
+  title: string;
+  indent?: boolean;
+  secondary?: string;
+}> = [
+  {title: '28%', secondary: '13%'},
+  {title: '26%', secondary: '12%', indent: true},
+  {title: '32%', indent: true},
+  {title: '24%', secondary: '20%', indent: true},
+  {title: '30%', secondary: '11%', indent: true},
+  {title: '33%', indent: true},
+  {title: '31%', secondary: '14%'},
+  {title: '28%', secondary: '15%', indent: true},
+];
+
+function TimelineSkeleton() {
+  return (
+    <Stack gap="xs">
+      {TIMELINE_SKELETON_ROWS.map((row, index) => (
+        <Container
+          key={`${row.title}-${index}`}
+          padding="xs"
+          paddingLeft={row.indent ? 'xl' : 'xs'}
+        >
+          <Stack gap="xs">
+            <Flex align="center" gap="md">
+              <Placeholder height="16px" width="16px" />
+              <Placeholder height="14px" width={row.title} />
+              {row.secondary ? <Placeholder height="14px" width={row.secondary} /> : null}
+              <Flex flex="1" minWidth="0" />
+              <Flex flexShrink={0} width="64px" justify="end">
+                <Placeholder height="14px" width="44px" />
+              </Flex>
+              <Flex flexShrink={0} width="44px" justify="end">
+                <Placeholder height="14px" width="36px" />
+              </Flex>
+            </Flex>
+            <Placeholder height="4px" width="100%" />
+          </Stack>
+        </Container>
+      ))}
     </Stack>
   );
 }
@@ -123,10 +172,7 @@ const TimelineRow = memo(function TimelineRow({
   const hasErrors = hasError(node);
   const colorByOpType = useMemo(() => getTimelineColorByOpType(theme), [theme]);
 
-  const {icon, title, secondary, isTool, color} = getSpanPresentation(
-    node,
-    colorByOpType
-  );
+  const {title, secondary, isTool, color} = getSpanPresentation(node, colorByOpType);
   const relativeTiming = calculateRelativeTiming(
     node,
     traceBounds,
@@ -141,31 +187,13 @@ const TimelineRow = memo(function TimelineRow({
         <RowContainer
           type="button"
           className={className}
-          isSelected={isSelected}
+          data-selected={isSelected}
           indent={indent}
           onClick={() => onSelectNode(node)}
         >
           <Stack gap="xs" flex="1" minWidth="0">
             <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
-              <Flex align="center" position="relative" style={{color}} flexShrink={0}>
-                {icon}
-                {hasErrors && (
-                  <Tooltip title={t('This span encountered an error')} skipWrapper>
-                    <Container
-                      position="absolute"
-                      radius="full"
-                      style={{
-                        bottom: -6,
-                        right: -6,
-                        padding: 1,
-                        background: theme.tokens.background.primary,
-                      }}
-                    >
-                      <IconFire display="block" size="xs" variant="danger" />
-                    </Container>
-                  </Tooltip>
-                )}
-              </Flex>
+              <AiSpanStatusIcon node={node} />
               {isTool ? (
                 <Flex minWidth="0" maxWidth="50%">
                   <EllipsisTag
@@ -202,7 +230,7 @@ const TimelineRow = memo(function TimelineRow({
                   </Tooltip>
                 )}
               </Flex>
-              <Flex flexShrink={0} width="100px" justify="end">
+              <Flex align="center" justify="end" flexShrink={0} gap="xs">
                 {metric ? (
                   <Text
                     size="sm"
@@ -230,8 +258,11 @@ const TimelineRow = memo(function TimelineRow({
                     </Text>
                   )
                 ) : null}
-              </Flex>
-              <Flex flexShrink={0} width="56px" justify="end">
+                {metric || isTool ? (
+                  <Text size="sm" variant={isSelected ? 'primary' : 'muted'}>
+                    •
+                  </Text>
+                ) : null}
                 <Text
                   size="sm"
                   variant={isSelected ? 'primary' : 'muted'}
@@ -321,7 +352,6 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: name || op,
@@ -332,7 +362,6 @@ function getSpanPresentation(
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title,
@@ -343,7 +372,6 @@ function getSpanPresentation(
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       const inputPreview = getToolInputPreview(node);
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: true,
         title: toolName || op,
@@ -352,7 +380,6 @@ function getSpanPresentation(
     }
     case GenAiOperationType.HANDOFF:
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -360,7 +387,6 @@ function getSpanPresentation(
       };
     default:
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -381,7 +407,6 @@ const EllipsisTag = styled(Tag)`
 
 const RowContainer = styled('button')<{
   indent: number;
-  isSelected: boolean;
 }>`
   width: 100%;
   border: none;
@@ -390,21 +415,27 @@ const RowContainer = styled('button')<{
   text-align: left;
   padding: ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
-  border-radius: ${p => (p.isSelected ? p.theme.radius.xs : 0)};
+  border-radius: 0;
   cursor: pointer;
-  background-color: ${p =>
-    p.isSelected ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+  background-color: transparent;
 
-  &:hover {
+  /* Hover/active feedback only applies while the row is not selected, so the
+   * selected background is never masked. */
+  &:not([data-selected='true']):hover {
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &:active {
+  &:not([data-selected='true']):active {
     border-radius: ${p => p.theme.radius.xs};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+
+  &[data-selected='true'] {
+    border-radius: ${p => p.theme.radius.xs};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   }
 `;
 

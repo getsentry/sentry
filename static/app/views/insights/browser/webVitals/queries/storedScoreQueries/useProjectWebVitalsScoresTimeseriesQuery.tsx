@@ -9,11 +9,9 @@ import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
-  enabled?: boolean;
   subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string | null;
-  weighted?: boolean;
 };
 
 export type WebVitalsScoreBreakdown = {
