@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from typing import Any
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -11,6 +10,7 @@ from django.db.migrations.state import StateApps
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.models.options.project_option import ProjectOption
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,9 @@ def _webhook_configured_project_ids(project_option_model: type[ProjectOption]) -
     )
 
 
-def _convertible_action_ids(dcga_model: type[Any], configured_project_ids: set[int]) -> set[int]:
+def _convertible_action_ids(
+    dcga_model: type[DataConditionGroupAction], configured_project_ids: set[int]
+) -> set[int]:
     """Plugin action ids whose project has a legacy webhook configuration. Resolves action -> project
     in one joined query; an action with no detector/project resolves to None and is skipped."""
     return {
