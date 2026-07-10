@@ -180,12 +180,7 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
 
   return (
-    <Container
-      background="secondary"
-      borderRight="primary"
-      position="relative"
-      height="100%"
-    >
+    <Container background="secondary" position="relative" height="100%">
       {p => (
         <NavigationTourElement
           {...mergeProps(p, props)}
@@ -200,11 +195,14 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
   z-index: ${p => p.theme.zIndex.drawer + 2};
   cursor: ${p => (p.atMinWidth ? 'e-resize' : p.atMaxWidth ? 'w-resize' : 'ew-resize')};
 
-  &:hover,
-  &:active {
-    &::after {
-      background: ${p => p.theme.tokens.graphics.accent.vibrant};
-    }
+  &::before {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   &::after {
@@ -217,6 +215,16 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
     opacity: 0.8;
     background: transparent;
     transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
+  }
+
+  &:hover,
+  &:active {
+    &::before {
+      border-color: transparent;
+    }
+    &::after {
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
+    }
   }
 `;
 
