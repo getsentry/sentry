@@ -1341,18 +1341,6 @@ describe('SearchQueryBuilder', () => {
       }
     );
 
-    it('adds default value for pasted multi-character numeric comparison operators', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
-      await userEvent.click(getLastInput());
-
-      await userEvent.paste('timesSeen>=');
-      await userEvent.keyboard('{Escape}');
-
-      expect(
-        await screen.findByRole('row', {name: 'timesSeen:>=100'})
-      ).toBeInTheDocument();
-    });
-
     it('adds default value for numeric tag filters from filter key metadata', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());

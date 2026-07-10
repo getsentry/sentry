@@ -129,8 +129,6 @@ const NUMERIC_COMPARISON_VALUE_TYPES = new Set<FieldValueType>([
 ]);
 
 const COMPARISON_SHORTCUT_OPERATORS = [
-  TermOperator.GREATER_THAN_EQUAL,
-  TermOperator.LESS_THAN_EQUAL,
   TermOperator.GREATER_THAN,
   TermOperator.LESS_THAN,
   TermOperator.EQUAL,
