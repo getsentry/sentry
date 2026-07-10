@@ -346,7 +346,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-pr-groups/'
-  | '/organizations/$organizationIdOrSlug/seer/explorer-runs/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
   | '/organizations/$organizationIdOrSlug/seer/projects/'
