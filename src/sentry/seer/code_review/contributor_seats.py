@@ -17,7 +17,7 @@ from django.db.models import F
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -31,20 +31,6 @@ from sentry.tasks.organization_contributors import assign_seat_to_organization_c
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-def integration_hostname(integration: RpcIntegration) -> str:
-    """
-    Canonical hostname of the integration's instance: the self-hosted host for
-    GitHub Enterprise / self-managed GitLab, else the cloud host.
-    """
-    if integration.provider == IntegrationProviderSlug.GITHUB.value:
-        return "github.com"
-    elif integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
-        return integration.metadata["domain_name"].split("/")[0]
-    elif integration.provider == IntegrationProviderSlug.GITLAB.value:
-        return integration.metadata["instance"]
-    raise ValueError(f"Unsupported contributor provider: {integration.provider}")
 
 
 def _is_code_review_enabled_for_repo(repository_id: int) -> bool:
@@ -121,7 +107,7 @@ def track_contributor_seat(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": integration_hostname(integration),
+            "hostname": instance_hostname(integration),
         },
     )
 
@@ -167,7 +153,7 @@ def record_contributor_action(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": integration_hostname(integration),
+            "hostname": instance_hostname(integration),
         },
     )
 
