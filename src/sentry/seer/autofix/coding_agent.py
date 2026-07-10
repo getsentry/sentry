@@ -418,11 +418,21 @@ def poll_claude_agent(
     elif last_event_type == ClaudeSessionEventStatus.RESCHEDULING:
         if agent_state.status != CodingAgentStatus.PENDING:
             update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
+            update_seer_run_coding_agent_handoff(
+                agent_id=agent_id,
+                organization_id=org_id,
+                status=CodingAgentStatus.PENDING,
+            )
 
     else:
         # Any other event (status_running, agent, tool_result, etc.) means active.
         if agent_state.status != CodingAgentStatus.RUNNING:
             update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.RUNNING)
+            update_seer_run_coding_agent_handoff(
+                agent_id=agent_id,
+                organization_id=org_id,
+                status=CodingAgentStatus.RUNNING,
+            )
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:

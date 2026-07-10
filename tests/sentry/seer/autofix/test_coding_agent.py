@@ -1076,11 +1076,12 @@ class TestPollClaudeCodeAgents(TestCase):
 
         mock_update_state.assert_not_called()
 
+    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_updates_pending_to_running_on_non_idle_event(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1095,11 +1096,19 @@ class TestPollClaudeCodeAgents(TestCase):
         call_kwargs = mock_update_state.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.RUNNING
 
+        # The Sentry-side handoff row must track this transition too, not just Seer's copy.
+        mock_update_handoff.assert_called_once_with(
+            agent_id="claude-session-123",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.RUNNING,
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_stays_pending_on_status_rescheduling_event(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1113,6 +1122,36 @@ class TestPollClaudeCodeAgents(TestCase):
         poll_claude_code_agents(autofix_state=autofix_state)
 
         mock_update_state.assert_not_called()
+        mock_update_handoff.assert_not_called()
+
+    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_updates_running_to_pending_on_rescheduling_event(
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
+    ):
+        """A RESCHEDULING event on a RUNNING session must sync the Sentry-side handoff
+        row back to pending, not just Seer's copy of the state."""
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [
+            {"type": ClaudeSessionEventStatus.RESCHEDULING}
+        ]
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent(status=CodingAgentStatus.RUNNING)}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_state.assert_called_once_with(
+            agent_id="claude-session-123", status=CodingAgentStatus.PENDING
+        )
+        mock_update_handoff.assert_called_once_with(
+            agent_id="claude-session-123",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.PENDING,
+        )
 
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)

@@ -27,7 +27,13 @@ def _link_pull_request_to_seer_run(
     """Resolve one reported PR and idempotently link it to ``seer_run`` via
     :class:`SeerRunPullRequest`. Returns the resolved PR, or ``None`` on any
     failure. Best-effort: every failure is logged and swallowed rather than raised.
+
+    Checks the killswitch itself (rather than leaving it to callers) so every
+    write path into :class:`SeerRunPullRequest` is guaranteed to respect it.
     """
+    if options.get("seer.pull-request-linking.killswitch.enabled"):
+        return None
+
     if not repo_name or pr_number is None:
         logger.warning("seer.pr_link.missing_fields", extra=log_context)
         return None

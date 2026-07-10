@@ -117,6 +117,34 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == self.seer_run.id
 
+    @patch("sentry.seer.pull_requests.options.get", return_value=True)
+    def test_killswitch_disables_pull_request_linking(self, mock_option: Mock) -> None:
+        """The seer.pull-request-linking killswitch must also gate the handoff path,
+        not just Seer's own seer.pr_created path -- both write the same SeerRunPullRequest
+        rows, so the switch must not be bypassable from either one."""
+        result = CodingAgentResult(
+            description="Fixed the bug",
+            repo_provider="github",
+            repo_full_name=REPO_NAME,
+            pr_url="https://github.com/getsentry/sentry/pull/42",
+        )
+
+        update_seer_run_coding_agent_handoff(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=result,
+        )
+
+        mock_option.assert_called_once_with("seer.pull-request-linking.killswitch.enabled")
+        assert not SeerRunPullRequest.objects.exists()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
+
+        # The handoff's own status must still update -- only PR linking is gated.
+        self.handoff.refresh_from_db()
+        assert self.handoff.status == "completed"
+        assert self.handoff.pull_request_id is None
+
     def test_does_not_link_pull_request_without_pr_url(self) -> None:
         result = CodingAgentResult(
             description="No PR yet", repo_provider="github", repo_full_name=REPO_NAME
