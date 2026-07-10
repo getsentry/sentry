@@ -127,7 +127,7 @@ export function ConversationSpanDetail({
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
-          <AiSpanStatusIcon node={node} size="md" />
+          <AiSpanStatusIcon node={node} />
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <Text size="lg" bold ellipsis>
               {title}

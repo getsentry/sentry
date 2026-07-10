@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
-import type {IconSize} from 'sentry/utils/theme';
 import {
   getGenAiOpType,
   getSpanColor,
@@ -16,40 +15,23 @@ import {
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-// Corner offset for the error badge, tuned per icon size so the fire sits just
-// outside the bottom-right of the operation-type icon.
-const BADGE_OFFSET: Record<IconSize, number> = {
-  xs: -4,
-  sm: -5,
-  md: -6,
-  lg: -8,
-  xl: -10,
-  '2xl': -20,
-};
-
-function operationTypeIcon(opType: string | undefined, size: IconSize) {
+function operationTypeIcon(opType: string | undefined) {
   switch (opType) {
     case GenAiOperationType.AGENT:
-      return <IconBot size={size} />;
+      return <IconBot size="md" />;
     case GenAiOperationType.AI_CLIENT:
-      return <IconChat size={size} />;
+      return <IconChat size="md" />;
     case GenAiOperationType.TOOL:
-      return <IconFix size={size} />;
+      return <IconFix size="md" />;
     case GenAiOperationType.HANDOFF:
-      return <IconChevron size={size} isDouble direction="right" />;
+      return <IconChevron size="md" isDouble direction="right" />;
     default:
-      return <IconCode size={size} />;
+      return <IconCode size="md" />;
   }
 }
 
 interface AiSpanStatusIconProps {
   node: AITraceSpanNode;
-  /**
-   * Overrides the icon color. Defaults to the operation-type/error palette
-   * color so errored spans tint red.
-   */
-  color?: string;
-  size?: IconSize;
 }
 
 /**
@@ -58,24 +40,24 @@ interface AiSpanStatusIconProps {
  * Used across the timeline, transcript, and span detail so the errored icon
  * looks the same everywhere.
  */
-export function AiSpanStatusIcon({node, size = 'md', color}: AiSpanStatusIconProps) {
+export function AiSpanStatusIcon({node}: AiSpanStatusIconProps) {
   const theme = useTheme();
   const hasErrors = hasError(node);
-  const iconColor = color ?? getSpanColor(node, getTimelineColorByOpType(theme));
-  // Same value on both axes nudges the badge diagonally to the corner.
-  const offset = BADGE_OFFSET[size];
+  const iconColor = getSpanColor(node, getTimelineColorByOpType(theme));
 
   return (
     <Flex align="center" position="relative" style={{color: iconColor}} flexShrink={0}>
-      {operationTypeIcon(getGenAiOpType(node), size)}
+      {operationTypeIcon(getGenAiOpType(node))}
       {hasErrors && (
         <Tooltip title={t('This span encountered an error')} skipWrapper>
           <Container
             position="absolute"
             radius="full"
             style={{
-              bottom: offset,
-              right: offset,
+              // Nudges the badge diagonally so the fire sits just outside the
+              // bottom-right corner of the 16x16 icon.
+              bottom: -6,
+              right: -6,
               padding: 1,
               background: theme.tokens.background.primary,
             }}

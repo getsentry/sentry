@@ -100,7 +100,7 @@ export function MessageToolCallsNew({
           >
             <Flex align="center" justify="between" gap="md" width="100%">
               <Flex align="center" gap="sm" minWidth={0}>
-                {toolNode && <AiSpanStatusIcon node={toolNode} size="sm" />}
+                {toolNode && <AiSpanStatusIcon node={toolNode} />}
                 <ToolTag name={tool.name} hasError={tool.hasError} />
                 {toolNode && <ToolInputPreview node={toolNode} />}
               </Flex>

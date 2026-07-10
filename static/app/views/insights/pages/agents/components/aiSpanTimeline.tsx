@@ -193,7 +193,7 @@ const TimelineRow = memo(function TimelineRow({
         >
           <Stack gap="xs" flex="1" minWidth="0">
             <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
-              <AiSpanStatusIcon node={node} size="md" color={color} />
+              <AiSpanStatusIcon node={node} />
               {isTool ? (
                 <Flex minWidth="0" maxWidth="50%">
                   <EllipsisTag
