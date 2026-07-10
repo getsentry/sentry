@@ -91,7 +91,7 @@ import {
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
-  useSetQueryParamsAggregateFields,
+  useSetQueryParams,
   useSetQueryParamsFields,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
@@ -234,7 +234,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetQueryParamsFields();
-  const setAggregateFields = useSetQueryParamsAggregateFields();
+  const setQueryParams = useSetQueryParams();
   const lastValidatedFieldsCleanupRef = useRef<string | null>(null);
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -389,20 +389,29 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
     if (fieldsChanged) {
       const nextFields = [...validatedFields];
-      const cleanupKey = JSON.stringify([fields, nextFields]);
+      const nextSortBys = sortBys.filter(sortBy => nextFields.includes(sortBy.field));
+      const cleanupKey = JSON.stringify([fields, nextFields, sortBys, nextSortBys]);
 
       if (lastValidatedFieldsCleanupRef.current !== cleanupKey) {
         lastValidatedFieldsCleanupRef.current = cleanupKey;
+        setQueryParams({fields: nextFields, sortBys: nextSortBys});
         setPersistentParams(prev => ({
           ...prev,
           fields: nextFields,
+          sortBys: nextSortBys,
         }));
-        setFields(nextFields);
       }
     } else {
       lastValidatedFieldsCleanupRef.current = null;
     }
-  }, [fields, isValidatingColumns, setFields, setPersistentParams, validatedFields]);
+  }, [
+    fields,
+    isValidatingColumns,
+    setPersistentParams,
+    setQueryParams,
+    sortBys,
+    validatedFields,
+  ]);
 
   useEffect(() => {
     if (mode !== Mode.AGGREGATE || isValidatingColumns) {
@@ -426,13 +435,24 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       });
 
     if (aggregateFieldsChanged) {
-      setAggregateFields(validatedAggregateFields.map(serializeAggregateField));
+      const validAggregateFields = new Set(
+        validatedAggregateFields.map(aggregateField =>
+          isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+        )
+      );
+      setQueryParams({
+        aggregateFields: validatedAggregateFields.map(serializeAggregateField),
+        aggregateSortBys: aggregateSortBys.filter(sortBy =>
+          validAggregateFields.has(sortBy.field)
+        ),
+      });
     }
   }, [
     aggregateFields,
+    aggregateSortBys,
     isValidatingColumns,
     mode,
-    setAggregateFields,
+    setQueryParams,
     validatedAggregateFields,
   ]);
 
