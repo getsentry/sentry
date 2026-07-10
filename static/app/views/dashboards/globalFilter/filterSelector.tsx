@@ -14,7 +14,6 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -37,6 +36,7 @@ import {
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldValues';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -229,38 +229,31 @@ export function FilterSelector({
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    const buildNoValueOption = (): SelectOption<string> | null => {
-      if (!NO_VALUE_SUPPORTED_OPERATORS.has(stagedOperator)) {
-        return null;
-      }
-      const noValueLabel = t('(no value)');
-      const noValueOption: SelectOption<string> = {
-        label: <Text variant="muted">{noValueLabel}</Text>,
-        textValue: noValueLabel,
-        value: NO_VALUE_SENTINEL,
-      };
-      if (canSelectMultipleValues) {
-        noValueOption.leadingItems = ({isSelected}: {isSelected: boolean}) => (
-          <Checkbox
-            checked={isSelected}
-            onChange={() => toggleOptionRef.current?.(NO_VALUE_SENTINEL)}
-            aria-label={t('Select %s', noValueLabel)}
-            tabIndex={-1}
-          />
-        );
-      }
-      return noValueOption;
-    };
+    const noValueOption: SelectOption<string> | null = NO_VALUE_SUPPORTED_OPERATORS.has(
+      stagedOperator
+    )
+      ? {
+          label: emptyValue,
+          textValue: EMPTY_VALUE_LABEL,
+          value: NO_VALUE_SENTINEL,
+          ...(canSelectMultipleValues
+            ? {
+                leadingItems: ({isSelected}: {isSelected: boolean}) => (
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => toggleOptionRef.current?.(NO_VALUE_SENTINEL)}
+                    aria-label={t('Select %s', EMPTY_VALUE_LABEL)}
+                    tabIndex={-1}
+                  />
+                ),
+              }
+            : {}),
+        }
+      : null;
 
     const prependNoValueOption = (
       opts: Array<SelectOption<string>>
-    ): Array<SelectOption<string>> => {
-      const noValueOption = buildNoValueOption();
-      if (noValueOption) {
-        opts.unshift(noValueOption);
-      }
-      return opts;
-    };
+    ): Array<SelectOption<string>> => (noValueOption ? [noValueOption, ...opts] : opts);
 
     if (predefinedValues && !canSelectMultipleValues) {
       const predefinedOptions: Array<SelectOption<string>> = predefinedValues.flatMap(

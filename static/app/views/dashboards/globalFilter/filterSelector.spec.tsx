@@ -288,7 +288,6 @@ describe('FilterSelector', () => {
       value: '!has:browser',
     });
 
-    // Simulate the parent persisting the emitted value back into the filter.
     rerender(
       <FilterSelector
         globalFilter={{...mockGlobalFilter, value: '!has:browser'}}
@@ -349,6 +348,87 @@ describe('FilterSelector', () => {
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
       value: '(!browser:firefox AND has:browser)',
+    });
+  });
+
+  describe('emits the correct query for each operator + "(no value)" combination', () => {
+    async function openSelector() {
+      await userEvent.click(screen.getByRole('button', {name: /browser/}));
+    }
+
+    async function selectOperator(target: string, current = 'contains') {
+      await userEvent.click(screen.getByRole('button', {name: current}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: target}));
+    }
+
+    async function selectNoValue() {
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    }
+
+    async function apply() {
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    }
+
+    function lastEmittedValue() {
+      return mockOnUpdateFilter.mock.calls.at(-1)?.[0]?.value as string;
+    }
+
+    describe('with no existing value', () => {
+      it.each([
+        ['is', '!has:browser'],
+        ['is not', 'has:browser'],
+        ['contains', '!has:browser'],
+        ['does not contain', 'has:browser'],
+      ])('%s + (no value) -> %s', async (operator, expected) => {
+        render(
+          <FilterSelector
+            globalFilter={mockGlobalFilter}
+            searchBarData={mockSearchBarData}
+            onUpdateFilter={mockOnUpdateFilter}
+            onRemoveFilter={mockOnRemoveFilter}
+          />
+        );
+
+        await openSelector();
+        if (operator !== 'contains') {
+          await selectOperator(operator);
+        }
+        await selectNoValue();
+        await apply();
+
+        expect(lastEmittedValue()).toBe(expected);
+      });
+    });
+
+    describe('with an existing value', () => {
+      it.each([
+        ['is', '(browser:firefox OR !has:browser)'],
+        ['is not', '(!browser:firefox AND has:browser)'],
+        ['contains', `(browser:${WildcardOperators.CONTAINS}firefox OR !has:browser)`],
+        [
+          'does not contain',
+          `(!browser:${WildcardOperators.CONTAINS}firefox AND has:browser)`,
+        ],
+      ])('%s value + (no value) -> %s', async (operator, expected) => {
+        render(
+          <FilterSelector
+            globalFilter={mockGlobalFilter}
+            searchBarData={mockSearchBarData}
+            onUpdateFilter={mockOnUpdateFilter}
+            onRemoveFilter={mockOnRemoveFilter}
+          />
+        );
+
+        await openSelector();
+        if (operator !== 'contains') {
+          await selectOperator(operator);
+        }
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+        await selectNoValue();
+        await apply();
+
+        expect(lastEmittedValue()).toBe(expected);
+      });
     });
   });
 
