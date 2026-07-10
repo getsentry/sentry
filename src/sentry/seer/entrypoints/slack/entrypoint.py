@@ -366,6 +366,7 @@ class SlackAutofixEntrypoint(
                         "current_point": AutofixStoppingPoint.ROOT_CAUSE,
                         "summary": summary,
                         "steps": steps,
+                        "reasoning": root_cause.get("five_whys", []),
                         "handoff_target": cache_payload.get("handoff_target"),
                     }
                 )

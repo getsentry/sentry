@@ -192,6 +192,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         if data.summary:
             blocks.append(SectionBlock(text=MarkdownTextObject(text=data.summary)))
+        if data.reasoning:
+            parts = [RichTextElementParts.Text(text=item) for item in data.reasoning[:MAX_STEPS]]
+            sections = [RichTextSectionElement(elements=[part]) for part in parts]
+            list_element = RichTextListElement(style="ordered", indent=0, elements=sections)
+            blocks.append(RichTextBlock(elements=[list_element]))
         if data.steps:
             parts = [RichTextElementParts.Text(text=step) for step in data.steps[:MAX_STEPS]]
             sections = [RichTextSectionElement(elements=[part]) for part in parts]

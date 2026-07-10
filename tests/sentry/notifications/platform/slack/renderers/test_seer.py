@@ -9,6 +9,8 @@ from slack_sdk.models.blocks import (
     MarkdownBlock,
     MarkdownTextObject,
     PlainTextObject,
+    RichTextBlock,
+    RichTextListElement,
     SectionBlock,
 )
 
@@ -31,6 +33,7 @@ class SeerSlackRendererTest(TestCase):
         current_point: AutofixStoppingPoint,
         summary: str | None = None,
         steps: list[str] | None = None,
+        reasoning: list[str] | None = None,
         changes: list[SeerAutofixCodeChange] | None = None,
         pull_requests: list[SeerAutofixPullRequest] | None = None,
         handoff_target: str | None = None,
@@ -44,6 +47,7 @@ class SeerSlackRendererTest(TestCase):
             group_link=f"https://sentry.io/issues/{MOCK_GROUP_ID}?seerDrawer=true",
             summary=summary,
             steps=steps or [],
+            reasoning=reasoning or [],
             changes=changes or [],
             pull_requests=pull_requests or [],
             handoff_target=handoff_target,
@@ -212,6 +216,20 @@ class SeerSlackRendererTest(TestCase):
         assert handoff_button.text.text == "Hand off to Cursor"
         assert handoff_button.action_id is not None
         assert handoff_button.action_id.startswith("seer_autofix_handoff::")
+
+    def test_render_autofix_update_root_cause_with_reasoning(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            summary="Test summary",
+            reasoning=["First reason", "Second reason", "Third reason"],
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data)
+        rich_text_blocks = [b for b in renderable["blocks"] if isinstance(b, RichTextBlock)]
+        assert len(rich_text_blocks) == 1
+        list_element = rich_text_blocks[0].elements[0]
+        assert isinstance(list_element, RichTextListElement)
+        assert list_element.style == "ordered"
+        assert len(list_element.elements) == 3
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
