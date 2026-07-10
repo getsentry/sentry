@@ -16,7 +16,6 @@ import type {PullRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
-import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
@@ -273,7 +272,7 @@ export function getCompactGroupActivityItem({
           title: t('Issue resolved'),
           details: (
             <Fragment>
-              {tct('in releases greater than [version] [semver]', {
+              {tct('in releases greater than [version]', {
                 version: (
                   <ActivityRelease
                     organization={organization}
@@ -281,9 +280,6 @@ export function getCompactGroupActivityItem({
                     version={currentVersion}
                   />
                 ),
-                semver: isSemverRelease(currentVersion)
-                  ? t('(semver)')
-                  : t('(non-semver)'),
               })}
               {resolvedBy}
               {integrationDetails}
@@ -297,7 +293,7 @@ export function getCompactGroupActivityItem({
           title: t('Issue resolved'),
           details: (
             <Fragment>
-              {tct('in [version] [semver]', {
+              {tct('in [version]', {
                 version: (
                   <ActivityRelease
                     organization={organization}
@@ -305,9 +301,6 @@ export function getCompactGroupActivityItem({
                     version={activity.data.version}
                   />
                 ),
-                semver: isSemverRelease(activity.data.version)
-                  ? t('(semver)')
-                  : t('(non-semver)'),
               })}
               {resolvedBy}
               {integrationDetails}

@@ -915,6 +915,8 @@ describe('ActivitySection', () => {
       pullRequest.externalUrl
     );
     expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+    expect(screen.queryByText('(semver)')).not.toBeInTheDocument();
+    expect(screen.queryByText('(non-semver)')).not.toBeInTheDocument();
   });
 
   it('falls back to the commit for resolved release activity line items', async () => {
