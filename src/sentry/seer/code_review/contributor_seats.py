@@ -90,6 +90,28 @@ def should_increment_contributor_seat(
     )
 
 
+def get_canonical_contributor(
+    *,
+    organization_id: int,
+    integration: RpcIntegration,
+    external_identifier: str,
+) -> OrganizationContributors | None:
+    """
+    TODO(CW-1539): Replace with get() after the contributor deduplication
+    migration has completed.
+    """
+    return (
+        OrganizationContributors.objects.filter(
+            organization_id=organization_id,
+            provider=integration.provider,
+            hostname=instance_hostname(integration),
+            external_identifier=external_identifier,
+        )
+        .order_by("id")
+        .first()
+    )
+
+
 def _get_or_create_contributor(
     *,
     organization: Organization,
@@ -98,24 +120,14 @@ def _get_or_create_contributor(
     alias: str | None,
 ) -> OrganizationContributors:
     """
-    TODO(CW-1539): Replace with get_or_create after the contributor deduplication
+    TODO(CW-1539): Replace with get_or_create() after the contributor deduplication
     migration has completed.
     """
-    hostname = instance_hostname(integration)
-
-    def _get_canonical_contributor() -> OrganizationContributors | None:
-        return (
-            OrganizationContributors.objects.filter(
-                organization_id=organization.id,
-                provider=integration.provider,
-                hostname=hostname,
-                external_identifier=external_identifier,
-            )
-            .order_by("id")
-            .first()
-        )
-
-    if contributor := _get_canonical_contributor():
+    if contributor := get_canonical_contributor(
+        organization_id=organization.id,
+        integration=integration,
+        external_identifier=external_identifier,
+    ):
         return contributor
 
     try:
@@ -124,11 +136,15 @@ def _get_or_create_contributor(
             integration_id=integration.id,
             external_identifier=external_identifier,
             provider=integration.provider,
-            hostname=hostname,
+            hostname=instance_hostname(integration),
             alias=alias,
         )
     except IntegrityError:
-        contributor = _get_canonical_contributor()
+        contributor = get_canonical_contributor(
+            organization_id=organization.id,
+            integration=integration,
+            external_identifier=external_identifier,
+        )
         if not contributor:
             raise
         return contributor

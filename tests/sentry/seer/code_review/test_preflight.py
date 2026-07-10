@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry import features
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.preflight import CodeReviewPreflightService, PreflightDenialReason
@@ -18,26 +19,25 @@ class TestCodeReviewPreflightService(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(project=self.project)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
+            integration = self.create_integration(
                 organization=self.organization,
                 provider="github",
                 external_id="github:123",
             )
+            self.integration = serialize_integration(integration)
         self.external_identifier = "user123"
 
     def _create_service(
         self,
-        integration_id: int | None = None,
         external_identifier: str | None = None,
     ) -> CodeReviewPreflightService:
         return CodeReviewPreflightService(
             organization=self.organization,
             repo=self.repo,
-            integration_id=integration_id if integration_id is not None else self.integration.id,
+            integration=self.integration,
             pr_author_external_id=(
                 external_identifier if external_identifier is not None else self.external_identifier
             ),
-            provider=self.integration.provider,
         )
 
     # -------------------------------------------------------------------------
@@ -286,7 +286,7 @@ class TestCodeReviewPreflightService(TestCase):
     # -------------------------------------------------------------------------
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
-    def test_denied_when_missing_provider(self) -> None:
+    def test_denied_when_missing_integration(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
@@ -295,9 +295,8 @@ class TestCodeReviewPreflightService(TestCase):
         service = CodeReviewPreflightService(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=None,
             pr_author_external_id=self.external_identifier,
-            provider=None,
         )
         result = service.check()
 
@@ -314,9 +313,8 @@ class TestCodeReviewPreflightService(TestCase):
         service = CodeReviewPreflightService(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=self.integration,
             pr_author_external_id=None,
-            provider=self.integration.provider,
         )
         result = service.check()
 

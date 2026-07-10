@@ -8,7 +8,7 @@ Known limitations
 GitLab contributor seeding must run before this handler. ``handle_merge_request_event``
 runs ``CodeReviewPreflightService``, whose ``_check_billing`` looks up
 ``OrganizationContributors`` by
-``(organization_id, provider, external_identifier=str(author_id))`` and
+``(organization_id, provider, hostname, external_identifier=str(author_id))`` and
 returns ``ORG_CONTRIBUTOR_NOT_FOUND`` when the row is missing. GitLab seeds that row
 through ``track_gitlab_contributor_action_processor``, which
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers before this handler. If
@@ -430,9 +430,8 @@ def handle_merge_request_event(
     preflight = CodeReviewPreflightService(
         organization=org,
         repo=repo,
-        integration_id=integration.id,
+        integration=integration,
         pr_author_external_id=str(author_id) if author_id else None,
-        provider=integration.provider,
     ).check()
 
     if not preflight.allowed:
@@ -913,9 +912,8 @@ def handle_merge_request_note_event(
     preflight = CodeReviewPreflightService(
         organization=org,
         repo=repo,
-        integration_id=integration.id,
+        integration=integration,
         pr_author_external_id=str(mr_author_id) if mr_author_id else None,
-        provider=integration.provider,
     ).check()
 
     if not preflight.allowed:
