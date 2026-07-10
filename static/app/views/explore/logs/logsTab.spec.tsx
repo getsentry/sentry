@@ -18,6 +18,7 @@ import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 function LogsTabContentHarness({
@@ -304,6 +305,83 @@ describe('LogsTabContent', () => {
         })
       );
     });
+  });
+
+  it('retries invalid column cleanup when fields remain stale after refetch', async () => {
+    const setFields = jest.fn();
+    const setFieldsSpy = jest
+      .spyOn(QueryParamsContext, 'useSetQueryParamsFields')
+      .mockReturnValue(setFields);
+    const validationBody: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'invalid.attribute',
+          valid: false,
+        },
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'other.invalid.attribute',
+          valid: false,
+        },
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+    const validationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: {},
+    });
+    const customColumnsRouterConfig = structuredClone(initialRouterConfig);
+    customColumnsRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'custom.duration',
+      'invalid.attribute',
+    ];
+
+    try {
+      const {router} = render(
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+        {
+          initialRouterConfig: customColumnsRouterConfig,
+          organization,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await waitFor(() => {
+        expect(setFields).toHaveBeenCalledTimes(1);
+      });
+
+      const nextSearch = new URLSearchParams();
+      nextSearch.append(LOGS_FIELDS_KEY, 'custom.duration');
+      nextSearch.append(LOGS_FIELDS_KEY, 'other.invalid.attribute');
+      nextSearch.set(LOGS_QUERY_KEY, 'severity:warning');
+      router.navigate(
+        `/organizations/${organization.slug}/explore/logs/?${nextSearch.toString()}`
+      );
+
+      await waitFor(() => {
+        expect(validationMock).toHaveBeenCalledTimes(2);
+      });
+      await waitFor(() => {
+        expect(setFields).toHaveBeenCalledTimes(2);
+      });
+    } finally {
+      setFieldsSpy.mockRestore();
+    }
   });
 
   it('should switch between modes', async () => {

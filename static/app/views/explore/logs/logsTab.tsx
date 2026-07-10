@@ -389,7 +389,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
     if (fieldsChanged) {
       const nextFields = [...validatedFields];
-      const cleanupKey = nextFields.join('\0');
+      const cleanupKey = JSON.stringify([fields, nextFields]);
 
       if (lastValidatedFieldsCleanupRef.current !== cleanupKey) {
         lastValidatedFieldsCleanupRef.current = cleanupKey;
