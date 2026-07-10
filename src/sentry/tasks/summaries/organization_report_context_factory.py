@@ -257,9 +257,7 @@ class OrganizationReportContextFactory:
                 if project.id not in ctx.projects_context_map:
                     continue
                 project_ctx = ctx.projects_context_map[project.id]
-                resolved = project_past_resolved_issues(
-                    ctx, project, referrer=Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-                )
+                resolved = project_past_resolved_issues(ctx, project)
                 if resolved:
                     project_ctx.past_resolved_issues = resolved
 

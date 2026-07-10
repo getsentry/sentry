@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
@@ -2200,42 +2200,34 @@ class WeeklyReportsTest(
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
 
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
+        results = project_past_resolved_issues(ctx, self.project)
         assert len(results) == 1
         assert results[0][0].id == group1.id
-        assert results[0][1] >= 1
+        assert results[0][1] == group1.times_seen
         assert results[0][2] is False
 
-    @mock.patch("sentry.tasks.summaries.utils._past_resolved_perf_counts")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_past_resolved_issues_includes_current_performance_categories(
-        self, mock_perf_counts: mock.MagicMock
-    ) -> None:
+    def test_past_resolved_issues_includes_current_performance_categories(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
 
         perf_event = self.create_performance_issue()
         assert perf_event.group is not None
         group = perf_event.group
-        assert group.issue_category != GroupCategory.PERFORMANCE
         group.status = GroupStatus.RESOLVED
         group.substatus = None
         group.resolved_at = self.now - timedelta(minutes=1)
         group.save()
-        mock_perf_counts.return_value = {group.id: 1}
 
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
 
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
+        results = project_past_resolved_issues(ctx, self.project)
 
-        assert results == [(group, 1, False)]
-        mock_perf_counts.assert_called_once()
-        assert mock_perf_counts.call_args.args[2] == [group.id]
+        assert len(results) == 1
+        assert results[0][0].id == group.id
+        assert results[0][1] == group.times_seen
+        assert results[0][2] is False
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_past_resolved_issues_excludes_unresolved(self) -> None:
@@ -2259,9 +2251,7 @@ class WeeklyReportsTest(
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
 
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
+        results = project_past_resolved_issues(ctx, self.project)
         assert len(results) == 0
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2289,9 +2279,7 @@ class WeeklyReportsTest(
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
 
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
+        results = project_past_resolved_issues(ctx, self.project)
         assert len(results) == 0
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2351,9 +2339,7 @@ class WeeklyReportsTest(
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
 
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
+        results = project_past_resolved_issues(ctx, self.project)
         ctx.projects_context_map[self.project.id].past_resolved_issues = results
 
         fetch_past_resolved_issue_links(ctx)
