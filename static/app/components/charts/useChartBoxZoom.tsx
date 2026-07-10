@@ -98,9 +98,6 @@ export function useChartBoxZoom({
     let start: Point = {x: 0, y: 0};
     let bounds: RectangularBounds | null = null;
     let $overlay: HTMLDivElement | null = null;
-    // The chart's client-space top-left, captured on mousedown so both the plot
-    // bounds and the mouse-up conversion share one `getBoundingClientRect`.
-    let origin: Point = {x: 0, y: 0};
 
     let restoreTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -132,9 +129,7 @@ export function useChartBoxZoom({
       // second overlay or duplicate listeners.
       teardown();
 
-      const domRect = dom.getBoundingClientRect();
-      const chartOrigin = {x: domRect.left, y: domRect.top};
-      const currentBounds = getChartPlotBounds(chartInstance, chartOrigin);
+      const currentBounds = getChartPlotBounds(chartInstance, getChartOrigin(dom));
       const point = mouseEventToPoint(evt);
 
       // Only start a selection when we can resolve the plot area and the press
@@ -144,7 +139,6 @@ export function useChartBoxZoom({
       }
 
       bounds = currentBounds;
-      origin = chartOrigin;
       start = point;
 
       if (restoreTooltipTimer !== null) {
@@ -210,11 +204,15 @@ export function useChartBoxZoom({
         return;
       }
 
+      // Read the chart origin fresh at release rather than reusing the mousedown
+      // one: if the chart moved during the drag (page scroll, resize), the fixed
+      // overlay covers whatever cells sit under it *now*, so converting against
+      // the current origin keeps the applied range matching what's on screen.
       const range = pixelBoxToDataRange(
         chartInstance,
         start,
         end,
-        origin,
+        getChartOrigin(dom),
         axesIndecesRef.current
       );
 
@@ -244,6 +242,12 @@ const MIN_DRAG_PX = 5;
 // How long, in ms, after the drag ends before the hover tooltip is re-enabled,
 // so it doesn't snap back under the cursor the instant the drag ends.
 const TOOLTIP_RESTORE_DELAY_MS = 200;
+
+/** The chart DOM's top-left in client (viewport) space. */
+function getChartOrigin(dom: HTMLElement): Point {
+  const rect = dom.getBoundingClientRect();
+  return {x: rect.left, y: rect.top};
+}
 
 function mouseEventToPoint(evt: MouseEvent): Point {
   return {x: evt.clientX, y: evt.clientY};
