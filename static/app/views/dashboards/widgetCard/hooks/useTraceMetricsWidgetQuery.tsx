@@ -1,10 +1,5 @@
 import {useMemo, useRef} from 'react';
-import {
-  keepPreviousData,
-  queryOptions,
-  useQueries,
-  useQuery,
-} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -43,9 +38,8 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
+import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
@@ -430,8 +424,10 @@ export function useTraceMetricsTableQuery(
 
 /**
  * Fetches heat map data for a trace metrics widget. Heat maps render a
- * time (X) x value-bucket (Y) grid colored by count (Z), so they use the
- * dedicated `/events-heatmap/` endpoint rather than the timeseries/table flow.
+ * time (X) x value-bucket (Y) grid colored by count (Z). Delegates to the
+ * shared `useMetricHeatMapData` hook, which chunks wide ranges into parallel,
+ * bucket-aligned requests against `/events-heatmap/` and merges them (and patches
+ * the metric unit) — mirroring the Explore panel.
  *
  * The X-axis `widgetInterval` and Y-axis `yBuckets` are derived from the
  * widget's rendered dimensions and passed in from the chart container, since
@@ -468,7 +464,7 @@ export function useTraceMetricsHeatmapQuery(
   const heatmapEnabled =
     enabled && yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
 
-  const heatmapApiOptions = metricHeatmapApiOptions({
+  const {series, error} = useMetricHeatMapData({
     traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
     enabled: heatmapEnabled,
     organization,
@@ -478,40 +474,25 @@ export function useTraceMetricsHeatmapQuery(
     yBuckets,
   });
 
-  // The heatmap API returns the Y axis as the generic `value` field with no
-  // unit, so patch it with the selected metric's unit in `select` (mirroring
-  // Explore). react-query keeps the selected result referentially stable.
-  const {data: heatmapResults, error} = useQuery({
-    ...heatmapApiOptions,
-    select: rawHeatmapData =>
-      mergeMetricUnit(
-        heatmapApiOptions.select!(rawHeatmapData),
-        traceMetric?.unit ?? undefined
-      ),
-  });
-
   // `genericWidgetQueries` guards its `onDataFetched` effect by reference
   // (`rawData === prev`); wrapping the single series in a fresh array each
   // render would defeat that guard and cause an update loop, so memoize it.
-  const rawData = useMemo(
-    () => (heatmapResults ? [heatmapResults] : EMPTY_ARRAY),
-    [heatmapResults]
-  );
+  const rawData = useMemo(() => (series ? [series] : EMPTY_ARRAY), [series]);
 
   if (error) {
     return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
   }
 
-  // No data yet: the request is in flight, or the chart hasn't been measured
-  // (so the query is still disabled). Report loading like the series/table
+  // No data yet: a request is in flight, or the chart hasn't been measured
+  // (so the queries are still disabled). Report loading like the series/table
   // hooks do, so the chart container needs no heat-map-specific loading branch.
-  if (!heatmapResults) {
+  if (!series) {
     return {loading: true, rawData: EMPTY_ARRAY};
   }
 
   return {
     loading: false,
-    heatmapResults,
+    heatmapResults: series,
     rawData,
   };
 }

@@ -294,7 +294,12 @@ describe('useTraceMetricsTableQuery', () => {
 
 describe('useTraceMetricsHeatmapQuery', () => {
   const organization = OrganizationFixture();
-  const pageFilters = PageFiltersFixture();
+  // A narrow range keeps the hook on its single-request fast path (no chunking),
+  // so these tests assert one unpinned `/events-heatmap/` request. Chunked
+  // two-phase behavior is covered in useMetricHeatMapData.spec.tsx.
+  const pageFilters = PageFiltersFixture({
+    datetime: {period: '1h', start: null, end: null, utc: null},
+  });
 
   const heatmapWidget = WidgetFixture({
     displayType: DisplayType.HEATMAP,

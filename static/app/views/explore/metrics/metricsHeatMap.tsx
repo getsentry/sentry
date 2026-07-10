@@ -1,11 +1,13 @@
 import {useCallback} from 'react';
-import type {UseQueryResult} from '@tanstack/react-query';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {
   HeatMapWidgetVisualization,
@@ -13,6 +15,7 @@ import {
 } from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {MetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
 import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -28,7 +31,7 @@ import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAt
 
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
-  heatmapResult: UseQueryResult<HeatMapSeries>;
+  heatMapData: MetricHeatMapData;
   /**
    * Stable label of this heat map's metric query (e.g., "A"), used to find the
    * matching row when drag-zooming. See `handleZoom`.
@@ -38,7 +41,7 @@ interface MetricsHeatMapProps {
 }
 
 export function MetricsHeatMap({
-  heatmapResult,
+  heatMapData,
   actions,
   title,
   queryLabel,
@@ -51,7 +54,13 @@ export function MetricsHeatMap({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {data: heatMapSeries, isPending, error} = heatmapResult;
+  const {
+    series: heatMapSeries,
+    isPending,
+    isPartial,
+    isFetchingMore,
+    error,
+  } = heatMapData;
 
   const aggregate = visualize.yAxis;
   const chartTitle =
@@ -114,25 +123,52 @@ export function MetricsHeatMap({
     [metricQueries, location, navigate, queryLabel]
   );
 
+  const hasChart =
+    !error && !isPending && heatMapSeries && heatMapSeries.values.length > 0;
+
+  let visualization: React.ReactNode;
+  if (error) {
+    visualization = <Widget.WidgetError error={error} />;
+  } else if (isPending || !heatMapSeries) {
+    visualization = <WidgetLoadingPanel />;
+  } else if (heatMapSeries.values.length === 0) {
+    visualization = <Widget.WidgetError error={t('No data')} />;
+  } else {
+    visualization = (
+      <HeatMapWidgetVisualization
+        plottables={[new HeatMap(heatMapSeries)]}
+        onZoom={handleZoom}
+      />
+    );
+  }
+
+  // Non-blocking progress affordance: every visible cell is final, we're only
+  // streaming in more columns (or noting a chunk that failed to load).
+  let footer: React.ReactNode = null;
+  if (hasChart && isFetchingMore) {
+    footer = (
+      <Flex align="center" gap="xs">
+        <LoadingIndicator mini size={14} />
+        <Text size="sm" variant="muted">
+          {t('Loading more…')}
+        </Text>
+      </Flex>
+    );
+  } else if (hasChart && isPartial) {
+    footer = (
+      <Text size="sm" variant="warning">
+        {t('Some data could not be loaded')}
+      </Text>
+    );
+  }
+
   return (
     <WidgetWrapper>
       <Widget
         Title={<Widget.WidgetTitle title={chartTitle} />}
         Actions={actions}
-        Visualization={
-          error ? (
-            <Widget.WidgetError error={error} />
-          ) : isPending || !heatMapSeries ? (
-            <WidgetLoadingPanel />
-          ) : heatMapSeries.values.length === 0 ? (
-            <Widget.WidgetError error={t('No data')} />
-          ) : (
-            <HeatMapWidgetVisualization
-              plottables={[new HeatMap(heatMapSeries)]}
-              onZoom={handleZoom}
-            />
-          )
-        }
+        Visualization={visualization}
+        Footer={footer}
         height={STACKED_GRAPH_HEIGHT}
         revealActions="always"
         borderless
