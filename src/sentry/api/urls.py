@@ -520,9 +520,6 @@ from sentry.seer.endpoints.organization_seer_agent_chat import (
 from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
     OrganizationSeerAgentPRGroupsEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_agent_runs import (
-    OrganizationSeerAgentRunsEndpoint,
-)
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
@@ -708,6 +705,7 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
+    InternalLlmProxyKeyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalRpcServiceEndpoint,
@@ -2362,11 +2360,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
-        OrganizationSeerAgentRunsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-explorer-runs",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
         OrganizationSeerRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-runs",
@@ -3585,6 +3578,11 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
+    ),
+    re_path(
+        r"^llm-proxy/key/$",
+        InternalLlmProxyKeyEndpoint.as_view(),
+        name="sentry-api-0-internal-llm-proxy-key",
     ),
     re_path(
         r"^feature-flags/$",

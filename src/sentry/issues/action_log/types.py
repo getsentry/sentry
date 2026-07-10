@@ -643,16 +643,6 @@ class SeerIterationCompletedAction(GroupAction):
         return GroupActionType.SEER_ITERATION_COMPLETED
 
 
-class RelatedPullRequestClosedAction(GroupAction):
-    pull_request: Optional[int | str] = None
-    # Whether the issue has other linked PRs still open when this one closed
-    has_other_open_prs: Optional[bool] = None
-
-    @classmethod
-    def get_type(cls) -> GroupActionType:
-        return GroupActionType.PULL_REQUEST_CLOSED
-
-
 class ReconcileStatusAction(GroupAction):
     """Force-set the derived status to a known-correct value.
 

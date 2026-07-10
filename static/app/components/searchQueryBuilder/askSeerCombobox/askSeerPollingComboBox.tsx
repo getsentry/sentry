@@ -37,6 +37,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
+import {useProjects} from 'sentry/utils/useProjects';
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -127,6 +128,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasTrackedFetchErrorRef = useRef(false);
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -270,7 +272,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         );
       }
 
-      const readableQuery = generateQueryTokensString(item);
+      const readableQuery = generateQueryTokensString(item, projects);
 
       return (
         <Item
