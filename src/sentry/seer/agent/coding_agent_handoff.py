@@ -26,7 +26,10 @@ from sentry.seer.autofix.coding_agent import (
     store_coding_agent_states_to_seer,
     validate_and_get_integration,
 )
-from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoff
+from sentry.seer.autofix.coding_agent_handoffs import (
+    create_seer_run_coding_agent_handoff,
+    mark_seer_run_coding_agent_handoffs_failed,
+)
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
@@ -210,6 +213,12 @@ def launch_coding_agents(
                 "run_id": run_id,
                 "repos": [f"{r.owner}/{r.name}" for r in repos],
             },
+        )
+        # Seer never learned about these agents, so nothing will ever poll them
+        # again -- mark the rows we just created so they don't sit at pending
+        # forever, looking like they're still in progress.
+        mark_seer_run_coding_agent_handoffs_failed(
+            agent_ids=[state.id for state in states_to_store]
         )
 
     logger.info(

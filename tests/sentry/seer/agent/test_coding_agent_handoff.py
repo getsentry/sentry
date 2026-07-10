@@ -9,7 +9,7 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.seer.agent.coding_agent_handoff import _resolve_client, launch_coding_agents
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -146,6 +146,31 @@ class TestLaunchCodingAgents(TestCase):
         assert handoff.provider == "cursor_background_agent"
         assert handoff.extras["agent_url"] == "https://cursor.sh/agent"
         assert handoff.status == "pending"
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_marks_handoffs_failed_when_seer_storage_errors(self, mock_validate, mock_store):
+        """If Seer never learns about a launched agent at all, GitHub Copilot/Claude
+        polls will never discover it to check on later -- the row must not sit at
+        pending forever, looking like it's still in progress."""
+        self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
+        mock_store.side_effect = SeerApiError("Seer unavailable", status=503)
+        installation = FakeCodingAgentInstallation(_state("agent-123"))
+        mock_validate.return_value = (None, installation)
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo")],
+        )
+
+        # The provider launch itself still succeeded -- callers should still see it.
+        assert len(result["successes"]) == 1
+
+        handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-123")
+        assert handoff.status == "failed"
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")

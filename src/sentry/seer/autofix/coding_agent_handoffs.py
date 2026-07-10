@@ -6,6 +6,7 @@ outcome.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import parse_pull_request_number
@@ -16,7 +17,11 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
-from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunCodingAgentHandoffExtras
+from sentry.seer.models.run import (
+    SeerRunCodingAgentHandoff,
+    SeerRunCodingAgentHandoffExtras,
+    SeerRunCodingAgentHandoffStatus,
+)
 from sentry.seer.pull_requests import _link_pull_request_to_seer_run
 
 logger = logging.getLogger(__name__)
@@ -45,6 +50,28 @@ def create_seer_run_coding_agent_handoff(
         )
     except Exception:
         logger.exception("seer.coding_agent_handoff.create_failed", extra=log_context)
+
+
+def mark_seer_run_coding_agent_handoffs_failed(agent_ids: Sequence[str]) -> None:
+    """Mark handoffs failed when Seer was never told about them at all. GitHub
+    Copilot/Claude Code polls only discover an agent by iterating Seer's own copy
+    of it, so if that registration never happened, nothing will ever check on it
+    again -- leaving the row at its initial pending/running status would make it
+    look like it's still in progress forever. (A Cursor row marked failed here
+    still gets corrected by its own webhook later, since that path doesn't depend
+    on Seer's registration.)
+    """
+    if not agent_ids:
+        return
+
+    try:
+        SeerRunCodingAgentHandoff.objects.filter(agent_id__in=agent_ids).update(
+            status=SeerRunCodingAgentHandoffStatus.FAILED
+        )
+    except Exception:
+        logger.exception(
+            "seer.coding_agent_handoff.mark_failed_error", extra={"agent_ids": agent_ids}
+        )
 
 
 def sync_coding_agent_status(
