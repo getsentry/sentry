@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition
@@ -121,6 +122,9 @@ class TestUpdater(TestCase):
         assert self.rule.data["frequency"] == 5
 
     def test_dual_update_workflow_engine(self) -> None:
+        # NotifyEventAction dual-writes a WEBHOOK action only when webhooks are enabled.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -184,7 +188,41 @@ class TestUpdater(TestCase):
         assert data_condition.comparison == {"key": "foo", "match": "is"}
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
-        assert action.type == Action.Type.PLUGIN
+        assert action.type == Action.Type.WEBHOOK
+        assert action.config.get("target_identifier") == "webhooks"
+
+    def test_dual_update_workflow_engine__notify_event_webhooks_disabled(self) -> None:
+        # Webhooks disabled: no action written; the workflow is a valid "No actions" automation.
+        new_user_id = self.create_user().id
+
+        ProjectRuleUpdater(
+            rule=self.rule,
+            name="Updated Rule",
+            owner=Actor.from_id(new_user_id),
+            project=self.project,
+            action_match="all",
+            filter_match="any",
+            conditions=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "key": "foo",
+                    "match": "eq",
+                    "value": "bar",
+                },
+            ],
+            environment=None,
+            actions=[
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                }
+            ],
+            frequency=5,
+        ).run()
+
+        workflow = AlertRuleWorkflow.objects.get(rule_id=self.rule.id).workflow
+        action_filter = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+        assert not DataConditionGroupAction.objects.filter(condition_group=action_filter).exists()
 
     def test_dual_create_workflow_engine__errors_on_invalid_conditions(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()

@@ -412,4 +412,287 @@ describe('findConflictingConditions', () => {
       conflictReason: 'Delete duplicate triggers to continue.',
     });
   });
+
+  describe('Seer activity trigger incompatibilities', () => {
+    const seerTriggers: DataConditionGroup = {
+      id: 'triggers',
+      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      conditions: [
+        {
+          id: '1',
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: ['rca_completed'],
+        },
+      ],
+    };
+
+    it('flags event attribute filters as incompatible with Seer activity triggers', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {
+          actionFilter1: new Set(['2']),
+        },
+        conflictReason:
+          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+      });
+    });
+
+    it('flags tagged event, level, and release filters as incompatible', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [
+            {id: '2', type: DataConditionType.TAGGED_EVENT, comparison: {}},
+            {id: '3', type: DataConditionType.LEVEL, comparison: {}},
+            {id: '4', type: DataConditionType.LATEST_RELEASE, comparison: true},
+            {
+              id: '5',
+              type: DataConditionType.LATEST_ADOPTED_RELEASE,
+              comparison: {},
+            },
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {
+          actionFilter1: new Set(['2', '3', '4', '5']),
+        },
+        conflictReason:
+          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+      });
+    });
+
+    it('flags frequency (slow) conditions as incompatible', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [
+            {
+              id: '2',
+              type: DataConditionType.EVENT_FREQUENCY_COUNT,
+              comparison: {value: 10},
+            },
+            {
+              id: '3',
+              type: DataConditionType.PERCENT_SESSIONS_COUNT,
+              comparison: {value: 5},
+            },
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {
+          actionFilter1: new Set(['2', '3']),
+        },
+        conflictReason:
+          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+      });
+    });
+
+    it('allows compatible issue attribute filters with Seer activity triggers', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [
+            {
+              id: '2',
+              type: DataConditionType.AGE_COMPARISON,
+              comparison: {comparison_type: AgeComparison.OLDER, value: 10},
+            },
+            {
+              id: '3',
+              type: DataConditionType.ASSIGNED_TO,
+              comparison: {targetType: 'Unassigned'},
+            },
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {},
+        conflictReason: null,
+      });
+    });
+
+    it('clears conflicts with ANY logic when at least one condition is compatible', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+            {
+              id: '3',
+              type: DataConditionType.AGE_COMPARISON,
+              comparison: {comparison_type: AgeComparison.OLDER, value: 10},
+            },
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {},
+        conflictReason: null,
+      });
+    });
+
+    it('flags conflicts with ANY logic when all conditions are incompatible', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+            {id: '3', type: DataConditionType.TAGGED_EVENT, comparison: {}},
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {
+          actionFilter1: new Set(['2', '3']),
+        },
+        conflictReason:
+          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+      });
+    });
+
+    it('clears conflicts with legacy ANY logic when at least one condition is compatible', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+            {
+              id: '3',
+              type: DataConditionType.AGE_COMPARISON,
+              comparison: {comparison_type: AgeComparison.OLDER, value: 10},
+            },
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {},
+        conflictReason: null,
+      });
+    });
+
+    it('flags conflicts with legacy ANY logic when all conditions are incompatible', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+            {id: '3', type: DataConditionType.TAGGED_EVENT, comparison: {}},
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {
+          actionFilter1: new Set(['2', '3']),
+        },
+        conflictReason:
+          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+      });
+    });
+
+    it('does not flag event-required conditions with NONE logic since they evaluate to false', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.NONE,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+            {id: '3', type: DataConditionType.TAGGED_EVENT, comparison: {}},
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {},
+        conflictReason: null,
+      });
+    });
+
+    it('still flags slow conditions with NONE logic since they are silently skipped', () => {
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.NONE,
+          conditions: [
+            {
+              id: '2',
+              type: DataConditionType.EVENT_FREQUENCY_COUNT,
+              comparison: {value: 10},
+            },
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(seerTriggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {
+          actionFilter1: new Set(['2']),
+        },
+        conflictReason:
+          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+      });
+    });
+
+    it('does not flag Seer incompatibilities when there is no Seer activity trigger', () => {
+      const triggers: DataConditionGroup = {
+        id: 'triggers',
+        logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+        conditions: [
+          {
+            id: '1',
+            type: DataConditionType.FIRST_SEEN_EVENT,
+            comparison: {},
+          },
+        ],
+      };
+      const actionFilters = [
+        {
+          id: 'actionFilter1',
+          logicType: DataConditionGroupLogicType.ALL,
+          conditions: [
+            {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
+          ],
+        },
+      ];
+
+      const result = findConflictingConditions(triggers, actionFilters);
+      expect(result).toEqual({
+        conflictingConditionGroups: {},
+        conflictReason: null,
+      });
+    });
+  });
 });

@@ -128,7 +128,6 @@ export function SpanDescription({
         op={span.op}
         category={category}
         group={group}
-        project_id={span.project_id.toString()}
         organization={organization}
       />
       {hasExploreEnabled && (

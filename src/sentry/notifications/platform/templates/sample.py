@@ -3,7 +3,7 @@ from __future__ import annotations
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     BoldTextBlock,
-    CodeBlock,
+    CodeSection,
     CodeTextBlock,
     LinkTextBlock,
     NotificationCategory,
@@ -13,7 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -54,7 +54,7 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                 LinkTextBlock(text=data.project_name, url="https://example.com/project"),
             ],
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text="A new"),
                         CodeTextBlock(text=data.error_type),
@@ -64,9 +64,9 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                         BoldTextBlock(text=f"{data.error_count} occurrences."),
                     ],
                 ),
-                ParagraphBlock(blocks=[PlainTextBlock(text="The error message is:")]),
-                CodeBlock(blocks=[PlainTextBlock(text=data.error_message)]),
-                ParagraphBlock(
+                ParagraphSection(blocks=[PlainTextBlock(text="The error message is:")]),
+                CodeSection(blocks=[PlainTextBlock(text=data.error_message)]),
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"This error was first seen at {data.first_seen} and requires immediate attention.",
@@ -120,21 +120,21 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
         return NotificationRenderedTemplate(
             subject=f"Deployment to {data.environment}: {data.version}",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"Version {data.version} has been successfully deployed to {data.environment} for project {data.project_name}. ",
                         )
                     ],
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"The deployment was initiated by {data.deployer} with commit {data.commit_sha[:8]}: {data.commit_message}. ",
                         )
                     ],
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text="Monitor the deployment status and be ready to rollback if any issues are detected.",
@@ -186,7 +186,7 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
         return NotificationRenderedTemplate(
             subject=f"{data.severity.upper()}: {data.alert_type} in {data.project_name}",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[PlainTextBlock(text=f"{data.measurement} since {data.start_time}")],
                 ),
             ],
@@ -227,21 +227,21 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
         return NotificationRenderedTemplate(
             subject=f"Performance Alert: {data.metric_name} threshold exceeded",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"Performance alert triggered for {data.metric_name} in project {data.project_name}. ",
                         )
                     ],
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"The current value of {data.current_value} exceeds the threshold of {data.threshold}. ",
                         )
                     ],
                 ),
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text="Immediate investigation is recommended to identify and resolve the performance degradation.",
@@ -285,15 +285,15 @@ class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
         return NotificationRenderedTemplate(
             subject=f"Team Update: {data.update_type}",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(
                             text=f"Team {data.team_name} has posted a {data.update_type} update. ",
                         )
                     ],
                 ),
-                ParagraphBlock(blocks=[PlainTextBlock(text=f"Message: {data.message} ")]),
-                ParagraphBlock(
+                ParagraphSection(blocks=[PlainTextBlock(text=f"Message: {data.message} ")]),
+                ParagraphSection(
                     blocks=[PlainTextBlock(text=f"Posted by {data.author} at {data.timestamp}.")],
                 ),
             ],

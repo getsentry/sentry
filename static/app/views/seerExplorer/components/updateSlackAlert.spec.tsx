@@ -18,7 +18,7 @@ describe('UpdateSlackAlert', () => {
 
     expect(
       screen.getByText(
-        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the slack app to get started.'
+        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
       )
     ).toBeInTheDocument();
 
@@ -45,7 +45,7 @@ describe('UpdateSlackAlert', () => {
 
     expect(
       screen.queryByText(
-        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the slack app to get started.'
+        'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
       )
     ).not.toBeInTheDocument();
   });

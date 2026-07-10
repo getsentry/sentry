@@ -1,7 +1,9 @@
 import * as Sentry from '@sentry/browser';
 
+import type {ResponseMessage} from 'sentry/serviceWorker/types';
 import {getUnhandledRejectionError} from 'sentry/serviceWorker/worker/getUnhandledRejectionError';
 import {handleInboundEvent} from 'sentry/serviceWorker/worker/handleInboundEvent';
+import {handleInboundRequest} from 'sentry/serviceWorker/worker/handleInboundRequest';
 import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
@@ -71,8 +73,29 @@ sw.addEventListener('message', event => {
           // eslint-disable-next-line no-console
           console.log('service-worker.worker.onMessage');
         }
-        if (event.data.type === 'event') {
-          await handleInboundEvent(sw, event.data);
+
+        switch (event.data.type) {
+          case 'event': {
+            await handleInboundEvent(sw, event.data);
+            break;
+          }
+          case 'request': {
+            try {
+              const data = await handleInboundRequest(sw, event.data);
+              event.source?.postMessage({
+                type: 'response',
+                messageId: event.data.messageId,
+                data,
+              } satisfies ResponseMessage);
+            } catch (error) {
+              event.source?.postMessage({
+                type: 'response',
+                messageId: event.data.messageId,
+                error,
+              } satisfies ResponseMessage);
+            }
+            break;
+          }
         }
       }
     )

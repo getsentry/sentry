@@ -17,6 +17,8 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {compareLogRowsBySortBys} from 'sentry/views/explore/logs/utils';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 
 interface Props {
   allRows: OurLogsResponseItem[];
@@ -32,6 +34,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
     refetch: refetchPinnedRows,
   } = pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
+  const sortBys = useQueryParamsSortBys();
   const pinnedRows = logsPinning.getPinnedRowIds();
 
   const onInitialize = useCallback(() => {
@@ -56,46 +59,55 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   return (
     <PinnedTableBody data-test-id="pinned-logs-table-body" ref={onInitialize}>
       {expanded &&
-        pinnedRows.map(rowId => {
-          const dataRow = rowById.get(rowId);
+        pinnedRows
+          .toSorted((aId, bId) => {
+            const aRow = rowById.get(aId);
+            const bRow = rowById.get(bId);
+            if (!aRow || !bRow) {
+              return aRow ? -1 : bRow ? 1 : 0;
+            }
+            return compareLogRowsBySortBys(aRow, bRow, sortBys);
+          })
+          .map(rowId => {
+            const dataRow = rowById.get(rowId);
 
-          if (!dataRow) {
-            const status = pinnedRowStatusById.get(rowId) ?? 'pending';
+            if (!dataRow) {
+              const status = pinnedRowStatusById.get(rowId) ?? 'pending';
 
-            if (status === 'pending') {
+              if (status === 'pending') {
+                return (
+                  <GridRow key={rowId}>
+                    <LoadingGridBodyCell>
+                      <Placeholder height="100%" />
+                    </LoadingGridBodyCell>
+                  </GridRow>
+                );
+              }
+
+              const isErrorRow = status === 'error';
               return (
                 <GridRow key={rowId}>
-                  <LoadingGridBodyCell>
-                    <Placeholder height="100%" />
-                  </LoadingGridBodyCell>
+                  <UnavailableGridBodyCell>
+                    <Flex align="center" gap="sm">
+                      <IconWarning size="xs" />
+                      <Text size="sm" variant="muted">
+                        {isErrorRow
+                          ? t('Could not load pinned log')
+                          : t('Pinned log unavailable in the selected time range')}
+                      </Text>
+                      {isErrorRow && (
+                        <Button size="xs" onClick={() => refetchPinnedRows()}>
+                          {t('Retry')}
+                        </Button>
+                      )}
+                    </Flex>
+                  </UnavailableGridBodyCell>
                 </GridRow>
               );
             }
 
-            const isErrorRow = status === 'error';
-            return (
-              <GridRow key={rowId}>
-                <UnavailableGridBodyCell>
-                  <Flex align="center" gap="sm">
-                    <IconWarning size="xs" />
-                    <Text size="sm" variant="muted">
-                      {isErrorRow
-                        ? t('Could not load pinned log')
-                        : t('Pinned log unavailable in the selected time range')}
-                    </Text>
-                    {isErrorRow && (
-                      <Button size="xs" onClick={() => refetchPinnedRows()}>
-                        {t('Retry')}
-                      </Button>
-                    )}
-                  </Flex>
-                </UnavailableGridBodyCell>
-              </GridRow>
-            );
-          }
-
-          return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
-        })}
+            return <Fragment key={rowId}>{renderRow(dataRow)}</Fragment>;
+          })}
       <PinnedToolbarRow role="toolbar">
         <PinnedGridBodyCell>
           <Flex justify="end">

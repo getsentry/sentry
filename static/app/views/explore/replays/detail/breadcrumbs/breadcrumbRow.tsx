@@ -20,7 +20,6 @@ interface Props {
   onShowSnippet: (index: number) => void;
   showSnippet: boolean;
   startTimestampMs: number;
-  breadcrumbIndex?: number[][];
   className?: string;
   expandPaths?: string[];
   ref?: React.Ref<HTMLDivElement>;

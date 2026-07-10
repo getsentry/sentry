@@ -176,7 +176,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -272,6 +272,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -315,6 +316,7 @@ class SeerRpcViewerContextAuthentication(BaseAuthentication):
                 user = resolved
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_viewer_context_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_viewer_context_auth", True)
 
         # Stash the verified context so the org-binding guard reads the signed
         # value directly. (The middleware contextvar can drop organization_id when
@@ -348,7 +350,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @sentry_sdk.trace
+    @trace
     def _is_authorized(self, request: Request) -> bool:
         return bool(request.auth) and isinstance(
             request.successful_authenticator,
@@ -388,7 +390,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             )
             raise PermissionDenied("Viewer context organization does not match request")
 
-    @sentry_sdk.trace
+    @trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -400,7 +402,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return result.dict()
         return result
 
-    @sentry_sdk.trace
+    @trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)
