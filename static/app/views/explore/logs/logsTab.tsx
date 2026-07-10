@@ -20,13 +20,10 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,7 +35,6 @@ import {
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
-import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
@@ -103,7 +99,7 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
-import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+import {getValidatedColumnData} from 'sentry/views/explore/utils/columnValidation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -309,22 +305,17 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   );
   const {data: validatedColumnsData, isFetching: isValidatingColumns} =
     useValidateLogsTab();
-  const {
-    validatedAggregateFields,
-    validatedBooleanAttributes,
-    validatedFieldTypes,
-    validatedFields,
-    validatedNumberAttributes,
-    validatedStringAttributes,
-  } = useMemo(
+  const validatedColumnData = useMemo(
     () =>
-      getValidatedColumnEditorData({
+      getValidatedColumnData({
         aggregateFields,
-        booleanAttributes,
+        attributes: {
+          boolean: booleanAttributes,
+          number: numberAttributes,
+          string: stringAttributes,
+        },
         fields,
-        numberAttributes,
-        stringAttributes,
-        validatedColumnsData,
+        validationData: validatedColumnsData,
       }),
     [
       aggregateFields,
@@ -335,6 +326,16 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       validatedColumnsData,
     ]
   );
+  const {
+    aggregateFields: validatedAggregateFields,
+    fieldTypes: validatedFieldTypes,
+    fields: validatedFields,
+  } = validatedColumnData;
+  const {
+    boolean: validatedBooleanAttributes,
+    number: validatedNumberAttributes,
+    string: validatedStringAttributes,
+  } = validatedColumnData.attributes;
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -636,106 +637,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 }
 
 export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
-
-function getValidatedColumnEditorData({
-  aggregateFields,
-  booleanAttributes,
-  fields,
-  numberAttributes,
-  stringAttributes,
-  validatedColumnsData,
-}: {
-  aggregateFields: readonly AggregateField[];
-  booleanAttributes: TagCollection;
-  fields: readonly string[];
-  numberAttributes: TagCollection;
-  stringAttributes: TagCollection;
-  validatedColumnsData?: EventValidationData;
-}) {
-  const validatedBooleanAttributes = {...booleanAttributes};
-  const validatedFieldTypes: Partial<Record<string, FieldValueType>> = {};
-  const validatedNumberAttributes = {...numberAttributes};
-  const validatedStringAttributes = {...stringAttributes};
-  const invalidFields = new Set<string>();
-
-  for (const item of validatedColumnsData?.field ?? []) {
-    if (!item.name) {
-      continue;
-    }
-
-    if (!item.valid) {
-      invalidFields.add(item.name);
-      continue;
-    }
-
-    if (item.attrType === 'boolean') {
-      validatedFieldTypes[item.name] = FieldValueType.BOOLEAN;
-      delete validatedNumberAttributes[item.name];
-      delete validatedStringAttributes[item.name];
-      validatedBooleanAttributes[item.name] ??= {
-        key: item.name,
-        name: prettifyAttributeName(item.name),
-        kind: FieldKind.BOOLEAN,
-      };
-    }
-
-    if (item.attrType === 'number') {
-      validatedFieldTypes[item.name] = FieldValueType.NUMBER;
-      delete validatedBooleanAttributes[item.name];
-      delete validatedStringAttributes[item.name];
-      validatedNumberAttributes[item.name] ??= {
-        key: item.name,
-        name: prettifyAttributeName(item.name),
-        kind: FieldKind.MEASUREMENT,
-      };
-    }
-
-    if (item.attrType === 'string') {
-      validatedFieldTypes[item.name] = FieldValueType.STRING;
-      delete validatedBooleanAttributes[item.name];
-      delete validatedNumberAttributes[item.name];
-      validatedStringAttributes[item.name] ??= {
-        key: item.name,
-        name: prettifyAttributeName(item.name),
-        kind: FieldKind.TAG,
-      };
-    }
-  }
-
-  return {
-    validatedAggregateFields: getValidatedAggregateFields({
-      aggregateFields,
-      invalidFields,
-    }),
-    validatedBooleanAttributes,
-    validatedFieldTypes,
-    validatedFields: fields.filter(field => !invalidFields.has(field)),
-    validatedNumberAttributes,
-    validatedStringAttributes,
-  };
-}
-
-export function getValidatedAggregateFields({
-  aggregateFields,
-  invalidFields,
-}: {
-  aggregateFields: readonly AggregateField[];
-  invalidFields: ReadonlySet<string>;
-}): AggregateField[] {
-  return aggregateFields.filter(aggregateField => {
-    if (isGroupBy(aggregateField)) {
-      return !invalidFields.has(aggregateField.groupBy);
-    }
-
-    if (invalidFields.has(aggregateField.yAxis)) {
-      return false;
-    }
-
-    return !parseFunction(aggregateField.yAxis)?.arguments.some(
-      argument => argument && invalidFields.has(argument)
-    );
-  });
-}
 
 function serializeAggregateField(aggregateField: AggregateField): WritableAggregateField {
   if (isGroupBy(aggregateField)) {

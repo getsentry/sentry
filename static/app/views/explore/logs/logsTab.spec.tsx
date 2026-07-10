@@ -16,12 +16,8 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {
-  getValidatedAggregateFields,
-  LogsTabContent,
-} from 'sentry/views/explore/logs/logsTab';
+import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 function LogsTabContentHarness({
@@ -44,30 +40,6 @@ const datePageFilterProps: DatePageFilterProps = {
 };
 
 beforeEach(mockGetBoundingClientRect);
-
-describe('getValidatedAggregateFields', () => {
-  it('removes aggregate fields with invalid fields', () => {
-    const validatedAggregateFields = getValidatedAggregateFields({
-      aggregateFields: [
-        {groupBy: 'message.template'},
-        {groupBy: 'missing.group'},
-        new VisualizeFunction('avg(severity_number)'),
-        new VisualizeFunction('avg(missing.duration)'),
-        new VisualizeFunction('missing()'),
-      ],
-      invalidFields: new Set(['missing.group', 'missing.duration', 'missing()']),
-    });
-
-    expect(
-      validatedAggregateFields.map(aggregateField => {
-        if ('groupBy' in aggregateField) {
-          return aggregateField.groupBy;
-        }
-        return aggregateField.yAxis;
-      })
-    ).toEqual(['message.template', 'avg(severity_number)']);
-  });
-});
 
 describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
