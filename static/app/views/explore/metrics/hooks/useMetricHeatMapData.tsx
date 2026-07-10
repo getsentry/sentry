@@ -82,58 +82,66 @@ export function useMetricHeatMapData({
   // Resolve the range to concrete timestamps and split it into chunks once per
   // filter/dimension change. Epoch-snapping (inside computeHeatMapChunks) keeps
   // the historical boundaries stable across renders; only the live edge moves.
-  const {chunks, chunked, isRelative, startMs, endMs, intervalMs} = useMemo(() => {
-    const emptyResult = {
-      chunks: [],
-      chunked: false,
-      isRelative: false,
-      startMs: 0,
-      endMs: 0,
-      intervalMs: 0,
-    };
-    if (!defined(interval) || !defined(yBuckets) || yBuckets <= 0) {
-      return emptyResult;
-    }
-    const ms = intervalToMilliseconds(interval);
-    if (ms <= 0) {
-      return emptyResult;
-    }
+  const {chunks, chunked, isRelative, startMs, endMs, intervalMs, fullXStart, fullXEnd} =
+    useMemo(() => {
+      const emptyResult = {
+        chunks: [],
+        chunked: false,
+        isRelative: false,
+        startMs: 0,
+        endMs: 0,
+        intervalMs: 0,
+        fullXStart: 0,
+        fullXEnd: 0,
+      };
+      if (!defined(interval) || !defined(yBuckets) || yBuckets <= 0) {
+        return emptyResult;
+      }
+      const ms = intervalToMilliseconds(interval);
+      if (ms <= 0) {
+        return emptyResult;
+      }
 
-    const normalized = normalizeDateTimeParams(selection.datetime);
-    let start: number;
-    let end: number;
-    let relative: boolean;
-    if (defined(normalized.start) && defined(normalized.end)) {
-      // normalizeDateTimeParams emits UTC strings without a `Z`, so parse them
-      // as UTC (not local) to get the correct epoch ms.
-      start = moment.utc(normalized.start).valueOf();
-      end = moment.utc(normalized.end).valueOf();
-      relative = false;
-    } else {
-      end = Date.now();
-      start = end - getDiffInMinutes(selection.datetime) * 60 * 1000;
-      relative = true;
-    }
+      const normalized = normalizeDateTimeParams(selection.datetime);
+      let start: number;
+      let end: number;
+      let relative: boolean;
+      if (defined(normalized.start) && defined(normalized.end)) {
+        // normalizeDateTimeParams emits UTC strings without a `Z`, so parse them
+        // as UTC (not local) to get the correct epoch ms.
+        start = moment.utc(normalized.start).valueOf();
+        end = moment.utc(normalized.end).valueOf();
+        relative = false;
+      } else {
+        end = Date.now();
+        start = end - getDiffInMinutes(selection.datetime) * 60 * 1000;
+        relative = true;
+      }
 
-    const computed = computeHeatMapChunks({start, end, interval});
-    return {
-      chunks: computed,
-      chunked: computed.length > 1,
-      isRelative: relative,
-      startMs: start,
-      endMs: end,
-      intervalMs: ms,
-    };
-    // Date.now() is intentionally captured once per filter/dimension change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    selection.datetime.start,
-    selection.datetime.end,
-    selection.datetime.period,
-    selection.datetime.utc,
-    interval,
-    yBuckets,
-  ]);
+      const computed = computeHeatMapChunks({start, end, interval});
+      // The full grid spans the union of all planned chunks (not just loaded
+      // ones), so the merged series keeps a stable, full-width x domain while
+      // chunks stream in.
+      return {
+        chunks: computed,
+        chunked: computed.length > 1,
+        isRelative: relative,
+        startMs: start,
+        endMs: end,
+        intervalMs: ms,
+        fullXStart: computed.length ? Math.min(...computed.map(c => c.start)) : 0,
+        fullXEnd: computed.length ? Math.max(...computed.map(c => c.end)) : 0,
+      };
+      // Date.now() is intentionally captured once per filter/dimension change.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      selection.datetime.start,
+      selection.datetime.end,
+      selection.datetime.period,
+      selection.datetime.utc,
+      interval,
+      yBuckets,
+    ]);
 
   // Phase A — global y-domain. Only fired when we actually chunk.
   const boundsApiOptions = metricHeatmapBoundsApiOptions({
@@ -196,12 +204,20 @@ export function useMetricHeatMapData({
     if (succeeded.length === 0) {
       return;
     }
-    return mergeMetricUnit(mergeHeatMapChunks(succeeded), traceMetric.unit ?? undefined);
+    // Fast path: the single unpinned response is already a dense, ordered grid.
+    // Chunked: stitch the chunks into one dense, full-range grid.
+    const merged = chunked
+      ? mergeHeatMapChunks(succeeded, {xStart: fullXStart, xEnd: fullXEnd, intervalMs})
+      : succeeded[0]!;
+    return mergeMetricUnit(merged, traceMetric.unit ?? undefined);
     // chunkSignature stands in for chunkQueries' data; see comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     chunkSignature,
     boundsEmpty,
+    chunked,
+    fullXStart,
+    fullXEnd,
     startMs,
     endMs,
     intervalMs,

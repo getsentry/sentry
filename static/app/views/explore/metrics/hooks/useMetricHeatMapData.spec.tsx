@@ -108,8 +108,11 @@ describe('useMetricHeatMapData', () => {
 
     const {result} = renderHeatMapData(WIDE_SELECTION);
 
+    // Wait until every chunk's populated cell has landed.
     await waitFor(() =>
-      expect(result.current.series?.values).toHaveLength(WIDE_CHUNKS.length)
+      expect(result.current.series?.values.filter(v => v.zAxis !== null)).toHaveLength(
+        WIDE_CHUNKS.length
+      )
     );
 
     expect(boundsMock).toHaveBeenCalled();
@@ -128,6 +131,21 @@ describe('useMetricHeatMapData', () => {
         })
       );
     }
+
+    const fullStart = Math.min(...WIDE_CHUNKS.map(c => c.start));
+    const fullEnd = Math.max(...WIDE_CHUNKS.map(c => c.end));
+
+    // The merged grid is dense over the full range (one y bucket in this fixture)
+    // and its x domain spans every planned chunk, not just the loaded ones.
+    expect(result.current.series?.meta.xAxis.start).toBe(fullStart);
+    expect(result.current.series?.meta.xAxis.end).toBe(fullEnd);
+    expect(result.current.series?.values).toHaveLength(
+      (fullEnd - fullStart) / (60 * 60 * 1000)
+    );
+
+    // Columns are ordered ascending (not newest-first as the chunks resolve).
+    const xs = result.current.series!.values.map(v => v.xAxis);
+    expect(xs).toEqual([...xs].sort((a, b) => a - b));
 
     // Merged domain comes from the pinned bounds; z-range spans all chunks; the
     // metric unit is patched onto the y-axis.
@@ -185,7 +203,10 @@ describe('useMetricHeatMapData', () => {
 
     await waitFor(() => expect(result.current.isPartial).toBe(true));
 
-    expect(result.current.series?.values).toHaveLength(WIDE_CHUNKS.length - 1);
+    // The failed chunk's columns stay empty; the rest render their populated cells.
+    expect(result.current.series?.values.filter(v => v.zAxis !== null)).toHaveLength(
+      WIDE_CHUNKS.length - 1
+    );
     expect(result.current.error).toBeNull();
   });
 

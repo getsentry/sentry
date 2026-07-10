@@ -1,59 +1,78 @@
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 
+type HeatMapValue = HeatMapSeries['values'][number];
+
+interface HeatMapGrid {
+  /**
+   * X bucket width in ms (the shared interval).
+   */
+  intervalMs: number;
+  /**
+   * Exclusive end of the full x range, in ms.
+   */
+  xEnd: number;
+  /**
+   * Start of the full x range, in ms.
+   */
+  xStart: number;
+}
+
 /**
- * Merges the responses of several pinned, epoch-aligned heat map chunks into a
- * single `HeatMapSeries`.
+ * Merges the responses of several pinned, epoch-aligned heat map chunks into one
+ * dense `HeatMapSeries` covering the whole `grid` range.
  *
- * Every chunk was fetched with the same pinned y-domain (`yMin`/`yMax`),
- * `yBuckets`, and `interval`, so their y-coordinates are identical and their
- * x-coordinates are epoch-aligned and non-overlapping. That makes the merge a
- * plain concatenation of `values`; only the x-axis span and the z-axis color
- * range need recomputing across the merged set.
+ * The heat map positions cells on a category axis whose categories are inferred
+ * from the order values appear in the data, and it sizes the grid by how many
+ * columns are present. So the merged series must:
+ *  - be ordered x-major / y-minor ascending (matching a single-request response),
+ *    otherwise chunks render out of order with seams at the boundaries, and
+ *  - always span the full x range with a cell per column, otherwise a
+ *    partially-loaded set of columns stretches to fill the whole chart.
  *
- * Callers must pass only *succeeded* chunks. The first chunk supplies the shared
- * meta (axis names, y-domain, units) that pinning guarantees is identical.
+ * Columns that haven't loaded yet are emitted as empty (`zAxis: null`) cells, so
+ * loaded chunks occupy their correct horizontal slice and the rest fills in as
+ * chunks resolve. Every chunk shares the same pinned y-domain, so the y buckets
+ * come straight from any loaded chunk.
+ *
+ * Callers must pass only *succeeded* chunks (at least one).
  */
-export function mergeHeatMapChunks(chunks: HeatMapSeries[]): HeatMapSeries {
+export function mergeHeatMapChunks(
+  chunks: HeatMapSeries[],
+  grid: HeatMapGrid
+): HeatMapSeries {
   if (chunks.length === 0) {
     throw new Error('mergeHeatMapChunks requires at least one chunk');
   }
 
   const first = chunks[0]!;
-  const values = chunks.flatMap(chunk => chunk.values);
+  const {xStart, xEnd, intervalMs} = grid;
 
-  if (process.env.NODE_ENV !== 'production') {
-    const seen = new Set<string>();
-    for (const value of values) {
-      const key = `${value.xAxis},${value.yAxis}`;
-      if (seen.has(key)) {
-        // eslint-disable-next-line no-console
-        console.error(
-          `mergeHeatMapChunks: duplicate cell at [${key}] — chunk seams are misaligned`
-        );
-      }
-      seen.add(key);
-    }
-  }
+  // The pinned y bucket lower-bounds are identical across chunks, so any chunk's
+  // y values are the full set.
+  const yValues = Array.from(new Set(first.values.map(value => value.yAxis))).sort(
+    (a, b) => a - b
+  );
 
-  let xStart = first.meta.xAxis.start;
-  let xEnd = first.meta.xAxis.end;
-  let xBucketCount = 0;
-  for (const chunk of chunks) {
-    xStart = Math.min(xStart, chunk.meta.xAxis.start);
-    xEnd = Math.max(xEnd, chunk.meta.xAxis.end);
-    xBucketCount += chunk.meta.xAxis.bucketCount;
-  }
-
-  // Recompute the color scale bounds from everything rendered so far, so the
-  // palette reflects the merged grid rather than a single chunk.
+  // Index every loaded cell by [x,y] and track the z range across the merged set
+  // so the color scale reflects everything rendered so far.
+  const loaded = new Map<string, HeatMapValue>();
   let zStart: number | null = null;
   let zEnd: number | null = null;
-  for (const value of values) {
-    if (value.zAxis === null) {
-      continue;
+  for (const chunk of chunks) {
+    for (const value of chunk.values) {
+      loaded.set(`${value.xAxis}|${value.yAxis}`, value);
+      if (value.zAxis !== null) {
+        zStart = zStart === null ? value.zAxis : Math.min(zStart, value.zAxis);
+        zEnd = zEnd === null ? value.zAxis : Math.max(zEnd, value.zAxis);
+      }
     }
-    zStart = zStart === null ? value.zAxis : Math.min(zStart, value.zAxis);
-    zEnd = zEnd === null ? value.zAxis : Math.max(zEnd, value.zAxis);
+  }
+
+  const values: HeatMapValue[] = [];
+  for (let x = xStart; x < xEnd; x += intervalMs) {
+    for (const y of yValues) {
+      values.push(loaded.get(`${x}|${y}`) ?? {xAxis: x, yAxis: y, zAxis: null});
+    }
   }
 
   return {
@@ -63,7 +82,8 @@ export function mergeHeatMapChunks(chunks: HeatMapSeries[]): HeatMapSeries {
         ...first.meta.xAxis,
         start: xStart,
         end: xEnd,
-        bucketCount: xBucketCount,
+        bucketCount: Math.round((xEnd - xStart) / intervalMs),
+        bucketSize: intervalMs / 1000,
       },
       // The y-axis is identical across pinned chunks; take it wholesale.
       yAxis: first.meta.yAxis,

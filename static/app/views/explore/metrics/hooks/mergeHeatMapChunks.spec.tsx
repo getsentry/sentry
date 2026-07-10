@@ -1,16 +1,19 @@
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/mergeHeatMapChunks';
 
-function makeChunk(
-  xStart: number,
-  xEnd: number,
-  bucketCount: number,
-  values: HeatMapSeries['values']
-): HeatMapSeries {
+const HOUR = 60 * 60 * 1000;
+
+// Two pinned y buckets shared by every chunk.
+const Y_VALUES = [0, 50];
+
+function makeChunk(columns: Array<{x: number; z: [number, number]}>): HeatMapSeries {
+  const values = columns.flatMap(({x, z}) =>
+    Y_VALUES.map((y, i) => ({xAxis: x, yAxis: y, zAxis: z[i]!}))
+  );
   return {
     values,
     meta: {
-      xAxis: {name: 'time', start: xStart, end: xEnd, bucketCount, bucketSize: 10},
+      xAxis: {name: 'time', start: 0, end: 0, bucketCount: 0, bucketSize: 3600},
       yAxis: {
         name: 'value',
         start: 0,
@@ -26,65 +29,72 @@ function makeChunk(
 }
 
 describe('mergeHeatMapChunks', () => {
+  const grid = {xStart: 0, xEnd: 3 * HOUR, intervalMs: HOUR};
+
   it('throws when given no chunks', () => {
-    expect(() => mergeHeatMapChunks([])).toThrow();
+    expect(() => mergeHeatMapChunks([], grid)).toThrow();
   });
 
-  it('concatenates values and spans the x-axis across chunks', () => {
-    const newer = makeChunk(20, 40, 2, [
-      {xAxis: 20, yAxis: 0, zAxis: 3},
-      {xAxis: 30, yAxis: 50, zAxis: 7},
-    ]);
-    const older = makeChunk(0, 20, 2, [
-      {xAxis: 0, yAxis: 0, zAxis: 1},
-      {xAxis: 10, yAxis: 50, zAxis: 9},
+  it('builds a dense, full-range grid ordered x-major then y-minor', () => {
+    // Only the first two columns are loaded; the third is missing.
+    const chunk = makeChunk([
+      {x: 0, z: [1, 2]},
+      {x: HOUR, z: [3, 4]},
     ]);
 
-    const merged = mergeHeatMapChunks([newer, older]);
+    const merged = mergeHeatMapChunks([chunk], grid);
 
-    expect(merged.values).toHaveLength(4);
+    // 3 columns x 2 y buckets, no matter that only 2 columns loaded.
+    expect(merged.values).toHaveLength(6);
+    expect(merged.values.map(v => [v.xAxis, v.yAxis])).toEqual([
+      [0, 0],
+      [0, 50],
+      [HOUR, 0],
+      [HOUR, 50],
+      [2 * HOUR, 0],
+      [2 * HOUR, 50],
+    ]);
+    // The unloaded column is emitted as empty cells.
+    expect(merged.values.slice(4)).toEqual([
+      {xAxis: 2 * HOUR, yAxis: 0, zAxis: null},
+      {xAxis: 2 * HOUR, yAxis: 50, zAxis: null},
+    ]);
     expect(merged.meta.xAxis.start).toBe(0);
-    expect(merged.meta.xAxis.end).toBe(40);
-    expect(merged.meta.xAxis.bucketCount).toBe(4);
-    // y-axis comes straight from the pinned domain.
+    expect(merged.meta.xAxis.end).toBe(3 * HOUR);
+    expect(merged.meta.xAxis.bucketCount).toBe(3);
+  });
+
+  it('orders columns ascending even when chunks are passed newest-first', () => {
+    const newer = makeChunk([{x: 2 * HOUR, z: [5, 6]}]);
+    const older = makeChunk([{x: 0, z: [1, 2]}]);
+
+    const merged = mergeHeatMapChunks([newer, older], grid);
+
+    const xs = merged.values.map(v => v.xAxis);
+    expect(xs).toEqual([...xs].sort((a, b) => a - b));
+    // The loaded cells keep their values at the right coordinates.
+    expect(merged.values.find(v => v.xAxis === 0 && v.yAxis === 0)?.zAxis).toBe(1);
+    expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 50)?.zAxis).toBe(
+      6
+    );
+  });
+
+  it('takes the y-domain from a chunk and recomputes the z-range over loaded cells', () => {
+    const merged = mergeHeatMapChunks(
+      [makeChunk([{x: 0, z: [4, 9]}]), makeChunk([{x: HOUR, z: [2, 7]}])],
+      grid
+    );
+
     expect(merged.meta.yAxis.start).toBe(0);
     expect(merged.meta.yAxis.end).toBe(100);
-    expect(merged.meta.yAxis.bucketCount).toBe(2);
-  });
-
-  it('recomputes the z-axis range across all merged values, ignoring nulls', () => {
-    const a = makeChunk(0, 10, 1, [
-      {xAxis: 0, yAxis: 0, zAxis: 5},
-      {xAxis: 0, yAxis: 50, zAxis: null},
-    ]);
-    const b = makeChunk(10, 20, 1, [
-      {xAxis: 10, yAxis: 0, zAxis: 2},
-      {xAxis: 10, yAxis: 50, zAxis: 11},
-    ]);
-
-    const merged = mergeHeatMapChunks([a, b]);
-
+    // z-range spans only populated cells: min 2, max 9.
     expect(merged.meta.zAxis.start).toBe(2);
-    expect(merged.meta.zAxis.end).toBe(11);
+    expect(merged.meta.zAxis.end).toBe(9);
   });
 
-  it('falls back to a zeroed z-axis when there are no populated cells', () => {
-    const merged = mergeHeatMapChunks([
-      makeChunk(0, 10, 1, [{xAxis: 0, yAxis: 0, zAxis: null}]),
-    ]);
-    expect(merged.meta.zAxis.start).toBe(0);
-    expect(merged.meta.zAxis.end).toBe(0);
-  });
-
-  it('flags duplicate [x,y] cells (seam regression guard)', () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    mergeHeatMapChunks([
-      makeChunk(0, 10, 1, [{xAxis: 0, yAxis: 0, zAxis: 1}]),
-      makeChunk(0, 10, 1, [{xAxis: 0, yAxis: 0, zAxis: 2}]),
-    ]);
-
-    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('duplicate cell'));
-    consoleError.mockRestore();
+  it('has no duplicate [x,y] cells', () => {
+    const merged = mergeHeatMapChunks([makeChunk([{x: 0, z: [1, 2]}])], grid);
+    const keys = merged.values.map(v => `${v.xAxis}|${v.yAxis}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });
