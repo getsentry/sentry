@@ -116,6 +116,15 @@ export function useChartBoxZoom({
       bounds = null;
     }
 
+    // Re-enable the hover tooltip. Guarded against a disposed instance so a late
+    // restore (the deferred timer, or a scroll/resize firing during unmount)
+    // can't call `setOption` on a torn-down chart.
+    function showTooltip() {
+      if (!chartInstance.isDisposed()) {
+        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+      }
+    }
+
     // Tears down the drag and re-enables the tooltip. Restore is immediate for a
     // click/cancel; only an actual zoom delays it, so the tooltip doesn't flash
     // under the cursor during the navigation/refetch that a zoom kicks off.
@@ -124,10 +133,10 @@ export function useChartBoxZoom({
       if (delayTooltipRestore) {
         restoreTooltipTimer = setTimeout(() => {
           restoreTooltipTimer = null;
-          chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+          showTooltip();
         }, TOOLTIP_RESTORE_DELAY_MS);
       } else {
-        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+        showTooltip();
       }
     }
 
@@ -201,11 +210,10 @@ export function useChartBoxZoom({
       document.removeEventListener('scroll', cancelDragOnChartMove, true);
       resizeObserver.disconnect();
       // If torn down mid-drag, the tooltip was hidden — re-enable it so a
-      // surviving instance isn't left with tooltips off. Guard on `isDisposed`:
-      // in the common unmount/recreate path the instance is already gone, and
-      // `setOption` on it would warn.
-      if (bounds && !chartInstance.isDisposed()) {
-        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+      // surviving instance isn't left with tooltips off (`showTooltip` guards
+      // the common unmount/recreate case where the instance is already gone).
+      if (bounds) {
+        showTooltip();
       }
       teardown();
       if (restoreTooltipTimer !== null) {
