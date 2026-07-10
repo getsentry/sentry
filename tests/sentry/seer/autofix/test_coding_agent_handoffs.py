@@ -122,6 +122,23 @@ class SyncCodingAgentStatusTest(TestCase):
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
 
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_skips_seer_call_when_local_save_fails(self, mock_update_state: Mock) -> None:
+        """If the local write fails, don't tell Seer either -- otherwise Seer would
+        move to a terminal status while our row stays stale, and poll-based
+        providers only retry while Seer still shows the agent as running/pending."""
+        with patch.object(SeerRunCodingAgentHandoff, "save", side_effect=Exception("db blip")):
+            known_to_seer = sync_coding_agent_status(
+                agent_id="agent-1",
+                organization_id=self.organization.id,
+                status=CodingAgentStatus.COMPLETED,
+            )
+
+        assert known_to_seer is False
+        mock_update_state.assert_not_called()
+        self.handoff.refresh_from_db()
+        assert self.handoff.status == "pending"
+
     @patch("sentry.seer.autofix.coding_agent_handoffs.logger")
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_noop_when_agent_id_not_found(self, mock_update_state: Mock, mock_logger: Mock) -> None:
