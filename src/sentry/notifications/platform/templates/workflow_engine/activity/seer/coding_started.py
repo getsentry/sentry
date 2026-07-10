@@ -1,6 +1,8 @@
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.seer_base import (
-    WorkflowEngineActivityAction,
+from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+    ActivityAlertAction,
+)
+from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     build_template,
     get_example_template,
     get_issue_description,
@@ -15,22 +17,22 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
-@template_registry.register(NotificationSource.ACTIVITY_SEER_CODING_COMPLETED)
-class SeerCodingCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
-    category = NotificationCategory.WORKFLOW_ENGINE
-    example_data = WorkflowEngineActivityAction(
-        source=NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
+@template_registry.register(NotificationSource.ACTIVITY_SEER_CODING_STARTED)
+class SeerCodingStartedActivityTemplate(NotificationTemplate[ActivityAlertAction]):
+    category = NotificationCategory.ALERTS
+    example_data = ActivityAlertAction(
+        source=NotificationSource.ACTIVITY_SEER_CODING_STARTED,
         notification_uuid="1234567890",
         workflow_id=1,
-        activity_type=ActivityType.SEER_CODING_COMPLETED.value,
+        activity_type=ActivityType.SEER_CODING_STARTED.value,
         activity_id=1,
         detector_id=1,
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template("Seer Coding Completed for EXAMPLE-1")
+        return get_example_template("Seer Coding Started for EXAMPLE-1")
 
-    def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
+    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
         from sentry.notifications.notification_action.activity_registry.base import (
             extract_notification_models_by_activity,
         )
@@ -40,6 +42,6 @@ class SeerCodingCompletedActivityTemplate(NotificationTemplate[WorkflowEngineAct
         )
         return build_template(
             data=data,
-            subject=get_subject("Coding Completed", group),
+            subject=get_subject("Coding Started", group),
             body=get_issue_description(group),
         )

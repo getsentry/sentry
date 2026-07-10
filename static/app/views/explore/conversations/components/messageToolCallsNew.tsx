@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -12,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
@@ -71,7 +71,7 @@ export function MessageToolCallsNew({
             aria-pressed={isToolSelected}
             aria-label={t('Select tool call %s', tool.name)}
             radius="sm"
-            padding="xs sm"
+            padding="sm sm"
             cursor="pointer"
             css={rowCss}
             style={
@@ -100,9 +100,7 @@ export function MessageToolCallsNew({
           >
             <Flex align="center" justify="between" gap="md" width="100%">
               <Flex align="center" gap="sm" minWidth={0}>
-                <Flex align="center" flexShrink={0}>
-                  <IconFix size="sm" variant="accent" />
-                </Flex>
+                {toolNode && <AiSpanStatusIcon node={toolNode} />}
                 <ToolTag name={tool.name} hasError={tool.hasError} />
                 {toolNode && <ToolInputPreview node={toolNode} />}
               </Flex>
