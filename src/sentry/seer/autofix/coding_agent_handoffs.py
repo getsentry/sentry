@@ -77,16 +77,10 @@ def sync_coding_agent_status(
 
     try:
         handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run").get(
-            agent_id=agent_id
+            agent_id=agent_id, seer_run__organization_id=organization_id
         )
     except SeerRunCodingAgentHandoff.DoesNotExist:
         logger.info("seer.coding_agent_handoff.not_found", extra=log_context)
-        return known_to_seer
-
-    # agent_id is a bare, globally-unique lookup key — guard against acting on a
-    # handoff from a different org (e.g. a caller passing the wrong organization_id).
-    if handoff.seer_run.organization_id != organization_id:
-        logger.warning("seer.coding_agent_handoff.org_mismatch", extra=log_context)
         return known_to_seer
 
     try:
