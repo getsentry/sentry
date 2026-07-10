@@ -372,10 +372,12 @@ function valueAt(words: string[], index: number): string | undefined {
 }
 
 /**
- * Matches `<key> <phrase> <value>` at `keyIndex` against {@link FILTER_PHRASES}
- * and returns the assembled ESQ filter plus the index right after the value.
+ * Matches `<key> <phrase> <value>` starting after `keyIndex` against
+ * {@link FILTER_PHRASES} and returns the assembled ESQ filter plus the index
+ * right after the value.
  */
 function matchFilter(
+  key: string,
   words: string[],
   keyIndex: number
 ): {esq: string; next: number} | null {
@@ -391,7 +393,7 @@ function matchFilter(
     if (value === undefined) {
       return null;
     }
-    return {esq: esq(words[keyIndex]!, value), next: keyIndex + parts.length + 2};
+    return {esq: esq(key, value), next: keyIndex + parts.length + 2};
   }
   return null;
 }
@@ -415,7 +417,10 @@ export function parseNaturalLanguageToQuery(
   let i = 0;
 
   while (i < words.length) {
-    const word = words[i]!;
+    const word = words[i];
+    if (word === undefined) {
+      break;
+    }
     const lower = word.toLowerCase();
 
     if (lower === 'and' || lower === 'or') {
@@ -438,7 +443,7 @@ export function parseNaturalLanguageToQuery(
     }
 
     // "<key> <operator phrase> <value>" -> ESQ filter (see FILTER_PHRASES)
-    const filter = isFilterKey(word) ? matchFilter(words, i) : null;
+    const filter = isFilterKey(word) ? matchFilter(word, words, i) : null;
     if (filter) {
       esq.push(filter.esq);
       hasFilter = true;
