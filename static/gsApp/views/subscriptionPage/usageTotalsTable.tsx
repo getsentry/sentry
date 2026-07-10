@@ -198,7 +198,7 @@ function IngestionSummary({
 
   return (
     <Flex direction="column" gap="md">
-      <Heading as="h4">{t('Total ingested')}</Heading>
+      <Heading as="h4">{t('Total billed')}</Heading>
       <Flex justify="between" align="center" gap="lg">
         <Text wrap="nowrap">
           {formatUsageWithUnits(totalIngested, category, {
