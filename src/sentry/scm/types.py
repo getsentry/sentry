@@ -2,19 +2,14 @@ from dataclasses import dataclass
 from typing import Literal, TypedDict
 
 from scm.types import (
-    Author,
     CheckRunAction,
     CheckRunEventData,
-    CheckSuiteAction,
-    CheckSuiteEventData,
     CommentAction,
     CommentEventData,
     CommentType,
     ProviderName,
     PullRequestAction,
     PullRequestEventData,
-    PullRequestReviewAction,
-    PullRequestReviewEventData,
 )
 
 
@@ -158,26 +153,6 @@ class PullRequestEvent:
     """
 
 
-@dataclass(frozen=True)
-class CheckSuiteEvent:
-    action: CheckSuiteAction
-    check_suite: CheckSuiteEventData
-    subscription_event: SubscriptionEvent
-
-
-@dataclass(frozen=True)
-class PullRequestReviewEvent:
-    action: PullRequestReviewAction
-    pull_request_review: PullRequestReviewEventData
-    author: Author
-    is_bot: bool
-    subscription_event: SubscriptionEvent
-
-
-type EventType = (
-    CheckRunEvent | CommentEvent | PullRequestEvent | CheckSuiteEvent | PullRequestReviewEvent
-)
-type EventTypeHint = Literal[
-    "check_run", "comment", "pull_request", "check_suite", "pull_request_review"
-]
+type EventType = CheckRunEvent | CommentEvent | PullRequestEvent
+type EventTypeHint = Literal["check_run", "comment", "pull_request"]
 type HybridCloudSilo = Literal["control", "region"]
