@@ -37,7 +37,7 @@ export function useConversationToolBreakdown({
         'count_if(span.status,equals,internal_error)',
         'count_if(span.status,equals,error)',
       ],
-      orderby: '-count(span.duration)',
+      sorts: [{field: 'count(span.duration)', kind: 'desc'}],
       limit: 50,
       enabled,
     },

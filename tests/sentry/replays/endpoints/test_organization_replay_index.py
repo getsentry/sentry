@@ -623,7 +623,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_model="10",
                 tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
-                segment_names=["/api/checkout"],
                 segment_id=0,
             )
         )
@@ -784,7 +783,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "url:example.com",
                 "screens:example.com",
                 "screen:example.com",
-                "segment_names:/api/checkout",
                 "activity:8",
                 "activity:>2",
                 "count_warnings:1",
@@ -855,8 +853,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "release:[a,b]",
                 "c:*zz",
                 "!c:*st",
-                "segment_names:/api/orders",
-                "!segment_names:/api/checkout",
                 "!activity:8",
                 "activity:<2",
                 f"viewed_by_id:{self.user.id + 1}",
@@ -1188,7 +1184,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "device": {"name": None, "brand": None, "model": None, "family": None},
                     "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
                     "urls": None,
-                    "segment_names": None,
                     "started_at": None,
                     "count_errors": None,
                     "count_dead_clicks": None,
@@ -1807,38 +1802,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             ]
             new_queries = [q.replace("url", "screen") for q in queries]
             queries.extend(new_queries)
-            for query in queries:
-                response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200
-                response_data = response.json()
-                assert len(response_data["data"]) == 1, query
-
-    def test_query_branches_segment_names_conditions(self) -> None:
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-        self.store_replays(
-            mock_replay(
-                seq1_timestamp,
-                project.id,
-                replay1_id,
-                segment_names=["/api/checkout"],
-            )
-        )
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, segment_names=[]))
-
-        with self.feature(self.features):
-            queries = [
-                "segment_names:/api/checkout",
-                "!segment_names:/api/orders",
-                "segment_names:[/api/checkout,/api/orders]",
-                "!segment_names:[/api/orders,/api/users]",
-                "segment_names:/api/*",
-                "!segment_names:/web/*",
-            ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
