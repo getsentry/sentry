@@ -316,10 +316,8 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert "config" in validator.errors
         assert "schedule" in validator.errors["config"]
         assert (
-            validator.errors["config"]["schedule"][0]
-            == "Invalid schedule for schedule unit count"
+            validator.errors["config"]["schedule"][0] == "Invalid schedule for schedule unit count"
         )
-
 
     def test_create_with_owner_team(self) -> None:
         """Test creating a monitor with a team owner."""

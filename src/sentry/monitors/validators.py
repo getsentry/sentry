@@ -263,18 +263,16 @@ class ConfigValidator(serializers.Serializer):
             if isinstance(schedule, dict):
                 schedule = [schedule.get("value"), schedule.get("unit")]
 
-            if not isinstance(schedule, list):
+            if not isinstance(schedule, list) or len(schedule) != 2:
                 raise ValidationError({"schedule": "Invalid schedule for for 'interval' type"})
-            # Coerce numeric strings (e.g. "6") to int to handle all request
-            # types, including form-encoded or JSON where the count is sent as a
+            # Coerce numeric strings (e.g. "6") to int to handle different request
+            # formats, including form-encoded or JSON where the count is sent as a
             # string. Only raise if the value is genuinely non-numeric.
             if isinstance(schedule[0], str):
                 try:
                     schedule[0] = int(schedule[0])
                 except (TypeError, ValueError):
-                    raise ValidationError(
-                        {"schedule": "Invalid schedule for schedule unit count"}
-                    )
+                    raise ValidationError({"schedule": "Invalid schedule for schedule unit count"})
             if not isinstance(schedule[0], int):
                 raise ValidationError({"schedule": "Invalid schedule for schedule unit count"})
             if schedule[0] <= 0:
