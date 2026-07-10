@@ -310,6 +310,7 @@ class SeerAgentClient:
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
             code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
+            enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
     """
 
     def __init__(
@@ -330,6 +331,7 @@ class SeerAgentClient:
         enable_code_mode_tools: str = "off",
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
+        enable_embeds: bool = True,
     ):
         self.organization = organization
         self.user = user
@@ -345,6 +347,7 @@ class SeerAgentClient:
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
+        self.enable_embeds = enable_embeds
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -613,7 +616,7 @@ class SeerAgentClient:
         ):
             opts["enable_tool_summary"] = True
 
-        if features.has(
+        if self.enable_embeds and features.has(
             "organizations:seer-explorer-embeds",
             self.organization,
             actor=self.user,
@@ -726,7 +729,7 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_tool_summary"] = True
 
-        if features.has(
+        if self.enable_embeds and features.has(
             "organizations:seer-explorer-embeds",
             self.organization,
             actor=self.user,

@@ -495,6 +495,10 @@ class SeerAgentOperator[CachePayloadT]:
                     is_interactive=True,
                     enable_coding=False,
                     enable_code_mode_tools=enable_code_mode_tools,
+                    # Entrypoints (e.g. Slack) render responses as plain markdown and
+                    # can't display embed widgets, so the raw Markdoc tags would leak as
+                    # text. Don't ask the agent to emit them in the first place.
+                    enable_embeds=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
