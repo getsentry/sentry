@@ -1,4 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -26,7 +27,9 @@ function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
 
 describe('LowValueSpanProblemSection', () => {
   it('renders low-value span evidence from the occurrence', () => {
-    render(<LowValueSpanProblemSection event={makeEvent()} />);
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
+      organization: OrganizationFixture({orgRole: 'owner'}),
+    });
 
     expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
     expect(screen.getByText('Affected span')).toBeInTheDocument();
@@ -39,21 +42,55 @@ describe('LowValueSpanProblemSection', () => {
     expect(screen.getByText('<1ms')).toBeInTheDocument();
   });
 
+  it('renders estimated cost for org managers', () => {
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
+      organization: OrganizationFixture({orgRole: 'manager'}),
+    });
+
+    expect(screen.getByText('Estimated cost')).toBeInTheDocument();
+    expect(screen.getByText('$12.34')).toBeInTheDocument();
+  });
+
+  it('does not render estimated cost for members', () => {
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
+      organization: OrganizationFixture({orgRole: 'member'}),
+    });
+
+    expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
+    expect(screen.queryByText('$12.34')).not.toBeInTheDocument();
+    // The rest of the evidence is still visible.
+    expect(screen.getByText('Affected span')).toBeInTheDocument();
+  });
+
+  it('does not render estimated cost for admins', () => {
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
+      organization: OrganizationFixture({orgRole: 'admin'}),
+    });
+
+    expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
+  });
+
   it('falls back to the sampled span count when extrapolated count is unavailable', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />);
+    render(<LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />, {
+      organization: OrganizationFixture({orgRole: 'owner'}),
+    });
 
     expect(screen.getByText('1.2K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(1);
   });
 
   it('does not render estimated cost when unavailable', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({estimatedCostUsd: null})} />);
+    render(<LowValueSpanProblemSection event={makeEvent({estimatedCostUsd: null})} />, {
+      organization: OrganizationFixture({orgRole: 'owner'}),
+    });
 
     expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
   });
 
   it('does not render estimated cost when zero', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({estimatedCostUsd: 0})} />);
+    render(<LowValueSpanProblemSection event={makeEvent({estimatedCostUsd: 0})} />, {
+      organization: OrganizationFixture({orgRole: 'owner'}),
+    });
 
     expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
   });
