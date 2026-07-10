@@ -12,7 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {GenAiOpTypeIcon} from 'sentry/views/insights/pages/agents/components/genAiOpTypeIcon';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
@@ -102,7 +102,7 @@ export function MessageToolCallsNew({
             <Flex align="center" justify="between" gap="md" width="100%">
               <Flex align="center" gap="sm" minWidth={0}>
                 {toolNode ? (
-                  <GenAiOpTypeIcon node={toolNode} size="sm" />
+                  <AiSpanStatusIcon node={toolNode} size="sm" />
                 ) : (
                   <Flex align="center" flexShrink={0}>
                     <IconFix size="sm" variant="accent" />

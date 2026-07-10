@@ -20,7 +20,7 @@ type IconSize = 'xs' | 'sm' | 'md' | 'lg';
 // outside the bottom-right of the op-type icon.
 const BADGE_OFFSET: Record<IconSize, number> = {xs: -4, sm: -5, md: -6, lg: -7};
 
-interface GenAiOpTypeIconProps {
+interface AiSpanStatusIconProps {
   node: AITraceSpanNode;
   /**
    * Overrides the icon color. Defaults to the op-type/error palette color so
@@ -36,7 +36,7 @@ interface GenAiOpTypeIconProps {
  * Used across the timeline, transcript, and span detail so the errored icon
  * looks the same everywhere.
  */
-export function GenAiOpTypeIcon({node, size = 'md', color}: GenAiOpTypeIconProps) {
+export function AiSpanStatusIcon({node, size = 'md', color}: AiSpanStatusIconProps) {
   const theme = useTheme();
   const hasErrors = hasError(node);
   const iconColor = color ?? getSpanColor(node, getTimelineColorByOpType(theme));

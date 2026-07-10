@@ -20,7 +20,7 @@ import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conv
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {GenAiOpTypeIcon} from 'sentry/views/insights/pages/agents/components/genAiOpTypeIcon';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {
@@ -127,7 +127,7 @@ export function ConversationSpanDetail({
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
-          <GenAiOpTypeIcon node={node} size="md" />
+          <AiSpanStatusIcon node={node} size="md" />
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <Text size="lg" bold ellipsis>
               {title}

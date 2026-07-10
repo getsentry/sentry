@@ -17,7 +17,7 @@ import {
   getNodeTimeBounds,
   type TraceBounds,
 } from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {GenAiOpTypeIcon} from 'sentry/views/insights/pages/agents/components/genAiOpTypeIcon';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   type ColorByOpType,
@@ -193,7 +193,7 @@ const TimelineRow = memo(function TimelineRow({
         >
           <Stack gap="xs" flex="1" minWidth="0">
             <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
-              <GenAiOpTypeIcon node={node} size="md" color={color} />
+              <AiSpanStatusIcon node={node} size="md" color={color} />
               {isTool ? (
                 <Flex minWidth="0" maxWidth="50%">
                   <EllipsisTag
