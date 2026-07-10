@@ -31,9 +31,12 @@ const schema = z.object({
   question2: z
     .string()
     .nullable()
-    .refine(value => value !== null && value !== '', t('Field is required')),
+    .refine(value => value !== null, t('Field is required')),
   question3: urlValidation,
-  supportEmail: z.string().min(1, t('Field is required')),
+  supportEmail: z
+    .string()
+    .min(1, t('Field is required'))
+    .pipe(z.email(t('Enter a valid email address'))),
   question4: urlValidation,
 });
 
