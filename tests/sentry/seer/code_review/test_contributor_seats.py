@@ -244,7 +244,7 @@ class TrackContributorSeatTest(TestCase):
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
-        assert contributor.provider == "github"
+        assert contributor.provider == self.integration.provider
         assert contributor.num_actions == 0
         mock_logger.info.assert_not_called()
 
@@ -264,6 +264,7 @@ class TrackContributorSeatTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="12345",
+            provider=self.integration.provider,
             alias="testuser",
             num_actions=5,
         )
@@ -330,7 +331,7 @@ class RecordContributorActionTest(TestCase):
 
         contributor = self._contributor()
         assert contributor.alias == "alice"
-        assert contributor.provider == "github"
+        assert contributor.provider == self.integration.provider
         assert contributor.num_actions == 0
         assert self._action_count() == 0
 
@@ -396,6 +397,7 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="123",
+            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
         )
@@ -418,6 +420,7 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="123",
+            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
         )
