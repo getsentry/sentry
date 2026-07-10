@@ -207,7 +207,9 @@ export function useChartBoxZoom({
     };
 
     function onPointerMove(evt: PointerEvent) {
-      if (!$overlay || !bounds) {
+      // Only the captured pointer reshapes the box; a foreign pointer (e.g. a
+      // second touch) reaching the chart DOM must be ignored.
+      if (!$overlay || !bounds || evt.pointerId !== pointerId) {
         return;
       }
 
@@ -215,9 +217,10 @@ export function useChartBoxZoom({
     }
 
     function onPointerUp(evt: PointerEvent) {
-      // Only the primary button completes the drag; releasing a secondary/middle
-      // button mid-drag (primary still held) must not tear down or zoom.
-      if (!bounds || evt.button !== 0) {
+      // Only the captured pointer's primary-button release completes the drag —
+      // not a foreign pointer, and not a secondary/middle release with the
+      // primary still held.
+      if (!bounds || evt.button !== 0 || evt.pointerId !== pointerId) {
         return;
       }
 
