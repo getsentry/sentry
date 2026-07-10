@@ -178,10 +178,7 @@ def get_available_monitoring_providers(
     """Catalog of monitoring providers the agent may propose connecting mid-run.
 
     Omits any provider the user has permanently dismissed ("don't ask again").
-    Does not mark which providers are already connected — Seer derives that from the
-    live token-bearing connections payload (built by `get_monitoring_provider_connections`),
-    which is refreshed on connect, so a stale flag can't cause a just-connected provider
-    to be re-proposed.
+    Does not mark which providers are already connected.
     """
     if not features.has("organizations:seer-infra-telemetry", organization):
         return []
