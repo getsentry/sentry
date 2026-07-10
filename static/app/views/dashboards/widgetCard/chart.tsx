@@ -70,6 +70,7 @@ import {
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
+import {Widget as WidgetComponent} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -191,7 +192,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   if (widget.displayType === DisplayType.HEATMAP) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
-        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <HeatmapSeriesComponent {...props} />
       </TransitionChart>
     );
@@ -465,19 +465,20 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading} = props;
 
   if (loading || !heatmapResults) {
-    return <LoadingPlaceholder />;
+    return <HeatMapWidgetVisualization.LoadingPlaceholder />;
   }
 
   if (heatmapResults.values.length === 0) {
-    return (
-      <StyledErrorPanel>
-        <IconWarning variant="primary" size="lg" />
-      </StyledErrorPanel>
-    );
+    return <WidgetComponent.WidgetError error={MISSING_DATA_MESSAGE} />;
   }
 
   return (
     <ChartWrapper autoHeightResize>
+      {/* Drag-to-zoom not implemented in Dashboards because we haven't come up
+      with a sensible behaviour here. The X-axis selection can update the
+      selected date range, but what about the Y-axis? It might update the global
+      filter, but that affects other widgets, is that okay? Or, it might affect
+      just the current widget, but how does the UI react? */}
       <HeatMapWidgetVisualization plottables={[new HeatMap(heatmapResults)]} />
     </ChartWrapper>
   );

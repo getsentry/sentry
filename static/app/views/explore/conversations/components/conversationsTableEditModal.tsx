@@ -42,14 +42,11 @@ export function ConversationsTableEditModal({
   return (
     <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => {
-        // Default the new row to the first column not already shown, falling back
-        // to the first column so a duplicate is allowed once they're all in use.
+        // Add the first column not already shown. Conversations have a fixed set
+        // of columns, so once they're all in use there's nothing left to add and
+        // the button is disabled (rather than appending duplicate columns).
         const usedColumns = new Set(editableColumns.map(c => c.column.key));
-        const nextColumn: ConversationColumn = {
-          key:
-            ALL_CONVERSATION_COLUMNS.find(key => !usedColumns.has(key)) ??
-            'conversationId',
-        };
+        const nextColumnKey = ALL_CONVERSATION_COLUMNS.find(key => !usedColumns.has(key));
 
         return (
           <Fragment>
@@ -70,8 +67,14 @@ export function ConversationsTableEditModal({
                 <Flex>
                   <Button
                     size="sm"
-                    onClick={() => insertColumn(nextColumn)}
+                    disabled={!nextColumnKey}
+                    onClick={() => nextColumnKey && insertColumn({key: nextColumnKey})}
                     icon={<IconAdd />}
+                    tooltipProps={{
+                      title: nextColumnKey
+                        ? undefined
+                        : t('All columns are already in use'),
+                    }}
                   >
                     {t('Add a Column')}
                   </Button>

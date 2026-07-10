@@ -13,7 +13,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import type {PromptData} from 'sentry/actionCreators/prompts';
 import {
   batchedPromptsCheck,
   promptsCheck,
@@ -39,7 +38,6 @@ import {
   openTrialEndingModal,
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
@@ -88,8 +86,6 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
     {} as Record<EventType, any>
   );
 }
-
-const ALERTS_OFF = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
   organization: Organization;
@@ -267,8 +263,6 @@ type Props = {
 
 type State = {
   deactivatedMemberDismissed: boolean;
-  overageAlertDismissed: Record<EventType, boolean>;
-  overageWarningDismissed: Record<EventType, boolean>;
   productTrialDismissed: Record<EventType, boolean>;
 };
 
@@ -276,8 +270,6 @@ class GSBanner extends Component<Props, State> {
   // assume dismissed until we've checked the backend
   state: State = {
     deactivatedMemberDismissed: true,
-    overageAlertDismissed: objectFromBilledCategories(() => true),
-    overageWarningDismissed: objectFromBilledCategories(() => true),
     productTrialDismissed: objectFromBilledCategories(() => true),
   };
   async componentDidMount() {
@@ -295,23 +287,6 @@ class GSBanner extends Component<Props, State> {
       this.tryTriggerPartnerPlanEndingModal();
     }
     await this.checkPrompts();
-
-    // must happen after prompts check
-    if (this.overageAlertType !== null) {
-      const {organization, subscription} = this.props;
-      const isWarning = this.overageAlertType === 'warning';
-      const eventTypes = Object.entries(
-        isWarning ? this.overageWarningActive : this.overageAlertActive
-      )
-        .filter(([_, value]) => value)
-        .map(([key, _]) => key as EventType);
-      trackGetsentryAnalytics('quota_alert.alert_displayed', {
-        organization,
-        subscription,
-        event_types: eventTypes.sort().join(','),
-        is_warning: isWarning,
-      });
-    }
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -585,8 +560,6 @@ class GSBanner extends Component<Props, State> {
       return;
     }
 
-    const category_overage_prompts: string[] = [];
-    const category_warning_prompts: string[] = [];
     const category_product_trial_prompts: string[] = [];
 
     Object.values(BILLED_DATA_CATEGORY_INFO)
@@ -597,8 +570,6 @@ class GSBanner extends Component<Props, State> {
       )
       .forEach(categoryInfo => {
         const snakeCasePlural = snakeCase(categoryInfo.plural);
-        category_overage_prompts.push(`${snakeCasePlural}_overage_alert`);
-        category_warning_prompts.push(`${snakeCasePlural}_warning_alert`);
         if (categoryInfo.canProductTrial) {
           category_product_trial_prompts.push(`${snakeCasePlural}_product_trial_alert`);
         }
@@ -610,12 +581,6 @@ class GSBanner extends Component<Props, State> {
         [
           'deactivated_member_alert',
 
-          // overage alerts
-          ...category_overage_prompts,
-
-          // warning alerts
-          ...category_warning_prompts,
-
           // product trial alerts
           ...category_product_trial_prompts,
         ],
@@ -624,34 +589,10 @@ class GSBanner extends Component<Props, State> {
         }
       );
 
-      // overage notifications should get reset when ondemand period ends
-      const promptIsDismissedForBillingPeriod = (prompt: PromptData) => {
-        const {snoozedTime, dismissedTime} = prompt || {};
-        // TODO: dismissed prompt should always return false
-        const time = snoozedTime || dismissedTime;
-        if (!time) {
-          return false;
-        }
-        const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-        onDemandPeriodEnd.setHours(23, 59, 59);
-        return time <= onDemandPeriodEnd.getTime() / 1000;
-      };
-
       this.setState({
         // not billing related prompt checks
         deactivatedMemberDismissed: promptIsDismissed(
           checkResults.deactivated_member_alert!
-        ),
-        // billing period related prompt checks
-        overageAlertDismissed: objectFromBilledCategories(c =>
-          promptIsDismissedForBillingPeriod(
-            checkResults[`${snakeCase(c.plural)}_overage_alert`]!
-          )
-        ),
-        overageWarningDismissed: objectFromBilledCategories(c =>
-          promptIsDismissedForBillingPeriod(
-            checkResults[`${snakeCase(c.plural)}_warning_alert`]!
-          )
         ),
         productTrialDismissed: objectFromBilledCategories(c =>
           trialPromptIsDismissed(
@@ -664,98 +605,6 @@ class GSBanner extends Component<Props, State> {
       // let check fail but capture exception
       Sentry.captureException(error);
     }
-  }
-
-  get overageAlertActive(): Record<EventType, boolean> {
-    const {subscription} = this.props;
-    return objectFromBilledCategories(
-      c =>
-        !this.state.overageAlertDismissed[c.singular as EventType] &&
-        !!subscription.categories[c.plural]?.usageExceeded
-    );
-  }
-
-  get overageWarningActive(): Record<EventType, boolean> {
-    const {subscription} = this.props;
-    // disable warnings if org has PAYG
-    if (subscription.onDemandMaxSpend > 0) {
-      return ALERTS_OFF;
-    }
-    return objectFromBilledCategories(
-      c =>
-        !this.state.overageWarningDismissed[c.singular as EventType] &&
-        !!subscription.categories[c.plural]?.sentUsageWarning
-    );
-  }
-
-  // Returns true for overage alert, false for overage warning, and null if we don't show anything.
-  get overageAlertType(): 'critical' | 'warning' | null {
-    const {subscription} = this.props;
-    if (!hasPerformance(subscription.planDetails)) {
-      return null;
-    }
-    if (!subscription.canSelfServe) {
-      return null;
-    }
-    if (Object.values(this.overageAlertActive).some(Boolean)) {
-      return 'critical';
-    }
-
-    if (Object.values(this.overageWarningActive).some(Boolean)) {
-      return 'warning';
-    }
-    return null;
-  }
-
-  renderOverageAlertPrimaryCTA(eventTypes: EventType[], isWarning: boolean) {
-    const {subscription, organization} = this.props;
-
-    // can't use as const with ternary
-    const notificationType = isWarning ? 'overage_warning' : 'overage_critical';
-
-    const props = {
-      organization,
-      subscription,
-      eventTypes,
-      notificationType,
-      referrer: `overage-alert-${eventTypes.join('-')}`,
-      source: isWarning ? 'quota-warning' : 'quota-overage',
-      handleRequestSent: () => this.handleOverageSnooze(eventTypes, isWarning),
-    } as const;
-
-    return <AddEventsCTA {...props} />;
-  }
-
-  handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
-    const {organization, api} = this.props;
-    const dismissState = isWarning
-      ? this.state.overageWarningDismissed
-      : this.state.overageAlertDismissed;
-
-    for (const eventType of eventTypes) {
-      if (dismissState[eventType]) {
-        // This type of event is already dismissed. Skip.
-        continue;
-      }
-      const key = isWarning ? 'warning' : 'overage';
-
-      const featureMap = objectFromBilledCategories(
-        c => `${snakeCase(c.plural)}_${key}_alert`
-      );
-
-      promptsUpdate(api, {
-        organization,
-        feature: featureMap[eventType],
-        status: 'snoozed',
-      });
-    }
-
-    const dismissedState = objectFromBilledCategories(() => true);
-    // Suppress all warnings and alerts
-    this.setState({
-      overageAlertDismissed: dismissedState,
-      overageWarningDismissed: dismissedState,
-    });
   }
 
   handleSnoozeMemberDeactivatedAlert = () => {
@@ -944,15 +793,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const productTrialAlerts = this.renderProductTrialAlerts();
-
-    const overageAlertType = this.overageAlertType;
-    if (overageAlertType !== null) {
-      return (
-        <Fragment>
-          {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-        </Fragment>
-      );
-    }
 
     const {membersDeactivatedFromLimit} = subscription;
     const isOverMemberLimit = membersDeactivatedFromLimit > 0;

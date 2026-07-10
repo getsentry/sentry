@@ -466,7 +466,7 @@ function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
     case 'in_progress':
       return (
         <Tooltip title={t('This feedback is being processed')}>
-          <LoadingIndicator size={14} />
+          <LoadingIndicator size={14} style={{margin: 0}} />
         </Tooltip>
       );
     case 'queued':
@@ -491,7 +491,7 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
     <Flex gap="md" align="start" justify="between">
       <Flex gap="md" align="start" flex="1" minWidth={0}>
         <Flex align="center" gap="md" height="1lh">
-          <Flex align="center" justify="center" flex="0 0 28px">
+          <Flex align="center" justify="center" width="28px">
             <FeedbackStatusIcon status={item.status} />
           </Flex>
           <FeedbackAttribution item={item} />

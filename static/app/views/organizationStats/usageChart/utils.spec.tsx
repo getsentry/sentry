@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {
   getDateFromMoment,
   getXAxisDates,
@@ -7,6 +8,19 @@ import {
 
 const TS_START = 1531094400000; // 2018 July 9, 12am UTC
 const TS_END = 1531180800000; // 2018 July 10, 12am UTC
+
+// Tests that format sub-daily dates in local time expect America/New_York (-04:00 EDT).
+// We explicitly set this via ConfigStore so the output is environment-independent
+// (previously these tests relied on the CI runner's system timezone).
+beforeEach(() => {
+  ConfigStore.set('user', {
+    ...ConfigStore.get('user'),
+    options: {
+      ...ConfigStore.get('user')?.options,
+      timezone: 'America/New_York',
+    },
+  } as any);
+});
 
 describe('getDateFromMoment', () => {
   const start = moment.unix(TS_START / 1000);

@@ -1,4 +1,3 @@
-import sentry_sdk
 from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -17,6 +16,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
+from sentry.utils.tracing import trace
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
@@ -50,7 +50,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    @sentry_sdk.tracing.trace
+    @trace
     def query_logs_data(
         self,
         snuba_params: SnubaParams,

@@ -38,7 +38,6 @@ type Props = {
   thresholdType: UnsavedMetricRule['thresholdType'];
   trigger: Trigger;
 
-  triggerIndex: number;
   triggerLabel: React.ReactNode;
   /**
    * Map of fieldName -> errorMessage
@@ -109,7 +108,6 @@ type TriggerFormContainerProps = Omit<
   | 'onChange'
   | 'isCritical'
   | 'error'
-  | 'triggerIndex'
   | 'trigger'
   | 'fieldHelp'
   | 'triggerHelp'
@@ -206,7 +204,6 @@ export class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               resolveThreshold={resolveThreshold}
               organization={organization}
               projects={projects}
-              triggerIndex={index}
               isCritical={isCritical}
               fieldHelp={null}
               triggerLabel={
@@ -244,7 +241,6 @@ export class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           resolveThreshold={resolveThreshold}
           organization={organization}
           projects={projects}
-          triggerIndex={2}
           isCritical={false}
           fieldHelp={null}
           triggerLabel={

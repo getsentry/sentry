@@ -219,7 +219,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             metaResults={meta}
             organization={organization}
             traceSlug={traceSlug}
-            traceEventView={traceEventView}
             logs={logsData}
             metrics={traceMetricsData}
           />

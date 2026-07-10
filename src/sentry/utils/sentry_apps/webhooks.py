@@ -7,7 +7,6 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 from urllib.parse import urlparse
 
-import sentry_sdk
 from django.conf import settings
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
@@ -46,6 +45,7 @@ from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.circuit_breaker import circuit_breaker_tracking
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -220,7 +220,7 @@ def _send_webhook_request(
         )
 
 
-@sentry_sdk.trace(name="send_and_save_webhook_request")
+@trace(name="send_and_save_webhook_request")
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,

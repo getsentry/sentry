@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -341,7 +340,6 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   getAttributeKeySuffix,
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
-  const theme = useTheme();
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
   const hasStem = !isLast && isEmptyObject(content.subtree);
@@ -394,7 +392,6 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
             content={content}
             renderers={props.renderers}
             rendererExtra={props.rendererExtra}
-            theme={theme}
           />
         </TreeValue>
         {attributeActions}

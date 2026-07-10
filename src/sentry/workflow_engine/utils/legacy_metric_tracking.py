@@ -99,6 +99,9 @@ def track_alert_endpoint_execution(
                 sentry_sdk.get_isolation_scope().set_tag(
                     "legacy_models", str(legacy_models).lower()
                 )
+                sentry_sdk.get_isolation_scope().set_attribute(
+                    "legacy_models", str(legacy_models).lower()
+                )
                 # Reset the context var
                 _legacy_models_used.reset(token)
 

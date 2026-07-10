@@ -5,7 +5,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {
@@ -45,13 +44,6 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
     data: TransactionEventFixture(),
   } as any,
   tree: new TraceTree().build(),
-  traceEventView: EventView.fromSavedQuery({
-    id: '1',
-    name: 'test',
-    fields: ['title', 'event.type', 'project', 'timestamp'],
-    projects: [],
-    version: 2,
-  }),
   traceSlug: 'trace-slug',
 };
 let organization: Organization;

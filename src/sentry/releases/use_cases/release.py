@@ -3,7 +3,6 @@ from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timezone
 from typing import Any, cast
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Sum
 
@@ -31,9 +30,10 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.tracing import trace
 
 
-@sentry_sdk.trace
+@trace
 def serialize(
     releases: list[Release],
     user: AnonymousUser | User | RpcUser,
@@ -125,7 +125,7 @@ def get_release_projects(
     return release_projects_map
 
 
-@sentry_sdk.trace
+@trace
 def get_projects(
     projects: Iterable[Project],
     fetch_platforms: Callable[[Iterable[int]], list[tuple[int, str]]],
@@ -147,7 +147,7 @@ def get_projects(
     }
 
 
-@sentry_sdk.trace
+@trace
 def get_release_adoption_stages(
     environment_ids: list[int],
     project_ids: list[int],
@@ -165,7 +165,7 @@ def get_release_adoption_stages(
     return result
 
 
-@sentry_sdk.trace
+@trace
 def get_release_project_first_last_seen(
     release_version_and_id_map: dict[str, int],
     organization_id: int,
@@ -209,7 +209,7 @@ def get_release_project_first_last_seen(
     return first_seen, last_seen
 
 
-@sentry_sdk.trace
+@trace
 def get_release_project_environment_first_last_seen(
     release_ids: list[int],
     environment_ids: list[int],
@@ -250,7 +250,7 @@ def get_release_project_environment_first_last_seen(
     return fs, ls
 
 
-@sentry_sdk.trace
+@trace
 def get_release_project_new_group_count(
     environment_ids: list[int],
     project_ids: list[int],
@@ -274,7 +274,7 @@ def get_release_project_new_group_count(
     return group_counts_by_release
 
 
-@sentry_sdk.trace
+@trace
 def get_authors(
     release_and_author_ids: list[tuple[int, list[str]]],
     fetch_authors: Callable[[Iterable[str]], Mapping[str, Author]],
@@ -294,7 +294,7 @@ def get_authors(
     return result
 
 
-@sentry_sdk.trace
+@trace
 def get_last_commits(
     release_and_commit_ids: Iterable[tuple[int, int | None]],
     fetch_last_commits: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
@@ -305,7 +305,7 @@ def get_last_commits(
     return {r[0]: commit_map.get(r[1]) if r[1] else None for r in release_and_commit_ids}
 
 
-@sentry_sdk.trace
+@trace
 def get_last_deploys(
     release_and_deploy_ids: Iterable[tuple[int, int | None]],
     fetch_last_deploys: Callable[[Iterable[int]], dict[int, LastDeploy]],
@@ -316,7 +316,7 @@ def get_last_deploys(
     return {r[0]: deploy_map.get(r[1]) if r[1] else None for r in release_and_deploy_ids}
 
 
-@sentry_sdk.trace
+@trace
 def get_owners(
     release_and_owner_ids: Iterable[tuple[int, int | None]],
     fetch_owners: Callable[[Iterable[int]], dict[int, dict[str, Any]]],
@@ -327,7 +327,7 @@ def get_owners(
     return {r[0]: owner_map.get(r[1]) if r[1] else None for r in release_and_owner_ids}
 
 
-@sentry_sdk.trace
+@trace
 def fetch_releases_adoption_stages(
     environment_ids: list[int],
     project_ids: list[int],
@@ -341,7 +341,7 @@ def fetch_releases_adoption_stages(
     return list(queryset.values_list("release_id", "project_id", "adopted", "unadopted"))
 
 
-@sentry_sdk.trace
+@trace
 def fetch_authors(
     user: AnonymousUser | User | RpcUser, organization_id: int, author_ids: Iterable[str]
 ) -> Mapping[str, Any]:
@@ -349,7 +349,7 @@ def fetch_authors(
     return get_users_for_authors(organization_id=organization_id, authors=authors, user=user)
 
 
-@sentry_sdk.trace
+@trace
 def fetch_commits(
     user: AnonymousUser | User | RpcUser, organization_id: int, commit_ids: Iterable[int]
 ) -> dict[int, dict[str, Any]]:
@@ -362,7 +362,7 @@ def fetch_commits(
     return {c.id: d for c, d in zip(commit_list, model_serializer(commit_list, user))}
 
 
-@sentry_sdk.trace
+@trace
 def fetch_deploys(
     user: AnonymousUser | User | RpcUser, organization_id: int, deploy_ids: Iterable[int]
 ) -> dict[int, LastDeploy]:
@@ -371,7 +371,7 @@ def fetch_deploys(
     return {d.id: c for d, c in zip(deploy_list, model_serializer(deploy_list, user))}
 
 
-@sentry_sdk.trace
+@trace
 def fetch_owners(
     user: AnonymousUser | User | RpcUser, owner_ids: Iterable[int]
 ) -> dict[int, dict[str, Any]]:
@@ -381,7 +381,7 @@ def fetch_owners(
     return {user["id"]: user for user in users}
 
 
-@sentry_sdk.trace
+@trace
 def fetch_issue_count(
     environment_ids: list[int],
     project_ids: list[int],
@@ -412,7 +412,7 @@ def fetch_issue_count(
         return list(qs2.values_list("project_id", "release_id", "new_groups"))
 
 
-@sentry_sdk.trace
+@trace
 def fetch_first_last_seen(
     environment_ids: list[int],
     project_ids: list[int],
@@ -427,7 +427,7 @@ def fetch_first_last_seen(
     return list(queryset.values_list("release_id", "first_seen", "last_seen"))
 
 
-@sentry_sdk.trace
+@trace
 def fetch_project_platforms(project_ids: Iterable[int]) -> list[tuple[int, str]]:
     """
     Returns a list of project-id platform pairs for a given set of project-ids.

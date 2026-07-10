@@ -66,7 +66,11 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         },
         examples=[TagsExamples.GROUP_TAGKEY_DETAILS],
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-tag-key-details",
+        url_names=["sentry-api-0-group-tag-key-details"],
+    )
     def get(self, request: Request, group, key) -> Response[TagKeySerializerResponse]:
         """
         Returns the values and aggregate details of a given tag key related to an issue.

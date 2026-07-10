@@ -20,6 +20,7 @@ from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
+    get_iterations,
     get_latest_iteration_index,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -27,6 +28,12 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.github_perms import (
+    blocks_have_failed_tool_call,
+    comment_on_out_of_date_github_permissions,
+    get_out_of_date_github_permissions,
+    repos_with_failed_tool_calls,
+)
 from sentry.seer.autofix.introspection import (
     IntrospectionDecision,
     introspect_code_changes,
@@ -47,7 +54,7 @@ from sentry.seer.models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -113,8 +120,71 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, state, group)
 
+        # When a tool failed because the GitHub App installation is missing
+        # permissions the user needs to re-accept, comment on the affected PRs
+        # so the user knows to update them (at most once per repo per run).
+        cls._maybe_comment_on_missing_permissions(organization, run_id, state)
+
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, group)
+
+    @classmethod
+    def _maybe_comment_on_missing_permissions(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+    ) -> None:
+        # Comment on a PR the first time a tool call fails for it since PRs were
+        # created — the first failing iteration touching that repo is our "first
+        # time" signal, so we don't need to persist whether we've commented.
+        # This is per-repo: a repo that already had a failing iteration is
+        # skipped, while a repo hitting its first failure now is commented on.
+        # Failures before PR creation (e.g. in code_changes) are ignored.
+        iterations = get_iterations(state)
+        if not iterations:
+            return
+
+        # Only proceed when the latest iteration failed — that's when a repo can
+        # be hitting its first failure.
+        *earlier, latest = iterations
+        if not blocks_have_failed_tool_call(latest.blocks):
+            return
+
+        missing_by_repo = get_out_of_date_github_permissions(organization, latest.blocks)
+        if not missing_by_repo:
+            return
+
+        # Repos a tool call failed against in an earlier iteration have been
+        # commented on before, so exclude them.
+        repos_with_prior_failure: set[str] = set()
+        for iteration in earlier:
+            repos_with_prior_failure |= repos_with_failed_tool_calls(iteration.blocks)
+
+        missing_by_repo = {
+            repo: info
+            for repo, info in missing_by_repo.items()
+            if repo not in repos_with_prior_failure
+        }
+        if not missing_by_repo:
+            return
+
+        logger.info(
+            "autofix.on_completion_hook.github_permissions_out_of_date",
+            extra={
+                "run_id": run_id,
+                "organization_id": organization.id,
+                "missing_by_repo": {
+                    repo: {
+                        "missing_scopes": info.missing_scopes,
+                        "installation_id": info.installation_id,
+                    }
+                    for repo, info in missing_by_repo.items()
+                },
+            },
+        )
+
+        comment_on_out_of_date_github_permissions(organization, state, missing_by_repo)
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
@@ -201,6 +271,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             _, is_synced = state.has_code_changes()
             if not is_synced and not cls._iteration_terminal_errored_repos(state):
                 return
+
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
             webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
@@ -430,12 +501,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # update that PR. _push_changes is a no-op once the repos are synced, so
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
-            cls._push_changes(group, run_id, state)
-            # Feedback may have been enqueued while this iteration was running.
-            # The consume task is a no-op while the run is still processing and
-            # only triggers a new iteration once the run settles, so it's safe
-            # to always kick it after handling an iteration completion.
-            cls._consume_queued_feedback(organization, run_id, group)
+            pushed = cls._push_changes(group, run_id, state)
+
+            if not pushed:
+                # we want to consume queued feedback _after_ we know changes have been pushed
+                # because some feedback in the queue could be filtered out
+                # since it's only applicable to a single revision of the code
+                # e.g.
+                # if we have CI failure feedback in the queue but our last iteration
+                # updated the code for that PR, we should filter it out and see if it
+                # fails again
+                cls._consume_queued_feedback(organization, run_id, group)
             return
 
         if stopping_point is None or reached_stopping_point:
@@ -555,8 +631,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return []
 
     @classmethod
-    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
-        """Push code changes to create PRs."""
+    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> bool:
+        """Push code changes to create PRs. Returns True if changes were pushed."""
         # Check if there are code changes to push
         has_changes, is_synced = state.has_code_changes()
         if not has_changes or is_synced:
@@ -569,7 +645,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "is_synced": is_synced,
                 },
             )
-            return
+            return False
 
         # Errored repos are terminal — re-pushing would re-fire this hook in a loop.
         errored_repos = cls._iteration_terminal_errored_repos(state)
@@ -582,7 +658,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "errored_repos": errored_repos,
                 },
             )
-            return
+            return False
 
         logger.info(
             "autofix.on_completion_hook.pushing_changes",
@@ -601,6 +677,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "autofix.on_completion_hook.push_changes_failed",
                 extra={"run_id": run_id, "organization_id": group.organization.id},
             )
+            return False
+
+        return True
 
     @classmethod
     def _get_handoff_config_if_applicable(
