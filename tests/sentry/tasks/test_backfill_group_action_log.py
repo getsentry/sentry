@@ -205,7 +205,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert resolve_entry.type == GroupActionType.RESOLVE.value
         assert resolve_entry.actor_type == GroupActorType.USER.value
         assert resolve_entry.actor_id == self.user.id
-        assert resolve_entry.source == "unknown"
+        assert resolve_entry.source == "backfill:activity"
         assert resolve_entry.idempotency_key is not None
         assert resolve_entry.idempotency_key.startswith("activity:")
 

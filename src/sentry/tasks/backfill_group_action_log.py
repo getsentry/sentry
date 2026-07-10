@@ -1,7 +1,8 @@
 import logging
 
 from sentry import options
-from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
+from sentry.issues.action_log.backfill import BACKFILL_ACTIVITY_SOURCE
+from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -159,9 +160,10 @@ def _backfill_project(
                 type=action.get_type().value,
                 actor_type=actor.actor_type.value,
                 actor_id=actor.actor_id,
-                source=ActionSource.UNKNOWN,
+                source=BACKFILL_ACTIVITY_SOURCE,
                 data=action.dict(),
                 date_added=activity.datetime,
+                date_updated=activity.datetime,
                 idempotency_key=f"activity:{activity.id}",
             )
         )
