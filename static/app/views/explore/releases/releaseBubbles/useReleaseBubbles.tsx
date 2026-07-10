@@ -459,7 +459,7 @@ export function useReleaseBubbles({
         const pointInPixel = [params.offsetX, params.offsetY];
         const pointInGrid = echartsInstance.convertFromPixel('grid', pointInPixel);
         const series = echartsInstance.getOption().series as Series[];
-        const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
+        const seriesIndex = series.findIndex((s: Series) => s?.id === BUBBLE_SERIES_ID);
 
         // No release bubble series found (shouldn't happen)
         if (seriesIndex === -1) {
@@ -568,7 +568,7 @@ export function useReleaseBubbles({
         }
 
         const series = echartsInstance.getOption().series as Series[];
-        const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
+        const seriesIndex = series.findIndex((s: Series) => s?.id === BUBBLE_SERIES_ID);
         // We could find and include a `dataIndex` to be specific about which
         // bubble to "downplay", but I think it's ok to downplay everything
         echartsInstance.dispatchAction({
