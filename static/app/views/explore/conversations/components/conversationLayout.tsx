@@ -91,15 +91,12 @@ export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
 export function SpanDetailCard({
   children,
   embedded,
-  ref,
 }: {
   children: React.ReactNode;
   embedded?: boolean;
-  ref?: React.Ref<HTMLDivElement>;
 }) {
   return (
     <Stack
-      ref={ref}
       background="primary"
       border={embedded ? undefined : 'primary'}
       radius={embedded ? undefined : 'md'}

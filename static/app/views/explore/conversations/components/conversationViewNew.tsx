@@ -123,7 +123,6 @@ export function ConversationViewContentNew({
           (isLoading ? Boolean(selectedSpanId) : Boolean(selectedNode)) ? (
             <ConversationSpanDetail
               isLoading={isLoading}
-              scrollResetKey={activeTab}
               node={selectedNode ?? undefined}
               traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
               activeTab={detailState.detailTab}

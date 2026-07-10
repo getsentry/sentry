@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -72,8 +72,6 @@ interface ConversationSpanDetailProps {
   node?: AITraceSpanNode;
   /** When provided, a close button is shown in the header. */
   onClose?: () => void;
-  /** Scrolls the panel back to the top whenever this value changes. */
-  scrollResetKey?: string;
 }
 
 export function ConversationSpanDetail({
@@ -85,14 +83,7 @@ export function ConversationSpanDetail({
   avgDuration,
   embedded,
   isLoading,
-  scrollResetKey,
 }: ConversationSpanDetailProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollContainerRef.current?.scrollTo({top: 0});
-  }, [scrollResetKey]);
-
   // Full attributes (tool inputs/results, the complete attribute list) aren't
   // returned by the conversation list endpoint, so they're fetched per span.
   const eapValue = node && isEAPSpanNode(node) ? node.value : null;
@@ -124,7 +115,7 @@ export function ConversationSpanDetail({
   );
 
   return (
-    <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
+    <SpanDetailCard embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <AiSpanStatusIcon node={node} />
