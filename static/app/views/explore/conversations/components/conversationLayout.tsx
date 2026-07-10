@@ -97,9 +97,6 @@ export function SpanDetailCard({
   embedded?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  // Embedded in the (bounded) trace drawer the card scrolls internally;
-  // standalone on the redesigned page it flows into the document scroll, so it
-  // must not pin its height or introduce a nested scrollbar.
   return (
     <Stack
       ref={ref}
@@ -132,10 +129,6 @@ export function ConversationContentLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
-  // Flows into the document scroll: no height bound and no per-panel overflow,
-  // so the content grows the page rather than scrolling within a nested card.
-  // We still measure the container's own width (not the viewport) to seed the
-  // split's default size, and the split orientation reflows via container query.
   return (
     <Container
       ref={measureRef}
