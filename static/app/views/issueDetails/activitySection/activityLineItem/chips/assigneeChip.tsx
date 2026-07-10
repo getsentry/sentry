@@ -1,11 +1,14 @@
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 
-import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 
 import {InlineChip} from './inlineChip';
 
-export function AssigneePill({assignee}: {assignee: Actor | string | Team}) {
+export function AssigneePill({
+  assignee,
+}: {
+  assignee: React.ComponentProps<typeof UserAvatar>['user'] | string | Team;
+}) {
   if (typeof assignee === 'string') {
     return <InlineChip variant="constrained">{assignee}</InlineChip>;
   }
