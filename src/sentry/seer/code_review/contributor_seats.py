@@ -16,6 +16,8 @@ from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -29,6 +31,20 @@ from sentry.tasks.organization_contributors import assign_seat_to_organization_c
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def integration_hostname(integration: RpcIntegration) -> str:
+    """
+    Canonical hostname of the integration's instance: the self-hosted host for
+    GitHub Enterprise / self-managed GitLab, else the cloud host.
+    """
+    if integration.provider == IntegrationProviderSlug.GITHUB.value:
+        return "github.com"
+    elif integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
+        return integration.metadata["domain_name"].split("/")[0]
+    elif integration.provider == IntegrationProviderSlug.GITLAB.value:
+        return integration.metadata["instance"]
+    raise ValueError(f"Unsupported contributor provider: {integration.provider}")
 
 
 def _is_code_review_enabled_for_repo(repository_id: int) -> bool:
@@ -92,18 +108,21 @@ def track_contributor_seat(
     *,
     organization: Organization,
     repo: Repository,
-    integration_id: int,
+    integration: RpcIntegration,
     user_id: str | int,
     user_username: str,
-    provider: str,
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
-        integration_id=integration_id,
+        integration_id=integration.id,
         external_identifier=str(user_id),
-        defaults={"alias": user_username, "provider": provider},
+        defaults={
+            "alias": user_username,
+            "provider": integration.provider,
+            "hostname": integration_hostname(integration),
+        },
     )
 
     if not should_increment_contributor_seat(organization, repo, contributor):
@@ -112,9 +131,9 @@ def track_contributor_seat(
     logger.info(
         "scm.webhook.organization_contributor.num_actions_should_increment",
         extra={
-            "provider": provider,
+            "provider": integration.provider,
             "organization_id": organization.id,
-            "integration_id": integration_id,
+            "integration_id": integration.id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
             "contributor_id": contributor.id,
@@ -124,7 +143,7 @@ def track_contributor_seat(
     metrics.incr(
         "scm.webhook.organization_contributor.num_actions_should_increment",
         sample_rate=1.0,
-        tags={"provider": provider},
+        tags={"provider": integration.provider},
     )
 
 
@@ -132,10 +151,9 @@ def record_contributor_action(
     *,
     organization: Organization,
     repo: Repository,
-    integration_id: int,
+    integration: RpcIntegration,
     user_id: str | int,
     user_username: str | None,
-    provider: str,
     pr_number: str | int,
     is_opened: bool,
     logs_extra: Mapping[str, Any] | None = None,
@@ -144,9 +162,13 @@ def record_contributor_action(
     """Seed a contributor and record the contributor's PR-opened action."""
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
-        integration_id=integration_id,
+        integration_id=integration.id,
         external_identifier=str(user_id),
-        defaults={"alias": user_username, "provider": provider},
+        defaults={
+            "alias": user_username,
+            "provider": integration.provider,
+            "hostname": integration_hostname(integration),
+        },
     )
 
     if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):
@@ -168,9 +190,9 @@ def record_contributor_action(
     logger.info(
         "scm.webhook.organization_contributor.action_recorded",
         extra={
-            "provider": provider,
+            "provider": integration.provider,
             "organization_id": organization.id,
-            "integration_id": integration_id,
+            "integration_id": integration.id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
             "contributor_id": contributor.id,
@@ -182,7 +204,7 @@ def record_contributor_action(
     metrics.incr(
         "scm.webhook.organization_contributor.action_recorded",
         sample_rate=1.0,
-        tags={"provider": provider, **(tags or {})},
+        tags={"provider": integration.provider, **(tags or {})},
     )
 
     contributor.refresh_from_db(fields=["num_actions"])

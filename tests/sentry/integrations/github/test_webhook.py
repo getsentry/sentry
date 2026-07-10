@@ -1790,10 +1790,10 @@ class PullRequestEventWebhookTest(APITestCase):
 
         mock_track_contributor_seat.assert_called_once()
         call_kwargs = mock_track_contributor_seat.call_args[1]
-        assert call_kwargs["integration_id"] == integration.id
+        assert call_kwargs["integration"].id == integration.id
+        assert call_kwargs["integration"].provider == "github"
         assert str(call_kwargs["user_id"]) == "6752317"
         assert call_kwargs["user_username"] == "baxterthehacker"
-        assert call_kwargs["provider"] == "github"
         assert call_kwargs["organization"] == self.project.organization
         assert call_kwargs["repo"] == repo
 
@@ -2102,10 +2102,10 @@ class TrackContributorActionProcessorTest(TestCase):
         kwargs = mock_record.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["integration"].id == self.integration.id
+        assert kwargs["integration"].provider == "github"
         assert kwargs["user_id"] == "6752317"
         assert kwargs["user_username"] == "baxterthehacker"
-        assert kwargs["provider"] == "github"
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
         assert kwargs["logs_extra"] == {"github_event_action": "opened"}

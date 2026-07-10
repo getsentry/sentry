@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributorAction,
@@ -222,10 +223,9 @@ class TrackContributorSeatTest(TestCase):
         track_contributor_seat(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id=user_id,
             user_username=user_username,
-            provider="github",
         )
 
     @patch("sentry.seer.code_review.contributor_seats.logger")
@@ -314,10 +314,9 @@ class RecordContributorActionTest(TestCase):
         record_contributor_action(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id="123",
             user_username="alice",
-            provider="github",
             pr_number=pr_number,
             is_opened=is_opened,
         )
