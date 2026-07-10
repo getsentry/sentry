@@ -45,7 +45,7 @@ COMMIT_ACTIVITY_TYPES = {
     ActivityType.REFERENCED_IN_COMMIT.value,
 }
 
-COMMIT_ENRICHED_ACTIVITY_TYPES = {
+ACTIVITY_TYPES_WITH_COMMIT_DATA = {
     *COMMIT_ACTIVITY_TYPES,
     ActivityType.SET_RESOLVED_IN_RELEASE.value,
 }
@@ -92,7 +92,7 @@ class ActivitySerializer(Serializer):
         commit_ids = {
             i.data["commit"]
             for i in item_list
-            if i.type in COMMIT_ENRICHED_ACTIVITY_TYPES and i.data and i.data.get("commit")
+            if i.type in ACTIVITY_TYPES_WITH_COMMIT_DATA and i.data and i.data.get("commit")
         }
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids))
@@ -106,7 +106,7 @@ class ActivitySerializer(Serializer):
             commits = {
                 i: commits_by_id.get(i.data["commit"])
                 for i in item_list
-                if i.type in COMMIT_ENRICHED_ACTIVITY_TYPES and i.data and i.data.get("commit")
+                if i.type in ACTIVITY_TYPES_WITH_COMMIT_DATA and i.data and i.data.get("commit")
             }
         else:
             commits = {}
