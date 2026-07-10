@@ -150,32 +150,23 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
     return None
 
 
-def _derive_progress(
-    *, is_open: bool, is_assigned: bool, has_root_cause: bool, has_open_fix_pr: bool
-) -> IssueProgressState | None:
-    if not is_open:
-        return None
-    if has_open_fix_pr:
-        return IssueProgressState.FIX_PROPOSED
-    if has_root_cause:
-        return IssueProgressState.DIAGNOSED
-    if is_assigned:
-        return IssueProgressState.ASSIGNED
-    return IssueProgressState.IDENTIFIED
-
-
 @aggregator(
     (PROGRESS, LAST_PROGRESSED_AT),
     deps=(STATUS, IS_ASSIGNED, HAS_ROOT_CAUSE, HAS_OPEN_FIX_PR),
 )
 def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current_progress = state[PROGRESS]
-    new_progress: IssueProgressState | None = _derive_progress(
-        is_open=state[STATUS] == IssueStatus.OPEN,
-        is_assigned=state[IS_ASSIGNED],
-        has_root_cause=state[HAS_ROOT_CAUSE],
-        has_open_fix_pr=state[HAS_OPEN_FIX_PR],
-    )
+
+    if state[STATUS] != IssueStatus.OPEN:
+        new_progress = None
+    elif state[HAS_OPEN_FIX_PR]:
+        new_progress = IssueProgressState.FIX_PROPOSED
+    elif state[HAS_ROOT_CAUSE]:
+        new_progress = IssueProgressState.DIAGNOSED
+    elif state[IS_ASSIGNED]:
+        new_progress = IssueProgressState.ASSIGNED
+    else:
+        new_progress = IssueProgressState.IDENTIFIED
 
     if new_progress != current_progress:
         return emit(PROGRESS.value(new_progress), LAST_PROGRESSED_AT.value(entry.date_added))
