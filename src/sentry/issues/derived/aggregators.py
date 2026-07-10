@@ -124,13 +124,8 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     (HAS_OPEN_FIX_PR,),
     deps=(STATUS,),
     scope=(
-        GroupActionType.AUTOFIX_CODING_COMPLETE,
-        GroupActionType.AUTOFIX_PR_CREATED,
-        GroupActionType.SEER_PR_CREATED,
         GroupActionType.RESOLVED_IN_PULL_REQUEST,
         GroupActionType.PULL_REQUEST_CLOSED,
-        GroupActionType.RESOLVE,
-        GroupActionType.ARCHIVE,
     ),
 )
 def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
