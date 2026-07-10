@@ -287,8 +287,7 @@ def update_group_resolutions(release, commit_author_by_commit):
     requested_pairs: set[tuple[int, int]] = {
         (group_project_lookup[gid], commit_id_by_group[gid])
         for gid in group_project_lookup
-        if group_project_lookup.get(gid) not in release_project_ids
-        and gid in commit_id_by_group
+        if group_project_lookup.get(gid) not in release_project_ids and gid in commit_id_by_group
     }
     # Maps (project_id, commit_id) -> (release_id, release_version) for the
     # earliest project-scoped release containing each cross-project commit.
