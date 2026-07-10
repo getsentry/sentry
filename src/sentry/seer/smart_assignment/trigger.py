@@ -1,10 +1,10 @@
 """Gating, dispatch, and ground-truth capture for the smart assignment feature.
 
 `maybe_trigger_smart_assignment` is the single gated entrypoint: it checks the
-feature flag, samples (for new issues), dedups to one prediction per issue, and
-dispatches the Seer `smart_assignment` feature run, creating the
-`SeerSmartAssignmentResult` row atomically with the run. `record_ground_truth`
-annotates an existing row with who actually got assigned / resolved the issue.
+feature flag, dedups to one prediction per issue, and dispatches the Seer
+`smart_assignment` feature run, creating the `SeerSmartAssignmentResult` row
+atomically with the run. `record_ground_truth` annotates an existing row with who
+actually got assigned / resolved the issue.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import logging
 from django.db import IntegrityError
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import features
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -24,7 +24,6 @@ from sentry.seer.models.smart_assignment import (
     SmartAssignmentStatus,
     SmartAssignmentTrigger,
 )
-from sentry.seer.smart_assignment.sampling import should_sample
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -44,20 +43,15 @@ def _skip(reason: str, group: Group) -> None:
 def maybe_trigger_smart_assignment(group: Group, trigger: SmartAssignmentTrigger) -> None:
     """Gate and dispatch a smart-assignment prediction for `group`.
 
-    No-op unless the org is flagged, the issue passes sampling (for `NEW_ISSUE`),
-    and no prediction row already exists for the group.
+    No-op unless the org is flagged and no prediction row already exists for the
+    group. Safe to call from any event hook (e.g. an activity handler now, or
+    post_process later).
     """
     organization = group.organization
 
     if not features.has(FEATURE_FLAG, organization):
         _skip("flag_disabled", group)
         return
-
-    if trigger == SmartAssignmentTrigger.NEW_ISSUE:
-        rate = options.get("seer.smart_assignment.new_issue_sample_rate")
-        if not should_sample(group.id, rate):
-            _skip("not_sampled", group)
-            return
 
     if SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
         _skip("already_predicted", group)

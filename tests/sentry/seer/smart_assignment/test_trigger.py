@@ -41,16 +41,16 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
     def test_dispatch_creates_pending_row(self, mock_client_cls: MagicMock) -> None:
         seer_run = self._wire_client(mock_client_cls)
         with self.feature("organizations:seer-smart-assignment"):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SOLUTION_COMPLETED)
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
 
         row = SeerSmartAssignmentResult.objects.get(group=self.group)
-        assert row.trigger == SmartAssignmentTrigger.SOLUTION_COMPLETED
+        assert row.trigger == SmartAssignmentTrigger.PR_CREATED
         assert row.status == SmartAssignmentStatus.PENDING
         assert row.result_seer_run_id == seer_run.id
 
     @patch(TRIGGER_PATH)
     def test_flag_disabled_is_noop(self, mock_client_cls: MagicMock) -> None:
-        maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SOLUTION_COMPLETED)
+        maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
         assert not SeerSmartAssignmentResult.objects.filter(group=self.group).exists()
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
@@ -59,32 +59,12 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
         SeerSmartAssignmentResult.objects.create(
             organization=self.organization,
             group=self.group,
-            trigger=SmartAssignmentTrigger.NEW_ISSUE,
+            trigger=SmartAssignmentTrigger.PR_CREATED,
             status=SmartAssignmentStatus.PENDING,
         )
         with self.feature("organizations:seer-smart-assignment"):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.ASSIGNMENT)
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
         mock_client_cls.return_value.start_feature_run.assert_not_called()
-
-    @patch(TRIGGER_PATH)
-    def test_new_issue_not_sampled(self, mock_client_cls: MagicMock) -> None:
-        with (
-            self.feature("organizations:seer-smart-assignment"),
-            self.options({"seer.smart_assignment.new_issue_sample_rate": 0.0}),
-        ):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.NEW_ISSUE)
-        assert not SeerSmartAssignmentResult.objects.filter(group=self.group).exists()
-        mock_client_cls.return_value.start_feature_run.assert_not_called()
-
-    @patch(TRIGGER_PATH)
-    def test_new_issue_sampled_at_full_rate(self, mock_client_cls: MagicMock) -> None:
-        self._wire_client(mock_client_cls)
-        with (
-            self.feature("organizations:seer-smart-assignment"),
-            self.options({"seer.smart_assignment.new_issue_sample_rate": 1.0}),
-        ):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.NEW_ISSUE)
-        assert SeerSmartAssignmentResult.objects.filter(group=self.group).exists()
 
 
 class RecordGroundTruthTest(TestCase):
@@ -100,7 +80,7 @@ class RecordGroundTruthTest(TestCase):
         row = SeerSmartAssignmentResult.objects.create(
             organization=self.organization,
             group=self.group,
-            trigger=SmartAssignmentTrigger.NEW_ISSUE,
+            trigger=SmartAssignmentTrigger.PR_CREATED,
             status=SmartAssignmentStatus.PENDING,
         )
         assignee = self.create_user()

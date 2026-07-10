@@ -23,7 +23,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
             organization=self.organization,
             group=self.group,
             result_seer_run=self.seer_run,
-            trigger=SmartAssignmentTrigger.SOLUTION_COMPLETED,
+            trigger=SmartAssignmentTrigger.PR_CREATED,
             status=SmartAssignmentStatus.PENDING,
         )
 

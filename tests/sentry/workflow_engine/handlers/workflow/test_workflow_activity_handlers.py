@@ -29,31 +29,30 @@ class SmartAssignmentActivityHandlerTest(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
 
-    @mock.patch("sentry.tasks.seer.smart_assignment.process_smart_assignment")
-    def test_dispatches_for_mapped_activities(self, mock_task: MagicMock) -> None:
+    @mock.patch("sentry.seer.smart_assignment.trigger.maybe_trigger_smart_assignment")
+    def test_triggers_on_pr_created(self, mock_trigger: MagicMock) -> None:
+        from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
+
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+        )
+        smart_assignment_activity_handler(self.group, activity, None)
+        mock_trigger.assert_called_once_with(self.group, SmartAssignmentTrigger.PR_CREATED)
+
+    @mock.patch("sentry.seer.smart_assignment.trigger.maybe_trigger_smart_assignment")
+    def test_skips_other_activities(self, mock_trigger: MagicMock) -> None:
         cases = [
-            (ActivityType.SEER_SOLUTION_COMPLETED, "solution_completed", None),
-            (ActivityType.ASSIGNED, "assignment", {"assignee": "1", "assigneeType": "user"}),
-            (ActivityType.SET_RESOLVED, "resolution", None),
-            (ActivityType.SET_RESOLVED_IN_COMMIT, "resolution", None),
+            (ActivityType.SEER_SOLUTION_COMPLETED, None),
+            (ActivityType.ASSIGNED, {"assignee": "1", "assigneeType": "user"}),
+            (ActivityType.SET_RESOLVED, None),
+            (ActivityType.NOTE, None),
         ]
-        for activity_type, expected_trigger, data in cases:
-            mock_task.reset_mock()
+        for activity_type, data in cases:
             activity = self.create_group_activity(
                 group=self.group, type=activity_type.value, data=data
             )
             smart_assignment_activity_handler(self.group, activity, None)
-            mock_task.delay.assert_called_once_with(
-                group_id=self.group.id,
-                trigger=expected_trigger,
-                actor_user_id=activity.user_id,
-            )
-
-    @mock.patch("sentry.tasks.seer.smart_assignment.process_smart_assignment")
-    def test_skips_unmapped_activity(self, mock_task: MagicMock) -> None:
-        activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
-        smart_assignment_activity_handler(self.group, activity, None)
-        mock_task.delay.assert_not_called()
+        mock_trigger.assert_not_called()
 
 
 class SeerActivityHandlerTest(TestCase):

@@ -11,16 +11,12 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class SmartAssignmentTrigger(models.TextChoices):
     """What event caused us to make a prediction for this issue.
 
-    Recorded so evaluation can separate predictions made before any human touched
-    the issue (`NEW_ISSUE`, `SOLUTION_COMPLETED`) from ones triggered by the very
-    action they're scored against (`ASSIGNMENT`, `RESOLUTION`), which can be biased
-    toward the actor.
+    Recorded on the result row so we can tell predictions apart by their source.
+    Only `PR_CREATED` is wired up today (fired when Seer opens a PR); more may be
+    added as we run the feature on other populations.
     """
 
-    NEW_ISSUE = "new_issue"
-    SOLUTION_COMPLETED = "solution_completed"
-    ASSIGNMENT = "assignment"
-    RESOLUTION = "resolution"
+    PR_CREATED = "pr_created"
 
 
 class SmartAssignmentStatus(models.TextChoices):
