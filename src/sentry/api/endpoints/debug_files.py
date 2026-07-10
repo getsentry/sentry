@@ -305,10 +305,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
     def _redirect_to_objectstore(
         self, request: Request, debug_file: ProjectDebugFile, project: Project
     ) -> HttpResponseRedirect:
-        try:
-            presigned_url = debug_file.get_presigned_download_url()
-        except (RequestError, Project.DoesNotExist, HTTPError):
-            raise Http404
+        presigned_url = debug_file.get_objectstore_presigned_url()
 
         if system.is_internal_ip(request):
             # Redirect to a URL pointing to the internal Objectstore ip/hostname.

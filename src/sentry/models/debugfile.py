@@ -278,19 +278,15 @@ class ProjectDebugFile(Model):
             return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
-    def get_presigned_download_url(self) -> str:
+    def get_objectstore_presigned_url(self) -> str:
         """
-        Returns a pre-signed URL authorizing a single GET of this debug file directly from
+        Returns a pre-signed URL authorizing a GET/HEAD request of this debug file directly from
         Objectstore. Only valid when the file is stored in Objectstore.
-
-        The returned URL points at the Objectstore hostname configured for this cell; callers are
-        responsible for rewriting it to a caller-reachable host if needed.
         """
         assert self.storage_path is not None, "debug file is not stored in Objectstore"
-        # The URL only needs to outlive the redirect that hands it to the client (which follows it
-        # immediately), so a short validity window is plenty.
-        ttl = timedelta(minutes=5)
-        return self._get_objectstore_session().presigned_object_url("GET", self.storage_path, ttl)
+        return self._get_objectstore_session().presigned_object_url(
+            "GET", self.storage_path, duration=timedelta(minutes=5)
+        )
 
     def save_to(self, path: str) -> None:
         if self.storage_path is not None:

@@ -3,7 +3,7 @@ from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
 
-import requests as requests_lib
+import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -60,11 +60,13 @@ class DebugFilesTestCases(APITestCase):
             # In dev/test the host may be rewritten to the Docker-internal `objectstore` hostname
             # (so Symbolicator can reach it); rewrite it back so this host-side test can follow it.
             location = location.replace("://objectstore:", "://127.0.0.1:")
-            r = requests_lib.get(location)
-            assert r.status_code == 200, r.text
-            assert r.content == content
+            response = requests.get(location)
+            assert response.status_code == 200, response.text
+            assert response.content == content
             if filename is not None:
-                assert r.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
+                assert (
+                    response.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
+                )
         else:
             assert response.status_code == 200, response.content
             if filename is not None:
