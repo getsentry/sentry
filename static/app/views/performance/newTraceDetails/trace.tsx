@@ -61,11 +61,14 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {isEAPSpan} from './traceGuards';
 import {
   PINNED_COLUMN_WIDTH,
   TracePinnedAttributeColumn,
   TracePinnedAttributeHeader,
+  type TracePinnedAttributeData,
   useTracePinnedAttribute,
+  useTracePinnedAttributeData,
 } from './tracePinnedAttribute';
 import type {TraceReducerState} from './traceState';
 
@@ -201,6 +204,18 @@ export function Trace({
     () => snapshotVisibleTraceItems(trace.list, forceRerender),
     [trace.list, forceRerender]
   );
+  const pinnedAttributeSpanIds = useMemo(
+    () =>
+      visibleTraceItems.flatMap(node =>
+        isEAPSpan(node.value) ? [node.value.event_id] : []
+      ),
+    [visibleTraceItems]
+  );
+  const pinnedAttributeData = useTracePinnedAttributeData({
+    pinnedAttribute,
+    spanIds: pinnedAttributeSpanIds,
+    traceSlug: trace_id,
+  });
 
   const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
@@ -426,6 +441,7 @@ export function Trace({
           tree={trace}
           trace_id={trace_id}
           pinnedAttribute={pinnedAttribute}
+          pinnedAttributeData={pinnedAttributeData}
         />
       );
     },
@@ -448,6 +464,7 @@ export function Trace({
       trace.type,
       forceRerender,
       pinnedAttribute,
+      pinnedAttributeData,
     ]
   );
 
@@ -494,7 +511,10 @@ export function Trace({
       {pinnedAttribute && !isTraceLoading ? (
         <Fragment>
           <div className="TracePinnedColumnLine" />
-          <TracePinnedAttributeHeader pinnedAttribute={pinnedAttribute} />
+          <TracePinnedAttributeHeader
+            pinnedAttribute={pinnedAttribute}
+            hasError={pinnedAttributeData.hasError}
+          />
         </Fragment>
       ) : null}
       <div
@@ -621,6 +641,7 @@ function RenderTraceRow(props: {
   onZoomIn: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   organization: Organization;
   pinnedAttribute: string | null;
+  pinnedAttributeData: TracePinnedAttributeData;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;
   searchResultsIteratorIndex: number | null;
@@ -719,10 +740,15 @@ function RenderTraceRow(props: {
     paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
+  const spanId = isEAPSpan(node.value) ? node.value.event_id : undefined;
   const pinnedColumns = props.pinnedAttribute ? (
     <TracePinnedAttributeColumn
-      node={node}
-      pinnedAttribute={props.pinnedAttribute}
+      value={spanId ? props.pinnedAttributeData.valuesBySpanId.get(spanId) : undefined}
+      isLoading={
+        spanId !== undefined &&
+        props.pinnedAttributeData.isLoading &&
+        !props.pinnedAttributeData.resolvedSpanIds.has(spanId)
+      }
       manager={props.manager}
     />
   ) : null;

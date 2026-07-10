@@ -1,18 +1,30 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
+import {useInfiniteQuery} from '@tanstack/react-query';
+import chunk from 'lodash/chunk';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {NewQuery} from 'sentry/types/organization';
+import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import type {
+  CanonicalApiQueryKey,
+  InfiniteApiQueryKey,
+} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import {isEAPSpan} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+
+import {useTraceEventView} from './useTraceEventView';
+import {useTraceQueryParams} from './useTraceQueryParams';
 
 /**
  * URL query param that holds the single pinned attribute key. The URL is the
@@ -27,138 +39,125 @@ export const PINNED_ATTRIBUTE_QUERY_KEY = 'pinnedAttribute';
 export const PINNED_COLUMN_WIDTH = 160;
 
 const EMPTY_VALUE = '—';
+const LOADING_VALUE = '…';
+const EVENTS_PAGE_SIZE = 100;
 
-/**
- * Attributes that are always requested from the trace endpoint so the waterfall
- * can render things like http errors and gen_ai enrichment.
- */
-const DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES = [
-  'thread.id',
-  'tags[performance.timeOrigin,number]',
-  'gen_ai.operation.type',
-  'http.response.status_code',
-  'span.status',
-];
+type PinnedAttributeValue = boolean | number | string | null | undefined;
 
-/**
- * Scalar attributes the trace endpoint returns as native span fields, keyed by
- * the attribute name as it appears in the span details drawer — i.e. what a user
- * actually pins (`span.description`, NOT the backend column name `description`) —
- * and mapped to the corresponding field on the span value. Used both to keep
- * these out of the additional_attributes request and to read their value for the
- * pinned column. Mirrors `src/sentry/snuba/spans_rpc.py` `run_trace_query`.
- */
-const NATIVE_ATTRIBUTE_FIELDS: Record<string, keyof TraceTree.EAPSpan> = {
-  'span.op': 'op',
-  'span.name': 'name',
-  'span.description': 'description',
-  'span.duration': 'duration',
-  transaction: 'transaction',
-  is_transaction: 'is_transaction',
-  'sdk.name': 'sdk_name',
+type PinnedAttributeEventsResponse = {
+  data: Array<{[key: string]: PinnedAttributeValue; span_id?: string}>;
 };
 
-/**
- * Measurements, web vitals, and mobile vitals the trace endpoint always returns
- * (mirrors `src/sentry/snuba/spans_rpc.py`). Kept as an exact set — not a prefix
- * match — so that custom measurements not returned by the endpoint are still
- * requested. Drift only costs a redundant refetch or an empty cell, never a
- * crash.
- */
-const TRACE_RESPONSE_MEASUREMENT_ATTRIBUTES = new Set<string>([
-  'measurements.time_to_initial_display',
-  'measurements.time_to_full_display',
-  'measurements.app_start_cold',
-  'measurements.app_start_warm',
-  'measurements.frames_slow_rate',
-  'measurements.frames_frozen_rate',
-  'measurements.lcp',
-  'measurements.score.ratio.lcp',
-  'measurements.fcp',
-  'measurements.score.ratio.fcp',
-  'measurements.inp',
-  'measurements.score.ratio.inp',
-  'measurements.cls',
-  'measurements.score.ratio.cls',
-  'measurements.ttfb',
-  'measurements.score.ratio.ttfb',
-  'browser.web_vital.lcp.value',
-  'browser.web_vital.cls.value',
-  'browser.web_vital.inp.value',
-  'browser.web_vital.ttfb.value',
-  'browser.web_vital.fcp.value',
-  'app.vitals.start.cold.value',
-  'app.vitals.start.warm.value',
-  'app.vitals.ttid.value',
-  'app.vitals.ttfd.value',
-]);
+export interface TracePinnedAttributeData {
+  hasError: boolean;
+  isLoading: boolean;
+  resolvedSpanIds: Set<string>;
+  valuesBySpanId: Map<string, PinnedAttributeValue>;
+}
 
 /**
- * Whether the trace endpoint already returns this attribute (as a native span
- * field or one of the always-requested default attributes). Pinning such an
- * attribute must NOT add it to the additional_attributes request.
+ * Loads the pinned field and span ID from the events endpoint without changing
+ * the trace query. Span IDs are requested in waterfall order, one batch at a
+ * time, so values fill in from the top of the trace downward.
  */
-function isTraceResponseAttribute(key: string): boolean {
-  return (
-    key in NATIVE_ATTRIBUTE_FIELDS ||
-    TRACE_RESPONSE_MEASUREMENT_ATTRIBUTES.has(key) ||
-    DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES.includes(key)
+export function useTracePinnedAttributeData({
+  pinnedAttribute,
+  spanIds,
+  traceSlug,
+}: {
+  pinnedAttribute: string | null;
+  spanIds: string[];
+  traceSlug: string | undefined;
+}): TracePinnedAttributeData {
+  const organization = useOrganization();
+  const location = useLocation();
+  const queryParams = useTraceQueryParams();
+  const eventViewOverrides = useMemo<Partial<NewQuery>>(
+    () => ({
+      dataset: DiscoverDatasets.SPANS,
+      fields: pinnedAttribute ? ['span_id', pinnedAttribute] : ['span_id'],
+    }),
+    [pinnedAttribute]
   );
-}
+  const eventView = useTraceEventView(traceSlug ?? '', queryParams, eventViewOverrides);
+  const orderedSpanIds = useMemo(() => Array.from(new Set(spanIds)), [spanIds]);
+  const spanIdBatches = useMemo(
+    () => chunk(orderedSpanIds, EVENTS_PAGE_SIZE),
+    [orderedSpanIds]
+  );
+  const eventsUrl = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
+  const eventsQuery = {
+    ...eventView.getEventsAPIPayload(location),
+    cursor: undefined,
+    dataset: DiscoverDatasets.SPANS,
+    per_page: EVENTS_PAGE_SIZE,
+    referrer: 'api.trace-view.get-events',
+  };
+  const queryKey = [
+    eventsUrl,
+    {query: {...eventsQuery, ordered_span_ids: orderedSpanIds}},
+    {infinite: true},
+  ] as const satisfies InfiniteApiQueryKey;
 
-/**
- * Builds the additional_attributes request for the trace endpoint: the default
- * set plus the pinned attribute, unless the pinned attribute is already included
- * in the trace response. Sorted for a stable react-query key so toggling
- * unrelated state never triggers a refetch.
- */
-export function getTraceAdditionalAttributes(pinnedAttribute: string | null): string[] {
-  const attributes = new Set(DEFAULT_TRACE_ADDITIONAL_ATTRIBUTES);
-  if (pinnedAttribute && !isTraceResponseAttribute(pinnedAttribute)) {
-    attributes.add(pinnedAttribute);
-  }
-  return Array.from(attributes).sort();
-}
+  const result = useInfiniteQuery({
+    queryKey,
+    queryFn: context => {
+      const querySpanIds = context.queryKey[1].query.ordered_span_ids;
+      const spanIdBatch = chunk(querySpanIds, EVENTS_PAGE_SIZE)[context.pageParam] ?? [];
+      const search = new MutableSearch(String(eventsQuery.query ?? ''));
+      search.addFilterValue('span_id', `[${spanIdBatch.join(',')}]`);
+      const batchQueryKey: CanonicalApiQueryKey = [
+        eventsUrl,
+        {query: {...eventsQuery, query: search.formatString()}},
+        {infinite: false},
+      ];
 
-/**
- * Resolves a pinned attribute's value for a node, checking the requested
- * additional attributes first and then falling back to the native span fields
- * the trace endpoint always returns (so attributes excluded from the request
- * still render).
- */
-function getPinnedAttributeValue(
-  node: BaseNode,
-  key: string
-): string | number | boolean | undefined {
-  const additionalValue = node.attributes?.[key];
-  if (additionalValue !== undefined) {
-    return additionalValue;
-  }
+      return apiFetch<PinnedAttributeEventsResponse>({
+        ...context,
+        queryKey: batchQueryKey,
+      });
+    },
+    initialPageParam: 0,
+    getNextPageParam: (_lastPage, _allPages, lastPageParam) => {
+      const nextPageParam = lastPageParam + 1;
+      return nextPageParam < spanIdBatches.length ? nextPageParam : undefined;
+    },
+    enabled: Boolean(pinnedAttribute && traceSlug && spanIdBatches.length),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
 
-  const value = node.value;
-  if (!isEAPSpan(value)) {
-    return undefined;
-  }
+  const {resolvedSpanIds, valuesBySpanId} = useMemo(() => {
+    const resolved = new Set<string>();
+    const values = new Map<string, PinnedAttributeValue>();
 
-  const nativeField = NATIVE_ATTRIBUTE_FIELDS[key];
-  if (nativeField) {
-    const nativeValue = value[nativeField];
-    return typeof nativeValue === 'string' ||
-      typeof nativeValue === 'number' ||
-      typeof nativeValue === 'boolean'
-      ? nativeValue
-      : undefined;
-  }
-  if (key.startsWith('measurements.')) {
-    return value.measurements?.[key];
-  }
-  if (key.startsWith('browser.web_vital.')) {
-    return value.browser_web_vital?.[key];
-  }
-  if (key.startsWith('app.vitals.')) {
-    return value.mobile_app_vital?.[key];
-  }
-  return undefined;
+    for (const page of result.data?.pages ?? []) {
+      for (const row of page.json.data) {
+        if (!row.span_id) {
+          continue;
+        }
+        resolved.add(row.span_id);
+        values.set(row.span_id, pinnedAttribute ? row[pinnedAttribute] : undefined);
+      }
+    }
+
+    return {resolvedSpanIds: resolved, valuesBySpanId: values};
+  }, [pinnedAttribute, result.data?.pages]);
+
+  useFetchAllPages({result});
+
+  const hasError = result.isError || result.isFetchNextPageError;
+  const isLoading =
+    Boolean(pinnedAttribute) &&
+    !hasError &&
+    (result.isPending || result.isFetchingNextPage || Boolean(result.hasNextPage));
+
+  return useMemo(
+    () => ({hasError, isLoading, resolvedSpanIds, valuesBySpanId}),
+    [hasError, isLoading, resolvedSpanIds, valuesBySpanId]
+  );
 }
 
 interface UseTracePinnedAttribute {
@@ -196,24 +195,23 @@ export function useTracePinnedAttribute(): UseTracePinnedAttribute {
 
 /**
  * A single cell in the pinned attribute column, rendered once per waterfall row.
- * Reads the value straight off the node's loaded attributes. Renders a muted
- * placeholder when the span has no value for the pinned attribute.
+ * Renders a loading marker while its events row is unresolved and a muted
+ * placeholder when the resolved span has no value for the pinned attribute.
  *
  * The value lives in an inner element that the view manager translates so the
  * whole column scrolls horizontally as one unit (mirroring the tree column).
  */
 export function TracePinnedAttributeColumn({
-  node,
-  pinnedAttribute,
   manager,
+  value,
+  isLoading,
 }: {
+  isLoading: boolean;
   manager: VirtualizedViewManager;
-  node: BaseNode;
-  pinnedAttribute: string;
+  value: PinnedAttributeValue;
 }) {
-  const value = getPinnedAttributeValue(node, pinnedAttribute);
   const hasValue = value !== undefined && value !== null && value !== '';
-  const displayValue = hasValue ? String(value) : EMPTY_VALUE;
+  const displayValue = isLoading ? LOADING_VALUE : hasValue ? String(value) : EMPTY_VALUE;
 
   return (
     <div
@@ -223,8 +221,8 @@ export function TracePinnedAttributeColumn({
     >
       <div className="TracePinnedColumnInner">
         <span
-          className={`TracePinnedColumnValue ${hasValue ? '' : 'Empty'}`}
-          title={hasValue ? displayValue : undefined}
+          className={`TracePinnedColumnValue ${hasValue && !isLoading ? '' : 'Empty'}`}
+          title={hasValue && !isLoading ? displayValue : undefined}
         >
           {displayValue}
         </span>
@@ -237,7 +235,13 @@ export function TracePinnedAttributeColumn({
  * The header cell for the pinned attribute column. Shows the prettified
  * attribute name and an unpin button. Rendered once, in the waterfall header.
  */
-export function TracePinnedAttributeHeader({pinnedAttribute}: {pinnedAttribute: string}) {
+export function TracePinnedAttributeHeader({
+  pinnedAttribute,
+  hasError = false,
+}: {
+  pinnedAttribute: string;
+  hasError?: boolean;
+}) {
   const {setPinnedAttribute} = useTracePinnedAttribute();
   const label = prettifyAttributeName(pinnedAttribute);
 
@@ -246,6 +250,15 @@ export function TracePinnedAttributeHeader({pinnedAttribute}: {pinnedAttribute: 
       <Tooltip title={label} showOnlyOnOverflow>
         <span className="TracePinnedColumnHeaderLabel">{label}</span>
       </Tooltip>
+      {hasError ? (
+        <Tooltip title={t('Some pinned attribute values could not be loaded')}>
+          <IconWarning
+            size="xs"
+            variant="warning"
+            aria-label={t('Pinned attribute values are incomplete')}
+          />
+        </Tooltip>
+      ) : null}
       <Button
         size="zero"
         variant="transparent"

@@ -10,26 +10,40 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import {
-  getTraceAdditionalAttributes,
   TracePinnedAttributeColumn,
   TracePinnedAttributeHeader,
   useTracePinnedAttribute,
+  useTracePinnedAttributeData,
 } from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-
-function makeNode(additional_attributes?: Record<string, string | number>) {
-  return new EapSpanNode(null, makeEAPSpan({additional_attributes}), {
-    organization: OrganizationFixture(),
-  });
-}
 
 // The column only calls registerPinnedColumnRef, so a minimal stub suffices.
 const manager = {
   registerPinnedColumnRef: () => {},
 } as unknown as VirtualizedViewManager;
+
+const eventsUrl = '/organizations/org-slug/events/';
+
+function mockPinnedAttributeBatch({
+  data = [],
+  spanIds,
+  statusCode = 200,
+}: {
+  spanIds: string[];
+  data?: Array<Record<string, unknown>>;
+  statusCode?: number;
+}) {
+  return MockApiClient.addMockResponse({
+    url: eventsUrl,
+    body: statusCode >= 400 ? {detail: 'Unable to load values'} : {data, meta: {}},
+    statusCode,
+    match: [
+      (_url: string, options: Record<string, any>) =>
+        spanIds.every(spanId => String(options.query.query).includes(spanId)),
+    ],
+  });
+}
 
 describe('useTracePinnedAttribute', () => {
   it('reads the pinned attribute from the URL', () => {
@@ -82,99 +96,173 @@ describe('useTracePinnedAttribute', () => {
   });
 });
 
-describe('getTraceAdditionalAttributes', () => {
-  it('returns the default set, sorted, when nothing is pinned', () => {
-    const result = getTraceAdditionalAttributes(null);
-    expect(result).toEqual([...result].sort());
-    expect(result).toContain('span.status');
-  });
+describe('useTracePinnedAttributeData', () => {
+  it('loads sequential batches in waterfall order', async () => {
+    const spanIds = Array.from({length: 101}, (_, index) =>
+      index.toString(16).padStart(16, '0')
+    );
+    const firstBatch = spanIds.slice(0, 100);
+    const secondBatch = spanIds.slice(100);
+    const firstBatchRequest = mockPinnedAttributeBatch({
+      spanIds: firstBatch,
+      data: [{span_id: spanIds[0], 'custom.attribute': 'first'}],
+    });
+    const secondBatchRequest = mockPinnedAttributeBatch({
+      spanIds: secondBatch,
+      data: [{span_id: spanIds[100], 'custom.attribute': 'last'}],
+    });
 
-  it('requests a pinned attribute the trace response does not already include', () => {
-    expect(getTraceAdditionalAttributes('custom.attribute')).toContain(
-      'custom.attribute'
+    const {result} = renderHookWithProviders(
+      () =>
+        useTracePinnedAttributeData({
+          pinnedAttribute: 'custom.attribute',
+          spanIds,
+          traceSlug: 'trace-id',
+        }),
+      {organization: OrganizationFixture()}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(firstBatchRequest).toHaveBeenCalledWith(
+      eventsUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          field: ['span_id', 'custom.attribute'],
+          per_page: 100,
+          query: `trace:trace-id span_id:[${firstBatch.join(',')}]`,
+        }),
+      })
+    );
+    expect(secondBatchRequest).toHaveBeenCalledWith(
+      eventsUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `trace:trace-id span_id:[${secondBatch.join(',')}]`,
+        }),
+      })
+    );
+    expect(firstBatchRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      secondBatchRequest.mock.invocationCallOrder[0]!
+    );
+    expect(result.current.valuesBySpanId).toEqual(
+      new Map([
+        [spanIds[0], 'first'],
+        [spanIds[100], 'last'],
+      ])
     );
   });
 
-  it('does not request a pinned attribute already in the default set', () => {
-    const withPin = getTraceAdditionalAttributes('span.status');
-    const withoutPin = getTraceAdditionalAttributes(null);
-    expect(withPin).toEqual(withoutPin);
+  it('uses one request for up to 100 spans', async () => {
+    const spanIds = ['000000000000000a', '000000000000000b'];
+    const request = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {
+        data: [{span_id: spanIds[0], 'custom.attribute': 'first'}],
+        meta: {},
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useTracePinnedAttributeData({
+          pinnedAttribute: 'custom.attribute',
+          spanIds,
+          traceSlug: 'trace-id',
+        }),
+      {organization: OrganizationFixture()}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      eventsUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `trace:trace-id span_id:[${spanIds.join(',')}]`,
+        }),
+      })
+    );
   });
 
-  it('does not request a pinned attribute the trace response returns natively', () => {
-    // These are returned as native span fields, keyed as they appear in the drawer.
-    expect(getTraceAdditionalAttributes('span.op')).not.toContain('span.op');
-    expect(getTraceAdditionalAttributes('span.description')).not.toContain(
-      'span.description'
+  it('preserves loaded values when a later batch fails', async () => {
+    const spanIds = Array.from({length: 101}, (_, index) =>
+      index.toString(16).padStart(16, '0')
     );
-    expect(getTraceAdditionalAttributes('measurements.lcp')).not.toContain(
-      'measurements.lcp'
+    mockPinnedAttributeBatch({
+      spanIds: spanIds.slice(0, 100),
+      data: [{span_id: spanIds[0], 'custom.attribute': 'first'}],
+    });
+    mockPinnedAttributeBatch({
+      spanIds: spanIds.slice(100),
+      statusCode: 500,
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useTracePinnedAttributeData({
+          pinnedAttribute: 'custom.attribute',
+          spanIds,
+          traceSlug: 'trace-id',
+        }),
+      {organization: OrganizationFixture()}
     );
+
+    await waitFor(() => expect(result.current.hasError).toBe(true));
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.valuesBySpanId.get(spanIds[0]!)).toBe('first');
+  });
+
+  it('reuses cached pages when an attribute is pinned again', async () => {
+    const spanId = '000000000000000a';
+    const request = mockPinnedAttributeBatch({
+      spanIds: [spanId],
+      data: [{span_id: spanId, 'custom.attribute': 'first'}],
+    });
+
+    const {result, rerender} = renderHookWithProviders(
+      ({pinnedAttribute}: {pinnedAttribute: string | null}) =>
+        useTracePinnedAttributeData({
+          pinnedAttribute,
+          spanIds: [spanId],
+          traceSlug: 'trace-id',
+        }),
+      {
+        initialProps: {pinnedAttribute: 'custom.attribute' as string | null},
+        organization: OrganizationFixture(),
+      }
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    rerender({pinnedAttribute: null});
+    rerender({pinnedAttribute: 'custom.attribute'});
+    await waitFor(() => expect(result.current.valuesBySpanId.get(spanId)).toBe('first'));
+
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('TracePinnedAttributeColumn', () => {
-  it('renders the attribute value for the node', () => {
-    const node = makeNode({'http.response.status_code': 200});
-
+  it('renders a loaded attribute value', () => {
     render(
-      <TracePinnedAttributeColumn
-        node={node}
-        pinnedAttribute="http.response.status_code"
-        manager={manager}
-      />
+      <TracePinnedAttributeColumn value={200} isLoading={false} manager={manager} />
     );
 
     expect(screen.getByText('200')).toBeInTheDocument();
   });
 
-  it('renders a placeholder when the node has no value for the attribute', () => {
-    const node = makeNode();
-
+  it('renders a placeholder when the span has no value for the attribute', () => {
     render(
-      <TracePinnedAttributeColumn
-        node={node}
-        pinnedAttribute="http.response.status_code"
-        manager={manager}
-      />
+      <TracePinnedAttributeColumn value={undefined} isLoading={false} manager={manager} />
     );
 
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
-  it('reads native span fields for attributes not in additional_attributes', () => {
-    // span.op / span.description are native span fields, not in additional_attributes.
-    const node = new EapSpanNode(
-      null,
-      makeEAPSpan({op: 'db.query', description: 'SELECT * FROM users'}),
-      {organization: OrganizationFixture()}
-    );
-
-    render(
-      <TracePinnedAttributeColumn
-        node={node}
-        pinnedAttribute="span.op"
-        manager={manager}
-      />
-    );
-    expect(screen.getByText('db.query')).toBeInTheDocument();
-  });
-
-  it('reads span.description from the native span field', () => {
-    const node = new EapSpanNode(
-      null,
-      makeEAPSpan({description: 'SELECT * FROM users'}),
-      {organization: OrganizationFixture()}
-    );
-
-    render(
-      <TracePinnedAttributeColumn
-        node={node}
-        pinnedAttribute="span.description"
-        manager={manager}
-      />
-    );
-    expect(screen.getByText('SELECT * FROM users')).toBeInTheDocument();
+  it('renders a loading marker while the span is unresolved', () => {
+    render(<TracePinnedAttributeColumn value={undefined} isLoading manager={manager} />);
+    expect(screen.getByText('…')).toBeInTheDocument();
   });
 });
 
@@ -206,5 +294,17 @@ describe('TracePinnedAttributeHeader', () => {
     await waitFor(() => {
       expect(router.location.query.pinnedAttribute).toBeUndefined();
     });
+  });
+
+  it('shows a warning when some values fail to load', () => {
+    render(<TracePinnedAttributeHeader pinnedAttribute="span.op" hasError />, {
+      initialRouterConfig: {
+        location: {pathname: '/trace/', query: {pinnedAttribute: 'span.op'}},
+      },
+    });
+
+    expect(
+      screen.getByLabelText('Pinned attribute values are incomplete')
+    ).toBeInTheDocument();
   });
 });

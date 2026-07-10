@@ -51,10 +51,6 @@ import {
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
-import {
-  getTraceAdditionalAttributes,
-  useTracePinnedAttribute,
-} from './tracePinnedAttribute';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
@@ -141,19 +137,16 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
-  const {pinnedAttribute} = useTracePinnedAttribute();
-  // Request the pinned attribute only when the trace endpoint does not already
-  // return it. Sorted for a stable react-query key so toggling unrelated state
-  // never triggers a refetch.
-  const additionalAttributes = useMemo(
-    () => getTraceAdditionalAttributes(pinnedAttribute),
-    [pinnedAttribute]
-  );
-
   const trace = useTrace({
     traceSlug,
     timestamp: queryParams.timestamp,
-    additionalAttributes,
+    additionalAttributes: [
+      'thread.id',
+      'tags[performance.timeOrigin,number]',
+      'gen_ai.operation.type',
+      'http.response.status_code',
+      'span.status',
+    ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
 
