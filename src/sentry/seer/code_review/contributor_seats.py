@@ -16,6 +16,8 @@ from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -91,21 +93,22 @@ def should_increment_contributor_seat(
 def _get_or_create_contributor(
     *,
     organization: Organization,
-    integration_id: int,
+    integration: RpcIntegration,
     external_identifier: str,
-    provider: str,
     alias: str | None,
 ) -> OrganizationContributors:
     """
     TODO(CW-1539): Replace with get_or_create after the contributor deduplication
     migration has completed.
     """
+    hostname = instance_hostname(integration)
 
     def _get_canonical_contributor() -> OrganizationContributors | None:
         return (
             OrganizationContributors.objects.filter(
                 organization_id=organization.id,
-                provider=provider,
+                provider=integration.provider,
+                hostname=hostname,
                 external_identifier=external_identifier,
             )
             .order_by("id")
@@ -118,9 +121,10 @@ def _get_or_create_contributor(
     try:
         return OrganizationContributors.objects.create(
             organization_id=organization.id,
-            integration_id=integration_id,
+            integration_id=integration.id,
             external_identifier=external_identifier,
-            provider=provider,
+            provider=integration.provider,
+            hostname=hostname,
             alias=alias,
         )
     except IntegrityError:
@@ -134,18 +138,16 @@ def track_contributor_seat(
     *,
     organization: Organization,
     repo: Repository,
-    integration_id: int,
+    integration: RpcIntegration,
     user_id: str | int,
     user_username: str,
-    provider: str,
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
     contributor = _get_or_create_contributor(
         organization=organization,
-        integration_id=integration_id,
+        integration=integration,
         external_identifier=str(user_id),
-        provider=provider,
         alias=user_username,
     )
 
@@ -155,9 +157,9 @@ def track_contributor_seat(
     logger.info(
         "scm.webhook.organization_contributor.num_actions_should_increment",
         extra={
-            "provider": provider,
+            "provider": integration.provider,
             "organization_id": organization.id,
-            "integration_id": integration_id,
+            "integration_id": integration.id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
             "contributor_id": contributor.id,
@@ -167,7 +169,7 @@ def track_contributor_seat(
     metrics.incr(
         "scm.webhook.organization_contributor.num_actions_should_increment",
         sample_rate=1.0,
-        tags={"provider": provider},
+        tags={"provider": integration.provider},
     )
 
 
@@ -175,10 +177,9 @@ def record_contributor_action(
     *,
     organization: Organization,
     repo: Repository,
-    integration_id: int,
+    integration: RpcIntegration,
     user_id: str | int,
     user_username: str | None,
-    provider: str,
     pr_number: str | int,
     is_opened: bool,
     logs_extra: Mapping[str, Any] | None = None,
@@ -187,9 +188,8 @@ def record_contributor_action(
     """Seed a contributor and record the contributor's PR-opened action."""
     contributor = _get_or_create_contributor(
         organization=organization,
-        integration_id=integration_id,
+        integration=integration,
         external_identifier=str(user_id),
-        provider=provider,
         alias=user_username,
     )
 
@@ -212,9 +212,9 @@ def record_contributor_action(
     logger.info(
         "scm.webhook.organization_contributor.action_recorded",
         extra={
-            "provider": provider,
+            "provider": integration.provider,
             "organization_id": organization.id,
-            "integration_id": integration_id,
+            "integration_id": integration.id,
             "pr_author_id": str(user_id),
             "pr_author_login": user_username,
             "contributor_id": contributor.id,
@@ -226,7 +226,7 @@ def record_contributor_action(
     metrics.incr(
         "scm.webhook.organization_contributor.action_recorded",
         sample_rate=1.0,
-        tags={"provider": provider, **(tags or {})},
+        tags={"provider": integration.provider, **(tags or {})},
     )
 
     contributor.refresh_from_db(fields=["num_actions"])
