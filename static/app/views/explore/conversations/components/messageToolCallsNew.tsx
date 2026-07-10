@@ -71,7 +71,7 @@ export function MessageToolCallsNew({
             aria-pressed={isToolSelected}
             aria-label={t('Select tool call %s', tool.name)}
             radius="sm"
-            padding="xs sm"
+            padding="sm sm"
             cursor="pointer"
             css={rowCss}
             style={
