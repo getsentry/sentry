@@ -492,6 +492,7 @@ export default typescript.config([
       '@sentry/scraps/no-double-dollar-interpolation': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/prefer-info-text': 'error',
+      '@sentry/scraps/prefer-stack-for-column-flex': 'error',
       '@sentry/scraps/use-semantic-token': [
         'error',
         {enabledCategories: ['background', 'border', 'content']},
