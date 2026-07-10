@@ -295,6 +295,14 @@ def date(dt, arg=None):
     return date(dt, arg)
 
 
+@register.filter
+def day_initial(dt):
+    """Returns the single-letter day-of-week initial (M, T, W, T, F, S, S)."""
+    if isinstance(dt, datetime) and not django_timezone.is_aware(dt):
+        dt = dt.replace(tzinfo=timezone.utc)
+    return "MTWTFSS"[dt.weekday()]
+
+
 @register.simple_tag
 def percent(value, total, format=None):
     if not (value and total):

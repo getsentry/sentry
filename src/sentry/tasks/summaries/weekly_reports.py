@@ -479,7 +479,7 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
+project_breakdown_colors = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
@@ -519,16 +519,16 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> str | None:
-    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     if previous == 0:
         return None
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
         return None
-    arrow = "▲" if change > 0 else "▼"
-    return f"{arrow} {abs(pct)}%"
+    if change > 0:
+        return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
+    return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -889,6 +889,7 @@ def render_template_context(
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
+        "notification_settings_link": "/settings/account/notifications/reports/",
     }
 
 

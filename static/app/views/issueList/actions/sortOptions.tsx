@@ -38,9 +38,9 @@ function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.RECOMMENDED:
     case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t('Issues ranked by combined recency, severity, and impact signals.');
+      return t('Relevance and impact.');
     case IssueSortOptions.PROGRESS:
-      return t('Issues ranked by how far along they are toward a fix.');
+      return t('Progress toward a fix.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
