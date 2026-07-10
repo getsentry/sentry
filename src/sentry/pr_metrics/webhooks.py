@@ -230,32 +230,21 @@ def _forward_to_judge(
     """Hand a needs-judge terminal event to Seer, guarded against redelivery.
 
 
-    * Only PRs in orgs that have seer access are forwarded to the judge.
     * Only PRs with attribution in JUDGE_ELIGIBLE_SIGNAL_TYPES are forwarded to
     the judge; anything else (e.g. MCP) is settled here directly via
     ``select_fallback_verdict`` instead, but only when ``deferral`` is
     ``NEEDS_JUDGE`` — real activity/engagement data backs that verdict. An
     ``INDETERMINATE`` deferral has no reliable data to fall back on either, so
     it's skipped exactly as before this fallback existed.
+    * Only PRs in orgs that have seer access are forwarded to the judge. Checked
+    after the eligibility branch above: the fallback never talks to Seer, so it
+    must not be blocked by an org's Seer-access consent gate.
 
     Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
     (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
     Claims the sentinel via the redelivery guard before enqueuing the forward, so
     a redelivered terminal event can't forward to Seer twice.
     """
-    if not has_seer_access(organization):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
-        logger.info(
-            "pr_metrics.emit.needs_judge",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": pr.repository_id,
-                "pull_request_id": pr.id,
-                "reason": "no_seer_access",
-            },
-        )
-        return
-
     if not PullRequestAttribution.objects.filter(
         pull_request=pr,
         is_valid=True,
@@ -286,6 +275,19 @@ def _forward_to_judge(
             },
         )
         _claim_and_emit(pr, verdict, "pr_metrics.judge.fallback_emitted")
+        return
+
+    if not has_seer_access(organization):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
+        logger.info(
+            "pr_metrics.emit.needs_judge",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "reason": "no_seer_access",
+            },
+        )
         return
 
     if not features.has("organizations:pr-metrics-judge", organization):

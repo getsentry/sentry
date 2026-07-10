@@ -2105,6 +2105,25 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
+    def test_ineligible_attribution_emits_without_seer_access(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # The fallback never talks to Seer, so an org's Seer-access consent gate
+        # (gen-ai-features / hide_ai_features) must not block it — only the actual
+        # forward-to-Seer branch, reached for judge-eligible attribution, needs it.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_push_activity"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
     def test_ineligible_attribution_redelivery_emits_once(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
