@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
-
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {GroupActivityAssigned} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -71,14 +69,6 @@ function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
   return t('an unknown user');
 }
 
-function AssignmentDetailText({children}: {children: React.ReactNode}) {
-  return (
-    <Text as="span" variant="muted" bold={false} density="comfortable">
-      {children}
-    </Text>
-  );
-}
-
 function RuleSource({children}: {children: React.ReactNode}) {
   return (
     <Text as="span" variant="muted" bold={false} density="comfortable" wrap="nowrap">
@@ -109,24 +99,20 @@ function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) 
   const assignedToSelf =
     data.assigneeType === 'user' && data.assignee === activity.user?.id;
   const assignee = assignedToSelf ? (
-    <AssignmentDetailText>{t('themselves')}</AssignmentDetailText>
+    t('themselves')
   ) : (
     <AssigneePill assignee={getAssignedAssignee(activity, teams)} />
   );
   const integrationName = getAssignmentIntegrationName(data.integration);
 
-  return (
-    <Fragment>
-      <AssignmentDetailText>{t('to')}</AssignmentDetailText>
-      {assignee}
-      {integrationName ? (
-        <Fragment>
-          <AssignmentDetailText>{t('due to')}</AssignmentDetailText>
-          <RuleSource>{integrationName}</RuleSource>
-        </Fragment>
-      ) : null}
-    </Fragment>
-  );
+  if (integrationName) {
+    return tct('to [assignee] due to [rule]', {
+      assignee,
+      rule: <RuleSource>{integrationName}</RuleSource>,
+    });
+  }
+
+  return tct('to [assignee]', {assignee});
 }
 
 export function getAssignedActivityItem({
