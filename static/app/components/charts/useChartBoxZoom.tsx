@@ -102,15 +102,6 @@ export function useChartBoxZoom({
 
     let restoreTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function scheduleTooltipRestore() {
-      // Re-enable the tooltip a beat after release so it doesn't snap back under
-      // the cursor the instant the drag ends.
-      restoreTooltipTimer = setTimeout(() => {
-        restoreTooltipTimer = null;
-        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
-      }, TOOLTIP_RESTORE_DELAY_MS);
-    }
-
     function teardown() {
       dom.removeEventListener('pointermove', onPointerMove);
       dom.removeEventListener('pointerup', onPointerUp);
@@ -125,9 +116,19 @@ export function useChartBoxZoom({
       bounds = null;
     }
 
-    function endDrag() {
+    // Tears down the drag and re-enables the tooltip. Restore is immediate for a
+    // click/cancel; only an actual zoom delays it, so the tooltip doesn't flash
+    // under the cursor during the navigation/refetch that a zoom kicks off.
+    function endDrag(delayTooltipRestore = false) {
       teardown();
-      scheduleTooltipRestore();
+      if (delayTooltipRestore) {
+        restoreTooltipTimer = setTimeout(() => {
+          restoreTooltipTimer = null;
+          chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+        }, TOOLTIP_RESTORE_DELAY_MS);
+      } else {
+        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+      }
     }
 
     // If the chart moves under the fixed-position overlay mid-drag (page scroll,
@@ -222,9 +223,12 @@ export function useChartBoxZoom({
 
       const end = clampPointToBounds(mouseEventToPoint(evt), bounds);
 
-      endDrag();
+      // Delay the tooltip restore only for an actual zoom (which navigates); a
+      // click or too-small drag restores it immediately.
+      const isZoom = isDragAboveThreshold(start, end);
+      endDrag(isZoom);
 
-      if (!isDragAboveThreshold(start, end)) {
+      if (!isZoom) {
         return;
       }
 
