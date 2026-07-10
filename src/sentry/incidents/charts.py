@@ -212,6 +212,7 @@ def build_metric_alert_chart(
     aggregate = translate_aggregate_field(
         snuba_query.aggregate,
         reverse=True,
+        allow_mri=dataset in (Dataset.Metrics, Dataset.PerformanceMetrics),
         allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
     )
     # If we allow alerts to be across multiple orgs this will break
