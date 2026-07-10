@@ -14,11 +14,10 @@ import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {PriorityLevel, type Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type GroupDetailsPriorityProps = {
   group: Group;
@@ -38,7 +37,6 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
 
   return (nextPriority: PriorityLevel) => {
     if (nextPriority === group.priority) {
@@ -67,11 +65,14 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
       {
         success: () => {
           queryClient.invalidateQueries({
-            queryKey: groupApiOptions({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-              environments,
-            }).queryKey,
+            queryKey: [
+              getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  issueId: group.id,
+                },
+              }),
+            ],
           });
           clearIndicators();
           addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));

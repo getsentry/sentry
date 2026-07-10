@@ -19,14 +19,13 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -65,7 +64,6 @@ export function ShareIssueModal({
   const group = (groups as Group[]).find(item => item.id === groupId);
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
   const [loading, setLoading] = useState(false);
   const isPublished = group?.isPublic;
 
@@ -116,11 +114,11 @@ export function ShareIssueModal({
       {
         success: () => {
           queryClient.invalidateQueries({
-            queryKey: groupApiOptions({
-              organizationSlug: organization.slug,
-              groupId,
-              environments,
-            }).queryKey,
+            queryKey: [
+              getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+                path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+              }),
+            ],
           });
         },
         error: () => {
