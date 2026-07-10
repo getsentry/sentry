@@ -553,12 +553,14 @@ class User(Model, AbstractBaseUser):
             )
             .exists()
         )
+        if username_or_primary_taken:
+            return False
         verified_email_taken = (
             UserEmail.objects.filter(email__iexact=username, is_verified=True)
             .exclude(user_id=exclude_user_id)
             .exists()
         )
-        return not (username_or_primary_taken or verified_email_taken)
+        return not verified_email_taken
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
