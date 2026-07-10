@@ -200,6 +200,13 @@ export function useChartBoxZoom({
       dom.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('scroll', cancelDragOnChartMove, true);
       resizeObserver.disconnect();
+      // If torn down mid-drag, the tooltip was hidden — re-enable it so a
+      // surviving instance isn't left with tooltips off. Guard on `isDisposed`:
+      // in the common unmount/recreate path the instance is already gone, and
+      // `setOption` on it would warn.
+      if (bounds && !chartInstance.isDisposed()) {
+        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
+      }
       teardown();
       if (restoreTooltipTimer !== null) {
         clearTimeout(restoreTooltipTimer);
