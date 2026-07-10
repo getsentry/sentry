@@ -328,6 +328,10 @@ describe('SentryAppDetailsModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Request Publication'}));
 
     expect((await screen.findAllByText('Field is required')).length).toBeGreaterThan(0);
+    // Empty URL fields report as required, not as an invalid link
+    expect(
+      screen.queryByText('Invalid link: URL must start with https://')
+    ).not.toBeInTheDocument();
     expect(mockRequest).not.toHaveBeenCalled();
     expect(closeModal).not.toHaveBeenCalled();
   });
