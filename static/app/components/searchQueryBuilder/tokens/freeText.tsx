@@ -332,6 +332,9 @@ function SearchQueryBuilderInputInternal({
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const organization = useOrganization();
+  const enableNumberOperatorConversion = organization.features.includes(
+    'search-query-builder-number-operator-conversion'
+  );
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -481,7 +484,7 @@ function SearchQueryBuilderInputInternal({
         filterKeys,
       });
 
-      if (comparisonShortcut) {
+      if (enableNumberOperatorConversion && comparisonShortcut) {
         dispatch({
           type: 'UPDATE_FREE_TEXT_ON_COLON',
           tokens: [token],
@@ -505,6 +508,7 @@ function SearchQueryBuilderInputInternal({
     },
     [
       dispatch,
+      enableNumberOperatorConversion,
       filterKeys,
       getFieldDefinition,
       getSuggestedFilterKey,
@@ -765,7 +769,7 @@ function SearchQueryBuilderInputInternal({
             filterKeys,
           });
 
-          if (comparisonShortcut) {
+          if (enableNumberOperatorConversion && comparisonShortcut) {
             const {fieldDefinition, filterKey, text} = comparisonShortcut;
             const key = filterKeys[filterKey];
             dispatch({
