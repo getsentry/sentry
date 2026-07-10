@@ -33,6 +33,18 @@ SUPPORTED_ACTIVITIES = [
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
 ]
 
+# Resolution activities the smart assignment feature treats as an outcome (trigger
+# a prediction if none exists yet + record the resolver as ground truth).
+_SMART_ASSIGNMENT_RESOLUTION_ACTIVITIES = frozenset(
+    {
+        ActivityType.SET_RESOLVED,
+        ActivityType.SET_RESOLVED_IN_RELEASE,
+        ActivityType.SET_RESOLVED_BY_AGE,
+        ActivityType.SET_RESOLVED_IN_COMMIT,
+        ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+    }
+)
+
 
 @workflow_activity_registry.register("seer_activity")
 def seer_activity_handler(
@@ -92,24 +104,51 @@ def smart_assignment_activity_handler(
     activity: Activity,
     detector_id: DetectorId | None = None,
 ) -> None:
-    """Trigger the smart assignment feature when Seer opens a PR for an issue.
+    """Trigger the smart assignment feature off Seer PRs, assignment, and resolution.
 
     Invoked unconditionally for every group activity (via
-    invoke_workflow_activity_handlers), so it self-filters to SEER_PR_CREATED.
-    Gating (flag / dedup) happens in maybe_trigger_smart_assignment.
+    invoke_workflow_activity_handlers), so it self-filters to the activities we care
+    about. Each fires a prediction (deduped to one per group, so it only actually
+    runs the first time) and, for assignment / resolution, records the observed
+    ground truth on the row whether or not a new run was dispatched.
     """
+    from sentry import features
+    from sentry.models.groupassignee import GroupAssignee
     from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
-    from sentry.seer.smart_assignment.trigger import maybe_trigger_smart_assignment
+    from sentry.seer.smart_assignment.trigger import (
+        FEATURE_FLAG,
+        maybe_trigger_smart_assignment,
+        record_ground_truth,
+    )
 
     try:
         activity_type = ActivityType(activity.type)
     except ValueError:
         return
 
-    if activity_type != ActivityType.SEER_PR_CREATED:
+    if activity_type == ActivityType.SEER_PR_CREATED:
+        trigger = SmartAssignmentTrigger.PR_CREATED
+    elif activity_type == ActivityType.ASSIGNED:
+        trigger = SmartAssignmentTrigger.ASSIGNMENT
+    elif activity_type in _SMART_ASSIGNMENT_RESOLUTION_ACTIVITIES:
+        trigger = SmartAssignmentTrigger.RESOLUTION
+    else:
         return
 
-    maybe_trigger_smart_assignment(group, SmartAssignmentTrigger.PR_CREATED)
+    # Gate the whole handler here so unflagged orgs (the vast majority) pay only a
+    # cached flag check per activity, not the dedup / ground-truth queries below.
+    if not features.has(FEATURE_FLAG, group.organization):
+        return
+
+    maybe_trigger_smart_assignment(group, trigger)
+
+    if trigger == SmartAssignmentTrigger.ASSIGNMENT:
+        assignee = GroupAssignee.objects.filter(group=group).first()
+        if assignee is not None and assignee.user_id is not None:
+            record_ground_truth(group, assignee_user_id=assignee.user_id)
+    elif trigger == SmartAssignmentTrigger.RESOLUTION:
+        if activity.user_id is not None:
+            record_ground_truth(group, resolver_user_id=activity.user_id)
 
 
 @workflow_activity_registry.register("generic_activity")
