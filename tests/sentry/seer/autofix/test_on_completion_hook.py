@@ -5,8 +5,11 @@ from unittest.mock import patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import (
+    AgentFilePatch,
+    FilePatch,
     MemoryBlock,
     Message,
+    RepoPRState,
     SeerRunState,
     ToolCall,
     ToolLink,
@@ -16,10 +19,18 @@ from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.autofix.pr_iteration.types import (
+    Feedback,
+    GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
+    serialize_feedback,
+)
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
+
+HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
 
 
 class TestTriggerCodingAgentHandoff(TestCase):
@@ -183,3 +194,213 @@ class TestMaybeCommentOnMissingPermissions(TestCase):
         self._run(state)
 
         mock_comment.assert_called_once_with(self.organization, state, {"repo-b": perms_b})
+
+
+def _iteration_block_with_feedback(index: int, feedback_raw: str) -> MemoryBlock:
+    """The opening PR_ITERATION block, carrying the iteration's consumed feedback."""
+    return MemoryBlock(
+        id=f"iter-{index}",
+        message=Message(
+            role="user",
+            content="",
+            metadata={
+                "step": AutofixStep.PR_ITERATION.value,
+                "iteration_index": str(index),
+                "feedback": feedback_raw,
+            },
+        ),
+        timestamp="2023-07-18T12:00:00Z",
+    )
+
+
+@patch(f"{HOOK_PATH}.is_github_rate_limit_sensitive", return_value=False)
+@patch(f"{HOOK_PATH}.make_scm")
+@patch(f"{HOOK_PATH}._swap_comment_reaction_to_done")
+class TestMaybeReactToCompletedIteration(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+
+    def _feedback_raw(self, repo_name: str | None = "owner/repo") -> str:
+        return serialize_feedback(
+            [
+                Feedback(
+                    text="inline feedback",
+                    source=GithubPrReviewCommentFeedbackSource(
+                        comment={"id": 111}, repo_name=repo_name
+                    ),
+                ),
+                Feedback(
+                    text="top-level feedback",
+                    source=GithubPrCommentFeedbackSource(comment={"id": 222}, repo_name=repo_name),
+                ),
+            ]
+        )
+
+    def _state(
+        self,
+        *,
+        status: str = "completed",
+        blocks: list[MemoryBlock] | None = None,
+        repos: Sequence[str] = ("owner/repo",),
+    ) -> SeerRunState:
+        return SeerRunState(
+            run_id=1,
+            blocks=(
+                blocks
+                if blocks is not None
+                else [_iteration_block_with_feedback(1, self._feedback_raw())]
+            ),
+            status=status,
+            updated_at="2023-07-18T12:00:00Z",
+            repo_pr_states={
+                repo: RepoPRState(repo_name=repo, pr_number=n + 1) for n, repo in enumerate(repos)
+            },
+        )
+
+    def _run(self, state: SeerRunState) -> None:
+        AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+            self.organization, run_id=1, state=state
+        )
+
+    def test_swaps_reaction_for_both_comment_types(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(self._state())
+
+        # Both comments live on the same repo, so the SCM client is built once.
+        mock_make_scm.assert_called_once_with(
+            self.organization.id, ("github", "owner/repo"), referrer="seer"
+        )
+        assert mock_swap.call_count == 2
+        calls = {call.kwargs["comment_id"]: call for call in mock_swap.call_args_list}
+        assert set(calls) == {111, 222}
+
+        review = calls[111]
+        assert review.args[0] is mock_make_scm.return_value
+        assert review.kwargs["source_type"] == "github-pr-review-comment"
+        assert review.kwargs["pr_number"] == 1
+        assert review.kwargs["delete_eyes"] is True
+
+        assert calls[222].kwargs["source_type"] == "github-pr-comment"
+
+    def test_noop_when_status_error(self, mock_swap, mock_make_scm, mock_sensitive) -> None:
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(self._state(status="error"))
+
+        mock_swap.assert_not_called()
+
+    def test_noop_when_not_pr_iteration_step(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        root_cause_block = MemoryBlock(
+            id="rc",
+            message=Message(role="assistant", metadata={"step": AutofixStep.ROOT_CAUSE.value}),
+            timestamp="2023-07-18T12:00:00Z",
+        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(self._state(blocks=[root_cause_block]))
+
+        mock_swap.assert_not_called()
+
+    def test_noop_when_feature_disabled(self, mock_swap, mock_make_scm, mock_sensitive) -> None:
+        self._run(self._state())
+
+        mock_swap.assert_not_called()
+
+    def test_delete_eyes_skipped_for_rate_limit_sensitive_org(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        mock_sensitive.return_value = True
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(self._state())
+
+        assert mock_swap.call_count == 2
+        assert all(call.kwargs["delete_eyes"] is False for call in mock_swap.call_args_list)
+
+    def test_falls_back_to_sole_repo_when_repo_name_absent(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        # Feedback serialized before repo_name existed -> resolve via the only repo.
+        raw = serialize_feedback(
+            [Feedback(text="x", source=GithubPrCommentFeedbackSource(comment={"id": 222}))]
+        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(self._state(blocks=[_iteration_block_with_feedback(1, raw)]))
+
+        mock_make_scm.assert_called_once_with(
+            self.organization.id, ("github", "owner/repo"), referrer="seer"
+        )
+        assert mock_swap.call_count == 1
+        assert mock_swap.call_args.kwargs["comment_id"] == 222
+
+    def test_skips_comment_when_repo_ambiguous(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        # No repo_name and more than one repo -> can't safely resolve -> skip.
+        raw = serialize_feedback(
+            [Feedback(text="x", source=GithubPrCommentFeedbackSource(comment={"id": 222}))]
+        )
+        state = self._state(
+            blocks=[_iteration_block_with_feedback(1, raw)], repos=("owner/a", "owner/b")
+        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(state)
+
+        mock_make_scm.assert_not_called()
+        mock_swap.assert_not_called()
+
+    def test_noop_until_changes_synced(self, mock_swap, mock_make_scm, mock_sensitive) -> None:
+        # This hook fires once before the iteration's changes are pushed; with
+        # unsynced changes (the PR has no matching commit) we must not celebrate
+        # yet — we wait for the post-push re-fire.
+        work_block = MemoryBlock(
+            id="work",
+            message=Message(role="assistant", content=""),
+            timestamp="2023-07-18T12:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="owner/repo",
+                    patch=FilePatch(path="f.py", type="M", added=1, removed=0),
+                )
+            ],
+        )
+        state = self._state(
+            blocks=[_iteration_block_with_feedback(1, self._feedback_raw()), work_block]
+        )  # repo_pr_states carries no commit_sha -> not synced
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(state)
+
+        mock_swap.assert_not_called()
+
+    def test_reacts_once_changes_synced(self, mock_swap, mock_make_scm, mock_sensitive) -> None:
+        # After the push, the block's commit matches the PR's commit -> synced.
+        work_block = MemoryBlock(
+            id="work",
+            message=Message(role="assistant", content=""),
+            timestamp="2023-07-18T12:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="owner/repo",
+                    patch=FilePatch(path="f.py", type="M", added=1, removed=0),
+                )
+            ],
+            pr_commit_shas={"owner/repo": "sha-1"},
+        )
+        state = SeerRunState(
+            run_id=1,
+            blocks=[_iteration_block_with_feedback(1, self._feedback_raw()), work_block],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="sha-1")
+            },
+        )
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(state)
+
+        assert mock_swap.call_count == 2

@@ -5,15 +5,18 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 from django.utils import timezone
+from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixPrCreatedCompletedEvent,
 )
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -41,6 +44,12 @@ from sentry.seer.autofix.introspection import (
     introspect_root_cause,
     introspect_solution,
 )
+from sentry.seer.autofix.pr_iteration.types import (
+    GithubPrCommentFeedbackSource,
+    GithubPrCommentFeedbackType,
+    GithubPrReviewCommentFeedbackSource,
+    parse_feedback,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
@@ -54,7 +63,10 @@ from sentry.seer.models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import (
+    _swap_comment_reaction_to_done,
+    consume_queued_autofix_feedback,
+)
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -125,6 +137,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # so the user knows to update them (at most once per repo per run).
         cls._maybe_comment_on_missing_permissions(organization, run_id, state)
 
+        # When a PR-comment-triggered iteration finishes, acknowledge the
+        # originating comment(s) by swapping our :eye: for a :tada:.
+        cls._maybe_react_to_completed_iteration(organization, run_id, state)
+
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, group)
 
@@ -185,6 +201,109 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
         comment_on_out_of_date_github_permissions(organization, state, missing_by_repo)
+
+    @classmethod
+    def _repo_name_for_feedback(
+        cls,
+        state: SeerRunState,
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
+    ) -> str | None:
+        """The repo (a ``repo_pr_states`` key, i.e. ``Repository.name`` = "owner/repo")
+        a feedback comment lives on.
+
+        Uses the ``repo_name`` captured on the source at trigger time. For feedback
+        serialized before that field existed it's absent, so we fall back to the
+        sole repo; a multi-repo run with no ``repo_name`` is skipped rather than
+        reacted on the wrong repo.
+        """
+        if source.repo_name is not None:
+            return source.repo_name
+        if len(state.repo_pr_states) == 1:
+            return next(iter(state.repo_pr_states))
+        return None
+
+    @classmethod
+    def _maybe_react_to_completed_iteration(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+    ) -> None:
+        """Swap :eye: to :tada: on the comment(s) that triggered a completed PR iteration."""
+        if not features.has("organizations:autofix-pr-iteration", organization=organization):
+            return
+
+        current_step, _ = cls._get_current_step(state)
+        if current_step != AutofixStep.PR_ITERATION or state.status != "completed":
+            return
+
+        # we only want to react when the code change was PUSHED
+        # if we don't check this, we would react tada before the commit lands
+        _, is_synced = state.has_code_changes()
+        if not is_synced:
+            return
+
+        opening_block = next(
+            (
+                block
+                for block in reversed(state.blocks)
+                if (block.message.metadata or {}).get("step") == AutofixStep.PR_ITERATION.value
+            ),
+            None,
+        )
+        raw = (opening_block.message.metadata or {}).get("feedback") if opening_block else None
+        if not raw:
+            return
+
+        sources = [
+            feedback.source
+            for feedback in parse_feedback(raw)
+            if isinstance(
+                feedback.source,
+                (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
+            )
+        ]
+        if not sources:
+            return
+
+        delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
+        scm_by_repo: dict[str, SourceCodeManager] = {}
+        for source in sources:
+            comment_id = source.comment.get("id")
+            if comment_id is None:
+                continue
+
+            repo_name = cls._repo_name_for_feedback(state, source)
+            if repo_name is None:
+                continue
+
+            scm = scm_by_repo.get(repo_name)
+            if scm is None:
+                try:
+                    scm = make_scm(organization.id, ("github", repo_name), referrer="seer")
+                except Exception:
+                    logger.warning(
+                        "autofix.on_completion_hook.completion_reaction.scm_init_failed",
+                        extra={"run_id": run_id, "organization_id": organization.id},
+                        exc_info=True,
+                    )
+                    continue
+                scm_by_repo[repo_name] = scm
+
+            source_type: GithubPrCommentFeedbackType = (
+                "github-pr-review-comment"
+                if isinstance(source, GithubPrReviewCommentFeedbackSource)
+                else "github-pr-comment"
+            )
+            pr_state = state.repo_pr_states.get(repo_name)
+            pr_number = pr_state.pr_number if pr_state and pr_state.pr_number else 0
+            _swap_comment_reaction_to_done(
+                scm,
+                source_type=source_type,
+                pr_number=pr_number,
+                comment_id=comment_id,
+                delete_eyes=delete_eyes,
+            )
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:

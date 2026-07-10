@@ -10,7 +10,12 @@ from scm.manager import SourceCodeManager
 from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DeletePullRequestCommentReactionProtocol,
+    DeleteReviewCommentReactionProtocol,
+    GetAuthenticatedActorProtocol,
+    GetPullRequestCommentReactionsProtocol,
     GetRepositoryUserPermissionProtocol,
+    GetReviewCommentReactionsProtocol,
 )
 from taskbroker_client.retry import Retry
 
@@ -202,6 +207,95 @@ def _add_comment_eyes_reaction(
         sentry_sdk.capture_exception(e)
 
 
+def _swap_comment_reaction_to_done(
+    scm: SourceCodeManager,
+    *,
+    source_type: GithubPrCommentFeedbackType,
+    pr_number: int,
+    comment_id: int,
+    delete_eyes: bool,
+) -> None:
+    """Acknowledge iteration completion on a PR comment: add :hooray:, drop our :eyes:.
+
+    The :hooray: add is idempotent on GitHub (a repeat is a harmless no-op), so
+    unlike the read-before-add merge-request path we always add directly. When
+    ``delete_eyes`` is False (rate-limit-sensitive orgs) we skip the reaction
+    reads the deletion needs and only add :hooray:. Our own :eyes: is matched via
+    ``get_authenticated_actor`` so we never remove another user's reaction.
+
+    The add and the :eyes: cleanup are separate GitHub API phases: the add is the
+    acknowledgement itself, so its failure aborts (leaving the :eyes: as a
+    visibly-in-progress marker), while the cleanup is best-effort — if it fails
+    the :hooray: is already posted and we only risk a stale :eyes:. A failure in
+    either phase is caught and logged so it can't break the completion hook.
+
+    Review comments and top-level PR comments sit behind separate GitHub
+    endpoints, so we branch on ``source_type`` and call each one's SCM actions.
+    """
+    pr, cid = str(pr_number), str(comment_id)
+    log_extra = {"source_type": source_type, "pr_number": pr_number, "comment_id": comment_id}
+    unsupported = "autofix.pr_iteration.comment_completion.unsupported_provider"
+
+    if source_type == "github-pr-review-comment":
+        if not isinstance(scm, CreateReviewCommentReactionProtocol):
+            logger.warning(unsupported, extra=log_extra)
+            return
+        try:
+            scm_actions.create_review_comment_reaction(scm, pr, cid, "hooray")
+        except Exception:
+            logger.exception("autofix.pr_iteration.comment_completion.add_failed", extra=log_extra)
+            return
+
+        if not delete_eyes:
+            return
+        if not (
+            isinstance(scm, GetAuthenticatedActorProtocol)
+            and isinstance(scm, GetReviewCommentReactionsProtocol)
+            and isinstance(scm, DeleteReviewCommentReactionProtocol)
+        ):
+            logger.warning(unsupported, extra=log_extra)
+            return
+        try:
+            actor_id = scm_actions.get_authenticated_actor(scm)["data"]["id"]
+            for reaction in scm_actions.get_review_comment_reactions(scm, pr, cid)["data"]:
+                author = reaction["author"]
+                if reaction["content"] == "eyes" and author and author["id"] == actor_id:
+                    scm_actions.delete_review_comment_reaction(scm, pr, cid, reaction["id"])
+        except Exception:
+            logger.exception(
+                "autofix.pr_iteration.comment_completion.delete_eyes_failed", extra=log_extra
+            )
+    else:
+        if not isinstance(scm, CreatePullRequestCommentReactionProtocol):
+            logger.warning(unsupported, extra=log_extra)
+            return
+        try:
+            scm_actions.create_pull_request_comment_reaction(scm, pr, cid, "hooray")
+        except Exception:
+            logger.exception("autofix.pr_iteration.comment_completion.add_failed", extra=log_extra)
+            return
+
+        if not delete_eyes:
+            return
+        if not (
+            isinstance(scm, GetAuthenticatedActorProtocol)
+            and isinstance(scm, GetPullRequestCommentReactionsProtocol)
+            and isinstance(scm, DeletePullRequestCommentReactionProtocol)
+        ):
+            logger.warning(unsupported, extra=log_extra)
+            return
+        try:
+            actor_id = scm_actions.get_authenticated_actor(scm)["data"]["id"]
+            for reaction in scm_actions.get_pull_request_comment_reactions(scm, pr, cid)["data"]:
+                author = reaction["author"]
+                if reaction["content"] == "eyes" and author and author["id"] == actor_id:
+                    scm_actions.delete_pull_request_comment_reaction(scm, pr, cid, reaction["id"])
+        except Exception:
+            logger.exception(
+                "autofix.pr_iteration.comment_completion.delete_eyes_failed", extra=log_extra
+            )
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
@@ -304,12 +398,13 @@ def trigger_pr_iteration_from_comment(
     if source_type == "github-pr-review-comment":
         source = GithubPrReviewCommentFeedbackSource(
             comment=comment,
+            repo_name=repo.name,
             file_path=comment.get("path"),
             line=comment.get("line"),
             start_line=comment.get("start_line"),
         )
     else:
-        source = GithubPrCommentFeedbackSource(comment=comment)
+        source = GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
     feedback_obj = Feedback(text=feedback, source=source)
 
     enqueue_autofix_feedback(

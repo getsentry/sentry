@@ -17,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.types import (
 )
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_eyes_reaction,
+    _swap_comment_reaction_to_done,
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
@@ -394,4 +395,122 @@ class AddCommentEyesReactionTest(TestCase):
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+        )
+
+
+class _FakePrCommentScm:
+    """A provider implementing every top-level PR-comment reaction protocol."""
+
+    def create_pull_request_comment_reaction(self, *args: object, **kwargs: object) -> None: ...
+    def get_pull_request_comment_reactions(self, *args: object, **kwargs: object) -> None: ...
+    def delete_pull_request_comment_reaction(self, *args: object, **kwargs: object) -> None: ...
+    def get_authenticated_actor(self, *args: object, **kwargs: object) -> None: ...
+
+
+class _FakeReviewCommentScm:
+    """A provider implementing every inline review-comment reaction protocol."""
+
+    def create_review_comment_reaction(self, *args: object, **kwargs: object) -> None: ...
+    def get_review_comment_reactions(self, *args: object, **kwargs: object) -> None: ...
+    def delete_review_comment_reaction(self, *args: object, **kwargs: object) -> None: ...
+    def get_authenticated_actor(self, *args: object, **kwargs: object) -> None: ...
+
+
+class SwapCommentReactionToDoneTest(TestCase):
+    """The reaction actions are dispatched through a module-level table that binds
+    the real ``scm_actions`` functions, so these drive a spec'd scm whose methods
+    are mocks and assert on those — exercising the real delegation end to end."""
+
+    def _reactions(self) -> dict:
+        # Only ``own-eyes`` is our own :eyes: (authored by the bot); the others
+        # (another user's :eyes:, our :hooray:, an author-less rollup entry) must
+        # be left untouched.
+        return {
+            "data": [
+                {"id": "own-eyes", "content": "eyes", "author": {"id": "bot", "username": "seer"}},
+                {"id": "other-eyes", "content": "eyes", "author": {"id": "human", "username": "x"}},
+                {
+                    "id": "own-hooray",
+                    "content": "hooray",
+                    "author": {"id": "bot", "username": "seer"},
+                },
+                {"id": "orphan-eyes", "content": "eyes", "author": None},
+            ]
+        }
+
+    def test_pr_comment_adds_hooray_and_deletes_own_eyes(self) -> None:
+        scm = MagicMock(spec=_FakePrCommentScm)
+        scm.get_authenticated_actor.return_value = {"data": {"id": "bot"}}
+        scm.get_pull_request_comment_reactions.return_value = self._reactions()
+
+        _swap_comment_reaction_to_done(
+            scm,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            delete_eyes=True,
+        )
+
+        scm.create_pull_request_comment_reaction.assert_called_once_with("7", "999", "hooray")
+        # Only our own :eyes: is deleted, matched by authenticated actor id.
+        scm.delete_pull_request_comment_reaction.assert_called_once_with("7", "999", "own-eyes")
+
+    def test_review_comment_adds_hooray_and_deletes_own_eyes(self) -> None:
+        scm = MagicMock(spec=_FakeReviewCommentScm)
+        scm.get_authenticated_actor.return_value = {"data": {"id": "bot"}}
+        scm.get_review_comment_reactions.return_value = self._reactions()
+
+        _swap_comment_reaction_to_done(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=7,
+            comment_id=999,
+            delete_eyes=True,
+        )
+
+        scm.create_review_comment_reaction.assert_called_once_with("7", "999", "hooray")
+        scm.delete_review_comment_reaction.assert_called_once_with("7", "999", "own-eyes")
+
+    def test_delete_eyes_false_only_adds(self) -> None:
+        scm = MagicMock(spec=_FakePrCommentScm)
+
+        _swap_comment_reaction_to_done(
+            scm,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            delete_eyes=False,
+        )
+
+        scm.create_pull_request_comment_reaction.assert_called_once_with("7", "999", "hooray")
+        # The reaction reads/deletes the swap would otherwise do are skipped.
+        scm.get_authenticated_actor.assert_not_called()
+        scm.get_pull_request_comment_reactions.assert_not_called()
+        scm.delete_pull_request_comment_reaction.assert_not_called()
+
+    def test_noop_when_provider_unsupported(self) -> None:
+        scm = MagicMock(spec=[])  # implements no reaction protocol
+
+        # Should not raise and should touch nothing.
+        _swap_comment_reaction_to_done(
+            scm,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            delete_eyes=True,
+        )
+
+        assert scm.mock_calls == []
+
+    def test_swallows_exception(self) -> None:
+        scm = MagicMock(spec=_FakePrCommentScm)
+        scm.create_pull_request_comment_reaction.side_effect = Exception("boom")
+
+        # Should not raise.
+        _swap_comment_reaction_to_done(
+            scm,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            delete_eyes=True,
         )

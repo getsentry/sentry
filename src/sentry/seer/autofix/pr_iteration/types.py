@@ -51,6 +51,11 @@ class UserUIFeedbackSource(FeedbackSourceBase):
 
 class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     comment: Mapping[str, Any]
+    # The "owner/repo" slug (``Repository.name``) the comment lives on, captured
+    # at trigger time so completion handling can rebuild the SCM client for the
+    # right repo without re-deriving it from the comment URL. Optional so blobs
+    # serialized before this field existed still parse.
+    repo_name: str | None = None
 
     def is_valid_for_run_state(self, run_state: SeerRunState) -> bool:
         comment_id = self.comment.get("id")
