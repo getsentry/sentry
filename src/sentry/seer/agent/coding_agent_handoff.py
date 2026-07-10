@@ -26,7 +26,7 @@ from sentry.seer.autofix.coding_agent import (
     store_coding_agent_states_to_seer,
     validate_and_get_integration,
 )
-from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoffs
+from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoff
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
@@ -195,7 +195,7 @@ def launch_coding_agents(
 
         # Created per-repo, immediately, not batched after the loop -- a webhook
         # can arrive as soon as launch() returns above.
-        create_seer_run_coding_agent_handoffs(organization, run_id, [coding_agent_state])
+        create_seer_run_coding_agent_handoff(organization, run_id, coding_agent_state)
 
     # Store the coding agent states to Seer
     try:
