@@ -9,7 +9,10 @@ from django.utils import timezone
 
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-from sentry.tasks.backfill_group_action_log import backfill_group_action_log_for_group
+from sentry.tasks.backfill_group_action_log import (
+    backfill_group_action_log_for_group,
+    reset_and_backfill_group_action_log,
+)
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
@@ -132,3 +135,57 @@ class BackfillGroupActionLogForGroupTest(TestCase):
 
         with pytest.raises(RuntimeError):
             backfill_group_action_log_for_group(self.group.id)
+
+
+class ResetAndBackfillGroupActionLogTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.now = timezone.now()
+
+    def _backfill_group(self) -> None:
+        self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={},
+            user_id=self.user.id,
+            datetime=self.now - timedelta(minutes=1),
+        )
+        backfill_group_action_log_for_group(self.group.id)
+
+    def test_deletes_backfilled_entries_and_retriggers(self) -> None:
+        self._backfill_group()
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+        with patch.object(backfill_group_action_log_for_group, "delay") as mock_delay:
+            reset_and_backfill_group_action_log(self.group.id)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+        mock_delay.assert_called_once_with(group_id=self.group.id)
+
+    def test_preserves_non_backfill_entries(self) -> None:
+        self._backfill_group()
+
+        GroupActionLogEntry.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            type=GroupActionType.VIEW.value,
+            actor_type=GroupActorType.USER.value,
+            actor_id=self.user.id,
+            source="web",
+            data={},
+        )
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
+
+        with patch.object(backfill_group_action_log_for_group, "delay"):
+            reset_and_backfill_group_action_log(self.group.id)
+
+        remaining = GroupActionLogEntry.objects.filter(group_id=self.group.id)
+        assert remaining.count() == 1
+        assert remaining[0].source == "web"
+
+    def test_noop_for_nonexistent_group(self) -> None:
+        with patch.object(backfill_group_action_log_for_group, "delay") as mock_delay:
+            reset_and_backfill_group_action_log(999999999)
+
+        mock_delay.assert_not_called()
