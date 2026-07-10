@@ -315,6 +315,20 @@ class SeerSlackRendererAgentTest(TestCase):
         assert isinstance(blocks[0], MarkdownBlock)
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
 
+    def test_render_agent_response_strips_embed_widgets(self) -> None:
+        data = self._create_agent_response(
+            summary=(
+                'first seen at {% timestamp %}{"value": "2026-07-09T17:14:03", '
+                '"format": "relative"}{% /timestamp %} — done'
+            )
+        )
+        renderable = SeerSlackRenderer._render_agent_response(data)
+
+        block = renderable["blocks"][0]
+        assert isinstance(block, MarkdownBlock)
+        assert "{% timestamp %}" not in block.text
+        assert block.text == "first seen at  — done"
+
     def test_render_agent_response_with_missing_scope_footer(self) -> None:
         data = SeerAgentResponse(
             run_id=MOCK_RUN_ID,

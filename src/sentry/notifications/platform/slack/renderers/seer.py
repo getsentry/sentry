@@ -243,8 +243,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_agent_response(cls, data: SeerAgentResponse) -> SlackRenderable:
         from sentry import features
         from sentry.models.organization import Organization
+        from sentry.seer.agent.embed_widgets import strip_embed_widgets
 
-        blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        blocks: list[Block] = [MarkdownBlock(text=strip_embed_widgets(data.summary))]
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:

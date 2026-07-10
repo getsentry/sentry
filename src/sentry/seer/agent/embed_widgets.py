@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -31,3 +32,54 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
         if "featureFlag" not in w
         or (organization is not None and features.has(w["featureFlag"], organization, actor=actor))
     ]
+
+
+# Embed widgets are emitted as Markdoc-style tags, e.g.
+#   {% timestamp %}{"value": "2026-07-09T17:14:03", "format": "relative"}{% /timestamp %}
+# The Sentry web UI parses these into React components, but plaintext/markdown
+# surfaces (Slack, etc.) show them as raw text.
+#
+# The grammar below mirrors the frontend tokenizer (the source of truth) in
+# static/app/utils/marked/extensions/tag.ts: whitespace is required around the
+# tag name and delimiters, attributes are `key="value"` pairs, and a tag is
+# either self-closing (`{% name /%}`) or a paired block with a matching close
+# (`{% name %}...{% /name %}`). Matching that grammar keeps us from mangling
+# stray `{%`/`%}` that isn't actually a widget.
+_ATTRS = r'(?:\s+[\w-]+="[^"]*")*'
+_PAIRED_EMBED_TAG_RE = re.compile(
+    rf"\{{%\s+(?P<name>[\w-]+){_ATTRS}\s+%\}}[\s\S]*?\{{%\s+/(?P=name)\s+%\}}"
+)
+_SELF_CLOSING_EMBED_TAG_RE = re.compile(rf"\{{%\s+[\w-]+{_ATTRS}\s+/%\}}")
+
+# Code fences and inline code spans are rendered verbatim by the frontend (marked
+# tokenizes them before the tag extension runs), so `{% ... %}` inside them is
+# literal text, not a widget. Skip those regions when stripping. Fenced blocks
+# are matched before inline spans so ``` isn't mistaken for a run of inline
+# backticks; group 1 captures the inline backtick run so its close can match.
+_CODE_SEGMENT_RE = re.compile(r"```[\s\S]*?```|~~~[\s\S]*?~~~|(`+)[\s\S]*?\1")
+
+
+def _strip_tags(chunk: str) -> str:
+    chunk = _PAIRED_EMBED_TAG_RE.sub("", chunk)
+    return _SELF_CLOSING_EMBED_TAG_RE.sub("", chunk)
+
+
+def strip_embed_widgets(text: str) -> str:
+    """Remove Seer embed widget tags from ``text``, leaving code regions intact.
+
+    Defense-in-depth for surfaces that can't render embeds: even when the agent
+    is asked not to emit widgets, an in-flight or continued run may still return
+    them. Strip the tags so the raw markup never reaches the user, but never
+    touch `{% ... %}` inside fenced code blocks or inline code spans — there it's
+    legitimate content (e.g. Jinja/Nunjucks/Liquid examples) that the web UI also
+    renders verbatim. (Indented code blocks are not detected, but Seer uses
+    fenced blocks in practice.)
+    """
+    out: list[str] = []
+    last = 0
+    for match in _CODE_SEGMENT_RE.finditer(text):
+        out.append(_strip_tags(text[last : match.start()]))
+        out.append(match.group(0))  # keep the code region verbatim
+        last = match.end()
+    out.append(_strip_tags(text[last:]))
+    return "".join(out)
