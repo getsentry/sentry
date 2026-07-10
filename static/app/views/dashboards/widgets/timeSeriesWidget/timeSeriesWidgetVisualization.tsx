@@ -370,6 +370,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           version,
         }))
       : [],
+    legendSelected:
+      props.legendSelection === undefined
+        ? undefined
+        : props.legendSelection.Releases !== false,
     yAxisIndex: yAxes.length,
   });
 
@@ -540,6 +544,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     Record<string, boolean>
   >({});
   const legendSelection = props.legendSelection ?? localLegendSelection;
+  const normalizedLegendSelection = hasReleaseBubblesSeries
+    ? {...legendSelection, Releases: legendSelection.Releases !== false}
+    : legendSelection;
   const {onLegendSelectionChange} = props;
   const handleLegendSelectionChange = useCallback(
     (selection: Record<string, boolean>) => {
@@ -636,7 +643,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       {showLegend && (
         <ChartLegend
           items={chartLegendItems}
-          selected={legendSelection}
+          selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
         />
       )}
@@ -661,7 +668,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             showLegend
               ? {
                   show: false,
-                  selected: legendSelection,
+                  selected: normalizedLegendSelection,
                 }
               : undefined
           }
