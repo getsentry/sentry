@@ -12,6 +12,8 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
+from sentry.workflow_engine.models.action import Action
+from sentry.models.options.project_option import ProjectOption
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ PROJECT_ID_PATH = (
 WEBHOOK_CONFIG = {"target_identifier": "webhooks", "target_display": None, "target_type": None}
 
 
-def _webhook_configured_project_ids(project_option_model: type[Any]) -> set[int]:
+def _webhook_configured_project_ids(project_option_model: type[ProjectOption]) -> set[int]:
     """Project ids that have the ``webhooks:enabled`` option, regardless of value (True = enabled,
     False = disabled)."""
     return set(
@@ -56,7 +58,7 @@ def _convertible_action_ids(dcga_model: type[Any], configured_project_ids: set[i
     }
 
 
-def _convert_to_webhook(action_model: type[Any], action_ids: Iterable[int]) -> int:
+def _convert_to_webhook(action_model: type[Action], action_ids: Iterable[int]) -> int:
     """Convert plugin actions in place to WEBHOOK. In-place update preserves action.id, so
     DataConditionGroupAction (and any other) links are kept."""
     converted = 0

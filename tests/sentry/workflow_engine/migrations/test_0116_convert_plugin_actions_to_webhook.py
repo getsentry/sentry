@@ -1,4 +1,6 @@
 from sentry.testutils.cases import TestMigrations
+from django.db.migrations.state import StateApps
+from sentry.models.project import Project
 
 WEBHOOK_CONFIG = {"target_identifier": "webhooks", "target_display": None, "target_type": None}
 
@@ -8,7 +10,9 @@ class ConvertPluginActionsToWebhookTest(TestMigrations):
     migrate_from = "0115_add_group_index_to_wfh"
     migrate_to = "0116_convert_plugin_actions_to_webhook"
 
-    def _make_linked_action(self, apps, project, action_type):
+    def _make_linked_action(
+        self, apps: StateApps, project: Project, action_type: str
+    ) -> tuple[int, int]:
         """Create an Action reachable from ``project`` via the FK chain used to resolve the project:
         Detector -> DetectorWorkflow -> Workflow -> WorkflowDataConditionGroup -> DataConditionGroup
         -> DataConditionGroupAction -> Action. Returns the action id."""
@@ -31,7 +35,7 @@ class ConvertPluginActionsToWebhookTest(TestMigrations):
         DataConditionGroupAction.objects.create(condition_group_id=dcg.id, action_id=action.id)
         return action.id, dcg.id
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         ProjectOption = apps.get_model("sentry", "ProjectOption")
         Action = apps.get_model("workflow_engine", "Action")
         DataConditionGroupAction = apps.get_model("workflow_engine", "DataConditionGroupAction")
@@ -78,7 +82,7 @@ class ConvertPluginActionsToWebhookTest(TestMigrations):
         )
         self.existing_webhook_action_id = existing_webhook.id
 
-    def test_converts_configured_projects_only(self):
+    def test_converts_configured_projects_only(self) -> None:
         from sentry.workflow_engine.models import Action, DataConditionGroupAction
 
         # enabled + disabled (both configured) convert in place; config/data match the dual-write
