@@ -140,7 +140,10 @@ export function useChartBoxZoom({
     }
 
     function onPointerDown(evt: PointerEvent) {
-      if (!onZoomRef.current || evt.button !== 0) {
+      // Ignore the press when drag-zoom is off, it isn't the primary button, or
+      // a drag is already in progress (e.g. a second touch pointer) — starting a
+      // second selection would orphan the first overlay.
+      if (!onZoomRef.current || evt.button !== 0 || bounds !== null) {
         return;
       }
 
