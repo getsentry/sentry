@@ -88,7 +88,9 @@ class OrganizationGroupIndexProgressTest(APITestCase):
             )
 
 
-@with_feature("organizations:issue-stream-progress-ui")
+@with_feature(
+    ["organizations:issue-stream-progress-ui", "organizations:issue-stream-derived-progress"]
+)
 class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-index-progress"
 
@@ -96,36 +98,34 @@ class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_param_opt_in(self) -> None:
+    def test_uses_derived_progress(self) -> None:
         group = self.create_group(project=self.project)
         GroupDerivedData.objects.create(group=group, progress=IssueProgressState.DIAGNOSED)
 
-        response = self.get_success_response(
-            self.organization.slug,
-            groups=[group.id],
-            use_derived_data="true",
-        )
-        assert response.data == {"results": {str(group.id): {"progress": "diagnosed"}}}
-
-    def test_default_uses_activity(self) -> None:
-        group = self.create_group(project=self.project)
-        GroupDerivedData.objects.create(group=group, progress=IssueProgressState.DIAGNOSED)
-
-        # No param → defaults to false → Activity-based. No activities → "identified".
         response = self.get_success_response(
             self.organization.slug,
             groups=[group.id],
         )
+        assert response.data == {"results": {str(group.id): {"progress": "diagnosed"}}}
+
+    def test_flag_off_uses_activity(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupDerivedData.objects.create(group=group, progress=IssueProgressState.DIAGNOSED)
+
+        with self.feature({"organizations:issue-stream-derived-progress": False}):
+            response = self.get_success_response(
+                self.organization.slug,
+                groups=[group.id],
+            )
         assert response.data == {"results": {str(group.id): {"progress": "identified"}}}
 
-    def test_closed_issue_maps_to_fix_applied(self) -> None:
+    def test_no_progress_defaults_to_fix_applied(self) -> None:
         group = self.create_group(project=self.project)
         GroupDerivedData.objects.create(group=group, progress=None)
 
         response = self.get_success_response(
             self.organization.slug,
             groups=[group.id],
-            use_derived_data="true",
         )
         assert response.data == {"results": {str(group.id): {"progress": "fix_applied"}}}
 
@@ -135,7 +135,6 @@ class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             groups=[group.id],
-            use_derived_data="true",
         )
         assert response.data == {"results": {str(group.id): {"progress": "identified"}}}
 
@@ -147,7 +146,6 @@ class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             groups=[group_a.id, group_b.id],
-            use_derived_data="true",
         )
         assert response.data == {
             "results": {
@@ -166,7 +164,6 @@ class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             groups=[g.id for g in groups.values()],
-            use_derived_data="true",
         )
         for state, g in groups.items():
             assert response.data["results"][str(g.id)] == {"progress": state.value}

@@ -29,7 +29,6 @@ class GroupProgressQuerySerializer(serializers.Serializer[None]):
         min_length=1,
         max_length=100,
     )
-    use_derived_data = serializers.BooleanField(required=False, default=False)
 
 
 @cell_silo_endpoint
@@ -100,7 +99,9 @@ class OrganizationGroupIndexProgressEndpoint(OrganizationEndpoint):
 
         found_group_ids = [g.id for g in groups]
 
-        if serializer.validated_data["use_derived_data"]:
+        if features.has(
+            "organizations:issue-stream-derived-progress", organization, actor=request.user
+        ):
             progress_by_group = _get_derived_progress(found_group_ids)
         else:
             progress_by_group = get_group_progress_states(found_group_ids)
