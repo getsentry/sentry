@@ -129,6 +129,25 @@ export function ConversationContentLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
+  // Only split side-by-side when both panes fit their minimums; a vertical
+  // split can't size itself inside the document-scroll flow (no bounded
+  // height), so below that we stack the panes and let the page scroll.
+  const canSplit = width >= CONTENT_MIN_WIDTH + DETAIL_MIN_WIDTH + DIVIDER_WIDTH;
+
+  const content = (
+    <Container
+      flex="1"
+      minWidth="0"
+      padding={leftPadding}
+      background="primary"
+      border="primary"
+      radius="md"
+      overflowX="hidden"
+    >
+      {left}
+    </Container>
+  );
+
   return (
     <Container
       ref={measureRef}
@@ -138,25 +157,15 @@ export function ConversationContentLayout({
       width="100%"
       background="secondary"
     >
-      {width > 0 ? (
-        <MeasuredContentSplit
-          width={width}
-          detail={right}
-          content={
-            <Container
-              flex="1"
-              minWidth="0"
-              padding={leftPadding}
-              background="primary"
-              border="primary"
-              radius="md"
-              overflowX="hidden"
-            >
-              {left}
-            </Container>
-          }
-        />
-      ) : null}
+      {width > 0 &&
+        (canSplit && right ? (
+          <MeasuredContentSplit width={width} detail={right} content={content} />
+        ) : (
+          <Flex direction="column" minWidth="0" gap="md">
+            {content}
+            {right}
+          </Flex>
+        ))}
     </Container>
   );
 }
@@ -181,34 +190,20 @@ function MeasuredContentSplit({
 
   return (
     <SplitPanel
-      orientation={{xs: 'vertical', md: 'horizontal'}}
+      orientation="horizontal"
       defaultSize={defaultContent}
       initialSize={storedSize}
       minSize={CONTENT_MIN_WIDTH}
       fillMinSize={DETAIL_MIN_WIDTH}
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
       sized={
-        <Flex
-          direction="column"
-          flex="1"
-          minWidth="0"
-          minHeight="0"
-          paddingRight={{xs: '0', md: 'md'}}
-          paddingBottom={{xs: 'md', md: '0'}}
-        >
+        <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingRight="md">
           {content}
         </Flex>
       }
       fill={
         detail ? (
-          <Flex
-            direction="column"
-            flex="1"
-            minWidth="0"
-            minHeight="0"
-            paddingLeft={{xs: '0', md: 'md'}}
-            paddingTop={{xs: 'md', md: '0'}}
-          >
+          <Flex direction="column" flex="1" minWidth="0" minHeight="0" paddingLeft="md">
             {detail}
           </Flex>
         ) : undefined
