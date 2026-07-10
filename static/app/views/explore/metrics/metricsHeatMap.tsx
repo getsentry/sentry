@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -134,33 +134,37 @@ export function MetricsHeatMap({
   } else if (heatMapSeries.values.length === 0) {
     visualization = <Widget.WidgetError error={t('No data')} />;
   } else {
+    // While more chunks stream in, dim the already-rendered grid behind a
+    // centered spinner so you get a peek at the data loading underneath. Every
+    // visible cell is final; we're only filling in more columns.
     visualization = (
-      <HeatMapWidgetVisualization
-        plottables={[new HeatMap(heatMapSeries)]}
-        onZoom={handleZoom}
-      />
+      <Container position="relative" height="100%">
+        <HeatMapWidgetVisualization
+          plottables={[new HeatMap(heatMapSeries)]}
+          onZoom={handleZoom}
+        />
+        {isFetchingMore ? (
+          <Flex position="absolute" inset="0" align="center" justify="center">
+            <Container
+              position="absolute"
+              inset="0"
+              background="primary"
+              style={{opacity: 0.5}}
+            />
+            <LoadingIndicator mini />
+          </Flex>
+        ) : null}
+      </Container>
     );
   }
 
-  // Non-blocking progress affordance: every visible cell is final, we're only
-  // streaming in more columns (or noting a chunk that failed to load).
-  let footer: React.ReactNode = null;
-  if (hasChart && isFetchingMore) {
-    footer = (
-      <Flex align="center" gap="xs">
-        <LoadingIndicator mini size={14} />
-        <Text size="sm" variant="muted">
-          {t('Loading more…')}
-        </Text>
-      </Flex>
-    );
-  } else if (hasChart && isPartial) {
-    footer = (
+  // A failed chunk leaves a gap; note it without blocking the rest of the grid.
+  const footer =
+    hasChart && isPartial ? (
       <Text size="sm" variant="warning">
         {t('Some data could not be loaded')}
       </Text>
-    );
-  }
+    ) : null;
 
   return (
     <WidgetWrapper>
