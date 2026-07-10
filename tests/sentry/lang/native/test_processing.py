@@ -56,7 +56,17 @@ NATIVE_EXCEPTION = {
             id="minidump_with_native_stacktrace",
         ),
         pytest.param(
+            [MINIDUMP_PLACEHOLDER, APPLECRASHREPORT_PLACEHOLDER],  # unlikely but allowed
+            [SymbolicatorFunction.minidump],
+            id="minidump_with_applecrashreport",
+        ),
+        pytest.param(
             [APPLECRASHREPORT_PLACEHOLDER],
+            [SymbolicatorFunction.applecrashreport],
+            id="simple_applecrashreport",
+        ),
+        pytest.param(
+            [APPLECRASHREPORT_PLACEHOLDER, NATIVE_EXCEPTION],
             [SymbolicatorFunction.applecrashreport],
             id="simple_applecrashreport",
         ),
