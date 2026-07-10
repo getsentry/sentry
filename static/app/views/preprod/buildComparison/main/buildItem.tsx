@@ -19,6 +19,7 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {
+  getBuildNumber,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -98,7 +99,7 @@ function BuildItemDetails({
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
   const version = build.app_info?.version;
-  const buildNumber = build.app_info?.build_number;
+  const buildNumber = getBuildNumber(build.app_info);
 
   const hasGitInfo = Boolean(prNumber || branchName || commitHash);
   const versionInfo = formatVersionInfo(version, buildNumber);

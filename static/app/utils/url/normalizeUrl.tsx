@@ -1,4 +1,4 @@
-import type {Location, LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -42,20 +42,8 @@ export function normalizeUrl(
 
 export function normalizeUrl(
   path: LocationDescriptor,
-  location?: Location,
-  options?: NormalizeUrlOptions
-): LocationDescriptor;
-
-export function normalizeUrl(
-  path: LocationDescriptor,
-  location?: Location | NormalizeUrlOptions,
   options?: NormalizeUrlOptions
 ): LocationDescriptor {
-  if (location && 'forceCustomerDomain' in location) {
-    options = location;
-    location = undefined;
-  }
-
   const customerDomain = ConfigStore.get('customerDomain');
   if (!options?.forceCustomerDomain && !customerDomain) {
     return path;
