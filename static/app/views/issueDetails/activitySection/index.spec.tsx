@@ -868,52 +868,6 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
   });
 
-  it('links a resolved release activity to its pull request', async () => {
-    const repository = RepositoryFixture({
-      name: 'example/repository',
-      provider: {id: 'integrations:github', name: 'GitHub'},
-      url: 'https://github.com/example/repository',
-    });
-    const pullRequest = PullRequestFixture({
-      id: '1234',
-      externalUrl: 'https://github.com/example/repository/pull/1234',
-      repository,
-      title: 'Fix the issue',
-    });
-    const resolvedGroup = GroupFixture({
-      id: 'resolved-release-with-pr',
-      activity: [
-        {
-          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          id: 'resolved-release-with-pr-activity',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            version: 'frontend@1.0.0',
-            commit: CommitFixture({
-              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
-              pullRequest,
-              repository,
-            }),
-          },
-          user,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
-        <ActivitySection group={resolvedGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(await screen.findByText('Resolved')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {name: /example\/repository #1234: Fix the issue/})
-    ).toHaveAttribute('href', pullRequest.externalUrl);
-    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
-  });
-
   it('prefers the pull request for resolved release activity line items', async () => {
     const repository = RepositoryFixture({
       name: 'example/repository',
@@ -1032,51 +986,6 @@ describe('ActivitySection', () => {
     );
     expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
-  });
-
-  it('links a referenced commit activity to its pull request', async () => {
-    const repository = RepositoryFixture({
-      name: 'example/repository',
-      provider: {id: 'integrations:github', name: 'GitHub'},
-      url: 'https://github.com/example/repository',
-    });
-    const pullRequest = PullRequestFixture({
-      id: '1234',
-      externalUrl: 'https://github.com/example/repository/pull/1234',
-      repository,
-      title: 'Fix the issue',
-    });
-    const referencedGroup = GroupFixture({
-      id: 'referenced-commit-with-pr',
-      activity: [
-        {
-          type: GroupActivityType.REFERENCED_IN_COMMIT,
-          id: 'referenced-commit-with-pr-activity',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            commit: CommitFixture({
-              id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
-              pullRequest,
-              repository,
-            }),
-          },
-          user,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={referencedGroup} project={referencedGroup.project}>
-        <ActivitySection group={referencedGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /f7f395d/})).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {name: /example\/repository #1234: Fix the issue/})
-    ).toHaveAttribute('href', pullRequest.externalUrl);
   });
 
   it('links a referenced commit activity line item to its pull request', async () => {

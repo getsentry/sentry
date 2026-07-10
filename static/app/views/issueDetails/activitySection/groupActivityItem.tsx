@@ -320,57 +320,15 @@ export function getGroupActivityItem(
             {activity.data.provider}
           </Link>
         ) : null;
-        const resolvedBy = activity.data.commit?.pullRequest
-          ? tct(' via [pullRequest]', {
-              pullRequest: (
-                <PullRequestLink
-                  pullRequest={activity.data.commit.pullRequest}
-                  repository={activity.data.commit.pullRequest.repository}
-                />
-              ),
-            })
-          : activity.data.commit
-            ? tct(' via commit [commit]', {
-                commit: (
-                  <CommitLink
-                    inline
-                    commitId={activity.data.commit.id}
-                    repository={activity.data.commit.repository}
-                  />
-                ),
-              })
-            : null;
-        const withResolvedBy = (
-          message: React.JSX.Element | string | null
-        ): React.JSX.Element | string | null =>
-          resolvedBy ? (
-            <Fragment>
-              {message}
-              {resolvedBy}
-            </Fragment>
-          ) : (
-            message
-          );
+
         if ('current_release_version' in activity.data) {
           const currentVersion = activity.data.current_release_version;
           return {
             title: t('Resolved'),
-            message: withResolvedBy(
-              hasIntegration
-                ? tct(
-                    'by [author] in releases greater than [version] [semver] via [integration]',
-                    {
-                      author,
-                      version: (
-                        <ActivityRelease project={project} version={currentVersion} />
-                      ),
-                      semver: isSemverRelease(currentVersion)
-                        ? t('(semver)')
-                        : t('(non-semver)'),
-                      integration: integrationLink,
-                    }
-                  )
-                : tct('by [author] in releases greater than [version] [semver]', {
+            message: hasIntegration
+              ? tct(
+                  'by [author] in releases greater than [version] [semver] via [integration]',
+                  {
                     author,
                     version: (
                       <ActivityRelease project={project} version={currentVersion} />
@@ -378,40 +336,46 @@ export function getGroupActivityItem(
                     semver: isSemverRelease(currentVersion)
                       ? t('(semver)')
                       : t('(non-semver)'),
-                  })
-            ),
+                    integration: integrationLink,
+                  }
+                )
+              : tct('by [author] in releases greater than [version] [semver]', {
+                  author,
+                  version: <ActivityRelease project={project} version={currentVersion} />,
+                  semver: isSemverRelease(currentVersion)
+                    ? t('(semver)')
+                    : t('(non-semver)'),
+                }),
           };
         }
         const version = activity.data.version;
         if (version) {
           return {
             title: t('Resolved'),
-            message: withResolvedBy(
-              hasIntegration
-                ? tct('by [author] in [version] [semver] via [integration]', {
-                    author,
-                    version: <ActivityRelease project={project} version={version} />,
-                    semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
-                    integration: integrationLink,
-                  })
-                : tct('by [author] in [version] [semver]', {
-                    author,
-                    version: <ActivityRelease project={project} version={version} />,
-                    semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
-                  })
-            ),
+            message: hasIntegration
+              ? tct('by [author] in [version] [semver] via [integration]', {
+                  author,
+                  version: <ActivityRelease project={project} version={version} />,
+                  semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                  integration: integrationLink,
+                })
+              : tct('by [author] in [version] [semver]', {
+                  author,
+                  version: <ActivityRelease project={project} version={version} />,
+                  semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                }),
           };
         }
         return {
           title: t('Resolved'),
-          message: withResolvedBy(
-            hasIntegration
-              ? tct('by [author] in the upcoming release via [integration]', {
-                  author,
-                  integration: integrationLink,
-                })
-              : tct('by [author] in the upcoming release', {author})
-          ),
+          message: hasIntegration
+            ? tct('by [author] in the upcoming release via [integration]', {
+                author,
+                integration: integrationLink,
+              })
+            : tct('by [author] in the upcoming release', {
+                author,
+              }),
         };
       }
       case GroupActivityType.SET_RESOLVED_IN_COMMIT: {
@@ -490,38 +454,24 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.REFERENCED_IN_COMMIT: {
-        const commit = activity.data.commit;
-        if (!commit) {
+        if (activity.data.commit) {
           return {
             title: t('Referenced in Commit'),
-            message: tct('by [author] in a commit', {author}),
+            message: tct('by [author] in [commit]', {
+              author,
+              commit: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+            }),
           };
         }
-
-        const commitDetails = tct('by [author] in [commit]', {
-          author,
-          commit: (
-            <CommitLink inline commitId={commit.id} repository={commit.repository} />
-          ),
-        });
-
         return {
           title: t('Referenced in Commit'),
-          message: commit.pullRequest ? (
-            <Fragment>
-              {commitDetails}
-              {tct(' via [pullRequest]', {
-                pullRequest: (
-                  <PullRequestLink
-                    pullRequest={commit.pullRequest}
-                    repository={commit.pullRequest.repository}
-                  />
-                ),
-              })}
-            </Fragment>
-          ) : (
-            commitDetails
-          ),
+          message: tct('by [author] in a commit', {author}),
         };
       }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
