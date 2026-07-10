@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricTraceViewSearchFields} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {
@@ -17,6 +18,7 @@ import {
   type TracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {
   useQueryParamsSearch,
   useSetQueryParamsQuery,
@@ -113,27 +115,32 @@ function MetricsSectionContent() {
   const placeholder = t('Search application metrics for this trace');
   const attributeQuery = frozenSearch?.formatString();
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes(
-      {query: attributeQuery},
-      'string',
-      HiddenTraceMetricTraceViewSearchFields
-    );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes(
-      {query: attributeQuery},
-      'number',
-      HiddenTraceMetricTraceViewSearchFields
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceMetricItemAttributes(
-      {query: attributeQuery},
-      'boolean',
-      HiddenTraceMetricTraceViewSearchFields
-    );
+  const traceMetricsSearchQueryBuilderProps = useMemo(() => {
+    const numberAttributes: TagCollection = {};
+    const numberSecondaryAliases: TagCollection = {};
+    const booleanAttributes: TagCollection = {};
+    const booleanSecondaryAliases: TagCollection = {};
+    const stringSecondaryAliases: TagCollection = {};
 
-  const traceMetricsSearchQueryBuilderProps = useMemo(
-    () => ({
+    const stringAttributes: TagCollection = {
+      [TraceMetricKnownFieldKey.METRIC_NAME]: {
+        key: TraceMetricKnownFieldKey.METRIC_NAME,
+        name: TraceMetricKnownFieldKey.METRIC_NAME,
+        kind: FieldKind.TAG,
+      },
+      [TraceMetricKnownFieldKey.METRIC_TYPE]: {
+        key: TraceMetricKnownFieldKey.METRIC_TYPE,
+        name: TraceMetricKnownFieldKey.METRIC_TYPE,
+        kind: FieldKind.TAG,
+      },
+      [TraceMetricKnownFieldKey.METRIC_UNIT]: {
+        key: TraceMetricKnownFieldKey.METRIC_UNIT,
+        name: TraceMetricKnownFieldKey.METRIC_UNIT,
+        kind: FieldKind.TAG,
+      },
+    };
+
+    return {
       itemType: TraceItemDataset.TRACEMETRICS,
       booleanAttributes,
       numberAttributes,
@@ -147,20 +154,9 @@ function MetricsSectionContent() {
       onSearch: (query: string) => setMetricsQuery(query),
       hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
       attributeQuery,
-    }),
-    [
-      attributeQuery,
-      booleanAttributes,
-      booleanSecondaryAliases,
-      initialQuery,
-      numberAttributes,
-      numberSecondaryAliases,
-      placeholder,
-      setMetricsQuery,
-      stringAttributes,
-      stringSecondaryAliases,
-    ]
-  );
+      recentSearchesQuery: attributeQuery,
+    };
+  }, [attributeQuery, initialQuery, placeholder, setMetricsQuery]);
 
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     traceMetricsSearchQueryBuilderProps
