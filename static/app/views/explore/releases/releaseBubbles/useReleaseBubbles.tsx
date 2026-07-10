@@ -28,9 +28,10 @@ import {
   cleanReleaseCursors,
   ReleasesDrawerFields,
 } from 'sentry/views/explore/releases/drawer/utils';
-import {BUBBLE_SERIES_ID} from 'sentry/views/explore/releases/releaseBubbles/constants';
 import type {Bucket} from 'sentry/views/explore/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/explore/releases/releaseBubbles/utils/createReleaseBuckets';
+
+const BUBBLE_SERIES_ID = '__release_bubble__';
 
 interface LegendSelectChangedParams {
   name: string;
