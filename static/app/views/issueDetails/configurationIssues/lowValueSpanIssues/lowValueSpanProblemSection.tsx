@@ -48,8 +48,12 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
+  // Estimated cost is billing-sensitive, so only expose it to org owners and managers.
+  const canViewEstimatedCost = ['manager', 'owner'].includes(organization.orgRole ?? '');
   const hasEstimatedCost =
-    evidenceData.estimatedCostUsd !== null && evidenceData.estimatedCostUsd > 0;
+    canViewEstimatedCost &&
+    evidenceData.estimatedCostUsd !== null &&
+    evidenceData.estimatedCostUsd > 0;
   const spanCount = evidenceData.extrapolatedCount ?? evidenceData.count;
   const affectedSpanQuery = getAffectedSpanQuery(evidenceData);
   const affectedSpanExploreUrl = affectedSpanQuery

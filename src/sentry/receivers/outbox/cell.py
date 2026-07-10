@@ -36,6 +36,7 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
+    get_available_monitoring_providers,
     get_monitoring_provider_connections,
 )
 from sentry.seer.agent.client_utils import (
@@ -246,6 +247,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     match run_type:
         case SeerRunType.EXPLORER:
+            # Add connected and available monitoring providers for runs with user context.
             if run.user_id is not None:
                 try:
                     organization = Organization.objects.get_from_cache(id=run.organization_id)
@@ -254,6 +256,12 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                     )
                     if monitoring_provider_connections:
                         body["monitoring_providers"] = monitoring_provider_connections
+
+                    available_monitoring_providers = get_available_monitoring_providers(
+                        organization, run.user_id
+                    )
+                    if available_monitoring_providers:
+                        body["available_monitoring_providers"] = available_monitoring_providers
                 except Organization.DoesNotExist:
                     logger.warning(
                         "seer_run_create.organization_dne",

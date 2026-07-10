@@ -30,6 +30,18 @@ describe('useConversations', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('requests 50 conversations per page', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({per_page: 50})],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+  });
+
   it('normalizes firstInput when it is a string', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/`,

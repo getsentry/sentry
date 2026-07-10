@@ -1280,7 +1280,12 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["issue_pct_change"] == "▲ 100%"
+            assert context["trends"]["issue_pct_change"] == {
+                "arrow": "↑",
+                "pct": "100%",
+                "bg_color": "#F9F0D2",
+                "text_color": "#A45200",
+            }
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -1347,10 +1352,25 @@ class WeeklyReportsTest(
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
             # e/t come from cache: current 10 vs prev 5, current 20 vs prev 40
-            assert context["trends"]["error_pct_change"] == "▲ 100%"
-            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["trends"]["error_pct_change"] == {
+                "arrow": "↑",
+                "pct": "100%",
+                "bg_color": "#F9F0D2",
+                "text_color": "#A45200",
+            }
+            assert context["trends"]["transaction_pct_change"] == {
+                "arrow": "↓",
+                "pct": "50%",
+                "bg_color": "#E3F7E3",
+                "text_color": "#008900",
+            }
             # i comes from ORM fallback: current 1 vs prev 2
-            assert context["trends"]["issue_pct_change"] == "▼ 50%"
+            assert context["trends"]["issue_pct_change"] == {
+                "arrow": "↓",
+                "pct": "50%",
+                "bg_color": "#E3F7E3",
+                "text_color": "#008900",
+            }
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_counts_multi_project(self, message_builder: mock.MagicMock) -> None:
@@ -2080,7 +2100,7 @@ class WeeklyReportsTest(
 
             assert "sensitive error title xyz123" not in html
             assert "enhanced privacy" in html.lower()
-            assert "Total Project Errors" in html
+            assert "Total Errors" in html
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -2115,8 +2135,18 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] == "▲ 100%"
-            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["trends"]["error_pct_change"] == {
+                "arrow": "↑",
+                "pct": "100%",
+                "bg_color": "#F9F0D2",
+                "text_color": "#A45200",
+            }
+            assert context["trends"]["transaction_pct_change"] == {
+                "arrow": "↓",
+                "pct": "50%",
+                "bg_color": "#E3F7E3",
+                "text_color": "#008900",
+            }
             assert context["show_week_over_week_metric"] is True
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
@@ -2191,13 +2221,38 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] == "▲ 100%"
-            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["trends"]["error_pct_change"] == {
+                "arrow": "↑",
+                "pct": "100%",
+                "bg_color": "#F9F0D2",
+                "text_color": "#A45200",
+            }
+            assert context["trends"]["transaction_pct_change"] == {
+                "arrow": "↓",
+                "pct": "50%",
+                "bg_color": "#E3F7E3",
+                "text_color": "#008900",
+            }
 
     def test_pct_change_helper(self) -> None:
-        assert _pct_change(150, 100) == "▲ 50%"
-        assert _pct_change(50, 100) == "▼ 50%"
-        assert _pct_change(0, 100) == "▼ 100%"
+        assert _pct_change(150, 100) == {
+            "arrow": "↑",
+            "pct": "50%",
+            "bg_color": "#F9F0D2",
+            "text_color": "#A45200",
+        }
+        assert _pct_change(50, 100) == {
+            "arrow": "↓",
+            "pct": "50%",
+            "bg_color": "#E3F7E3",
+            "text_color": "#008900",
+        }
+        assert _pct_change(0, 100) == {
+            "arrow": "↓",
+            "pct": "100%",
+            "bg_color": "#E3F7E3",
+            "text_color": "#008900",
+        }
         assert _pct_change(100, 0) is None
         assert _pct_change(0, 0) is None
         assert _pct_change(100, 100) is None
