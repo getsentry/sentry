@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
@@ -483,7 +483,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           <Flex align="center" gap="md">
             <ResolvedWrapper>
               <IconCheckmark size="md" />
-              <Flex direction="column">
+              <Stack>
                 {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
                 <ReasonBanner>
                   {group.status === 'resolved' ? (
@@ -500,7 +500,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                       })
                     : null}
                 </ReasonBanner>
-              </Flex>
+              </Stack>
             </ResolvedWrapper>
 
             <Divider />

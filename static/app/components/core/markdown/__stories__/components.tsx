@@ -2,7 +2,7 @@ import {Fragment, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
-import {Flex, Surface} from '@sentry/scraps/layout';
+import {Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
@@ -57,7 +57,7 @@ export function StreamingDemo() {
   }
 
   return (
-    <Flex direction="column" gap="lg" flexGrow={1} maxWidth="72ch">
+    <Stack gap="lg" flexGrow={1} maxWidth="72ch">
       <Flex gap="md">
         <Button variant="primary" size="sm" onClick={startStream} disabled={isStreaming}>
           Start Stream
@@ -67,7 +67,7 @@ export function StreamingDemo() {
         </Button>
       </Flex>
       <Markdown raw={text} variant="streaming" />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -133,7 +133,7 @@ export function TagDemo() {
           const typedData = data as Record<string, string> | undefined;
           return (
             <Surface variant="overlay" elevation="medium" padding="lg">
-              <Flex direction="column" gap="lg">
+              <Stack gap="lg">
                 <Flex gap="sm" align="center">
                   <Flex flexGrow={1}>
                     <Text>{attrs.type}</Text>
@@ -146,7 +146,7 @@ export function TagDemo() {
                     <Text>{typedData.description}</Text>
                   </Flex>
                 ) : null}
-              </Flex>
+              </Stack>
             </Surface>
           );
         },

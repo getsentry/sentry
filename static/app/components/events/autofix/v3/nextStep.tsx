@@ -3,7 +3,7 @@ import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -532,7 +532,7 @@ function NextStepTemplate({
 
   if (clickedNo) {
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text>{rethinkPrompt}</Text>
         <TextArea
           autosize
@@ -551,12 +551,12 @@ function NextStepTemplate({
             {labelRethink}
           </Button>
         </Flex>
-      </Flex>
+      </Stack>
     );
   }
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
         <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
@@ -594,7 +594,7 @@ function NextStepTemplate({
           )}
         </ButtonBar>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

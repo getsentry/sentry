@@ -2,7 +2,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -129,7 +129,7 @@ export function Console() {
   });
 
   return (
-    <Flex direction="column" wrap="nowrap">
+    <Stack wrap="nowrap">
       <ConsoleFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-console-tab">
         {frames ? (
@@ -178,7 +178,7 @@ export function Console() {
           />
         ) : null}
       </TabItemContainer>
-    </Flex>
+    </Stack>
   );
 }
 
