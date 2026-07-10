@@ -25,9 +25,6 @@ def create_seer_run_coding_agent_handoff(
     run_id: int,
     state: CodingAgentState,
 ) -> None:
-    """Record the coding agent just launched for ``run_id``. Best-effort: any
-    failure is logged and swallowed rather than allowed to interrupt the launch flow.
-    """
     log_context = {"organization_id": organization.id, "run_id": run_id}
 
     try:
@@ -55,12 +52,7 @@ def sync_coding_agent_status(
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
 ) -> bool:
-    """Update both Seer's coding agent state and Sentry's own
-    :class:`SeerRunCodingAgentHandoff` tracking row, in lockstep -- a single call so
-    the two can never drift out of sync the way two separately-called functions can.
-
-    Best-effort: any failure updating the Sentry-side row is logged and swallowed
-    rather than allowed to interrupt the caller's poll/webhook flow.
+    """Update both Seer's coding agent state and Sentry's own SeerRunCodingAgentHandoff.
 
     Returns whether Seer recognized this ``agent_id`` (mirrors
     ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
