@@ -151,12 +151,23 @@ class ActionSource(StrEnum):
 class GroupAction(BaseModel, abc.ABC):
     """Typed payload for a group action log entry. Frozen after construction."""
 
+    _registry: dict[GroupActionType, type[GroupAction]] = {}
+
     class Config:
         frozen = True
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if not getattr(cls.get_type, "__isabstractmethod__", False):
+            cls._registry[cls.get_type()] = cls
 
     @classmethod
     @abc.abstractmethod
     def get_type(cls) -> GroupActionType: ...
+
+    @classmethod
+    def by_type(cls, action_type: GroupActionType) -> type[GroupAction] | None:
+        return cls._registry.get(action_type)
 
 
 class ViewAction(GroupAction):
