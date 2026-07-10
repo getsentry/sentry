@@ -26,6 +26,7 @@ from sentry.api.serializers.models.group import (
     snuba_tsdb,
 )
 from sentry.constants import StatsPeriod
+from sentry.eventtypes import EventTypeStr
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import GroupCategory
@@ -265,7 +266,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     seerAutofixLastTriggered: NotRequired[datetime | None]
     seerExplorerAutofixLastTriggered: NotRequired[datetime | None]
     project: NotRequired[GroupProjectResponse]
-    type: NotRequired[str]
+    type: NotRequired[EventTypeStr]
     issueType: NotRequired[str]
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
