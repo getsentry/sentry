@@ -111,6 +111,19 @@ describe('ScmCreateProject', () => {
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
+  it('shows a tooltip on the disabled Create CTA explaining what is missing', async () => {
+    render(<ScmCreateProject />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+
+    // Fresh wizard: platform and project name are both missing.
+    await userEvent.hover(createButton);
+    expect(
+      await screen.findByText('Please fill out all the required fields')
+    ).toBeInTheDocument();
+  });
+
   it('drops a persisted wizard on a fresh visit (no return from getting-started)', async () => {
     persistWizardSession({projectDetailsForm: {projectName: 'my-restored-name'}});
 
@@ -138,40 +151,6 @@ describe('ScmCreateProject', () => {
       await screen.findByRole('heading', {name: 'Project name'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
-  });
-
-  it('explains what is missing on the disabled Create CTA', async () => {
-    render(<ScmCreateProject />, {organization});
-
-    const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
-
-    // Fresh wizard: platform and project name are both missing.
-    await userEvent.hover(createButton);
-    expect(
-      await screen.findByText('Please fill out all the required fields')
-    ).toBeInTheDocument();
-  });
-
-  it('names the single missing field on the disabled Create CTA', async () => {
-    // All steps render at once now, so a plain restored session (platform set)
-    // is enough; no separate "revealed" state to seed.
-    persistWizardSession();
-
-    render(<ScmCreateProject />, {
-      organization,
-      initialRouterConfig: returningRouterConfig,
-    });
-
-    // Platform is restored, so the name defaults; clearing it leaves the name
-    // as the only missing field.
-    const nameInput = await screen.findByPlaceholderText('project-name');
-    await userEvent.clear(nameInput);
-
-    const createButton = screen.getByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
-    await userEvent.hover(createButton);
-    expect(await screen.findByText('Please provide a project name')).toBeInTheDocument();
   });
 
   it('restores the wizard when the return params arrive after mount', async () => {

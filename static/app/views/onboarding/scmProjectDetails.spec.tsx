@@ -157,6 +157,19 @@ describe('ScmProjectDetails', () => {
     expect(await screen.findByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
+  it('shows a tooltip on the disabled Create button explaining what is missing', async () => {
+    render(<ScmProjectDetails {...defaultProps()} />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+
+    // No platform / project name: multiple required fields missing.
+    await userEvent.hover(createButton);
+    expect(
+      await screen.findByText('Please fill out all the required fields')
+    ).toBeInTheDocument();
+  });
+
   it('create project button calls API and completes on success', async () => {
     const projectCreationRequest = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,

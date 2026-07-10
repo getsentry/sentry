@@ -66,41 +66,6 @@ const INITIAL_STATE: WizardState = {
   selectedRepository: undefined,
 };
 
-// Mirrors classic createProject's submit tooltip: name the missing field, or a
-// summary when several are missing. Transient blockers (stores loading, create
-// in flight) fall through without a message.
-function getSubmitTooltipText({
-  platform,
-  projectName,
-  team,
-  notificationChannel,
-}: {
-  notificationChannel: boolean;
-  platform: boolean;
-  projectName: boolean;
-  team: boolean;
-}): string | undefined {
-  const missingCount = [platform, projectName, team, notificationChannel].filter(
-    Boolean
-  ).length;
-  if (missingCount > 1) {
-    return t('Please fill out all the required fields');
-  }
-  if (platform) {
-    return t('Please select a platform');
-  }
-  if (projectName) {
-    return t('Please provide a project name');
-  }
-  if (team) {
-    return t('Please select a team');
-  }
-  if (notificationChannel) {
-    return t('Please provide an integration channel for alert notifications');
-  }
-  return undefined;
-}
-
 export function ScmCreateProject() {
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
@@ -269,7 +234,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     onComplete: handleComplete,
   });
 
-  const submitTooltipText = getSubmitTooltipText(form.missingFields);
+  const submitTooltipText = form.submitTooltipText;
 
   return (
     <SentryDocumentTitle title={t('Create a new project')}>

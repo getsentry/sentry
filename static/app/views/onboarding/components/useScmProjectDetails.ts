@@ -58,6 +58,38 @@ const CREATE_FAILED_EVENT = {
   'project-creation': 'project_creation.scm_project_details_create_failed',
 } as const;
 
+export function getSubmitTooltipText({
+  platform,
+  projectName,
+  team,
+  notificationChannel,
+}: {
+  notificationChannel: boolean;
+  platform: boolean;
+  projectName: boolean;
+  team: boolean;
+}): string | undefined {
+  const missingCount = [platform, projectName, team, notificationChannel].filter(
+    Boolean
+  ).length;
+  if (missingCount > 1) {
+    return t('Please fill out all the required fields');
+  }
+  if (platform) {
+    return t('Please select a platform');
+  }
+  if (projectName) {
+    return t('Please provide a project name');
+  }
+  if (team) {
+    return t('Please select a team');
+  }
+  if (notificationChannel) {
+    return t('Please provide an integration channel for alert notifications');
+  }
+  return undefined;
+}
+
 export interface ScmProjectDetailsCompletion {
   /** The created project, or the reused one on the unchanged back-nav path. */
   project: Project;
@@ -123,6 +155,8 @@ interface ScmProjectDetailsForm {
   projectName: string;
   /** Creates the project (or reuses an unchanged one) and reports completion. */
   submit: () => void;
+  /** Tooltip copy for the disabled submit button, or undefined when submittable. */
+  submitTooltipText: string | undefined;
   /** Resolved team slug (user selection, falling back to first admin team). */
   teamSlug: string;
 }
@@ -259,6 +293,8 @@ export function useScmProjectDetails({
   const isCompletingRef = useRef(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  const submitTooltipText = getSubmitTooltipText(missingFields);
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
@@ -386,6 +422,7 @@ export function useScmProjectDetails({
     notificationProps,
     isOrgMemberWithNoAccess,
     missingFields,
+    submitTooltipText,
     canSubmit,
     isBusy: isCompleting,
     error: createProjectAndRules.error,

@@ -8,7 +8,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-import {useScmProjectDetails} from './useScmProjectDetails';
+import {useScmProjectDetails, getSubmitTooltipText} from './useScmProjectDetails';
 
 const pythonPlatform: OnboardingSelectedSDK = {
   key: 'python',
@@ -18,6 +18,47 @@ const pythonPlatform: OnboardingSelectedSDK = {
   link: 'https://docs.sentry.io/platforms/python/',
   category: 'popular',
 };
+
+describe('getSubmitTooltipText', () => {
+  const none = {
+    platform: false,
+    projectName: false,
+    team: false,
+    notificationChannel: false,
+  };
+
+  it('returns undefined when nothing is missing', () => {
+    expect(getSubmitTooltipText(none)).toBeUndefined();
+  });
+
+  it('returns a summary when multiple fields are missing', () => {
+    expect(getSubmitTooltipText({...none, platform: true, projectName: true})).toBe(
+      'Please fill out all the required fields'
+    );
+  });
+
+  it('names the platform when it is the only missing field', () => {
+    expect(getSubmitTooltipText({...none, platform: true})).toBe(
+      'Please select a platform'
+    );
+  });
+
+  it('names the project name when it is the only missing field', () => {
+    expect(getSubmitTooltipText({...none, projectName: true})).toBe(
+      'Please provide a project name'
+    );
+  });
+
+  it('names the team when it is the only missing field', () => {
+    expect(getSubmitTooltipText({...none, team: true})).toBe('Please select a team');
+  });
+
+  it('names the notification channel when it is the only missing field', () => {
+    expect(getSubmitTooltipText({...none, notificationChannel: true})).toBe(
+      'Please provide an integration channel for alert notifications'
+    );
+  });
+});
 
 describe('useScmProjectDetails', () => {
   const organization = OrganizationFixture();

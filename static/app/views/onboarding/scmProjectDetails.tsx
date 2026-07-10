@@ -2,6 +2,7 @@ import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
@@ -103,15 +104,17 @@ export function ScmProjectDetails({
       <GenericFooter gap="3xl" padding="0 3xl">
         <Flex align="center">{genBackButton?.()}</Flex>
         <Flex align="center" gap="md">
-          <Button
-            variant="primary"
-            onClick={form.submit}
-            disabled={!form.canSubmit}
-            busy={form.isBusy}
-            icon={<IconProject />}
-          >
-            {t('Create project')}
-          </Button>
+          <Tooltip title={form.submitTooltipText} disabled={!form.submitTooltipText}>
+            <Button
+              variant="primary"
+              onClick={form.submit}
+              disabled={!form.canSubmit}
+              busy={form.isBusy}
+              icon={<IconProject />}
+            >
+              {t('Create project')}
+            </Button>
+          </Tooltip>
         </Flex>
       </GenericFooter>
     </Flex>
