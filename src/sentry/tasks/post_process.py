@@ -1581,6 +1581,27 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     trigger_lightweight_rca_cluster_task.delay(group.id)
 
 
+def kick_off_smart_assignment_eval(job: PostProcessJob) -> None:
+    """Sampled trigger for the smart assignment feature on new issues.
+
+    Only fires for new issues; flag / sampling / dedup gating happens in the task.
+    """
+    from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
+    from sentry.tasks.seer.smart_assignment import process_smart_assignment
+
+    if not job["group_state"]["is_new"]:
+        return
+
+    group = job["event"].group
+    if group is None:
+        return
+
+    process_smart_assignment.delay(
+        group_id=group.id,
+        trigger=SmartAssignmentTrigger.NEW_ISSUE.value,
+    )
+
+
 def _noop_siem_security_log_hook(job: PostProcessJob) -> None:
     pass
 
@@ -1612,6 +1633,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         handle_owner_assignment,
         handle_auto_assignment,
         kick_off_seer_automation,
+        kick_off_smart_assignment_eval,
         kick_off_lightweight_rca_cluster,
         process_workflow_engine,
         process_resource_change_bounds,
@@ -1641,6 +1663,7 @@ GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [
     process_snoozes,
     process_inbox_adds,
     kick_off_seer_automation,
+    kick_off_smart_assignment_eval,
     process_workflow_engine,
     process_resource_change_bounds,
     process_data_forwarding,

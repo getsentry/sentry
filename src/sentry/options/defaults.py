@@ -1190,6 +1190,14 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fraction of new issues (in flagged orgs) to run the smart-assignment eval on.
+# Sampling is deterministic per group, so an issue is consistently in or out.
+register(
+    "seer.smart_assignment.new_issue_sample_rate",
+    type=Float,
+    default=0.1,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
