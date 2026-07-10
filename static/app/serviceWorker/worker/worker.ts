@@ -107,7 +107,7 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
   console.log('On notification click:', event);
   event.notification.close();
 
-  if ('to' in event.notification.data) {
+  if ('navigateTo' in event.notification.data) {
     event.waitUntil(
       sw.clients.matchAll({type: 'window'}).then(windowClients => {
         const targetUrl = new URL(event.notification.data.url);

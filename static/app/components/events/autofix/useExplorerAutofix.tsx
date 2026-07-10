@@ -25,6 +25,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -576,12 +577,13 @@ export function useExplorerAutofix(
             type: 'event',
             name: 'autofix.startStep',
             data: {
-              organizationIdOrSlug: orgSlug,
               issueId: groupId,
+              notification: {
+                navigateTo: normalizeUrl(`/${orgSlug}/issues/${groupId}`),
+              },
+              organizationIdOrSlug: orgSlug,
               step,
-              insertIndex: startStepOptions?.insertIndex,
-              runId: startStepOptions?.runId,
-              userContext: startStepOptions?.userContext,
+              stepOptions: startStepOptions ?? {},
             },
           })
           .catch(error => {
