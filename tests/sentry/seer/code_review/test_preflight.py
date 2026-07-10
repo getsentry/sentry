@@ -29,7 +29,6 @@ class TestCodeReviewPreflightService(TestCase):
         self,
         integration_id: int | None = None,
         external_identifier: str | None = None,
-        provider: str | None = "github",
     ) -> CodeReviewPreflightService:
         return CodeReviewPreflightService(
             organization=self.organization,
@@ -38,7 +37,7 @@ class TestCodeReviewPreflightService(TestCase):
             pr_author_external_id=(
                 external_identifier if external_identifier is not None else self.external_identifier
             ),
-            provider=provider,
+            provider=self.integration.provider,
         )
 
     # -------------------------------------------------------------------------
@@ -85,7 +84,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -125,7 +124,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -152,7 +151,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -201,7 +200,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -234,7 +233,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -269,7 +268,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -317,7 +316,7 @@ class TestCodeReviewPreflightService(TestCase):
             repo=self.repo,
             integration_id=self.integration.id,
             pr_author_external_id=None,
-            provider="github",
+            provider=self.integration.provider,
         )
         result = service.check()
 
@@ -351,7 +350,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -383,7 +382,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -412,7 +411,7 @@ class TestCodeReviewPreflightService(TestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier=self.external_identifier,
-            provider="github",
+            provider=self.integration.provider,
             alias="dependabot[bot]",
         )
 

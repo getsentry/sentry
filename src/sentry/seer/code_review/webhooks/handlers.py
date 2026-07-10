@@ -92,7 +92,7 @@ def handle_webhook_event(
         repo=repo,
         integration_id=integration.id,
         pr_author_external_id=get_pr_author_id(event),
-        provider="github",
+        provider=integration.provider,
     ).check()
 
     if not preflight.allowed:

@@ -207,7 +207,7 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
                 integration_id=integration.id,
                 external_identifier=pr_author_external_id,
                 defaults={
-                    "provider": "github",
+                    "provider": integration.provider,
                     "alias": (
                         self.event_dict.get("sender", {}).get("login")
                         or self.event_dict.get("issue", {}).get("user", {}).get("login")

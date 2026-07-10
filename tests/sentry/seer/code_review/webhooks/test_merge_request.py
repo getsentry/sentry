@@ -145,7 +145,7 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier="51",
-            defaults={"alias": "root", "provider": "gitlab"},
+            defaults={"alias": "root", "provider": self.integration.provider},
         )
 
         self.repo = repo
@@ -1019,7 +1019,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             external_identifier="51",
-            defaults={"alias": "root", "provider": "gitlab"},
+            defaults={"alias": "root", "provider": self.integration.provider},
         )
         self.repo = repo
 

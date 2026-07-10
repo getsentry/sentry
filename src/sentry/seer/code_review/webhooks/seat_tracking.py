@@ -179,7 +179,7 @@ def track_gitlab_contributor_seat_processor(
         integration_id=integration.id,
         user_id=user_id,
         user_username=user_username,
-        provider="gitlab",
+        provider=integration.provider,
         logs_extra={
             "pr_number": str(iid),
             "github_event_action": object_attributes.get("action"),
@@ -244,7 +244,7 @@ def track_gitlab_contributor_action_processor(
         integration_id=integration.id,
         user_id=user_id,
         user_username=user_username,
-        provider="gitlab",
+        provider=integration.provider,
         pr_number=iid,
         is_opened=object_attributes.get("action") == "open",
         tags={"is_private": visibility_level == 0},
