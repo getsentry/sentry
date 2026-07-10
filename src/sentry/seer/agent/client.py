@@ -174,14 +174,14 @@ def get_monitoring_provider_connections(
 def get_available_monitoring_providers(
     organization: Organization,
     user_id: int,
-    connected_provider_types: set[str],
 ) -> list[dict[str, Any]]:
     """Catalog of monitoring providers the agent may propose connecting mid-run.
 
-    Includes connected providers (with `connected=True`) so the agent has a
-    coherent picture, and omits any provider the user has permanently dismissed
-    ("don't ask again"). This is a separate list from the token-bearing
-    connections payload built by `get_monitoring_provider_connections`.
+    Omits any provider the user has permanently dismissed ("don't ask again").
+    Does not mark which providers are already connected — Seer derives that from the
+    live token-bearing connections payload (built by `get_monitoring_provider_connections`),
+    which is refreshed on connect, so a stale flag can't cause a just-connected provider
+    to be re-proposed.
     """
     if not features.has("organizations:seer-infra-telemetry", organization):
         return []
@@ -212,7 +212,6 @@ def get_available_monitoring_providers(
             {
                 "provider_key": provider_type,
                 "name": provider.name,
-                "connected": provider_type in connected_provider_types,
                 "auth_method": "oauth" if is_oauth_provider else "pat",
             }
         )
@@ -757,7 +756,6 @@ class SeerAgentClient:
             available_monitoring_providers = get_available_monitoring_providers(
                 self.organization,
                 self.user.id,
-                {c["provider_key"] for c in monitoring_provider_connections},
             )
             if available_monitoring_providers:
                 chat_body["available_monitoring_providers"] = available_monitoring_providers

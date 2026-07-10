@@ -1721,28 +1721,25 @@ class TestGetAvailableMonitoringProviders(TestCase):
 
     def test_returns_empty_when_feature_disabled(self) -> None:
         with self.feature({"organizations:seer-infra-telemetry": False}):
-            assert get_available_monitoring_providers(self.organization, self.user.id, set()) == []
+            assert get_available_monitoring_providers(self.organization, self.user.id) == []
 
     def test_returns_available_providers(self) -> None:
-        result = get_available_monitoring_providers(self.organization, self.user.id, {"datadog"})
+        result = get_available_monitoring_providers(self.organization, self.user.id)
 
         by_provider = self._result_by_provider(result)
         assert set(by_provider) == {"datadog", "datadog_pat", "gcp"}
         assert by_provider["datadog"] == {
             "provider_key": "datadog",
             "name": "Datadog",
-            "connected": True,
             "auth_method": "oauth",
         }
         assert by_provider["datadog_pat"]["auth_method"] == "pat"
-        assert by_provider["datadog_pat"]["connected"] is False
         assert by_provider["gcp"]["auth_method"] == "oauth"
-        assert by_provider["gcp"]["connected"] is False
 
     def test_excludes_dismissed_provider(self) -> None:
         self._dismiss_provider("gcp")
 
-        result = get_available_monitoring_providers(self.organization, self.user.id, set())
+        result = get_available_monitoring_providers(self.organization, self.user.id)
 
         assert set(self._result_by_provider(result)) == {"datadog", "datadog_pat"}
 
@@ -1755,7 +1752,7 @@ class TestGetAvailableMonitoringProviders(TestCase):
             data={"dismissed_ts": None, "snoozed_ts": None},
         )
 
-        result = get_available_monitoring_providers(self.organization, self.user.id, set())
+        result = get_available_monitoring_providers(self.organization, self.user.id)
 
         assert "gcp" in self._result_by_provider(result)
 
@@ -1770,7 +1767,7 @@ class TestGetAvailableMonitoringProviders(TestCase):
             data={"dismissed_ts": 1234567890},
         )
 
-        result = get_available_monitoring_providers(self.organization, self.user.id, set())
+        result = get_available_monitoring_providers(self.organization, self.user.id)
 
         assert "gcp" in self._result_by_provider(result)
 
@@ -1784,6 +1781,6 @@ class TestGetAvailableMonitoringProviders(TestCase):
             data={"dismissed_ts": 1234567890},
         )
 
-        result = get_available_monitoring_providers(self.organization, self.user.id, set())
+        result = get_available_monitoring_providers(self.organization, self.user.id)
 
         assert "gcp" in self._result_by_provider(result)

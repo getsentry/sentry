@@ -258,9 +258,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                         body["monitoring_providers"] = monitoring_provider_connections
 
                     available_monitoring_providers = get_available_monitoring_providers(
-                        organization,
-                        run.user_id,
-                        {c["provider_key"] for c in monitoring_provider_connections},
+                        organization, run.user_id
                     )
                     if available_monitoring_providers:
                         body["available_monitoring_providers"] = available_monitoring_providers
