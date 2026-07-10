@@ -1730,7 +1730,6 @@ class TestGetAvailableMonitoringProviders(TestCase):
         assert set(by_provider) == {"datadog", "datadog_pat", "gcp"}
         assert by_provider["datadog"] == {
             "provider_key": "datadog",
-            "name": "Datadog",
             "auth_method": "oauth",
         }
         assert by_provider["datadog_pat"]["auth_method"] == "pat"

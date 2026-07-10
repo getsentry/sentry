@@ -209,7 +209,6 @@ def get_available_monitoring_providers(
         available_providers.append(
             {
                 "provider_key": provider_type,
-                "name": provider.name,
                 "auth_method": "oauth" if is_oauth_provider else "pat",
             }
         )
